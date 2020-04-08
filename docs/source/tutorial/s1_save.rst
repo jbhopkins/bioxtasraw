@@ -16,7 +16,7 @@ Saving analysis information
 #.  Remove the subtracted scattering profiles from RAW by selecting both of them and clicking the “Remove” button.
 
 #.  Load the saved subtracted scattering profiles back into RAW. Note that if you select one
-    in the Manipulation list, the information panel in the upper left corner of RAW populates
+    in the Profiles list, the information panel in the upper left corner of RAW populates
     with analysis information. The analysis information is saved with the scattering profile,
     so if you forget to save it in a **.csv**\ , you can load in the profiles later and do it then.
 

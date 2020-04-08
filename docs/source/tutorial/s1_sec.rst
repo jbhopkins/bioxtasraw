@@ -83,8 +83,9 @@ sequentially sampled data sets.
     *   *Tip:* Click the Home (house) button at the bottom of the plot.
 
 #.  In order to determine if we really have a single species across the peak, we will
-    calculate the |Rg| and MW as a function of frame number. Right click on the
-    filename in the Control Panel and select LC Series analysis to open the
+    calculate the |Rg| and MW as a function of frame number. Click on the "LC
+    Analysis" button at the bottom of the Series control panel or right click on the
+    filename in the Series control panel and select "LC Series analysis" to open the
     LC Series analysis panel.
 
     *   *Note:* At the top of the control panel in this window, in the 'Series info'
@@ -98,7 +99,7 @@ sequentially sampled data sets.
 
 #.  The LC Series analysis panel provides basic and advanced analysis tools for
     liquid chromatography experiments. Here we will show how to select buffer
-    and sample regions, and send final processed data to the main plot. The
+    and sample regions, and send final processed data to the Profiles plot. The
     advanced baseline correction features are discussed later.
 
     In order to calculate |Rg| and other parameters as a function of elution time
@@ -199,8 +200,8 @@ sequentially sampled data sets.
         as the buffer range, using the controls in the Start/End boxes.
 
 #.  Once you are satisfied with the region picked (should be 693-722), click the
-    'To Main Plot' button. This averages the selected region and sends the resulting
-    average to RAW's Main Plot.
+    'To Profiles Plot' button. This averages the selected region and sends the resulting
+    average to RAW's Profiles Plot.
 
     *   *Note:* RAW first averages the selected sample and buffer regions in the
         unsubtracted data, then subtracts. This avoids the possibility of correlated
@@ -219,7 +220,7 @@ sequentially sampled data sets.
         |lc_analysis_buffer_range_warning_png|
 
     *   Adjust the Sample start to include some of the non-flat region, such as
-        starting at 681. Then click 'To Main Plot'. You will see a warning window
+        starting at 681. Then click 'To Profiles Plot'. You will see a warning window
         telling you want might be wrong with the selected region. Click 'Cancel'.
 
         |lc_analysis_sample_range_warning_png|
@@ -233,12 +234,14 @@ sequentially sampled data sets.
         whether there are multiple singular values in the selected region, and
         if some of the selected frames decrease the signal to noise of the average.
 
-#.  Click 'OK' to close the window and save your analysis results. If you reopen
+#.  Click 'OK' to close the window and save your analysis results. In the Info panel
+    above the Series control panel you should see information about the series,
+    including the selected buffer and sample ranges. If you reopen
     the LC analysis window you will see the buffer and sample regions you selected
     are remembered.
 
-#.  Click on the Main Plot tab and the Manipulation tab. You should see one scattering
-    profile, the buffer subtracted data set you sent to the main plot. Carry out
+#.  Click on the Profiles plot tab and the Profiles tab. You should see one scattering
+    profile, the buffer subtracted data set you sent to the Profiles plot. Carry out
     Guinier and MW analysis.
 
     *   *Note:* The I(0) reference and absolute calibration will not be accurate for
@@ -282,12 +285,12 @@ sequentially sampled data sets.
     |lc_analysis_remove_sample_png|
 
 #.  Click the 'Auto' button to automatically find a new sample region. Click the
-    'To Main Plot' button to send that new region to the main plot.
+    'To Profiles Plot' button to send that new region to the Profiles plot.
 
     *   *Try:* You can see what the data subtracted by just the second buffer
         region looks like by removing the first buffer region, setting the buffer
         again, finding a new good sample region, and sending new region to the
-        main plot.
+        Profiles plot.
 
 #.  Cancel out of the LC Series analysis window. This will not save the changes
     you made to the buffer and sample regions.
@@ -309,26 +312,26 @@ sequentially sampled data sets.
 #.  Return to the Series control and plot panels.
 
 #.  If you want to look at either individual profiles or the average of a
-    range of profiles you can send profiles to the main plot. To select which
+    range of profiles you can send profiles to the Profiles plot. To select which
     series curve to send profiles from, star the series curve of interest.
 
     |series_star_png|
 
-#.  In the ‘Data to main plot’ section enter the frame range of interest.
+#.  In the ‘Data to Profiles plot’ section enter the frame range of interest.
     For this dataset, try the buffer range you selected: 539 to 568. Then click
-    the ‘Average’ button. That will send the average buffer to the main plot.
+    the ‘Average’ button. That will send the average buffer to the Profiles plot.
 
     *   *Try:* Send the average of the sample range you selected to the main
         plot (693 to 722), carry out the subtraction, and verify it’s the same as
-        the curve produced by the ‘To Main Plot’ button in the LC Series Analysis
+        the curve produced by the ‘To Profiles Plot’ button in the LC Series Analysis
         panel.
 
-    *   *Question:* When you send the sample average to the main plot you will
+    *   *Question:* When you send the sample average to the Profiles plot you will
         get a warning that the profiles are different. Why?
 
     |series_average_main_plot_png|
 
-#.  You can also send subtracted (or baseline corrected data) to the main plot.
+#.  You can also send subtracted (or baseline corrected data) to the Profiles plot.
     For the selected sample range, select the ‘Subtracted’ frames and send each
     individual profile to the plot using the ‘Plot’ button.
 
@@ -344,7 +347,7 @@ sequentially sampled data sets.
     the line color to your liking.
 
     *   *Tip:* You can do the same thing to adjust the colors of the scattering profiles in
-        the Manipulation and IFT control tabs.
+        the Profiles and IFT control tabs.
 
     |series_color_png|
 
@@ -363,7 +366,7 @@ sequentially sampled data sets.
     *   *Question:* Is the BSA peak one species?
 
 #.  Find the useful region of the peak (constant |Rg|/MW), and send the buffer and sample
-    data to the main plot. Carry out the standard |Rg| and MW analysis on the subtracted
+    data to the Profiles plot. Carry out the standard |Rg| and MW analysis on the subtracted
     scattering profile. For BSA, we expect |Rg| ~28 Å and MW ~66 kDa.
 
 #.  In the Series control tab, right click on the name of BSA curve in the list. Select export
@@ -382,55 +385,91 @@ sequentially sampled data sets.
 
 
 .. |series_panel_png| image:: images/series_panel.png
+    :width: 400 px
+    :target: ../_images/series_panel.png
 
 .. |series_plot_png| image:: images/series_plot.png
+    :target: ../_images/series_plot.png
 
 .. |series_plot2_png| image:: images/series_plot2.png
+    :target: ../_images/series_plot2.png
 
 .. |series_plot3_png| image:: images/series_plot3.png
+    :target: ../_images/series_plot2.png
 
 .. |lc_analysis_main_png| image:: images/lc_analysis_main.png
+    :target: ../_images/series_analysis_main.png
 
 .. |lc_analysis_buffer_auto_png| image:: images/lc_analysis_buffer_auto.png
+    :width: 300 px
+    :target: ../_images/series_panel.png
 
 .. |lc_analysis_buffer_range_png| image:: images/lc_analysis_buffer_range.png
+    :target: ../_images/lc_analysis_buffer_range.png
 
 .. |lc_analysis_buffer_adjust_png| image:: images/lc_analysis_buffer_adjust.png
+    :width: 300 px
+    :target: ../_images/lc_analysis_buffer_adjust.png
 
 .. |lc_analysis_buffer_set_png| image:: images/lc_analysis_buffer_set.png
+    :width: 300 px
+    :target: ../_images/lc_analysis_buffer_set.png
 
 .. |lc_analysis_subtracted_png| image:: images/lc_analysis_subtracted.png
+    :target: ../_images/lc_analysis_subtracted.png
 
 .. |lc_analysis_sample_auto_png| image:: images/lc_analysis_sample_auto.png
+    :width: 300 px
+    :target: ../_images/lc_analysis_sample_auto.png
 
 .. |lc_analysis_sample_region_png| image:: images/lc_analysis_sample_region.png
+    :target: ../_images/lc_analysis_sample_region.png
 
 .. |lc_analysis_sample_region_plot_png| image:: images/lc_analysis_sample_region_plot.png
+    :target: ../_images/lc_analysis_sample_region_plot.png
 
 .. |lc_analysis_sample_to_main_plot_png| image:: images/lc_analysis_sample_to_main_plot.png
+    :width: 300 px
+    :target: ../_images/lc_analysis_sample_to_main_plot.png
 
 .. |lc_analysis_buffer_range_warning_png| image:: images/lc_analysis_buffer_range_warning.png
+    :width: 500 px
+    :target: ../_images/lc_analysis_buffer_range_warning.png
 
 .. |lc_analysis_sample_range_warning_png| image:: images/lc_analysis_sample_range_warning.png
+    :width: 500 px
+    :target: ../_images/lc_analysis_sample_range_warning.png
 
 .. |lc_analysis_buffer_pick_png| image:: images/lc_analysis_buffer_pick.png
+    :width: 300 px
+    :target: ../_images/lc_analysis_buffer_pick.png
 
 .. |lc_analysis_two_buffers_png| image:: images/lc_analysis_two_buffers.png
+    :target: ../_images/lc_analysis_two_buffers.png
 
 .. |lc_analysis_remove_sample_png| image:: images/lc_analysis_remove_sample.png
+    :width: 300 px
+    :target: ../_images/lc_analysis_remove_sample.png
 
 .. |series_star_png| image:: images/series_star.png
     :width: 400 px
+    :target: ../_images/series_star.png
 
 .. |series_average_main_plot_png| image:: images/series_average_main_plot.png
     :width: 400 px
+    :target: ../_images/series_average_main_plot.png
 
 .. |series_profile_main_plot_png| image:: images/series_profile_main_plot.png
     :width: 400 px
+    :target: ../_images/series_profile_main_plot.png
 
 .. |series_color_png| image:: images/series_color.png
+    :width: 400 px
+    :target: ../_images/series_color.png
 
 .. |series_line_props_png| image:: images/series_line_props.png
+    :width: 400 px
+    :target: ../_images/series_line_props.png
 
 
 .. |Rg| replace:: R\ :sub:`g`

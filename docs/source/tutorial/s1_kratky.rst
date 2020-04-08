@@ -40,7 +40,7 @@ be found here and references therein: `http://www.bioisis.net/tutorial/21 <http:
 
 #.  SAXS data can be presented on an arbitrary scale, which is why these two profiles have
     intensity that is much larger than the lysozyme and GI data (which is on an absolute scale).
-    Use the triangle button for each item in the manipulation menu to show more options. Hide one
+    Use the triangle button for each item in the Profiles list to show more options. Hide one
     of the newly loaded data sets, and adjust the scale factor on the other until you can comfortably
     see it and your lysozyme and GI data. Repeat the scale adjustment for the other data set.
 

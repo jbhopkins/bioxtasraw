@@ -8,7 +8,7 @@ automatically when scattering profiles are averaged. This can be useful when you
 with data that may show changes in scattering from radiation damage or other possible sources.
 
 #.  Clear any data loaded into RAW. Load all of the profiles in the **Tutorial_Data/damage_data**
-    folder into the main plot. Show only the top plot.
+    folder into the Profiles plot. Show only the top plot.
 
     *   *Tip:* In the Files tab, click the “Clear All” button.
 
@@ -75,18 +75,20 @@ with data that may show changes in scattering from radiation damage or other pos
 
 
 .. |similarity_main_png| image:: images/similarity_main.png
-
+    :target: ../_images/similarity_main.png
 
 .. |similarity_warning_png| image:: images/similarity_warning.png
-
+    :width: 500 px
+    :target: ../_images/similarity_warning.png
 
 .. |similarity_window_png| image:: images/similarity_window.png
-
+    :width: 600 px
+    :target: ../_images/similarity_window.png
 
 .. |similarity_window2_png| image:: images/similarity_window2.png
-
+    :target: ../_images/similarity_window2.png
 
 .. |similarity_highlight_png| image:: images/similarity_highlight.png
-
+    :target: ../_images/similarity_highlight.png
 
 .. |Rg| replace:: R\ :sub:`g`
