@@ -43,8 +43,8 @@ Windows 7, 8.1, and 10 install from source instructions
 #.  Download RAW from sourceforge (
     `https://sourceforge.net/projects/bioxtasraw <https://sourceforge.net/projects/bioxtasraw>`_)
 
-    *   Go to the Files tab on the linked website and download the :file:`RAW-{x}.y.z-Source.zip`
-        file, where :file:`{x}.{y}.{z}` is the version number (for example, 1.0.0).
+    *   Go to the Files tab on the linked website and download the :file:`RAW-x.y.z-Source.zip`
+        file, where :file:`x.y.z` is the version number (for example, 1.0.0).
 
 #.  Expand the downloaded zip file into the downloads folder
 

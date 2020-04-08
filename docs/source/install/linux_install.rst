@@ -14,7 +14,7 @@ Here you can find information on:
 .. toctree::
    :maxdepth: 1
 
-   linux_prebuilt
+   Using a prebuilt .deb installer (recommended) <linux_prebuilt>
    linux_gen
    linux_miniconda
    linux_shortcut

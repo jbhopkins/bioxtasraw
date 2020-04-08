@@ -3,7 +3,7 @@ Installation
 .. _install:
 
 RAW can be downloaded from `sourceforge <https://sourceforge.net/projects/bioxtasraw/>`_.
-There are prebuilt installers for windows (.msi), mac (.dmg), and Debian/Ubuntu (.deb).
+There are prebuilt installers for Windows (.msi), MacOs (.dmg), and Debian/Ubuntu (.deb).
 Installation on other Linux distributions requires building from source.
 
 .. raw:: html

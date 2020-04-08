@@ -33,7 +33,7 @@ General instructions for installing from source (advanced users)
     *   dbus-python
 
 #.  Download RAW source code from sourceforge (
-    `"https://sourceforge.net/projects/bioxtasraw/files <"https://sourceforge.net/projects/bioxtasraw/files>`_)
+    `https://sourceforge.net/projects/bioxtasraw/files <https://sourceforge.net/projects/bioxtasraw/files>`_)
 
 #.  Extract RAW to a directory of your choice.
 

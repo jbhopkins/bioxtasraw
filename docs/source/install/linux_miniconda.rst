@@ -40,7 +40,10 @@ Linux install from source instructions
 
 #.  Download RAW source code from sourceforge
 
-    *   `"https://sourceforge.net/projects/bioxtasraw/files <"https://sourceforge.net/projects/bioxtasraw/files>`_
+    *   `https://sourceforge.net/projects/bioxtasraw/files <https://sourceforge.net/projects/bioxtasraw/files>`_
+
+    *   Go to the linked website and download the :file:`RAW-x.y.z-Source.zip`
+        file, where :file:`x.y.z` is the version number (for example, 1.0.0).
 
 #.  Expand the RAW download to your location of choice.
 
