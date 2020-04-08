@@ -80,7 +80,7 @@ be found here and references therein: `http://www.bioisis.net/tutorial/21 <http:
     *   *Tip:* You can click on the colored line in the Color column to
         change the color of an item on the plot.
 
-    |100002010000010E0000005F5824E2A36886EADC_png|
+    |kratky_select_png|
 
 #.  Right click on the plot and select “Export Data As CSV” to save the dimensionless data
     for further processing or plotting with another program.
@@ -88,17 +88,23 @@ be found here and references therein: `http://www.bioisis.net/tutorial/21 <http:
 #.  Click the Close button to close the Normalized Kratky Plot window.
 
 
-
-
 .. |kratky_png| image:: images/kratky.png
+    :target: ../_images/kratky.png
 
 .. |scale_png| image:: images/scale.png
+    :width: 400 px
+    :target: ../_images/scale.png
 
 .. |kratky_norm_autorg| image:: images/kratky_norm_autorg.png
-
-.. |100002010000010E0000005F5824E2A36886EADC_png| image:: images/100002010000010E0000005F5824E2A36886EADC.png
+    :width: 400 px
+    :target: ../_images/kratky_norm_autorg.png
 
 .. |kratky_norm_png| image:: images/kratky_norm.png
+    :target: ../_images/kratky_norm.png
+
+.. |kratky_select_png| image:: images/kratky_select.png
+    :width: 300 px
+    :target: ../_images/kratky_norm_autorg.png
 
 
 .. |Rg| replace:: R\ :sub:`g`

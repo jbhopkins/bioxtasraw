@@ -33,3 +33,5 @@ Saving analysis information
 
 
 .. |save_analysis_png| image:: images/save_analysis.png
+    :width: 300 px
+    :target: ../_images/save_analysis.png

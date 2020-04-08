@@ -8,13 +8,21 @@ RAW provides four forms of molecular weight analysis:
 *   From the adjusted Porod volume using the method of Fisher et al.
 *   From the value of I(0) on an absolute scale.
 
-#.  In RAW, right click on the subtracted GI scattering profile in the manipulation panel
-    and select “Molecular weight.” At the top of the panel is a description of the methods
-    used, and the results of your Guinier fit. All four methods require a good Guinier fit,
-    so you can use that button to redo the fit if necessary. In the lower part of the panel,
-    the results of the four estimates for MW are shown.
+#.  In RAW, right click on the subtracted GI scattering profile in the Profiles panel
+    and select “Molecular weight.” Alternatively click on the "Mol. Weight" button
+    at the bottom of the Profiles panel.
+
+    |mw_open_png|
+
+#.  At the top of the panel are the results of the Guinier fit. All four methods
+    require a good Guinier fit, so you can use that button to redo the fit if
+    necessary. In the lower part of the panel, the results of the four estimates
+    for MW are shown.
 
     *   *Note:* Neither the I(0) Ref. MW panel nor the Abs. MW panel should be reporting a MW.
+
+    *   *Tip:* To learn more about any of the methods, lick on the "More Info"
+        button.
 
     |mw_png|
 
@@ -29,9 +37,20 @@ RAW provides four forms of molecular weight analysis:
 
     |mw_vc_png|
 
+#.  Click on the "Show Details" for the Vp MW panel. You'll notice that both Vp MW
+    and Vc MW have a "cutoff" selection. At higher q you can start to get
+    scattering from flexibility or intra-molecular features that may reduce the
+    reliability of the MW estimate. RAW automatically cuts off the scattering profile
+    used based on the size of the object. You can change the cutoff if you need to.
+
+    |mw_cutoff_png|
+
 #.  Click the “OK” button to save your analysis.
 
     *   *Note:* The “Cancel” button discards the analysis.
+
+    *   *Tip:* After clicking "OK" you can now click on the GI profile in the
+        Profiles control panel and see the MW you just found in the Info panel.
 
 #.  Repeat the MW analysis for the lysozyme sample, which had a concentration of 4.27 mg/ml.
     The expected MW of lysozyme is 14.3 kDa.
@@ -104,8 +123,18 @@ This method can yield inaccurate results if:
 *   Your molecule is not a protein (e.g. RNA/DNA or a protein-nucleic acid complex).
 
 
-
-.. |mw_vc_png| image:: images/mw_vc.png
-
+.. |mw_open_png| image:: images/mw_open.png
+    :width: 400 px
+    :target: ../_images/mw_open.png
 
 .. |mw_png| image:: images/mw.png
+    :width: 500 px
+    :target: ../_images/mw.png
+
+.. |mw_vc_png| image:: images/mw_vc.png
+    :width: 300 px
+    :target: ../_images/mw_vc.png
+
+.. |mw_cutoff_png| image:: images/mw_cutoff.png
+    :width: 600 px
+    :target: ../_images/mw_cutoff.png
