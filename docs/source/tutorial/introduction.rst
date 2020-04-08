@@ -31,9 +31,12 @@ This tutorial covers SAXS data processing with RAW. You will learn how to:
 those who do not already have a configuration file.
 
 
+This tutorial is focused on how to use RAW, it is not necessarily a tutorial
+on best practices for SAXS data processing.
+
 Requirements
 ^^^^^^^^^^^^
-*  BioXTAS RAW >= v1.6.0 (most recent is best).
+*  BioXTAS RAW >= v2.0.0 (most recent is best).
 
     *   :ref:`Install instructions <install>`
 
@@ -55,6 +58,9 @@ Requirements
 
 Other useful materials
 ^^^^^^^^^^^^^^^^^^^^^^^
+#.  `Video lectures from the BioCAT Everything BioSAXS 5 workshop, <https://www.youtube.com/playlist?list=PLbPNI520xTsEYbJk8V0BNQ461xnG6tpRW>`_
+    which can help you learn more about best practices for SAXS data processing.
+
 #.  An overview and tutorial of RAW produced by Jesse Hopkins for SBGrid, which can be viewed here:
     `https://youtu.be/XGnJDs3N2MI <https://youtu.be/XGnJDs3N2MI>`_
 
@@ -79,9 +85,8 @@ in how to set up RAW to calibrate your data, you do not need to look at
 
 
 RAW depends on user feedback to get better. If you have questions, find bugs,
-or think a part of this tutorial is unclear, please let the developers know.
-The best way to do this is via the RAW google group:
-`http://bit.ly/rawhelp <http://bit.ly/rawhelp>`_
+or think a part of this tutorial is unclear, :ref:`please let the developers know.
+<contactus>`
 
 
 You can find additional developer contact information on the RAW website:

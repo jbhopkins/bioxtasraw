@@ -13033,11 +13033,11 @@ class InformationPanel(scrolled.ScrolledPanel):
         guinier_sub_sizer = wx.BoxSizer(wx.VERTICAL)
 
         guinier_sub_info_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        guinier_sub_info_sizer.Add(wx.StaticText(guinier_box, label='qRg_min:'),
+        guinier_sub_info_sizer.Add(wx.StaticText(guinier_box, label='q_min*Rg:'),
             border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         guinier_sub_info_sizer.Add(qrg_min, border=2,
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        guinier_sub_info_sizer.Add(wx.StaticText(guinier_box, label='qRg_max:'),
+        guinier_sub_info_sizer.Add(wx.StaticText(guinier_box, label='q_max*Rg:'),
             border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         guinier_sub_info_sizer.Add(qrg_max, border=2,
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)

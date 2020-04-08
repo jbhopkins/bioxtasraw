@@ -6,12 +6,20 @@ Recall Guinier’s approximation at low-*q*\ : :math:`I(q)\approx I(0) \exp(-R_g
 
 |Rg| and I(0) can be determined by performing a linear fit in the Guinier plot (a plot of
 :math:`\ln(I)` vs. :math:`q^2`). The fitting region should normally have :math:`q_{max}R_g<1.3`
-for globular proteins. This fitting region is called the "Guinier region."
+for globular proteins or :math:`q_{max}R_g<1.0` for rod-like proteins. This
+fitting region is called the "Guinier region."
 
 
 #.  In RAW, right click (ctrl click on macs without a right mouse button) on the
-    subtracted GI scattering profile in the Manipulation list and select "Guinier fit".
-    In the plots on the right, the top plot shows you the Guinier plot and the fit,
+    subtracted GI scattering profile in the Profiles list and select "Guinier fit".
+    The Guinier fit window will open.
+
+    *   *Note:* You can also click the 'Guinier' button at the bottom of the Profiles
+        control panel.
+
+    |guinier_open_png|
+
+#.  In the Guinier window, the top plot shows you the Guinier plot and the fit,
     while the bottom plot shows you the residual of the fit.
 
     *   *Note:* RAW automatically tries to find the best Guinier region for you
@@ -21,14 +29,15 @@ for globular proteins. This fitting region is called the "Guinier region."
         then |Rg| is in Å), while the two :math:`qR_g` boxes give, left to right,
         :math:`q_{min}R_g` and :math:`q_{max}R_g` respectively.
 
-    |gi_guinier_png|
+    |guinier_gi_png|
 
-#.  In the "Control" panel, you’ll see that n_min is now 6. This means RAW has
-    cut off the first six points of the scattering profile in the fit. Use the
-    arrow buttons next to the n_min box to adjust that to zero. Check whether
-    the |Rg| changes.
+#.  In the "Control" panel, you’ll see that n_min is 0. This means RAW has
+    used all of the low q for the Guinier fit. You can see a little dip in the
+    residual at the lowest q values, use the arrow buttons next to
+    the n_min box to adjust it up several points to remove that dip and check whether
+    the |Rg| changes. Once you're done return n_min to 0.
 
-#.  In the "Parameters" panel, note that :math:`q_{max}R_g` is only ~1.27. Recall that for globular
+#.  In the "Parameters" panel, note that :math:`q_{max}R_g` is only ~1.14. Recall that for globular
     proteins like GI, it is typical to have :math:`q_{max}R_g` ~1.3. Adjust n_max until that is
     the case, watching what happens to the |Rg| and the residual.
 
@@ -45,10 +54,17 @@ for globular proteins. This fitting region is called the "Guinier region."
 
 #.  Click the "OK" button to keep the results.
 
-    *   *Checkpoint:* If you now select the GI scattering profile, in the information panel
-        at the top you should see the |Rg| and I(0) that you just found.
-
     *   *Note:* Clicking the "Cancel" button will discard the results.
+
+#.  If you now select the GI scattering profile, in the information panel above
+    the control panel you should see the |Rg| and I(0) that you just found.
+
+    |info_panel_png|
+
+    *   *Tip:* Click on the triangle to expand the Guinier info section and see more details
+        on the fit.
+
+    |info_expand_png|
 
 #.  Repeat the Guinier analysis for lysozyme.
 
@@ -94,10 +110,23 @@ shifts as the linear region of the Guinier approximation shifts.
 |lys_guinier_png|
 
 
-.. |gi_guinier_png| image:: images/guinier_gi.png
+.. |guinier_open_png| image:: images/guinier_open.png
+    :width: 400 px
+    :target: ../_images/guinier_open.png
 
+.. |guinier_gi_png| image:: images/guinier_gi.png
+    :target: ../_images/guinier_gi.png
+
+.. |info_panel_png| image:: images/info_panel.png
+    :width: 400 px
+    :target: ../_images/info_panel.png
+
+.. |info_expand_png| image:: images/info_expand.png
+    :width: 400 px
+    :target: ../_images/info_expand.png
 
 .. |lys_guinier_png| image:: images/guinier_lys.png
+    :target: ../_images/guinier_lys.png
 
 
 .. |Rg| replace:: R\ :sub:`g`

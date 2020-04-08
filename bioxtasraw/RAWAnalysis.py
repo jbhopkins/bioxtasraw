@@ -819,8 +819,8 @@ class GuinierControlPanel(wx.Panel):
 
         self.infodata = {'I0' : ('I0 :', self.NewControlId(), self.NewControlId()),
                         'Rg' : ('Rg :', self.NewControlId(), self.NewControlId()),
-                        'qRg_max': ('qRg_max :', self.NewControlId()),
-                        'qRg_min': ('qRg :', self.NewControlId()),
+                        'qRg_max': ('q_max*Rg', self.NewControlId()),
+                        'qRg_min': ('q_min*Rg', self.NewControlId()),
                         'rsq': ('r^2 (fit) :', self.NewControlId()),
                          }
 
@@ -883,15 +883,17 @@ class GuinierControlPanel(wx.Panel):
 
     def createQRgInfo(self):
 
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer = wx.FlexGridSizer(cols=2, hgap=5, vgap=5)
 
-        txt = wx.StaticText(self, -1, self.infodata['qRg_min'][0])
+        txt1 = wx.StaticText(self, -1, self.infodata['qRg_min'][0])
+        txt2 = wx.StaticText(self, -1, self.infodata['qRg_max'][0])
         ctrl1 = wx.TextCtrl(self, self.infodata['qRg_min'][1], '0')
         ctrl2 = wx.TextCtrl(self, self.infodata['qRg_max'][1], '0')
 
-        sizer.Add(txt, 0, wx.RIGHT, 7)
-        sizer.Add(ctrl1,0, wx.RIGHT, 5)
-        sizer.Add(ctrl2,0)
+        sizer.Add(txt1)
+        sizer.Add(txt2)
+        sizer.Add(ctrl1)
+        sizer.Add(ctrl2)
 
         return sizer
 
