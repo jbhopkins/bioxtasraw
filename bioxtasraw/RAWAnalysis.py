@@ -5042,9 +5042,6 @@ class DammifRunPanel(wx.Panel):
         if align and self.align_file_name != '':
             filenames = [os.path.split(self.align_file_name)[1]]
 
-            centered_align_file = '{}_centered{}'.format(os.path.splitext(os.path.split(self.align_file_name)[1]))
-            filenames.append(centered_align_file)
-
             filenames.extend(['{}-1_aligned.pdb'.format(key) for key in dammif_names])
 
             if nruns > 1 and damaver:
@@ -7340,6 +7337,9 @@ class DenssRunPanel(wx.Panel):
 
         if align and self.align_file_name != '':
             filenames = [os.path.split(self.align_file_name)[1]]
+
+            centered_align_file = '{}_centered{}'.format(*os.path.splitext(os.path.split(self.align_file_name)[1]))
+            filenames.append(centered_align_file)
 
             filenames.extend(['{}-1_aligned.mrc'.format(key) for key in denss_names])
 
