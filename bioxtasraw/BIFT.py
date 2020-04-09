@@ -102,8 +102,8 @@ def bift_inner_loop(f, p, B, alpha, N, sum_dia):
 
         #some kind of renormalization of the p vector
         sigma[1:-1] = np.abs(p[1:-1]+1e-10)
-        p[1:-1][p[1:-1]<0] = p[1:-1][p[1:-1]<0]*-1+1e-10
-        f[1:-1][f[1:-1]<0] = f[1:-1][f[1:-1]<0]*-1+1e-10
+        p[1:-1][p[1:-1]<=0] = p[1:-1][p[1:-1]<=0]*-1+1e-10
+        f[1:-1][f[1:-1]<=0] = f[1:-1][f[1:-1]<=0]*-1+1e-10
 
         #Apply smoothness constraint
         for k in range(2, N-1):
