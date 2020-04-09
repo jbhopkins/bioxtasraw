@@ -26,7 +26,6 @@ import functools
 import threading
 import os
 import platform
-import time
 
 import scipy.optimize
 import scipy.interpolate

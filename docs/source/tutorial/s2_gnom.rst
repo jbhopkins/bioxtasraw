@@ -11,9 +11,9 @@ in the GNOM program from the ATSAS package. We will use RAW to run GNOM. Note th
 #.  Open RAW. The install instructions contain information on installing and running RAW.
     If RAW is already open, clear all loaded data in RAW.
 
-#.  Open the **lysozyme.dat** file in the **Tutorial_Data/reconstruction_data** folder.
+#.  Open the **glucose_isomerase.dat** file in the **Tutorial_Data/reconstruction_data** folder.
 
-#.  Right click on the lysozyme profile in the Manipulation list and select “IFT (GNOM)”.
+#.  Right click on the glucose_isomerase profile in the Profiles list and select “IFT (GNOM)”.
 
     *   *Note:* RAW will automatically try to find an appropriate maximum dimension (|Dmax|)
         by running the DATGNOM program from the ATSAS software package.
@@ -35,13 +35,15 @@ in the GNOM program from the ATSAS package. We will use RAW to run GNOM. Note th
         called the regularized intensity.
 
 #.  On the left of the GNOM panel are the controls and the resulting parameters. You can alter
-    the data range used, the |Dmax| value, and the alpha value used.
+    the data range used, the |Dmax| value, whether the solution is forced to zero at
+    |Dmax|, and the alpha value used.
 
-    *   *Tip:* The Guinier and P(r) |Rg| and I(0) values should agree well. The total estimate
-        varies from 0 to 1, with 1 being ideal. GNOM also provides an estimate of the quality of
+    *   *Tip:* The Guinier and P(r) |Rg| and I(0) values should agree well for
+        mostly rigid particles. The total estimate varies from 0 to 1, with 1
+        being ideal. GNOM also provides an estimate of the quality of
         the solution. You want it to be at least a “REASONABLE” solution.
 
-#.  Vary the |Dmax| value up and down in the range of 30-50 in steps of 1. Observe what
+#.  Try varying the |Dmax| value up and down in the range of 80-110. Observe what
     happens to the P(r) and the quality of the solution.
 
     *   *Note:* |Dmax| is in units of Å.
@@ -53,7 +55,7 @@ in the GNOM program from the ATSAS package. We will use RAW to run GNOM. Note th
         #.  Minimal oscillation.
 
 #.  Return the |Dmax| value to that found by DATGNOM by clicking the “DATGNOM” button.
-    |Dmax| should be 40. By default, GNOM forces the P(r) function to zero at |Dmax|.
+    |Dmax| should be 101. By default, GNOM forces the P(r) function to zero at |Dmax|.
     For a high quality data set and a good choice of |Dmax|, P(r) should go to zero
     naturally. Change the “Force to 0 at Dmax” option to “N”.
 
@@ -62,10 +64,23 @@ in the GNOM program from the ATSAS package. We will use RAW to run GNOM. Note th
 #.  Reset it so that the P(r) function is again being forced to zero
     at |Dmax|.
 
-#.  Set the |Dmax| back to 40, and click OK. This saves the results into the RAW IFT panel.
+#.  RAW makes it easy to truncate your data to a q\ :sub:`max` of 8/|Rg|,
+    which is the recommended maximum q value for bead model reconstructions
+    with DAMMIF/N. Check the 'Cut to q_max=8/Rg' box to truncate the data.
 
-#.  Click on the IFT Control and Plot tabs. This will display the GNOM output you just generated.
-    Save the **lysozyme.out** item in the **reconstruction_data** folder.
+    |gnom_cutrg_png|
+
+    *   *Note:* The q\ :sub:`max` goes from 0.283 to 0.238 when you check the box.
+    *   *Tip:* For electron density reconstruction with DENSS use the full
+        available q range.
+
+#.  Click "OK" to exit the panel and save the IFT to the RAW IFTs panel and plot.
+
+    *   *Tip:* After exiting the IFT panel, note that data from the IFT shows
+        up in the Information panel.
+
+#.  Click on the IFTs Control and Plot tabs. This will display the GNOM output you just generated.
+    Save the **glucose_isomerase.out** item in the **reconstruction_data** folder.
 
     *   *Note:* This saved file is all of the GNOM output, in the GNOM format. It can be used
         as input for any program that needs a GNOM **.out** file.
@@ -73,7 +88,11 @@ in the GNOM program from the ATSAS package. We will use RAW to run GNOM. Note th
 
 
 .. |gnom_panel_png| image:: images/gnom_panel.png
+    :target: ../_images/gnom_panel.png
 
+.. |gnom_cutrg_png| image:: images/gnom_cutrg.png
+    :width: 300 px
+    :target: ../_images/gnom_cutrg.png
 
 .. |Rg| replace:: R\ :sub:`g`
 

@@ -1,5 +1,7 @@
 3D reconstruction with bead models – DAMMIF/N and DAMAVER in RAW
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _dammif:
+
 Shape reconstruction in SAXS is typically done using bead models (also called dummy atom models,
 or DAMs). The most common program used to generate these shapes is DAMMIF (and, to a lesser
 degree, DAMMIN) from the ATSAS package. We will use RAW to run DAMMIF/N. Because the shape
@@ -9,17 +11,17 @@ the ATSAS package is the most commonly used program for building consensus shape
 :ref:`ATSAS installed <atsas>` to do this part of the tutorial.
 
 
-#.  Clear all of the data in RAW. Load the **lysozyme.out** file that you saved in the
+#.  Clear all of the data in RAW. Load the **glucose_isomerase.out** file that you saved in the
     **reconstruction_data** folder in a previous part of the tutorial.
 
     *   *Note:* If you haven’t done the previous part of the tutorial, or forgot to save
-        the results, you can find the **lysozyme.out** file in the
-        **reconstruction_data/lysozyme_complete** folder.
+        the results, you can find the **glucose_isomerase.out** file in the
+        **reconstruction_data/gi_complete** folder.
 
-#.  Right click on the **lysozyme.out** item in the IFT list. Select the “Bead Model (DAMMIF/N)” option.
+#.  Right click on the **glucose_isomerase.out** item in the IFT list. Select the “Bead Model (DAMMIF/N)” option.
 
 #.  Running DAMMIF generates a lot of files. Click the “Select/Change Directory” button,
-    make a new folder in the **reconstruction_data** directory called **lysozyme_dammif** and select
+    make a new folder in the **reconstruction_data** directory called **gi_dammif** and select
     that folder.
 
 #.  Change the number of reconstructions to 5.
@@ -37,6 +39,13 @@ the ATSAS package is the most commonly used program for building consensus shape
 
 #.  If it's not already checked, check the "Align and cluster envelopes (damclust)"
     checkbox.
+
+#.  RAW can align the dammif/n output with a PDB structure using SUPCOMB from the
+    ATSAS package. To do so, check the 'Align output to PDB' box and select
+    the **1XIB_4mer.pdb** file in the **reconstruction_data/gi_complete** folder.
+
+    *   *Tip:* If you're not sure if you selected the correct file, hovering
+        your mouse over the filename will show the full path to the file.
 
     |dammif_run_tab_png|
 
@@ -83,8 +92,6 @@ the ATSAS package is the most commonly used program for building consensus shape
         probable' model, this can be used as your final bead model instead of
         doing a dammin refinement.
 
-    *   *Note:* Above we show the results for 15 runs instead of the 5 in the tutorial.
-
 #.  Also, each individual model has a tab which shows the data, the model fit,
     and the residuals.
 
@@ -92,7 +99,7 @@ the ATSAS package is the most commonly used program for building consensus shape
 
 #.  The results summary shown in Summary tab is automatically saved as a
     **<prefix>_dammif_results.csv** csv file, e.g. for this data as
-    **lysozyme_dammif_results.csv**. All the plots shown on the individual model
+    **glucose_isomerase_dammif_results.csv**. All the plots shown on the individual model
     tabs are automatically saved as a multi-page pdf file with the same name.
 
 #.  Click on the Viewer tab to open the model viewer.
@@ -104,7 +111,7 @@ the ATSAS package is the most commonly used program for building consensus shape
 
 #.  Click and drag the model to spin it.
 
-    *   Note: For lysozyme, it should look more or less like a flattened sphere.
+    *   Note: For glucose_isomerase, it should look more or less like a flattened sphere.
 
 #.   Right click and drag the model to zoom in and out.
 
@@ -115,40 +122,72 @@ the ATSAS package is the most commonly used program for building consensus shape
 
 #.  The results from individual DAMMIF runs are saved in the selected output folder
     with the name **<prefix>_xx**, where *xx* is the run number: 01, 02, etc. For
-    this tutorial, that would be **lysozyme_01**, **lysozyme_02**, and so on. The
+    this tutorial, that would be **glucose_isomerase_01**, **glucose_isomerase_02**, and so on. The
     different files produced are described in the `DAMMIF manual <https://www.embl-hamburg.de/biosaxs/manuals/dammif.html#output>`_.
 
     *   *Note:* Generally, the file of interest is the **-1.pdb** file, in this case
-        **lysozyme_01-1.pdb**, **lysozyme_02-1.pdb**, etc.
+        **glucose_isomerase_01-1.pdb**, **glucose_isomerase_02-1.pdb**, etc.
 
 #.  If averaging was done with DAMAVER, the results are saved in the selected output
-    folder with the given prefix, in this case **lysozyme**. The output
+    folder with the given prefix, in this case **glucose_isomerase**. The output
     files generated are described in the `DAMAVER manual <https://www.embl-hamburg.de/biosaxs/manuals/damaver.html>`_.
 
     *   *Note:* Generally, the files of interest are the generated pdbs:
         **<prefix>_damaver.pdb** and **<prefix>_damfilt.pdb**. For this tutorial, those
-        would be **lysozyme_damaver.pdb** and **lysozyme_damfilt.pdb**.
+        would be **glucose_isomerase_damaver.pdb** and **glucose_isomerase_damfilt.pdb**.
 
 #.  If clustering was done with DAMCLUST, the results are saved in the selected output
-    folder with the given prefix (for this tutorial, **lysozyme**). The files generated
+    folder with the given prefix (for this tutorial, **glucose_isomerase**). The files generated
     are described in the `DAMCLUST manual <https://www.embl-hamburg.de/biosaxs/manuals/damclust.html#output>`_.
 
 #.  If refinement was done with DAMMIN, the results are saved in the selected output
-    folder as **refine_<prefix>**, e.g. for this tutorial **refine_lysozyme**. The files
+    folder as **refine_<prefix>**, e.g. for this tutorial **refine_glucose_isomerase**. The files
     generated are described in the `DAMMIN manual <https://www.embl-hamburg.de/biosaxs/manuals/dammin.html#output>`_.
 
     *   *Note:* Generally, the file of interest is the **-1.pdb** file, in this case
-        **refine_lysozyme-1.pdb**.
+        **refine_glucose_isomerase-1.pdb**.
+
+#.  If alignment to a reference PDB was done with SUPCOMB, the files aligned
+    depend on what other processing was done.
+
+    *   If refinement was done, then there will be a single file named
+        **refine_<prefilx>_-1_aligned.pdb**. For this tutorial,
+        **refine_glucose_isomerase-1_aligned.pdb**.
+
+    *   If no refinement is done but averaging is done, then the
+        damaver and damfilt results are aligned, as well as the most
+        probable model (the blue highlighted model in the summary panel).
+        The associated filenames would be **<prefix>_damaver_aligned.pdb**,
+        **<prefix>_damfilt_aligned.pdb**, and **<prefix>_##_-1_aligned.pdb**
+        where ## is the model number of the most probable model. For
+        this tutorial, **glucose_isomerase_damaver_aligned.pdb**,
+        **glucose_isomerase_damfilt_aligned.pdb**, and
+        **glucose_isomerase_##-1_aligned.pdb**.
+
+    *   If no refinement is done but clustering is done, then the representative
+        models of each cluster is aligned. The associated filenames would be
+        **<prefix>_##-1_aligned.pdb** where ## is the model number of the
+        representative model. For this tutorial, that is
+        **glucose_isomerase_##-1_aligned.pdb**.
+
+    *   If no refinement, averaging, or clustering is done, then every calculated
+        model is aligned. The associated filenames would be
+        **<prefix>_##-1_aligned.pdb** where ## is the model number of a model.
+        For this tutorial, that is **glucose_isomerase_##-1_aligned.pdb**.
 
 
 
 .. |dammif_run_tab_png| image:: images/dammif_run_tab.png
+    :target: ../_images/dammif_run_tab.png
 
 .. |dammif_results_png| image:: images/dammif_results.png
+    :target: ../_images/dammif_results.png
 
 .. |dammif_results_fit_png| image:: images/dammif_results_fit.png
+    :target: ../_images/dammif_results_fit.png
 
 .. |dammif_viewer_png| image:: images/dammif_viewer.png
+    :target: ../_images/dammif_viewer.png
 
 .. |Rg| replace:: R\ :sub:`g`
 

@@ -9,16 +9,16 @@ shapes. The more possible shapes that could have generated the scattering profil
 ambiguity there will be in the reconstruction. We will use RAW to run AMBIMETER. Note that you need
 :ref:`ATSAS installed <atsas>` to do this part of the tutorial.
 
-#.  Clear all of the data in RAW. Load the **lysozyme.out** file that you saved in the
+#.  Clear all of the data in RAW. Load the **glucose_isomerase.out** file that you saved in the
     **reconstruction_data** folder in a previous part of the tutorial.
 
     *   *Note:* If you haven’t done the previous part of the tutorial, or forgot to save
-        the results, you can find the **lysozyme.out** file in the **reconstruction_data/lysozyme_complete**
+        the results, you can find the **glucose_isomerase.out** file in the **reconstruction_data/gi_complete**
         folder.
 
     |ift_panel_png|
 
-#.  Right click on the **lysozyme.out** item in the IFT list. Select the “AMBIMETER” option.
+#.  Right click on the **glucose_isomerase.out** item in the IFT list. Select the “AMBIMETER” option.
 
 #.  The new window will show the results of AMBIMETER. It includes the number of shape categories
     that are compatible with the scattering profile, the ambiguity score (a-score) (log base 10 of the
@@ -39,7 +39,13 @@ ambiguity there will be in the reconstruction. We will use RAW to run AMBIMETER.
 
 #.  Click “OK” to exit the AMBIMETER window.
 
+    *   *Tip:* After exiting the AMBIMETER window the results can be seen in the
+        Information panel when the IFT is selected in the IFTs list.
+
 
 .. |ift_panel_png| image:: images/ift_panel.png
+    :target: ../_images/ift_panel.png
 
 .. |ambimeter_panel_png| image:: images/ambimeter_panel.png
+    :width: 400 px
+    :target: ../_images/ambimeter_panel.png

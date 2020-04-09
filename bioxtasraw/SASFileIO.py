@@ -3062,8 +3062,8 @@ def save_series_sasm(profile_group, sasm_data, dataset_name, descrip='',
 def save_series_sasm_list(profile_group, sasm_list, frame_num_offset=0):
 
     if len(sasm_list) > 1:
-        save_single_q_raw = all([np.all(sasm['q']==sasm_list[0]['q']) for sasm in sasm_list[1:]])
-        save_single_q = all([np.all(sasm['q_raw']==sasm_list[0]['q_raw']) for sasm in sasm_list[1:]])
+        save_single_q = all([np.all(sasm['q']==sasm_list[0]['q']) for sasm in sasm_list[1:]])
+        save_single_q_raw = all([np.all(sasm['q_raw']==sasm_list[0]['q_raw']) for sasm in sasm_list[1:]])
     else:
         save_single_q_raw = False
         save_single_q = False
@@ -3076,12 +3076,12 @@ def save_series_sasm_list(profile_group, sasm_list, frame_num_offset=0):
             'buffer, will have a separate q vector in that dataset).')
 
     if save_single_q_raw:
-        if not 'raw' in profile_group.keys():
-            raw_group = profile_group.create_group('raw')
-        else:
-            raw_group = profile_group['raw']
-
         if not np.all(sasm_list[0]['q'] == sasm_list[0]['q_raw']):
+            if not 'raw' in profile_group.keys():
+                raw_group = profile_group.create_group('raw')
+            else:
+                raw_group = profile_group['raw']
+
             q_raw = sasm_list[0]['q_raw']
             q_raw_dataset = raw_group.create_dataset('q', data=q_raw)
             q_raw_dataset.attrs['description'] = ('the q vector for all numbered (e.g. '

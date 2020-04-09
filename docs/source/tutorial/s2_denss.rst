@@ -9,17 +9,23 @@ density. Bead models typically only have two (molecule and solvent) or three bea
 and so typically fail to reconstruct these complex objects. `DENSS <http://denss.org>`_ has
 been fully implemented in RAW and will be used to reconstruct these electron densities.
 
-#.  Clear all of the data in RAW. Load the **lysozyme.out** file that you saved in the
+#.  Clear all of the data in RAW. Load the **glucose_isomerase.ift** file that you saved in the
     **reconstruction_data** folder in a previous part of the tutorial.
 
     *   *Note:* If you haven’t done the previous part of the tutorial, or forgot to save
-        the results, you can find the **lysozyme.out** file in the
-        **reconstruction_data/lysozyme_complete** folder.
+        the results, you can find the **glucose_isomerase.ift** file in the
+        **reconstruction_data/gi_complete** folder.
 
-#.  Right click on the **lysozyme.out** item in the IFT list. Select the “Electron Density (DENSS)” option.
+    *   *Note:* You could run DENSS on the **glucose_isomerase.out** file that you used
+        for :ref:`dammif <dammif>`. However, that profile was truncated to a maximum
+        q value of 8/Rg, ~0.23. For DENSS you want to use the full q range of the data. As the
+        .ift file was generated using all the q range available, it is convenient to
+        use it rather than generating another .out file.
+
+#.  Right click on the **glucose_isomerase.ift** item in the IFT list. Select the “Electron Density (DENSS)” option.
 
 #.  Running DENSS generates a lot of files. Click the “Select/Change Directory” button,
-    make a new folder in the **reconstruction_data** directory called **lysozyme_denss** and select
+    make a new folder in the **reconstruction_data** directory called **gi_denss** and select
     that folder.
 
 #.  Change the number of reconstructions to 5 and the mode to Fast.
@@ -29,6 +35,13 @@ been fully implemented in RAW and will be used to reconstruct these electron den
 
     *   *Note:* For final reconstructions for a paper, DENSS should be run in Slow mode.
         For this tutorial, or for obtaining an initial quick look at results, Fast mode is fine.
+
+#.  RAW can align the DENSS output with a PDB structure. To do so, check the
+    Align output to PDB/MRC' box and select the **1XIB_4mer.pdb** file in
+    the **reconstruction_data/gi_complete** folder.
+
+    *   *Tip:* If you're not sure if you selected the correct file, hovering
+        your mouse over the filename will show the full path to the file.
 
     |denss_run_tab_png|
 
@@ -49,9 +62,10 @@ been fully implemented in RAW and will be used to reconstruct these electron den
 
     |denss_results_tab_png|
 
-#.  The results panel summarizes the results of the reconstruction runs. At the top of the
-    panel there is the ambimeter evaluation of how ambiguous the reconstructions might be
-    (see earlier tutorial section). If averaging was run there is an estimate of the
+#.  The results panel summarizes the results of the reconstruction runs. If you are using
+    a .out file, then at the top of the panel there is the ambimeter evaluation of
+    how ambiguous the reconstructions might be (see earlier tutorial section).
+    If averaging was run there is an estimate of the
     reconstruction resolution based on the Fourier shell correlation. In the models
     section there are several tabs. The summary tab shows the chi^2, |Rg|, support volume,
     and RSC to the reference model. If any model was not included in the averaging it
@@ -100,17 +114,38 @@ been fully implemented in RAW and will be used to reconstruct these electron den
     output folder as **<prefix>_refine.mrc**. For this tutorial that would be
     **lysozyme_refine.mrc**.
 
+#.  If alignment to a reference model was done, the files aligned
+    depend on what other processing was done.
+
+    *   If refinement was done, then there will be a single file named
+        **<prefilx>_refine_aligned.mrc**. For this tutorial,
+        **glucose_isomerase_refine_aligned.mrc**.
+
+    *   If no refinement is done but averaging is done, then the
+        averaged moel is aligned. The associated filenames would
+        be **<prefix>_average_aligned.mrc**. For this tutorial,
+        **glucose_isomerase_averaged_aligned.mrd**.
+
+    *   If no refinement or averaging is done, then every calculated
+        model is aligned. The associated filenames would be
+        **<prefix>_##_aligned.mrc** where ## is the model number of a model.
+        For this tutorial, that is **glucose_isomerase_##_aligned.mrc**.
+
 *Note:* **.mrc** files can be opened in Chimera and pyMOL. For tips about how to
 visualize the density and align it with known structures see the appropriate
 sections here: `http://www.tdgrant.com/denss/tips/ <http://www.tdgrant.com/denss/tips/>`_.
 
 
 .. |denss_run_tab_png| image:: images/denss_run_tab.png
+    :target: ../_images/denss_run_tab.png
 
 .. |denss_results_tab_png| image:: images/denss_results_tab.png
+    :target: ../_images/denss_results_tab.png
 
 .. |denss_model_tab_png| image:: images/denss_model_tab.png
+    :target: ../_images/denss_model_tab.png
 
 .. |denss_fsc_png| image:: images/denss_fsc.png
+    :target: ../_images/denss_fsc.png
 
 .. |Rg| replace:: R\ :sub:`g`
