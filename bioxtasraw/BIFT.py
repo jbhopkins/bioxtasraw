@@ -26,6 +26,7 @@ import functools
 import threading
 import os
 import platform
+import time
 
 import scipy.optimize
 import scipy.interpolate
@@ -38,6 +39,7 @@ if raw_path not in os.sys.path:
 
 import bioxtasraw.SASM as SASM
 
+@jit(nopython=True, cache=True)
 def createTransMatrix(q, r):
     """
     Matrix such that when you take T dot P(r) you get I(q),
@@ -48,6 +50,7 @@ def createTransMatrix(q, r):
 
     return T
 
+@jit(nopython=True, cache=True)
 def distDistribution_Sphere(i0_meas, N, dmax):
     """Creates the initial P(r) function for the prior as a sphere.
 
@@ -78,6 +81,7 @@ def distDistribution_Sphere(i0_meas, N, dmax):
 
     return p, r
 
+@jit(nopython=True, cache=True)
 def makePriorDistribution(i0, N, dmax, dist_type='sphere'):
     if dist_type == 'sphere':
         p, r = distDistribution_Sphere(i0, N, dmax)
@@ -100,10 +104,12 @@ def bift_inner_loop(f, p, B, alpha, N, sum_dia):
     while ite < maxit and not (ite > minit and dotsp > xprec):
         ite = ite + 1
 
-        #some kind of renormalization of the p vector
+        #Apply positivity constraint
         sigma[1:-1] = np.abs(p[1:-1]+1e-10)
-        p[1:-1][p[1:-1]<=0] = p[1:-1][p[1:-1]<=0]*-1+1e-10
-        f[1:-1][f[1:-1]<=0] = f[1:-1][f[1:-1]<=0]*-1+1e-10
+        p_neg_idx = p[1:-1]<=0
+        f_neg_idx = f[1:-1]<=0
+        p[1:-1][p_neg_idx] = p[1:-1][p_neg_idx]*-1+1e-10
+        f[1:-1][f_neg_idx] = f[1:-1][f_neg_idx]*-1+1e-10
 
         #Apply smoothness constraint
         for k in range(2, N-1):
@@ -121,8 +127,7 @@ def bift_inner_loop(f, p, B, alpha, N, sum_dia):
         for k in range(1, N):
             fsumi = 0
 
-            for j in range(1, N):
-                fsumi = fsumi + B[k, j]*f[j]
+            fsumi = np.dot(B[k,1:N], f[1:N])
 
             fsumi = fsumi - B[k, k]*f[k]
 
@@ -134,16 +139,17 @@ def bift_inner_loop(f, p, B, alpha, N, sum_dia):
         gradsi = -2*(f[1:-1]-p[1:-1])/sigma[1:-1]
         gradci = 2*(np.sum(B[1:-1,1:-1]*f[1:-1], axis=1)-sum_dia[1:-1])
 
-        wgrads = np.sqrt(np.abs(np.sum(gradsi**2)))
-        wgradc = np.sqrt(np.abs(np.sum(gradci**2)))
+        wgrads = np.sqrt(np.dot(gradsi, gradsi))
+        wgradc = np.sqrt(np.dot(gradci, gradci))
 
         if wgrads*wgradc == 0:
             dotsp = 1
         else:
-            dotsp = np.sum(gradsi*gradci)/(wgrads*wgradc)
+            dotsp = np.dot(gradsi, gradci)/(wgrads*wgradc)
 
     return f, p, sigma, dotsp, xprec
 
+@jit(nopython=True, cache=True)
 def getEvidence(params, q, i, err, N):
 
     alpha, dmax = params
@@ -157,9 +163,11 @@ def getEvidence(params, q, i, err, N):
     p[0] = 0
     f = np.zeros_like(p)
 
-    norm_T = T/err[:,None]  #Slightly faster to create this first
+    # norm_T = T/err[:,None]  #Slightly faster to create this first
+    norm_T = T/err.reshape((err.size, 1))  #Slightly faster to create this first
 
-    sum_dia = np.sum(norm_T*i[:,None], axis=0)   #Creates YSUM in BayesApp code, some kind of calculation intermediate
+    # sum_dia = np.sum(norm_T*i[:,None], axis=0)   #Creates YSUM in BayesApp code, some kind of calculation intermediate
+    sum_dia = np.sum(norm_T*i.reshape((i.size, 1)), axis=0)   #Creates YSUM in BayesApp code, some kind of calculation intermediate
     sum_dia[0] = 0
 
     B = np.dot(T.T, norm_T)     #Creates B(i, j) in BayesApp code
@@ -180,8 +188,15 @@ def getEvidence(params, q, i, err, N):
     c = np.sum((i[1:-1]-np.sum(T[1:-1,1:-1]*f[1:-1], axis=1))**2/err[1:-1])/i.size
 
     u = np.sqrt(np.abs(np.outer(f[1:-1], f[1:-1])))*B[1:-1, 1:-1]/alpha
-    u[np.diag_indices(u.shape[0])] = u[np.diag_indices(u.shape[0])]+1
-    w = np.linalg.svd(u, compute_uv = False)
+
+    # u[np.diag_indices(u.shape[0])] = u[np.diag_indices(u.shape[0])]+1
+
+    for j in range(0, u.shape[0]):
+        u[j, j] = u[j, j]+1
+
+    # w = np.linalg.svd(u, compute_uv = False)
+    _, w, _ = np.linalg.svd(u)
+
     rlogdet = np.sum(np.log(np.abs(w)))
 
     evidence = -np.log(abs(dmax))+(alpha*s-0.5*c*i.size)-0.5*rlogdet-np.log(abs(alpha))
