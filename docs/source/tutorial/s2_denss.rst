@@ -1,5 +1,6 @@
 3D reconstruction with electron density – DENSS in RAW
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _denss_s2:
 
 A new, exciting method for doing 3D shape reconstructions in SAXS yields actual
 electron density, rather than bead models. There are many potential advantages to this,

@@ -9,11 +9,14 @@ the :ref:`RAW tutorial data <tutorialdata>`.
 Select a section below to view the tutorial, or use the next and back buttons at
 the bottom of the page to navigate through it in order.
 
+*Note:* This tutorial assumes you are familiar with basic operations in RAW
+such as loading data. If that is not the case, please first do the RAW Tutorial
+Sections 1 and 2.
+
 .. toctree::
    :maxdepth: 2
 
    s3_autocenter
-   s3_mancenter
    s3_masking
    s3_normalization
    s3_abswater

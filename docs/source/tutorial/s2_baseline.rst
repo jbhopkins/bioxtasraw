@@ -130,8 +130,6 @@ Here we provide detail only where the proceedures are different.
         in the baseline. If they aren't, RAW will give a warning. Try changing the
         end region to ~800-820 to see such a warning.
 
-    |lc_analysis_baseline_set_png|
-
 #.  Zoom in on the base of the peak in the baseline corrected dataset. You should
     see that the baseline is actually a little overcorrected. This is because
     the integral baseline correction only allows for positive or no change in the

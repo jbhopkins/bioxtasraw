@@ -267,6 +267,3 @@ components from overlapping SEC-SAXS peaks.
 
 .. |efa_profiles_png| image:: images/efa_profiles.png
     :target: ../_images/efa_profiles.png
-
-
-.. |1000020100000320000002A2D123A77E23D67C60_png| image:: images/1000020100000320000002A2D123A77E23D67C60.png

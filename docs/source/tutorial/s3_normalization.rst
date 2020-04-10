@@ -3,8 +3,7 @@ Setting normalization and other options
 .. _s3p4:
 
 This section teaches you how to set up normalization by a beamstop counter, and
-other options. It assumes you have completed :ref:`Parts 1 <s3p1>` (or :ref:`2 <s3p2>`\ )
-and :ref:`3 <s3p3>`.
+other options. It assumes you have completed :ref:`Parts 1 <s3p1>` and :ref:`2 <s3p3>`\ .
 
 #.  Open the Options window by selecting “Advanced Options” in the Options menu.
 
@@ -13,7 +12,7 @@ and :ref:`3 <s3p3>`.
 
     |config_norm_load_image_png|
 
-#.  In the window that pops up, select the **AgBeh_A1_43_001_0000.tiff** file. Click
+#.  In the window that pops up, select the **agbe_008_0001.tiff** file. Click
     the Open button.
 
     *   *Note:* You can select any image of the appropriate type, not just the behenate.
@@ -26,27 +25,33 @@ and :ref:`3 <s3p3>`.
 #.  Click on the Normalization section in the options list on the left.
 
 #.  In the fields at the bottom of the Normalization panel, make sure “/” is selected
-    in the left dropdown menu, and enter I3/200000 in the large field.
+    in the left dropdown menu, and enter I1 in the large field.
 
     *   *Note:* It is typical in SAXS to normalize by the transmitted intensity. At the
-        CHESS G1 beamline, the beamstop counter is name I3, which is why we are using
+        BioCAT beamline, the beamstop counter is name I1, which is why we are using
         that name in the normalization expression.
 
-    |config_norm_values_png|
+    *   *Tip:* You can use the large field as a dropdown menu to see and select
+        available normalization counters.
 
 #.  Click the Calc button to evaluate the expression for the counter values loaded
-    in the Image/Header Format tab. You should get a value of 0.02404.
+    in the Image/Header Format tab. You should get a value of 7200.0.
 
 #.  Click the Add button to add the expression to the normalization list.
 
-#.  Make sure the “Enable Normalization” checkbox at the top of the page is checked.
+    |config_norm_values_png|
+
+#.  You should now see the normalization in the normaliation list.
+    Make sure the “Enable Normalization” checkbox at the top of the page is checked.
+
+    |config_norm_enable_png|
 
 #.  Click OK to exit the options window.
 
-#.  In the file list, select the **AgBeh_A1_43_001_0000.tiff** file and click the Plot
-    button. You will see a curve get plotted in the top panel of the Main Plot.
+#.  In the file list, select the **agbe_008_0001.tiff** file and click the Plot
+    button. You will see a curve get plotted in the top panel of the Profiles plot.
 
-#.  Click on the manipulation tab. You will see a data item loaded in the manipulation list.
+#.  Click on the Profiles tab. You will see a profile loaded in the Profiles list.
 
     |config_norm_start_point1_png|
 
@@ -55,15 +60,20 @@ and :ref:`3 <s3p3>`.
     is the peak of the curve on the main plot. This should be around point 13 (depending
     on your mask).
 
+    *   *Tip:*  It is easier to see the start point if you put the plot on
+        a log-log scale.
+
     |config_norm_start_point2_png|
 
 #.  Open the Options window as in Step 1.
 
-#.  Click on the Calibration section in the options list on the left. Set “Start plots
+#.  Click on the Radial Averaging section in the options list on the left. Set “Start plots
     at q-point number” to the number you just found in Step 13.
 
     *   *Note:* This makes it so that every curve loaded from now on will by default
         not display the first n points, which are covered by the beamstop.
+
+    *   *Tip:* You can do the same for the end point.
 
     |config_norm_start_point3_png|
 
@@ -72,14 +82,11 @@ and :ref:`3 <s3p3>`.
     the `SASBDB <https://www.sasbdb.org/>`_). To start, click on the Metadata
     section in the options list on the left of the Options window.
 
-#.  In the 'Key' field enter 'Instrument'. In the 'Value' field enter 'MacCHESS
-    BioSAXS beamline'.
-
-    |config_norm_metadata1_png|
+#.  In the 'Key' field enter 'Detector'. In the 'Value' field enter 'Pilatus3 X 1M'.
 
 #.  Click the Add button.
 
-    |config_norm_metadata2_png|
+    |config_norm_metadata1_png|
 
 #.  Click the OK button to exit the options window and save your changes.
 
@@ -91,21 +98,36 @@ and :ref:`3 <s3p3>`.
 #.  These settings can now be used to process images, and can be reloaded when you
     open RAW by selecting “Load Settings” from the File menu.
 
+**Additional Tips**
+
+There are other settings you may find it useful to set.
+
+#.  In the "General Settings" section you can set "Hide controls on
+    profile items for new plots". This means that when you load a profile
+    item it starts with the extra controls (such as q min and q max) hidden.
+
 
 
 .. |config_norm_load_image_png| image:: images/config_norm_load_image.png
+    :target: ../_images/config_norm_load_image.png
 
 .. |config_norm_apply_png| image:: images/config_norm_apply.png
+    :target: ../_images/config_norm_apply.png
 
 .. |config_norm_values_png| image:: images/config_norm_values.png
+    :target: ../_images/config_norm_values.png
+
+.. |config_norm_enable_png| image:: images/config_norm_enable.png
+    :target: ../_images/config_norm_enable.png
 
 .. |config_norm_start_point1_png| image:: images/config_norm_start_point1.png
+    :target: ../_images/config_start_point1.png
 
 .. |config_norm_start_point2_png| image:: images/config_norm_start_point2.png
+    :target: ../_images/config_start_point2.png
 
 .. |config_norm_start_point3_png| image:: images/config_norm_start_point3.png
+    :target: ../_images/config_start_point3.png
 
 .. |config_norm_metadata1_png| image:: images/config_norm_metadata1.png
-
-.. |config_norm_metadata2_png| image:: images/config_norm_metadata2.png
-    :width: 600 px
+    :target: ../_images/config_norm_metadata1.png

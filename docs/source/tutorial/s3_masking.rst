@@ -3,34 +3,37 @@ Masking
 .. _s3p3:
 
 This section teaches you how to mask out unwanted portions of your image, such as the
-beamstop and bad detector pixels. It assumes you have just done :ref:`Part 1 <s3p1>`
-or :ref:`2 <s3p2>`. If not, open RAW as in Step 1 and set your data folder as
-in Step 6 of :ref:`Part 1 <s3p1>`.
+beamstop and bad detector pixels. It assumes you have just done :ref:`Part 1 <s3p1>`.
+If not, open RAW as in Step 1 and set your data folder as in Step 8 of :ref:`Part 1 <s3p1>`.
 
-#.  In the Files tab, select the **MT2_48_001_0000.tiff** file and click the show image button.
+#.  In the Files tab, select the **water1_014_0001.tiff** file and click the show image button.
 
-#.  Set the image upper limit to 50.
+    *   *Tip:* It's usually best to make a mask on a water or buffer image. If you do it
+        on instrument background, which can be quite low, it can be hard to tell
+        where the edges of the beamstop are. If you do it on a bright image,
+        like a silver behenate or glassy carbon, you can get fooled by a small
+        amount of bleed onto the pixels at the edge of the beamstop and not
+        make a large enough mask.
+
+
+#.  Set the image upper limit to 30 on a linear scale.
 
 #.  Open the masking panel by clicking “Masking” in the Tools menu.
 
 #.  Zoom in around the beamstop.
 
-    *   *Note:* The beamstop is the blue rectangular area on the left edge of the detector
+    *   *Note:* The beamstop is the blue bar in the upper right of the detector.
 
-#.  Select the Pan tool and left click and drag the image to the right until you can
+#.  Select the Pan tool and left click and drag the image to the left until you can
     see a blank (white) canvas to the left of the beamstop.
 
     |masking_panel_png|
 
-#.  Click on the rectangle mask drawing button and click on a point in the white
-    part of the canvas just above the edge of the beamstop.
+#.  Click on the circle mask drawing button and click on a point at the center of
+    the circular part of the beamstop.
 
-#.  Move the cursor until the red outline of the rectangle covers the beamstop from
-    top to bottom, and out to the right edge of the middle of the beamstop. Click
-    again to make the rectangle mask.
-
-    *   *Note:* There will still be a bit of the beamstop at the bottom right edge that
-        is not covered by this rectangle.
+#.  Move the cursor until the red outline of the circle covers the beamstop. Click
+    again to make the circle mask.
 
     *   *Tip:* If you mess up drawing the mask, click on the masked region (shaded red)
         and click your backspace/delete key to remove it.
@@ -42,22 +45,25 @@ in Step 6 of :ref:`Part 1 <s3p1>`.
         the x and y coordiantes of the bottom left corner and the width and
         height of the rectangle then clicking 'Create'.
 
-    |masking_rectangle_png|
+#.  If the mask is not perfectly centered, click and drag it until it's centere.d
 
-#.  This beamstop is quite square, so a simple square mask works. A circle is also easy to draw:
+#.  If the mask is too large or small once centered, right click and click resize.
+    Then move the mouse pointer to resize the mask, and click once to set the new size.
 
-    *   Click on the Circle mask drawing button.
-    *   Click at the center
-    *   Move the mouse out to make it the size you want, and click again to finish the circle.
-    *   *Tip:* Like a rectangle, you can also draw a circle of defined position and size
-        by entering the radius, x center, and y center, and click the 'Create' button.
+    |masking_circle_png|
 
-#.  If you need to draw another (non-square or circle) shape, you would do the following:
+#.  Click on the polygon mask drawing button. Click on a point circular part of the
+    beamstop near the top right edge. Click again near the start of the bar.
+    Click again just past the top of the bar in the white canvas. Click again
+    in the white canvas just below the bottom of the bar. Click again near the
+    start of the bar on the bottom side near the circular region. Click again
+    in the circular part of the beamstop near the bottom edge. Right click to
+    finish the map.
 
-    *   Click on the Polygon mask drawing button. Left click to place the first vertex.
-    *   Continue left clicking to place more vertices to draw the desired shape.
-    *   Right click to connect the last point you put down to the first point, and finish
-        drawing the polygon.
+    *   *Tip:* Each click in a polygon mask adds a new point, which defines a
+        line segement between it and the previous point.
+
+    |masking_circle_png|
 
 #.  Zoom back out to the full extent of the image.
 
@@ -72,36 +78,54 @@ in Step 6 of :ref:`Part 1 <s3p1>`.
 
     |masking_thresh_png|
 
+#.  Next we need to mask the gaps between detector panels. Verify that the "pilatus_1m"
+    detector is selected in the "Mask detector" control. Then click "Create".
+
+    *   This control automatically creates masks of panel gaps for any known
+        detector type.
+
+    |masking_panel_gap_png|
+
 #.  In the masking panel, make sure that “Beamstop mask” is selected in the Mask Creation
-    dropdown menu. Click the set button to set the mask you just made as the beamstop mask.
+    dropdown menu. Click the "Set" button to set the mask you just made as the beamstop mask.
 
     |masking_set_png|
 
 #.  Click the OK button to exit the masking panel.
 
+#.  If you wish to edit the current mask, reopen the Masking panel. Then
+    click the "Show" button to show the current mask. From there you can make changes,
+    then click "Set" again.
+
 
 **Additional Tips**
 
-#.  If you have a larger detector with panel gaps, the Mask detector function in
-    the Automatic section of the Mask Drawing tools will generate a gap mask for many
-    different detectors.
+#.  Don't be confused by the "Save to File" and "Load from file" buttons.
+    These save the mask to a separate file or load a mask from a separate file.
+    These do not save or set the mask in RAW. To do that you need to use the
+    "Set" button as described above. The mask is then saved with the settings.
 
-#.  You can resize rectangle and circle masks by right clicking on them and selecting resize.
-
-#.  You can 'invert' a mask, which for a beamstop mask means it will only include pixels
-    in the mask. This can be useful if, for example, you have a circular shadow from
-    your flight tube on your detector.
-
-#.  If you know the mask parameters, you can put in coordinates for a circle or rectangle
-    and create a mask with a known position and size.
+.. |masking_image_1_png| image:: images/masking_image_1.png
+    :target: ../_images/masking_image_1.png
 
 .. |masking_panel_png| image:: images/masking_panel.png
+    :target: ../_images/masking_panel.png
 
-.. |masking_rectangle_png| image:: images/masking_rectangle.png
-    :width: 400 px
+.. |masking_circle_png| image:: images/masking_circle.png
+    :width: 600 px
+    :target: ../_images/masking_circle.png
+
+.. |masking_polygon_png| image:: images/masking_polygon.png
+    :width: 600 px
+    :target: ../_images/masking_polygon.png
 
 .. |masking_thresh_png| image:: images/masking_thresh.png
     :width: 400 px
+    :target: ../_images/masking_thresh.png
+
+.. |masking_panel_gap_png| image:: images/masking_panel_gap.png
+    :width: 400 px
+    :target: ../_images/masking_panel_gap.png
 
 .. |masking_set_png| image:: images/masking_set.png
-    :width: 400 px
+    :target: ../_images/masking_set.png
