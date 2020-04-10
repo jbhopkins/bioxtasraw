@@ -7574,6 +7574,11 @@ class DenssRunPanel(wx.Panel):
         full_msg = ''
         while True:
             if stop_event.wait(0.001):
+                try:
+                    msg = out_queue.get_nowait()
+                    full_msg = full_msg + msg
+                except queue.Empty:
+                    pass
                 wx.CallAfter(den_window.AppendText, full_msg)
                 break
             try:
@@ -7944,7 +7949,7 @@ class DenssRunPanel(wx.Panel):
                     rhos = np.array([rho])
                     sides = np.array([side])
 
-                    items_to_align['{}'.format(i+1)] = (rhos, sides)
+                    items_to_align['{:02d}'.format(i+1)] = (rhos, sides)
 
         if not self.single_proc:
             align_q = self.my_manager.Queue()
@@ -9269,8 +9274,14 @@ class DenssAlignFrame(wx.Frame):
         full_msg = ''
         while True:
             if stop_event.wait(0.001):
+                try:
+                    msg = out_queue.get_nowait()
+                    full_msg = full_msg + msg
+                except queue.Empty:
+                    pass
                 wx.CallAfter(den_window.AppendText, full_msg)
                 break
+
             try:
                 msg = out_queue.get_nowait()
                 num_msg = num_msg + 1
@@ -9339,6 +9350,9 @@ class DenssAlignFrame(wx.Frame):
             DENSS.write_mrc(aligned[0], sides[0], outname)
 
             avg_q.put_nowait('DENSS Alignment finished\n')
+
+        else:
+            avg_q.put_nowait('DENSS Alignment failed\n')
 
         stop_event.set()
         self.cleanupDENSS()

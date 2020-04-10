@@ -12122,6 +12122,9 @@ class MaskingPanel(scrolled.ScrolledPanel):
             cent = (x_c, y_c)
             wx.CallAfter(self.image_panel.drawCenterPatch, cent)
 
+        detector = self._main_frame.raw_settings.get('Detector')
+        self.auto_det_type.SetStringSelection(detector)
+
     def _createFileDialog(self, mode):
 
         file = None
@@ -12739,6 +12742,7 @@ class CenteringPanel(scrolled.ScrolledPanel):
         samp_detc_dist = self._main_frame.raw_settings.get('SampleDistance')
         det_tilt = self._main_frame.raw_settings.get('DetectorTilt')
         det_tilt_plane_rot = self._main_frame.raw_settings.get('DetectorTiltPlanRot')
+        detector = self._main_frame.raw_settings.get('Detector')
 
         c = scipy.constants.c
         h = scipy.constants.h
@@ -12755,6 +12759,9 @@ class CenteringPanel(scrolled.ScrolledPanel):
         self._energy_text.SetValue(str(energy))
         self._det_tilt_text.SetValue(str(det_tilt))
         self._det_tilt_plane_text.SetValue(str(det_tilt_plane_rot))
+
+        det_win = wx.FindWindowById(self.pyfai_autofit_ids['detector'], self)
+        det_win.SetStringSelection(detector)
 
         self._center = [x_center, y_center]
         self.updateCenterTextCtrls()
