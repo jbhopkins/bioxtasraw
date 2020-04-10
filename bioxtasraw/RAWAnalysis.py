@@ -4422,7 +4422,7 @@ class DammifFrame(wx.Frame):
     def __init__(self, parent, title, iftm, manip_item):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(675, client_display.Width), min(900, client_display.Height))
+        size = (min(725, client_display.Width), min(900, client_display.Height))
 
         try:
             wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
@@ -6729,7 +6729,7 @@ class DenssFrame(wx.Frame):
     def __init__(self, parent, title, iftm, manip_item):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(700, client_display.Width), min(900, client_display.Height))
+        size = (min(725, client_display.Width), min(900, client_display.Height))
 
         try:
             wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)

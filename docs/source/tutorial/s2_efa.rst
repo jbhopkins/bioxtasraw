@@ -9,18 +9,19 @@ decomposition (SVD) can be used to help determine how many distinct scatterers a
 SEC-SAXS peak. Evolving factor analysis (EFA) is an extension of SVD that can extract individual
 components from overlapping SEC-SAXS peaks.
 
-#.  Clear all of the data in RAW. Load the **phehc_sec.sec** file in the **sec_data** folder.
+#.  Clear all of the data in RAW. Load the **phehc_sec.hdf5** file in the **sec_data** folder.
 
     *   *Note:* The data were provided by the Ando group at Cornell University
         and is some of the data used in the paper: *Domain Movements upon Activation of
         Phenylalanine Hydroxylase Characterized by Crystallography and Chromatography-Coupled
         Small-Angle X-ray Scattering*\ . Steve P. Meisburger, Alexander B. Taylor, Crystal
         A. Khan, Shengnan Zhang, Paul F. Fitzpatrick, and Nozomi Ando. Journal of the
-        American Chemical Society 2016 138 (20), 6506-6516. DOI: 10.1021/jacs.6b01563
+        American Chemical Society 2016 138 (20), 6506-6516. `DOI: 10.1021/jacs.6b01563
+        <https://dx.doi.org/10.1021/jacs.6b01563>`_
 
     |efa_series_plot_png|
 
-#.  Right click on the **phehc_sec.sec** item in the Series list. Select the “SVD” option.
+#.  Right click on the **phehc_sec.hdf5** item in the Series list. Select the “SVD” option.
 
 #.  The SVD window will be displayed. On the left are controls, on the right are plots of
     the value of the singular values and the first autocorrelation of the left and right
@@ -68,9 +69,13 @@ components from overlapping SEC-SAXS peaks.
 
 #.  Close the SVD window by clicking the OK button.
 
-#.  We will now use EFA to attempt to extract out the two scattering components in the
-    main peak in this data. Right click on the **phehc_sec.sec** item in the Series list.
+#.  Having determined there are multiple components in the peak, We will now use
+    EFA to attempt to extract out the two scattering components in the
+    main peak in this data. Right click on the **phehc_sec.hdf5** item in the Series list.
     Select the “EFA” option.
+
+    *   *Tip:* You can skip right to using EFA if you know you have multiple components
+        in your peak. It does not require the SVD window to have been open first.
 
     |efa_panel_png|
 
@@ -107,7 +112,7 @@ components from overlapping SEC-SAXS peaks.
 
 #.  In the User Input panel, tweak the “Forward” value start frames so that the frame
     number, as indicated by the open circle on the plot, aligns with where the singular
-    value first starts to increase quickly. This should be around 147, 164, and 324.
+    value first starts to increase quickly. This should be around 147, 164, and 323.
 
     *   *Note:* For the Forward EFA plot, SVD is run on just the first two frames, then
         the first three, and so on, until all frames in the range are included. As more
@@ -118,7 +123,7 @@ components from overlapping SEC-SAXS peaks.
         frame ~147, we see the first singular value (the singular value with index 0,
         labeled SV 0 on the plot) start to strongly increase, showing that we have gained
         a scattering component. We see SV 1 start to increase at ~164, indicating another
-        scattering component starting to be present in the scattering profile.
+        scattering component starting to be present in the data.
 
 #.  In the User Input panel, tweak the “Backward” value start frames so that the frame
     number, as indicated by the open circle on the plot, aligns with where the singular
@@ -154,12 +159,8 @@ components from overlapping SEC-SAXS peaks.
         ways, either using other methods of deconvolving the peak, other biophysical or
         biochemical data, or both!
 
-#.  Fine tune the ranges using the controls in the “Component Range Controls” box. Adjust the
-    start of Range 2 down until it overlaps with Range 1.
-
-    *   *Question:* What is the effect on the chi-squared plot?
-
-#.  Adjust the starts and ends of Range 0 and the start of Range 1 by a few points
+#.  Fine tune the ranges using the controls in the “Component Range Controls” box.
+    Adjust the starts and ends of Range 0 and the start of Range 1 by a few points
     until the spikes in the chi-squared plot go away. After these adjustments, Range 0
     should be about 147 to 197, Range 1 from 161 to 324, and Range 2 from 323 to 380.
 
@@ -199,26 +200,26 @@ components from overlapping SEC-SAXS peaks.
 #.  Recheck all of the C>=0 controls. You have now verified, as much as you can, that
     the EFA analysis is giving you reasonable results.
 
-    *   *Reminder:* Here are the verification steps we have carried out, and you should carry
-        out every time you do EFA:
+#.  *Reminder:* Here are the verification steps we have carried out, and you should carry
+    out every time you do EFA:
 
-            #.  Confirm that your selected ranges correspond to the start points of the
-                Forward and Backward EFA values (Steps 12-13).
+        #.  Confirm that your selected ranges correspond to the start points of the
+            Forward and Backward EFA values (Steps 12-13).
 
-            #.  Confirm that your chi-squared plot is close to 1, without any major
-                spikes (Step 21).
+        #.  Confirm that your chi-squared plot is close to 1, without any major
+            spikes (Step 21).
 
-            #.  Confirm that your concentrations are not significantly altered by
-                constraining the concentration to be positive (Steps 22-23).
+        #.  Confirm that your concentrations are not significantly altered by
+            constraining the concentration to be positive (Steps 22-23).
 
 #.  Click the “Save EFA Data (not profiles)” to save the EFA data, including the SVD,
     the Forward and Backward EFA data, the chi-squared, and the concentration, along
     with information about the selected ranges and the rotation method used.
 
-#.  Click the “Done” button to send the scattering profiles to the Main Plot.
+#.  Click the “Done” button to send the scattering profiles to the Profiles Plot.
 
-#.  In the main RAW window, go to the Manipulation control tab and the Main plot. If
-    it is not already, put the Main plot on a semi-Log or Log-Log scale.
+#.  In the main RAW window, go to the Profiles control tab and the Profiles plot. If
+    it is not already, put the Profiles plot on a semi-Log or Log-Log scale.
 
     |efa_profiles_png|
 
@@ -234,23 +235,38 @@ components from overlapping SEC-SAXS peaks.
     :target: ../_images/efa_series_plot.png
 
 .. |svd_panel_png| image:: images/svd_panel.png
+    :target: ../_images/svd_panel.png
 
 .. |svd_panel_sub_png| image:: images/svd_panel_sub.png
+    :target: ../_images/svd_panel_sub.png
 
 .. |singular_values_png| image:: images/singular_values.png
+    :width: 400 px
+    :target: ../_images/singular_values.png
 
 .. |efa_panel_png| image:: images/efa_panel.png
+    :target: ../_images/efa_panel.png
 
 .. |efa_panel_2_png| image:: images/efa_panel_2.png
-
-.. |efa_panel_3_png| image:: images/efa_panel_3.png
-
-.. |efa_comp_range_png| image:: images/efa_comp_range.png
-
-.. |efa_chi2_png| image:: images/efa_chi2.png
-
-.. |efa_profiles_png| image:: images/efa_profiles.png
+    :target: ../_images/efa_panel_2.png
 
 .. |efa_ranges_png| image:: images/efa_ranges.png
+    :width: 200 px
+    :target: ../_images/efa_ranges.png
+
+.. |efa_panel_3_png| image:: images/efa_panel_3.png
+    :target: ../_images/efa_panel_3.png
+
+.. |efa_comp_range_png| image:: images/efa_comp_range.png
+    :width: 300 px
+    :target: ../_images/efa_comp_range.png
+
+.. |efa_chi2_png| image:: images/efa_chi2.png
+    :width: 300 px
+    :target: ../_images/efa_chi2.png
+
+.. |efa_profiles_png| image:: images/efa_profiles.png
+    :target: ../_images/efa_profiles.png
+
 
 .. |1000020100000320000002A2D123A77E23D67C60_png| image:: images/1000020100000320000002A2D123A77E23D67C60.png
