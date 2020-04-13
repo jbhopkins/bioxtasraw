@@ -4,14 +4,17 @@ One method for determining molecular weight from a scattering profile is compari
 scattering profile with known molecular weight. This part will teach you how to set that known
 standard in RAW.
 
-#.  Load/use the settings from :ref:`Parts 4 <s3p4>`\ , :ref:`5 <s3p5>`\ , or :ref:`6 <s3p6>`\ .
+*Note:* The calibration dataset used for the first parts of this tutorial
+doesn't have the requisite data to use for this part. So we will use
+the data in the **calibration_data/extra** folder.
+
+#.  Load the **SAXS.cfg** file in the **calibration_data/extra** folder.
 
 #.  Plot all of the **lysbuf2_52_001_000x.tiff** files, where x is 0-9, on the main plot.
 
     *   *Tip:* :ref:`Section 1 Part 1 <s1p1>` of this tutorial document teaches you how to do this.
 
-#.  Average the **lysbuf2** files you just loaded. Save the average in the
-    **calibration_data** folder.
+#.  Average the **lysbuf2** files you just loaded.
 
 #.  Repeat steps 2-3 for the **lys2_52_001_000x.tiff** files.
 
@@ -21,7 +24,10 @@ standard in RAW.
     *   *Tip:* :ref:`Section 1 Part 1 <s1p1>` of this tutorial document teaches you how to do this.
 
 #.  Select the subtracted profile by clicking on it. In the information panel, set the concentration
-    in the Conc box to 4.14 (this is concentration in mg/ml).
+    to 4.14 (this is concentration in mg/ml).
+
+    *   *Tip:* You will have to scroll down to the bottom of the Information panel to
+        find the Concentration.
 
     |config_mwstd1_png|
 
@@ -42,6 +48,8 @@ standard in RAW.
 
 
 .. |config_mwstd1_png| image:: images/config_mwstd1.png
+    :target: ../_images/config_mwstd1.png
 
 .. |config_mwstd2_png| image:: images/config_mwstd2.png
     :width: 450 px
+    :target: ../_images/config_mwstd2.png

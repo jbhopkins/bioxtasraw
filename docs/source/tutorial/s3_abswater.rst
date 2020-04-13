@@ -2,13 +2,18 @@ Setting absolute scale with water
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _s3p5:
 
-This section teaches you how to set up absolute scale using water as a reference. It assumes
-you have completed :ref:`Parts 1 <s3p1>` (or :ref:`2 <s3p2>`\ ), :ref:`3 <s3p3>` and
-:ref:`4 <s3p4>`. Note that you can use water or glassy carbon (:ref:`Part 6 <s3p6>`)
-for absolute scale calibration in RAW.
+This section teaches you how to set up absolute scale using water as a reference.
+Note that you can use water or glassy carbon (:ref:`Part 5 <s3p6>`)
+for absolute scale calibration in RAW. Glassy carbon is the more accurate approach,
+if available.
 
-#.  Using the settings from the previous parts of the tutorial, plot all of the
-    **MT2_48_001_000x.tiff** files, where x is 0-9, on the main plot.
+*Note:* The calibration dataset used for the first parts of this tutorial
+doesn't have the requisite data to use for this part. So we will use
+the data in the **calibration_data/extra** folder.
+
+#.  Load the **SAXS.cfg** file in the **calibration_data/extra** folder.
+
+#.  Plot all of the **MT2_48_001_000x.tiff** files, where x is 0-9, on the main plot.
 
     *   *Tip:* :ref:`Section 1 Part 1 <s1p1>` of this tutorial document teaches you
         how to do this.
@@ -62,14 +67,19 @@ for absolute scale calibration in RAW.
 
 
 .. |config_abswater1_png| image:: images/config_abswater1.png
+    :target: ../_images/config_abswater1.png
 
 .. |config_abswater2_png| image:: images/config_abswater2.png
+    :target: ../_images/config_abswater2.png
 
 .. |config_abswater3_png| image:: images/config_abswater3.png
     :width: 500 px
+    :target: ../_images/config_abswater3.png
 
 .. |config_abswater4_png| image:: images/config_abswater4.png
     :width: 300 px
+    :target: ../_images/config_abswater4.png
 
 .. |config_abswater5_png| image:: images/config_abswater5.png
+    :target: ../_images/config_abswater5.png
 
