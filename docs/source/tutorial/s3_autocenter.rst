@@ -37,7 +37,7 @@ method in RAW.
 
 #.  We will use silver behenate to calibrate the sample to detector distance,
     the beam center on the detector, and the detector rotation. Show the silver
-    behenate image by selecting the **agbe_008_0001.tiff** file and clicking
+    behenate image by selecting the **agbe_008_0001.tif** file and clicking
     the show image button at the bottom of the File Control panel.
 
     |calibration_image_png|

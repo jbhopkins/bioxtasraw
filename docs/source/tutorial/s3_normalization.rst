@@ -12,7 +12,7 @@ other options. It assumes you have completed :ref:`Parts 1 <s3p1>` and :ref:`2 <
 
     |config_norm_load_image_png|
 
-#.  In the window that pops up, select the **agbe_008_0001.tiff** file. Click
+#.  In the window that pops up, select the **agbe_008_0001.tif** file. Click
     the Open button.
 
     *   *Note:* You can select any image of the appropriate type, not just the behenate.
@@ -48,7 +48,7 @@ other options. It assumes you have completed :ref:`Parts 1 <s3p1>` and :ref:`2 <
 
 #.  Click OK to exit the options window.
 
-#.  In the file list, select the **agbe_008_0001.tiff** file and click the Plot
+#.  In the file list, select the **agbe_008_0001.tif** file and click the Plot
     button. You will see a curve get plotted in the top panel of the Profiles plot.
 
 #.  Click on the Profiles tab. You will see a profile loaded in the Profiles list.

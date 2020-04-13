@@ -6,7 +6,7 @@ This section teaches you how to mask out unwanted portions of your image, such a
 beamstop and bad detector pixels. It assumes you have just done :ref:`Part 1 <s3p1>`.
 If not, open RAW as in Step 1 and set your data folder as in Step 8 of :ref:`Part 1 <s3p1>`.
 
-#.  In the Files tab, select the **water1_014_0001.tiff** file and click the show image button.
+#.  In the Files tab, select the **water1_014_0001.tif** file and click the show image button.
 
     *   *Tip:* It's usually best to make a mask on a water or buffer image. If you do it
         on instrument background, which can be quite low, it can be hard to tell

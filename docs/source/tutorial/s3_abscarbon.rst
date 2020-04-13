@@ -3,8 +3,8 @@ Setting absolute scale with glassy carbon
 .. _s3p6:
 
 This section teaches you how to set up absolute scale using glassy carbon (NIST SRM 3600)
-as a reference. It assumes you have completed :ref:`Parts 1 <s3p1>` (or :ref:`2 <s3p2>`\ ),
-:ref:`3 <s3p3>` and :ref:`4 <s3p4>`\ . Note that you can use water (:ref:`Part 5 <s3p5>`) or
+as a reference. It assumes you have completed :ref:`Parts 1 <s3p1>`,
+:ref:`2 <s3p3>` and :ref:`3 <s3p4>`\ . Note that you can use water (:ref:`Part 4 <s3p5>`) or
 glassy carbon for absolute scale calibration in RAW.
 
 There are two ways to use glassy carbon as a standard in RAW. One way follows the NIST
@@ -16,11 +16,14 @@ it essentially ignores the background (assumes it to be small). This approach on
 regular normalization and a single measurement of the background for the glassy carbon sample.
 
 
-**The simple approach, “ignoring” background:**
+Simple (ignoring background)
+*********************************************
 
-#.  Load/use the settings from part 4 (without absolute scale set from water, part 5).
+#.  Load/use the settings from part 3 (without absolute scale set from water, part 4). If you
+    haven't done those parts, the settings are saved available as **settings.cfg**
+    in the **calibration_data** folder.
 
-#.  Plot all of the **glassy_carbon_41_001_000x.tiff** files, where x is 0-9, on the main plot.
+#.  Plot both of the **glassy_carbon2_011_000x.tif.tif** files, where x is 1-2, on the main plot.
 
     *   *Tip:* :ref:`Section 1 Part 1 <s1p1>` of this tutorial document teaches you how to do this.
 
@@ -31,21 +34,21 @@ regular normalization and a single measurement of the background for the glassy 
 
 #.  Click on the Absolute Scale section in the options list on the left.
 
-    |config_abswater1_png|
+    |config_absgc1_png|
 
-#.  Click on the Glassy carbon “Set” button and select the **A_glassy_carbon_41_001_0000.dat** file.
+#.  Click on the Glassy carbon “Set” button and select the **A_glassy_carbon2_011__0001.dat**
+    file you just saved.
 
-#.  Set the Sample thickness to 1.5 mm.
+#.  Set the Sample thickness to 1.0 mm.
 
     |config_absgc2_png|
 
-#.  Click “Calculate” button. You should get something near 0.0014.
+#.  Click “Calculate” button. You should get about 324.
 
     *   *Note:* It is important that you not change your normalization settings once
         you have set the absolute scaling constant. If you do, you will have to recalculate
         the absolute scaling constant. Also, make sure absolute scale is turned off before
-        you calculate the scale constant, otherwise you will get a bad scaling constant
-        (see the manual for details).
+        you calculate the scale constant, otherwise you will get a bad scaling constant.
 
 #.  Check the “Normalize processed data to absolute scale using glassy carbon” checkbox.
 
@@ -55,14 +58,20 @@ regular normalization and a single measurement of the background for the glassy 
 
 #.  Save the settings for future use.
 
-**The full, NIST recommended approach:**
 
-*Important note:* All of the normalization (including flux, transmission, etc) happens
+Full (NIST recommended)
+******************************************
+
+**Important note:** All of the normalization (including flux, transmission, etc) happens
 through the absolute scale panel. You shouldn’t have anything set in the Normalization
 panel (unless you are doing something like subtracting off a constant pedestal from the
 image).
 
-#.  Load/use the settings from part 4 (without absolute scale set from water, part 5).
+*Note:* The calibration dataset used for the previous ('Simple') approach
+doesn't have the requisite data to use for the full approach. So we will use
+the data in the **calibration_data/extra** folder.
+
+#.  Load the **SAXS.cfg** file in the **calibration_data/extra** folder.
 
 #.  Open the Options window by selecting “Advanced Options” in the Options menu.
 
@@ -71,15 +80,10 @@ image).
 #.  Remove any/all items in the Normalization List by highlighting them in the list
     and clicking the “Delete” button.
 
-    |100002010000031F0000025307BE652194AFBF84_png|
+    |config_absgc_full1_png|
 
-#.  Turn off any absolute scaling already in place.
-
-#.  Click on the Calibration section in the options list on the left.
-
-#.  Change the “Start plots at q-point number” to 0.
-
-    |1000020100000319000000E3F41DC6D4D282F31B_png|
+#.  Go to the Absolute Scale options section and turn off any absolute scaling
+    already in place.
 
 #.  Click “OK” to exit the advanced options window and save the changes.
 
@@ -88,26 +92,28 @@ image).
     *   *Tip:* :ref:`Section 1 Part 1 <s1p1>` of this tutorial document teaches you how
         to do this.
 
-#.  Save the **glassy_carbon** profile in the **calibration_data** folder.
+#.  Save the **glassy_carbon** profile in the **calibration_dat/extra** folder.
 
-#.  Plot, average, and save the **vac_37_001_000x.tiff** and ** MT2_48_001_000x.tiff **
-    files, where x is 0-9.
-
-    *   *Tip:* Because you aren’t normalizing by beam intensity, these averages may have
-        profiles that are not similar (see :ref:`Section 1 Part 6 <s1p6>`). In that case,
-        average just the similar profiles.
+#.  Plot and save the **vac_37_001_0000.tiff** and ** MT2_48_001_0000.tiff **
+    profiles.
 
 #.  Open the Options window and select the Absolute Scale section.
 
 #.  Uncheck the Ignore background checkbox.
 
-    |100002010000031E000002572EF4280A9EB5D279_png|
+    |config_absgc_full2_png|
 
 #.  Click the Glassy carbon “Set” button and select the **glassy_carbon_41_001_0000.dat** file.
 
-#.  Click the Glassy carbon background “Set” button and select the **A_vac_37_001_0000.dat** file.
+#.  Click the Glassy carbon background “Set” button and select the **vac_37_001_0000.dat** file.
 
-#.  Click the Sample background “Set” button and select the **A_MT2_48_001_0000.tiff** file.
+    *   *Tip:* This is the instrument background from when the glassy carbon
+        images were taken.
+
+#.  Click the Sample background “Set” button and select the **MT2_48_001_0000.tiff** file.
+
+    *   *Tip:* This is the instrument background from when sample images
+        were taken, including the empty sample cell.
 
 #.  Set the Sample thickness to 1.5 mm.
 
@@ -129,13 +135,9 @@ image).
         calculate the scale constant, otherwise you will get a bad scaling constant (see the
         manual for details).
 
-    |100002010000031F00000254EC8C0C5D987D9510_png|
+    |config_absgc_full3_png|
 
 #.  Check the “Normalize processed data to absolute scale using glassy carbon” checkbox.
-
-#.  Click on the Calibration section in the options list on the left.
-
-#.  Change the “Start plots at q-point number” to 13.
 
 #.  Click “OK” to exit the advanced options panel, saving the changes.
 
@@ -144,23 +146,28 @@ image).
 
 **Comparison note:**
 
-We find that for the example data given here, the two methods of glassy carbon calibration
-agree within ~1.5%. The best approach depends on how strong your background scattering is
-relative to the rest of the scattering in the system.
+We find that for the example data in the calibratin_data/extras folder, the
+two methods of glassy carbon calibration agree within ~1.5%. The best approach
+depends on how strong your background scattering is relative to the rest of
+the scattering in the system.
 
 
 
-.. |config_abswater1_png| image:: images/config_abswater1.png
+.. |config_absgc1_png| image:: images/config_absgc1.png
+    :target: ../_images/config_absgc1.png
 
 .. |config_absgc2_png| image:: images/config_absgc2.png
     :width: 500 px
+    :target: ../_images/config_absgc2.png
 
 .. |config_absgc3_png| image:: images/config_absgc3.png
+    :target: ../_images/config_absgc3.png
 
-.. |100002010000031F0000025307BE652194AFBF84_png| image:: images/100002010000031F0000025307BE652194AFBF84.png
+.. |config_absgc_full1_png| image:: images/config_absgc_full1.png
+    :target: ../_images/config_absgc_full1.png
 
-.. |1000020100000319000000E3F41DC6D4D282F31B_png| image:: images/1000020100000319000000E3F41DC6D4D282F31B.png
+.. |config_absgc_full2_png| image:: images/config_absgc_full2.png
+    :target: ../_images/config_absgc_full2.png
 
-.. |100002010000031E000002572EF4280A9EB5D279_png| image:: images/100002010000031E000002572EF4280A9EB5D279.png
-
-.. |100002010000031F00000254EC8C0C5D987D9510_png| image:: images/100002010000031F00000254EC8C0C5D987D9510.png
+.. |config_absgc_full3_png| image:: images/config_absgc_full3.png
+    :target: ../_images/config_absgc_full3.png
