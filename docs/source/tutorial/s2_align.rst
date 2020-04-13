@@ -39,6 +39,8 @@ one model (the reference) is the high resolution structure while the other
 
 #.  Click the start button, SUPCOMB will run.
 
+    |align_supcomb_start_png|
+
 #.  When SUPCOMB is finished, in the same folder as the target file you will
     see a **<target_name>_aligned.pdb** file, which is the target model
     aligned with the reference file.
@@ -46,6 +48,8 @@ one model (the reference) is the high resolution structure while the other
 #.  Advanced settings can be accessed by clicking on the 'Advanced Settings' text
     to expand the section. These settings are described in the `SUPCOMB manual
     <https://www.embl-hamburg.de/biosaxs/manuals/supcomb.html>`_.
+
+    |align_supcomb_advanced_png|
 
 
 Electron density
@@ -116,6 +120,14 @@ is the high resolution
 .. |align_supcomb_select_png| image:: images/align_supcomb_select.png
     :width: 400 px
     :target: ../_images/align_supcomb_select.png
+
+.. |align_supcomb_start_png| image:: images/align_supcomb_start.png
+    :width: 400 px
+    :target: ../_images/align_supcomb_start.png
+
+.. |align_supcomb_advanced_png| image:: images/align_supcomb_advanced.png
+    :width: 400 px
+    :target: ../_images/align_supcomb_advanced.png
 
 
 .. |align_denss_menu_png| image:: images/align_denss_menu.png
