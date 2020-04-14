@@ -7752,9 +7752,10 @@ class DenssRunPanel(wx.Panel):
                 filtered[i] = 'Filtered'
             else:
                 filtered[i] = ' '
-            ioutput = prefix+"_"+str(i+1)+"_aligned"
-            DENSS.write_mrc(aligned[i], sides[0], os.path.join(path, ioutput+".mrc"))
-            wx.CallAfter(averWindow.AppendText, "%s.mrc written. Score = %0.3f %s\n" % (ioutput,scores[i],filtered[i]))
+            # ioutput = prefix+"_"+str(i+1)+"_aligned"
+            # DENSS.write_mrc(aligned[i], sides[0], os.path.join(path, ioutput+".mrc"))
+            ioutput = prefix+"_"+str(i+1)
+            # wx.CallAfter(averWindow.AppendText, "%s, Score = %0.3f %s\n" % (ioutput,scores[i],filtered[i]))
             wx.CallAfter(averWindow.AppendText,'Correlation score to reference: %s.mrc %.3f %s\n' %(ioutput, scores[i], filtered[i]))
 
         aligned = aligned[scores>threshold]
