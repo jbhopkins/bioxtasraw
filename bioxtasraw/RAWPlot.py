@@ -121,12 +121,10 @@ class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
 
 
 class CustomPlotToolbar(NavigationToolbar2WxAgg):
-    def __init__(self, parent, canvas):
+    def __init__(self, parent, canvas, series=False):
 
         self.fig_axes = parent.fig.gca()
         self.parent = parent
-
-        self.saved_artists = None
 
         self._MTB_ERRBARS = self.NewControlId()
         self._MTB_LEGEND = self.NewControlId()
@@ -140,51 +138,75 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
 
         self.workdir = RAWGlobals.RAWWorkDir
 
-        #Icon made by Freepik from www.flaticon.com
-        errbars = os.path.join(RAWGlobals.RAWResourcesDir, 'box-plot-graphic-24.png')
+        if not series:
+            self._bitmaps = {}
+            self._tool_ids = {'errbars': self._MTB_ERRBARS,
+                'showboth'  : self._MTB_SHOWBOTH,
+                'showtop'   : self._MTB_SHOWTOP,
+                'showbottom': self._MTB_SHOWBOTTOM,
+                }
 
-        showboth = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-showboth-24.png')
-        showtop = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-1-24.png')
-        showbottom = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-two-24.png')
+            #Icon made by Freepik from www.flaticon.com
+            errbars = os.path.join(RAWGlobals.RAWResourcesDir, 'box-plot-graphic-24.png')
+            showboth = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-showboth-24.png')
+            showtop = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-1-24.png')
+            showbottom = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-2-24.png')
 
-        errbars_icon = wx.Bitmap(errbars, wx.BITMAP_TYPE_PNG)
-        showboth_icon = wx.Bitmap(showboth, wx.BITMAP_TYPE_PNG)
-        showtop_icon = wx.Bitmap(showtop, wx.BITMAP_TYPE_PNG)
-        showbottom_icon = wx.Bitmap(showbottom, wx.BITMAP_TYPE_PNG)
+            errbars_toggled = os.path.join(RAWGlobals.RAWResourcesDir, 'box-plot-graphic-toggled-24.png')
+            showboth_toggled = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-showboth-toggled-24.png')
+            showtop_toggled = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-1-toggled-24.png')
+            showbottom_toggled = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-2-toggled-24.png')
 
-        if wx.version().split()[0].strip()[0] == '4':
-            self.AddSeparator()
-            self.AddCheckTool(self._MTB_ERRBARS, '', errbars_icon, shortHelp='Show Errorbars')
-            self.AddSeparator()
-            self.AddCheckTool(self._MTB_SHOWBOTH, '', showboth_icon, shortHelp='Show Both Plots')
-            self.AddCheckTool(self._MTB_SHOWTOP, '', showtop_icon,  shortHelp='Show Top Plot')
-            self.AddCheckTool(self._MTB_SHOWBOTTOM, '', showbottom_icon, shortHelp='Show Bottom Plot')
-        else:
-            self.AddSeparator()
-            self.AddCheckTool(self._MTB_ERRBARS, errbars_icon, shortHelp='Show Errorbars')
-            self.AddSeparator()
-            self.AddCheckTool(self._MTB_SHOWBOTH, showboth_icon, shortHelp='Show Both Plots')
-            self.AddCheckTool(self._MTB_SHOWTOP, showtop_icon,  shortHelp='Show Top Plot')
-            self.AddCheckTool(self._MTB_SHOWBOTTOM, showbottom_icon, shortHelp='Show Bottom Plot')
+            errbars_icon = wx.Bitmap(errbars, wx.BITMAP_TYPE_PNG)
+            showboth_icon = wx.Bitmap(showboth, wx.BITMAP_TYPE_PNG)
+            showtop_icon = wx.Bitmap(showtop, wx.BITMAP_TYPE_PNG)
+            showbottom_icon = wx.Bitmap(showbottom, wx.BITMAP_TYPE_PNG)
 
-        self.Bind(wx.EVT_TOOL, self.errbars, id = self._MTB_ERRBARS)
-        self.Bind(wx.EVT_TOOL, self.showboth, id = self._MTB_SHOWBOTH)
-        self.Bind(wx.EVT_TOOL, self.showtop, id = self._MTB_SHOWTOP)
-        self.Bind(wx.EVT_TOOL, self.showbottom, id = self._MTB_SHOWBOTTOM)
+            errbars_icon_toggled = wx.Bitmap(errbars_toggled, wx.BITMAP_TYPE_PNG)
+            showboth_icon_toggled = wx.Bitmap(showboth_toggled, wx.BITMAP_TYPE_PNG)
+            showtop_icon_toggled = wx.Bitmap(showtop_toggled, wx.BITMAP_TYPE_PNG)
+            showbottom_icon_toggled = wx.Bitmap(showbottom_toggled, wx.BITMAP_TYPE_PNG)
+
+            self._bitmaps['errbars'] = {'Normal': errbars_icon,
+                'Toggled': errbars_icon_toggled}
+            self._bitmaps['showboth'] = {'Normal': showboth_icon,
+                'Toggled': showboth_icon_toggled}
+            self._bitmaps['showtop'] = {'Normal': showtop_icon,
+                'Toggled': showtop_icon_toggled}
+            self._bitmaps['showbottom'] = {'Normal': showbottom_icon,
+                'Toggled': showbottom_icon_toggled}
+
+            if wx.version().split()[0].strip()[0] == '4':
+                self.AddSeparator()
+                self.AddCheckTool(self._MTB_ERRBARS, '', errbars_icon, shortHelp='Show Errorbars')
+                self.AddSeparator()
+                self.AddCheckTool(self._MTB_SHOWBOTH, '', showboth_icon, shortHelp='Show Both Plots')
+                self.AddCheckTool(self._MTB_SHOWTOP, '', showtop_icon,  shortHelp='Show Top Plot')
+                self.AddCheckTool(self._MTB_SHOWBOTTOM, '', showbottom_icon, shortHelp='Show Bottom Plot')
+            else:
+                self.AddSeparator()
+                self.AddCheckTool(self._MTB_ERRBARS, errbars_icon, shortHelp='Show Errorbars')
+                self.AddSeparator()
+                self.AddCheckTool(self._MTB_SHOWBOTH, showboth_icon, shortHelp='Show Both Plots')
+                self.AddCheckTool(self._MTB_SHOWTOP, showtop_icon,  shortHelp='Show Top Plot')
+                self.AddCheckTool(self._MTB_SHOWBOTTOM, showbottom_icon, shortHelp='Show Bottom Plot')
+
+            self.Bind(wx.EVT_TOOL, self.errbars, id = self._MTB_ERRBARS)
+            self.Bind(wx.EVT_TOOL, self.showboth, id = self._MTB_SHOWBOTH)
+            self.Bind(wx.EVT_TOOL, self.showtop, id = self._MTB_SHOWTOP)
+            self.Bind(wx.EVT_TOOL, self.showbottom, id = self._MTB_SHOWBOTTOM)
+
+            self.ErrorbarIsOn = False
+
+            self.ToggleTool(self._MTB_SHOWBOTH, True)
+            if 'wxMac' in wx.PlatformInfo:
+                active = "showboth"
+                self._fake_toggle_group(["showboth", "showtop", "showbottom"], active)
 
         self.Realize()
 
-        self.ErrorbarIsOn = False
-
-        self.ToggleTool(self._MTB_SHOWBOTH, True)
-
     def home(self, *args, **kwargs):
         self.parent.fitAxis(forced = True)
-
-    def save(self,  *args, **kwargs):
-        dia = FigureSaveDialog(self.parent, self.parent.fig, self.parent.save_parameters)
-        dia.ShowModal()
-        dia.Destroy()
 
     def showboth(self, evt):
         self.ToggleTool(self._MTB_SHOWTOP, False)
@@ -198,6 +220,10 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.parent.subplot2.change_geometry(2,1,2)
         self.parent._plot_shown = 0
         self.parent.canvas.draw()
+
+        if 'wxMac' in wx.PlatformInfo:
+            active = "showboth"
+            self._fake_toggle_group(["showboth", "showtop", "showbottom"], active)
 
     def showtop(self, evt):
         self.ToggleTool(self._MTB_SHOWBOTH, False)
@@ -215,6 +241,10 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.parent._plot_shown = 1
         self.parent.canvas.draw()
 
+        if 'wxMac' in wx.PlatformInfo:
+            active = "showtop"
+            self._fake_toggle_group(["showboth", "showtop", "showbottom"], active)
+
     def showbottom(self, evt):
         self.ToggleTool(self._MTB_SHOWBOTH, False)
         self.ToggleTool(self._MTB_SHOWTOP, False)
@@ -230,6 +260,10 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.parent._plot_shown = 2
         self.parent.canvas.draw()
 
+        if 'wxMac' in wx.PlatformInfo:
+            active = "showbottom"
+            self._fake_toggle_group(["showboth", "showtop", "showbottom"], active)
+
     def errbars(self, evt):
 
         if not(self.ErrorbarIsOn):
@@ -240,6 +274,18 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
             self.parent.plotparams['errorbars_on'] = False
             self.ErrorbarIsOn = False
             self.parent.showErrorbars(False)
+
+        if 'wxMac' in wx.PlatformInfo:
+            if evt.IsChecked():
+                active = "errbars"
+            else:
+                active = None
+            self._fake_toggle_group(["errbars"], active)
+
+    def _fake_toggle_group(self, elements, active):
+        for name in elements:
+            self.SetToolNormalBitmap(self._tool_ids[name],
+                self._bitmaps[name]["Toggled" if name == active else "Normal"])
 
 class PlotPanel(wx.Panel):
 
@@ -2474,297 +2520,6 @@ class IftPlotPanel(PlotPanel):
 
             wx.FindWindowByName('MainFrame').SetStatusText('q = {}, I(q) = {}'.format(x_val, y_val), 1)
 
-class FigureSavePanel(wx.Panel):
-    #def __init__(self, parent, plotparams, axes, *args, **kwargs):
-    def __init__(self, parent,figure, save_parameters, *args, **kwargs):
-        wx.Panel.__init__(self, parent, *args, **kwargs)
-
-        self.figure = figure
-        self.old_unit = 'inches'
-        self.save_parameters = save_parameters
-
-        box = wx.StaticBox(self, -1, 'Settings')
-        sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-
-        imgsize_sizer = self.createImageSizeSettings()
-
-        sizer.Add(imgsize_sizer, 0, wx.ALL, 5)
-
-        self.tight_border = wx.CheckBox(self, -1, 'Cut border padding')
-        self.tight_border.SetValue(False)
-
-        sizer.Add(self.tight_border, 0, wx.ALL, 5)
-
-
-        self.updateSettings()
-
-        self.SetSizer(sizer)
-        self.Fit()
-        self.CenterOnParent()
-
-    def updateSettings(self):
-        dpi = wx.FindWindowByName('Dpi')
-        width = wx.FindWindowByName('Width')
-        height = wx.FindWindowByName('Height')
-
-        #dpi_val = self.figure.get_dpi()
-        dpi_val = self.save_parameters['dpi']
-
-        size = self.figure.get_size_inches()
-
-        width.SetValue(str(size[0]))
-        height.SetValue(str(size[1]))
-
-        dpi.SetValue(str(dpi_val))
-
-    def createImageSizeSettings(self):
-        grid_sizer = wx.FlexGridSizer(cols = 3, rows = 4, vgap = 5, hgap = 5)
-
-        format_list = ['png', 'eps', 'ps', 'pdf', 'tif', 'jpg', 'raw', 'svg']
-
-        self.format_label= wx.StaticText(self, -1, 'Format:')
-        self.format_choice = wx.Choice(self, -1, choices = format_list)
-        self.format_choice.Select(format_list.index(self.save_parameters['format']))
-
-        grid_sizer.Add(self.format_label, 0)
-        grid_sizer.Add(self.format_choice, 0)
-        grid_sizer.Add((1,1) ,0)
-
-        data = ['Dpi', 'Width', 'Height']
-        unit_list = ['inches', 'milimeters', 'pixels']
-
-        for each in data:
-            label = wx.StaticText(self, -1, each + ' :')
-
-            if each == 'Dpi':
-                ctrl = RAWCustomCtrl.IntSpinCtrl(self, -1, name = each, TextLength = 60)
-            else:
-                ctrl = RAWCustomCtrl.FloatSpinCtrl(self, -1, name = each, TextLength = 60)
-
-            grid_sizer.Add(label, 0, wx.RIGHT | wx.ALIGN_CENTRE_VERTICAL, 5)
-            grid_sizer.Add(ctrl, 0, wx.ALIGN_CENTRE_VERTICAL)
-
-            if each == 'Height':
-                self.unit_choice = wx.Choice(self, -1, choices = unit_list)
-                self.unit_choice.Bind(wx.EVT_CHOICE, self.onUnitChoice)
-                self.unit_choice.Select(0)
-                grid_sizer.Add(self.unit_choice, 0, wx.ALIGN_CENTRE_VERTICAL)
-            else:
-                grid_sizer.Add((1,1), 0)
-
-        return grid_sizer
-
-    def onUnitChoice(self, event):
-
-        width = wx.FindWindowByName('Width')
-        height = wx.FindWindowByName('Height')
-        dpi = wx.FindWindowByName('Dpi')
-
-        height_val = float(height.GetValue())
-        width_val = float(width.GetValue())
-        dpi_val = int(dpi.GetValue())
-
-        new_unit = self.unit_choice.GetStringSelection()
-
-        new_height = height_val
-        new_width = width_val
-
-        if self.old_unit == 'inches':
-            if new_unit == 'milimeters':
-                new_height = round(height_val / 0.0393700787, 2)
-                new_width = round(width_val / 0.0393700787, 2)
-
-            elif new_unit == 'pixels':
-                new_height = round(height_val * dpi_val,0)
-                new_width = round(width_val * dpi_val, 0)
-
-        elif self.old_unit == 'milimeters':
-             if new_unit == 'inches':
-                new_height = round(height_val * 0.0393700787, 3)
-                new_width = round(width_val * 0.0393700787, 3)
-
-             elif new_unit == 'pixels':
-                new_height = round((height_val * 0.0393700787) * dpi_val,0)
-                new_width = round((width_val * 0.0393700787) * dpi_val, 0)
-
-        elif self.old_unit == 'pixels':
-            if new_unit == 'inches':
-                new_height = round(height_val / float(dpi_val), 3)
-                new_width = round(width_val / float(dpi_val), 3)
-
-            elif new_unit == 'milimeters':
-                new_height = round((height_val / float(dpi_val)) / 0.0393700787, 2)
-                new_width = round((width_val / float(dpi_val)) / 0.0393700787, 2)
-
-        height.SetValue(str(new_height))
-        width.SetValue(str(new_width))
-
-        self.old_unit = new_unit
-
-    def getSaveParameters(self):
-
-        dpi = wx.FindWindowByName('Dpi')
-        width = wx.FindWindowByName('Width')
-        height = wx.FindWindowByName('Height')
-
-        dpi_val = int(dpi.GetValue())
-        width_val = float(width.GetValue())
-        height_val = float(height.GetValue())
-
-        fmt = self.format_choice.GetStringSelection()
-
-        if self.unit_choice.GetStringSelection() == 'pixels':
-            height_val = round(height_val / float(dpi_val), 5)
-            width_val = round(width_val / float(dpi_val), 5)
-        elif self.unit_choice.GetStringSelection() == 'milimeters':
-            height_val = round(height_val * 0.0393700787, 5)
-            width_val = round(width_val * 0.0393700787, 5)
-
-        par_dict = {'height' : height_val,
-                    'width' : width_val,
-                    'dpi' : dpi_val,
-                    'fmt' : fmt,
-                    'cut' : self.tight_border.GetValue()}
-
-        return par_dict
-
-class FigureSaveDialog(wx.Dialog):
-
-    def __init__(self, parent, figure, save_parameters, *args, **kwargs):
-        wx.Dialog.__init__(self, parent, -1, 'Save figure', *args, **kwargs)
-
-        self.figure = figure
-        self.parent = parent
-        self.save_parameters = save_parameters
-
-        dpi_val = str(self.figure.get_dpi())
-        size_val = self.figure.get_size_inches()
-
-        self.old_fig_val = {'dpi' : dpi_val,
-                            'x' : size_val[0],
-                            'y' : size_val[1]}
-
-        self.save_panel = FigureSavePanel(self, figure, save_parameters)
-
-        top_sizer = wx.BoxSizer(wx.VERTICAL)
-
-        buttons = self.CreateButtonSizer(wx.OK | wx.CANCEL)
-        self.Bind(wx.EVT_BUTTON, self._onOk, id = wx.ID_OK)
-        self.Bind(wx.EVT_BUTTON, self._onCancel, id = wx.ID_CANCEL)
-
-        top_sizer.Add(self.save_panel, 1, wx.ALL, 10)
-
-        top_sizer.Add(buttons, 0, wx.BOTTOM | wx.ALIGN_CENTRE_HORIZONTAL, 10)
-
-        self.SetSizer(top_sizer)
-        self.Fit()
-
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(best_size)
-
-        self.CenterOnParent()
-
-    def restoreFigureSize(self):
-
-        self.figure.set_dpi(int(self.old_fig_val['dpi']))
-
-        x = self.old_fig_val['x']
-        y = self.old_fig_val['y']
-
-        self.figure.set_size_inches(float(x),float(y))
-
-        self.parent.canvas.draw()
-
-    def _onCancel(self, event):
-        self.restoreFigureSize()
-        self.EndModal(wx.CANCEL)
-
-    def _onOk(self, event):
-
-        try:
-            par = self.save_panel.getSaveParameters()
-        except ValueError:
-            wx.MessageBox('You have provided invalid values.', 'Input error', style = wx.ICON_ERROR)
-            return
-
-        self.figure.set_dpi(par['dpi'])
-        self.figure.set_size_inches(par['width'], par['height'])
-
-        default_file = "image." + par['fmt']
-
-        filters = '(*.' +  par['fmt'] + ')|*.' + par['fmt']
-
-        dlg = wx.FileDialog(self.parent, "Save to file", "", default_file,
-                            wildcard = filters,
-                            style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
-
-        if dlg.ShowModal() == wx.ID_OK:
-            dirname  = dlg.GetDirectory()
-            filename = dlg.GetFilename()
-
-            basename, ext = os.path.splitext(filename)
-
-            filename = os.path.join(dirname, filename)
-
-            if par['cut']:
-                self.figure.savefig(filename, dpi = par['dpi'], bbox_inches='tight', format = par['fmt'])#, pad_inches=0)
-            else:
-                self.figure.savefig(filename, dpi = par['dpi'], format = par['fmt'])
-
-            self.save_parameters['dpi'] = int(par['dpi'])
-            self.save_parameters['format'] = par['fmt']
-        else:
-            return
-
-        self.restoreFigureSize()
-
-        self.EndModal(wx.OK)
-
-
-class CustomSeriesPlotToolbar(NavigationToolbar2WxAgg):
-    def __init__(self, parent, canvas):
-
-        self.fig_axes = parent.fig.gca()
-        self.parent = parent
-
-        self.saved_artists = None
-
-        self._MTB_CLR1 = self.NewControlId()
-
-        NavigationToolbar2WxAgg.__init__(self, canvas)
-
-        self.workdir = RAWGlobals.RAWWorkDir
-
-        self.Bind(wx.EVT_TOOL, self.clear1, id = self._MTB_CLR1)
-
-        self.Realize()
-
-    def home(self, *args, **kwargs):
-        self.parent.fitAxis(forced = True)
-
-    def save(self,  *args, **kwargs):
-        dia = FigureSaveDialog(self.parent, self.parent.fig, self.parent.save_parameters)
-        dia.ShowModal()
-        dia.Destroy()
-
-    def clear1(self, evt):
-        self.parent.clearSubplot(self.parent.subplot1)
-
 
 class SeriesPlotPanel(wx.Panel):
 
@@ -2888,7 +2643,7 @@ class SeriesPlotPanel(wx.Panel):
 
         self._initFigure()
 
-        self.toolbar = CustomSeriesPlotToolbar(self, self.canvas)
+        self.toolbar = CustomPlotToolbar(self, self.canvas, True)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.canvas, 1, wx.LEFT | wx.TOP | wx.GROW)

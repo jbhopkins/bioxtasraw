@@ -189,14 +189,12 @@ def getEvidence(params, q, i, err, N):
     u = np.sqrt(np.abs(np.outer(f[1:-1], f[1:-1])))*B[1:-1, 1:-1]/alpha
 
     # u[np.diag_indices(u.shape[0])] = u[np.diag_indices(u.shape[0])]+1
-
     for j in range(0, u.shape[0]):
         u[j, j] = u[j, j]+1
 
-    # w = np.linalg.svd(u, compute_uv = False)
-    _, w, _ = np.linalg.svd(u)
 
-    rlogdet = np.sum(np.log(np.abs(w)))
+    # Absolute value of determinant is equal to the product of the singular values
+    rlogdet = np.log(np.abs(np.linalg.det(u)))
 
     evidence = -np.log(abs(dmax))+(alpha*s-0.5*c*i.size)-0.5*rlogdet-np.log(abs(alpha))
 
