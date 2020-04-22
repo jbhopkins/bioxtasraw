@@ -126,7 +126,8 @@ def bift_inner_loop(f, p, B, alpha, N, sum_dia):
         for k in range(1, N):
             fsumi = 0
 
-            fsumi = np.dot(B[k,1:N], f[1:N])
+            for j in range(1, N):
+                fsumi = fsumi + B[k, j]*f[j]
 
             fsumi = fsumi - B[k, k]*f[k]
 
@@ -138,13 +139,13 @@ def bift_inner_loop(f, p, B, alpha, N, sum_dia):
         gradsi = -2*(f[1:-1]-p[1:-1])/sigma[1:-1]
         gradci = 2*(np.sum(B[1:-1,1:-1]*f[1:-1], axis=1)-sum_dia[1:-1])
 
-        wgrads = np.sqrt(np.dot(gradsi, gradsi))
-        wgradc = np.sqrt(np.dot(gradci, gradci))
+        wgrads = np.sqrt(np.abs(np.sum(gradsi**2)))
+        wgradc = np.sqrt(np.abs(np.sum(gradci**2)))
 
         if wgrads*wgradc == 0:
             dotsp = 1
         else:
-            dotsp = np.dot(gradsi, gradci)/(wgrads*wgradc)
+            dotsp = np.sum(gradsi*gradci)/(wgrads*wgradc)
 
     return f, p, sigma, dotsp, xprec
 
