@@ -284,6 +284,16 @@ Molecular weight from volume of correlation
 *   Doesn't work for protein nucleic acid complexes.
 *   The integral of *qI(q)* needs to have converged (see figure below).
 
+.. figure:: images/vc_convergence.png
+    :target: ../_images/vc_convergence.png
+    :width: 600 px
+
+    Both plots show the integral of *qI(q)* as a function of *q*. The plot on
+    the left shows data where the integrated value has converged, i.e. it is essentially
+    unchanging at high q as q increases. The plot on the right shows data where
+    the integrated value has not converged, i.e. it is increasing at high q
+    as q increases. The data on the right will not give an accurate molecular weight
+    by the volume of correlation method.
 
 Molecular weight by comparison to known structures
 *****************************************************
