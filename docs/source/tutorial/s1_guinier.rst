@@ -2,12 +2,9 @@ Guinier analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^
 .. _s1p2:
 
-Recall Guinier’s approximation at low-*q*\ : :math:`I(q)\approx I(0) \exp(-R_g^2 q^2 /3)`.
-
-|Rg| and I(0) can be determined by performing a linear fit in the Guinier plot (a plot of
-:math:`\ln(I)` vs. :math:`q^2`). The fitting region should normally have :math:`q_{max}R_g<1.3`
-for globular proteins or :math:`q_{max}R_g<1.0` for rod-like proteins. This
-fitting region is called the "Guinier region."
+This tutorial covers how to use RAW for Guinier analysis. This is not a tutorial
+on basic principles and best practices for doing a Guinier analysis. For that,
+please see the :ref:`SAXS tutorial <saxs_guinier>`.
 
 
 #.  In RAW, right click (ctrl click on macs without a right mouse button) on the
@@ -73,39 +70,6 @@ fitting region is called the "Guinier region."
 
     *   *Tip:* If you hover your mouse cursor over the info icon (just left of the target icon)
         for a given scattering profile it should show you the |Rg| and I(0) of your Guinier analysis.
-
-**Aside: Criteria for a good Guinier region**
-
-For a globular protein, you are looking for three essential components in your Guinier fit:
-
-*   :math:`q_{min}R_g<1.0`. This states that the minimum q of your fit, q\ :sub:`min`, times
-    the |Rg|  of your fit should be less than 1.0. This criteria ensures you
-    have enough q range to properly estimate the |Rg| and I(0) values.
-
-*   :math:`q_{max}R_g<1.3`. This states that the maximum q of your fit, q\ :sub:`max`,
-    times the |Rg| of your fit should be less than 1.3. This criteria
-    ensures you remain in the linear range of the Guinier approximation
-    for the fit.
-
-*   Residuals should be flat and randomly distributed about zero. If
-    your residuals have a ‘smile’ (above zero near start and end of fit,
-    below in the middle), or a ‘frown’ (below zero near start and end
-    of fit, above in the middle), it indicates you have non-ideal data.
-    The ‘smile’ is characteristic of aggregation, the ‘frown’ characteristic
-    of interparticle repulsion.
-
-Additionally, you shouldn’t have to excluded very many points at the start of the
-fit. A few is generally fine, as the points nearest the beamstop can be noisy
-(depending on the exact details of the measurement). If you have a small amount
-of aggregation or repulsion it may manifest as a small upturn or downturn at low
-q that, once excluded, doesn’t seem to affect the fit residual (i.e. no ‘smile’
-or ‘frown’). In these cases, you may proceed, but exercise caution as your data
-may be subtly affected. Also, be sure whoever you present the data to understands
-you observed these effects and decided to proceed with analysis despite the
-non-ideality.
-
-Note that for non-globular systems, such as rod-like shapes, the fitting range
-shifts as the linear region of the Guinier approximation shifts.
 
 |lys_guinier_png|
 

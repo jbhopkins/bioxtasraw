@@ -65,6 +65,7 @@ prebuilt versions of RAW are free for anyone to download and use.
    install
    help
    tutorial
+   saxs_tutorial
    videos
    cite_raw
    manual

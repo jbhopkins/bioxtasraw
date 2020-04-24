@@ -1,5 +1,7 @@
 Introduction
 ------------
+.. _raw_tutorial:
+
 Overview
 ^^^^^^^^^^^^^^^^^^
 This tutorial covers SAXS data processing with RAW. You will learn how to:
