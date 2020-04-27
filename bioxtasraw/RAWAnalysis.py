@@ -1572,7 +1572,7 @@ class MolWeightFrame(wx.Frame):
     def __init__(self, parent, title, sasm, manip_item):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(475, client_display.Width), min(525, client_display.Height))
+        size = (min(720, client_display.Width), min(525, client_display.Height))
 
         try:
             wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
@@ -1596,56 +1596,100 @@ class MolWeightFrame(wx.Frame):
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
 
+        opsys = platform.system()
+
+        if opsys == 'Windows':
+            if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'datmw.exe')):
+                self.has_atsas = True
+            else:
+                self.has_atsas = False
+        else:
+            if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'datmw')):
+                self.has_atsas = True
+            else:
+                self.has_atsas = False
+
         self.infodata = {'I0' : ('I0 :', self.NewControlId(), self.NewControlId()),
                          'Rg' : ('Rg :', self.NewControlId(), self.NewControlId())}
 
-        self.ids = {'VC': {'mol_type'   : self.NewControlId(),
-                           'calc_mw'    : self.NewControlId(),
-                           'info'       : self.NewControlId(),
-                           'more'       : self.NewControlId(),
-                           'sup_vc'     : self.NewControlId(),
-                           'sup_qr'     : self.NewControlId(),
-                           'sup_a'      : self.NewControlId(),
-                           'sup_b'      : self.NewControlId(),
-                           'sup_plot'   : self.NewControlId(),
-                           'sup_cutoff' : self.NewControlId(),
-                           'sup_qmax'   : self.NewControlId(),
-                           },
-                    'conc': {'calc_mw'  : self.NewControlId(),
-                             'info'     : self.NewControlId(),
-                             'more'     : self.NewControlId(),
-                             'conc'     : self.NewControlId(),
-                             'sup_i0'   : self.NewControlId(),
-                             'sup_mw'   : self.NewControlId(),
-                             'sup_conc' : self.NewControlId(),
-                             'sup_file' : self.NewControlId(),
-                             },
-                    'VP': {'calc_mw'    : self.NewControlId(),
-                           'info'       : self.NewControlId(),
-                           'more'       : self.NewControlId(),
-                           'sup_vp'     : self.NewControlId(),
-                           'sup_vpc'    : self.NewControlId(),
-                           'sup_density': self.NewControlId(),
-                           'sup_cutoff' : self.NewControlId(),
-                           'sup_qmax'   : self.NewControlId(),
-                           },
-                    'abs': {'calc_mw'   : self.NewControlId(),
-                              'info'    : self.NewControlId(),
-                              'more'    : self.NewControlId(),
-                              'calib'   : self.NewControlId(),
-                              'conc'    : self.NewControlId(),
-                              'sup_pm'  : self.NewControlId(),
-                              'sup_ps'  : self.NewControlId(),
-                              'sup_pv'  : self.NewControlId(),
-                              'sup_sc'  : self.NewControlId(),
-                              }
-                              }
+        self.ids = {
+            'VC': {
+                'mol_type'      : self.NewControlId(),
+                'calc_mw'       : self.NewControlId(),
+                'info'          : self.NewControlId(),
+                'more'          : self.NewControlId(),
+                'sup_vc'        : self.NewControlId(),
+                'sup_qr'        : self.NewControlId(),
+                'sup_a'         : self.NewControlId(),
+                'sup_b'         : self.NewControlId(),
+                'sup_plot'      : self.NewControlId(),
+                'sup_cutoff'    : self.NewControlId(),
+                'sup_qmax'      : self.NewControlId(),
+                },
+
+            'conc': {
+                'calc_mw'   : self.NewControlId(),
+                'info'      : self.NewControlId(),
+                'more'      : self.NewControlId(),
+                'conc'      : self.NewControlId(),
+                'sup_i0'    : self.NewControlId(),
+                'sup_mw'    : self.NewControlId(),
+                'sup_conc'  : self.NewControlId(),
+                'sup_file'  : self.NewControlId(),
+                },
+
+            'VP': {
+                'calc_mw'       : self.NewControlId(),
+                'info'          : self.NewControlId(),
+                'more'          : self.NewControlId(),
+                'sup_vp'        : self.NewControlId(),
+                'sup_vpc'       : self.NewControlId(),
+                'sup_density'   : self.NewControlId(),
+                'sup_cutoff'    : self.NewControlId(),
+                'sup_qmax'      : self.NewControlId(),
+                },
+
+            'abs': {
+                'calc_mw'   : self.NewControlId(),
+                'info'      : self.NewControlId(),
+                'more'      : self.NewControlId(),
+                'calib'     : self.NewControlId(),
+                'conc'      : self.NewControlId(),
+                'sup_pm'    : self.NewControlId(),
+                'sup_ps'    : self.NewControlId(),
+                'sup_pv'    : self.NewControlId(),
+                'sup_sc'    : self.NewControlId(),
+                },
+
+            'bayes': {
+                'calc_mw'   : self.NewControlId(),
+                'info'      : self.NewControlId(),
+                'more'      : self.NewControlId(),
+                'ci_start'  : self.NewControlId(),
+                'ci_end'    : self.NewControlId(),
+                'ci_prob'   : self.NewControlId(),
+                'mw_prob'   : self.NewControlId(),
+                },
+
+            'datclass' : {
+                'calc_mw'   : self.NewControlId(),
+                'info'      : self.NewControlId(),
+                'more'      : self.NewControlId(),
+                'shape'     : self.NewControlId(),
+                'dmax'      : self.NewControlId(),
+            },
+
+          }
 
         self.mws = {'conc'  : {},
                     'vc'    : {},
                     'vp'    : {},
                     'abs'   : {},
                     }
+
+        if self.has_atsas:
+            self.mws['bayes'] = {}
+            self.mws['datclass'] = {}
 
         topsizer = self._createLayout(self.panel)
         self._initSettings()
@@ -1687,18 +1731,32 @@ class MolWeightFrame(wx.Frame):
         self.conc_panel = self._createConcLayout(self.top_mw)
         self.vp_panel = self._createVPLayout(self.top_mw)
         self.abs_panel = self._createAbsLayout(self.top_mw)
-
         self.button_panel = self._createButtonLayout(parent)
 
+        if self.has_atsas:
+            self.bayes_panel = self._createBayesLayout(self.top_mw)
+            self.datclass_panel = self._createDatclassLayout(self.top_mw)
 
-        mw_sizer = wx.FlexGridSizer(2, 2, 5, 5)
+        if self.has_atsas:
+            mw_sizer = wx.FlexGridSizer(cols=3, vgap=5, hgap=5)
+            mw_sizer.AddGrowableCol(2)
+        else:
+            mw_sizer = wx.FlexGridSizer(cols=2, vgap=5, hgap=5)
         mw_sizer.AddGrowableCol(0)
         mw_sizer.AddGrowableCol(1)
 
         mw_sizer.Add(self.conc_panel, 0, wx.EXPAND)
         mw_sizer.Add(self.abs_panel, 0, wx.EXPAND)
+
+        if self.has_atsas:
+            mw_sizer.Add(self.bayes_panel, 0, wx.EXPAND)
+
         mw_sizer.Add(self.vc_panel, 0, wx.EXPAND)
         mw_sizer.Add(self.vp_panel, 0, wx.EXPAND)
+
+        if self.has_atsas:
+            mw_sizer.Add(self.datclass_panel, 0, wx.EXPAND)
+
 
         self.top_mw.SetSizer(mw_sizer)
 
@@ -1855,7 +1913,21 @@ class MolWeightFrame(wx.Frame):
         wx.FindWindowById(self.ids['abs']['sup_pv'], self).ChangeValue('%.4f' %(nu_bar))
         wx.FindWindowById(self.ids['abs']['sup_sc'], self).ChangeValue('%.2E' %(d_rho))
 
+        self.standard_paths = wx.StandardPaths.Get()
+
         self.calcMW()
+
+
+        # print('Running datmw sizeshape')
+
+        # savename = tempfile.NamedTemporaryFile(dir=tempdir).name
+
+        # while os.path.isfile(savename):
+        #     savename = tempfile.NamedTemporaryFile(dir=tempdir).name
+
+        # savename = os.path.split(savename)[-1] + '.dat'
+
+        # res = SASCalc.runDatmw(self.sasm, 'sizeshape', self.raw_settings, tempdir, savename)
 
 
     def _createInfoLayout(self, parent):
@@ -2280,6 +2352,119 @@ class MolWeightFrame(wx.Frame):
 
         return self.abs_top_sizer
 
+    def _createBayesLayout(self, parent):
+        bayes_ids = self.ids['bayes']
+
+        self.bayes_top_sizer = wx.StaticBoxSizer(wx.VERTICAL, parent, "datmw Bayes MW")
+        ctrl_parent = self.bayes_top_sizer.GetStaticBox()
+
+        mw = wx.TextCtrl(ctrl_parent, bayes_ids['calc_mw'], '', size=(80,-1),
+            style=wx.TE_READONLY)
+        ci_start = wx.TextCtrl(ctrl_parent, bayes_ids['ci_start'], '', size=(80,-1),
+            style=wx.TE_READONLY)
+        ci_end = wx.TextCtrl(ctrl_parent, bayes_ids['ci_end'], '', size=(80,-1),
+            style=wx.TE_READONLY)
+        ci_prob = wx.TextCtrl(ctrl_parent, bayes_ids['ci_prob'], '', size=(80,-1),
+            style=wx.TE_READONLY)
+        mw_prob = wx.TextCtrl(ctrl_parent, bayes_ids['mw_prob'], '', size=(80,-1),
+            style=wx.TE_READONLY)
+        info_button = wx.Button(ctrl_parent, bayes_ids['info'], label='More Info')
+        details_button = wx.Button(ctrl_parent, bayes_ids['more'],
+            label='Show Details')
+
+        info_button.Bind(wx.EVT_BUTTON, self._onInfo)
+        details_button.Bind(wx.EVT_BUTTON, self._onMore)
+
+        mw_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        mw_sizer.Add(wx.StaticText(ctrl_parent, label='MW (kDa):'), border=5,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        mw_sizer.Add(mw, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        conf_sub_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        conf_sub_sizer.Add(ci_start, border=5, flag=wx.ALIGN_CENTER_VERTICAL)
+        conf_sub_sizer.Add(wx.StaticText(ctrl_parent, label='to'), border=5,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        conf_sub_sizer.Add(ci_end, border=5, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+
+        conf_sizer = wx.BoxSizer(wx.VERTICAL)
+        conf_sizer.Add(wx.StaticText(ctrl_parent, label='Conf. Interval (kDa):'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        conf_sizer.Add(conf_sub_sizer, border=5, flag=wx.TOP)
+
+        self.bayes_sup_sizer = wx.FlexGridSizer(cols=2, vgap=5, hgap=5)
+        self.bayes_sup_sizer.Add(wx.StaticText(ctrl_parent,
+            label='MW Probability:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        self.bayes_sup_sizer.Add(mw_prob, flag=wx.ALIGN_CENTER_VERTICAL)
+        self.bayes_sup_sizer.Add(wx.StaticText(ctrl_parent,
+            label='Conf. Interval Prob.:'))
+        self.bayes_sup_sizer.Add(ci_prob, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(details_button, 0, wx.RIGHT, 2)
+        button_sizer.Add(info_button, 0, wx.LEFT, 2)
+
+        self.bayes_top_sizer.Add(mw_sizer, border=5,
+            flag=wx.TOP|wx.LEFT|wx.RIGHT)
+        self.bayes_top_sizer.Add(conf_sizer, border=5,
+            flag=wx.TOP|wx.LEFT|wx.RIGHT)
+        self.bayes_top_sizer.Add(self.bayes_sup_sizer, border=5,
+            flag=wx.TOP|wx.LEFT|wx.RIGHT)
+        self.bayes_top_sizer.Add(button_sizer, border=5,
+            flag=wx.ALL|wx.ALIGN_CENTER_HORIZONTAL)
+
+        self.bayes_top_sizer.Hide(self.bayes_sup_sizer, recursive = True)
+
+        return self.bayes_top_sizer
+
+    def _createDatclassLayout(self, parent):
+        datclass_ids = self.ids['datclass']
+
+        self.datclass_top_sizer = wx.StaticBoxSizer(wx.VERTICAL, parent, "Shape and Size MW")
+        ctrl_parent = self.datclass_top_sizer.GetStaticBox()
+
+        mw = wx.TextCtrl(ctrl_parent, datclass_ids['calc_mw'], '', size=(80,-1),
+            style=wx.TE_READONLY)
+        shape = wx.TextCtrl(ctrl_parent, datclass_ids['shape'], '', size=(80,-1),
+            style=wx.TE_READONLY)
+        dmax = wx.TextCtrl(ctrl_parent, datclass_ids['dmax'], '', size=(80,-1),
+            style=wx.TE_READONLY)
+        info_button = wx.Button(ctrl_parent, datclass_ids['info'], label='More Info')
+        details_button = wx.Button(ctrl_parent, datclass_ids['more'],
+            label='Show Details')
+
+        info_button.Bind(wx.EVT_BUTTON, self._onInfo)
+        details_button.Bind(wx.EVT_BUTTON, self._onMore)
+
+        mw_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        mw_sizer.Add(wx.StaticText(ctrl_parent, label='MW (kDa):'), border=5,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        mw_sizer.Add(mw, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        self.datclass_sup_sizer = wx.FlexGridSizer(cols=2, vgap=5, hgap=5)
+        self.datclass_sup_sizer.Add(wx.StaticText(ctrl_parent,
+            label='DATCLASS shape:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        self.datclass_sup_sizer.Add(shape, flag=wx.ALIGN_CENTER_VERTICAL)
+        self.datclass_sup_sizer.Add(wx.StaticText(ctrl_parent,
+            label='DATCLASS dmax:'))
+        self.datclass_sup_sizer.Add(dmax, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(details_button, 0, wx.RIGHT, 2)
+        button_sizer.Add(info_button, 0, wx.LEFT, 2)
+
+        self.datclass_top_sizer.Add(mw_sizer, border=5,
+            flag=wx.TOP|wx.LEFT|wx.RIGHT)
+        self.datclass_top_sizer.Add(self.datclass_sup_sizer, border=5,
+            flag=wx.TOP|wx.LEFT|wx.RIGHT)
+        self.datclass_top_sizer.Add(button_sizer, border=5,
+            flag=wx.ALL|wx.ALIGN_CENTER_HORIZONTAL)
+
+        self.datclass_top_sizer.Hide(self.datclass_sup_sizer, recursive = True)
+
+        return self.datclass_top_sizer
+
     def _createButtonLayout(self, parent):
         button = wx.Button(parent, wx.ID_CANCEL, 'Cancel')
         button.Bind(wx.EVT_BUTTON, self.onCloseButton)
@@ -2420,6 +2605,7 @@ class MolWeightFrame(wx.Frame):
         wx.FindWindowById(self.ids['abs']['sup_sc'], self).ChangeValue('%.2E' %(d_rho))
 
         self._calcVpqmax(vp_cutoff)
+
         self.calcMW()
 
     def _onInfo(self,evt):
@@ -2448,6 +2634,7 @@ class MolWeightFrame(wx.Frame):
                 "- Sample concentration is poorly determined.\n"
                 "- The contrast between the macromolecule and buffer is "
                 "significantly different between the reference and sample.")
+
         elif evt_id == self.ids['VC']['info']:
             msg = ("This method uses the approach described in: Rambo, R. "
                 "P. & Tainer, J. A. (2013). Nature. 496, 477-481, please "
@@ -2463,6 +2650,7 @@ class MolWeightFrame(wx.Frame):
                 "- I(0) and/or Rg are poorly determined.\n"
                 "- You have a protein-nucleic acid complex.\n"
                 "- Your molecule is less than ~15-20 kDa.")
+
         elif evt_id == self.ids['VP']['info']:
             msg = ("This method uses the approach described in: Piiadov, "
                 "V., Ares de Araujo, E., Neto, M. O., Craievich, A. F., "
@@ -2481,7 +2669,8 @@ class MolWeightFrame(wx.Frame):
                 "- Your molecule is not a protein.\n\n"
                 "This method is also available in an online calculator from "
                 "the original authors: http://saxs.ifsc.usp.br/).")
-        else:
+
+        elif evt_id == self.ids['abs']['info']:
             msg = ("This uses the absolute calibration of the scattering profile to determine the molecular weight, "
                    "as described in Orthaber, D., Bergmann, A., & Glatter, O. (2000). J. Appl. Crystallogr. 33, "
                    "218-225. By determining the absolute scattering at I(0), if the sample concentration is also "
@@ -2496,6 +2685,54 @@ class MolWeightFrame(wx.Frame):
                    "- Sample concentration is poorly determined.\n"
                    "- Scattering contrast is wrong, either from buffer changes or macromolecule type "
                    "(default settings are for protein).")
+
+        elif evt_id == self.ids['bayes']['info']:
+            msg = ("A method for calculating a molecular weight using Bayesian "
+                "inference with the molecular weight calculations from the Porod "
+                "volume, volume of correlation, and comparison to known structures "
+                "methods as the evidence. This method was described in Hajizadeh, "
+                "N. R., Franke, D., Jeffries, C. M. & Svergun, D. I. (2018), "
+                "Sci. Rep. 8, 7204. Please cite this paper in addition to the "
+                "RAW paper if you use this method. Essentially, it takes a large test "
+                "dataset of theoretical scattering profiles, calculates the "
+                "molecular weight for each using each method, then creates a "
+                "probability distribution for each method that describes the "
+                "probability of obtaining a particular calculated molecular "
+                "weight given the true molecular weight. These probabilities "
+                "are combined across all the methods, and the most likely molecular "
+                "weight is thus estimated.\n\n"
+                "The authors found that for the theoretical scattering profiles "
+                "used, the median molecular weight from this method was "
+                "accurate and the median absolute deviation was 4%. Overall, "
+                "they reported that it was more accurate than any individual "
+                "method. It may be that the uncertainty in this method is "
+                "usually closer to ~5% than 10% for the other methods.\n\n"
+                "This method can yield inaccurate results if:\n"
+                "- Your molecule is not a protein.\n"
+                "- There are significant subtraction errors.\n"
+                "- The other methods it use all return poor MW estimates.")
+
+        elif evt_id == self.ids['bayes']['info']:
+            msg = ("A molecular weight estimation using a machine learning "
+                "method that categories SAXS data into shape categories based "
+                "on comparison with a catalog of known structures from the PDB. "
+                "This method was described in Franke, D., Jeffries, C. M. & "
+                "Svergun, D. I. (2018), Biophys. J. 114, 2485–2492. Please "
+                "cite this paper in addition to the RAW paper if you use "
+                "this method. By finding the nearest structures in shape and "
+                "size (also the name of the method: Shape&Size), you can "
+                "obtain estimates for the molecular weight of the sample.\n\n"
+                "The authors found that, for the theoretical scattering profiles "
+                "used for testing, the method calculated molecular weights "
+                "within 10% of the expected value for 90% of the test data. "
+                "Other work found that for the test dataset the median molecular "
+                "weight was correct and the median absolute deviation was 4%. "
+                "It is reasonable to say that the uncertainty in molecular "
+                "weight from this method is ~10% for most systems, though there "
+                "are outliers.\n\n"
+                "This method can yield inaccurate results if:\n"
+                "- The system is flexible.\n"
+                "- Your molecule is not a protein.")
         if platform.system() == 'Windows':
             msg = '\n' + msg
         dlg = wx.MessageDialog(self, msg, "Calculating Molecular Weight",
@@ -2541,7 +2778,7 @@ class MolWeightFrame(wx.Frame):
                 button = wx.FindWindowById(self.ids['VP']['more'], self)
                 button.SetLabel('Hide Details')
                 self.panel.Layout()
-        else:
+        elif evt_id == self.ids['abs']['more']:
             if self.abs_top_sizer.IsShown(self.abs_sup_sizer):
                 self.abs_top_sizer.Hide(self.abs_sup_sizer,recursive=True)
                 button = wx.FindWindowById(self.ids['abs']['more'], self)
@@ -2550,6 +2787,30 @@ class MolWeightFrame(wx.Frame):
             else:
                 self.abs_top_sizer.Show(self.abs_sup_sizer,recursive=True)
                 button = wx.FindWindowById(self.ids['abs']['more'], self)
+                button.SetLabel('Hide Details')
+                self.panel.Layout()
+
+        elif evt_id == self.ids['bayes']['more']:
+            if self.bayes_top_sizer.IsShown(self.bayes_sup_sizer):
+                self.bayes_top_sizer.Hide(self.bayes_sup_sizer,recursive=True)
+                button = wx.FindWindowById(self.ids['bayes']['more'], self)
+                button.SetLabel('Show Details')
+                self.panel.Layout()
+            else:
+                self.bayes_top_sizer.Show(self.bayes_sup_sizer,recursive=True)
+                button = wx.FindWindowById(self.ids['bayes']['more'], self)
+                button.SetLabel('Hide Details')
+                self.panel.Layout()
+
+        elif evt_id == self.ids['datclass']['more']:
+            if self.datclass_top_sizer.IsShown(self.datclass_sup_sizer):
+                self.datclass_top_sizer.Hide(self.datclass_sup_sizer,recursive=True)
+                button = wx.FindWindowById(self.ids['datclass']['more'], self)
+                button.SetLabel('Show Details')
+                self.panel.Layout()
+            else:
+                self.datclass_top_sizer.Show(self.datclass_sup_sizer,recursive=True)
+                button = wx.FindWindowById(self.ids['datclass']['more'], self)
                 button.SetLabel('Hide Details')
                 self.panel.Layout()
 
@@ -2730,6 +2991,10 @@ class MolWeightFrame(wx.Frame):
                     'PorodVolume'        : {},
                     'Absolute'           : {}}
 
+        if self.has_atsas:
+            calcData['DatmwBayes'] = {}
+            calcData['Shape&Size'] = {}
+
         calcData['I(0)Concentration']['MW'] = self.mws['conc']['mw']
         self.sasm.setParameter('MW', self.mws['conc']['mw'])
 
@@ -2750,6 +3015,17 @@ class MolWeightFrame(wx.Frame):
         calcData['Absolute']['Density_dry_protein'] = self.mws['abs']['rho_Mprot']
         calcData['Absolute']['Density_buffer'] = self.mws['abs']['rho_solv']
         calcData['Absolute']['Partial_specific_volume'] = self.mws['abs']['nu_bar']
+
+        if self.has_atsas:
+            calcData['DatmwBayes']['MW'] = self.mws['bayes']['mw']
+            calcData['DatmwBayes']['ConfidenceIntervalLower'] = self.mws['bayes']['ci_start']
+            calcData['DatmwBayes']['ConfidenceIntervalUpper'] = self.mws['bayes']['ci_end']
+            calcData['DatmwBayes']['MWProbability'] = self.mws['bayes']['mw_prob']
+            calcData['DatmwBayes']['ConfidenceIntervalProbability'] = self.mws['bayes']['ci_prob']
+
+            calcData['ShapeAndSize']['MW'] = self.mws['datclass']['mw']
+            calcData['ShapeAndSize']['Shape'] = self.mws['datclass']['shape']
+            calcData['ShapeAndSize']['Dmax'] = self.mws['datclass']['dmax']
 
         analysis_dict = self.sasm.getParameter('analysis')
         analysis_dict['molecularWeight'] = calcData
@@ -2774,12 +3050,13 @@ class MolWeightFrame(wx.Frame):
 
     def calcMW(self):
         self.calcConcMW()
-
         self.calcVcMW()
-
         self.calcVpMW()
-
         self.calcAbsMW()
+
+        if self.has_atsas:
+            self.calcBeyesMW()
+            self.calcDatclassMW()
 
     def calcConcMW(self):
         conc_ids = self.ids['conc']
@@ -3031,6 +3308,119 @@ class MolWeightFrame(wx.Frame):
             self.mws['abs']['rho_Mprot'] = str(rho_Mprot)
             self.mws['abs']['rho_solv'] = str(rho_solv)
             self.mws['abs']['nu_bar'] = str(nu_bar)
+
+    def calcBeyesMW(self):
+        # This calculates the Bayesian estimated MW using datmw from ATSAS
+        tempdir = self.standard_paths.GetTempDir()
+
+        try:
+            res = SASCalc.runDatmw(self.sasm, 'bayes', self.raw_settings, tempdir)
+        except Exception:
+            res = ()
+
+        if len(res) > 0:
+            mw, mw_score, ci_lower, ci_upper, ci_score = res
+
+            mw_score = mw_score*100
+            ci_score = ci_score*100
+
+            self.mws['bayes']['mw'] = str(mw)
+            self.mws['bayes']['ci_start'] = str(ci_lower)
+            self.mws['bayes']['ci_end'] = str(ci_upper)
+            self.mws['bayes']['mw_prob'] = str(mw_score)
+            self.mws['bayes']['ci_prob'] = str(ci_score)
+
+            mw = round(mw, 1)
+            ci_lower = round(ci_lower, 1)
+            ci_upper = round(ci_upper, 1)
+
+            mw_window = wx.FindWindowById(self.ids['bayes']['calc_mw'], self)
+            mw_window.SetValue(self.format_float(mw))
+
+            ci_l_win = wx.FindWindowById(self.ids['bayes']['ci_start'], self)
+            ci_l_win.SetValue(self.format_float(ci_lower))
+
+            ci_u_win = wx.FindWindowById(self.ids['bayes']['ci_end'], self)
+            ci_u_win.SetValue(self.format_float(ci_upper))
+
+            mw_prob_win = wx.FindWindowById(self.ids['bayes']['mw_prob'], self)
+            mw_prob_win.SetValue(self.format_float(mw_score))
+
+            ci_prob_win = wx.FindWindowById(self.ids['bayes']['ci_prob'], self)
+            ci_prob_win.SetValue(self.format_float(ci_score))
+
+        else:
+            self.mws['bayes']['mw'] = ''
+            self.mws['bayes']['ci_start'] = ''
+            self.mws['bayes']['ci_end'] = ''
+            self.mws['bayes']['mw_prob'] = ''
+            self.mws['bayes']['ci_prob'] = ''
+
+            mw_window = wx.FindWindowById(self.ids['bayes']['calc_mw'], self)
+            mw_window.SetValue('')
+
+            ci_l_win = wx.FindWindowById(self.ids['bayes']['ci_start'], self)
+            ci_l_win.SetValue('')
+
+            ci_u_win = wx.FindWindowById(self.ids['bayes']['ci_end'], self)
+            ci_u_win.SetValue('')
+
+            mw_prob_win = wx.FindWindowById(self.ids['bayes']['mw_prob'], self)
+            mw_prob_win.SetValue('')
+
+            ci_prob_win = wx.FindWindowById(self.ids['bayes']['ci_prob'], self)
+            ci_prob_win.SetValue('')
+
+    def calcDatclassMW(self):
+        # This calculates the Bayesian estimated MW using datmw from ATSAS
+        tempdir = self.standard_paths.GetTempDir()
+
+        try:
+            res = SASCalc.runDatclass(self.sasm, self.raw_settings, tempdir)
+        except Exception:
+            res = ()
+
+        if len(res) > 0:
+            shape, mw, dmax = res
+
+            self.mws['datclass']['mw'] = str(mw)
+            self.mws['datclass']['shape'] = shape
+            self.mws['datclass']['dmax'] = str(dmax)
+
+            mw = round(mw, 1)
+            dmax = round(dmax, 0)
+
+            mw_window = wx.FindWindowById(self.ids['datclass']['calc_mw'], self)
+            mw_window.SetValue(self.format_float(mw))
+
+            shape_win = wx.FindWindowById(self.ids['datclass']['shape'], self)
+            shape_win.SetValue(shape)
+
+            dmax_win = wx.FindWindowById(self.ids['datclass']['dmax'], self)
+            dmax_win.SetValue(str(dmax))
+
+        else:
+            self.mws['datclass']['mw'] = ''
+            self.mws['datclass']['shape'] = ''
+            self.mws['datclass']['dmax'] = ''
+
+            mw_window = wx.FindWindowById(self.ids['datclass']['calc_mw'], self)
+            mw_window.SetValue('')
+
+            shape_win = wx.FindWindowById(self.ids['datclass']['shape'], self)
+            shape_win.SetValue('')
+
+            dmax_win = wx.FindWindowById(self.ids['datclass']['dmax'], self)
+            dmax_win.SetValue('')
+
+    def format_float(self, val):
+        if val > 1e3 or val < 1e-2:
+            ret = '%.2E' %(val)
+        else:
+            ret = '%.1f' %(val)
+
+        return ret
+
 
     def OnClose(self):
 

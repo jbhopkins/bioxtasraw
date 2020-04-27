@@ -45,6 +45,7 @@ import re
 import math
 import traceback
 import copy
+import tempfile
 
 import numpy as np
 from scipy import integrate as integrate
@@ -1253,6 +1254,190 @@ def writeGnomCFG(fname, outname, dmax, args):
 
     f.close()
 
+
+def runDatmw(sasm, method, raw_settings, path='.'):
+    #This runs the ATSAS package DATGNOM program, to automatically find the Dmax and P(r) function
+    #of a scattering profile.
+
+    analysis = sasm.getParameter('analysis')
+    if 'guinier' in analysis:
+        try:
+            rg = float(analysis['guinier']['Rg'])
+        except Exception:
+            rg = -1
+    else:
+        rg = -1
+
+    if 'guinier' in analysis:
+        try:
+            i0 = float(analysis['guinier']['I0'])
+        except Exception:
+            i0 = -1
+    else:
+        i0 = -1
+
+    if i0 == -1 or rg == -1:
+        raise SASExceptions.NoATSASError('Datmw requires rg and i0.')
+
+    atsasDir = raw_settings.get('ATSASDir')
+
+    opsys = platform.system()
+
+    if opsys == 'Windows':
+        datmwDir = os.path.join(atsasDir, 'datmw.exe')
+    else:
+        datmwDir = os.path.join(atsasDir, 'datmw')
+
+    if os.path.exists(datmwDir):
+
+        my_env = setATSASEnv(atsasDir)
+
+        datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(path)).name
+
+        while os.path.isfile(datname):
+            datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(path)).name
+
+        datname = os.path.split(datname)[-1] + '.dat'
+
+        SASFileIO.writeRadFile(sasm, os.path.abspath(os.path.join(path, datname)),
+            False)
+
+        cmd = '"{}" --method={} --rg={} --i0={} {}'.format( datmwDir, method,
+            rg, i0, datname)
+        process=subprocess.Popen(cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, shell=True, cwd=path, env=my_env)
+
+        output, error = process.communicate()
+
+        if not isinstance(output, str):
+            output = str(output, encoding='UTF-8')
+
+        if not isinstance(error, str):
+            error = str(error, encoding='UTF-8')
+
+        error = error.strip()
+
+        if error != '':
+            raise SASExceptions.NoATSASError('Error running datmw.')
+
+        ret_values = ()
+
+        if output != '':
+            if method == 'bayes':
+                mw, mw_score, ci_lower, ci_upper, ci_score, _ = output.split()
+
+                mw = float(mw.strip())/1000.
+                mw_score = float(mw_score.strip())
+                ci_lower = float(ci_lower.strip())/1000.
+                ci_upper = float(ci_upper.strip())/1000.
+                ci_score = float(ci_score.strip())
+
+                ret_values = (mw, mw_score, ci_lower, ci_upper, ci_score)
+
+            elif method == 'shapesize':
+                mw, _ = output.split()
+
+                mw = float(mw.strip())/1000.
+
+                ret_values = (mw)
+
+
+        if os.path.isfile(os.path.join(path, datname)):
+            try:
+                os.remove(os.path.join(path, datname))
+            except Exception:
+                pass
+
+        return ret_values
+
+    else:
+        raise SASExceptions.NoATSASError('Cannot find datmw.')
+
+def runDatclass(sasm, raw_settings, path='.'):
+    #This runs the ATSAS package DATGNOM program, to automatically find the Dmax and P(r) function
+    #of a scattering profile.
+
+    analysis = sasm.getParameter('analysis')
+    if 'guinier' in analysis:
+        try:
+            rg = float(analysis['guinier']['Rg'])
+        except Exception:
+            rg = -1
+    else:
+        rg = -1
+
+    if 'guinier' in analysis:
+        try:
+            i0 = float(analysis['guinier']['I0'])
+        except Exception:
+            i0 = -1
+    else:
+        i0 = -1
+
+    if i0 == -1 or rg == -1:
+        raise SASExceptions.NoATSASError('Datmw requires rg and i0.')
+
+    atsasDir = raw_settings.get('ATSASDir')
+
+    opsys = platform.system()
+
+    if opsys == 'Windows':
+        datclassDir = os.path.join(atsasDir, 'datclass.exe')
+    else:
+        datclassDir = os.path.join(atsasDir, 'datclass')
+
+    if os.path.exists(datclassDir):
+
+        my_env = setATSASEnv(atsasDir)
+
+        datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(path)).name
+
+        while os.path.isfile(datname):
+            datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(path)).name
+
+        datname = os.path.split(datname)[-1] + '.dat'
+
+        SASFileIO.writeRadFile(sasm, os.path.abspath(os.path.join(path, datname)),
+            False)
+
+        cmd = '"{}" --rg={} --i0={} {}'.format( datclassDir, rg, i0, datname)
+        process=subprocess.Popen(cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, shell=True, cwd=path, env=my_env)
+
+        output, error = process.communicate()
+
+        if not isinstance(output, str):
+            output = str(output, encoding='UTF-8')
+
+        if not isinstance(error, str):
+            error = str(error, encoding='UTF-8')
+
+        error = error.strip()
+
+        if error != '':
+            raise SASExceptions.NoATSASError('Error running datclass.')
+
+        ret_values = ()
+
+        if output != '':
+            shape, mw, dmax, _ = output.split()
+
+            shape=shape.strip()
+            mw = float(mw.strip())/1000.
+            dmax = float(dmax.strip())
+
+            ret_values = (shape, mw, dmax)
+
+        if os.path.isfile(os.path.join(path, datname)):
+            try:
+                os.remove(os.path.join(path, datname))
+            except Exception:
+                pass
+
+        return ret_values
+
+    else:
+        raise SASExceptions.NoATSASError('Cannot find datclass.')
 
 def runDammif(fname, prefix, args, path):
     #Note: This run dammif command must be run with the current working directory as the directory

@@ -18,7 +18,6 @@ brings a number of exciting changes, including:
 *   A new series save format, .hdf5, that can be easily read by other programs
 *   New information windows above the control panel to display all your analysis
 *   Ability to align DENSS and DAMMIF/N outputs to PDB files
-*   Ability to display P(r) functions on an I(0) normalized plot
 *   Works with ATSAS 3 on all platforms
 
 There are also a number of smaller new features, and a ton of bug fixes and tweaks.
@@ -132,6 +131,8 @@ All changes:
     ATSAS and PATH variables.
 *   Fixed a bug where the wrong version of ATSAS could be fond on MacOS.
 *   Added ability to display P(r) functions on an I(0) normalized plot (set as default).
+*   Fixed a bug where custom toolbar buttons didn't display as toggled properly on MacOS.
+*   Added ATSAS MW methods Bayes and DATCLASS (Shape&Size) to the MW panel.
 
 
 1.6.4
