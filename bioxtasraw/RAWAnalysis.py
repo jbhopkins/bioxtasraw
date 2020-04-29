@@ -3322,10 +3322,27 @@ class MolWeightFrame(wx.Frame):
         # This calculates the Bayesian estimated MW using datmw from ATSAS
         tempdir = self.standard_paths.GetTempDir()
 
+        datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
+
+        while os.path.isfile(datname):
+            datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
+
+        datname = os.path.split(datname)[-1] + '.dat'
+
+        SASFileIO.writeRadFile(self.sasm, os.path.abspath(os.path.join(tempdir, datname)),
+            False)
+
         try:
-            res = SASCalc.runDatmw(self.sasm, 'bayes', self.raw_settings, tempdir)
+            res = SASCalc.runDatmw(self.sasm, 'bayes', self.raw_settings, tempdir,
+                datname)
         except Exception:
             res = ()
+
+        if os.path.isfile(os.path.join(tempdir, datname)):
+            try:
+                os.remove(os.path.join(tempdir, datname))
+            except Exception:
+                pass
 
         if len(res) > 0:
             mw, mw_score, ci_lower, ci_upper, ci_score = res
@@ -3384,10 +3401,27 @@ class MolWeightFrame(wx.Frame):
         # This calculates the Bayesian estimated MW using datmw from ATSAS
         tempdir = self.standard_paths.GetTempDir()
 
+        datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
+
+        while os.path.isfile(datname):
+            datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
+
+        datname = os.path.split(datname)[-1] + '.dat'
+
+        SASFileIO.writeRadFile(self.sasm, os.path.abspath(os.path.join(tempdir, datname)),
+            False)
+
         try:
-            res = SASCalc.runDatclass(self.sasm, self.raw_settings, tempdir)
+            res = SASCalc.runDatclass(self.sasm, self.raw_settings, tempdir,
+                datname)
         except Exception:
             res = ()
+
+        if os.path.isfile(os.path.join(tempdir, datname)):
+            try:
+                os.remove(os.path.join(tempdir, datname))
+            except Exception:
+                pass
 
         if len(res) > 0:
             shape, mw, dmax = res

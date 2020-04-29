@@ -1244,7 +1244,7 @@ def writeGnomCFG(fname, outname, dmax, args):
     f.close()
 
 
-def runDatmw(sasm, method, raw_settings, path='.'):
+def runDatmw(sasm, method, raw_settings, path, datname):
     #This runs the ATSAS package DATGNOM program, to automatically find the Dmax and P(r) function
     #of a scattering profile.
 
@@ -1280,16 +1280,6 @@ def runDatmw(sasm, method, raw_settings, path='.'):
     if os.path.exists(datmwDir):
 
         my_env = setATSASEnv(atsasDir)
-
-        datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(path)).name
-
-        while os.path.isfile(datname):
-            datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(path)).name
-
-        datname = os.path.split(datname)[-1] + '.dat'
-
-        SASFileIO.writeRadFile(sasm, os.path.abspath(os.path.join(path, datname)),
-            False)
 
         cmd = '"{}" --method={} --rg={} --i0={} {}'.format( datmwDir, method,
             rg, i0, datname)
@@ -1330,19 +1320,12 @@ def runDatmw(sasm, method, raw_settings, path='.'):
 
                 ret_values = (mw)
 
-
-        if os.path.isfile(os.path.join(path, datname)):
-            try:
-                os.remove(os.path.join(path, datname))
-            except Exception:
-                pass
-
         return ret_values
 
     else:
         raise SASExceptions.NoATSASError('Cannot find datmw.')
 
-def runDatclass(sasm, raw_settings, path='.'):
+def runDatclass(sasm, raw_settings, path, datname):
     #This runs the ATSAS package DATGNOM program, to automatically find the Dmax and P(r) function
     #of a scattering profile.
 
@@ -1379,17 +1362,7 @@ def runDatclass(sasm, raw_settings, path='.'):
 
         my_env = setATSASEnv(atsasDir)
 
-        datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(path)).name
-
-        while os.path.isfile(datname):
-            datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(path)).name
-
-        datname = os.path.split(datname)[-1] + '.dat'
-
-        SASFileIO.writeRadFile(sasm, os.path.abspath(os.path.join(path, datname)),
-            False)
-
-        cmd = '"{}" --rg={} --i0={} {}'.format( datclassDir, rg, i0, datname)
+        cmd = '"{}" --rg={} --i0={} {}'.format(datclassDir, rg, i0, datname)
         process=subprocess.Popen(cmd, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, shell=True, cwd=path, env=my_env)
 
@@ -1416,12 +1389,6 @@ def runDatclass(sasm, raw_settings, path='.'):
             dmax = float(dmax.strip())
 
             ret_values = (shape, mw, dmax)
-
-        if os.path.isfile(os.path.join(path, datname)):
-            try:
-                os.remove(os.path.join(path, datname))
-            except Exception:
-                pass
 
         return ret_values
 
