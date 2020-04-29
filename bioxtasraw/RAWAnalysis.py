@@ -2417,7 +2417,7 @@ class MolWeightFrame(wx.Frame):
     def _createDatclassLayout(self, parent):
         datclass_ids = self.ids['datclass']
 
-        self.datclass_top_sizer = wx.StaticBoxSizer(wx.VERTICAL, parent, "Shape and Size MW")
+        self.datclass_top_sizer = wx.StaticBoxSizer(wx.VERTICAL, parent, "Shape&&Size MW")
         ctrl_parent = self.datclass_top_sizer.GetStaticBox()
 
         mw = wx.TextCtrl(ctrl_parent, datclass_ids['calc_mw'], '', size=(80,-1),
@@ -2478,6 +2478,13 @@ class MolWeightFrame(wx.Frame):
         buttonSizer.Add(button, 0, wx.RIGHT | wx.ALIGN_RIGHT, 5)
 
         return buttonSizer
+
+    def showBusy(self, show=True):
+        if show:
+            self.bi = wx.BusyInfo('Calculating Molecular weight, please wait.', self)
+        else:
+            del self.bi
+            self.bi = None
 
     def setFilename(self, filename):
         self.filenameTxtCtrl.SetValue(str(filename))
@@ -2992,37 +2999,54 @@ class MolWeightFrame(wx.Frame):
             calcData['DatmwBayes'] = {}
             calcData['ShapeAndSize'] = {}
 
-        calcData['I(0)Concentration']['MW'] = self.mws['conc']['mw']
-        self.sasm.setParameter('MW', self.mws['conc']['mw'])
+        try:
+            calcData['I(0)Concentration']['MW'] = self.mws['conc']['mw']
+        except Exception:
+            pass
 
-        calcData['VolumeOfCorrelation']['MW'] = self.mws['vc']['mw']
-        calcData['VolumeOfCorrelation']['Type'] = self.mws['vc']['type']
-        calcData['VolumeOfCorrelation']['Vcor'] = self.mws['vc']['vc']
-        calcData['VolumeOfCorrelation']['Cutoff'] = self.mws['vc']['cutoff']
-        calcData['VolumeOfCorrelation']['Q_max'] = self.mws['vc']['q_max']
+        try:
+            calcData['VolumeOfCorrelation']['MW'] = self.mws['vc']['mw']
+            calcData['VolumeOfCorrelation']['Type'] = self.mws['vc']['type']
+            calcData['VolumeOfCorrelation']['Vcor'] = self.mws['vc']['vc']
+            calcData['VolumeOfCorrelation']['Cutoff'] = self.mws['vc']['cutoff']
+            calcData['VolumeOfCorrelation']['Q_max'] = self.mws['vc']['q_max']
+        except Exception:
+            pass
 
-        calcData['PorodVolume']['MW'] = self.mws['vp']['mw']
-        calcData['PorodVolume']['VPorod'] = self.mws['vp']['pVolume']
-        calcData['PorodVolume']['VPorod_Corrected'] = self.mws['vp']['pv_cor']
-        calcData['PorodVolume']['Density'] = self.mws['vp']['pv_density']
-        calcData['PorodVolume']['Cutoff'] = self.mws['vp']['cutoff']
-        calcData['PorodVolume']['Q_max'] = self.mws['vp']['q_max']
+        try:
+            calcData['PorodVolume']['MW'] = self.mws['vp']['mw']
+            calcData['PorodVolume']['VPorod'] = self.mws['vp']['pVolume']
+            calcData['PorodVolume']['VPorod_Corrected'] = self.mws['vp']['pv_cor']
+            calcData['PorodVolume']['Density'] = self.mws['vp']['pv_density']
+            calcData['PorodVolume']['Cutoff'] = self.mws['vp']['cutoff']
+            calcData['PorodVolume']['Q_max'] = self.mws['vp']['q_max']
+        except Exception:
+            pass
 
-        calcData['Absolute']['MW'] = self.mws['abs']['mw']
-        calcData['Absolute']['Density_dry_protein'] = self.mws['abs']['rho_Mprot']
-        calcData['Absolute']['Density_buffer'] = self.mws['abs']['rho_solv']
-        calcData['Absolute']['Partial_specific_volume'] = self.mws['abs']['nu_bar']
+        try:
+            calcData['Absolute']['MW'] = self.mws['abs']['mw']
+            calcData['Absolute']['Density_dry_protein'] = self.mws['abs']['rho_Mprot']
+            calcData['Absolute']['Density_buffer'] = self.mws['abs']['rho_solv']
+            calcData['Absolute']['Partial_specific_volume'] = self.mws['abs']['nu_bar']
+        except Exception:
+            pass
 
         if self.has_atsas:
-            calcData['DatmwBayes']['MW'] = self.mws['bayes']['mw']
-            calcData['DatmwBayes']['ConfidenceIntervalLower'] = self.mws['bayes']['ci_start']
-            calcData['DatmwBayes']['ConfidenceIntervalUpper'] = self.mws['bayes']['ci_end']
-            calcData['DatmwBayes']['MWProbability'] = self.mws['bayes']['mw_prob']
-            calcData['DatmwBayes']['ConfidenceIntervalProbability'] = self.mws['bayes']['ci_prob']
+            try:
+                calcData['DatmwBayes']['MW'] = self.mws['bayes']['mw']
+                calcData['DatmwBayes']['ConfidenceIntervalLower'] = self.mws['bayes']['ci_start']
+                calcData['DatmwBayes']['ConfidenceIntervalUpper'] = self.mws['bayes']['ci_end']
+                calcData['DatmwBayes']['MWProbability'] = self.mws['bayes']['mw_prob']
+                calcData['DatmwBayes']['ConfidenceIntervalProbability'] = self.mws['bayes']['ci_prob']
+            except Exception:
+                pass
 
-            calcData['ShapeAndSize']['MW'] = self.mws['datclass']['mw']
-            calcData['ShapeAndSize']['Shape'] = self.mws['datclass']['shape']
-            calcData['ShapeAndSize']['Dmax'] = self.mws['datclass']['dmax']
+            try:
+                calcData['ShapeAndSize']['MW'] = self.mws['datclass']['mw']
+                calcData['ShapeAndSize']['Shape'] = self.mws['datclass']['shape']
+                calcData['ShapeAndSize']['Dmax'] = self.mws['datclass']['dmax']
+            except Exception:
+                pass
 
         analysis_dict = self.sasm.getParameter('analysis')
         analysis_dict['molecularWeight'] = calcData
@@ -3051,6 +3075,9 @@ class MolWeightFrame(wx.Frame):
     def _calcMWThread(self):
         while not self.calc_mw_thread_running.is_set():
             if self.calc_mw_event.is_set():
+                if self.has_atsas:
+                    wx.CallAfter(self.showBusy, True)
+
                 self.calcConcMW()
                 self.calcVcMW()
                 self.calcVpMW()
@@ -3060,6 +3087,9 @@ class MolWeightFrame(wx.Frame):
                     self.calcATSASMwFromFile()
 
                 self.calc_mw_event.clear()
+
+                if self.has_atsas:
+                    wx.CallAfter(self.showBusy, False)
             else:
                 time.sleep(0.1)
 
@@ -3090,10 +3120,16 @@ class MolWeightFrame(wx.Frame):
             else:
                 mwstr = '%.1f' %(val)
 
-            mwCtrl = wx.FindWindowById(conc_ids['calc_mw'], self)
-            wx.CallAfter(mwCtrl.ChangeValue, mwstr)
+            if not self.calc_mw_thread_running.is_set():
+                mwCtrl = wx.FindWindowById(conc_ids['calc_mw'], self)
+                wx.CallAfter(mwCtrl.ChangeValue, mwstr)
+
         else:
             self.mws['conc']['mw'] = ''
+
+            if not self.calc_mw_thread_running.is_set():
+                mwCtrl = wx.FindWindowById(conc_ids['calc_mw'], self)
+                wx.CallAfter(mwCtrl.ChangeValue, '')
 
     def calcVcMW(self):
 
@@ -3161,14 +3197,15 @@ class MolWeightFrame(wx.Frame):
             else:
                 qrstr = '%.1f' %(qr_val)
 
-            mwCtrl = wx.FindWindowById(vc_ids['calc_mw'], self)
-            wx.CallAfter(mwCtrl.ChangeValue, mwstr)
+            if not self.calc_mw_thread_running.is_set():
+                mwCtrl = wx.FindWindowById(vc_ids['calc_mw'], self)
+                wx.CallAfter(mwCtrl.ChangeValue, mwstr)
 
-            vc_win = wx.FindWindowById(vc_ids['sup_vc'], self)
-            wx.CallAfter(vc_win.ChangeValue, vcstr)
+                vc_win = wx.FindWindowById(vc_ids['sup_vc'], self)
+                wx.CallAfter(vc_win.ChangeValue, vcstr)
 
-            qr_win = wx.FindWindowById(vc_ids['sup_qr'], self)
-            wx.CallAfter(qr_win.ChangeValue, qrstr)
+                qr_win = wx.FindWindowById(vc_ids['sup_qr'], self)
+                wx.CallAfter(qr_win.ChangeValue, qrstr)
         else:
             self.mws['vc']['mw'] = ''
             self.mws['vc']['vc'] = ''
@@ -3176,6 +3213,16 @@ class MolWeightFrame(wx.Frame):
             self.mws['vc']['type'] = molecule
             self.mws['vc']['cutoff'] = vc_cutoff
             self.mws['vc']['q_max'] = str(float(q_max_ctrl.GetValue()))
+
+            if not self.calc_mw_thread_running.is_set():
+                mwCtrl = wx.FindWindowById(vc_ids['calc_mw'], self)
+                wx.CallAfter(mwCtrl.ChangeValue, '')
+
+                vc_win = wx.FindWindowById(vc_ids['sup_vc'], self)
+                wx.CallAfter(vc_win.ChangeValue, '')
+
+                qr_win = wx.FindWindowById(vc_ids['sup_qr'], self)
+                wx.CallAfter(qr_win.ChangeValue, '')
 
     def calcVpMW(self):
         #This is calculated using the method in Fischer et al. J. App. Crys. 2009
@@ -3251,14 +3298,15 @@ class MolWeightFrame(wx.Frame):
             else:
                 pvcstr = '%.1f' %(pvc_val)
 
-            mwCtrl = wx.FindWindowById(vp_ids['calc_mw'], self)
-            wx.CallAfter(mwCtrl.ChangeValue, mwstr)
+            if not self.calc_mw_thread_running.is_set():
+                mwCtrl = wx.FindWindowById(vp_ids['calc_mw'], self)
+                wx.CallAfter(mwCtrl.ChangeValue, mwstr)
 
-            vpCtrl = wx.FindWindowById(vp_ids['sup_vp'], self)
-            wx.CallAfter(vpCtrl.ChangeValue, pvstr)
+                vpCtrl = wx.FindWindowById(vp_ids['sup_vp'], self)
+                wx.CallAfter(vpCtrl.ChangeValue, pvstr)
 
-            pvcCtrl = wx.FindWindowById(vp_ids['sup_vpc'], self)
-            wx.CallAfter(pvcCtrl.ChangeValue, pvcstr)
+                pvcCtrl = wx.FindWindowById(vp_ids['sup_vpc'], self)
+                wx.CallAfter(pvcCtrl.ChangeValue, pvcstr)
 
         else:
             self.mws['vp']['mw'] = ''
@@ -3267,6 +3315,16 @@ class MolWeightFrame(wx.Frame):
             self.mws['vp']['pv_density'] = str(density)
             self.mws['vp']['cutoff'] = vp_cutoff
             self.mws['vp']['q_max'] = str(float(q_max_ctrl.GetValue()))
+
+            if not self.calc_mw_thread_running.is_set():
+                mwCtrl = wx.FindWindowById(vp_ids['calc_mw'], self)
+                wx.CallAfter(mwCtrl.ChangeValue, '')
+
+                vpCtrl = wx.FindWindowById(vp_ids['sup_vp'], self)
+                wx.CallAfter(vpCtrl.ChangeValue, '')
+
+                pvcCtrl = wx.FindWindowById(vp_ids['sup_vpc'], self)
+                wx.CallAfter(pvcCtrl.ChangeValue, '')
 
     def calcAbsMW(self):
         abs_ids = self.ids['abs']
@@ -3304,18 +3362,27 @@ class MolWeightFrame(wx.Frame):
             else:
                 mwstr = '%.1f' %(val)
 
-            mwCtrl = wx.FindWindowById(abs_ids['calc_mw'], self)
-            wx.CallAfter(mwCtrl.ChangeValue, mwstr)
+            if not self.calc_mw_thread_running.is_set():
+                mwCtrl = wx.FindWindowById(abs_ids['calc_mw'], self)
+                wx.CallAfter(mwCtrl.ChangeValue, mwstr)
 
-            d_rho = (rho_Mprot-(rho_solv*nu_bar))*r0
-            sc_win = wx.FindWindowById(self.ids['abs']['sup_sc'], self)
-            wx.CallAfter(sc_win.ChangeValue, '%.2E' %(d_rho))
+                d_rho = (rho_Mprot-(rho_solv*nu_bar))*r0
+                sc_win = wx.FindWindowById(self.ids['abs']['sup_sc'], self)
+                wx.CallAfter(sc_win.ChangeValue, '%.2E' %(d_rho))
 
         else:
             self.mws['abs']['mw'] = ''
             self.mws['abs']['rho_Mprot'] = str(rho_Mprot)
             self.mws['abs']['rho_solv'] = str(rho_solv)
             self.mws['abs']['nu_bar'] = str(nu_bar)
+
+            if not self.calc_mw_thread_running.is_set():
+                mwCtrl = wx.FindWindowById(abs_ids['calc_mw'], self)
+                wx.CallAfter(mwCtrl.ChangeValue, '')
+
+                d_rho = (rho_Mprot-(rho_solv*nu_bar))*r0
+                sc_win = wx.FindWindowById(self.ids['abs']['sup_sc'], self)
+                wx.CallAfter(sc_win.ChangeValue, '')
 
     def calcBayesMW(self, path, datname):
         # This calculates the Bayesian estimated MW using datmw from ATSAS
@@ -3342,20 +3409,21 @@ class MolWeightFrame(wx.Frame):
             ci_lower = round(ci_lower, 1)
             ci_upper = round(ci_upper, 1)
 
-            mw_window = wx.FindWindowById(self.ids['bayes']['calc_mw'], self)
-            wx.CallAfter(mw_window.ChangeValue, self.format_float(mw))
+            if not self.calc_mw_thread_running.is_set():
+                mw_window = wx.FindWindowById(self.ids['bayes']['calc_mw'], self)
+                wx.CallAfter(mw_window.ChangeValue, self.format_float(mw))
 
-            ci_l_win = wx.FindWindowById(self.ids['bayes']['ci_start'], self)
-            wx.CallAfter(ci_l_win.ChangeValue, self.format_float(ci_lower))
+                ci_l_win = wx.FindWindowById(self.ids['bayes']['ci_start'], self)
+                wx.CallAfter(ci_l_win.ChangeValue, self.format_float(ci_lower))
 
-            ci_u_win = wx.FindWindowById(self.ids['bayes']['ci_end'], self)
-            wx.CallAfter(ci_u_win.ChangeValue, self.format_float(ci_upper))
+                ci_u_win = wx.FindWindowById(self.ids['bayes']['ci_end'], self)
+                wx.CallAfter(ci_u_win.ChangeValue, self.format_float(ci_upper))
 
-            mw_prob_win = wx.FindWindowById(self.ids['bayes']['mw_prob'], self)
-            wx.CallAfter(mw_prob_win.ChangeValue, self.format_float(mw_score))
+                mw_prob_win = wx.FindWindowById(self.ids['bayes']['mw_prob'], self)
+                wx.CallAfter(mw_prob_win.ChangeValue, self.format_float(mw_score))
 
-            ci_prob_win = wx.FindWindowById(self.ids['bayes']['ci_prob'], self)
-            wx.CallAfter(ci_prob_win.ChangeValue, self.format_float(ci_score))
+                ci_prob_win = wx.FindWindowById(self.ids['bayes']['ci_prob'], self)
+                wx.CallAfter(ci_prob_win.ChangeValue, self.format_float(ci_score))
 
         else:
             self.mws['bayes']['mw'] = ''
@@ -3364,20 +3432,21 @@ class MolWeightFrame(wx.Frame):
             self.mws['bayes']['mw_prob'] = ''
             self.mws['bayes']['ci_prob'] = ''
 
-            mw_window = wx.FindWindowById(self.ids['bayes']['calc_mw'], self)
-            wx.CallAfter(mw_window.ChangeValue, '')
+            if not self.calc_mw_thread_running.is_set():
+                mw_window = wx.FindWindowById(self.ids['bayes']['calc_mw'], self)
+                wx.CallAfter(mw_window.ChangeValue, '')
 
-            ci_l_win = wx.FindWindowById(self.ids['bayes']['ci_start'], self)
-            wx.CallAfter(ci_l_win.ChangeValue, '')
+                ci_l_win = wx.FindWindowById(self.ids['bayes']['ci_start'], self)
+                wx.CallAfter(ci_l_win.ChangeValue, '')
 
-            ci_u_win = wx.FindWindowById(self.ids['bayes']['ci_end'], self)
-            wx.CallAfter(ci_u_win.ChangeValue, '')
+                ci_u_win = wx.FindWindowById(self.ids['bayes']['ci_end'], self)
+                wx.CallAfter(ci_u_win.ChangeValue, '')
 
-            mw_prob_win = wx.FindWindowById(self.ids['bayes']['mw_prob'], self)
-            wx.CallAfter(mw_prob_win.ChangeValue, '')
+                mw_prob_win = wx.FindWindowById(self.ids['bayes']['mw_prob'], self)
+                wx.CallAfter(mw_prob_win.ChangeValue, '')
 
-            ci_prob_win = wx.FindWindowById(self.ids['bayes']['ci_prob'], self)
-            wx.CallAfter(ci_prob_win.ChangeValue, '')
+                ci_prob_win = wx.FindWindowById(self.ids['bayes']['ci_prob'], self)
+                wx.CallAfter(ci_prob_win.ChangeValue, '')
 
     def calcDatclassMW(self, path, datname):
         # This calculates the Bayesian estimated MW using datmw from ATSAS
@@ -3398,28 +3467,30 @@ class MolWeightFrame(wx.Frame):
             mw = round(mw, 1)
             dmax = round(dmax, 0)
 
-            mw_window = wx.FindWindowById(self.ids['datclass']['calc_mw'], self)
-            wx.CallAfter(mw_window.ChangeValue, self.format_float(mw))
+            if not self.calc_mw_thread_running.is_set():
+                mw_window = wx.FindWindowById(self.ids['datclass']['calc_mw'], self)
+                wx.CallAfter(mw_window.ChangeValue, self.format_float(mw))
 
-            shape_win = wx.FindWindowById(self.ids['datclass']['shape'], self)
-            wx.CallAfter(shape_win.ChangeValue, shape)
+                shape_win = wx.FindWindowById(self.ids['datclass']['shape'], self)
+                wx.CallAfter(shape_win.ChangeValue, shape)
 
-            dmax_win = wx.FindWindowById(self.ids['datclass']['dmax'], self)
-            wx.CallAfter(dmax_win.ChangeValue, str(dmax))
+                dmax_win = wx.FindWindowById(self.ids['datclass']['dmax'], self)
+                wx.CallAfter(dmax_win.ChangeValue, str(dmax))
 
         else:
             self.mws['datclass']['mw'] = ''
             self.mws['datclass']['shape'] = ''
             self.mws['datclass']['dmax'] = ''
 
-            mw_window = wx.FindWindowById(self.ids['datclass']['calc_mw'], self)
-            wx.CallAfter(mw_window.ChangeValue, '')
+            if not self.calc_mw_thread_running.is_set():
+                mw_window = wx.FindWindowById(self.ids['datclass']['calc_mw'], self)
+                wx.CallAfter(mw_window.ChangeValue, '')
 
-            shape_win = wx.FindWindowById(self.ids['datclass']['shape'], self)
-            wx.CallAfter(shape_win.ChangeValue, '')
+                shape_win = wx.FindWindowById(self.ids['datclass']['shape'], self)
+                wx.CallAfter(shape_win.ChangeValue, '')
 
-            dmax_win = wx.FindWindowById(self.ids['datclass']['dmax'], self)
-            wx.CallAfter(dmax_win.ChangeValue, '')
+                dmax_win = wx.FindWindowById(self.ids['datclass']['dmax'], self)
+                wx.CallAfter(dmax_win.ChangeValue, '')
 
     def calcATSASMwFromFile(self):
         """

@@ -13076,27 +13076,38 @@ class InformationPanel(scrolled.ScrolledPanel):
         vp_qmax_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
         vp_density_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
         abs_psv_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        bayes_mw_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        bayes_ci_low_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        bayes_ci_up_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        bayes_mw_prob_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        bayes_ci_prob_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        datclass_mw_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        datclass_shape_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        datclass_dmax_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
 
-        mw_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        mw_main_sizer.Add(mw_show_item, border=2,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        mw_main_sizer = wx.FlexGridSizer(cols=9, vgap=2, hgap=2)
+        mw_main_sizer.Add(mw_show_item,  flag=wx.ALIGN_CENTER_VERTICAL)
         mw_main_sizer.Add(wx.StaticText(mw_box, label='Vc:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        mw_main_sizer.Add(vc_mw_ctrl, border=2,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        mw_main_sizer.Add(wx.StaticText(mw_box, label='Vp:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        mw_main_sizer.Add(vp_mw_ctrl, border=2,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        mw_main_sizer.Add(wx.StaticText(mw_box, label='Abs.:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        mw_main_sizer.Add(abs_mw_ctrl, border=2,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        mw_main_sizer.Add(wx.StaticText(mw_box, label='Std.:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        mw_main_sizer.Add(std_mw_ctrl, border=2,
             flag=wx.ALIGN_CENTER_VERTICAL)
-        mw_main_sizer.AddStretchSpacer(1)
+        mw_main_sizer.Add(vc_mw_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_main_sizer.Add(wx.StaticText(mw_box, label='Vp:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_main_sizer.Add(vp_mw_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_main_sizer.Add(wx.StaticText(mw_box, label='Abs.:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_main_sizer.Add(abs_mw_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_main_sizer.Add(wx.StaticText(mw_box, label='Std.:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_main_sizer.Add(std_mw_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        # mw_main_sizer.AddSpacer(1)
+        mw_main_sizer.AddSpacer(1)
+        mw_main_sizer.Add(wx.StaticText(mw_box, label='Bayes:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_main_sizer.Add(bayes_mw_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_main_sizer.Add(wx.StaticText(mw_box, label='S&&S:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_main_sizer.Add(datclass_mw_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        # mw_main_sizer.AddGrowableCol(9)
 
 
         mw_sub_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -13120,6 +13131,25 @@ class InformationPanel(scrolled.ScrolledPanel):
         mw_sub_info_sizer.Add(wx.StaticText(mw_box, label='Abs. P.S.V.:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         mw_sub_info_sizer.Add(abs_psv_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(wx.StaticText(mw_box, label='Bayes low:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(bayes_ci_low_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(wx.StaticText(mw_box, label='Bayes high:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(bayes_ci_up_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(wx.StaticText(mw_box, label='Bayes M.W.P:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(bayes_mw_prob_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(wx.StaticText(mw_box, label='Bayes C.I.P.:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(bayes_ci_prob_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(wx.StaticText(mw_box, label='S&&S Shape:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(datclass_shape_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(wx.StaticText(mw_box, label='S&&S Dmax:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        mw_sub_info_sizer.Add(datclass_dmax_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+
 
         mw_sub_sizer.Add(mw_sub_info_sizer)
 
@@ -13325,6 +13355,14 @@ class InformationPanel(scrolled.ScrolledPanel):
         self.sasm_info['MW_Absolute_MW'] = (abs_mw_ctrl, 'float', 1)
         self.sasm_info['MW_Absolute_Partial_specific_volume'] = (abs_psv_ctrl, 'float', 3)
         self.sasm_info['MW_I(0)Concentration_MW'] = (std_mw_ctrl, 'float', 1)
+        self.sasm_info['MW_DatmwBayes_MW'] = (bayes_mw_ctrl, 'float', 1)
+        self.sasm_info['MW_DatmwBayes_ConfidenceIntervalLower'] = (bayes_ci_low_ctrl, 'float', 1)
+        self.sasm_info['MW_DatmwBayes_ConfidenceIntervalUpper'] = (bayes_ci_up_ctrl, 'float', 1)
+        self.sasm_info['MW_DatmwBayes_MWProbability'] = (bayes_mw_prob_ctrl, 'float', 1)
+        self.sasm_info['MW_DatmwBayes_ConfidenceIntervalProbability'] = (bayes_ci_prob_ctrl, 'float', 1)
+        self.sasm_info['MW_ShapeAndSize_MW'] = (datclass_mw_ctrl, 'float', 1)
+        self.sasm_info['MW_ShapeAndSize_Shape'] = (datclass_shape_ctrl, 'text', 0)
+        self.sasm_info['MW_ShapeAndSize_Dmax'] = (datclass_dmax_ctrl, 'float', 0)
 
         self.sasm_info['GNOM_Dmax'] = (gnom_dmax_ctrl, 'float', 1)
         self.sasm_info['GNOM_Real_Space_Rg'] = (gnom_rg_ctrl, 'float', 2)
@@ -14023,7 +14061,12 @@ class InformationPanel(scrolled.ScrolledPanel):
         else:
             low_bound = 0.1
 
-        if value < low_bound or value > 100:
+        if round_to > 1:
+            high_bound = 1000./((round_to-1.)*10.)
+        else:
+            high_bound = 1000
+
+        if value < low_bound or value > high_bound:
             value = str(np.format_float_scientific(value, round_to, trim='0',
                 exp_digits=1))
         else:
