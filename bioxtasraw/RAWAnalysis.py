@@ -3057,8 +3057,7 @@ class MolWeightFrame(wx.Frame):
                 self.calcAbsMW()
 
                 if self.has_atsas:
-                    self.calcBayesMW()
-                    self.calcDatclassMW()
+                    self.calcATSASMwFromFile()
 
                 self.calc_mw_event.clear()
             else:
@@ -3318,31 +3317,14 @@ class MolWeightFrame(wx.Frame):
             self.mws['abs']['rho_solv'] = str(rho_solv)
             self.mws['abs']['nu_bar'] = str(nu_bar)
 
-    def calcBayesMW(self):
+    def calcBayesMW(self, path, datname):
         # This calculates the Bayesian estimated MW using datmw from ATSAS
-        tempdir = self.standard_paths.GetTempDir()
-
-        datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
-
-        while os.path.isfile(datname):
-            datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
-
-        datname = os.path.split(datname)[-1] + '.dat'
-
-        SASFileIO.writeRadFile(self.sasm, os.path.abspath(os.path.join(tempdir, datname)),
-            False)
 
         try:
-            res = SASCalc.runDatmw(self.sasm, 'bayes', self.raw_settings, tempdir,
+            res = SASCalc.runDatmw(self.sasm, 'bayes', self.raw_settings, path,
                 datname)
         except Exception:
             res = ()
-
-        if os.path.isfile(os.path.join(tempdir, datname)):
-            try:
-                os.remove(os.path.join(tempdir, datname))
-            except Exception:
-                pass
 
         if len(res) > 0:
             mw, mw_score, ci_lower, ci_upper, ci_score = res
@@ -3397,31 +3379,14 @@ class MolWeightFrame(wx.Frame):
             ci_prob_win = wx.FindWindowById(self.ids['bayes']['ci_prob'], self)
             wx.CallAfter(ci_prob_win.ChangeValue, '')
 
-    def calcDatclassMW(self):
+    def calcDatclassMW(self, path, datname):
         # This calculates the Bayesian estimated MW using datmw from ATSAS
-        tempdir = self.standard_paths.GetTempDir()
-
-        datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
-
-        while os.path.isfile(datname):
-            datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
-
-        datname = os.path.split(datname)[-1] + '.dat'
-
-        SASFileIO.writeRadFile(self.sasm, os.path.abspath(os.path.join(tempdir, datname)),
-            False)
 
         try:
-            res = SASCalc.runDatclass(self.sasm, self.raw_settings, tempdir,
+            res = SASCalc.runDatclass(self.sasm, self.raw_settings, path,
                 datname)
         except Exception:
             res = ()
-
-        if os.path.isfile(os.path.join(tempdir, datname)):
-            try:
-                os.remove(os.path.join(tempdir, datname))
-            except Exception:
-                pass
 
         if len(res) > 0:
             shape, mw, dmax = res
@@ -3455,6 +3420,34 @@ class MolWeightFrame(wx.Frame):
 
             dmax_win = wx.FindWindowById(self.ids['datclass']['dmax'], self)
             wx.CallAfter(dmax_win.ChangeValue, '')
+
+    def calcATSASMwFromFile(self):
+        """
+        Calculates MW using methods that require a file written to disk,
+        so that file writting is done only once.
+        """
+        tempdir = self.standard_paths.GetTempDir()
+
+        datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
+
+        while os.path.isfile(datname):
+            datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
+
+        datname = os.path.split(datname)[-1] + '.dat'
+
+        SASFileIO.writeRadFile(self.sasm, os.path.abspath(os.path.join(tempdir, datname)),
+            False)
+
+
+        self.calcBayesMW(tempdir, datname)
+        self.calcDatclassMW(tempdir, datname)
+
+
+        if os.path.isfile(os.path.join(tempdir, datname)):
+            try:
+                os.remove(os.path.join(tempdir, datname))
+            except Exception:
+                pass
 
     def format_float(self, val):
         if val > 1e3 or val < 1e-2:
