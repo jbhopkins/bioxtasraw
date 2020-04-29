@@ -4643,33 +4643,47 @@ class GNOMControlPanel(wx.Panel):
             plotpanel.clearDataPlot()
 
     def runDatgnom(self):
-        tempdir = self.gnom_frame.standard_paths.GetTempDir()
-
-        if (self.gnom_frame.main_frame.OnlineControl.isRunning() and
-            tempdir == self.gnom_frame.main_frame.OnlineControl.getTargetDir()):
-            self.gnom_frame.main_frame.controlTimer(False)
-            restart_timer = True
-        else:
-            restart_timer = False
-
         startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
         endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
+
         start = int(startSpin.GetValue())
         end = int(endSpin.GetValue())
+
+        tempdir = self.gnom_frame.standard_paths.GetTempDir()
 
         save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q),
             copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
 
         save_sasm.setQrange((start, end))
 
+        savename = save_sasm.getParameter('filename')
+
+        outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
+        while os.path.isfile(outname):
+            outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
+
+        if (self.gnom_frame.main_frame.OnlineControl.isRunning()
+            and tempdir == self.gnom_frame.main_frame.OnlineControl.getTargetDir()):
+            self.gnom_frame.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
         try:
-            datgnom = SASCalc.runDatgnom(save_sasm, tempdir)
+            SASFileIO.saveMeasurement(save_sasm, tempdir, self.raw_settings, filetype = '.dat')
+        except SASExceptions.HeaderSaveError as e:
+            self._showSaveError('header')
+
+        try:
+            datgnom = SASCalc.runDatgnom(save_sasm, tempdir, savename, outname)
         except SASExceptions.NoATSASError as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM',
                 style=wx.ICON_ERROR|wx.OK)
-
+            self.cleanupGNOM(tempdir, savename, outname)
             self.SetFocusIgnoringChildren()
             return
+
+        self.cleanupGNOM(tempdir, savename, outname)
 
         if restart_timer:
             wx.CallAfter(self.gnom_frame.main_frame.controlTimer, True)
@@ -4699,25 +4713,17 @@ class GNOMControlPanel(wx.Panel):
         end = int(endSpin.GetValue())
 
         tempdir = self.gnom_frame.standard_paths.GetTempDir()
-        savename = tempfile.NamedTemporaryFile(dir=tempdir).name
-
-        while os.path.isfile(savename):
-            savename = tempfile.NamedTemporaryFile(dir=tempdir).name
-
-        savename = os.path.split(savename)[-1] + '.dat'
-
-        outname = tempfile.NamedTemporaryFile(dir=tempdir).name
-
-        while os.path.isfile(outname):
-            outname = tempfile.NamedTemporaryFile(dir=tempdir).name
-
-        outname = os.path.split(outname)[-1] + '.out'
 
         save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q),
             copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
 
-        save_sasm.setParameter('filename', savename)
         save_sasm.setQrange((start, end))
+
+        savename = save_sasm.getParameter('filename')
+
+        outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
+        while os.path.isfile(outname):
+            outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
 
         if (self.gnom_frame.main_frame.OnlineControl.isRunning()
             and tempdir == self.gnom_frame.main_frame.OnlineControl.getTargetDir()):

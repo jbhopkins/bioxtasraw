@@ -133,6 +133,7 @@ All changes:
 *   Added ability to display P(r) functions on an I(0) normalized plot (set as default).
 *   Fixed a bug where custom toolbar buttons didn't display as toggled properly on MacOS.
 *   Added ATSAS MW methods Bayes and DATCLASS (Shape&Size) to the MW panel.
+*   Fixed a bug where running datgnom didn't respect the q ranges set in the GNOM window.
 
 
 1.6.4

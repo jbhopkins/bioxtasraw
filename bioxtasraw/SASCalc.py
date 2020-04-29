@@ -1058,7 +1058,7 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
         return None
 
 
-def runDatgnom(sasm, path):
+def runDatgnom(sasm, path, datname, outname):
     #This runs the ATSAS package DATGNOM program, to automatically find the Dmax and P(r) function
     #of a scattering profile.
     analysis = sasm.getParameter('analysis')
@@ -1083,18 +1083,6 @@ def runDatgnom(sasm, path):
     if os.path.exists(datgnomDir):
 
         my_env = setATSASEnv(atsasDir)
-
-        datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(path)).name
-        while os.path.isfile(datname):
-            datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(path)).name
-
-        datname = os.path.split(datname)[-1] + '.dat'
-        SASFileIO.writeRadFile(sasm, os.path.abspath(os.path.join(path, datname)),
-            False)
-
-        outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(path)).name
-        while os.path.isfile(outname):
-            outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(path)).name
 
         version = getATSASVersion()
 
@@ -1154,11 +1142,11 @@ def runDatgnom(sasm, path):
 
         error = error.strip()
 
-        if error == 'Cannot define Dmax' or error=='Could not find Rg' or error=='No intensity values (positive) found' or error == 'LOADATF --E- No data lines recognized.' or error == 'error: rg not specified':
-            print('Unable to run datgnom successfully')
+        if (error == 'Cannot define Dmax' or error=='Could not find Rg'
+            or error=='No intensity values (positive) found'
+            or error == 'LOADATF --E- No data lines recognized.'
+            or error == 'error: rg not specified'):
             datgnom_success = False
-        # elif error is not None:
-        #     datgnom_success = False
         else:
             datgnom_success = True
 
@@ -1166,20 +1154,6 @@ def runDatgnom(sasm, path):
             iftm=SASFileIO.loadOutFile(os.path.join(path, outname))[0]
         else:
             iftm = None
-
-        if os.path.isfile(os.path.join(path, outname)):
-            try:
-                os.remove(os.path.join(path, outname))
-            except Exception as e:
-                print(e)
-                print('DATGNOM cleanup failed to remove the .out file!')
-
-        if os.path.isfile(os.path.join(path, datname)):
-            try:
-                os.remove(os.path.join(path, datname))
-            except Exception as e:
-                print(e)
-                print('DATGNOM cleanup failed to remove the .out file!')
 
         return iftm
 
