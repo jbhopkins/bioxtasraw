@@ -157,7 +157,7 @@ def getEvidence(params, q, i, err, N):
 
     err = err**2
 
-    p, r = makePriorDistribution(i[0], N, dmax) #Note, here I use p for what Hansen calls m
+    p, r = makePriorDistribution(i[0], N, dmax, 'sphere') #Note, here I use p for what Hansen calls m
     T = createTransMatrix(q, r)
 
     p[0] = 0
@@ -185,14 +185,13 @@ def getEvidence(params, q, i, err, N):
 
     # Calculate the evidence
     s = np.sum(-(f[1:-1]-p[1:-1])**2/sigma[1:-1])
-    c = np.sum((i[1:-1]-np.sum(T[1:-1,1:-1]*f[1:-1], axis=1))**2/err[1:-1])/i.size
+    c = np.sum((i[1:-1]-np.sum(T[1:-1,1:-1]*f[1:-1], axis=1))**2/err[1:-1])/(i.size - p.size)
 
     u = np.sqrt(np.abs(np.outer(f[1:-1], f[1:-1])))*B[1:-1, 1:-1]/alpha
 
     # u[np.diag_indices(u.shape[0])] = u[np.diag_indices(u.shape[0])]+1
     for j in range(0, u.shape[0]):
         u[j, j] = u[j, j]+1
-
 
     # Absolute value of determinant is equal to the product of the singular values
     rlogdet = np.log(np.abs(np.linalg.det(u)))

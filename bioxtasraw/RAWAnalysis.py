@@ -4644,19 +4644,6 @@ class GNOMControlPanel(wx.Panel):
 
     def runDatgnom(self):
         tempdir = self.gnom_frame.standard_paths.GetTempDir()
-        savename = tempfile.NamedTemporaryFile(dir=tempdir).name
-
-        while os.path.isfile(savename):
-            savename = tempfile.NamedTemporaryFile(dir=tempdir).name
-
-        savename = os.path.split(savename)[-1] + '.dat'
-
-        save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q),
-            copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
-
-        save_sasm.setParameter('filename', savename)
-
-        save_sasm.setQrange(self.sasm.getQrange())
 
         if (self.gnom_frame.main_frame.OnlineControl.isRunning() and
             tempdir == self.gnom_frame.main_frame.OnlineControl.getTargetDir()):
@@ -4665,24 +4652,24 @@ class GNOMControlPanel(wx.Panel):
         else:
             restart_timer = False
 
-        try:
-            SASFileIO.saveMeasurement(save_sasm, tempdir, self.raw_settings,
-                filetype='.dat')
-        except SASExceptions.HeaderSaveError as e:
-            self._showSaveError('header')
+        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
+        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
+        start = int(startSpin.GetValue())
+        end = int(endSpin.GetValue())
+
+        save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q),
+            copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
+
+        save_sasm.setQrange((start, end))
 
         try:
-            datgnom = SASCalc.runDatgnom(savename, self.sasm, tempdir)
+            datgnom = SASCalc.runDatgnom(save_sasm, tempdir)
         except SASExceptions.NoATSASError as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM',
                 style=wx.ICON_ERROR|wx.OK)
-            self.cleanupGNOM(tempdir, savename = savename)
 
             self.SetFocusIgnoringChildren()
-            # self.gnom_frame.OnClose()
             return
-
-        self.cleanupGNOM(tempdir, savename = savename)
 
         if restart_timer:
             wx.CallAfter(self.gnom_frame.main_frame.controlTimer, True)

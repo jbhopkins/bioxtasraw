@@ -1058,7 +1058,7 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
         return None
 
 
-def runDatgnom(datname, sasm, path):
+def runDatgnom(sasm, path):
     #This runs the ATSAS package DATGNOM program, to automatically find the Dmax and P(r) function
     #of a scattering profile.
     analysis = sasm.getParameter('analysis')
@@ -1084,9 +1084,17 @@ def runDatgnom(datname, sasm, path):
 
         my_env = setATSASEnv(atsasDir)
 
-        outname = 't_datgnom.out'
+        datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(path)).name
+        while os.path.isfile(datname):
+            datname = tempfile.NamedTemporaryFile(dir=os.path.abspath(path)).name
+
+        datname = os.path.split(datname)[-1] + '.dat'
+        SASFileIO.writeRadFile(sasm, os.path.abspath(os.path.join(path, datname)),
+            False)
+
+        outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(path)).name
         while os.path.isfile(outname):
-            outname = 't'+outname
+            outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(path)).name
 
         version = getATSASVersion()
 
@@ -1162,6 +1170,13 @@ def runDatgnom(datname, sasm, path):
         if os.path.isfile(os.path.join(path, outname)):
             try:
                 os.remove(os.path.join(path, outname))
+            except Exception as e:
+                print(e)
+                print('DATGNOM cleanup failed to remove the .out file!')
+
+        if os.path.isfile(os.path.join(path, datname)):
+            try:
+                os.remove(os.path.join(path, datname))
             except Exception as e:
                 print(e)
                 print('DATGNOM cleanup failed to remove the .out file!')

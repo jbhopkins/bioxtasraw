@@ -47,6 +47,7 @@ import bioxtasraw.SASProc as SASProc
 import bioxtasraw.RAWSettings as RAWSettings
 import bioxtasraw.RAWGlobals as RAWGlobals
 import bioxtasraw.SECM as SECM
+import bioxtasraw.BIFT as BIFT
 
 __version__ = RAWGlobals.version
 
@@ -325,6 +326,30 @@ def calc_vpmw(sasm):
     err = sasm.getErr()
 
     SASCalc.calcVpMW(q, i, err, rg, i0, rg_qmin, vp_density)
+
+    ###### NOT FINISHED
+
+
+def bift(sasm, settings):
+    q = sasm.getQ()
+    i = sasm.getI()
+    err = sasm.getErr()
+    filename = sasm.getParameter('filename')
+
+    bift_settings = {
+            'npts'      : settings.get('PrPoints'),
+            'alpha_max' : settings.get('maxAlpha'),
+            'alpha_min' : settings.get('minAlpha'),
+            'alpha_n'   : settings.get('AlphaPoints'),
+            'dmax_min'  : settings.get('maxDmax'),
+            'dmax_max'  : settings.get('minDmax'),
+            'dmax_n'    : settings.get('DmaxPoints'),
+            'mc_runs'   : settings.get('mcRuns'),
+            }
+
+    iftm = BIFT.doBift(q, i, err, filename, **bift_settings)
+
+    return iftm
 
 
 def run_efa(data, ranges, sasm_type='sub', framei=None, framef=None,
