@@ -11,14 +11,15 @@ Overview
 ^^^^^^^^^^^^^^^^^
 
 There are a number of ways to calculate molecular weight from SAXS data. RAW
-supports four of the most common methods:
+supports four of the most common methods natively:
 
 #.  Molecular weight from absolute scaled I(0) [1].
 #.  Molecular weight by comparing to a reference standard [1].
 #.  Molecular weight from the Porod volume [2].
 #.  Molecular weight from the volume of correlation [3].
 
-There are two additional methods supported in the ATSAS software,
+There are two additional methods supported in the ATSAS software, which RAW
+will show if ATSAS is installed:
 
 #.  Molecular weight estimation by comparison of scattering to known structures [4].
 #.  Molecular weight calculation by Bayesian inference from the other molecular

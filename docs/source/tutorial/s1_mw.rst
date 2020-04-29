@@ -6,12 +6,19 @@ This tutorial covers how to use RAW for molecular weight analysis. This is not a
 tutorial on basic principles and best practices for molecular weight analysis.
 For that, please see the :ref:`SAXS tutorial <saxs_mw>`.
 
-RAW provides four forms of molecular weight analysis:
+RAW provides four methods of molecular weight analysis:
 
 *   Referencing I(0) to that of a known standard
 *   From the volume of correlation using the method of Rambo and Tainer
 *   From the adjusted Porod volume using the method of Fisher et al.
 *   From the value of I(0) on an absolute scale.
+
+If ATSAS is installed, RAW also provides an additional two methods of MW
+calculation using the ATSAS tools, for a total of six different methods:
+
+*   From classificiation by machine learning (ATSAS datclass/Shape&Size)
+*   From a Bayesian estimation based on concentration independent methods (ATSAS
+    datmw bayes)
 
 #.  In RAW, right click on the subtracted GI scattering profile in the Profiles panel
     and select “Molecular weight.” Alternatively click on the "Mol. Weight" button
@@ -19,12 +26,17 @@ RAW provides four forms of molecular weight analysis:
 
     |mw_open_png|
 
-#.  At the top of the panel are the results of the Guinier fit. All four methods
+#.  At the top of the panel are the results of the Guinier fit. All methods
     require a good Guinier fit, so you can use that button to redo the fit if
-    necessary. In the lower part of the panel, the results of the four estimates
+    necessary. In the lower part of the panel, the results of the estimates
     for MW are shown.
 
     *   *Note:* Neither the I(0) Ref. MW panel nor the Abs. MW panel should be reporting a MW.
+
+    *   *Note:* If you have ATSAS installed an accessible to RAW, you should see
+        see panels with MW, as in the image below. If you don't have ATSAS
+        installed you will see just four panels, the rightmost panel in each
+        row will be missing.
 
     *   *Tip:* To learn more about any of the methods, lick on the "More Info"
         button.
@@ -32,7 +44,7 @@ RAW provides four forms of molecular weight analysis:
     |mw_png|
 
 #.  In either concentration box, enter the sample concentration of 0.47 mg/ml. Notice that you
-    now get results from all four methods of MW calculation.
+    now get results from all methods of MW calculation.
 
     *   *Question:* The expected MW value for GI is 172 kDa. How do your results compare?
 
@@ -68,7 +80,6 @@ RAW provides four forms of molecular weight analysis:
     :target: ../_images/mw_open.png
 
 .. |mw_png| image:: images/mw.png
-    :width: 500 px
     :target: ../_images/mw.png
 
 .. |mw_vc_png| image:: images/mw_vc.png
