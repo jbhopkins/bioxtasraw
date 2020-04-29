@@ -1609,6 +1609,10 @@ class MolWeightFrame(wx.Frame):
             else:
                 self.has_atsas = False
 
+        if not self.has_atsas:
+            size = (min(475, client_display.Width), min(525, client_display.Height))
+            self.SetSize(size)
+
         self.infodata = {'I0' : ('I0 :', self.NewControlId(), self.NewControlId()),
                          'Rg' : ('Rg :', self.NewControlId(), self.NewControlId())}
 
