@@ -261,13 +261,12 @@ class MainFrame(wx.Frame):
         page3 = IFTPanel(self.control_notebook, self.raw_settings)
         page1 = FilePanel(self.control_notebook)
 
-        self.control_notebook.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.onControlTabChange)
-
-
         self.control_notebook.AddPage(page1, "Files", True)
         self.control_notebook.AddPage(page2, "Profiles", False)
         self.control_notebook.AddPage(page3, "IFTs", False)
         self.control_notebook.AddPage(page4, "Series",False)
+
+        self.control_notebook.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.onControlTabChange)
 
         self.info_panel = InformationPanel(self)
         self.centering_panel = CenteringPanel(self, -1)
@@ -6340,8 +6339,8 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         # self.OnSortOrderChanged()
         self.SortListItems(col, ascending)
 
-    def setDir(self, dir):
-        self.path = dir
+    def setDir(self, path):
+        self.path = path
         self.updateFileList()
 
     def getDir(self):
@@ -14264,8 +14263,6 @@ class MyApp(wx.App):
 
         return False
 
-
-
     # def OnActivate(self, event):
     #     # if this is an activate event, rather than something else, like iconize.
     #     if event.GetActive():
@@ -14276,11 +14273,12 @@ class MyApp(wx.App):
     #NOTE: These mac specific events *should* be implimented, but
     #currently pyinstaller doesn't actually forward these vents to the
     #program, so there is not way of testing whether they actually work.
-    #For now they remain commented out.
     # #Mac specific
-    # def MacOpenFiles(self, filename):
-    #     """Called for files droped on dock icon, or opened via finders context menu"""
-    #     mainworker_cmd_queue.put(['plot', filename])
+    def MacOpenFiles(self, filenames):
+        """Called for files droped on dock icon, or opened via finders context menu"""
+        if not isinstance(filenames, list):
+            filenames = [filenames]
+        mainworker_cmd_queue.put(['plot', filenames])
 
     # #Mac specific
     # def MacReopenApp(self):
