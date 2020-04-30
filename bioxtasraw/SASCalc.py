@@ -1248,22 +1248,27 @@ def runDatmw(sasm, method, raw_settings, path, datname):
     #This runs the ATSAS package DATGNOM program, to automatically find the Dmax and P(r) function
     #of a scattering profile.
 
+    rg = -1
+    i0 = -1
+    first = -1
+
     analysis = sasm.getParameter('analysis')
     if 'guinier' in analysis:
         try:
             rg = float(analysis['guinier']['Rg'])
         except Exception:
-            rg = -1
-    else:
-        rg = -1
+            pass
 
-    if 'guinier' in analysis:
         try:
             i0 = float(analysis['guinier']['I0'])
         except Exception:
-            i0 = -1
-    else:
-        i0 = -1
+            pass
+
+        try:
+            #Plus one offset is because datmw has 1 as first point, not 0
+            first = int(analysis['guinier']['nStart']) - sasm.getQrange()[0] + 1
+        except Exception:
+            first = sasm.getQrange()[0]+1
 
     if i0 == -1 or rg == -1:
         raise SASExceptions.NoATSASError('Datmw requires rg and i0.')
@@ -1281,8 +1286,9 @@ def runDatmw(sasm, method, raw_settings, path, datname):
 
         my_env = setATSASEnv(atsasDir)
 
-        cmd = '"{}" --method={} --rg={} --i0={} {}'.format( datmwDir, method,
-            rg, i0, datname)
+        cmd = '"{}" --method={} --rg={} --i0={} --first={} {}'.format( datmwDir,
+            method, rg, i0, first, datname)
+
         process=subprocess.Popen(cmd, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, shell=True, cwd=path, env=my_env)
 
