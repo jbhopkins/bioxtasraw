@@ -6688,7 +6688,7 @@ class DirCtrlPanel(wx.Panel):
 
         dir_label_sizer = wx.BoxSizer()
 
-        self.dir_label = wx.TextCtrl(self, -1, "/" , size = (30,16), style = wx.TE_PROCESS_ENTER)
+        self.dir_label = wx.TextCtrl(self, size = (30,16), style = wx.TE_PROCESS_ENTER)
         self.dir_label.Bind(wx.EVT_KILL_FOCUS, self._onEnterOrFocusShiftInDirLabel)
         self.dir_label.Bind(wx.EVT_TEXT_ENTER, self._onEnterOrFocusShiftInDirLabel)
 
