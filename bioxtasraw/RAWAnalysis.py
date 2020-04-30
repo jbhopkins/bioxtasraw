@@ -138,11 +138,11 @@ class UVConcentrationPanel(wx.Panel):
         self.extc_choices = ['Lysozyme', 'BSA', 'IgG', 'Abs=1mg/ml', 'Custom']
         self.unit_choices = ['E1% [ml/(10mg) cm^-1]', 'E0.1% [ml/mg cm^-1]']
 
-        self.spin_ctrl_ids = {'UVDarkTransmission' : [wx.NewId(), wx.NewId(), 'UV Dark', 0],
-                              'UVTransmissionBg'   : [wx.NewId(), wx.NewId(), 'UV Transmission (Bg)', 2.0],
-                              'UVTransmissionSamp' : [wx.NewId(), wx.NewId(), 'UV Transmission (Sample)', 1.0],
-                              'UVPathlength'       : [wx.NewId(), wx.NewId(), 'UV Path Length [mm]', 1.5],
-                              'UVExtinctionCoeff'  : [wx.NewId(), wx.NewId(), 'Extinction Coeff.', 24.0]}
+        self.spin_ctrl_ids = {'UVDarkTransmission' : [wx.NewControlId(), wx.NewControlId(), 'UV Dark', 0],
+                              'UVTransmissionBg'   : [wx.NewControlId(), wx.NewControlId(), 'UV Transmission (Bg)', 2.0],
+                              'UVTransmissionSamp' : [wx.NewControlId(), wx.NewControlId(), 'UV Transmission (Sample)', 1.0],
+                              'UVPathlength'       : [wx.NewControlId(), wx.NewControlId(), 'UV Path Length [mm]', 1.5],
+                              'UVExtinctionCoeff'  : [wx.NewControlId(), wx.NewControlId(), 'Extinction Coeff.', 24.0]}
 
         self.all_spins = ['UVDarkTransmission', 'UVTransmissionBg', 'UVTransmissionSamp', 'UVPathlength', 'UVExtinctionCoeff']
         self.double_spins = ['UVPathlength', 'UVExtinctionCoeff']

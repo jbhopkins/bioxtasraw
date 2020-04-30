@@ -5,7 +5,7 @@ Steps:
 
 1) Make a fresh git-free folder for RAW using the git export command
 2) Build the extensions and run RAW in that new folder.
-3) Build the html documentation
+3) Build the html documentation (sphinx-build -b html source build\html)
 5) In the installer directory, run “pyinstaller -y RAW.spec”
 
 

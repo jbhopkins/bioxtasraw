@@ -12,7 +12,7 @@ Windows 7, 8.1, and 10 install from source instructions
 
     *   Download from here: https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2019
 
-    *   Run the installer with the default options.
+    *   Run the installer and install the C++ build tools with the default options.
 
 #.  Install Miniconda python distribution
 
