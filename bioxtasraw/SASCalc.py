@@ -763,8 +763,10 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
     opsys = platform.system()
     if opsys == 'Windows':
         gnomDir = os.path.join(atsasDir, 'gnom.exe')
+        shell=False
     else:
         gnomDir = os.path.join(atsasDir, 'gnom')
+        shell=True
 
     if os.path.exists(gnomDir):
 
@@ -773,7 +775,7 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
         if cfg:
             writeGnomCFG(fname, outname, dmax, args)
 
-            proc = subprocess.Popen('"%s"' %(gnomDir), shell=True,
+            proc = subprocess.Popen('"%s"' %(gnomDir), shell=shell,
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT, cwd=path, env=my_env)
             proc.communicate('\r\n')
@@ -808,7 +810,7 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
 
                 cmd = cmd + ' "%s"' %(fname)
 
-                proc = subprocess.Popen(cmd, shell=True, cwd=path, env=my_env)
+                proc = subprocess.Popen(cmd, shell=shell, cwd=path, env=my_env)
 
                 proc.wait()
 
@@ -816,7 +818,7 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
 
                 gnom_q = queue.Queue()
 
-                proc = subprocess.Popen('"%s"' %(gnomDir), shell=True,
+                proc = subprocess.Popen('"%s"' %(gnomDir), shell=shell,
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT, cwd=path, universal_newlines=True,
                     bufsize=1, env=my_env)
@@ -1076,9 +1078,10 @@ def runDatgnom(sasm, path, datname, outname):
 
     if opsys == 'Windows':
         datgnomDir = os.path.join(atsasDir, 'datgnom.exe')
+        shell=False
     else:
         datgnomDir = os.path.join(atsasDir, 'datgnom')
-
+        shell=True
 
     if os.path.exists(datgnomDir):
 
@@ -1100,12 +1103,12 @@ def runDatgnom(sasm, path, datname, outname):
 
         if rg <= 0:
             process=subprocess.Popen('"%s" "%s" -o "%s"' %(datgnomDir, datname, outname),
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=path,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell, cwd=path,
                 env=my_env)
         else:
-            process=subprocess.Popen('"%s" "%s" -o "%s" -r %f' %(datgnomDir, datname, outname, rg),
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=path,
-                env=my_env)
+            cmd = '"%s" -o "%s" -r %f "%s"' %(datgnomDir, outname, rg, datname)
+            process=subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, shell=shell, cwd=path, env=my_env)
 
         output, error = process.communicate()
 
@@ -1123,13 +1126,13 @@ def runDatgnom(sasm, path, datname, outname):
                 rg, rger, i0, i0er, idx_min, idx_max =autoRg(sasm, error_weight=error_weight)
                 if rg>10:
                     process=subprocess.Popen('"%s" "%s" -o "%s" -r %f' %(datgnomDir, datname, outname, rg),
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True,
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell,
                         cwd=path, env=my_env)
 
                     output, error = process.communicate()
             else:
                 process=subprocess.Popen('"%s" "%s" -o "%s"' %(datgnomDir, datname, outname),
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell,
                     cwd=path, env=my_env)
 
                 output, error = process.communicate()
@@ -1145,7 +1148,8 @@ def runDatgnom(sasm, path, datname, outname):
         if (error == 'Cannot define Dmax' or error=='Could not find Rg'
             or error=='No intensity values (positive) found'
             or error == 'LOADATF --E- No data lines recognized.'
-            or error == 'error: rg not specified'):
+            or error == 'error: rg not specified'
+            or 'error' in error):
             datgnom_success = False
         else:
             datgnom_success = True

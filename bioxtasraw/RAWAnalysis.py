@@ -4754,11 +4754,14 @@ class GNOMControlPanel(wx.Panel):
 
         save_sasm.setQrange((start, end))
 
-        savename = save_sasm.getParameter('filename')
+        savename = os.path.splitext(save_sasm.getParameter('filename'))[0] + '.dat'
 
         outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
         while os.path.isfile(outname):
             outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
+
+        outname = os.path.split(outname)[1]
+        outname = outname+'.out'
 
         if (self.gnom_frame.main_frame.OnlineControl.isRunning()
             and tempdir == self.gnom_frame.main_frame.OnlineControl.getTargetDir()):
@@ -4788,7 +4791,16 @@ class GNOMControlPanel(wx.Panel):
 
         dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
 
-        dmax = int(round(datgnom.getParameter('dmax')))
+        if datgnom is not None:
+            dmax = int(round(datgnom.getParameter('dmax')))
+        else:
+            try:
+                analysis = save_sasm.getParameter('analysis')
+                rg = float(analysis['guinier']['Rg'])
+            except:
+                rg = 10
+
+            dmax = rg*3
 
         if dmax != datgnom.getParameter('dmax') and str(dmax) not in self.out_list:
             self.calcGNOM(dmax)
@@ -4799,7 +4811,8 @@ class GNOMControlPanel(wx.Panel):
         dmaxWindow.SetValue(dmax)
         self.old_dmax = dmax
 
-        self.updateGNOMInfo(self.out_list[str(dmax)])
+        if str(dmax) in self.out_list.keys():
+            self.updateGNOMInfo(self.out_list[str(dmax)])
 
         self.updatePlot()
 
@@ -4817,11 +4830,14 @@ class GNOMControlPanel(wx.Panel):
 
         save_sasm.setQrange((start, end))
 
-        savename = save_sasm.getParameter('filename')
+        savename = os.path.splitext(save_sasm.getParameter('filename'))[0] + '.dat'
 
         outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
         while os.path.isfile(outname):
             outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
+
+        outname = os.path.split(outname)[1]
+        outname = outname+'.out'
 
         if (self.gnom_frame.main_frame.OnlineControl.isRunning()
             and tempdir == self.gnom_frame.main_frame.OnlineControl.getTargetDir()):
