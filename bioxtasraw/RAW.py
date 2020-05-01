@@ -5872,10 +5872,9 @@ class FilePanel(wx.Panel):
         # *************** Directory Control ***********************
         b2sizer = wx.BoxSizer(wx.VERTICAL)
         b2sizer.Add((10,10), 0)
-       # b2sizer.Add(bg_label_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.ALIGN_CENTRE, 10)
         b2sizer.Add((5,5))
         b2sizer.Add(self.dir_panel, 1, wx.EXPAND| wx.LEFT | wx.RIGHT, 10)
-        b2sizer.Add(button_sizer, 0, wx.EXPAND | wx.ALIGN_CENTER | wx.TOP | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+        b2sizer.Add(button_sizer, 0, wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT|wx.BOTTOM, 10)
 
         self.SetSizer(b2sizer)
 
@@ -5899,7 +5898,7 @@ class FilePanel(wx.Panel):
         for button_txt, bindfunc in self.button_data:
             button = wx.Button(self, -1, button_txt)
             button.Bind(wx.EVT_BUTTON, bindfunc)
-            button_sizer.Add(button, 1, wx.ALIGN_CENTER | wx.EXPAND)
+            button_sizer.Add(button, 1, wx.EXPAND)
 
             #################################################3
             if button_txt == '' or button_txt == 'Average':
@@ -6825,7 +6824,7 @@ class ManipulationPanel(wx.Panel):
 
         self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.EXPAND, 5)
         self.panelsizer.Add(self.underpanel, 1, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT, 3)
-        self.panelsizer.Add(self.buttonSizer, 0, wx.EXPAND | wx.ALIGN_CENTER | wx.TOP |wx.BOTTOM | wx.LEFT | wx.RIGHT, 10)
+        self.panelsizer.Add(self.buttonSizer, 0, wx.EXPAND|wx.ALL, 10)
 
         self.SetSizer(self.panelsizer)
 
@@ -6942,7 +6941,7 @@ class ManipulationPanel(wx.Panel):
             if label == 'BIFT':
                 button.Enable(False)
 
-            sizer.Add(button, 1, wx.ALIGN_CENTER | wx.EXPAND)
+            sizer.Add(button, proportion=1, flag=wx.EXPAND)
 
         return sizer
 
@@ -9041,9 +9040,9 @@ class IFTPanel(wx.Panel):
                 button = wx.Button(self, -1, label)
                 button.Bind(wx.EVT_BUTTON, bindfunc)
 
-                sizer.Add(button, 1, wx.EXPAND | wx.ALIGN_CENTER)
+                sizer.Add(button, 1, wx.EXPAND)
 
-        panelsizer.Add(sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.TOP | wx.ALIGN_CENTRE | wx.EXPAND, 10)
+        panelsizer.Add(sizer, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.TOP| wx.EXPAND, 10)
 
     def _onKeyPress(self, evt):
         key = evt.GetKeyCode()
@@ -9784,7 +9783,7 @@ class SECPanel(wx.Panel):
 
         self.sec_control_panel = SeriesControlPanel(self)
 
-        self.panelsizer.Add(self.sec_control_panel, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER | wx.EXPAND, 5)
+        self.panelsizer.Add(self.sec_control_panel, 0, wx.ALL|wx.EXPAND, 5)
         self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 5)
         self.panelsizer.Add(self.underpanel, 1, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT, 3)
 
@@ -10255,9 +10254,9 @@ class SECPanel(wx.Panel):
                 button = wx.Button(self, -1, label)
                 button.Bind(wx.EVT_BUTTON, bindfunc)
 
-                sizer.Add(button, 1, wx.EXPAND | wx.ALIGN_CENTER)
+                sizer.Add(button, 1, wx.EXPAND)
 
-        panelsizer.Add(sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.TOP | wx.ALIGN_CENTRE | wx.EXPAND, 10)
+        panelsizer.Add(sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.TOP | wx.EXPAND, 10)
 
     def setItemAsData(self, item):
 
@@ -11021,7 +11020,7 @@ class SeriesControlPanel(wx.Panel):
                 run_sizer.Add(labelbox, 0, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
                     border=2)
                 run_sizer.Add(self.initial_frame_number_box, 1,
-                    flag=wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, border=2)
+                    flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, border=2)
                 run_sizer.Add(labelbox2, 0, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
                     border=2)
 
@@ -11030,7 +11029,7 @@ class SeriesControlPanel(wx.Panel):
                     value=self.final_frame_number, size=(45,-1), style=wx.TE_READONLY)
 
                 run_sizer.Add(self.final_frame_number_box, 1,
-                    flag=wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, border=5)
+                    flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, border=5)
 
         run_sizer.Add(update_button, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=2)
@@ -11097,7 +11096,7 @@ class SeriesControlPanel(wx.Panel):
 
         send_sizer.Add(selected_sizer, flag=wx.EXPAND|wx.ALL, border=2)
         send_sizer.Add(selected_button_sizer, border=2,
-            flag=wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_CENTER_HORIZONTAL)
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_CENTER_HORIZONTAL)
 
         sizer.Add(send_sizer, flag=wx.EXPAND|wx.BOTTOM, border=5)
 
@@ -11640,17 +11639,17 @@ class MaskingPanel(scrolled.ScrolledPanel):
 
         circ_sub_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
         circ_sub_sizer2.Add(wx.StaticText(self, label='Radius:'), border=15,
-            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         circ_sub_sizer2.Add(self.circ_radius, border=3,
-            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         circ_sub_sizer2.Add(wx.StaticText(self, label='X cen.:'), border=3,
-            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         circ_sub_sizer2.Add(self.circ_x, border=3,
-            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         circ_sub_sizer2.Add(wx.StaticText(self, label='Y cen.:'), border=3,
-            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         circ_sub_sizer2.Add(self.circ_y, border=3,
-            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
 
         circ_sizer = wx.BoxSizer(wx.VERTICAL)
         circ_sizer.Add(circ_sub_sizer1)
@@ -11671,21 +11670,21 @@ class MaskingPanel(scrolled.ScrolledPanel):
 
         rect_sub_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
         rect_sub_sizer2.Add(wx.StaticText(self, label='X1:'), border=15,
-            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         rect_sub_sizer2.Add(self.rect_x, border=3,
-            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         rect_sub_sizer2.Add(wx.StaticText(self, label='Y1:'), border=3,
-            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         rect_sub_sizer2.Add(self.rect_y, border=3,
-            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         rect_sub_sizer2.Add(wx.StaticText(self, label='W.:'), border=3,
-            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         rect_sub_sizer2.Add(self.rect_width, border=3,
-            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         rect_sub_sizer2.Add(wx.StaticText(self, label='H.:'), border=3,
-            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         rect_sub_sizer2.Add(self.rect_height, border=3,
-            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT)
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
 
         rect_sizer = wx.BoxSizer(wx.VERTICAL)
         rect_sizer.Add(rect_sub_sizer1)
@@ -12219,7 +12218,7 @@ class CenteringPanel(scrolled.ScrolledPanel):
 
         self.manual_boxsizer.Add(info_sizer, 0, wx.ALL, 5)
         self.manual_boxsizer.Add((1,1), 1, wx.EXPAND)
-        self.manual_boxsizer.Add(button_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL | wx.RIGHT, 15)
+        self.manual_boxsizer.Add(button_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER| wx.RIGHT, 15)
 
         auto_box = wx.StaticBox(self, -1, 'Automatic Centering/Calibration')
         auto_boxsizer = wx.StaticBoxSizer(auto_box)
@@ -12328,7 +12327,7 @@ class CenteringPanel(scrolled.ScrolledPanel):
 
     def _createCenteringButtonsSizer(self):
 
-        buttonsizer = wx.FlexGridSizer(rows=3, cols=3, hgap=0, vgap=0)
+        buttonsizer = wx.FlexGridSizer(rows=3, cols=3, hgap=1, vgap=1)
 
         up_button = wx.BitmapButton(self, self.ID_UP, self.up_arrow_bmp)
         down_button = wx.BitmapButton(self,self.ID_DOWN, self.down_arrow_bmp)

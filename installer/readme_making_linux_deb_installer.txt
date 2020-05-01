@@ -3,7 +3,7 @@ miniconda to properly package the LLVMLite package for numba. In order to set up
 proper build environment, simply install from source as in the RAW documentation, then
 additionally install pyinstaller through pip or conda: pip install pyinstaller.
 
-Note: currently requires setuptools<0.45 to work.
+Note: currently requires setuptools<45 to work.
 
 Steps:
 1)  Install fakeroot, lintian: sudo apt-get install fakeroot lintian

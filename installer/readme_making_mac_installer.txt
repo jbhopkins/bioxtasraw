@@ -25,15 +25,13 @@ Note: For RAW to work on macbooks older than 2011 need to install all packages
 through conda forge. The new ones through conda have some weird error. See:
 https://github.com/conda/conda/issues/9678
 
-Note: if pyopencl is installed, the build will fail.
+Note: For RAW to build on 10.9, using python 3, install miniconda from the
+4.5.12 installer (not latest!)
 
-Note 2: Without numba, I've now gotten this to work with stock enthought canopy, with the extra
-raw packages installed through pip (Fabio, pyfai, hdf5plugin) and uninstalling pyside.
-
-Note 3: It looks like when the intel mkl library is linked to numpy, the Mac build
+Note: It looks like when the intel mkl library is linked to numpy, the Mac build
 gets really big (~750 MB). Can unlink it by install conda package nomkl if desired.
 
-Note 4: In order to refresh the size of the RAW.app package you need to first delete the .DS_store file
+Note: In order to refresh the size of the RAW.app package you need to first delete the .DS_store file
 that is in the folder it is in, then relaunch Finder from the force quit menu.
 
 More info on disk images here:

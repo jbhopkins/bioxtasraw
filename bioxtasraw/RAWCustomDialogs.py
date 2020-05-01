@@ -3971,7 +3971,7 @@ class PlotOptionsDialog(wx.Dialog):
                 wx.FindWindowById(id, self).Bind(wx.EVT_TEXT, self._updateAxesRange)
 
         maxmin_sizer = wx.BoxSizer()
-        maxmin_sizer.Add(wx.StaticText(self, -1, 'min'), 1, wx.EXPAND | wx.ALIGN_CENTRE_HORIZONTAL)
+        maxmin_sizer.Add(wx.StaticText(self, -1, 'min'), 1, wx.EXPAND)
         maxmin_sizer.Add(wx.StaticText(self, -1, 'max'), 1, wx.EXPAND | wx.LEFT, 5)
 
         sizer.Add((5,5))

@@ -1403,7 +1403,7 @@ class ItemList(wx.Panel):
         panel_sizer.Add(self.list_panel, proportion=1, border=3,
             flag=wx.TOP|wx.LEFT|wx.RIGHT|wx.EXPAND)
         if button_sizer is not None:
-            panel_sizer.Add(button_sizer, border=10, flag=wx.EXPAND|wx.ALIGN_CENTER|wx.ALL)
+            panel_sizer.Add(button_sizer, border=10, flag=wx.EXPAND|wx.ALL)
 
         self.SetSizer(panel_sizer)
 

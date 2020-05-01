@@ -139,7 +139,7 @@ class ArtifactOptionsPanel(scrolled.ScrolledPanel):
                     ctrl = wx.TextCtrl(self, id, 'None', style = wx.TE_PROCESS_ENTER)
 
                     grid_sizer.Add(text, 1, wx.EXPAND | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-                    grid_sizer.Add(ctrl, 1, wx.EXPAND | wx.ALIGN_CENTER)
+                    grid_sizer.Add(ctrl, 1, wx.EXPAND)
                 else:
                     chk = wx.CheckBox(self, id, label)
                     chk.Bind(wx.EVT_CHECKBOX, self.onChkBox)
@@ -165,7 +165,7 @@ class ArtifactOptionsPanel(scrolled.ScrolledPanel):
                 ctrl = wx.TextCtrl(self, id, 'None', style = wx.TE_PROCESS_ENTER)
 
                 grid_sizer.Add(text, 1, wx.EXPAND | wx.ALIGN_LEFT | wx.ALIGN_CENTER_VERTICAL)
-                grid_sizer.Add(ctrl, 1, wx.EXPAND | wx.ALIGN_CENTER)
+                grid_sizer.Add(ctrl, 1, wx.EXPAND)
             else:
                 chk = wx.CheckBox(self, id, label)
                 chk.Bind(wx.EVT_CHECKBOX, self.onChkBox)
@@ -422,7 +422,7 @@ class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
         hsizer.Add(modifier_add_button, 0, wx.LEFT | wx.BOTTOM | wx.ALIGN_BOTTOM, 5)
         hsizer.Add(modifier_remove_button, 0, wx.LEFT | wx.BOTTOM | wx.ALIGN_BOTTOM, 5)
         hsizer.Add((1,1),1,wx.EXPAND)
-        hsizer.Add(self.button_sizer, 0, wx.ALIGN_TOP | wx.ALIGN_RIGHT)
+        hsizer.Add(self.button_sizer, 0, wx.ALIGN_TOP)
 
         final_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1838,7 +1838,7 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
                 ctrl = wx.TextCtrl(self, id, '', style = wx.TE_PROCESS_ENTER)
             txt = wx.StaticText(self, -1, txt)
 
-            sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
+            sizer.Add(txt, 0, wx.ALIGN_CENTER_HORIZONTAL)
             sizer.Add(ctrl, 0)
 
             hSizer.Add(sizer, 0)
@@ -1857,7 +1857,7 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
 
             txt = wx.StaticText(self, -1, txt)
 
-            sizer.Add(txt, 0, wx.ALIGN_CENTRE_HORIZONTAL)
+            sizer.Add(txt, 0, wx.ALIGN_CENTER_HORIZONTAL)
             sizer.Add(ctrl, 0)
 
             hSizer.Add(sizer, 0)
@@ -2027,7 +2027,7 @@ class ReductionNormalizationPanel(scrolled.ScrolledPanel):
 
         ctrl_sizer = wx.BoxSizer()
         ctrl_sizer.Add(self.operator_choice,0, wx.ALIGN_CENTER |wx.RIGHT, 3)
-        ctrl_sizer.Add(self.expr_combo, 1, wx.ALIGN_CENTER |wx.EXPAND | wx.RIGHT, 3)
+        ctrl_sizer.Add(self.expr_combo, 1, wx.EXPAND | wx.RIGHT, 3)
         ctrl_sizer.Add(add_button,0, wx.ALIGN_CENTER |wx.RIGHT, 3)
         ctrl_sizer.Add(calc_button,0, wx.ALIGN_CENTER)
 
@@ -2192,7 +2192,7 @@ class OnlineModePanel(scrolled.ScrolledPanel):
 
         ctrl_sizer = wx.BoxSizer()
         ctrl_sizer.Add(self.filter_choice,0, wx.ALIGN_CENTER |wx.RIGHT, 3)
-        ctrl_sizer.Add(self.expr, 1, wx.ALIGN_CENTER |wx.EXPAND | wx.RIGHT, 3)
+        ctrl_sizer.Add(self.expr, 1, wx.EXPAND | wx.RIGHT, 3)
         ctrl_sizer.Add(self.position_choice,0, wx.ALIGN_CENTER)
         ctrl_sizer.Add(add_button,0, wx.ALIGN_CENTER |wx.RIGHT, 3)
 
