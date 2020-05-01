@@ -6091,9 +6091,14 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         self.SetColumnWidth(2, 125)
         self.SetColumnWidth(3, 70)
 
-        self.attr1 = wx.ListItemAttr()
+        try:
+            self.attr1 = wx.ItemAttr()
+            self.attr2 = wx.ItemAttr()
+        except Exception:
+            self.attr1 = wx.ListItemAttr()
+            self.attr2 = wx.ListItemAttr()
+
         self.attr1.SetBackgroundColour('#e6f1f5')
-        self.attr2 = wx.ListItemAttr()
         self.attr2.SetBackgroundColour("White")
 
         ### Prepare list images:
