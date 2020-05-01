@@ -34,6 +34,8 @@ elif opsys == 'Linux':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.png')
     console = False
 
+options=[('W ignore', None, 'OPTION')]
+
 a = Analysis(
     [os.path.join('..', 'bioxtasraw', 'RAW.py')],
     pathex=['.'],
@@ -59,7 +61,7 @@ if opsys != 'Linux':
     exe = EXE(
         pyz,
         a.scripts,
-        [],
+        options,
         exclude_binaries=True,
         name='RAW',
         debug=False,
