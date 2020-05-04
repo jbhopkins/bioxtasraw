@@ -36,7 +36,7 @@ Windows 7, 8.1, and 10 install from source instructions
 
     *   ``conda upgrade conda pip wheel setuptools``
 
-    *   ``conda install numpy scipy matplotlib pillow wxpython numba h5py cython numexpr``
+    *   ``conda install numpy scipy 'matplotlib<3.2' pillow 'wxpython<4.1' numba h5py cython numexpr``
 
     *   ``pip install hdf5plugin silx fabio pyfai``
 

@@ -15,7 +15,8 @@ brings a number of exciting changes, including:
 *   Python 3 compatibility!
 *   Conversion to pyFAI for radial integration
 *   A .deb prebuilt installer for Debian/Ubuntu
-*   A new series save format, .hdf5, that can be easily read by other programs
+*   A new series save format, .hdf5, that can be easily read by other programs.
+    This new format is also ~50-70% smaller than the previous format.
 *   New information windows above the control panel to display all your analysis
 *   Ability to align DENSS and DAMMIF/N outputs to PDB files
 *   Works with ATSAS 3 on all platforms
@@ -29,7 +30,8 @@ Important notes:
 
 *   RAW configuration files from 2.0.0 will not necessarily be back compatible with
     previous versions of RAW. You will get a warning if you load a .cfg file from
-    RAW 2.0.0 in a previous version. Old configuration files are forward compatible.
+    RAW 2.0.0 in a previous version. Old configuration files can be loaded in
+    RAW 2.0.0.
 
 *   RAW series .hdf5 files from 2.0.0 cannot be opened by previous versions of RAW.
     The old series .sec files can be opened by 2.0.0.
@@ -134,6 +136,7 @@ All changes:
 *   Fixed a bug where custom toolbar buttons didn't display as toggled properly on MacOS.
 *   Added ATSAS MW methods Bayes and DATCLASS (Shape&Size) to the MW panel.
 *   Fixed a bug where running datgnom didn't respect the q ranges set in the GNOM window.
+*   Changes for compatibility with wxpython 4.1.0.
 
 
 1.6.4

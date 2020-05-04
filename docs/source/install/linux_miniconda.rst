@@ -32,7 +32,7 @@ Linux install from source instructions
 
     *   ``conda upgrade conda pip wheel setuptools``
 
-    *   ``conda install numpy scipy matplotlib pillow wxpython numba h5py cython numexpr``
+    *   ``conda install numpy scipy 'matplotlib<3.2' pillow 'wxpython<4.1' numba h5py cython numexpr``
 
     *   ``conda install -c conda-forge dbus-python``
 

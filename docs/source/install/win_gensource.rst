@@ -12,11 +12,11 @@ General instructions for installing from source (advanced users)
 
     *   scipy
 
-    *   matplotlib
+    *   matplotlib < 3.2
 
     *   pillow
 
-    *   wxpython
+    *   wxpython < 4.1
 
     *   h5py
 
