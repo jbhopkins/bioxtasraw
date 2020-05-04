@@ -176,7 +176,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
             self._bitmaps['showbottom'] = {'Normal': showbottom_icon,
                 'Toggled': showbottom_icon_toggled}
 
-            if wx.version().split()[0].strip()[0] == '4':
+            if int(wx.version().split()[0].strip()[0]) >= 4:
                 self.AddSeparator()
                 self.AddCheckTool(self._MTB_ERRBARS, '', errbars_icon, shortHelp='Show Errorbars')
                 self.AddSeparator()
@@ -199,7 +199,10 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
             self.ErrorbarIsOn = False
 
             self.ToggleTool(self._MTB_SHOWBOTH, True)
-            if 'wxMac' in wx.PlatformInfo:
+
+            if ('wxMac' in wx.PlatformInfo and
+                (int(wx.version().split()[0].strip()[0]) >= 4 and
+                int(wx.version().split()[0].strip()[2]) < 1)):
                 active = "showboth"
                 self._fake_toggle_group(["showboth", "showtop", "showbottom"], active)
 
@@ -221,7 +224,9 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.parent._plot_shown = 0
         self.parent.canvas.draw()
 
-        if 'wxMac' in wx.PlatformInfo:
+        if ('wxMac' in wx.PlatformInfo and
+            (int(wx.version().split()[0].strip()[0]) >= 4 and
+            int(wx.version().split()[0].strip()[2]) < 1)):
             active = "showboth"
             self._fake_toggle_group(["showboth", "showtop", "showbottom"], active)
 
@@ -241,7 +246,9 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.parent._plot_shown = 1
         self.parent.canvas.draw()
 
-        if 'wxMac' in wx.PlatformInfo:
+        if ('wxMac' in wx.PlatformInfo and
+            (int(wx.version().split()[0].strip()[0]) >= 4 and
+            int(wx.version().split()[0].strip()[2]) < 1)):
             active = "showtop"
             self._fake_toggle_group(["showboth", "showtop", "showbottom"], active)
 
@@ -260,7 +267,9 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.parent._plot_shown = 2
         self.parent.canvas.draw()
 
-        if 'wxMac' in wx.PlatformInfo:
+        if ('wxMac' in wx.PlatformInfo and
+            (int(wx.version().split()[0].strip()[0]) >= 4 and
+            int(wx.version().split()[0].strip()[2]) < 1)):
             active = "showbottom"
             self._fake_toggle_group(["showboth", "showtop", "showbottom"], active)
 
@@ -275,7 +284,9 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
             self.ErrorbarIsOn = False
             self.parent.showErrorbars(False)
 
-        if 'wxMac' in wx.PlatformInfo:
+        if ('wxMac' in wx.PlatformInfo and
+            (int(wx.version().split()[0].strip()[0]) >= 4 and
+            int(wx.version().split()[0].strip()[2]) < 1)):
             if evt.IsChecked():
                 active = "errbars"
             else:
