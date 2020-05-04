@@ -47,7 +47,6 @@ import fnmatch
 import shutil
 import itertools
 import traceback
-import scipy.constants
 import multiprocessing
 from collections import OrderedDict, defaultdict
 import functools
@@ -55,6 +54,7 @@ import functools
 
 import hdf5plugin #HAS TO BE FIRST
 import numpy as np
+import scipy.constants
 import matplotlib.colors as mplcol
 import pyFAI, pyFAI.calibrant, pyFAI.control_points
 import wx
@@ -7531,8 +7531,13 @@ class ManipItemPanel(wx.Panel):
         self.float_spin_controls = (("Scale:", 105, 'scale', str(sasm.getScale()), self._onScaleOffsetChange),
                                     ("Offset:", 106, 'offset', str(sasm.getOffset()), self._onScaleOffsetChange))
 
-        self.showitem_icon = wx.StaticBitmap(self, wx.ID_ANY, self.show_png)
-        self.showitem_icon.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
+        self.showitem_icon = wx.Button(self, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        self.showitem_icon.SetBitmap(self.show_png)
+        self.showitem_icon.SetBitmapMargins(0,0)
+        self.showitem_icon.SetBitmapFocus(self.show_png)
+        self.showitem_icon.SetBitmapPressed(self.show_png)
+        self.showitem_icon.Bind(wx.EVT_BUTTON, self._onShowItem)
 
         self.item_name = wx.StaticText(self, wx.ID_ANY, filename)
         self.item_name.SetForegroundColour(font_colour)
@@ -7555,17 +7560,38 @@ class ManipItemPanel(wx.Panel):
         self.colour_indicator = RAWCustomCtrl.ColourIndicator(self, -1, color, size = (20,15))
         self.colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onLinePropertyButton)
 
-        self.bg_star = wx.StaticBitmap(self, -1, self.gray_png)
-        self.bg_star.Bind(wx.EVT_LEFT_DOWN, self._onStarButton)
+        self.bg_star = wx.Button(self, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        self.bg_star.SetBitmap(self.gray_png)
+        self.bg_star.SetBitmapMargins(0,0)
+        self.bg_star.SetBitmapFocus(self.gray_png)
+        self.bg_star.SetBitmapPressed(self.gray_png)
+        self.bg_star.Bind(wx.EVT_BUTTON, self._onStarButton)
 
-        self.expand_collapse = wx.StaticBitmap(self, -1, self.collapse_png)
-        self.expand_collapse.Bind(wx.EVT_LEFT_DOWN, self._onExpandCollapseButton)
+        self.expand_collapse = wx.Button(self, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        self.expand_collapse.SetBitmap(self.collapse_png)
+        self.expand_collapse.SetBitmapMargins(0,0)
+        self.expand_collapse.SetBitmapFocus(self.collapse_png)
+        self.expand_collapse.SetBitmapPressed(self.collapse_png)
+        self.expand_collapse.Bind(wx.EVT_BUTTON, self._onExpandCollapseButton)
 
-        self.target_icon = wx.StaticBitmap(self, -1, self.target_png)
-        self.target_icon.Bind(wx.EVT_LEFT_DOWN, self._onTargetButton)
+        self.target_icon = wx.Button(self, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        self.target_icon.SetBitmap(self.target_png)
+        self.target_icon.SetBitmapMargins(0,0)
+        self.target_icon.SetBitmapFocus(self.target_png)
+        self.target_icon.SetBitmapPressed(self.target_png)
+        self.target_icon.Bind(wx.EVT_BUTTON, self._onTargetButton)
 
 
-        self.info_icon = wx.StaticBitmap(self, -1, self.info_png)
+        self.info_icon = wx.Button(self, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        self.info_icon.SetBitmap(self.info_png)
+        self.info_icon.SetBitmapMargins(0,0)
+        self.info_icon.SetBitmapFocus(self.info_png)
+        self.info_icon.SetBitmapPressed(self.info_png)
+
 
         if int(wx.__version__.split('.')[0]) >= 3 and opsys == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
@@ -7708,9 +7734,15 @@ class ManipItemPanel(wx.Panel):
     def enableStar(self, state):
         if state == True:
             self.bg_star.SetBitmap(self.star_png)
+            self.bg_star.SetBitmapMargins(0,0)
+            self.bg_star.SetBitmapFocus(self.star_png)
+            self.bg_star.SetBitmapPressed(self.star_png)
             self._selected_as_bg = True
         else:
             self.bg_star.SetBitmap(self.gray_png)
+            self.bg_star.SetBitmapMargins(0,0)
+            self.bg_star.SetBitmapFocus(self.gray_png)
+            self.bg_star.SetBitmapPressed(self.gray_png)
             self._selected_as_bg = False
 
         self.bg_star.Refresh()
@@ -7778,6 +7810,9 @@ class ManipItemPanel(wx.Panel):
 
         if self.locator_on:
             self.target_icon.SetBitmap(self.target_on_png)
+            self.target_icon.SetBitmapMargins(0,0)
+            self.target_icon.SetBitmapFocus(self.target_on_png)
+            self.target_icon.SetBitmapPressed(self.target_on_png)
             self.locator_old_width = self.sasm.line.get_linewidth()
             self.locator_old_marker = self.sasm.line.get_markersize()
 
@@ -7789,6 +7824,9 @@ class ManipItemPanel(wx.Panel):
             wx.CallAfter(self.sasm.plot_panel.canvas.draw)
         else:
             self.target_icon.SetBitmap(self.target_png)
+            self.target_icon.SetBitmapMargins(0,0)
+            self.target_icon.SetBitmapFocus(self.target_png)
+            self.target_icon.SetBitmapPressed(self.target_png)
             self.sasm.line.set_linewidth(self.locator_old_width)
             self.sasm.line.set_markersize(self.locator_old_marker)
             wx.CallAfter(self.sasm.plot_panel.canvas.draw)
@@ -7804,10 +7842,16 @@ class ManipItemPanel(wx.Panel):
 
         if state == False:
             self.expand_collapse.SetBitmap(self.expand_png)
+            self.expand_collapse.SetBitmapMargins(0,0)
+            self.expand_collapse.SetBitmapFocus(self.expand_png)
+            self.expand_collapse.SetBitmapPressed(self.expand_png)
             self._controls_visible = False
             self.topsizer.Hide(self.controlSizer, recursive=True)
         else:
             self.expand_collapse.SetBitmap(self.collapse_png)
+            self.expand_collapse.SetBitmapMargins(0,0)
+            self.expand_collapse.SetBitmapFocus(self.collapse_png)
+            self.expand_collapse.SetBitmapPressed(self.collapse_png)
             self._controls_visible = True
             self.topsizer.Show(self.controlSizer, recursive=True)
 
@@ -7827,8 +7871,14 @@ class ManipItemPanel(wx.Panel):
             self._controls_visible = False
             self.showControls(self._controls_visible, True)
             self.showitem_icon.SetBitmap(self.hide_png)
+            self.showitem_icon.SetBitmapMargins(0,0)
+            self.showitem_icon.SetBitmapFocus(self.hide_png)
+            self.showitem_icon.SetBitmapPressed(self.hide_png)
         else:
             self.showitem_icon.SetBitmap(self.show_png)
+            self.showitem_icon.SetBitmapMargins(0,0)
+            self.showitem_icon.SetBitmapFocus(self.show_png)
+            self.showitem_icon.SetBitmapPressed(self.show_png)
 
         self.sasm.line.set_visible(self._selected_for_plot)
         self.sasm.line.set_picker(self._selected_for_plot)      #Line can't be selected when it's hidden
@@ -7851,8 +7901,14 @@ class ManipItemPanel(wx.Panel):
     def updateShowItem(self):
         if not self._selected_for_plot:
             self.showitem_icon.SetBitmap(self.hide_png)
+            self.showitem_icon.SetBitmapMargins(0,0)
+            self.showitem_icon.SetBitmapFocus(self.hide_png)
+            self.showitem_icon.SetBitmapPressed(self.hide_png)
         else:
             self.showitem_icon.SetBitmap(self.show_png)
+            self.showitem_icon.SetBitmapMargins(0,0)
+            self.showitem_icon.SetBitmapFocus(self.show_png)
+            self.showitem_icon.SetBitmapPressed(self.show_png)
 
         self.sasm.line.set_picker(self._selected_for_plot)
 
@@ -9103,8 +9159,13 @@ class IFTItemPanel(wx.Panel):
 
         self._initializeIcons()
 
-        self.showitem_icon = wx.StaticBitmap(self, wx.ID_ANY, self.show_png)
-        self.showitem_icon.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
+        self.showitem_icon = wx.Button(self, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        self.showitem_icon.SetBitmap(self.show_png)
+        self.showitem_icon.SetBitmapMargins(0,0)
+        self.showitem_icon.SetBitmapFocus(self.show_png)
+        self.showitem_icon.SetBitmapPressed(self.show_png)
+        self.showitem_icon.Bind(wx.EVT_BUTTON, self._onShowItem)
 
         self.item_name = wx.StaticText(self, wx.ID_ANY, filename)
         self.item_name.SetForegroundColour(font_colour)
@@ -9126,10 +9187,20 @@ class IFTItemPanel(wx.Panel):
         self.colour_indicator = RAWCustomCtrl.ColourIndicator(self, -1, color, size = (20,15))
         self.colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onLinePropertyButton)
 
-        self.target_icon = wx.StaticBitmap(self, -1, self.target_png)
-        self.target_icon.Bind(wx.EVT_LEFT_DOWN, self._onTargetButton)
+        self.target_icon = wx.Button(self, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        self.target_icon.SetBitmap(self.target_png)
+        self.target_icon.SetBitmapMargins(0,0)
+        self.target_icon.SetBitmapFocus(self.target_png)
+        self.target_icon.SetBitmapPressed(self.target_png)
+        self.target_icon.Bind(wx.EVT_BUTTON, self._onTargetButton)
 
-        self.info_icon = wx.StaticBitmap(self, -1, self.info_png)
+        self.info_icon = wx.Button(self, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        self.info_icon.SetBitmap(self.info_png)
+        self.info_icon.SetBitmapMargins(0,0)
+        self.info_icon.SetBitmapFocus(self.info_png)
+        self.info_icon.SetBitmapPressed(self.info_png)
 
         try:
             dmax = round(float(self.iftm.getParameter('dmax')),2)
@@ -9228,8 +9299,14 @@ class IFTItemPanel(wx.Panel):
     def updateShowItem(self):
         if not self._selected_for_plot:
             self.showitem_icon.SetBitmap(self.hide_png)
+            self.showitem_icon.SetBitmapMargins(0,0)
+            self.showitem_icon.SetBitmapFocus(self.hide_png)
+            self.showitem_icon.SetBitmapPressed(self.hide_png)
         else:
             self.showitem_icon.SetBitmap(self.show_png)
+            self.showitem_icon.SetBitmapMargins(0,0)
+            self.showitem_icon.SetBitmapFocus(self.show_png)
+            self.showitem_icon.SetBitmapPressed(self.show_png)
 
         for line in self.lines:
             line.set_picker(self._selected_for_plot)
@@ -9320,8 +9397,14 @@ class IFTItemPanel(wx.Panel):
 
         if self.locator_on:
             self.target_icon.SetBitmap(self.target_on_png)
+            self.target_icon.SetBitmapMargins(0,0)
+            self.target_icon.SetBitmapFocus(self.target_on_png)
+            self.target_icon.SetBitmapPressed(self.target_on_png)
         else:
             self.target_icon.SetBitmap(self.target_png)
+            self.target_icon.SetBitmapMargins(0,0)
+            self.target_icon.SetBitmapFocus(self.target_png)
+            self.target_icon.SetBitmapPressed(self.target_png)
 
         for line in self.lines:
             if self.locator_on:
@@ -9347,8 +9430,14 @@ class IFTItemPanel(wx.Panel):
 
         if not self._selected_for_plot:
             self.showitem_icon.SetBitmap(self.hide_png)
+            self.showitem_icon.SetBitmapMargins(0,0)
+            self.showitem_icon.SetBitmapFocus(self.hide_png)
+            self.showitem_icon.SetBitmapPressed(self.hide_png)
         else:
             self.showitem_icon.SetBitmap(self.show_png)
+            self.showitem_icon.SetBitmapMargins(0,0)
+            self.showitem_icon.SetBitmapFocus(self.show_png)
+            self.showitem_icon.SetBitmapPressed(self.show_png)
 
         for line in self.lines:
             line.set_visible(state)
@@ -10340,8 +10429,13 @@ class SeriesItemPanel(wx.Panel):
 
         self._initializeIcons()
 
-        self.showitem_icon = wx.StaticBitmap(self, wx.ID_ANY, self.show_png)
-        self.showitem_icon.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
+        self.showitem_icon = wx.Button(self, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        self.showitem_icon.SetBitmap(self.show_png)
+        self.showitem_icon.SetBitmapMargins(0,0)
+        self.showitem_icon.SetBitmapFocus(self.show_png)
+        self.showitem_icon.SetBitmapPressed(self.show_png)
+        self.showitem_icon.Bind(wx.EVT_BUTTON, self._onShowItem)
 
         self.item_name = wx.StaticText(self, wx.ID_ANY, filename)
         self.item_name.SetForegroundColour(font_colour)
@@ -10365,14 +10459,29 @@ class SeriesItemPanel(wx.Panel):
         self.colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onLinePropertyButton)
 
 
-        self.bg_star = wx.StaticBitmap(self, -1, self.gray_png)
-        self.bg_star.Bind(wx.EVT_LEFT_DOWN, self._onStarButton)
+        self.bg_star = wx.Button(self, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        self.bg_star.SetBitmap(self.gray_png)
+        self.bg_star.SetBitmapMargins(0,0)
+        self.bg_star.SetBitmapFocus(self.gray_png)
+        self.bg_star.SetBitmapPressed(self.gray_png)
+        self.bg_star.Bind(wx.EVT_BUTTON, self._onStarButton)
 
-        self.target_icon = wx.StaticBitmap(self, -1, self.target_png)
-        self.target_icon.Bind(wx.EVT_LEFT_DOWN, self._onTargetButton)
+        self.target_icon = wx.Button(self, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        self.target_icon.SetBitmap(self.target_png)
+        self.target_icon.SetBitmapMargins(0,0)
+        self.target_icon.SetBitmapFocus(self.target_png)
+        self.target_icon.SetBitmapPressed(self.target_png)
+        self.target_icon.Bind(wx.EVT_BUTTON, self._onTargetButton)
 
 
-        self.info_icon = wx.StaticBitmap(self, -1, self.info_png)
+        self.info_icon = wx.Button(self, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        self.info_icon.SetBitmap(self.info_png)
+        self.info_icon.SetBitmapMargins(0,0)
+        self.info_icon.SetBitmapFocus(self.info_png)
+        self.info_icon.SetBitmapPressed(self.info_png)
 
         if int(wx.__version__.split('.')[0]) >= 3 and opsys == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
@@ -10501,9 +10610,15 @@ class SeriesItemPanel(wx.Panel):
     def enableStar(self, state):
         if state == True:
             self.bg_star.SetBitmap(self.star_png)
+            self.bg_star.SetBitmapMargins(0,0)
+            self.bg_star.SetBitmapFocus(self.star_png)
+            self.bg_star.SetBitmapPressed(self.star_png)
             self._selected_as_bg = True
         else:
             self.bg_star.SetBitmap(self.gray_png)
+            self.bg_star.SetBitmapMargins(0,0)
+            self.bg_star.SetBitmapFocus(self.gray_png)
+            self.bg_star.SetBitmapPressed(self.gray_png)
             self._selected_as_bg = False
 
         self.bg_star.Refresh()
@@ -10547,6 +10662,9 @@ class SeriesItemPanel(wx.Panel):
 
         if self.locator_on:
             self.target_icon.SetBitmap(self.target_on_png)
+            self.target_icon.SetBitmapMargins(0,0)
+            self.target_icon.SetBitmapFocus(self.target_on_png)
+            self.target_icon.SetBitmapPressed(self.target_on_png)
             self.locator_old_width = self.secm.line.get_linewidth()
             self.locator_old_marker = self.secm.line.get_markersize()
             new_width = self.locator_old_width + 2.0
@@ -10565,6 +10683,9 @@ class SeriesItemPanel(wx.Panel):
             wx.CallAfter(self.secm.plot_panel.canvas.draw)
         else:
             self.target_icon.SetBitmap(self.target_png)
+            self.target_icon.SetBitmapMargins(0,0)
+            self.target_icon.SetBitmapFocus(self.target_png)
+            self.target_icon.SetBitmapPressed(self.target_png)
             self.secm.line.set_linewidth(self.locator_old_width)
             self.secm.line.set_markersize(self.locator_old_marker)
 
@@ -10582,8 +10703,14 @@ class SeriesItemPanel(wx.Panel):
 
         if self._selected_for_plot == False:
             self.showitem_icon.SetBitmap(self.hide_png)
+            self.showitem_icon.SetBitmapMargins(0,0)
+            self.showitem_icon.SetBitmapFocus(self.hide_png)
+            self.showitem_icon.SetBitmapPressed(self.hide_png)
         else:
             self.showitem_icon.SetBitmap(self.show_png)
+            self.showitem_icon.SetBitmapMargins(0,0)
+            self.showitem_icon.SetBitmapFocus(self.show_png)
+            self.showitem_icon.SetBitmapPressed(self.show_png)
 
         self.secm.line.set_visible(self._selected_for_plot)
         self.secm.line.set_picker(self._selected_for_plot)      #Line can't be selected when it's hidden
@@ -10596,8 +10723,14 @@ class SeriesItemPanel(wx.Panel):
     def updateShowItem(self):
         if not self._selected_for_plot:
             self.showitem_icon.SetBitmap(self.hide_png)
+            self.showitem_icon.SetBitmapMargins(0,0)
+            self.showitem_icon.SetBitmapFocus(self.hide_png)
+            self.showitem_icon.SetBitmapPressed(self.hide_png)
         else:
             self.showitem_icon.SetBitmap(self.show_png)
+            self.showitem_icon.SetBitmapMargins(0,0)
+            self.showitem_icon.SetBitmapFocus(self.show_png)
+            self.showitem_icon.SetBitmapPressed(self.show_png)
 
         self.secm.line.set_picker(self._selected_for_plot)
         if self.sec_plot_panel.plotparams['secm_plot_calc'] != 'None' and self.secm.calc_has_data:
@@ -13009,8 +13142,13 @@ class InformationPanel(scrolled.ScrolledPanel):
         guinier_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "Guinier Fit")
         guinier_box = guinier_sizer.GetStaticBox()
 
-        guinier_show_item = wx.StaticBitmap(guinier_box, wx.ID_ANY, self.collapse_png)
-        guinier_show_item.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
+        guinier_show_item = wx.Button(guinier_box, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        guinier_show_item.SetBitmap(self.collapse_png)
+        guinier_show_item.SetBitmapMargins(0,0)
+        guinier_show_item.SetBitmapFocus(self.collapse_png)
+        guinier_show_item.SetBitmapPressed(self.collapse_png)
+        guinier_show_item.Bind(wx.EVT_BUTTON, self._onShowItem)
 
         rg_ctrl = wx.TextCtrl(guinier_box, size=(50, -1), style=wx.TE_READONLY)
         rg_err_ctrl = wx.TextCtrl(guinier_box, size=(50, -1), style=wx.TE_READONLY)
@@ -13066,8 +13204,13 @@ class InformationPanel(scrolled.ScrolledPanel):
         mw_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "Molecular Weight")
         mw_box = mw_sizer.GetStaticBox()
 
-        mw_show_item = wx.StaticBitmap(mw_box, wx.ID_ANY, self.collapse_png)
-        mw_show_item.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
+        mw_show_item = wx.Button(mw_box, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        mw_show_item.SetBitmap(self.collapse_png)
+        mw_show_item.SetBitmapMargins(0,0)
+        mw_show_item.SetBitmapFocus(self.collapse_png)
+        mw_show_item.SetBitmapPressed(self.collapse_png)
+        mw_show_item.Bind(wx.EVT_BUTTON, self._onShowItem)
 
         abs_mw_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
         std_mw_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
@@ -13163,8 +13306,13 @@ class InformationPanel(scrolled.ScrolledPanel):
         gnom_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "GNOM")
         gnom_box = gnom_sizer.GetStaticBox()
 
-        gnom_show_item = wx.StaticBitmap(gnom_box, wx.ID_ANY, self.collapse_png)
-        gnom_show_item.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
+        gnom_show_item = wx.Button(gnom_box, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        gnom_show_item.SetBitmap(self.collapse_png)
+        gnom_show_item.SetBitmapMargins(0,0)
+        gnom_show_item.SetBitmapFocus(self.collapse_png)
+        gnom_show_item.SetBitmapPressed(self.collapse_png)
+        gnom_show_item.Bind(wx.EVT_BUTTON, self._onShowItem)
 
         gnom_dmax_ctrl = wx.TextCtrl(gnom_box, size=(40, -1), style=wx.TE_READONLY)
         gnom_rg_ctrl = wx.TextCtrl(gnom_box, size=(40, -1), style=wx.TE_READONLY)
@@ -13222,8 +13370,13 @@ class InformationPanel(scrolled.ScrolledPanel):
         bift_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "BIFT")
         bift_box = bift_sizer.GetStaticBox()
 
-        bift_show_item = wx.StaticBitmap(bift_box, wx.ID_ANY, self.collapse_png)
-        bift_show_item.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
+        bift_show_item = wx.Button(bift_box, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        bift_show_item.SetBitmap(self.collapse_png)
+        bift_show_item.SetBitmapMargins(0,0)
+        bift_show_item.SetBitmapFocus(self.collapse_png)
+        bift_show_item.SetBitmapPressed(self.collapse_png)
+        bift_show_item.Bind(wx.EVT_BUTTON, self._onShowItem)
 
         bift_dmax_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
         bift_dmax_err_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
@@ -13431,8 +13584,13 @@ class InformationPanel(scrolled.ScrolledPanel):
         ift_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "IFT")
         ift_box = ift_sizer.GetStaticBox()
 
-        ift_show_item = wx.StaticBitmap(ift_box, wx.ID_ANY, self.collapse_png)
-        ift_show_item.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
+        ift_show_item = wx.Button(ift_box, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        ift_show_item.SetBitmap(self.collapse_png)
+        ift_show_item.SetBitmapMargins(0,0)
+        ift_show_item.SetBitmapFocus(self.collapse_png)
+        ift_show_item.SetBitmapPressed(self.collapse_png)
+        ift_show_item.Bind(wx.EVT_BUTTON, self._onShowItem)
 
         ift_dmax_ctrl = wx.TextCtrl(ift_box, size=(40, -1), style=wx.TE_READONLY)
         ift_rg_ctrl = wx.TextCtrl(ift_box, size=(40, -1), style=wx.TE_READONLY)
@@ -13527,8 +13685,13 @@ class InformationPanel(scrolled.ScrolledPanel):
         ambi_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, 'Ambimeter')
         ambi_box = ambi_sizer.GetStaticBox()
 
-        ambi_show_item = wx.StaticBitmap(ambi_box, wx.ID_ANY, self.collapse_png)
-        ambi_show_item.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
+        ambi_show_item = wx.Button(ambi_box, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        ambi_show_item.SetBitmap(self.collapse_png)
+        ambi_show_item.SetBitmapMargins(0,0)
+        ambi_show_item.SetBitmapFocus(self.collapse_png)
+        ambi_show_item.SetBitmapPressed(self.collapse_png)
+        ambi_show_item.Bind(wx.EVT_BUTTON, self._onShowItem)
 
         ambi_interp_ctrl = wx.TextCtrl(ambi_box, style=wx.TE_READONLY)
         ambi_cat_ctrl = wx.TextCtrl(ambi_box, size=(50, -1), style=wx.TE_READONLY)
@@ -13636,8 +13799,13 @@ class InformationPanel(scrolled.ScrolledPanel):
         buffer_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, 'Buffer')
         buffer_box = buffer_sizer.GetStaticBox()
 
-        buffer_show_item = wx.StaticBitmap(buffer_box, wx.ID_ANY, self.collapse_png)
-        buffer_show_item.Bind(wx.EVT_LEFT_DOWN, self._onShowItem)
+        buffer_show_item = wx.Button(buffer_box, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        buffer_show_item.SetBitmap(self.collapse_png)
+        buffer_show_item.SetBitmapMargins(0,0)
+        buffer_show_item.SetBitmapFocus(self.collapse_png)
+        buffer_show_item.SetBitmapPressed(self.collapse_png)
+        buffer_show_item.Bind(wx.EVT_BUTTON, self._onShowItem)
 
         buffer_ranges = wx.TextCtrl(buffer_box, style=wx.TE_READONLY)
 
@@ -13791,9 +13959,15 @@ class InformationPanel(scrolled.ScrolledPanel):
 
         if not state:
             ctrl.SetBitmap(self.expand_png)
+            ctrl.SetBitmapMargins(0,0)
+            ctrl.SetBitmapFocus(self.expand_png)
+            ctrl.SetBitmapPressed(self.expand_png)
             top_sizer.Hide(hide_sizer, recursive=True)
         else:
             ctrl.SetBitmap(self.collapse_png)
+            ctrl.SetBitmapMargins(0,0)
+            ctrl.SetBitmapFocus(self.collapse_png)
+            ctrl.SetBitmapPressed(self.collapse_png)
             top_sizer.Show(hide_sizer, recursive=True)
 
         if update_top_panel:

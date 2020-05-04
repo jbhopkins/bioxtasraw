@@ -2720,7 +2720,7 @@ class MolWeightFrame(wx.Frame):
                 "method that categories SAXS data into shape categories based "
                 "on comparison with a catalog of known structures from the PDB. "
                 "This method was described in Franke, D., Jeffries, C. M. & "
-                "Svergun, D. I. (2018), Biophys. J. 114, 2485–2492. Please "
+                "Svergun, D.I. (2018, Biophys. J. 114, 2485-2492. Please "
                 "cite this paper in addition to the RAW paper if you use "
                 "this method. By finding the nearest structures in shape and "
                 "size (also the name of the method: Shape&Size), you can "
