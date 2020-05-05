@@ -7403,31 +7403,35 @@ class ManipulationPanel(wx.Panel):
         wx.CallAfter(manip_plot.updatePlotAfterManipulation, sasm_list)
 
     def movePlots(self, ExpObjList, toAxes):
-        for each_item in ExpObjList:
+        for sasm_item in ExpObjList:
 
-            each = each_item.getSASM()
+            sasm = sasm_item.getSASM()
 
-            if each.axes != toAxes:
-                plotpanel = each.plot_panel
+            if sasm.axes != toAxes:
+                plotpanel = sasm.plot_panel
 
-                each.line.remove()
-                each.err_line[0][0].remove()
-                each.err_line[0][1].remove()
-                each.err_line[1][0].remove()
+                line_data = {}
+                line_data['line_color'] = sasm.line.get_color()
+                line_data['line_width'] = sasm.line.get_linewidth()
+                line_data['line_style'] = sasm.line.get_linestyle()
+                line_data['line_marker'] = sasm.line.get_marker()
+                line_data['line_marker_face_color'] = sasm.line.get_markerfacecolor()
+                line_data['line_marker_edge_color'] = sasm.line.get_markeredgecolor()
+                line_data['line_errorbar_color'] = sasm.err_line[0][0].get_color()
+                line_data['line_visible'] = sasm_item._selected_for_plot
 
-                line_color = each.line.get_color()
+                sasm.line.remove()
+                sasm.err_line[0][0].remove()
+                sasm.err_line[0][1].remove()
+                sasm.err_line[1][0].remove()
 
-                if each_item.getLegendLabel() != '':
-                    label = each_item.getLegendLabel()
+                if sasm_item.getLegendLabel() != '':
+                    label = sasm_item.getLegendLabel()
                 else:
                     label = None
 
-                wx.CallAfter(plotpanel.plotSASM, each, toAxes, color = line_color, legend_label_in = label)
-
-                visible = each_item._selected_for_plot
-
-                wx.CallAfter(each_item.showItem, visible)
-
+                wx.CallAfter(plotpanel.plotSASM, sasm, toAxes,
+                    legend_label_in=label, line_data=line_data)
 
         plotpanel = wx.FindWindowByName('PlotPanel')
         wx.CallAfter(plotpanel.updateLegend, 1, False)
