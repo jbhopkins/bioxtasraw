@@ -10609,6 +10609,7 @@ class SeriesItemPanel(wx.Panel):
 
             if update_info:
                 self.info_panel.clearInfo()
+
         else:
             self._selected = True
             self.SetBackgroundColour(RAWGlobals.highlight_color)
@@ -10814,6 +10815,7 @@ class SeriesItemPanel(wx.Panel):
         menu.AppendSeparator()
 
         menu.Append(4, 'Show data')
+        menu.Append(13, 'Adjust scale, offset, q-range')
 
         menu.AppendSeparator()
         menu.Append(5, 'Rename')
@@ -10909,6 +10911,9 @@ class SeriesItemPanel(wx.Panel):
 
         elif evt.GetId() == 12:
             self.sec_panel._saveProfiles('baseline')
+
+        elif evt.GetId() == 13:
+            self._adjustSeries()
 
     def _onKeyPress(self, evt):
 
@@ -11015,6 +11020,12 @@ class SeriesItemPanel(wx.Panel):
         self.sec_plot_panel.updateLegend(self.secm.axes, False)
 
         self.secm.plot_panel.fitAxis()
+
+    def _adjustSeries(self):
+        adjust_frame = RAWCustomDialogs.SeriesAdjustmentFrame(self.sec_panel,
+            self.secm, self)
+        adjust_frame.SetIcon(self.main_frame.GetIcon())
+        adjust_frame.Show(True)
 
 
 class SeriesControlPanel(wx.Panel):

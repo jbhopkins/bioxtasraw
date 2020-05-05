@@ -3790,6 +3790,9 @@ class SeriesPlotPanel(wx.Panel):
 
         self.fitAxis()
 
+    def updatePlotAfterManipulation(self, seriesm_list, draw = True):
+        self.updatePlotData(seriesm_list, draw)
+
     def clearAllPlots(self):
 
         self.subplot_labels = copy.copy(self.default_subplot_labels)

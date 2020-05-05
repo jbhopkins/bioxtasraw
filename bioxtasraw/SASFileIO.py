@@ -1765,7 +1765,7 @@ def loadOutFile(filename):
 
 def load_series_sasm(group, data_name, q_raw=None, use_group_q=True):
 
-    if 'raw' in group:
+    if 'raw' in group and data_name in group['raw']:
         load_group = group['raw']
         load_dataset = load_group[data_name]
         attrs_dataset = group[data_name]
@@ -1776,7 +1776,7 @@ def load_series_sasm(group, data_name, q_raw=None, use_group_q=True):
 
     sasm_data = {}
 
-    if 'q' in load_group and use_group_q:
+    if ('q' in load_group or q_raw is not None) and use_group_q:
         if q_raw is None:
             sasm_data['q_raw'] = load_group['q'][()]
         else:
@@ -1792,7 +1792,7 @@ def load_series_sasm(group, data_name, q_raw=None, use_group_q=True):
         sasm_data['i_raw'] = data[:,1]
         sasm_data['err_raw'] = data[:,2]
 
-    if not 'raw' in group:
+    if not 'raw' in group or data_name not in group['raw']:
         sasm_data['scale_factor'] = 1.0
         sasm_data['offset_value'] = 0.0
         sasm_data['q_scale_factor'] = 1.0
@@ -1817,13 +1817,15 @@ def load_series_sasm_list(group, excluded_keys=['raw', 'q']):
         if 'q' in raw_group:
             q_raw = raw_group['q'][()]
 
+        elif 'q' in group:
+            q_raw = group['q'][()]
+
     elif 'q' in group:
         q_raw = group['q'][()]
 
     for data in group:
         if data not in excluded_keys:
-            sasm_list.append(load_series_sasm(group, data,
-                q_raw))
+            sasm_list.append(load_series_sasm(group, data, q_raw))
 
     return sasm_list
 
@@ -2060,6 +2062,9 @@ def makeSeriesFile(secm_data, settings):
     new_secm = SECM.SECM(secm_data['file_list'], sasm_list,
         secm_data['frame_list'], secm_data['parameters'], settings)
 
+    new_secm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
+            sasm_data['q_scale_factor'])
+
     new_secm.series_type = secm_data['series_type']
     new_secm.window_size = secm_data['window_size']
     new_secm.mol_type =secm_data['mol_type']
@@ -2210,12 +2215,12 @@ def makeSeriesFile(secm_data, settings):
         except KeyError:
             pass
 
-        new_sasm._update()
     else:
         new_sasm = None
 
     new_secm.average_buffer_sasm = new_sasm
 
+    new_secm._update()
 
     try:
         line_data = {'line_color' : secm_data['line_color'],
@@ -2995,7 +3000,7 @@ def saveSECItem(save_path, secm_dict):
         pickle.dump(secm_dict, f, protocol=2)
 
 def save_series_sasm(profile_group, sasm_data, dataset_name, descrip='',
-    save_single_q=False, save_single_q_raw=False):
+    descrip_raw='', save_single_q=False, save_single_q_raw=False):
 
     if descrip == '':
         if save_single_q:
@@ -3006,6 +3011,7 @@ def save_series_sasm(profile_group, sasm_data, dataset_name, descrip='',
             descrip = ('A single scattering profile. Columns correspond to q, '
                 'I(q), and sigma(q) from columns 0 to 2 respecitvely.')
 
+    if descrip_raw == '':
         if save_single_q_raw:
             descrip_raw = ('A single scattering profile without scaling, offset, '
                 'or q trimming. Columns correspond to I(q), and sigma(q) from '
@@ -3183,7 +3189,7 @@ def save_series(save_name, seriesm, save_gui_data=False):
                 'scattering profile. Columns correspond to q, I(q), and sigma(q) '
                 'from columns 0 to 2 respecitvely.')
 
-            save_series_sasm(profiles, sasm, "average_buffer_profile", descrip)
+            save_series_sasm(profiles, sasm, "average_buffer_profile", descrip, descrip)
 
         if save_gui_data:
             try:

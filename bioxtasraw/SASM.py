@@ -498,6 +498,8 @@ class IFTM(object):
         else:
             self._selected_q_range = list(map(int, qrange))
 
+        self._update()
+
     def getQrange(self):
         return self._selected_q_range
 

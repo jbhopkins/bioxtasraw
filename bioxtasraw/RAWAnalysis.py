@@ -1251,8 +1251,6 @@ class GuinierControlPanel(wx.Panel):
 
                 self.updatePlot()
 
-
-
     def setCurrentExpObj(self, ExpObj):
 
         self.ExpObj = ExpObj

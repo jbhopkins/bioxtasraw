@@ -45,6 +45,7 @@ except Exception:
 import matplotlib
 import matplotlib.colors as mplcol
 import matplotlib.font_manager as fm
+import numpy as np
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -3946,7 +3947,7 @@ class PlotOptionsDialog(wx.Dialog):
         val = self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)]
         self.axes_autolimits.SetValue(val)
 
-        sizer.Add(wx.StaticText(self, -1, 'Auto limits:'), 0, wx.ALIGN_CENTRE_VERTICAL)
+        sizer.Add(wx.StaticText(self, -1, 'Auto limits:'), 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.axes_autolimits, 0)
 
         self.axes_fixed_limits_data = [('xmin', self.NewControlId(), self._old_xlimit[0]),
@@ -4032,7 +4033,7 @@ class PlotOptionsDialog(wx.Dialog):
         zval = self.parent.plotparams['zero_line'+ str(self.parent.selected_plot)]
         self.zero_line.SetValue(zval)
 
-        sizer.Add(wx.StaticText(self, -1, 'Zero Line:'), 0, wx.ALIGN_CENTRE_VERTICAL)
+        sizer.Add(wx.StaticText(self, -1, 'Zero Line:'), 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.zero_line, 0)
 
 
@@ -4646,3 +4647,436 @@ class HelpFrame(wx.Frame):
 
     def OnCheckCanGoForward(self, event):
         event.Enable(self.wv.CanGoForward())
+
+class SeriesAdjustmentFrame(wx.Frame):
+    def __init__(self, parent, seriesm, series_item_panel):
+        client_display = wx.GetClientDisplayRect()
+        size = (min(100, client_display.Width), min(100, client_display.Height))
+
+        wx.Frame.__init__(self, parent, -1, "Series Adjustment",
+            size=size)
+
+        self.seriesm = seriesm
+        self.series_item_panel = series_item_panel
+
+        self.old_scale = self.seriesm.getScale()
+        self.old_offset = self.seriesm.getOffset()
+        self.old_qrange = self.seriesm.getQrange()
+        self.old_sub_qrange = self.seriesm.getSubQrange()
+        self.old_bcsub_qrange = self.seriesm.getBCSubQrange()
+
+        self._createLayout(self)
+        self._initValues()
+
+        best_size = self.GetBestSize()
+        current_size = self.GetSize()
+
+        if best_size.GetWidth() > current_size.GetWidth():
+            best_width = min(best_size.GetWidth(), client_display.Width)
+            best_size.SetWidth(best_width)
+        else:
+            best_size.SetWidth(current_size.GetWidth())
+
+        if best_size.GetHeight() > current_size.GetHeight():
+            best_height = min(best_size.GetHeight(), client_display.Height)
+            best_size.SetHeight(best_height)
+        else:
+            best_size.SetHeight(current_size.GetHeight())
+
+        self.SetSize(best_size)
+
+        self.Bind(wx.EVT_CLOSE, self.OnCloseEvt)
+
+        self.CenterOnParent()
+        self.Raise()
+
+    def _createLayout(self, parent):
+        panel = wx.Panel(parent)
+
+        filename_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        filename_sizer.Add(wx.StaticText(panel, label='Series:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        filename_sizer.Add(wx.StaticText(panel,
+            label=self.seriesm.getParameter('filename')),
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT, border=5)
+
+        self.scale = RAWCustomCtrl.FloatSpinCtrl(panel, wx.ID_ANY, '1.0',
+            TextLength=60, never_negative=True)
+        self.scale.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateScale)
+
+        self.offset = RAWCustomCtrl.FloatSpinCtrl(panel, wx.ID_ANY, '1.0',
+            TextLength=60, never_negative=True)
+        self.offset.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateOffset)
+
+        scale_sizer = wx.FlexGridSizer(cols=2, vgap=5, hgap=5)
+        scale_sizer.Add(wx.StaticText(panel, label='Scale:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        scale_sizer.Add(self.scale, flag=wx.ALIGN_CENTER_VERTICAL)
+        scale_sizer.Add(wx.StaticText(panel, label='Offset:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        scale_sizer.Add(self.offset, flag=wx.ALIGN_CENTER_VERTICAL)
+
+
+        self.min_q = wx.TextCtrl(panel, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
+            validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
+        self.nmin = RAWCustomCtrl.IntSpinCtrl(panel, wx.ID_ANY, '1.0',
+            TextLength=50)
+
+        self.max_q = wx.TextCtrl(panel, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
+            validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
+        self.nmax = RAWCustomCtrl.IntSpinCtrl(panel, wx.ID_ANY, '1.0',
+            TextLength=50)
+
+        self.nmin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onNRangeChange)
+        self.nmax.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onNRangeChange)
+
+        self.min_q.Bind(wx.EVT_TEXT_ENTER, self.onQChange)
+        self.min_q.Bind(wx.EVT_KILL_FOCUS, self.onQChange)
+        self.max_q.Bind(wx.EVT_TEXT_ENTER, self.onQChange)
+        self.max_q.Bind(wx.EVT_KILL_FOCUS, self.onQChange)
+
+        q_ctrl_sizer = wx.FlexGridSizer(cols=4, vgap=5, hgap=5)
+        q_ctrl_sizer.Add(wx.StaticText(panel, label='q min:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        q_ctrl_sizer.Add(self.min_q, flag=wx.ALIGN_CENTER_VERTICAL)
+        q_ctrl_sizer.Add(wx.StaticText(panel, label='n min:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        q_ctrl_sizer.Add(self.nmin)
+        q_ctrl_sizer.Add(wx.StaticText(panel, label='q max:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        q_ctrl_sizer.Add(self.max_q, flag=wx.ALIGN_CENTER_VERTICAL)
+        q_ctrl_sizer.Add(wx.StaticText(panel, label='n max:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        q_ctrl_sizer.Add(self.nmax, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        self.q_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.q_sizer.Add(wx.StaticText(panel, label='Unsubtracted profiles:'))
+        self.q_sizer.Add(q_ctrl_sizer, flag=wx.TOP, border=5)
+
+
+        self.min_q_sub = wx.TextCtrl(panel, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
+            validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
+        self.nmin_sub = RAWCustomCtrl.IntSpinCtrl(panel, wx.ID_ANY, '1.0',
+            TextLength=50)
+
+        self.max_q_sub = wx.TextCtrl(panel, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
+            validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
+        self.nmax_sub = RAWCustomCtrl.IntSpinCtrl(panel, wx.ID_ANY, '1.0',
+            TextLength=50)
+
+        self.nmin_sub.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onNRangeChange)
+        self.nmax_sub.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onNRangeChange)
+
+        self.min_q_sub.Bind(wx.EVT_TEXT_ENTER, self.onQChange)
+        self.min_q_sub.Bind(wx.EVT_KILL_FOCUS, self.onQChange)
+        self.max_q_sub.Bind(wx.EVT_TEXT_ENTER, self.onQChange)
+        self.max_q_sub.Bind(wx.EVT_KILL_FOCUS, self.onQChange)
+
+        q_sub_ctrl_sizer = wx.FlexGridSizer(cols=4, vgap=5, hgap=5)
+        q_sub_ctrl_sizer.Add(wx.StaticText(panel, label='q min:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        q_sub_ctrl_sizer.Add(self.min_q_sub, flag=wx.ALIGN_CENTER_VERTICAL)
+        q_sub_ctrl_sizer.Add(wx.StaticText(panel, label='n min:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        q_sub_ctrl_sizer.Add(self.nmin_sub)
+        q_sub_ctrl_sizer.Add(wx.StaticText(panel, label='q max:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        q_sub_ctrl_sizer.Add(self.max_q_sub, flag=wx.ALIGN_CENTER_VERTICAL)
+        q_sub_ctrl_sizer.Add(wx.StaticText(panel, label='n max:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        q_sub_ctrl_sizer.Add(self.nmax_sub, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        self.q_sub_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.q_sub_sizer.Add(wx.StaticText(panel, label='Subtracted profiles:'))
+        self.q_sub_sizer.Add(q_sub_ctrl_sizer, flag=wx.TOP, border=5)
+
+
+        self.min_q_bcsub = wx.TextCtrl(panel, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
+            validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
+        self.nmin_bcsub = RAWCustomCtrl.IntSpinCtrl(panel, wx.ID_ANY, '1.0',
+            TextLength=50)
+
+        self.max_q_bcsub = wx.TextCtrl(panel, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
+            validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
+        self.nmax_bcsub = RAWCustomCtrl.IntSpinCtrl(panel, wx.ID_ANY, '1.0',
+            TextLength=50)
+
+        self.nmin_bcsub.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onNRangeChange)
+        self.nmax_bcsub.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onNRangeChange)
+
+        self.min_q_bcsub.Bind(wx.EVT_TEXT_ENTER, self.onQChange)
+        self.min_q_bcsub.Bind(wx.EVT_KILL_FOCUS, self.onQChange)
+        self.max_q_bcsub.Bind(wx.EVT_TEXT_ENTER, self.onQChange)
+        self.max_q_bcsub.Bind(wx.EVT_KILL_FOCUS, self.onQChange)
+
+        q_bcsub_ctrl_sizer = wx.FlexGridSizer(cols=4, vgap=5, hgap=5)
+        q_bcsub_ctrl_sizer.Add(wx.StaticText(panel, label='q min:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        q_bcsub_ctrl_sizer.Add(self.min_q_bcsub, flag=wx.ALIGN_CENTER_VERTICAL)
+        q_bcsub_ctrl_sizer.Add(wx.StaticText(panel, label='n min:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        q_bcsub_ctrl_sizer.Add(self.nmin_bcsub)
+        q_bcsub_ctrl_sizer.Add(wx.StaticText(panel, label='q max:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        q_bcsub_ctrl_sizer.Add(self.max_q_bcsub, flag=wx.ALIGN_CENTER_VERTICAL)
+        q_bcsub_ctrl_sizer.Add(wx.StaticText(panel, label='n max:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        q_bcsub_ctrl_sizer.Add(self.nmax_bcsub, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        self.q_bcsub_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.q_bcsub_sizer.Add(wx.StaticText(panel, label='Baseline corrected profiles:'))
+        self.q_bcsub_sizer.Add(q_bcsub_ctrl_sizer, flag=wx.TOP, border=5)
+
+        ok_button = wx.Button(panel, label='OK')
+        cancel_button = wx.Button(panel, label='Cancel')
+
+        ok_button.Bind(wx.EVT_BUTTON, self._onOk)
+        cancel_button.Bind(wx.EVT_BUTTON, self._onCancel)
+
+        button_sizer=wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(ok_button, flag=wx.LEFT, border=5)
+        button_sizer.Add(cancel_button)
+
+        self.top_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.top_sizer.Add(filename_sizer, border=5, flag=wx.TOP|wx.LEFT|wx.RIGHT)
+        self.top_sizer.Add(scale_sizer, border=5, flag=wx.ALL)
+        self.top_sizer.Add(self.q_sizer, border=5, flag=wx.ALL)
+        self.top_sizer.Add(self.q_sub_sizer, border=5, flag=wx.ALL)
+        self.top_sizer.Add(self.q_bcsub_sizer, border=5, flag=wx.ALL)
+        self.top_sizer.Add(button_sizer, border=5, flag=wx.ALL|wx.ALIGN_CENTER_HORIZONTAL)
+
+        panel.SetSizer(self.top_sizer)
+
+        frame_sizer = wx.BoxSizer(wx.VERTICAL)
+        frame_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(frame_sizer)
+
+    def _initValues(self):
+        self.scale.SetValue(str(self.old_scale))
+        self.offset.SetValue(str(self.old_offset))
+
+        sasm_list = self.seriesm.getAllSASMs()
+        single_q = all([np.all(sasm.q==sasm_list[0].q) for sasm in sasm_list[1:]])
+
+        if not single_q:
+            self.top_sizer.Hide(self.q_sizer, recursive=True)
+
+        else:
+            sasm = sasm_list[0]
+            q_range = sasm.getQrange()
+            q = sasm.getQ()
+
+            self.nmin.SetValue(q_range[0])
+            self.nmax.SetValue(q_range[1]-1)
+
+            self.nmin.SetRange((0, q_range[1]-1))
+            self.nmax.SetRange((q_range[0], len(q)-1))
+
+            self.min_q.ChangeValue(str(round(q[0],5)))
+            self.max_q.ChangeValue(str(round(q[-1],5)))
+
+            if self.old_qrange is None:
+                self.old_qrange = (q_range[0], q_range[1]-1)
+
+
+        sub_sasm_list = self.seriesm.subtracted_sasm_list
+
+        if len(sub_sasm_list) != 0:
+            single_sub_q = all([np.all(sub_sasm.q==sub_sasm_list[0].q) for sub_sasm in sub_sasm_list[1:]])
+            print(single_sub_q)
+
+            if not single_sub_q:
+                self.top_sizer.Hide(self.q_sub_sizer, recursive=True)
+
+            else:
+                sasm = sub_sasm_list[0]
+                q_range = sasm.getQrange()
+                q = sasm.getQ()
+
+                self.nmin_sub.SetValue(q_range[0])
+                self.nmax_sub.SetValue(q_range[1]-1)
+
+                self.nmin_sub.SetRange((0, q_range[1]-1))
+                self.nmax_sub.SetRange((q_range[0], len(q)-1))
+
+                self.min_q_sub.ChangeValue(str(round(q[0],5)))
+                self.max_q_sub.ChangeValue(str(round(q[-1],5)))
+
+                if self.old_sub_qrange is None:
+                    self.old_sub_qrange = (q_range[0], q_range[1]-1)
+        else:
+            self.top_sizer.Hide(self.q_sub_sizer, recursive=True)
+
+        bcsub_sasm_list = self.seriesm.baseline_subtracted_sasm_list
+
+        if len(bcsub_sasm_list) != 0:
+            single_bcsub_q = all([np.all(bcsub_sasm.q==bcsub_sasm_list[0].q) for bcsub_sasm in bcsub_sasm_list[1:]])
+
+            if not single_bcsub_q:
+                self.top_sizer.Hide(self.q_bcsub_sizer, recursive=True)
+
+            else:
+                sasm = bcsub_sasm_list[0]
+                q_range = sasm.getQrange()
+                q = sasm.getQ()
+
+                self.nmin_bcsub.SetValue(q_range[0])
+                self.nmax_bcsub.SetValue(q_range[1]-1)
+
+                self.nmin_bcsub.SetRange((0, q_range[1]-1))
+                self.nmax_bcsub.SetRange((q_range[0], len(q)-1))
+
+                self.min_q_bcsub.ChangeValue(str(round(q[0],5)))
+                self.max_q_bcsub.ChangeValue(str(round(q[-1],5)))
+
+                if self.old_bcsub_qrange is None:
+                    self.old_bcsub_qrange = (q_range[0], q_range[1]-1)
+        else:
+            self.top_sizer.Hide(self.q_bcsub_sizer, recursive=True)
+
+    def updateScale(self, evt):
+        try:
+            scale_factor = float(self.scale.GetValue())
+            self.seriesm.scale(scale_factor)
+        except Exception:
+            pass
+
+        wx.CallAfter(self.seriesm.plot_panel.updatePlotAfterManipulation,
+            [self.seriesm])
+
+    def updateOffset(self, evt):
+        try:
+            offset_value = float(self.offset.GetValue())
+            self.seriesm.offset(offset_value)
+        except Exception:
+            pass
+
+        wx.CallAfter(self.seriesm.plot_panel.updatePlotAfterManipulation,
+            [self.seriesm])
+
+    def onNRangeChange(self, evt):
+        evt_object = evt.GetEventObject()
+
+        if evt_object == self.nmin or evt_object == self.nmax:
+            nmin_ctrl = self.nmin
+            nmax_ctrl = self.nmax
+            min_q_ctrl = self.min_q
+            max_q_ctrl = self.max_q
+            q = self.seriesm.getAllSASMs()[0].q
+        elif evt_object == self.nmin_sub or evt_object == self.nmax_sub:
+            nmin_ctrl = self.nmin_sub
+            nmax_ctrl = self.nmax_sub
+            min_q_ctrl = self.min_q_sub
+            max_q_ctrl = self.max_q_sub
+            q = self.seriesm.subtracted_sasm_list[0].q
+        elif evt_object == self.nmin_bcsub or evt_object == self.nmax_bcsub:
+            nmin_ctrl = self.nmin_bcsub
+            nmax_ctrl = self.nmax_bcsub
+            min_q_ctrl = self.min_q_bcsub
+            max_q_ctrl = self.max_q_bcsub
+            q = self.seriesm.baseline_subtracted_sasm_list[0].q
+
+        nmin = nmin_ctrl.GetValue()
+        nmax = nmax_ctrl.GetValue()
+
+        if evt_object == nmin_ctrl:
+            _, maxval = nmax_ctrl.GetRange()
+            nmax_ctrl.SetRange((nmin, maxval))
+            min_q_ctrl.ChangeValue(str(round(q[nmin], 5)))
+        else:
+            nmin_ctrl.SetRange((0, nmax-1))
+            max_q_ctrl.ChangeValue(str(round(q[nmax], 5)))
+
+        if evt_object == self.nmin or evt_object == self.nmax:
+            self.seriesm.setQrange(int(nmin), int(nmax))
+        elif evt_object == self.nmin_sub or evt_object == self.nmax_sub:
+            self.seriesm.setSubQrange(int(nmin), int(nmax))
+        elif evt_object == self.nmin_bcsub or evt_object == self.nmax_bcsub:
+            self.seriesm.setBCSubQrange(int(nmin), int(nmax))
+
+        wx.CallAfter(self.seriesm.plot_panel.updatePlotAfterManipulation,
+            [self.seriesm])
+
+    def onQChange(self, evt):
+        evt_object = evt.GetEventObject()
+
+        if evt_object == self.min_q or evt_object == self.max_q:
+            nmin_ctrl = self.nmin
+            nmax_ctrl = self.nmax
+            min_q_ctrl = self.min_q
+            max_q_ctrl = self.max_q
+            q = self.seriesm.getAllSASMs()[0].q
+        elif evt_object == self.min_q_sub or evt_object == self.max_q_sub:
+            nmin_ctrl = self.nmin_sub
+            nmax_ctrl = self.nmax_sub
+            min_q_ctrl = self.min_q_sub
+            max_q_ctrl = self.max_q_sub
+            q = self.seriesm.subtracted_sasm_list[0].q
+        elif evt_object == self.min_q_bcsub or evt_object == self.max_q_bcsub:
+            nmin_ctrl = self.nmin_bcsub
+            nmax_ctrl = self.nmax_bcsub
+            min_q_ctrl = self.min_q_bcsub
+            max_q_ctrl = self.max_q_bcsub
+            q = self.seriesm.baseline_subtracted_sasm_list[0].q
+
+        findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+
+        if evt_object == min_q_ctrl:
+            closest_q = findClosest(float(min_q_ctrl.GetValue()), q)
+            nmin = np.where(q == closest_q)[0][0]
+
+            min_q_ctrl.SetValue(str(round(closest_q, 5)))
+            nmin_ctrl.SetValue(nmin)
+            _, maxval = nmax_ctrl.GetRange()
+            nmax_ctrl.SetRange((nmin, maxval))
+        else:
+            closest_q = findClosest(float(max_q_ctrl.GetValue()), q)
+            nmax = np.where(q == closest_q)[0][0]+1
+
+            max_q_ctrl.SetValue(str(round(closest_q, 5)))
+            nmax_ctrl.SetValue(nmax)
+            nmin_ctrl.SetRange((0, nmax-1))
+
+        if evt_object == self.min_q or evt_object == self.max_q:
+            self.seriesm.setQrange(int(nmin), int(nmax))
+        elif evt_object == self.min_q_sub or evt_object == self.max_q_sub:
+            self.seriesm.setSubQrange(int(nmin), int(nmax))
+        elif evt_object == self.min_q_bcsub or evt_object == self.max_q_bcsub:
+            self.seriesm.setBCSubQrange(int(nmin), int(nmax))
+
+        wx.CallAfter(self.seriesm.plot_panel.updatePlotAfterManipulation,
+            [self.seriesm])
+
+    def _onOk(self, evt):
+        self.OnClose()
+
+    def _onCancel(self, evt):
+        self.seriesm.scale(self.old_scale)
+        self.seriesm.offset(self.old_offset)
+        if self.old_qrange is not None:
+            self.seriesm.setQrange(*self.old_qrange)
+        if self.old_sub_qrange is not None:
+            self.seriesm.setSubQrange(*self.old_sub_qrange)
+        if self.old_bcsub_qrange is not None:
+            self.seriesm.setBCSubQrange(*self.old_bcsub_qrange)
+
+        self.OnClose()
+
+    def OnCloseEvt(self, evt):
+        self.OnClose()
+
+    def OnClose(self):
+        if (self.old_scale != self.seriesm.getScale()
+            or self.old_offset != self.seriesm.getOffset()
+            or (self.seriesm.getQrange() is not None
+            and self.seriesm.getQrange() != self.old_qrange)
+            or (self.seriesm.getSubQrange() is not None
+            and self.seriesm.getSubQrange() != self.old_sub_qrange)
+            or (self.seriesm.getBCSubQrange() is not None
+            and self.seriesm.getBCSubQrange() != self.old_bcsub_qrange)):
+
+            wx.CallAfter(self.series_item_panel.markAsModified)
+
+        self.Destroy()
+
+

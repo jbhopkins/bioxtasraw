@@ -20,6 +20,8 @@ brings a number of exciting changes, including:
 *   New information windows above the control panel to display all your analysis
 *   Ability to align DENSS and DAMMIF/N outputs to PDB files
 *   Works with ATSAS 3 on all platforms
+*   New Series adjustment panel that lets you adjust the scale, offset, and q range
+    for all profiles in a series easily.
 
 There are also a number of smaller new features, and a ton of bug fixes and tweaks.
 
@@ -140,6 +142,8 @@ All changes:
 *   Fixed a bug where moving a profile between plots didn't preserve all of the
     line/marker style settings.
 *   Fixed several bugs related to displaying and moving a legend on the plots.
+*   New Series adjustment panel that lets you adjust the scale, offset, and q range
+    for all profiles in a series easily.
 
 
 1.6.4

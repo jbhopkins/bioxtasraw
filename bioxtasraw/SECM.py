@@ -94,9 +94,12 @@ class SECM(object):
 
         self.series_type = ''
 
-        self._scale_factor = 1
-        self._offset_value = 0
-        self._frame_scale_factor = 1
+        self._scale_factor = 1.0
+        self._offset_value = 0.0
+        self._frame_scale_factor = 1.0
+        self._q_range = None
+        self._sub_q_range = None
+        self._bc_sub_q_range = None
 
         #variables used for plot management
         self.item_panel = None
@@ -173,22 +176,84 @@ class SECM(object):
     def _update(self):
         ''' updates modified intensity after scale, normalization and offset changes '''
 
-        self.mean_i = ((self.mean_i) * self._scale_factor) + self._offset_value
-        self.total_i = ((self.total_i) * self._scale_factor) + self._offset_value
-        self.I_of_q = ((self.I_of_q) * self._scale_factor) + self._offset_value
-        self.qrange_I = ((self.qrange_I) * self._scale_factor) + self._offset_value
+        # self.mean_i = ((self.mean_i) * self._scale_factor) + self._offset_value
+        # self.total_i = ((self.total_i) * self._scale_factor) + self._offset_value
+        # self.I_of_q = ((self.I_of_q) * self._scale_factor) + self._offset_value
+        # self.qrange_I = ((self.qrange_I) * self._scale_factor) + self._offset_value
 
-        self.mean_i_sub = ((self.mean_i_sub) * self._scale_factor) + self._offset_value
-        self.total_i_sub = ((self.total_i_sub) * self._scale_factor) + self._offset_value
-        self.I_of_q_sub = ((self.I_of_q_sub) * self._scale_factor) + self._offset_value
-        self.qrange_I_sub = ((self.qrange_I_sub) * self._scale_factor) + self._offset_value
+        # self.mean_i_sub = ((self.mean_i_sub) * self._scale_factor) + self._offset_value
+        # self.total_i_sub = ((self.total_i_sub) * self._scale_factor) + self._offset_value
+        # self.I_of_q_sub = ((self.I_of_q_sub) * self._scale_factor) + self._offset_value
+        # self.qrange_I_sub = ((self.qrange_I_sub) * self._scale_factor) + self._offset_value
 
-        self.mean_i_bcsub = ((self.mean_i_bcsub) * self._scale_factor) + self._offset_value
-        self.total_i_bcsub = ((self.total_i_bcsub) * self._scale_factor) + self._offset_value
-        self.I_of_q_bcsub = ((self.I_of_q_bcsub) * self._scale_factor) + self._offset_value
-        self.qrange_I_sub = ((self.qrange_I_sub) * self._scale_factor) + self._offset_value
+        # self.mean_i_bcsub = ((self.mean_i_bcsub) * self._scale_factor) + self._offset_value
+        # self.total_i_bcsub = ((self.total_i_bcsub) * self._scale_factor) + self._offset_value
+        # self.I_of_q_bcsub = ((self.I_of_q_bcsub) * self._scale_factor) + self._offset_value
+        # self.qrange_I_sub = ((self.qrange_I_sub) * self._scale_factor) + self._offset_value
 
-        self.plot_frame_list = self.plot_frame_list * self._frame_scale_factor
+        # self.plot_frame_list = self.plot_frame_list * self._frame_scale_factor
+
+        for i, sasm in enumerate(self._sasm_list):
+            sasm.scale(self._scale_factor)
+            sasm.offset(self._offset_value)
+
+            if self._q_range is not None:
+                sasm.setQrange((self._q_range[0], self._q_range[1]+1))
+
+            self.mean_i[i] = sasm.getMeanI()
+            self.total_i[i] = sasm.getTotalI()
+
+            if self.qref > 0:
+                self.I_of_q[i] = sasm.getIofQ(self.qref)
+
+            if self.qrange[0] != 0 and self.qrange[1] != 0:
+                self.qrange_I[i] = sasm.getIofQRange(self.qrange[0], self.qrange[1])
+
+        for i, sasm in enumerate(self.subtracted_sasm_list):
+            sasm.scale(self._scale_factor)
+            sasm.offset(self._offset_value)
+
+            if self._sub_q_range is not None:
+                sasm.setQrange((self._sub_q_range[0], self._sub_q_range[1]+1))
+
+            self.mean_i_sub[i] = sasm.getMeanI()
+            self.total_i_sub[i] = sasm.getTotalI()
+
+            if self.qref > 0:
+                self.I_of_q_sub[i] = sasm.getIofQ(self.qref)
+
+            if self.qrange[0] != 0 and self.qrange[1] != 0:
+                self.qrange_I_sub[i] = sasm.getIofQRange(self.qrange[0], self.qrange[1])
+
+        for i, sasm in enumerate(self.baseline_subtracted_sasm_list):
+            sasm.scale(self._scale_factor)
+            sasm.offset(self._offset_value)
+
+            if self._bc_sub_q_range is not None:
+                sasm.setQrange((self._bc_sub_q_range[0], self._bc_sub_q_range[1]+1))
+
+            self.mean_i_bcsub[i] = sasm.getMeanI()
+            self.total_i_bcsub[i] = sasm.getTotalI()
+
+            if self.qref > 0:
+                self.I_of_q_bcsub[i] = sasm.getIofQ(self.qref)
+
+            if self.qrange[0] != 0 and self.qrange[1] != 0:
+                self.qrange_I_bcsub[i] = sasm.getIofQRange(self.qrange[0], self.qrange[1])
+
+        for i, sasm in enumerate(self.baseline_corr):
+            sasm.scale(self._scale_factor)
+            sasm.offset(self._offset_value)
+
+            if self._sub_q_range is not None:
+                sasm.setQrange((self._sub_q_range[0], self._sub_q_range[1]+1))
+
+        if self.average_buffer_sasm is not None:
+            self.average_buffer_sasm.scale(self._scale_factor)
+            self.average_buffer_sasm.offset(self._offset_value)
+
+            if self._sub_q_range is not None:
+                self.average_buffer_sasm.setQrange((self._sub_q_range[0], self._sub_q_range[1]+1))
 
 
     def append(self, filename_list, sasm_list, frame_list):
@@ -338,6 +403,33 @@ class SECM(object):
         self._scale_factor = 1
         self._offset_value = 0
         self._frame_scale_factor = 1
+        self._q_range = None
+
+        self._update()
+
+    def setQrange(self, n_min, n_max):
+        self._q_range = (n_min, n_max)
+
+        self._update()
+
+    def setSubQrange(self, n_min, n_max):
+        self._sub_q_range = (n_min, n_max)
+
+        self._update()
+
+    def setBCSubQrange(self, n_min, n_max):
+        self._bc_sub_q_range = (n_min, n_max)
+
+        self._update()
+
+    def getQrange(self):
+        return self._q_range
+
+    def getSubQrange(self):
+        return self._sub_q_range
+
+    def getBCSubQrange(self):
+        return self._bc_sub_q_range
 
     def setAllParameters(self, new_parameters):
         self._parameters = new_parameters
@@ -785,6 +877,8 @@ class SECM(object):
         if self.qrange != (0,0):
             self.qrange_I_sub = np.array([sasm.getIofQRange(self.qrange[0], self.qrange[1]) for sasm in sub_sasm_list])
 
+        self._update()
+
     def appendSubtractedSASMs(self, sub_sasm_list, use_sasm_list, window_size):
         self.subtracted_sasm_list = self.subtracted_sasm_list[:-window_size] + sub_sasm_list
         self.use_subtracted_sasm = self.use_subtracted_sasm[:-window_size] + use_sasm_list
@@ -804,6 +898,8 @@ class SECM(object):
             self.qrange_I_sub = np.concatenate((self.qrange_I_sub[:-window_size],
                 qrange_I_sub))
 
+        self._update()
+
     def setBCSubtractedSASMs(self, sub_sasm_list, use_sub_sasm):
 
         self.baseline_subtracted_sasm_list = list(sub_sasm_list)
@@ -817,6 +913,8 @@ class SECM(object):
 
         if self.qrange != (0,0):
             self.qrange_I_bcsub = np.array([sasm.getIofQRange(self.qrange[0], self.qrange[1]) for sasm in sub_sasm_list])
+
+        self._update()
 
     def appendBCSubtractedSASMs(self, sub_sasm_list, use_sasm_list, window_size):
         self.baseline_subtracted_sasm_list = self.baseline_subtracted_sasm_list[:-window_size] + sub_sasm_list
@@ -836,3 +934,5 @@ class SECM(object):
             qrange_I_bcsub = np.array([sasm.getIofQRange(self.qrange[0], self.qrange[1]) for sasm in sub_sasm_list])
             self.qrange_I_bcsub = np.concatenate((self.qrange_I_bcsub[:-window_size],
                 qrange_I_bcsub))
+
+        self._update()
