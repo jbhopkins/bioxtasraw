@@ -395,6 +395,8 @@ class PlotPanel(wx.Panel):
                                     'legend_alpha2'         : 0.7,
                                     'legend_shadow1'        : False,
                                     'legend_shadow2'        : False,
+                                    'legend_title1'         : '',
+                                    'legend_title2'         : '',
 
                                     'legtit_fontsize1'      : 12,
                                     'legtit_fontsize2'      : 12,
@@ -1211,34 +1213,27 @@ class PlotPanel(wx.Panel):
                 axes.legend_ = None
 
             for each_line in axes.lines:
-                if each_line.get_visible() == True and each_line.get_label() != '_zero_' and each_line.get_label() != '_nolegend_' and each_line.get_label() != '_line1':
+                if (each_line.get_visible() == True
+                    and each_line.get_label() != '_zero_'
+                    and each_line.get_label() != '_nolegend_'
+                    and each_line.get_label() != '_line1'):
                     legend_lines.append(each_line)
                     legend_labels.append(each_line.get_label())
 
             if not legend_lines:
-                return
+                if old_legend is not None:
+                    old_legend.remove()
 
-            if axes == self.subplot1:
-                fontsize = self.plotparams['legend_fontsize1']
-                fontname = self.plotparams['legend_font1']
-                enable_border = self.plotparams['legend_border1']
-                alpha = self.plotparams['legend_alpha1']
-                leg_visible = self.plotparams['legend_visible1']
-                shadow = self.plotparams['legend_shadow1']
+            fontsize = self.plotparams['legend_fontsize'+str(plotnum)]
+            fontname = self.plotparams['legend_font'+str(plotnum)]
+            enable_border = self.plotparams['legend_border'+str(plotnum)]
+            alpha = self.plotparams['legend_alpha'+str(plotnum)]
+            leg_visible = self.plotparams['legend_visible'+str(plotnum)]
+            shadow = self.plotparams['legend_shadow'+str(plotnum)]
 
-                legtit_size = self.plotparams['legtit_fontsize1']
-                legtit_font = self.plotparams['legtit_font1']
-
-            else:
-                fontsize = self.plotparams['legend_fontsize2']
-                fontname = self.plotparams['legend_font2']
-                enable_border =  self.plotparams['legend_border2']
-                alpha = self.plotparams['legend_alpha2']
-                leg_visible = self.plotparams['legend_visible2']
-                shadow = self.plotparams['legend_shadow1']
-
-                legtit_size = self.plotparams['legtit_fontsize2']
-                legtit_font = self.plotparams['legtit_font2']
+            legtit_size = self.plotparams['legtit_fontsize'+str(plotnum)]
+            legtit_font = self.plotparams['legtit_font'+str(plotnum)]
+            legend_title = self.plotparams['legend_title'+str(plotnum)]
 
 
             leg = a.legend(legend_lines, legend_labels, prop = fm.FontProperties(size = fontsize, family = fontname), fancybox = True)
@@ -1254,10 +1249,10 @@ class PlotPanel(wx.Panel):
                 title.set_size(legtit_size)
                 title.set_text(old_title_text)
 
-                leg.set_title(title.get_text())
+                leg.set_title(legend_title)
 
             else:
-                leg.set_title('')
+                leg.set_title(legend_title)
 
                 title = leg.get_title()
                 title.set_fontname(legtit_font)
@@ -1281,6 +1276,12 @@ class PlotPanel(wx.Panel):
                     leg.draggable(True)
                 except AttributeError:
                     pass
+
+        else:
+            old_legend = axes.get_legend()
+
+            if old_legend is not None:
+                old_legend.remove()
 
         if draw:
             self.canvas.draw()
@@ -1395,6 +1396,8 @@ class IftPlotPanel(PlotPanel):
                                     'legend_shadow2'        : False,
                                     'legend_font1'          : self.default_plot_font,
                                     'legend_font2'          : self.default_plot_font,
+                                    'legend_title1'         : '',
+                                    'legend_title2'         : '',
 
                                     'legtit_fontsize1'      : 12,
                                     'legtit_fontsize2'      : 12,
@@ -2290,28 +2293,19 @@ class IftPlotPanel(PlotPanel):
                     legend_labels.append(each_line.get_label())
 
             if not legend_lines:
-                return
+                if old_legend is not None:
+                    old_legend.remove()
 
-            if axes == self.subplot1:
-                fontsize = self.plotparams['legend_fontsize1']
-                fontname = self.plotparams['legend_font1']
-                enable_border = self.plotparams['legend_border1']
-                alpha = self.plotparams['legend_alpha1']
-                leg_visible = self.plotparams['legend_visible1']
-                shadow = self.plotparams['legend_shadow1']
+            fontsize = self.plotparams['legend_fontsize'+str(plotnum)]
+            fontname = self.plotparams['legend_font'+str(plotnum)]
+            enable_border = self.plotparams['legend_border'+str(plotnum)]
+            alpha = self.plotparams['legend_alpha'+str(plotnum)]
+            leg_visible = self.plotparams['legend_visible'+str(plotnum)]
+            shadow = self.plotparams['legend_shadow'+str(plotnum)]
 
-                legtit_size = self.plotparams['legtit_fontsize1']
-                legtit_font = self.plotparams['legtit_font1']
-            else:
-                fontsize = self.plotparams['legend_fontsize2']
-                fontname = self.plotparams['legend_font2']
-                enable_border =  self.plotparams['legend_border2']
-                alpha = self.plotparams['legend_alpha2']
-                leg_visible = self.plotparams['legend_visible2']
-                shadow = self.plotparams['legend_shadow2']
-
-                legtit_size = self.plotparams['legtit_fontsize2']
-                legtit_font = self.plotparams['legtit_font2']
+            legtit_size = self.plotparams['legtit_fontsize'+str(plotnum)]
+            legtit_font = self.plotparams['legtit_font'+str(plotnum)]
+            legend_title = self.plotparams['legend_title'+str(plotnum)]
 
             leg = axes.legend(legend_lines, legend_labels, prop = fm.FontProperties(size = fontsize, family = fontname), fancybox = True)
             leg.get_frame().set_alpha(alpha)
@@ -2326,10 +2320,10 @@ class IftPlotPanel(PlotPanel):
                 title.set_size(legtit_size)
                 title.set_text(old_title_text)
 
-                leg.set_title(title.get_text())
+                leg.set_title(legend_title)
 
             else:
-                leg.set_title('')
+                leg.set_title(legend_title)
 
                 title = leg.get_title()
                 title.set_fontname(legtit_font)
@@ -2352,6 +2346,13 @@ class IftPlotPanel(PlotPanel):
                     leg.draggable(True)
                 except AttributeError:
                     pass
+
+        else:
+            old_legend = axes.get_legend()
+
+            if old_legend is not None:
+                old_legend.remove()
+
         if draw:
             self.canvas.draw()
 
@@ -2600,6 +2601,7 @@ class SeriesPlotPanel(wx.Panel):
                                     'legend_alpha1'         : 0.7,
                                     'legend_shadow1'        : False,
                                     'legend_showcalc1'      : False,
+                                    'legend_title1'         : '',
 
                                     'legtit_fontsize1'      : 12,
 
@@ -3939,6 +3941,7 @@ class SeriesPlotPanel(wx.Panel):
 
         if not legend_lines:
             return
+
         else:
             fontsize = self.plotparams['legend_fontsize1']
             fontname = self.plotparams['legend_font1']
@@ -3949,6 +3952,7 @@ class SeriesPlotPanel(wx.Panel):
 
             legtit_size = self.plotparams['legtit_fontsize1']
             legtit_font = self.plotparams['legtit_font1']
+            legend_title = self.plotparams['legend_title1']
 
             leg = a.legend(legend_lines, legend_labels, prop = fm.FontProperties(size = fontsize, family = fontname), fancybox = True)
             leg.get_frame().set_alpha(alpha)
@@ -3963,10 +3967,10 @@ class SeriesPlotPanel(wx.Panel):
                 title.set_size(legtit_size)
                 title.set_text(old_title_text)
 
-                leg.set_title(title.get_text())
+                leg.set_title(legend_title)
 
             else:
-                leg.set_title('')
+                leg.set_title(legend_title)
 
                 title = leg.get_title()
                 title.set_fontname(legtit_font)

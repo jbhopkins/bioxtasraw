@@ -7133,10 +7133,13 @@ class ManipulationPanel(wx.Panel):
             self.all_manipulation_items[idx].Destroy()
             self.all_manipulation_items.pop(idx)
 
+        print(axes_that_needs_updated_legend)
         for eachaxes in axes_that_needs_updated_legend:
             if eachaxes == plot_panel.subplot1:
+                print('updating legend in plot 1')
                 wx.CallAfter(plot_panel.updateLegend, 1, False)
             else:
+                print('updating legend in plot 2')
                 wx.CallAfter(plot_panel.updateLegend, 2, False)
 
         wx.CallAfter(plot_panel.fitAxis)

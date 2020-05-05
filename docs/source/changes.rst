@@ -137,6 +137,8 @@ All changes:
 *   Added ATSAS MW methods Bayes and DATCLASS (Shape&Size) to the MW panel.
 *   Fixed a bug where running datgnom didn't respect the q ranges set in the GNOM window.
 *   Changes for compatibility with wxpython 4.1.0.
+*   Fixed a bug where moving a profile between plots didn't preserve all of the
+    line/marker style settings.
 
 
 1.6.4

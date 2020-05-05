@@ -3711,12 +3711,15 @@ class PlotOptionsDialog(wx.Dialog):
         if self.is_sec:
             self._old_y2limit = self.axes2.get_ylim()
 
-        self._old_legend_settings = {'fontsize'     : self.parent.plotparams['legend_fontsize'+plotnum],
-                                        'font'      : self.parent.plotparams['legend_font' + plotnum],
-                                        'alpha'     : self.parent.plotparams['legend_alpha'+plotnum],
-                                        'border'    : self.parent.plotparams['legend_border'+plotnum],
-                                        'shadow'    : self.parent.plotparams['legend_shadow'+plotnum],
-                                        'visible'   : self.parent.plotparams['legend_visible'+plotnum]}
+        self._old_legend_settings = {
+            'fontsize'     : self.parent.plotparams['legend_fontsize'+plotnum],
+            'font'      : self.parent.plotparams['legend_font' + plotnum],
+            'alpha'     : self.parent.plotparams['legend_alpha'+plotnum],
+            'border'    : self.parent.plotparams['legend_border'+plotnum],
+            'shadow'    : self.parent.plotparams['legend_shadow'+plotnum],
+            'visible'   : self.parent.plotparams['legend_visible'+plotnum],
+            'title'     : self.parent.plotparams['legend_title'+plotnum],
+            }
 
         if self.is_sec:
             self._old_legend_settings ['showcalc'] = self.parent.plotparams['legend_showcalc'+plotnum]
@@ -3861,14 +3864,18 @@ class PlotOptionsDialog(wx.Dialog):
         sizer.Add(wx.StaticText(self, -1, 'Bold'),1)
         sizer.Add(wx.StaticText(self, -1, 'Italic'),1)
 
-        for each_label, each_name, id in self.labels:
-            if each_name == 'title': label = self.title
-            elif each_name == 'xlabel': label = self.xlabel
-            elif each_name == 'ylabel': label = self.ylabel
-            elif each_name == 'y2label': label = self.y2label
+        for each_label, each_name, my_ids in self.labels:
+            if each_name == 'title':
+                label = self.title
+            elif each_name == 'xlabel':
+                label = self.xlabel
+            elif each_name == 'ylabel':
+                label = self.ylabel
+            elif each_name == 'y2label':
+                label = self.y2label
             elif each_name == 'legtit':
                 if self.legend is None:
-                    label=matplotlib.text.Text()
+                    label=matplotlib.text.Text(text=self._old_legend_settings['title'])
                 else:
                     label = self.legend.get_title()
 
@@ -3879,19 +3886,19 @@ class PlotOptionsDialog(wx.Dialog):
             if each_name == 'legtit':
                  if labtxt == 'None': labtxt = ''
 
-            txt_ctrl = wx.TextCtrl(self, id['text'], labtxt, name = each_name)
+            txt_ctrl = wx.TextCtrl(self, my_ids['text'], labtxt, name = each_name)
 
-            font_ctrl = wx.Choice(self, id['fontname'], choices = self.font_list ,name = each_name)
+            font_ctrl = wx.Choice(self, my_ids['fontname'], choices = self.font_list ,name = each_name)
             if each_name == 'legtit' and not self.is_legend:
                 font_ctrl.SetStringSelection(self._old_legend_settings['font'])
             else:
                 font_ctrl.SetStringSelection(label.get_fontname())
 
-            font_size = wx.SpinCtrl(self, id['size'], str(label.get_size()), name = each_name)
+            font_size = wx.SpinCtrl(self, my_ids['size'], str(label.get_size()), name = each_name)
             font_size.SetValue(int(label.get_size()))
 
-            bold = wx.CheckBox(self, id['weight'], name = each_name)
-            italic = wx.CheckBox(self, id['style'], name = each_name)
+            bold = wx.CheckBox(self, my_ids['weight'], name = each_name)
+            italic = wx.CheckBox(self, my_ids['style'], name = each_name)
 
             bold.Bind(wx.EVT_CHECKBOX, self._updateLabels)
             italic.Bind(wx.EVT_CHECKBOX, self._updateLabels)
@@ -4439,6 +4446,7 @@ class PlotOptionsDialog(wx.Dialog):
 
         if obj.GetName() == 'legtit':
             self.legend.set_title(label.get_text())
+            self.parent.plotparams['legend_title'+plotnum] = label.get_text()
 
         try:
             self.parent.canvas.draw()
@@ -4468,6 +4476,7 @@ class PlotOptionsDialog(wx.Dialog):
                 elif each == 'legtit' and self.is_legend:
                     expr = 'self.legend.get_title().set_' + each_key + '("' + str(self._old_settings[each][each_key]) + '")'
                     exec(expr)
+                    self.parent.plotparams['legend_title'+plotnum] = str(self._old_settings[each][each_key])
 
                 if each_key == 'size':
                     self.parent.plotparams['%s_fontsize%s' %(each, plotnum)] = self._old_settings[each][each_key]
