@@ -139,6 +139,7 @@ All changes:
 *   Changes for compatibility with wxpython 4.1.0.
 *   Fixed a bug where moving a profile between plots didn't preserve all of the
     line/marker style settings.
+*   Fixed several bugs related to displaying a legend on the plots.
 
 
 1.6.4

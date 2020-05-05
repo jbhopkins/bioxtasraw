@@ -3911,7 +3911,7 @@ class SeriesPlotPanel(wx.Panel):
         ####################################################################
         # NB!! LEGEND IS THE BIG SPEED HOG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         ###################################################################
-        a = self.subplot1
+        a = self.ryaxis
 
         if self.plotparams['legend_showcalc1']:
             axes_list = [self.subplot1, self.ryaxis]
