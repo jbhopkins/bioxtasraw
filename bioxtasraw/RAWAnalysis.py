@@ -1035,39 +1035,38 @@ class GuinierControlPanel(wx.Panel):
         analysis = self.ExpObj.getParameter('analysis')
 
         if 'guinier' in analysis:
-
-            guinier = analysis['guinier']
-
-            qmin = float(guinier['qStart'])
-            qmax = float(guinier['qEnd'])
-
-            findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
-            closest_qmin = findClosest(qmin, self.ExpObj.q)
-            closest_qmax = findClosest(qmax, self.ExpObj.q)
-
-            idx_min = np.where(self.ExpObj.q == closest_qmin)[0][0]
-            idx_max = np.where(self.ExpObj.q == closest_qmax)[0][0]
-
             spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
             spinend = wx.FindWindowById(self.spinctrlIDs['qend'], self)
-
-            minrange = spinstart.GetRange()
-            maxrange = spinstart.GetRange()
-
-            if idx_min < minrange[0]:
-                idx_min = minrange[0]
-            elif idx_min > minrange[1]:
-                idx_min = minrange[1]
-
-            if idx_max < maxrange[0]:
-                idx_max = maxrange[0]
-            elif idx_max > maxrange[1]:
-                idx_max = maxrange[1]
 
             old_start = spinstart.GetValue()
             old_end = spinend.GetValue()
 
             try:
+                guinier = analysis['guinier']
+
+                qmin = float(guinier['qStart'])
+                qmax = float(guinier['qEnd'])
+
+                findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+                closest_qmin = findClosest(qmin, self.ExpObj.q)
+                closest_qmax = findClosest(qmax, self.ExpObj.q)
+
+                idx_min = np.where(self.ExpObj.q == closest_qmin)[0][0]
+                idx_max = np.where(self.ExpObj.q == closest_qmax)[0][0]
+
+                minrange = spinstart.GetRange()
+                maxrange = spinstart.GetRange()
+
+                if idx_min < minrange[0]:
+                    idx_min = minrange[0]
+                elif idx_min > minrange[1]:
+                    idx_min = minrange[1]
+
+                if idx_max < maxrange[0]:
+                    idx_max = maxrange[0]
+                elif idx_max > maxrange[1]:
+                    idx_max = maxrange[1]
+
                 spinstart.SetValue(int(idx_min))
                 spinend.SetValue(int(idx_max))
 
@@ -1088,7 +1087,7 @@ class GuinierControlPanel(wx.Panel):
                 else:
                     self.updatePlot()
 
-            except IndexError:
+            except Exception:
                 spinstart.SetValue(old_start)
                 spinend.SetValue(old_end)
 
@@ -1098,7 +1097,7 @@ class GuinierControlPanel(wx.Panel):
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(old_end)],5)))
 
-                self.updatePlot()
+                self.runAutoRg()
 
         else:
             self.runAutoRg()
@@ -4294,9 +4293,6 @@ class GNOMControlPanel(wx.Panel):
         self.alpha_ctrl.SetValue(str(self.gnom_settings['alpha']))
 
         self.runDatgnom()
-
-        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-        dmax = dmaxWindow.GetValue()
 
         wx.CallAfter(self.gnom_frame.showBusy, False)
 
@@ -10241,8 +10237,6 @@ class BIFTControlPanel(wx.Panel):
         top_sizer.Add(sizer, flag=wx.TOP, border=2)
         top_sizer.Add(button_sizer, flag=wx.TOP|wx.BOTTOM, border=2)
 
-
-
         return top_sizer
 
     def createStatus(self):
@@ -10286,15 +10280,18 @@ class BIFTControlPanel(wx.Panel):
         self.endSpin.SetRange((1, len(self.sasm.q)-1))
 
         if 'BIFT' in analysis and 'qStart' in analysis['BIFT']:
-            qmin = analysis['BIFT']['qStart']
-            qmax = analysis['BIFT']['qEnd']
+            try:
+                qmin = analysis['BIFT']['qStart']
+                qmax = analysis['BIFT']['qEnd']
 
-            findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
-            closest_qmin = findClosest(qmin, self.sasm.q)
-            closest_qmax = findClosest(qmax, self.sasm.q)
+                findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+                closest_qmin = findClosest(qmin, self.sasm.q)
+                closest_qmax = findClosest(qmax, self.sasm.q)
 
-            nmin = np.where(self.sasm.q == closest_qmin)[0][0]
-            nmax = np.where(self.sasm.q == closest_qmax)[0][0]+1
+                nmin = np.where(self.sasm.q == closest_qmin)[0][0]
+                nmax = np.where(self.sasm.q == closest_qmax)[0][0]+1
+            except Exception:
+                nmin, nmax = self.sasm.getQrange()
 
         elif 'guinier' in analysis:
             guinier = analysis['guinier']
