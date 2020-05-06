@@ -4746,7 +4746,7 @@ class GNOMControlPanel(wx.Panel):
         save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q),
             copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
 
-        save_sasm.setQrange((start, end))
+        save_sasm.setQrange((start, end+1))
 
         savename = os.path.splitext(save_sasm.getParameter('filename'))[0] + '.dat'
 
@@ -4822,7 +4822,7 @@ class GNOMControlPanel(wx.Panel):
         save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q),
             copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
 
-        save_sasm.setQrange((start, end))
+        save_sasm.setQrange((start, end+1))
 
         savename = os.path.splitext(save_sasm.getParameter('filename'))[0] + '.dat'
 
@@ -4850,7 +4850,6 @@ class GNOMControlPanel(wx.Panel):
                 tempdir, new_gnom=self.gnom_frame.new_gnom)
         except (SASExceptions.NoATSASError, SASExceptions.GNOMError) as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
-            top = self.gnom_frame
             self.cleanupGNOM(tempdir, savename, outname)
             self.SetFocusIgnoringChildren()
             return
@@ -10395,8 +10394,6 @@ class BIFTControlPanel(wx.Panel):
 
         txtctrl.SetValue(str(round(self.sasm.q[int(i)],4)))
 
-        update_plot = False
-
         if txtctrl == self.qstartTxt:
             self.old_nstart = i
         elif txtctrl == self.qendTxt:
@@ -10555,7 +10552,7 @@ class BIFTControlPanel(wx.Panel):
         self.updateStatus({'status': 'Running grid search'})
 
         start = int(self.startSpin.GetValue())
-        end = int(self.endSpin.GetValue())
+        end = int(self.endSpin.GetValue())+1
 
         q = self.sasm.q[start:end]
         i = self.sasm.i[start:end]

@@ -144,6 +144,8 @@ All changes:
 *   Fixed several bugs related to displaying and moving a legend on the plots.
 *   New Series adjustment panel that lets you adjust the scale, offset, and q range
     for all profiles in a series easily.
+*   Fixed a bug where the end point for profiles used in GNOM and BIFT was one
+    data point earlier than specified in the controls.
 
 
 1.6.4
