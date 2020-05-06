@@ -87,7 +87,7 @@ else:
           a.binaries,
           a.zipfiles,
           a.datas,
-          [],
+          options,
           name='bioxtas-raw',
           debug=False,
           bootloader_ignore_signals=False,
