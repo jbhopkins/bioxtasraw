@@ -354,7 +354,23 @@ sequentially sampled data sets.
     |series_line_props_png|
 
 #.  Load the Bovine Serum Albumin (BSA) SEC-SAXS data contained in the **sec_sample_2**
-    data folder. Hide the first SEC-SAXS chromatograph.
+    data folder. Note that because SAXS data can be reported with an arbitrary intensity
+    scale, the total intensity of this series is much larger than the previous
+    series.
+
+#.  Right click on the **profile_001** series and select "Adjust scale, offset, q range".
+    This will open a window that allows you to adjust the overall scale and offset
+    for your series data, as well as the q range used for each type of profile
+    in the series data. Set the scale to 1800 and click "OK". You should see
+    that this scales the profiles_001 series to match the BSA series.
+
+    *   *Tip:* This applies the scale, offset, and q range settings to every profile
+        in the series. So if you were now to send a profile to the Profiles plot,
+        it would have an overall scale factor of 1800 applied to it.
+
+    |series_scale_png|
+
+#.  Hide the first series (**profiles_001**).
 
 #.  Select a good buffer region, and calculate the |Rg| and MW across the peak for the BSA.
 
@@ -470,6 +486,10 @@ sequentially sampled data sets.
 .. |series_line_props_png| image:: images/series_line_props.png
     :width: 400 px
     :target: ../_images/series_line_props.png
+
+.. |series_scale_png| image:: images/series_scale.png
+    :width: 300 px
+    :target: ../_images/series_scale.png
 
 
 .. |Rg| replace:: R\ :sub:`g`
