@@ -3724,6 +3724,11 @@ class MainWorkerThread(threading.Thread):
 
         threshold = self._raw_settings.get('secCalcThreshold')
         error_weight = self._raw_settings.get('errorWeight')
+        sim_threshold = self._raw_settings.get('similarityThreshold')
+        sim_test = self._raw_settings.get('similarityTest')
+        correction = self._raw_settings.get('similarityCorrection')
+
+        plot_y = self.sec_plot_panel.getParameter('y_axis_display')
 
         first_update_frame = int(frame_list[0])
         last_update_frame = int(frame_list[-1])
@@ -3735,26 +3740,6 @@ class MainWorkerThread(threading.Thread):
         if window_size == -1:
             secm.releaseSemaphore()
             return
-
-        buffer_avg_sasm = secm.average_buffer_sasm
-
-        #Find the reference intensity of the average buffer sasm
-        plot_y = self.sec_plot_panel.getParameter('y_axis_display')
-
-        if plot_y == 'total':
-            ref_intensity = buffer_avg_sasm.getTotalI()
-
-        elif plot_y == 'mean':
-            ref_intensity = buffer_avg_sasm.getMeanI()
-
-        elif plot_y == 'q_val':
-            ref_intensity = buffer_avg_sasm.getIofQ(secm.qref)
-
-        elif plot_y == 'q_range':
-            ref_intensity = buffer_avg_sasm.getIofQRange(secm.qrange[0], secm.qrange[1])
-
-        #Now subtract the average buffer from all of the items in the secm list
-        sub_sasm = buffer_avg_sasm
 
         first_frame = first_update_frame - window_size
 
@@ -3770,6 +3755,76 @@ class MainWorkerThread(threading.Thread):
             self._showGenericError(msg, "Invalid frame range")
             full_sasm_list = []
 
+
+        buffer_avg_sasm = secm.average_buffer_sasm
+        buf_q = buffer_avg_sasm.getQ()
+        series_q = secm.getAllSASMs()[0].getQ()
+
+        subtraction_success = True
+        if len(buf_q) != len(series_q) or not np.all(buf_q == series_q):
+            buffer_avg_sasm, success, _ = secm.averageFrames(secm.buffer_range,
+                'unsub', sim_test, sim_threshold, correction, True)
+
+            #Find the reference intensity of the average buffer sasm
+            if plot_y == 'total':
+                ref_intensity = buffer_avg_sasm.getTotalI()
+            elif plot_y == 'mean':
+                ref_intensity = buffer_avg_sasm.getMeanI()
+            elif plot_y == 'q_val':
+                ref_intensity = buffer_avg_sasm.getIofQ(secm.qref)
+            elif plot_y == 'q_range':
+                ref_intensity = buffer_avg_sasm.getIofQRange(secm.qrange[0], secm.qrange[1])
+
+            if not success:
+                msg = ('Failed to subtract new series data, q ranges did not match '
+                    'existing data.')
+                self._showGenericError(msg, "Invalid q range")
+                subtraction_success = False
+            else:
+
+                sub_sasms = []
+                use_sub_sasms = []
+
+                for sasm in secm.getSASMList(0, first_update_frame-1):
+                    subtracted_sasm = SASProc.subtract(sasm, buffer_avg_sasm,
+                        forced = True)
+                    self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
+
+                    sub_sasms.append(subtracted_sasm)
+
+                    if plot_y == 'total':
+                        sasm_intensity = sasm.getTotalI()
+                    elif plot_y == 'mean':
+                        sasm_intensity = sasm.getMeanI()
+                    elif plot_y == 'q_val':
+                        sasm_intensity = buffer_avg_sasm.getIofQ(secm.qref)
+                    elif plot_y == 'q_range':
+                        sasm_intensity = buffer_avg_sasm.getIofQRange(secm.qrange[0], secm.qrange[1])
+
+                    if abs(sasm_intensity/ref_intensity) > threshold:
+                        use_sub_sasms.append(True)
+                    else:
+                        use_sub_sasms.append(False)
+
+                secm.setSubtractedSASMs(sub_sasms, use_sub_sasms)
+                secm.average_buffer_sasm = buffer_avg_sasm
+
+                #Find the reference intensity of the average buffer sasm
+        if plot_y == 'total':
+            ref_intensity = buffer_avg_sasm.getTotalI()
+        elif plot_y == 'mean':
+            ref_intensity = buffer_avg_sasm.getMeanI()
+        elif plot_y == 'q_val':
+            ref_intensity = buffer_avg_sasm.getIofQ(secm.qref)
+        elif plot_y == 'q_range':
+            ref_intensity = buffer_avg_sasm.getIofQRange(secm.qrange[0], secm.qrange[1])
+
+        #Now subtract the average buffer from all of the items in the secm list
+        sub_sasm = buffer_avg_sasm
+
+        if not subtraction_success:
+            full_sasm_list = []
+
         subtracted_sasm_list = []
 
         use_subtracted_sasm = []
@@ -3777,7 +3832,6 @@ class MainWorkerThread(threading.Thread):
         yes_to_all = False
 
         for sasm in full_sasm_list:
-
             #check to see whether we actually need to subtract this curve
             if plot_y == 'total':
                 sasm_intensity = sasm.getTotalI()
@@ -10815,7 +10869,7 @@ class SeriesItemPanel(wx.Panel):
         menu.AppendSeparator()
 
         menu.Append(4, 'Show data')
-        menu.Append(13, 'Adjust scale, offset, q-range')
+        menu.Append(13, 'Adjust scale, offset, q range')
 
         menu.AppendSeparator()
         menu.Append(5, 'Rename')

@@ -58,7 +58,7 @@ class SECM(object):
         #Raw inputs variables
         self._file_list = file_list
         self._sasm_list = sasm_list
-        self._frame_list_raw = np.array(frame_list, dtype=int)
+        self.frame_list = np.array(frame_list, dtype=int)
         self._parameters = parameters
         self._settings = settings
 
@@ -76,20 +76,15 @@ class SECM(object):
             self._parameters['filename'] = filename
 
         #Extract initial mean and total intensity variables
-        self._mean_i_raw = np.array([sasm.getMeanI() for sasm in self._sasm_list])
-        self._total_i_raw = np.array([sasm.getTotalI() for sasm in self._sasm_list])
-
-        #Set up the modified mean and total intensity variables
-        self.mean_i = self._mean_i_raw.copy()
-        self.total_i = self._total_i_raw.copy()
+        self.mean_i = np.array([sasm.getMeanI() for sasm in self._sasm_list])
+        self.total_i = np.array([sasm.getTotalI() for sasm in self._sasm_list])
 
         #Make sure we have as many frame numbers as sasm objects
 
-        if len(self._sasm_list) != len(self._frame_list_raw):
-            self._frame_list_raw=np.arange(len(self._sasm_list))
+        if len(self._sasm_list) != len(self.frame_list):
+            self.frame_list = np.arange(len(self._sasm_list))
             self._file_list=[sasm.getParameter('filename') for sasm in self._sasm_list]
 
-        self.frame_list = self._frame_list_raw.copy()
         self.plot_frame_list = np.arange(len(self.frame_list))
 
         self.series_type = ''
@@ -176,23 +171,6 @@ class SECM(object):
     def _update(self):
         ''' updates modified intensity after scale, normalization and offset changes '''
 
-        # self.mean_i = ((self.mean_i) * self._scale_factor) + self._offset_value
-        # self.total_i = ((self.total_i) * self._scale_factor) + self._offset_value
-        # self.I_of_q = ((self.I_of_q) * self._scale_factor) + self._offset_value
-        # self.qrange_I = ((self.qrange_I) * self._scale_factor) + self._offset_value
-
-        # self.mean_i_sub = ((self.mean_i_sub) * self._scale_factor) + self._offset_value
-        # self.total_i_sub = ((self.total_i_sub) * self._scale_factor) + self._offset_value
-        # self.I_of_q_sub = ((self.I_of_q_sub) * self._scale_factor) + self._offset_value
-        # self.qrange_I_sub = ((self.qrange_I_sub) * self._scale_factor) + self._offset_value
-
-        # self.mean_i_bcsub = ((self.mean_i_bcsub) * self._scale_factor) + self._offset_value
-        # self.total_i_bcsub = ((self.total_i_bcsub) * self._scale_factor) + self._offset_value
-        # self.I_of_q_bcsub = ((self.I_of_q_bcsub) * self._scale_factor) + self._offset_value
-        # self.qrange_I_sub = ((self.qrange_I_sub) * self._scale_factor) + self._offset_value
-
-        # self.plot_frame_list = self.plot_frame_list * self._frame_scale_factor
-
         for i, sasm in enumerate(self._sasm_list):
             sasm.scale(self._scale_factor)
             sasm.offset(self._offset_value)
@@ -257,22 +235,23 @@ class SECM(object):
 
 
     def append(self, filename_list, sasm_list, frame_list):
+        for i, sasm in enumerate(sasm_list):
+            sasm.scale(self._scale_factor)
+            sasm.offset(self._offset_value)
+
+            if self._q_range is not None:
+                sasm.setQrange((self._q_range[0], self._q_range[1]+1))
 
         self._file_list.extend(filename_list)
         self._sasm_list.extend(sasm_list)
-        self._frame_list_raw = np.concatenate((self._frame_list_raw, np.array(frame_list, dtype=int)))
+        self.frame_list = np.concatenate((self.frame_list, np.array(frame_list, dtype=int)))
 
-        self._mean_i_raw = np.concatenate((self._mean_i_raw, np.array([sasm.getMeanI() for sasm in sasm_list])))
-        self._total_i_raw = np.concatenate((self._total_i_raw, np.array([sasm.getTotalI() for sasm in sasm_list])))
+        self.mean_i = np.concatenate((self.mean_i, np.array([sasm.getMeanI() for sasm in sasm_list])))
+        self.total_i = np.concatenate((self.total_i, np.array([sasm.getTotalI() for sasm in sasm_list])))
 
-        self.mean_i = self._mean_i_raw.copy()
-        self.total_i = self._total_i_raw.copy()
-
-        if len(self._sasm_list) != len(self._frame_list_raw):
-            self._frame_list_raw=np.arange(len(self._sasm_list))
+        if len(self._sasm_list) != len(self.frame_list):
+            self.frame_list = np.arange(len(self._sasm_list))
             print('Warning: Incorrect frame number input to SECM object. Using default frame numbers.')
-
-        self.frame_list = self._frame_list_raw.copy()
 
         self.calcTime(sasm_list)
 
@@ -285,8 +264,6 @@ class SECM(object):
             self.qrange_I = np.concatenate((self.qrange_I, qrange_I))
 
         self.plot_frame_list = np.arange(len(self.frame_list))
-
-        self._update()
 
 
     def getScale(self):
@@ -396,10 +373,6 @@ class SECM(object):
     def reset(self):
         ''' Reset q, i and err to their original values '''
 
-        self.mean_i = self._mean_i_raw.copy()
-        self.total_i = self._total_i_raw.copy()
-        self.frame_list = self._frame_list_raw.copy()
-
         self._scale_factor = 1
         self._offset_value = 0
         self._frame_scale_factor = 1
@@ -463,9 +436,6 @@ class SECM(object):
 
         all_data['series_type'] = self.series_type
         all_data['file_list'] = self._file_list
-        all_data['mean_i_raw'] = self._mean_i_raw
-        all_data['total_i_raw'] = self._total_i_raw
-        all_data['frame_list_raw'] = self._frame_list_raw
         all_data['mean_i'] = self.mean_i
         all_data['total_i'] = self.total_i
         all_data['frame_list'] = self.frame_list
@@ -565,7 +535,7 @@ class SECM(object):
         ''' return a copy of the object '''
 
         copy_secm = SECM(copy.deepcopy(self._file_list), copy.deepcopy(self._sasm_list),
-            copy.deepcopy(self._frame_list_raw), copy.deepcopy(self._parameters), self._settings)
+            copy.deepcopy(self.frame_list), copy.deepcopy(self._parameters), self._settings)
 
         copy_secm.qref = copy.deepcopy(self.qref)
         copy_secm.I_of_q = copy.deepcopy(self.I_of_q)
@@ -614,6 +584,12 @@ class SECM(object):
         copy_secm.vpmw_list = copy.deepcopy(self.vpmw_list)
         copy_secm.vcmw_list = copy.deepcopy(self.vcmw_list)
         copy_secm.vcmwer_list = copy.deepcopy(self.vcmwer_list)
+
+        copy_secm._scale_factor = copy.deepcopy(self._scale_factor)
+        copy_secm._offset_value = copy.deepcopy(self._offset_value)
+        copy_secm._q_range = copy.deepcopy(self._q_range)
+        copy_secm._sub_q_range = copy.deepcopy(self._sub_q_range)
+        copy_secm._bc_sub_q_range = copy.deepcopy(self._bc_sub_q_range)
 
         return copy_secm
 
@@ -776,8 +752,25 @@ class SECM(object):
 
                 return None, False, ('sim', profile_str)
 
-        average_sasm = SASProc.average(sasm_list, forced=True)
+        if self._scale_factor != 1 or self._offset_value != 0:
+            avg_list = []
+            for sasm in sasm_list:
+                sasm.scale(1.0)
+                sasm.offset(0)
+                avg_list.append(sasm)
+        else:
+            avg_list = sasm_list
+
+        average_sasm = SASProc.average(avg_list, forced=True)
         average_sasm.setParameter('filename', 'A_{}'.format(average_sasm.getParameter('filename')))
+
+        if self._scale_factor != 1 or self._offset_value != 0:
+            for sasm in sasm_list:
+                sasm.scale(self._scale_factor)
+                sasm.offset(self._offset_value)
+
+            average_sasm.scale(self._scale_factor)
+            average_sasm.offset(self._offset_value)
 
         return average_sasm, True, ''
 
@@ -864,6 +857,12 @@ class SECM(object):
         return subtracted_sasms, use_subtracted_sasms
 
     def setSubtractedSASMs(self, sub_sasm_list, use_sub_sasm):
+        for i, sasm in enumerate(sub_sasm_list):
+            sasm.scale(self._scale_factor)
+            sasm.offset(self._offset_value)
+
+            if self._sub_q_range is not None:
+                sasm.setQrange((self._sub_q_range[0], self._sub_q_range[1]+1))
 
         self.subtracted_sasm_list = list(sub_sasm_list)
         self.use_subtracted_sasm = list(use_sub_sasm)
@@ -877,9 +876,14 @@ class SECM(object):
         if self.qrange != (0,0):
             self.qrange_I_sub = np.array([sasm.getIofQRange(self.qrange[0], self.qrange[1]) for sasm in sub_sasm_list])
 
-        self._update()
-
     def appendSubtractedSASMs(self, sub_sasm_list, use_sasm_list, window_size):
+        for i, sasm in enumerate(sub_sasm_list):
+            sasm.scale(self._scale_factor)
+            sasm.offset(self._offset_value)
+
+            if self._sub_q_range is not None:
+                sasm.setQrange((self._sub_q_range[0], self._sub_q_range[1]+1))
+
         self.subtracted_sasm_list = self.subtracted_sasm_list[:-window_size] + sub_sasm_list
         self.use_subtracted_sasm = self.use_subtracted_sasm[:-window_size] + use_sasm_list
 
@@ -898,9 +902,13 @@ class SECM(object):
             self.qrange_I_sub = np.concatenate((self.qrange_I_sub[:-window_size],
                 qrange_I_sub))
 
-        self._update()
-
     def setBCSubtractedSASMs(self, sub_sasm_list, use_sub_sasm):
+        for i, sasm in enumerate(sub_sasm_list):
+            sasm.scale(self._scale_factor)
+            sasm.offset(self._offset_value)
+
+            if self._bc_sub_q_range is not None:
+                sasm.setQrange((self._bc_sub_q_range[0], self._bc_sub_q_range[1]+1))
 
         self.baseline_subtracted_sasm_list = list(sub_sasm_list)
         self.use_baseline_subtracted_sasm = list(use_sub_sasm)
@@ -914,9 +922,14 @@ class SECM(object):
         if self.qrange != (0,0):
             self.qrange_I_bcsub = np.array([sasm.getIofQRange(self.qrange[0], self.qrange[1]) for sasm in sub_sasm_list])
 
-        self._update()
-
     def appendBCSubtractedSASMs(self, sub_sasm_list, use_sasm_list, window_size):
+        for i, sasm in enumerate(sub_sasm_list):
+            sasm.scale(self._scale_factor)
+            sasm.offset(self._offset_value)
+
+            if self._bc_sub_q_range is not None:
+                sasm.setQrange((self._bc_sub_q_range[0], self._bc_sub_q_range[1]+1))
+
         self.baseline_subtracted_sasm_list = self.baseline_subtracted_sasm_list[:-window_size] + sub_sasm_list
         self.use_baseline_subtracted_sasm = self.use_baseline_subtracted_sasm[:-window_size] + use_sasm_list
 
@@ -934,5 +947,3 @@ class SECM(object):
             qrange_I_bcsub = np.array([sasm.getIofQRange(self.qrange[0], self.qrange[1]) for sasm in sub_sasm_list])
             self.qrange_I_bcsub = np.concatenate((self.qrange_I_bcsub[:-window_size],
                 qrange_I_bcsub))
-
-        self._update()

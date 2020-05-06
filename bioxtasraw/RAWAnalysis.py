@@ -18353,7 +18353,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         sub_mean_i = np.array([sasm.getMeanI() for sasm in subtracted_sasms])
         sub_total_i = np.array([sasm.getTotalI() for sasm in subtracted_sasms])
 
-        results = {'buffer_range': buffer_range_list,
+        results = {'buffer_range':  buffer_range_list,
             'sub_sasms':            subtracted_sasms,
             'use_sub_sasms':        use_subtracted_sasm,
             'similarity_test':      sim_test,
@@ -18363,7 +18363,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             'already_subtracted':   self.subtracted.IsChecked(),
             'sub_mean_i':           sub_mean_i,
             'sub_total_i':          sub_total_i,
-            'buffer_sasm':       avg_sasm,
+            'buffer_sasm':          avg_sasm,
             }
 
         self.results['buffer'] = results

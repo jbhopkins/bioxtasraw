@@ -4717,14 +4717,17 @@ class SeriesAdjustmentFrame(wx.Frame):
         scale_sizer.Add(self.offset, flag=wx.ALIGN_CENTER_VERTICAL)
 
 
-        self.min_q = wx.TextCtrl(panel, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
+        self.q_sizer = wx.StaticBoxSizer(wx.VERTICAL, panel, "Unsubtracted profiles")
+        q_box = self.q_sizer.GetStaticBox()
+
+        self.min_q = wx.TextCtrl(q_box, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
             validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
-        self.nmin = RAWCustomCtrl.IntSpinCtrl(panel, wx.ID_ANY, '1.0',
+        self.nmin = RAWCustomCtrl.IntSpinCtrl(q_box, wx.ID_ANY, '1.0',
             TextLength=50)
 
-        self.max_q = wx.TextCtrl(panel, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
+        self.max_q = wx.TextCtrl(q_box, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
             validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
-        self.nmax = RAWCustomCtrl.IntSpinCtrl(panel, wx.ID_ANY, '1.0',
+        self.nmax = RAWCustomCtrl.IntSpinCtrl(q_box, wx.ID_ANY, '1.0',
             TextLength=50)
 
         self.nmin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onNRangeChange)
@@ -4736,32 +4739,33 @@ class SeriesAdjustmentFrame(wx.Frame):
         self.max_q.Bind(wx.EVT_KILL_FOCUS, self.onQChange)
 
         q_ctrl_sizer = wx.FlexGridSizer(cols=4, vgap=5, hgap=5)
-        q_ctrl_sizer.Add(wx.StaticText(panel, label='q min:'),
+        q_ctrl_sizer.Add(wx.StaticText(q_box, label='q min:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_ctrl_sizer.Add(self.min_q, flag=wx.ALIGN_CENTER_VERTICAL)
-        q_ctrl_sizer.Add(wx.StaticText(panel, label='n min:'),
+        q_ctrl_sizer.Add(wx.StaticText(q_box, label='n min:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_ctrl_sizer.Add(self.nmin)
-        q_ctrl_sizer.Add(wx.StaticText(panel, label='q max:'),
+        q_ctrl_sizer.Add(wx.StaticText(q_box, label='q max:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_ctrl_sizer.Add(self.max_q, flag=wx.ALIGN_CENTER_VERTICAL)
-        q_ctrl_sizer.Add(wx.StaticText(panel, label='n max:'),
+        q_ctrl_sizer.Add(wx.StaticText(q_box, label='n max:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_ctrl_sizer.Add(self.nmax, flag=wx.ALIGN_CENTER_VERTICAL)
 
-        self.q_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.q_sizer.Add(wx.StaticText(panel, label='Unsubtracted profiles:'))
-        self.q_sizer.Add(q_ctrl_sizer, flag=wx.TOP, border=5)
+        self.q_sizer.Add(q_ctrl_sizer, flag=wx.ALL, border=5)
 
 
-        self.min_q_sub = wx.TextCtrl(panel, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
+        self.q_sub_sizer = wx.StaticBoxSizer(wx.VERTICAL, panel, "Subtracted profiles")
+        q_sub_box = self.q_sub_sizer.GetStaticBox()
+
+        self.min_q_sub = wx.TextCtrl(q_sub_box, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
             validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
-        self.nmin_sub = RAWCustomCtrl.IntSpinCtrl(panel, wx.ID_ANY, '1.0',
+        self.nmin_sub = RAWCustomCtrl.IntSpinCtrl(q_sub_box, wx.ID_ANY, '1.0',
             TextLength=50)
 
-        self.max_q_sub = wx.TextCtrl(panel, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
+        self.max_q_sub = wx.TextCtrl(q_sub_box, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
             validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
-        self.nmax_sub = RAWCustomCtrl.IntSpinCtrl(panel, wx.ID_ANY, '1.0',
+        self.nmax_sub = RAWCustomCtrl.IntSpinCtrl(q_sub_box, wx.ID_ANY, '1.0',
             TextLength=50)
 
         self.nmin_sub.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onNRangeChange)
@@ -4773,32 +4777,33 @@ class SeriesAdjustmentFrame(wx.Frame):
         self.max_q_sub.Bind(wx.EVT_KILL_FOCUS, self.onQChange)
 
         q_sub_ctrl_sizer = wx.FlexGridSizer(cols=4, vgap=5, hgap=5)
-        q_sub_ctrl_sizer.Add(wx.StaticText(panel, label='q min:'),
+        q_sub_ctrl_sizer.Add(wx.StaticText(q_sub_box, label='q min:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_sub_ctrl_sizer.Add(self.min_q_sub, flag=wx.ALIGN_CENTER_VERTICAL)
-        q_sub_ctrl_sizer.Add(wx.StaticText(panel, label='n min:'),
+        q_sub_ctrl_sizer.Add(wx.StaticText(q_sub_box, label='n min:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_sub_ctrl_sizer.Add(self.nmin_sub)
-        q_sub_ctrl_sizer.Add(wx.StaticText(panel, label='q max:'),
+        q_sub_ctrl_sizer.Add(wx.StaticText(q_sub_box, label='q max:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_sub_ctrl_sizer.Add(self.max_q_sub, flag=wx.ALIGN_CENTER_VERTICAL)
-        q_sub_ctrl_sizer.Add(wx.StaticText(panel, label='n max:'),
+        q_sub_ctrl_sizer.Add(wx.StaticText(q_sub_box, label='n max:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_sub_ctrl_sizer.Add(self.nmax_sub, flag=wx.ALIGN_CENTER_VERTICAL)
 
-        self.q_sub_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.q_sub_sizer.Add(wx.StaticText(panel, label='Subtracted profiles:'))
-        self.q_sub_sizer.Add(q_sub_ctrl_sizer, flag=wx.TOP, border=5)
+        self.q_sub_sizer.Add(q_sub_ctrl_sizer, flag=wx.ALL, border=5)
 
 
-        self.min_q_bcsub = wx.TextCtrl(panel, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
+        self.q_bcsub_sizer = wx.StaticBoxSizer(wx.VERTICAL, panel, "Baseline corrected profiles")
+        q_bcsub_box = self.q_bcsub_sizer.GetStaticBox()
+
+        self.min_q_bcsub = wx.TextCtrl(q_bcsub_box, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
             validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
-        self.nmin_bcsub = RAWCustomCtrl.IntSpinCtrl(panel, wx.ID_ANY, '1.0',
+        self.nmin_bcsub = RAWCustomCtrl.IntSpinCtrl(q_bcsub_box, wx.ID_ANY, '1.0',
             TextLength=50)
 
-        self.max_q_bcsub = wx.TextCtrl(panel, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
+        self.max_q_bcsub = wx.TextCtrl(q_bcsub_box, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
             validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
-        self.nmax_bcsub = RAWCustomCtrl.IntSpinCtrl(panel, wx.ID_ANY, '1.0',
+        self.nmax_bcsub = RAWCustomCtrl.IntSpinCtrl(q_bcsub_box, wx.ID_ANY, '1.0',
             TextLength=50)
 
         self.nmin_bcsub.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onNRangeChange)
@@ -4810,22 +4815,21 @@ class SeriesAdjustmentFrame(wx.Frame):
         self.max_q_bcsub.Bind(wx.EVT_KILL_FOCUS, self.onQChange)
 
         q_bcsub_ctrl_sizer = wx.FlexGridSizer(cols=4, vgap=5, hgap=5)
-        q_bcsub_ctrl_sizer.Add(wx.StaticText(panel, label='q min:'),
+        q_bcsub_ctrl_sizer.Add(wx.StaticText(q_bcsub_box, label='q min:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_bcsub_ctrl_sizer.Add(self.min_q_bcsub, flag=wx.ALIGN_CENTER_VERTICAL)
-        q_bcsub_ctrl_sizer.Add(wx.StaticText(panel, label='n min:'),
+        q_bcsub_ctrl_sizer.Add(wx.StaticText(q_bcsub_box, label='n min:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_bcsub_ctrl_sizer.Add(self.nmin_bcsub)
-        q_bcsub_ctrl_sizer.Add(wx.StaticText(panel, label='q max:'),
+        q_bcsub_ctrl_sizer.Add(wx.StaticText(q_bcsub_box, label='q max:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_bcsub_ctrl_sizer.Add(self.max_q_bcsub, flag=wx.ALIGN_CENTER_VERTICAL)
-        q_bcsub_ctrl_sizer.Add(wx.StaticText(panel, label='n max:'),
+        q_bcsub_ctrl_sizer.Add(wx.StaticText(q_bcsub_box, label='n max:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_bcsub_ctrl_sizer.Add(self.nmax_bcsub, flag=wx.ALIGN_CENTER_VERTICAL)
 
-        self.q_bcsub_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.q_bcsub_sizer.Add(wx.StaticText(panel, label='Baseline corrected profiles:'))
-        self.q_bcsub_sizer.Add(q_bcsub_ctrl_sizer, flag=wx.TOP, border=5)
+        self.q_bcsub_sizer.Add(q_bcsub_ctrl_sizer, flag=wx.ALL, border=5)
+
 
         ok_button = wx.Button(panel, label='OK')
         cancel_button = wx.Button(panel, label='Cancel')
@@ -4883,7 +4887,6 @@ class SeriesAdjustmentFrame(wx.Frame):
 
         if len(sub_sasm_list) != 0:
             single_sub_q = all([np.all(sub_sasm.q==sub_sasm_list[0].q) for sub_sasm in sub_sasm_list[1:]])
-            print(single_sub_q)
 
             if not single_sub_q:
                 self.top_sizer.Hide(self.q_sub_sizer, recursive=True)
@@ -5051,13 +5054,18 @@ class SeriesAdjustmentFrame(wx.Frame):
         self.OnClose()
 
     def _onCancel(self, evt):
-        self.seriesm.scale(self.old_scale)
-        self.seriesm.offset(self.old_offset)
-        if self.old_qrange is not None:
+        if self.old_scale != self.seriesm.getScale():
+            self.seriesm.scale(self.old_scale)
+        if self.old_offset != self.seriesm.getOffset():
+            self.seriesm.offset(self.old_offset)
+        if (self.old_qrange is not None
+            and self.seriesm.getQrange() != self.old_qrange):
             self.seriesm.setQrange(*self.old_qrange)
-        if self.old_sub_qrange is not None:
+        if (self.old_sub_qrange is not None
+            and self.seriesm.getSubQrange() != self.old_sub_qrange):
             self.seriesm.setSubQrange(*self.old_sub_qrange)
-        if self.old_bcsub_qrange is not None:
+        if (self.old_bcsub_qrange is not None
+            and self.seriesm.getBCSubQrange() != self.old_bcsub_qrange):
             self.seriesm.setBCSubQrange(*self.old_bcsub_qrange)
 
         self.OnClose()
