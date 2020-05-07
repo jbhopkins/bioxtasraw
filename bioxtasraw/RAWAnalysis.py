@@ -1568,29 +1568,9 @@ class MolWeightFrame(wx.Frame):
     def __init__(self, parent, title, sasm, manip_item):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(720, client_display.Width), min(525, client_display.Height))
-
-        try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
-        except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
-
-        self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
-
-        self.sasm = sasm
-        self.manip_item = manip_item
 
         self.main_frame = wx.FindWindowByName('MainFrame')
-
-        self.old_analysis = {}
-
-        if 'molecularWeight' in self.sasm.getParameter('analysis'):
-            self.old_analysis = copy.deepcopy(self.sasm.getParameter('analysis')['molecularWeight'])
-
-        try:
-            self.raw_settings = self.main_frame.raw_settings
-        except AttributeError:
-            self.raw_settings = RAWSettings.RawGuiSettings()
+        self.raw_settings = self.main_frame.raw_settings
 
         opsys = platform.system()
 
@@ -1606,8 +1586,24 @@ class MolWeightFrame(wx.Frame):
                 self.has_atsas = False
 
         if not self.has_atsas:
-            size = (min(475, client_display.Width), min(525, client_display.Height))
-            self.SetSize(size)
+            size = (min(500, client_display.Width), min(550, client_display.Height))
+        else:
+            size = (min(720, client_display.Width), min(550, client_display.Height))
+
+        try:
+            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
+        except:
+            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
+
+        self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.sasm = sasm
+        self.manip_item = manip_item
+
+        self.old_analysis = {}
+
+        if 'molecularWeight' in self.sasm.getParameter('analysis'):
+            self.old_analysis = copy.deepcopy(self.sasm.getParameter('analysis')['molecularWeight'])
 
         self.infodata = {'I0' : ('I0 :', self.NewControlId(), self.NewControlId()),
                          'Rg' : ('Rg :', self.NewControlId(), self.NewControlId())}
