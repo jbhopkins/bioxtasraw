@@ -27,11 +27,12 @@ ATSAS
 -----
 
 If you use RAW to control any of the ATSAS programs (
+`AMBIMETER <https://www.embl-hamburg.de/biosaxs/manuals/ambimeter.html>`_,
 `DAMMIF <https://www.embl-hamburg.de/biosaxs/manuals/dammif.html>`_,
 `DAMMIN <https://www.embl-hamburg.de/biosaxs/manuals/dammin.html>`_,
 `DAMAVER <https://www.embl-hamburg.de/biosaxs/manuals/damaver.html>`_,
 `DAMCLUST <https://www.embl-hamburg.de/biosaxs/manuals/damclust.html>`_,
-`AMBIMETER <https://www.embl-hamburg.de/biosaxs/manuals/ambimeter.html>`_,
+`DATCLASS <https://www.embl-hamburg.de/biosaxs/manuals/datclass.html>`_,
 `SASRES <https://www.embl-hamburg.de/biosaxs/manuals/sasres.html>`_,
 `SUPCOMB <https://www.embl-hamburg.de/biosaxs/manuals/supcomb.html>`_),
 in addition to the RAW paper, please cite the appropriate paper given on their
@@ -92,6 +93,29 @@ E. Ares de Araujo, M. Oliveira Neto, A. F. Craievich, and I. Polikarpov.
 Protein Science (2019). 28(2), 454-473.
 
 DOI: `10.1002/pro.3528 <https://doi.org/10.1002/pro.3528>`_
+
+Bayesian Inference
+^^^^^^^^^^^^^^^^^^^^^
+
+If you used the Bayesian inference method (datbayes) to determine molecular
+weight in RAW, in addition to the RAW paper please cite the following paper:
+
+Hajizadeh, N. R., Franke, D., Jeffries, C. M. & Svergun, D. I. (2018).
+Sci. Rep. 8, 7204.
+
+DOI: `10.1038/s41598-018-25355-2 <https://doi.org/10.1038/s41598-018-25355-2>`_
+
+Comparison to known structures
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you used the comparison to known structures (Shape&Size) method to determine
+molecular weight in RAW, in addition to the RAW paper please cite the following
+paper:
+
+Franke, D., Jeffries, C. M. & Svergun, D. I. (2018). Biophys. J. 114,
+2485–2492.
+
+DOI: `10.1016/j.bpj.2018.04.018 <https://doi.org/10.1016/j.bpj.2018.04.018>`_
 
 
 Baseline Correction

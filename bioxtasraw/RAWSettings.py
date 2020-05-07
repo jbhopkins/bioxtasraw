@@ -233,8 +233,8 @@ class RawGuiSettings(object):
                 'MWVcBProtein'  : [0.1231, wx.NewIdRef(), 'float'], #The 'B' coefficient for proteins
                 'MWVcARna'      : [0.808, wx.NewIdRef(), 'float'], #The 'A' coefficient for proteins
                 'MWVcBRna'      : [0.00934, wx.NewIdRef(), 'float'], #The 'B' coefficient for proteins
-                'MWVcCutoff'    : ['Default', wx.NewIdRef(), 'choice'],
-                'MWVcQmax'      : [0.5, wx.NewIdRef(), 'float'], #qmax if 'Manual' is selected for cutoff
+                'MWVcCutoff'    : ['Manual', wx.NewIdRef(), 'choice'],
+                'MWVcQmax'      : [0.3, wx.NewIdRef(), 'float'], #qmax if 'Manual' is selected for cutoff
 
                 #Initialize porod volume molecularm ass values.
                 'MWVpRho'               : [0.83*10**(-3), wx.NewIdRef(), 'float'], #The density in kDa/A^3
