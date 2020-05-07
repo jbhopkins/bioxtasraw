@@ -26,6 +26,7 @@ except Exception:
     import Queue as queue
 
 import sys
+import os
 
 try:
     import pyopencl
@@ -34,6 +35,12 @@ except Exception:
     has_pyopencl = False
 
 import wx
+
+raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
+if raw_path not in os.sys.path:
+    os.sys.path.append(raw_path)
+
+import bioxtasraw
 
 mainworker_cmd_queue = queue.Queue()
 
@@ -50,7 +57,7 @@ RAWDocsDir = ''
 
 usepyFAI_integration = True
 
-version = '2.0.0'
+version = bioxtasraw.__version__ #Defined in __init__.py
 
 save_in_progress = False
 

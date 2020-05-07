@@ -1,1 +1,2 @@
-#Purposefully blank, dummy so that readthedocs.org doesn't try to install packages for the program
+#For building the docs on readthedocs.org
+future; python_version == '2.7'

@@ -24,7 +24,8 @@ raw_path = os.path.abspath(os.path.join('..', '..'))
 if raw_path not in os.sys.path:
     os.sys.path.append(raw_path)
 
-from bioxtasraw.RAWGlobals import version as version_number
+import bioxtasraw
+version_number = bioxtasraw.__version__
 
 # -- General configuration ------------------------------------------------
 
