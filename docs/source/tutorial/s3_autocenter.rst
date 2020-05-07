@@ -55,7 +55,7 @@ method in RAW.
     |calibraiton_auto_panel_png|
 
 #.  In the Centering/Calibration panel set the Energy to 12.0 keV. Verify that the
-    Detector Pixel Size is 172.0 x 172.0 μm. Verify that the Detector is set to
+    Detector Pixel Size is 172.0 x 172.0 micron. Verify that the Detector is set to
     "pilatus_1m". Verify that the standard is set to AgBh.
 
     *   *Note:* The x-ray energy/wavelength is a previously measured value.

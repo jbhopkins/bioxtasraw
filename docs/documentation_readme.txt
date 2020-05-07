@@ -8,6 +8,9 @@ make html
 To build pdfs, be in the top level (docs) folder and use:
 make latexpdf
 
+On windows without make you can use:
+sphinx-build -b html source build\html
+
 It is recommended that you first delete any old files in the build folder, as some
 changes may not propagate when rebuilding. Do this with a:
 make clean

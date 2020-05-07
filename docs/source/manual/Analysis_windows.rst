@@ -86,7 +86,7 @@ by the green dashed line, and the range of the fit, q_min and q_max, are shown b
 red dashed lines.
 
 The bottom plot has the residual between each point in the scattering profile and the fit,
-plotted as a Δln(I(q)) vs. q\ :sup:`2`\ . The red line is a line at zero. Note that the
+plotted as  :math:`\Delta ln(I(q))` vs. q\ :sup:`2`\ . The red line is a line at zero. Note that the
 x range of this plot may be slightly reduced compared to the top plot, as it only displays
 the fit, while the top plot can display points beyond the limits of the fit.
 
@@ -459,7 +459,7 @@ data, based on the current settings. These settings can be altered from the
 :ref:`BIFT panel <biftoptions>` in the Options window.
 
 Once you are satisfied with the BIFT results, clicking the “OK” button will save the Dmax, real
-space Rg, real space I(0), the χ\ :sup:`2` for the fit, and :math:`\log_{10}\alpha` for the data
+space Rg, real space I(0), the :math:`\chi` :sup:`2` for the fit, and :math:`\log_{10}\alpha` for the data
 item selected. That will allow you to save the BIFT analysis parameters when :ref:`saving all results <saveresults>` and save the results with the scattering profile if that is saved as a “.dat” file.
 Additionally, a new IFT data item will be created, which will be shown in the
 :ref:`IFT Control and Plot panels <iftpanel>`. Clicking the
@@ -523,7 +523,7 @@ P(r) function. The value from the P(r) function is the value calculated in real 
 
 *chi^2 (fit)*
 
-The χ\ :sup:`2` value of the scattering profile from the P(r) function to the experimental data.
+The :math:`\chi^2` value of the scattering profile from the P(r) function to the experimental data.
 
 
 The BIFT status
@@ -544,7 +544,7 @@ The evidence value for a given search point.
 
 *Chi*
 
-The χ\ :sup:`2` value of a given search point.
+The :math:`\chi^2` value of a given search point.
 
 *Alpha*
 
@@ -686,7 +686,7 @@ The “Total Estimate” produced by GNOM. A value close to 1 is good.
 
 *chi^2 (fit)*
 
-The χ\ :sup:`2` value of the scattering profile from the P(r) function to the experimental data.
+The :math:`\chi^2` value of the scattering profile from the P(r) function to the experimental data.
 
 *GNOM says*
 
@@ -1179,12 +1179,12 @@ If the rotation has failed it will provide a message with some on the failure, t
 
 This button saves the EFA data, including the SVD data, the number of significant values,
 the ranges Forward and Backward EFA data, the ranges and concentration constraints for each
-component, the rotation method and other parameters used, and the mean error weighted χ\ :sup:`2`
+component, the rotation method and other parameters used, and the mean error weighted :math:`\chi^2`
 and concentration data. This is all saved as a .csv file.
 
 In addition to the control boxes, there are also three plots. The top plot shows the scattering
 profiles obtained via the rotation (if the rotation is successful). The bottom plots show: Left – the
-mean error weighted χ\ :sup:`2` as a function of frame, which is a measure difference
+mean error weighted :math:`\chi^2` as a function of frame, which is a measure difference
 between the scattering profiles in a given frame as measured and as produced from the
 rotated scattering profiles and concentration profiles; Right – the concentration
 profiles for each component, which are color as the scattering profile (top) plot.
