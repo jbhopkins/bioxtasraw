@@ -4,7 +4,7 @@ Changes
 2.0.0
 --------
 
-Release date: 2020-04-07
+Release date: 2020-05-07
 
 Overview
 ^^^^^^^^^^^^
@@ -46,11 +46,9 @@ Important notes:
 
 Many thanks to the beta testers who helped test this release:
 
-    *   Tom Cleveland
     *   Norm Cyr
     *   Richard Gillilan
     *   Rob Miller
-    *   Soren Skou
 
 
 All changes:

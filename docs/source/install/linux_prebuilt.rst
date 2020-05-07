@@ -20,7 +20,7 @@ from a prebuilt app package:
 
 #.  Run the following command to install, replacing the version number with the correct version:
 
-    *   ``dpkg --install RAW-x.y.z-linux-amd64.deb``
+    *   ``sudo dpkg --install RAW-x.y.z-linux-amd64.deb``
 
 #.  You may now run RAW either by:
 
