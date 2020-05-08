@@ -62,7 +62,7 @@ Molecular weight from absolute scaled I(0)
 ********************************************
 
 SAXS data is often put on an absolute scale, so that the intensity values have
-units (by convention of cm:sup:`-1` ). This means that the I(0) value can be
+units (by convention of cm\ :sup:`-1` ). This means that the I(0) value can be
 directly related to the number of electrons in the sample and the concentration
 and contrast of the sample [6]. If the concentration and contrast of the sample
 is known, the total number of electrons can be calculated, and then that can be
@@ -105,7 +105,7 @@ respectively.
 Molecular weight from Porod volume
 ****************************************
 
-The Porod volume is the nominally the excluded volume of the macromolecule in
+The Porod volume is nominally the excluded volume of the macromolecule in
 solution. It can be calculated directly from the scattering profile, first
 by calculating the Porod invariant:
 
@@ -113,8 +113,7 @@ by calculating the Porod invariant:
 
     Q_p = \int^\infty_0 q^2 I(q) dq
 
-where :math:`Q_p` is the Porod invariant and *I(q)* is the scattering profile.
-The Porod volume is then calculated as:
+where :math:`Q_p` is the Porod invariant. The Porod volume is then calculated as:
 
 .. math::
 
@@ -208,7 +207,7 @@ What are the strengths and weaknesses of different MW methods?
 
 Each method has distinct strengths and weaknesses, and tend to be better with
 certain types of data. Every method requires a good determination of I(0),
-and all of the concentration independent methods require Rg, which generally
+and all of the concentration independent methods require R\ :sub:`g`, which generally
 means a good Guinier fit is required in all cases. Also, in [5] it is reported that
 all of the concentration independent methods struggle with flat and ring-shaped
 proteins.
@@ -258,9 +257,10 @@ Particular to the MoW method described in [2].
 
 **Disadvantages:**
 
-*   Should struggle when the The macromolecule is flexible or extended in solution
+*   Should struggle when the macromolecule is flexible or extended in solution
     (though [5] found this was not always the case).
-*   May need to have the protein density adjusted in some cases (default: 0.83 kDa/A^3)
+*   May need to have the protein density adjusted in some cases (default: 0.83
+    kDa/\ :sup:`3`)
 *   Will fail if the macromolecule is not a protein.
 *   Sensitive to subtraction errors.
 
@@ -307,7 +307,7 @@ Molecular weight by comparison to known structures
 
 **Disadvantages:**
 
-*   Provides no result for flexible systems
+*   Provides no result for flexible systems.
 *   Only works for proteins.
 
 Molecular weight from Bayesian inference

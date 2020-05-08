@@ -102,7 +102,7 @@ quality data will provide you with a reasonable maximum q value that may
 need just a bit of manual refinement.
 
 The minimum q value of a Guinier fit is usually determined by the minimum available
-q value in your data, which is set the instrument on which you make the measurement.
+q value in your data, which is set by the instrument on which you make the measurement.
 However, it is important to have a small enough minimum q to have a reasonable
 range for the Guinier fit. Typically, the minimum |qRg| value should be
 :math:`qR_g\leq 0.65`, though for globular systems it can be okay to have
@@ -131,7 +131,7 @@ You are looking for four essential components in your Guinier fit:
     *   The minimum q of your fit, q\ :sub:`min`, times the |Rg|  of your fit
         should be less than 0.65. This criteria ensures you have enough q range to
         properly calculate the |Rg| and I(0) values. For globular particles
-        (sphere- or disk-like), you can get away with :math:`q_{min}R_g<0.65`.
+        (sphere- or disk-like), you can get away with :math:`q_{min}R_g<1.0`.
 
 #.  :math:`\mathbf{q_{max}R_g \sim 1.3}` **(globular) or**
     :math:`\mathbf{q_{max}R_g \sim 1.0}` **(extended).**
@@ -149,7 +149,7 @@ You are looking for four essential components in your Guinier fit:
         The ‘smile’ is characteristic of aggregation, the ‘frown’ characteristic
         of interparticle repulsion.
 
-#.  **The fit extends to the lowest available *q* point.**
+#.  **The fit extends to the lowest available q point.**
 
     *   You shouldn’t have to excluded very many points at the start of the fit.
         A few is generally fine, as the points nearest the beamstop can be noisy
@@ -283,7 +283,7 @@ For inherent aggregation:
 #.  Reduce the concentration of your sample.
 
 #.  Re-purify your sample using size exclusion or ion exchange chromatography
-    before the SAXS measurement.
+    immediately before the SAXS measurement.
 
 For radiation damage (often aggregation):
 
