@@ -19,3 +19,12 @@ Steps:
 
 Note: If installer is built on Ubuntu 14.04 LTS it works on Debian 8-10 and Ubuntu 14-18.
 If installer is built on Debian 8 it works on Debian 8-10 and Ubuntu 16-18.
+
+Useful resources for building .deb package:
+https://plashless.wordpress.com/2013/08/25/a-short-debian-packaging-case-gui-apps-gpl-pyinstaller/
+https://plashless.wordpress.com/2013/08/31/app-icons/
+https://plashless.wordpress.com/2013/08/29/creating-new-mime-types-in-a-shortcut-debian-packaging/
+https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-description
+https://linuxconfig.org/easy-way-to-create-a-debian-package-and-local-package-repository
+https://martin.hoppenheit.info/blog/2016/where-to-put-application-icons-on-linux/
+https://www.howtoforge.com/tutorial/how-to-convert-packages-between-deb-and-rpm/
