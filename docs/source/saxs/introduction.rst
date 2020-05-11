@@ -7,6 +7,7 @@ processing, including:
 
 *   :ref:`Guinier analysis <saxs_guinier>`
 *   :ref:`Molecular weight calculation <saxs_mw>`
+*   :ref:`Indirect Fourier transforms and P(r) functions <saxs_ift>`
 
 This is not a tutorial on how to use RAW for this type of analysis. For that,
 please see the :ref:`RAW tutorial <raw_tutorial>`.
