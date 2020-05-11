@@ -1,9 +1,14 @@
 Pair-distance distribution analysis – BIFT in RAW
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _bift_tutorial:
 
 RAW also has a built in method for determining the P(r) function using a Bayesian IFT method.
 This has the advantage of only have one possible solution. More information on this method can
 be found in the RAW paper and manual and references therein.
+
+This tutorial covers how to use RAW for doing an IFT. This is not a tutorial
+on basic principles and best practices for doing an IFT or analysis of the
+resulting P(r) function. For that, please see the :ref:`SAXS tutorial <saxs_ift>`.
 
 #.  Right click on the glucose isomerase profile in the Profiles list you loaded
     :ref:`previously <s2p1>`. Select “IFT (BIFT)” from the resulting menu.

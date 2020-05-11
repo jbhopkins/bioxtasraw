@@ -8,6 +8,10 @@ indirect Fourier transform (IFT) methods are typically used. The most common suc
 in the GNOM program from the ATSAS package. We will use RAW to run GNOM. Note that you need
 :ref:`ATSAS installed <atsas>` to do this part of the tutorial.
 
+This tutorial covers how to use RAW for doing an IFT. This is not a tutorial
+on basic principles and best practices for doing an IFT or analysis of the
+resulting P(r) function. For that, please see the :ref:`SAXS tutorial <saxs_ift>`.
+
 #.  Open RAW. The install instructions contain information on installing and running RAW.
     If RAW is already open, clear all loaded data in RAW.
 

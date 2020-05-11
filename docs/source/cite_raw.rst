@@ -66,6 +66,18 @@ T. D. Grant. Nature Methods (2018) 15, 191–193.
 
 DOI: `10.1038/nmeth.4581 <https://doi.org/10.1038/nmeth.4581>`_
 
+BIFT
+-----------
+
+If you used the BIFT method to determine a P(r) function in RAW, in addition to
+the RAW paper please cite the following paper:
+
+*Bayesian estimation of hyperparameters for indirect Fourier transformation in
+small-angle scattering.* Hansen, S. Journal of Applied Crystallography (2000)
+33, 1415-1421.
+
+DOI: `10.1107/S0021889800012930 <https://doi.org/10.1107/S0021889800012930>`_
+
 
 Molecular Weight
 -------------------------------

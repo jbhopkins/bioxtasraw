@@ -176,8 +176,8 @@ The type of non-linearity can indicate what the problem may be. The figure
 below gives a quick summary off the most common pathologies, more detail is
 available in the sections below.
 
-.. figure:: images/guinier_overview_jaques.png
-    :target: ../_images/guinier_overview_jaques.png
+.. figure:: images/guinier_overview_jacques.png
+    :target: ../_images/guinier_overview_jacques.png
 
     Figure 3 from [2]. A and D show a good (monodisperse) scattering profile and
     Guinier fit. B and E show scattering profiles with varying degrees of
