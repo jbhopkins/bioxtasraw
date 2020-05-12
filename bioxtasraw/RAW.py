@@ -6688,7 +6688,7 @@ class DirCtrlPanel(wx.Panel):
         self.raw_settings = self.main_frame.getRawSettings()
 
         self.file_extension_list = ['All files (*.*)',
-                                    'TIF/TIFF files (*.tiff)',
+                                    'TIFF files (*.tiff)',
                                     'TIF files (*.tif)',
                                     'HDF5 files (*.h5)',
                                     'DAT files (*.dat)',

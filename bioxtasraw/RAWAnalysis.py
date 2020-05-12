@@ -2708,7 +2708,7 @@ class MolWeightFrame(wx.Frame):
                 "- There are significant subtraction errors.\n"
                 "- The other methods it use all return poor MW estimates.")
 
-        elif evt_id == self.ids['bayes']['info']:
+        elif evt_id == self.ids['datclass']['info']:
             msg = ("A molecular weight estimation using a machine learning "
                 "method that categories SAXS data into shape categories based "
                 "on comparison with a catalog of known structures from the PDB. "

@@ -3629,7 +3629,12 @@ def saveAllAnalysisData(save_path, sasm_list, delim=','):
                         data_list.append('N/A')
 
 
-                elif header.startswith('Absolute') or header.startswith('I(0)Concentration') or header.startswith('PorodVolume') or header.startswith('VolumeOfCorrelation'):
+                elif (header.startswith('Absolute')
+                    or header.startswith('I(0)Concentration')
+                    or header.startswith('PorodVolume')
+                    or header.startswith('VolumeOfCorrelation')
+                    or header.startswith('DatmwBayes')
+                    or header.startswith('ShapeAndSize')):
                     temp = header.split('_')
                     key1 = temp[0]
                     if len(temp[1:])>1:
