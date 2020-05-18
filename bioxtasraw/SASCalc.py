@@ -1137,13 +1137,13 @@ def runDatgnom(sasm, path, datname, outname):
 
                 output, error = process.communicate()
 
-        if not isinstance(output, str):
-            output = str(output, encoding='UTF-8')
+            if not isinstance(output, str):
+                output = str(output, encoding='UTF-8')
 
-        if not isinstance(error, str):
-            error = str(error, encoding='UTF-8')
+            if not isinstance(error, str):
+                error = str(error, encoding='UTF-8')
 
-        error = error.strip()
+            error = error.strip()
 
         if (error == 'Cannot define Dmax' or error=='Could not find Rg'
             or error=='No intensity values (positive) found'
@@ -1155,7 +1155,10 @@ def runDatgnom(sasm, path, datname, outname):
             datgnom_success = True
 
         if datgnom_success:
-            iftm=SASFileIO.loadOutFile(os.path.join(path, outname))[0]
+            try:
+                iftm=SASFileIO.loadOutFile(os.path.join(path, outname))[0]
+            except Exception:
+                iftm = None
         else:
             iftm = None
 

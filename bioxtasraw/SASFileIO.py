@@ -1625,6 +1625,17 @@ def loadOutFile(filename):
     q_rg=None         #Reciprocal space Rg
     q_i0=None         #Reciprocal space I0
 
+    #Set some defaults in case the .out file isn't perfect. I've encountered
+    #at least one case where no DISCRIP is returned, which messes up loading in
+    #the .out file.
+    Actual_DISCRP = -1
+    Actual_OSCILL = -1
+    Actual_STABIL = -1
+    Actual_SYSDEV = -1
+    Actual_POSITV = -1
+    Actual_VALCEN = -1
+    Actual_SMOOTH = -1
+
 
     with open(filename, 'rU') as f:
         for line in f:
@@ -1678,8 +1689,6 @@ def loadOutFile(filename):
 
                 if len(found) == 8:
                     Actual_SMOOTH = float(found[7])
-                else:
-                    Actual_SMOOTH = -1
 
             elif te_match:
                 te_num_search = te_num_fit.search(line)
@@ -1718,15 +1727,15 @@ def loadOutFile(filename):
                 alpha = float(found[-1])
 
     # Output variables not in the results file:
-    #             'r'         : R,            #R, note R[-1] == Dmax
-    #             'p'         : P,            #P(r)
-    #             'perr'      : Perr,         #P(r) error
-    #             'qlong'     : qfull,        #q down to q=0
-    #             'qexp'      : qshort,       #experimental q range
-    #             'jexp'      : Jexp,         #Experimental intensities
-    #             'jerr'      : Jerr,         #Experimental errors
-    #             'jreg'      : Jreg,         #Experimental intensities from P(r)
-    #             'ireg'      : Ireg,         #Experimental intensities extrapolated to q=0
+        # 'r'         : R,            #R, note R[-1] == Dmax
+        # 'p'         : P,            #P(r)
+        # 'perr'      : Perr,         #P(r) error
+        # 'qlong'     : qfull,        #q down to q=0
+        # 'qexp'      : qshort,       #experimental q range
+        # 'jexp'      : Jexp,         #Experimental intensities
+        # 'jerr'      : Jerr,         #Experimental errors
+        # 'jreg'      : Jreg,         #Experimental intensities from P(r)
+        # 'ireg'      : Ireg,         #Experimental intensities extrapolated to q=0
 
     name = os.path.basename(filename)
 

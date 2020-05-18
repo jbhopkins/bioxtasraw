@@ -4773,6 +4773,8 @@ class GNOMControlPanel(wx.Panel):
             self.cleanupGNOM(tempdir, savename, outname)
             self.SetFocusIgnoringChildren()
             return
+        except Exception:
+            datgnom = None
 
         self.cleanupGNOM(tempdir, savename, outname)
 
