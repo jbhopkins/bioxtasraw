@@ -7120,6 +7120,7 @@ class DammifPlotPanel(wx.Panel):
         ax0.set_ylabel('I(q)')
 
         ax1 = fig.add_subplot(gridspec[1])
+        ax1.axhline(0, color='k', linewidth=1.0)
         ax1.plot(q, residual, 'bo')
         ax1.set_xlabel('q')
         if self.norm_residuals:
@@ -8607,7 +8608,7 @@ class DenssRunPanel(wx.Panel):
                 t.start()
                 self.threads_finished.append(False)
 
-            elif 'align':
+            elif 'align' in self.denss_ids:
                 self.average_results = {}
                 self.refine_results = []
 
@@ -8620,6 +8621,7 @@ class DenssRunPanel(wx.Panel):
             else:
                 self.msg_timer.Stop()
 
+                self.average_results = {}
                 self.refine_results = []
                 wx.CallAfter(self.finishedProcessing)
 
@@ -9421,7 +9423,7 @@ class DenssPlotPanel(wx.Panel):
         ax0.tick_params(labelbottom=False, labelsize='x-small')
 
         ax1 = fig.add_subplot(gs[1])
-        ax1.plot(qdata, qdata*0, 'k--')
+        ax1.axhline(0, color='k', linewidth=1.0)
         ax1.plot(qdata, np.log10(Imean[qbinsc==qdata])-np.log10(Idata), 'ro-')
         ylim = ax1.get_ylim()
         ymax = np.max(np.abs(ylim))
