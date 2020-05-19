@@ -9,6 +9,22 @@ decomposition (SVD) can be used to help determine how many distinct scatterers a
 SEC-SAXS peak. Evolving factor analysis (EFA) is an extension of SVD that can extract individual
 components from overlapping SEC-SAXS peaks.
 
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/U2bSg20mU8s" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
+
+
+Singular Value Decomposition (SVD)
+************************************
+
+Note that the first step of EFA is doing SVD, but that happens entirely within
+the EFA analysis window. The SVD window does not need to be opened before doing
+EFA.
+
 #.  Clear all of the data in RAW. Load the **phehc_sec.hdf5** file in the **sec_data** folder.
 
     *   *Note:* The data were provided by the Ando group at Cornell University
@@ -69,28 +85,60 @@ components from overlapping SEC-SAXS peaks.
 
 #.  Close the SVD window by clicking the OK button.
 
-#.  Having determined there are multiple components in the peak, We will now use
-    EFA to attempt to extract out the two scattering components in the
+
+Evolving Factor Analysis (EFA)
+*********************************
+
+#.  Clear all of the data in RAW. Load the **phehc_sec.hdf5** file in the **sec_data** folder.
+
+    *   *Note:* The data were provided by the Ando group at Cornell University
+        and is some of the data used in the paper: *Domain Movements upon Activation of
+        Phenylalanine Hydroxylase Characterized by Crystallography and Chromatography-Coupled
+        Small-Angle X-ray Scattering*\ . Steve P. Meisburger, Alexander B. Taylor, Crystal
+        A. Khan, Shengnan Zhang, Paul F. Fitzpatrick, and Nozomi Ando. Journal of the
+        American Chemical Society 2016 138 (20), 6506-6516. `DOI: 10.1021/jacs.6b01563
+        <https://dx.doi.org/10.1021/jacs.6b01563>`_
+
+#.  We will now use EFA to attempt to extract out the two scattering components in the
     main peak in this data. Right click on the **phehc_sec.hdf5** item in the Series list.
     Select the “EFA” option.
 
-    *   *Tip:* You can skip right to using EFA if you know you have multiple components
-        in your peak. It does not require the SVD window to have been open first.
+#.  The EFA window will be displayed. On the left are controls, on the right are plots of
+    the value of the singular values and the first autocorrelation of the left and right
+    singular vectors.
+
+    *   *Note:* Large singular values indicate significant components. What matters is the relative
+        magnitude, that is, whether the value is large relative to the mostly flat/unchanging
+        value of high index singular values.
+
+    *   *Note:* A large autocorrelation indicates that the singular vector is varying smoothly,
+        while a low autocorrelation indicates the vector is very noisy. Vectors corresponding to
+        significant components will tend to have autocorrelations near 1 (roughly, >0.6-0.7) and
+        vectors corresponding to insignificant components will tend to have autocorrelations near 0.
 
     |efa_panel_png|
 
-#.  For successful EFA, you want to use Subtracted data, and you typically want to have
-    a long buffer region before and after the sample. For this data set, using the entire
+#.  For successful EFA, you want to use Subtracted data, and you often want to have
+    a buffer region before and after the sample. For this data set, using the entire
     frame range (from 0 to 385) is appropriate. With other data sets, you may need to
     change the frame range to, for example, remove other, well separated, peaks from the
     analysis.
+
+        *   *Tip:* If you have a dataset where you have a large number of components,
+            such as 4+, it can be useful to set the EFA range to isolate just
+            2-3 of those components. The more components you have, the harder
+            it is to do the EFA. There is a tradeoff in the amount of data
+            used (more is better), and the number of components in the
+            deconvolution (less is better) that requires some experimentation
+            to find the right balance for a given dataset.
 
 #.  RAW attempts to automatically determine how many significant singular values (SVs) there
     are in the selected range. At the bottom of the control panel, you should see that
     RAW thinks there are three significant SVs in our data. For this data set, that is accurate.
 
     *   *Note:* You should convince yourself of this by looking at the SVD results in
-        the plots on this page, using the same approach as in Steps 3-5 above.
+        the plots on this page, using the same approach as in Steps 3-5 of the
+        SVD tutorial.
 
     *   *Note:* There is a hint of a fourth component. You can rerun this exercise
         using four components and see if that changes the results.

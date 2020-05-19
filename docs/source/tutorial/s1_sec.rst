@@ -13,19 +13,30 @@ plotting |Rg|, MW, and I(0) across the peaks, and extracting specific frames for
 *Note:* In RAW, this is called Series analysis, as the same tools can be used for other
 sequentially sampled data sets.
 
-#.  Clear any data loaded into RAW. Click on the Series tab in the control panel. Click the
-    “Select” button. Navigate to the **Tutorial_Data/sec_data/sec_sample_1**
-    folder and select any of the **.dat** files in the folder.
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/3aJl2kNBPuA" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
+
+#.  Clear any data loaded into RAW.
 
     *   *Tip:* In the Files tab, click the “Clear All” button to clear all data in RAW.
 
-    *   *Troubleshooting:* If you get an error message, it means you don't have
-        a configuration file loaded. Load the SAXS.cfg file referenced :ref:`earlier <s1p1>`.
+#.  Go to the Files control tab and navigate to the **sec_sample_1** data directory.
 
-    |series_panel_png|
+#.  Click on the first data file, **profile_001_0000.dat**\ . Scroll down to the
+    bottom of the file list, and shift click on the last file,
+    **profile_001_0964.dat**\ . This should highlight all of the files in
+    between, as well as the two you clicked on. Click on the "Plot Series"
+    button to load the series into RAW.
 
-#.  The SEC run will automatically load. RAW should automatically show you the Series
-    plot panel. If not, click on the Series tab in the plot panel.
+    |series_load1_png|
+
+#.  RAW should automatically show you the Series plot panel. If not, click
+    on the Series tab in the plot. Click on the Series tab in the control panel.
 
     |series_plot_png|
 
@@ -42,14 +53,16 @@ sequentially sampled data sets.
     *   *Tip:* Select the crossed arrows in the plot control bar, and then click and drag on
         the plot to move the curve around on the screen.
 
-#.  Go to the Files control tab and navigate to the **sec_sample_1** data directory. Click on
-    the second data file, **profile_001_0001.dat**\ . Scroll down to the bottom of the
-    file list, and shift click on the last file, **profile_001_0964.dat**\ . This should
-    highlight all of the files in between, as well as the two you clicked on.
+#.  Reload the data as in steps 2-3, but select the second data file,
+    **profile_001_0001.dat** as the initial file in the series.
 
-#.  Click on the “Plot Series” button. You will see the same curve plotted as before, but
-    without the very first scattering profile. Remove the other loaded data set. Now
-    you should have a curve where the baseline is very close to the bottom of the plot.
+    *   *Tip:* As before, select **profile_001_0001.dat**, scroll down
+        to the last file, and shift click to select the files to load
+        in. Then click the "Plot Series" button.
+
+#.  You will see the same curve plotted as before, but without the very first
+    scattering profile. Remove the other loaded data set. Now you should have
+    a curve where the baseline is very close to the bottom of the plot.
 
     |series_plot2_png|
 
@@ -353,10 +366,30 @@ sequentially sampled data sets.
 
     |series_line_props_png|
 
-#.  Load the Bovine Serum Albumin (BSA) SEC-SAXS data contained in the **sec_sample_2**
-    data folder. Note that because SAXS data can be reported with an arbitrary intensity
-    scale, the total intensity of this series is much larger than the previous
-    series.
+#.  For certain beamlines (the BioCAT beamline at the APS and the MacCHESS
+    BioSAXS beamline at CHESS), RAW can automatically load in series data
+    from the series panel. This is typically used for online analysis while
+    data is being collected, but can be used to load in series you have
+    already collected as well.
+
+#.  We will load in the Bovine Serum Albumin (BSA) SEC-SAXS data contained
+    in the **sec_sample_2** data folder using this automatic method.
+    In the Series control panel, click the “Select” button. Navigate to
+    the **Tutorial_Data/sec_data/sec_sample_2** folder and select any of
+    the **.dat** files in the folder.
+
+    *   *Troubleshooting:* If you get an error message, it means you don't have
+        a configuration file loaded. Load the SAXS.cfg file referenced :ref:`earlier <s1p1>`.
+
+    *   The configuration file must be set to either BioCAT or MacCHESS beamlines
+        for this method to work. Otherwise, RAW doesn't know how to create
+        all the filenames in a series from a single filename.
+
+    |series_panel_png|
+
+#.  The SEC-SAS run will automatically load. Note that because SAXS data can be
+    reported with an arbitrary intensity scale, the total intensity of this
+    series is much larger than the previous series.
 
 #.  Right click on the **profile_001** series and select "Adjust scale, offset, q range".
     This will open a window that allows you to adjust the overall scale and offset
@@ -399,6 +432,9 @@ sequentially sampled data sets.
     *   *Try:* Clear the Series data and then open one of your saved files from the Files tab
         using either the “Plot” or “Plot Series” button.
 
+.. |series_load1_png| image:: images/series_load1.png
+    :width: 500 px
+    :target: ../_images/series_load1.png
 
 .. |series_panel_png| image:: images/series_panel.png
     :width: 400 px

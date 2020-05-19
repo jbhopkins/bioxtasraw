@@ -10,6 +10,14 @@ This tutorial covers how to use RAW for doing an IFT. This is not a tutorial
 on basic principles and best practices for doing an IFT or analysis of the
 resulting P(r) function. For that, please see the :ref:`SAXS tutorial <saxs_ift>`.
 
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/Q0zCyjUJ35s" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
+
 #.  Right click on the glucose isomerase profile in the Profiles list you loaded
     :ref:`previously <s2p1>`. Select “IFT (BIFT)” from the resulting menu.
 

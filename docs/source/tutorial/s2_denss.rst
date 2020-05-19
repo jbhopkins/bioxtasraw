@@ -10,6 +10,14 @@ density. Bead models typically only have two (molecule and solvent) or three bea
 and so typically fail to reconstruct these complex objects. `DENSS <http://denss.org>`_ has
 been fully implemented in RAW and will be used to reconstruct these electron densities.
 
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/BepDKkGXM6Q" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
+
 #.  Clear all of the data in RAW. Load the **glucose_isomerase.ift** file that you saved in the
     **reconstruction_data** folder in a previous part of the tutorial.
 

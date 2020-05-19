@@ -13,6 +13,14 @@ vs. :math:`qR_g`\ or :math:`(q^2V_c)I(q)/I(0)` vs. :math:`q(V_c)^{1/2}`\ . These
 can provide semi-quantitative analysis of flexibility and disorder. More information about can
 be found here and references therein: `http://www.bioisis.net/tutorial/21 <http://www.bioisis.net/tutorial/21>`_.
 
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/jttMQmu-5MY" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
+
 #.  If you haven't already, save the loaded scattering profiles, remove all loaded
     profiles from RAW, and reload your saved GI and Lysozyme profiles, as described
     in :ref:`the previous section <s1p4>`.

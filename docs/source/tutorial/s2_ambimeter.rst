@@ -9,6 +9,14 @@ shapes. The more possible shapes that could have generated the scattering profil
 ambiguity there will be in the reconstruction. We will use RAW to run AMBIMETER. Note that you need
 :ref:`ATSAS installed <atsas>` to do this part of the tutorial.
 
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/kWShkxtj5iw" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
+
 #.  Clear all of the data in RAW. Load the **glucose_isomerase.out** file that you saved in the
     **reconstruction_data** folder in a previous part of the tutorial.
 

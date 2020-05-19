@@ -8,6 +8,14 @@ standard in RAW.
 doesn't have the requisite data to use for this part. So we will use
 the data in the **calibration_data/extra** folder.
 
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/tj1dunGbLYo" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
+
 #.  Load the **SAXS.cfg** file in the **calibration_data/extra** folder.
 
 #.  Plot all of the **lysbuf2_52_001_000x.tiff** files, where x is 0-9, on the main plot.

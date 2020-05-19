@@ -8,6 +8,14 @@ the MacCHESS G1 beamline used dual Pilatus detectors to measure SAXS and WAXS fr
 so far has been SAXS data. Some experiments can make use of the WAXS data. In this part of the
 tutorial you will learn the basics of processing it.
 
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/UZCGXjQdk7Y" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
+
 #.  Clear any data in RAW.
 
 #.  Navigate to the **standards_data** and load the **WAXS.cfg** file.

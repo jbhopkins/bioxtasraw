@@ -9,6 +9,14 @@ as described in the :ref:`DAMMIF/N <dammif>` and :ref:`DENSS <denss_s2>` section
 of the tutorial. RAW also provides standalone windows for doing the alignment
 with already generated reconstructions.
 
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/W-7dE1o7-aQ" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
+
 Bead models - SUPCOMB
 *************************
 

@@ -20,6 +20,14 @@ calculation using the ATSAS tools, for a total of six different methods:
 *   From a Bayesian estimation based on concentration independent methods (ATSAS
     datmw bayes)
 
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/qYWzhBdnsRY" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
+
 #.  In RAW, right click on the subtracted GI scattering profile in the Profiles panel
     and select “Molecular weight.” Alternatively click on the "Mol. Weight" button
     at the bottom of the Profiles panel.

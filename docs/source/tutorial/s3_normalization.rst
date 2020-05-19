@@ -5,6 +5,14 @@ Setting normalization and other options
 This section teaches you how to set up normalization by a beamstop counter, and
 other options. It assumes you have completed :ref:`Parts 1 <s3p1>` and :ref:`2 <s3p3>`\ .
 
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/NTjrds0stGc" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
+
 #.  Open the Options window by selecting “Advanced Options” in the Options menu.
 
 #.  In the window that shows up select the Image/Header Format section on the left.

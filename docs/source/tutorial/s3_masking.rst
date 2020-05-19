@@ -6,6 +6,14 @@ This section teaches you how to mask out unwanted portions of your image, such a
 beamstop and bad detector pixels. It assumes you have just done :ref:`Part 1 <s3p1>`.
 If not, open RAW as in Step 1 and set your data folder as in Step 8 of :ref:`Part 1 <s3p1>`.
 
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/JiacpOC4FJE" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
+
 #.  In the Files tab, select the **water1_014_0001.tif** file and click the show image button.
 
     *   *Tip:* It's usually best to make a mask on a water or buffer image. If you do it

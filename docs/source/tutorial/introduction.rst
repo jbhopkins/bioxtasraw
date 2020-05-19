@@ -63,12 +63,12 @@ Other useful materials
 #.  `Video lectures from the BioCAT Everything BioSAXS 5 workshop, <https://www.youtube.com/playlist?list=PLbPNI520xTsEYbJk8V0BNQ461xnG6tpRW>`_
     which can help you learn more about best practices for SAXS data processing.
 
-#.  An overview and tutorial of RAW produced by Jesse Hopkins for SBGrid, which can be viewed here:
-    `https://youtu.be/XGnJDs3N2MI <https://youtu.be/XGnJDs3N2MI>`_
+#.  Each tutorial section has a linked video tutorial. A full playlist of the
+    vides is available here:
 
-#.  There are RAW tutorial videos produced by Richard Gillilan, which can be viewed here:
-    `https://bit.ly/bioxtast <https://bit.ly/bioxtast>`_. Data for these tutorial videos is available here:
-    `https://bit.ly/bioxtasd <https://bit.ly/bioxtasd>`_.
+    .. raw:: html
+
+        <iframe width="560" height="315" src="https://www.youtube.com/embed/videoseries?list=PLm39Taum4df4alFnacOOr1RWgylwiTWED" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 #.  ATSAS resources:
 

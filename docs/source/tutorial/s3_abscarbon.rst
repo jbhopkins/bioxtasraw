@@ -16,6 +16,14 @@ and the sample measurements. The second way is more similar to that used by wate
 it essentially ignores the background (assumes it to be small). This approach only requires
 regular normalization and a single measurement of the background for the glassy carbon sample.
 
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/dhmd4IzlMfM" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
+
 
 Simple (ignoring background)
 *********************************************

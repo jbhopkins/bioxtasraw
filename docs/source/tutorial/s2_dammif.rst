@@ -10,6 +10,13 @@ consensus shape is made from the average of these reconstructions. The program D
 the ATSAS package is the most commonly used program for building consensus shapes. Note that you need
 :ref:`ATSAS installed <atsas>` to do this part of the tutorial.
 
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/umxeTsgYg58" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
 
 #.  Clear all of the data in RAW. Load the **glucose_isomerase.out** file that you saved in the
     **reconstruction_data** folder in a previous part of the tutorial.

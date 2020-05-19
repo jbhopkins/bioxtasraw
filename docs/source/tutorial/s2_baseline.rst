@@ -9,6 +9,14 @@ is best for instrumental drifts, while the integral baseline method is best
 for capillary fouling. Both baseline methods apply a distinct correction for each
 *q* value.
 
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/ftFPs6XTyEA" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
+
 Linear Baseline Correction
 *****************************
 

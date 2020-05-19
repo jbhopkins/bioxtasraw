@@ -7,6 +7,14 @@ Before this can be done, you have to set the image and file header type in the O
 The best way to find the beam center and sample to detector distance is using the automated
 method in RAW.
 
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/v7-CROk8oqM" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
+
 #.  Open RAW. The install instructions contain information on installing and running RAW.
 
 #.  Open the Options window by going to the Options menu (top of the RAW window or in the

@@ -6,6 +6,14 @@ This tutorial covers how to use RAW for Guinier analysis. This is not a tutorial
 on basic principles and best practices for doing a Guinier analysis. For that,
 please see the :ref:`SAXS tutorial <saxs_guinier>`.
 
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/B3xJP40Z8Ww" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
+
 
 #.  In RAW, right click (ctrl click on macs without a right mouse button) on the
     subtracted GI scattering profile in the Profiles list and select "Guinier fit".

@@ -2,6 +2,14 @@ Similarity Testing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _s1p6:
 
+A video version of this tutorial is available:
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/BPgWze8GjVI" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+The written version of the tutorial follows.
+
 RAW has the ability to test scattering profiles for statistical similarity. Currently, only one
 test is available: the Correlation Map test. This can be done manually, and is also done
 automatically when scattering profiles are averaged. This can be useful when you’re dealing
