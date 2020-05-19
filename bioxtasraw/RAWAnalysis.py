@@ -2163,9 +2163,9 @@ class MolWeightFrame(wx.Frame):
         mwsizer.Add(VpMW, 1, wx.ALIGN_CENTER_VERTICAL)
         mwsizer.Add(txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
 
-        mw_warning = RAWCustomCtrl.AutoWrapStaticText(parent, ('Warning: final '
-            'q point is outside the extrapolation region (0.1 <= q <= 0.5 1/A), '
-            'no correction has been applied!'))
+        mw_warning = RAWCustomCtrl.StaticText(parent, label=('Warning: final '
+            'q point is outside\nthe extrapolation region\n(0.1 <= q <= 0.5 1/A), '
+            'no\ncorrection has been applied!'))
 
         self.mw_warning_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.mw_warning_sizer.Add(mw_warning, wx.EXPAND)
@@ -3251,10 +3251,10 @@ class MolWeightFrame(wx.Frame):
             qmax = q[0]
 
 
-        if q[-1]<=0.5 and q[-1]>=0.1:
+        if qmax<=0.5 and qmax>=0.1:
             wx.CallAfter(self._showVpMWWarning, False)
         else:
-            wx.CallAFter(self._showVpMWWarning, True)
+            wx.CallAfter(self._showVpMWWarning, True)
 
         if i0 > 0:
             analysis = self.sasm.getParameter('analysis')
