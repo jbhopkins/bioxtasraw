@@ -15386,8 +15386,13 @@ class NormKratkyPlotPanel(wx.Panel):
         elif self.plot_type == 'Dimensionless (Rg)':
             xdata = q*rg
             ydata = (q*rg)**2*i/i0
-            self.v_line = self.subplot.axvline(np.sqrt(3), 0, 1, linestyle = 'dashed', color='0.6')
-            self.h_line = self.subplot.axhline(3./np.e, 0, 1, linestyle = 'dashed', color='0.6')
+
+            if len(self.line_dict) == 0:
+                self.v_line = self.subplot.axvline(np.sqrt(3), 0, 1,
+                    linestyle='dashed', color='0.6')
+                self.h_line = self.subplot.axhline(3./np.e, 0, 1,
+                    linestyle = 'dashed', color='0.6')
+
         elif self.plot_type == 'Dimensionless (Vc)':
             xdata = q*np.sqrt(vc)
             ydata = (q)**2*vc*i/i0
@@ -15417,7 +15422,7 @@ class NormKratkyPlotPanel(wx.Panel):
             oldx = plot.get_xlim()
             oldy = plot.get_ylim()
 
-            plot.relim()
+            plot.relim(True)
             plot.autoscale_view()
 
             newx = plot.get_xlim()
@@ -15467,6 +15472,7 @@ class NormKratkyPlotPanel(wx.Panel):
                 if legend.get_visible():
                     self.subplot.draw_artist(legend)
 
+        if len(self.line_dict) > 0:
             self.canvas.blit(self.subplot.bbox)
 
     def updatePlot(self, plot_type):
@@ -15475,6 +15481,20 @@ class NormKratkyPlotPanel(wx.Panel):
         self.subplot.set_title(self.plot_labels[self.plot_type][0])
         self.subplot.set_xlabel(self.plot_labels[self.plot_type][1])
         self.subplot.set_ylabel(self.plot_labels[self.plot_type][2])
+
+        if self.plot_type == 'Normalized' and self.v_line is not None:
+            self.v_line.remove()
+            self.h_line.remove()
+            self.v_line = None
+            self.h_line = None
+        elif self.plot_type == 'Dimensionless (Rg)' and self.v_line is None:
+            self.v_line = self.subplot.axvline(np.sqrt(3), 0, 1, linestyle = 'dashed', color='0.6')
+            self.h_line = self.subplot.axhline(3./np.e, 0, 1, linestyle = 'dashed', color='0.6')
+        elif self.plot_type == 'Dimensionless (Vc)' and self.v_line is not None:
+            self.v_line.remove()
+            self.h_line.remove()
+            self.v_line = None
+            self.h_line = None
 
         for line, data in self.line_dict.items():
             sasm = data.sasm
@@ -15489,25 +15509,12 @@ class NormKratkyPlotPanel(wx.Panel):
             if self.plot_type == 'Normalized':
                 xdata = q
                 ydata = q**2*i/i0
-                if self.v_line is not None:
-                    self.v_line.remove()
-                    self.h_line.remove()
-                    self.v_line = None
-                    self.h_line = None
             elif self.plot_type == 'Dimensionless (Rg)':
                 xdata = q*rg
                 ydata = (q*rg)**2*i/i0
-                if self.v_line is None:
-                    self.v_line = self.subplot.axvline(np.sqrt(3), 0, 1, linestyle = 'dashed', color='0.6')
-                    self.h_line = self.subplot.axhline(3./np.e, 0, 1, linestyle = 'dashed', color='0.6')
             elif self.plot_type == 'Dimensionless (Vc)':
                 xdata = q*np.sqrt(vc)
                 ydata = (q)**2*vc*i/i0
-                if self.v_line is not None:
-                    self.v_line.remove()
-                    self.h_line.remove()
-                    self.v_line = None
-                    self.h_line = None
 
             line.set_xdata(xdata)
             line.set_ydata(ydata)
