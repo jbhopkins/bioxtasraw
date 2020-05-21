@@ -16,3 +16,6 @@ changes may not propagate when rebuilding. Do this with a:
 make clean
 
 When releasing new documentation, update the version number in the conf.py file.
+
+Useful site for embedding youtube videos in a mobile friendly way:
+https://embedresponsively.com/?

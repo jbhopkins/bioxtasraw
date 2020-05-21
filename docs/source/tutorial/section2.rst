@@ -24,5 +24,6 @@ the bottom of the page to navigate through it in order.
    s2_dammif
    s2_denss
    s2_align
+   s2_svd
    s2_efa
    s2_baseline
