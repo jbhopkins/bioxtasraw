@@ -10,7 +10,8 @@ to extract out scattering profiles for each component in an overlapping peak.
 SEC-SAXS peak. Evolving factor analysis (EFA) is an extension of SVD that can extract individual
 components from overlapping SEC-SAXS peaks. Note that the first step of EFA is
 doing SVD, but that happens entirely within the EFA analysis window. The SVD
-window does not need to be opened before doing EFA.
+window does not need to be opened before doing EFA. This tutorial covers
+EFA.
 
 A video version of this tutorial is available:
 
@@ -82,7 +83,7 @@ The written version of the tutorial follows.
     *   *Note:* Typically you want the number of significant singular values and
         the number of singular vectors with autocorrelations near 1 to be equal.
         If they aren't, it likely indicates a weak or otherwise poorly resolved
-        component in the dataset. Try the deconvolution first with the lower than
+        component in the dataset. Try the deconvolution first with the lower then
         the higher number of components.
 
     *   *Note:* RAW can find the wrong number of components automatically. You will

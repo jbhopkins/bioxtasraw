@@ -11,7 +11,7 @@ SEC-SAXS peak. :ref:`Evolving factor analysis (EFA) <raw_efa>` is an extension
 of SVD that can extract individual components from overlapping SEC-SAXS peaks.
 Note that the first step of EFA is doing SVD, but that happens entirely within
 the EFA analysis window. The SVD window does not need to be opened before doing
-EFA.
+EFA. This tutorial covers SVD.
 
 A video version of this tutorial is available:
 
