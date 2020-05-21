@@ -9,4 +9,5 @@ SAXS Tutorial
    saxs/saxs_guinier
    saxs/saxs_mw
    saxs/saxs_ift
+   saxs/saxs_bead_models
 

@@ -222,8 +222,9 @@ using GNOM via the RAW interface:
     to zero turned off).
 #.  Turn the force to zero at |Dmax| condition back on.
 #.  If needed, truncate the P(r) function to a maximum q of 8/R\ :sub:`g`,
-    which is appropriate for bead model reconstructions with DAMMIF/N.
-    You may have to tweak the |Dmax| a bit after truncation.
+    or 0.25-0.3 1/Angstrom, whichever is smaller, if using for bead model
+    reconstructions with DAMMIF/N. You may have to tweak the |Dmax| a bit after
+    truncation.
 
 If you have good quality data, this ought to produce a good P(r) function.
 
