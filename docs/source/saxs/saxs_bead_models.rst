@@ -44,13 +44,14 @@ While bead modeling can be quite useful, it is important to always keep in
 mind two things. First, it is very easy to get poor reconstructions, even
 with good quality data, and you must carefully evaluate the results of your
 reconstructions before using them. Second, SAXS is much more accurate at
-hypothesis testing than it is at generating bead models, put another way
+hypothesis testing than it is at generating bead models. Put another way
 SAXS is very good at telling you what something isn't, but not so good
 at telling you what it is. For example, if you want to compare a high
 resolution structure to SAXS data and see if they agree, you are always
 better off testing the calculated scattering profile of the high resolution
 structure against the measured scattering profile than docking the structure
-into the bead model.
+into the bead model. In this case, the bead model might be useful in visualizing
+the differences between the solution shape and your high resolution structure.
 
 
 How do we do an bead model reconstructions?
@@ -77,8 +78,7 @@ all of these methods share a similar approach.
 Additional, programs usually impose physical constraints on the bead models
 to improve the model. Common constraints are requiring connectivity of the model,
 imposing penalties for extended models, and constraining the size of the model
-based on the |Rg| and/or |Dmax|. The model refinement described in steps 3-5
-above is usually done with simulated annealing.
+based on the |Rg| and/or |Dmax|.
 
 It turns out that a scattering profile does not generate a unique reconstruction,
 so to account for this a Monte Carlo like approach is taken where a number
@@ -119,7 +119,7 @@ times.
 The most accessible settings for DAMMIF are the Mode, Symmetry, and Anisometry.
 
 **Mode:** For mode, options are Fast or Slow. Fast is quick, but less detailed, Slow is
-the opposite. For final reconstruction, use Slow mode.
+the opposite. For a final reconstruction, use Slow mode.
 
 **Symmetry:** Adding in symmetry constraints can improve the reconstruction.
 If you know the symmetry of the particle, you can specify this. However,
@@ -167,7 +167,7 @@ damstart.pdb represents a very conservative core of the most probably
 occupied volume as determined by averaging all the reconstructions using
 DAMAVER. DAMMIN keeps this core fixed, and refines the outside of the model
 to match the scattering profile. I've seen mixed recommendations (even from
-the makes of the software) on whether you should do a refinement. I typically
+the makers of the software) on whether you should do a refinement. I typically
 do, but it seems you can often do just as well with the most probable model
 determined by DAMAVER.
 
@@ -229,7 +229,7 @@ shapes, which is the Ambiguity score. They provide the following interpretations
 *   Ambiguity score > 2.5 - Reconstruction is most likely ambiguous.
 
 This provides a quick initial assessment of whether you should even bother
-doing a shape reconstruction for your dataset.
+doing a shape reconstruction for your dataset. :ref:`You can run AMBIMETER from RAW <raw_ambimeter>`.
 
 Normalized spatial discrepancy
 **********************************
@@ -238,13 +238,10 @@ DAMAVER reports a number of different results. The most useful is the normalized
 spatial discrepancy (NSD). This is essentially a size normalized metric for comparing
 how similar two different models are. When DAMAVER is run, it reports the
 average and standard deviation of the NSD between all the reconstructions. It
-also reports the average NSD for each model. If the average NSD of a given model
-is more than two standard deviations above the mean NSD, that model is not included
-in the average.
+also reports the average NSD for each model.
 
-NSD is commonly used to evaluate the stability of the reconstruction. While the
-exact thresholds vary a little, roughly speaking we evaluate reconstruction
-stability as:
+The mean NSD is commonly used to evaluate the stability of the reconstruction.
+Roughly speaking we evaluate reconstruction stability as:
 
 *   NSD < 0.6 - Good stability of reconstructions
 *   NSD between 0.6 and 1.0 - Fair stability of reconstructions
@@ -256,34 +253,285 @@ while if it is greater than 1.0 you should proceed with caution, or not use
 the reconstructions at all.
 
 The normalized spatial discrepancy is also used to determine which models
-to include in a reconstruction. If more than ~2 models are rejected (of 15), that
+to include in a reconstruction. If the average NSD of a given model
+is more than two standard deviations above the mean NSD, that model is
+not included in the average. If more than ~2 models are rejected (of 15), that
 may be a sign of an unstable reconstruction.
 
 Clusters
 ***********
 
+DAMCLUST creates clusters of models that are more similar to each other
+than they are to the rest of the models. This is a way of assessing the
+ambiguity of the reconstruction. If you have more than one cluster of models
+in your reconstructions, you may have several distinct shapes that are being
+reconstructed by the DAMMIF algorithm. This typically indicates that there
+are several distinct shapes in solution that could generate the measured
+scattering profile, and so is another indication of a highly ambiguous
+reconstruction.
 
+The caveat to this is that with good quality data that is very low ambiguity
+(ambiguity score from AMBIMETER < 0.5) and yields a set of reconstructions with
+a very small mean NSD (<0.5, typically) and NSD standard deviation (~0.01),
+I have seen several (often >5) clusters identified with DAMCLUST. I believe
+that in this case there are not actually multiple clusters, but the extremely
+low deviation between the models is fooling the DAMCLUST algorithm.
+
+Note that the different clusters should not be taken as representatives of different
+distinct shapes in solution. Even if there are a finite number of distinct shapes
+scattering in the solution (such as an open and closed state of a protein),
+the measured scattering profile is an average of the scattering from each component, and
+each individual reconstruction fits that measured scattering profile. As such,
+there is no way for an individual reconstruction to fit just the scattering from
+one of the components and so the different clusters cannot be representative
+of the different shapes in the solution.
 
 Model fit and parameters
 *****************************
 
-Model resolution
-*******************
+Each model has the following parameters that can be used to evaluate the success
+of an individual reconstruction: :math:`\chi^2`, |Rg|, |Dmax|, volume,  molecular
+weight estimated from volume, and the normalized residual of the model fit to
+the data. For a good fit to the data, the model :math:`\chi^2` should be close
+to 1 and the normalized residual between the model fit and the data should
+be flat and randomly distributed about zero. However, in my experience, the normalized
+residual often shows some small systematic deviations, and so this should not
+be too concerning. A :math:`\chi^2` value significantly larger than 1 (1.5-2 or
+larger) indicates either a poor fit to the data or that the uncertainty for
+the data is underestimated. To differentiate between these two cases, look
+at the normalized residual. If it is flat and randomly distributed, then
+the uncertainty is most likely underestimated. If it shows significant
+systematic deviations then the fit quality is poor.
+
+The |Rg| and |Dmax| obtained from the model should be close to those calculated
+from the P(r) function. If that is not the case, you should reevaluate your P(r)
+function and redo the reconstruction if necessary. If the discrepancy persists,
+it is an indication that your reconstruction isn't a good representation of what
+is in solution, and shouldn't be trusted. While there's no hard and fast rule
+here on how closely |Rg| and |Dmax| should agree, my experience is generally
+that for high quality data |Rg| agrees to better than ~5% and |Dmax| to ~10%.
+
+
+The volume is reported for each bead model, but it is usually easier to
+compare the molecular weight calculated from that volume with the expected
+molecular weight. In this case, M.W. is calculated by dividing the volume
+(nominally representing the sample's excluded volume) by an empirically
+determined constant [4] of 1.66 (used in RAW, other programs may use different
+values). This value is approximate, and varies between roughly 1.5 and 2.0
+depending on the shape of the macromolecule. This M.W. is less well determined
+than :ref:`other SAXS methods <saxs_mw>`, given the variation in the coefficient.
+As such, it is mostly useful for indicating general agreement between the overall
+size of the reconstruction and the expected size. If the M.W. is different from
+the expected M.W. by more than 20-25% you should consider the reconstructions
+to be suspect.
 
 
 Limitations of bead models
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+While bead models can be quite useful, they have a number of limitations,
+many of which are mentioned in previous parts of the tutorial. In summary:
+
+*   Bead models can be ambiguous, even if the data quality is very high.
+    This is because multiple different shapes in solution can produce the
+    same scattering profile, so there is no guaranteed unique solution to
+    a reconstruction, and the success of the reconstruction depends not just
+    on the input data quality but also the inherent shape of the particle
+    and how ambiguous that shape is for SAXS. Because of this, all models
+    should be thoroughly evaluated as described above.
+
+*   Ignoring ambiguity, bead models still only work best with particular
+    particle shapes. An excellent discussion of how well bead models work for
+    different types of shapes is found in [3]. The summary is that bead
+    models tend to be less reliable for high aspect ratio objects, such as
+    long rods or thin discs, objects with voids (such as a spherical shell),
+    and rings. They are most reliable for things that are generally globular.
+
+*   Bead models are low resolution. Small variations of the surface of the
+    model are likely insignificant. I rarely see estimated model resolutions
+    less than ~20 Angstroms, often they are much larger.
+
+*   Bead models do not (typically) model the hydration layer or internal
+    structure of the particle. This requires that you use only data out to
+    a maximum of 8/R\ :sub:`g` or ~0.25-0.30 1/Angstrom, whichever is less.
+
+*   The most common bead modeling programs cannot model multiple electron
+    densities within a sample, such a protein-nucleic acid complex or
+    a membrane protein with a detergent halo. There are specialized
+    programs (such as `MONSA <https://www.embl-hamburg.de/biosaxs/monsa.html>`_
+    or `Memprot <https://pubmed.ncbi.nlm.nih.gov/25615863/>`_) that can handle
+    these cases, but these require the input of additional information to provide
+    extra constraints.
+
+*   The bead model is only as good as the input data. In particular,
+    bead models are quite sensitive to the presence of larger particles
+    in solution, either oligomers or non-specific aggregate. In one
+    simulation I've seen, as little as 0.7% aggregate caused a significant
+    change in the bead model. Non-specific aggregation usually manifests
+    as an extended protrusion from the main envelope.
+
+As you can see, while bead models can certainly be useful for your research,
+you should proceed with caution and ensure that you have a trustworthy
+reconstruction before proceeding with your bead models.
 
 
 Visualizing DAMMIF/N reconstructions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Visualizing DAMMIF/N bead model reconstruction is slightly different from
+displaying a typical macromolecular structure. There are two main ways that
+these are visualized, either as individual beads or, more commonly, as an
+envelope that defines the edges of the model. Both representations are usually
+made semi-transparent so that a high resolution structure docked with the
+bead model is simultaneously visible.
+
+The main detail to remember is that to get a correct visualization you have to
+set the correct bead size for the model, which is given in the header of the
+DAMMIF/N .pdb file.
+
+Below are two quick tutorials for visualizing models in Chimera and PyMOL.
+
+Visualizing bead models with Chimera
+**************************************
+
+Note: There are some differences between Chimera and the newer ChimeraX.
+Differences for ChimeraX are noted in **bold**.
+
+#.  Open Chimera.
+
+#.  Load in the DAMMIF/N .pdb file of interest.
+
+#.  If necessary, open the Model Panel and the Command Line from the Tools->
+    General Controls menu.
+
+#.  In the Select->Chain menu choose the bead model ("no ID" or **the filename**).
+
+#.  In the Actions->Ribbons (**Actions->Cartoon**) menu, choose "Hide".
+
+#.  In the Actions->Atoms/Bonds menu, choose "Show".
+
+#.  In the Actions->Atoms/Bonds (**Actions->Atoms/Bonds->Atom Style**) menu
+    choose "Sphere".
+
+#.  **In the Camera section of the ChimeraX "Graphics" ribbon, click "View
+    selected".**
+
+#.  Open the PDB header by double clicking on the model in the Model Panel,
+    then clicking on "PDB Headers..." at the bottom of the panel that pops up.
+
+    *   *Note:* **This doesn't seem to be available in ChimeraX. You'll have to
+        open the .pdb file in a text editor.**
+
+    *   *Tip:* You can also open the .pdb file in a text editor and read the
+        header there.
+
+#.  Find the "Atomic Radius" (DAMMIF/DAMAVER model) or "DAM packing radius"
+    (DAMMIN model) value. That is the bead size you need to set.
+
+#.  In the command line, enter the command ``vdwdefine x #y`` where ``x``
+    is the bead size from the PDB header and ``y`` is the ID number of the
+    bead model shown in the model panel.
+
+    *   **The command is "size atomradius x" in ChimeraX.**
+
+#.  Your beads are now the right size. If you want to make an envelope
+    proceed with the following optional steps. If you'd rather use the
+    individual bead display, you can stop here.
+
+#.  To make an envelope, in the command line enter the command ``molmap #y z``
+    where ``y`` is the ID number of the bead model shown in the model panel
+    and ``z`` is 3x the bead size that you found in the previous steps.
+
+    *   *Tip:* The last number controls the smoothness of the envelope. You
+        may need to vary it from 3*(bead size), depending on the size of
+        your beads and how smooth you want your envelope. I recommend leaving
+        at least a hint of the beads visible (not overly smoothing the envelope) to
+        help whoever sees the graphic to remember that an envelope is not
+        an electron density contour.
+
+#.  Hide the bead model using the "Hide" button in the model panel.
+
+#.  In the Volume Viewer window that appeared when you entered the molmap
+    command, in the Features menu select the "Surface and Mesh options'.
+
+    *   *Note:* This menu doesn't exist in ChimeraX.
+
+#.  Check the box for Surface smoothing and set the iterations to 2 and the
+    factor to 1.
+
+    *   *Note:* This option doesn't exist in ChimeraX.
+
+#.  Check the box for Subdivide surface and set it to 2 times.
+
+    *   *Note:* This option doesn't exist in ChimeraX.
+
+#.  Click on the color box to set color and opacity. I find that 0.4 (**40%**)
+    is a good opacity for overlaying with high resolution models.
+
+#.  Loading your aligned (such as with :ref:`SUPCOMB <raw_supcomb>`) high
+    resolution structure if available.
+
+Visualizing bead models with PyMOL
+**************************************
 
 
 FAQ
 ^^^^^^^^
 
+Do I have to make a bead model?
+**********************************
 
+No. It all depends on what you're trying to say about the data. However,
+particularly if your system shows signs of flexibility or AMBIMETER reports
+a high ambiguity score you probably shouldn't bother making a bead model
+even if you want to.
+
+How do I fit my high resolution structure into my bead model?
+*****************************************************************
+
+If your high resolution structure is relatively complete (contains all
+residues in solution, and ideally post-translational modifications), you
+can use a program like SUPCOMB [7] to automatically
+:ref:`fit the structure into the bead model <raw_supcomb>`. If you are missing
+significant amounts of the structure (such as a large flexible loop) or have
+only one subunit of a multi-subunit complex you may have to manually dock
+the structure in the envelope.
+
+My bead model and my high resolution structure disagree. Which one is right?
+******************************************************************************
+
+Maybe both, maybe neither! It really depends on your inputs. If you've validated
+the bead model as above and it seems good, then it likely represents the low
+resolution shape in solution. You should also verify that your high resolution
+shape contains all of the residues in your system, often high resolution
+structures are missing things like flexible loops or N and C terminus regions.
+
+If both models are good, then depending on how you obtained your high resolution
+shape it might also be correct, but represent the shape under different conditions.
+For example, it is common in crystallography to see structural artifacts induced
+by the packing of the macromolecule into the crystal.
+
+Of course, the best way to compare your high resolution structure to SAXS data
+isn't by docking it in a bead model, but by fitting it against the data using
+a program like `CRYSOL <https://www.embl-hamburg.de/biosaxs/crysol.html>`_ or
+`FoXS <https://modbase.compbio.ucsf.edu/foxs/>`_. If these fits are bad, then
+your high resolution structure doesn't match the data, regardless of what the
+bead model shows. If these fits are good, and the bead model doesn't agree with
+the high resolution structure, then the bead model is wrong.
+
+My bead model isn't good, what should I do instead?
+*********************************************************
+
+There are many more approaches available than I can list here, but a couple
+of the more common ones are:
+
+*   If your data is flexible, you can try some kind of ensemble based approach,
+    such as `EOM <https://www.embl-hamburg.de/biosaxs/eom.html>`_,
+    `SASSIE <https://sassie-web.chem.utk.edu/sassie2/>`_, or
+    `BilboMD <https://bl1231.als.lbl.gov/bilbomd>`_.
+
+*   If your data is more rigid and consists of several subunits you can consider
+    rigid body modeling such as
+    `SASREF <https://www.embl-hamburg.de/biosaxs/manuals/sasres.html>`_.
 
 
 
@@ -309,6 +557,9 @@ References
 
 6.  M.V. Petoukhov and D.I. Svergun (2015) Ambiguity assessment of small-angle
     scattering curves from monodisperse systems Acta Cryst. D71, 1051-1058.
+
+7.  M.Kozin & D.Svergun (2001) Automated matching of high- and low-resolution
+    structural models J Appl Cryst. 34, 33-41.
 
 .. |Rg| replace:: R\ :sub:`g`
 

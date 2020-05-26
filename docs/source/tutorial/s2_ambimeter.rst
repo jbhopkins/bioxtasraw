@@ -1,5 +1,6 @@
 Assessing ambiguity of 3D shape information - AMBIMETER in RAW
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _raw_ambimeter:
 
 It is impossible to determine a provably unique three-dimensional shape from a scattering
 profile. This makes it important to determine what degree of ambiguity might be expected

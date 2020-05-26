@@ -19,6 +19,7 @@ The written version of the tutorial follows.
 
 Bead models - SUPCOMB
 *************************
+.. _raw_supcomb:
 
 SUPCOMB from the ATSAS suite can be used to align two PDB files. In this context,
 one model (the reference) is the high resolution structure while the other
