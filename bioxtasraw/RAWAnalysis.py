@@ -9608,6 +9608,7 @@ class DenssAlignFrame(wx.Frame):
             nprocs = 1
         else:
             nprocs = multiprocessing.cpu_count()
+            self.my_manager = multiprocessing.Manager()
 
         nprocs_choices = [str(i) for i in range(nprocs, 0, -1)]
         self.nprocs = wx.Choice(adv_win, choices = nprocs_choices)
