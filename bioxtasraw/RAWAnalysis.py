@@ -9596,7 +9596,7 @@ class DenssAlignFrame(wx.Frame):
         file_sizer.Add(self.target_select)
         file_sizer.AddGrowableCol(1)
 
-        adv_pane = wx.CollapsiblePane(self, label="Advanced Settings",
+        adv_pane = wx.CollapsiblePane(panel, label="Advanced Settings",
             style=wx.CP_NO_TLW_RESIZE)
         adv_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
         adv_win = adv_pane.GetPane()
@@ -9635,7 +9635,11 @@ class DenssAlignFrame(wx.Frame):
             flag=wx.ALIGN_CENTER_VERTICAL)
         adv_settings_sizer.Add(self.resolution, flag=wx.ALIGN_CENTER_VERTICAL)
 
-        adv_win.SetSizer(adv_settings_sizer)
+        adv_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        adv_sizer.Add(adv_settings_sizer, border=5, flag=wx.ALL)
+        adv_sizer.AddStretchSpacer(1)
+
+        adv_win.SetSizer(adv_sizer)
 
         self.start_button = wx.Button(panel, label='Start')
         self.abort_button = wx.Button(panel, label='Abort')
@@ -11095,7 +11099,7 @@ class SupcombFrame(wx.Frame):
         file_sizer.Add(self.target_select)
         file_sizer.AddGrowableCol(1)
 
-        adv_pane = wx.CollapsiblePane(self, label="Advanced Settings",
+        adv_pane = wx.CollapsiblePane(panel, label="Advanced Settings",
             style=wx.CP_NO_TLW_RESIZE)
         adv_pane.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
         adv_win = adv_pane.GetPane()
@@ -11142,7 +11146,11 @@ class SupcombFrame(wx.Frame):
             flag=wx.ALIGN_CENTER_VERTICAL)
         adv_settings_sizer.Add(self.symmetry, flag=wx.ALIGN_CENTER_VERTICAL)
 
-        adv_win.SetSizer(adv_settings_sizer)
+        adv_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        adv_sizer.Add(adv_settings_sizer, border=5, flag=wx.ALL)
+        adv_sizer.AddStretchSpacer(1)
+
+        adv_win.SetSizer(adv_sizer)
 
         self.start_button = wx.Button(panel, label='Start')
         self.abort_button = wx.Button(panel, label='Abort')
@@ -11349,7 +11357,7 @@ class SupcombFrame(wx.Frame):
                     wx.CallAfter(self.status.AppendText, new_text)
                 except queue.Empty:
                     pass
-                time.sleep(0.001)
+                time.sleep(0.01)
 
             if not self.abort_event.is_set():
                 time.sleep(2)
