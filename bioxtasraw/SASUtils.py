@@ -40,8 +40,10 @@ import os
 import subprocess
 import glob
 import json
-import numpy as np
 import sys
+
+import wx
+import numpy as np
 
 try:
     import dbus
@@ -495,3 +497,8 @@ def find_global(module, name):
 if six.PY3:
     class SafeUnpickler(pickle.Unpickler):
         find_class = staticmethod(find_global)
+
+def signal_handler(sig, frame):
+    main_frame = wx.Window.FindWindowByName('MainFrame')
+    main_frame.cleanup_and_quit_forced()
+

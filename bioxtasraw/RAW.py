@@ -50,6 +50,7 @@ import traceback
 import multiprocessing
 from collections import OrderedDict, defaultdict
 import functools
+import signal
 
 
 import hdf5plugin #HAS TO BE FIRST
@@ -244,15 +245,15 @@ class MainFrame(wx.Frame):
 
         self.plot_notebook = aui.AuiNotebook(self, style = aui.AUI_NB_TAB_MOVE | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_SCROLL_BUTTONS)
 
-        plot_panel = RAWPlot.PlotPanel(self.plot_notebook, -1, 'PlotPanel')
+        self.plot_panel = RAWPlot.PlotPanel(self.plot_notebook, -1, 'PlotPanel')
         img_panel = RAWImage.ImagePanel(self.plot_notebook, -1, 'ImagePanel')
-        iftplot_panel = RAWPlot.IftPlotPanel(self.plot_notebook, -1, 'IFTPlotPanel')
-        sec_panel = RAWPlot.SeriesPlotPanel(self.plot_notebook,-1, 'SECPlotPanel')
+        self.ift_plot_panel = RAWPlot.IftPlotPanel(self.plot_notebook, -1, 'IFTPlotPanel')
+        self.sec_plot_panel = RAWPlot.SeriesPlotPanel(self.plot_notebook,-1, 'SECPlotPanel')
 
-        self.plot_notebook.AddPage(plot_panel, "Profiles", True)
-        self.plot_notebook.AddPage(iftplot_panel, "IFTs", False)
+        self.plot_notebook.AddPage(self.plot_panel, "Profiles", True)
+        self.plot_notebook.AddPage(self.ift_plot_panel, "IFTs", False)
         self.plot_notebook.AddPage(img_panel, "Image", False)
-        self.plot_notebook.AddPage(sec_panel, "Series", False)
+        self.plot_notebook.AddPage(self.sec_plot_panel, "Series", False)
 
 
         self.control_notebook = aui.AuiNotebook(self, style = aui.AUI_NB_TAB_MOVE)
@@ -316,6 +317,8 @@ class MainFrame(wx.Frame):
         #Set up sleep inhibit utility:
         self.sleep_inhibit = SASUtils.SleepInhibit()
 
+        self._bind_signals()
+
         icon = RAWIcons.raw.GetIcon()
         self.SetIcon(icon)
         app.SetTopWindow(self)
@@ -324,6 +327,18 @@ class MainFrame(wx.Frame):
         self.SetSize(size)
         self.CenterOnScreen()
         self.Show(True)
+
+
+        wx.CallAfter(self._showWelcomeDialog)
+
+    def _showWelcomeDialog(self):
+        dlg = WelcomeDialog(self, name = "WelcomeDialog")
+        dlg.SetIcon(self.GetIcon())
+        res = dlg.ShowModal()
+        dlg.Destroy()
+
+        if res == wx.ID_OK:
+            wx.CallAfter(self._onStartup, sys.argv)
 
     def _onStartup(self, data):
         _, errors = SASUtils.loadFileDefinitions()
@@ -2535,14 +2550,78 @@ class MainFrame(wx.Frame):
         else:
             self._cleanup_and_quit()
 
+    def _bind_signals(self):
+        """Binds sigint and sigterm so RAW can gracefully exit"""
+
+        self.orig_sigint_handler = signal.getsignal(signal.SIGINT)
+        self.orig_sigterm_handler = signal.getsignal(signal.SIGTERM)
+        signal.signal(signal.SIGINT, SASUtils.signal_handler)
+        signal.signal(signal.SIGTERM, SASUtils.signal_handler)
+
+        #This is a bit silly, but seems necessary on MacOS if RAW is a background process
+        self.heartbeat = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._on_heartbeat, self.heartbeat)
+        self.heartbeat.Start(5000)
+
+    def _on_heartbeat(self, evt):
+        pass
+
+    def cleanup_and_quit_forced(self):
+        signal.signal(signal.SIGINT, self.orig_sigint_handler)
+        signal.signal(signal.SIGTERM, self.orig_sigterm_handler)
+
+        self._cleanup_and_quit()
+
+
     def _cleanup_and_quit(self):
-        self._closing = True
-        self.saveBackupData()
-        self._mgr.UnInit()
-        self.sleep_inhibit.force_off()
-        self.tbIcon.RemoveIcon()
-        self.tbIcon.Destroy()
-        self.Destroy()
+        sys.excepthook = sys.__excepthook__
+
+        try:
+            dialog_list = wx.GetApp().modal_dialog_hook.all_modal_dialogs
+
+            for dialog in dialog_list:
+                dialog.EndModal(wx.ID_CANCEL)
+                dialog.Destroy()
+
+            self.heartbeat.Stop()
+            self.OnlineControl.stopTimer()
+            self.OnlineSECControl.goOffline()
+            self.centering_panel._repeat_timer.Stop()
+
+            for frame in self.dammif_frames:
+                if frame:
+                    frame.RunPanel.dammif_timer.Stop()
+
+            for frame in self.denss_frames:
+                if frame:
+                    frame.RunPanel.denss_timer.Stop()
+                    frame.RunPanel.msg_timer.Stop()
+
+            for frame in self.bift_frames:
+                if frame:
+                    frame.controlPanel.BIFT_timer.Stop()
+
+            self.plot_panel.blink_timer.Stop()
+            self.ift_plot_panel.blink_timer.Stop()
+            self.sec_plot_panel.blink_timer.Stop()
+
+            self._closing = True
+            self.saveBackupData()
+            self._mgr.UnInit()
+            self.sleep_inhibit.force_off()
+
+        except Exception:
+            traceback.print_exc()
+
+        finally:
+            self.tbIcon.RemoveIcon()
+            self.tbIcon.Destroy()
+
+            for w in wx.GetTopLevelWindows():
+                if w != self:
+                    w.Destroy()
+
+            self.Destroy()
 
     def _createFileDialog(self, mode, name = 'Config files', ext = '*.cfg'):
 
@@ -14289,16 +14368,16 @@ class WelcomeDialog(wx.Dialog):
         wx.Dialog.__init__(self,parent, style=wx.RESIZE_BORDER|wx.STAY_ON_TOP,
             *args, **kwargs)
 
-        self.panel = wx.Panel(self, -1, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
-        self.ok_button = wx.Button(self.panel, -1, 'OK')
+        self.ok_button = wx.Button(self.panel, wx.ID_ANY, 'OK')
         self.ok_button.Bind(wx.EVT_BUTTON, self._onOKButton)
         self.ok_button.SetDefault()
 
         raw_bitmap = RAWIcons.raw.GetBitmap()
-        rawimg = wx.StaticBitmap(self.panel, -1, raw_bitmap)
+        rawimg = wx.StaticBitmap(self.panel, wx.ID_ANY, raw_bitmap)
 
-        headline = wx.StaticText(self.panel, -1, 'Welcome to RAW %s!' %(RAWGlobals.version))
+        headline = wx.StaticText(self.panel, wx.ID_ANY, 'Welcome to RAW %s!' %(RAWGlobals.version))
 
         text1 = 'Developers/Contributors:'
         text2 = '\nSoren Skou'
@@ -14321,7 +14400,7 @@ class WelcomeDialog(wx.Dialog):
         final_sizer.Add(headline, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 15)
 
         for each in all_text:
-            txt = wx.StaticText(self.panel, -1, each)
+            txt = wx.StaticText(self.panel, wx.ID_ANY, each)
             final_sizer.Add(txt, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.LEFT | wx.RIGHT, 15)
 
         final_sizer.Add(self.ok_button, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
@@ -14357,23 +14436,19 @@ class WelcomeDialog(wx.Dialog):
 
         self.Raise()
 
-        self.CenterOnScreen()
+        self.CenterOnParent()
 
 
     def _onOKButton(self, event):
         # mainworker_cmd_queue.put(['startup', sys.argv])
-        wx.CallAfter(wx.FindWindowByName("MainFrame")._onStartup, sys.argv)
-        self.OnClose()
+
+        self.EndModal(wx.ID_OK)
 
     def _onKeyDown(self, event):
         if event.GetKeyCode() == wx.WXK_RETURN or event.GetKeyCode() == wx.WXK_NUMPAD_ENTER:
             self._onOKButton(-1)
         else:
             event.Skip()
-
-    def OnClose(self):
-        self.EndModal(wx.ID_OK)
-        self.Destroy()
 
 
 class MyApp(wx.App):
@@ -14405,6 +14480,9 @@ class MyApp(wx.App):
         MySplash = MySplashScreen()
         MySplash.Show()
 
+        self.modal_dialog_hook = MyModalDialogHook()
+        self.modal_dialog_hook.Register()
+
         return True
 
     def BringWindowToFront(self):
@@ -14426,7 +14504,14 @@ class MyApp(wx.App):
 
         if self and self.IsMainLoopRunning():
             if not self.HandleError(value):
-                wx.CallAfter(wx.lib.dialogs.scrolledMessageDialog, None, msg, "Unexpected Error")
+                top_window = self.GetTopWindow()
+
+                if top_window is not None:
+                    parent = top_window.FindWindowByName("MainFrame")
+                else:
+                    parent = None
+
+                wx.CallAfter(wx.lib.dialogs.scrolledMessageDialog, parent, msg, "Unexpected Error")
         else:
             sys.stderr.write(msg)
 
@@ -14458,6 +14543,21 @@ class MyApp(wx.App):
     #     """Called when the doc icon is clicked, and ???"""
     #     self.BringWindowToFront().Raise()
 
+class MyModalDialogHook(wx.ModalDialogHook):
+
+    def __init__(self):
+        wx.ModalDialogHook.__init__(self)
+
+        self.all_modal_dialogs = []
+
+    def Enter(self, dialog):
+        self.all_modal_dialogs.append(dialog)
+
+        return wx.ID_NONE
+
+    def Exit(self, dialog):
+        if dialog in self.all_modal_dialogs:
+            self.all_modal_dialogs.remove(dialog)
 
 class MySplashScreen(SplashScreen):
     """
@@ -14486,15 +14586,13 @@ class MySplashScreen(SplashScreen):
         if self.fc.IsRunning():
             self.fc.Stop()
             self.ShowMain()
-        self.Hide()
+        self.Destroy()
         evt.Skip()
 
     def ShowMain(self):
         frame = MainFrame('RAW %s' %(RAWGlobals.version), -1)
 
-        dlg = WelcomeDialog(frame, name = "WelcomeDialog")
-        dlg.SetIcon(frame.GetIcon())
-        dlg.ShowModal()
+
 
 
 class RawTaskbarIcon(TaskBarIcon):
