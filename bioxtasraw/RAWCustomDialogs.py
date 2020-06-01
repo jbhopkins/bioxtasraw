@@ -4615,23 +4615,7 @@ class HelpFrame(wx.Frame):
     # WebView events
     def OnWebViewNavigating(self, evt):
         # this event happens prior to trying to get a resource
-        if 'videos.html' in evt.GetURL():
-            msg = ("Videos are unavilable in this version of the documentation. "
-                "If you want to view the videos, visit the online documentation "
-                "here:\nhttps://bioxtas-raw.readthedocs.io/")
-            wx.MessageBox(msg, "Link unavailable",
-                style=wx.OK|wx.ICON_INFORMATION)
-
-            evt.Veto()
-
-        elif self.doc_path not in evt.GetURL():
-            msg = ("You can't navigate to external websites from this "
-                "documentation. If you want to follow this link visit the "
-                "online documention here:\nhttps://bioxtas-raw.readthedocs.io/")
-            wx.MessageBox(msg, "Link unavailable",
-                style=wx.OK|wx.ICON_INFORMATION)
-
-            evt.Veto()
+        pass
 
     def OnHomeButton(self, event):
         self.wv.LoadURL(self.home)
