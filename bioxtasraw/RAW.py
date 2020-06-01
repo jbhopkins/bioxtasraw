@@ -3599,7 +3599,7 @@ class MainWorkerThread(threading.Thread):
 
         all_secm = True
         for name in filename_list:
-            if os.path.splitext(name)[1] != '.sec':
+            if os.path.splitext(name)[1] != '.sec' and os.path.splitext(name)[1]!='.hdf5':
                 all_secm = False
                 break
 

@@ -205,12 +205,12 @@ def load_ifts(filename_list):
 
 def load_series(filename_list, settings=None):
     """
-    Loads in series files. If all filenames provided at individual scattering
+    Loads in series data. If all filenames provided at individual scattering
     profiles (e.g. .dat files or images that can be radially averaged into
     a scattering profile) they are loaded in as a single series. If
-    all files provided are series files, each file is loaded in as a separate
-    series. If a mixture of profiles and series are provided then an error
-    is raised.
+    all files provided are series files (e.g. .sec or .hdf5 files),
+    each file is loaded in as a separate series. If a mixture of profiles
+    and series are provided then an error is raised.
 
     :param list filename_list: A list of strings containing the full path to
         each file to be loaded in.
@@ -224,6 +224,10 @@ def load_series(filename_list, settings=None):
 
     :returns: A list of individual :class:`bioxtasraw.SECM.SECM` items.
     :rtype: list
+
+    :raises SASExceptions.UnrecognizedDataFormat: Error raised if you attempt
+        to load in both scattering profiles and series files (.sec or .hdf5)
+        at the same time.
     """
     if settings is None:
         settings = RAWSettings.RawGuiSettings()
@@ -263,6 +267,11 @@ def load_images(filename_list, settings):
         imghdr_list is a list of the image header values associated with each
         image  as dictionaries.
     :rtype: list
+
+    :raises SASExceptions.WrongImageFromat: Error raised if you load in an
+        image that RAW can't read. This could be an error with your settings,
+        or it could fundamentally be an unreadable image type, either due to
+        it being an unknown format or the format being corrupted.
     """
     img_list = []
     imghdr_list = []
