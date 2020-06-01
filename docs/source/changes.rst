@@ -26,7 +26,7 @@ All changes:
 ^^^^^^^^^^^^^^
 
 *   Fixed a bug where the 'More Info' button didn't work for DATCLASS M.W.
-*   Fixed a bug where Bayes and DATCLASS M.W. weren't saved when sving all
+*   Fixed a bug where Bayes and DATCLASS M.W. weren't saved when saving all
     analysis info.
 *   Fixed a bug wehre RAW woud fail to load in .out files if they were missing
     values for any of the perceptual criteria.
