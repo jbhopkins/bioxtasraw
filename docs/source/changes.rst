@@ -1,6 +1,56 @@
 Changes
 ============
 
+2.0.1
+------------
+
+Release date: 2020-06-01
+
+Overview
+^^^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 2.0.1. This
+version fixes several serious bugs in the previous version, including:
+
+*   A bug where some of the M.W. calculations failed for profiles with
+    a maximum q value greater than 0.5.
+*   A bug where the standalone DENSS alignment window failed to run
+    on Windows and Linux.
+*   A bug where killing the prebuilt version of RAW on Linux would fail to
+    delete temporary files, which could lead to the /tmp partition filling up.
+
+There are also several other small bug fixes and new features.
+
+
+All changes:
+^^^^^^^^^^^^^^
+
+*   Fixed a bug where the 'More Info' button didn't work for DATCLASS M.W.
+*   Fixed a bug where Bayes and DATCLASS M.W. weren't saved when sving all
+    analysis info.
+*   Fixed a bug wehre RAW woud fail to load in .out files if they were missing
+    values for any of the perceptual criteria.
+*   Fixed a bug where an error message was shown whenever a profile with qmax
+    > 0.5 was opened in the M.W. window.
+*   Fixed a bug where the Vp M.W. extrapolation range warning could be shown even
+    if the qmax selected was inside the extrapolation range.
+*   Added zero lines to DAMMIF, DENSS residual plots.
+*   Fixed a bug where running DENSS without averaging could result in an error
+    message.
+*   Fixed a bug where running DENSS without averaging or alignment would result
+    in an error message.
+*   Fixed a bug where when there was more than one profile in the normalized
+    Kratky plot the dashed lines to guide the eye were not removed when
+    switching from dimensionless Rg to other plots, which would throw off the
+    scale of the plot.
+*   Fixed a bug on Windows where the standalone DENSS alignment window didn't
+    work.
+*   Fixed bugs where the advanced options couldn't be shown in the SUPCOMB or
+    DENSS alignement standalone windows on Windows.
+*   RAW now catches SIGINT and SIGTERM and tries to exit gracefully. This mostly
+    fixes an issue with the prebuilt .deb installer where the temp files
+    created when starting RAW don't get deleted.
+
 2.0.0
 --------
 
