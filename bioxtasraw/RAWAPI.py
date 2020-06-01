@@ -3,28 +3,29 @@ Created on June 11, 2019
 
 @author: Jesse B. Hopkins
 
-#******************************************************************************
-# This file is part of RAW.
-#
-#    RAW is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    RAW is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with RAW.  If not, see <http://www.gnu.org/licenses/>.
-#
-#******************************************************************************
+******************************************************************************
+ This file is part of RAW.
+
+RAW is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+RAW is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with RAW.  If not, see <http://www.gnu.org/licenses/>.
+
+******************************************************************************
 
 The purpose of this module is to provide an API for calling RAW functions from
 other python programs. This is to provide easy access to RAW's functionality
 in any data processing program you want to write in python
 """
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import object, range, map, zip
 from io import open
@@ -52,6 +53,21 @@ import bioxtasraw.BIFT as BIFT
 __version__ = RAWGlobals.version
 
 def load_settings(file, settings=None):
+    """
+    Loads RAW settings from a file.
+
+    :param str file: The full path to a RAW settings (.cfg) file.
+
+    :param settings: A settings object containing already existing settings. Any
+        settings duplicated between the settings loaded in and the settings
+        provided will be overwritten by the settings from file. This parameter
+        is generally not used.
+    :type settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+
+    :returns: The RAW settings stored in the .cfg file.
+    :rtype: :class:`bioxtasraw.RAWSettings.RAWSettings`
+    """
+
     if settings is None:
         settings = RAWSettings.RawGuiSettings()
 
@@ -78,6 +94,28 @@ def load_settings(file, settings=None):
     return settings
 
 def load_files(filename_list, settings):
+    """
+    Loads all types of files that RAW knows how to load. If images are
+    included in the list, then the images are radially averaged as part
+    of being loaded in.
+
+    :param list filename_list: A list of strings containing the full path to
+        each file to be loaded in.
+    :param settings: The RAW settings to be used when loading in the files,
+        such as the calibration values used when radially averaging images.
+    :type settings: :class:`bioxtasraw.RAWSettings.RAWSettings`
+
+    :returns: A list of lists. Each item in the list is a list of individual
+        items of a specific type loaded in. It returns: ``[sasm_items, iftm_items,
+        seriesm_items, and img_items]`` where sasm_items is a list of individual
+        :class:`bioxtasraw.SASM.SASM` items, including those obtained from radially
+        averaging any images, iftm_items is a list of individual
+        :class:`bioxtasraw.SASM.IFTM` items, seriesm_items is a list of individual
+        :class:`bioxtasraw.SECM.SECM` items, and img_items is a list of individual
+        images as :class:`numpy.array`.
+    :rtype: list
+    """
+
     if not isinstance(filename_list, list):
         filename_list = [filename_list]
 
@@ -126,22 +164,106 @@ def load_files(filename_list, settings):
 
     return sasm_list, iftm_list, secm_list, img_list
 
-def load_dats(filename_list, settings):
+def load_profiles(filename_list, settings=None):
+    """
+    Loads individual scattering profiles from text files. This could be
+    .dat files, but other file types such as .fit, .fir, .int, or .csv
+    can also be loaded.
+
+    :param list filename_list: A list of strings containing the full path to
+        each .dat file to be loaded in.
+    :param settings: The RAW settings to be used when loading in the files,
+        such as the calibration values used when radially averaging images.
+        Default is none, this is commonly not used.
+    :type settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+
+    :returns: A list of individual :class:`bioxtasraw.SASM.SASM` items.
+    :rtype: list
+    """
+    if settings is None:
+        settings = RAWSettings.RawGuiSettings()
+
     sasm_list, iftm_list, secm_list, img_list = load_files(filename_list, settings)
 
     return sasm_list
 
-def load_ifts(filename_list, settings):
+def load_ifts(filename_list):
+    """
+    Loads IFT files: .out GNOM files and .ift BIFT files.
+
+    :param list filename_list: A list of strings containing the full path to
+        each .dat file to be loaded in.
+
+    :returns: A list of individual :class:`bioxtasraw.SASM.IFTM` items.
+    :rtype: list
+    """
+    settings = RAWSettings.RawGuiSettings()
+
     sasm_list, iftm_list, secm_list, img_list = load_files(filename_list, settings)
 
     return iftm_list
 
-def load_series(filename_list, settings):
+def load_series(filename_list, settings=None):
+    """
+    Loads in series files. If all filenames provided at individual scattering
+    profiles (e.g. .dat files or images that can be radially averaged into
+    a scattering profile) they are loaded in as a single series. If
+    all files provided are series files, each file is loaded in as a separate
+    series. If a mixture of profiles and series are provided then an error
+    is raised.
+
+    :param list filename_list: A list of strings containing the full path to
+        each file to be loaded in.
+    :param settings: The RAW settings to be used when loading in the files,
+        such as the calibration values used when radially averaging images.
+        Default is none. This is required if you are loading images into
+        a series or if you wish to set the header style of the series loaded
+        in, which is necessary for calculating the timepoint of each frame
+        in the series.
+    :type settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+
+    :returns: A list of individual :class:`bioxtasraw.SECM.SECM` items.
+    :rtype: list
+    """
+    if settings is None:
+        settings = RAWSettings.RawGuiSettings()
+
+    all_secm = True
+    for name in filename_list:
+        if os.path.splitext(name)[1] != '.sec' or os.path.splitext(name)[1]!='.hdf5':
+            all_secm = False
+            break
+
     sasm_list, iftm_list, secm_list, img_list = load_files(filename_list, settings)
+
+    if not all_secm:
+        if len(sasm_list) != 0 and len(secm_list) != 0:
+            msg = ('Some or all of the selected files were not scattering '
+                'profiles or images, so a series dataset could not be generated.')
+            raise SASExceptions.UnrecognizedDataFormat(msg)
+        else:
+            secm = SECM.SECM(filename_list, sasm_list, range(sasm_list), {},
+                settings)
+
+            secm_list = [secm]
 
     return secm_list
 
 def load_images(filename_list, settings):
+    """
+    Loads in image files.
+
+    :param list filename_list: A list of strings containing the full path to
+        each file to be loaded in.
+    :param settings: The RAW settings to be used when loading in the files.
+    :type settings: :class:`bioxtasraw.RAWSettings.RAWSettings`
+
+    :returns: A list of lists as ``[img_list, imghdr_list]``. The img_list
+        is a list of individual images as :class:`numpy.arrays`. The
+        imghdr_list is a list of the image header values associated with each
+        image  as dictionaries.
+    :rtype: list
+    """
     img_list = []
     imghdr_list = []
 
@@ -157,9 +279,27 @@ def load_images(filename_list, settings):
     return img_list, imghdr_list
 
 def load_and_integrate_images(filename_list, settings):
+    """
+    Loads in image files and radially averages them into 1D scattering
+    profiles.
+
+    :param list filename_list: A list of strings containing the full path to
+        each file to be loaded in.
+    :param settings: The RAW settings to be used when loading in the files.
+    :type settings: :class:`bioxtasraw.RAWSettings.RAWSettings`
+
+    :returns: A list of lists as ``[sasm_list, img_list]``. The sasm_list is
+        a list of the individual 1D scattering profiles as
+        :class:`bioxtasraw.SASM.SASM` items. The img_list is a list of
+        individual images as :class:`numpy.arrays`.
+    :rtype: list
+    """
     sasm_list, iftm_list, secm_list, img_list = load_files(filename_list, settings)
 
     return sasm_list, img_list
+
+def profiles_to_series(profiles):
+    pass
 
 def save_dat(sasm, settings, fname=None, datadir='.'):
     if fname is not None:

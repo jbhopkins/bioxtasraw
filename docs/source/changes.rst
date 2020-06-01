@@ -28,7 +28,7 @@ All changes:
 *   Fixed a bug where the 'More Info' button didn't work for DATCLASS M.W.
 *   Fixed a bug where Bayes and DATCLASS M.W. weren't saved when saving all
     analysis info.
-*   Fixed a bug wehre RAW woud fail to load in .out files if they were missing
+*   Fixed a bug where RAW woud fail to load in .out files if they were missing
     values for any of the perceptual criteria.
 *   Fixed a bug where an error message was shown whenever a profile with qmax
     > 0.5 was opened in the M.W. window.
