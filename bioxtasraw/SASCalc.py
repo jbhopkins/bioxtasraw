@@ -155,14 +155,52 @@ def calcRg(q, i, err, transform=True, error_weight=True):
 
     return RG, I0, RGer, I0er, a, b
 
-def calcRefMW(i0, conc):
-    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
-    ref_mw = raw_settings.get('MWStandardMW')
-    ref_I0 = raw_settings.get('MWStandardI0')
-    ref_conc = raw_settings.get('MWStandardConc')
+def estimate_guinier_error(q, i, err, transform=True, error_weight=True):
+    if transform:
+        #Start out by transforming as usual.
+        x = np.square(q)
+        y = np.log(i)
+        yerr = np.absolute(err/i) #I know it looks odd, but it's correct for a natural log
+    else:
+        x = q
+        y = i
+        yerr = err
 
-    if ref_mw > 0 and ref_I0 > 0 and ref_conc > 0 and conc > 0 and i0 > 0:
-            mw = (i0 * (ref_mw/(ref_I0/ref_conc))) / conc
+    win_size = len(x)
+
+    if win_size < 10:
+        est_rg_err = None
+        est_i0_err = None
+    else:
+        var = win_size//10
+        if var > 12:
+            step = int(np.ceil(var/12.))
+        else:
+            step = 1
+        rg_list = []
+        i0_list = []
+
+        for li in range(0, var+1, step):
+            for ri in range(0,var+1, step):
+                if ri == 0:
+                    Rg, I0, Rger, I0er, a, b = calcRg(x[li:], y[li:], yerr[li:],
+                        transform=transform, error_weight=error_weight)
+                else:
+                    Rg, I0, Rger, I0er, a, b = calcRg(x[li:-ri], y[li:-ri],
+                        yerr[li:-ri], transform=transform,
+                        error_weight=error_weight)
+
+                rg_list.append(Rg)
+                i0_list.append(I0)
+
+        est_rg_err = np.array(rg_list).std()
+        est_i0_err = np.array(i0_list).std()
+
+    return est_rg_err, est_i0_err
+
+def calcRefMW(i0, conc, ref_i0, ref_conc, ref_mw):
+    if ref_mw > 0 and ref_i0 > 0 and ref_conc > 0 and conc > 0 and i0 > 0:
+            mw = (i0 * (ref_mw/(ref_i0/ref_conc))) / conc
     else:
         mw = -1
 
@@ -580,10 +618,9 @@ def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
 
 
 
-def calcVcMW(sasm, rg, i0, qmax, protein = True, interp = True):
+def calcVcMW(sasm, rg, i0, qmax, a_prot, b_prot, a_rna, b_rna, protein=True,
+    interp=True):
     #using the rambo tainer 2013 method for molecular mass.
-
-    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
     q = sasm.getQ()
     i = sasm.getI()
@@ -634,13 +671,13 @@ def calcVcMW(sasm, rg, i0, qmax, protein = True, interp = True):
     #The molecular weight is then determined in a power law relationship. Note, the 1000 puts it in kDa
 
     if protein:
-        A = raw_settings.get('MWVcAProtein')
-        B = raw_settings.get('MWVcBProtein')
+        A = a_prot
+        B = b_prot
         #For proteins:
         # mw=qr/0.1231/1000
     else:
-        A = raw_settings.get('MWVcARna')
-        B = raw_settings.get('MWVcBRna')
+        A = a_rna
+        B = b_rna
         #For RNA
         # mw = np.power(qr/0.00934, 0.808)/1000
 
@@ -1060,19 +1097,9 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
         return None
 
 
-def runDatgnom(sasm, path, datname, outname):
+def runDatgnom(rg, atsasDir, path, datname, outname):
     #This runs the ATSAS package DATGNOM program, to automatically find the Dmax and P(r) function
     #of a scattering profile.
-    analysis = sasm.getParameter('analysis')
-    if 'guinier' in analysis:
-        rg = float(analysis['guinier']['Rg'])
-    else:
-        rg = -1
-
-
-    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
-    error_weight = raw_settings.get('errorWeight')
-    atsasDir = raw_settings.get('ATSASDir')
 
     opsys = platform.system()
 
@@ -1087,28 +1114,9 @@ def runDatgnom(sasm, path, datname, outname):
 
         my_env = setATSASEnv(atsasDir)
 
-        version = getATSASVersion()
-
-        if int(version.split('.')[0]) > 2 or (int(version.split('.')[0]) == 2 and int(version.split('.')[1]) >=8):
-            new_datgnom = True
-        else:
-            new_datgnom = False
-
-        if new_datgnom:
-            if rg < 0:
-                autorg_output = autoRg(sasm, error_weight=error_weight)
-                rg = autorg_output[0]
-                if rg < 0:
-                    rg = 20
-
-        if rg <= 0:
-            process=subprocess.Popen('"%s" "%s" -o "%s"' %(datgnomDir, datname, outname),
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell, cwd=path,
-                env=my_env)
-        else:
-            cmd = '"%s" -o "%s" -r %f "%s"' %(datgnomDir, outname, rg, datname)
-            process=subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE, shell=shell, cwd=path, env=my_env)
+        cmd = '"%s" -o "%s" -r %f "%s"' %(datgnomDir, outname, rg, datname)
+        process=subprocess.Popen(cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, shell=shell, cwd=path, env=my_env)
 
         output, error = process.communicate()
 
@@ -1119,31 +1127,6 @@ def runDatgnom(sasm, path, datname, outname):
             error = str(error, encoding='UTF-8')
 
         error = error.strip()
-
-        if error == 'Cannot define Dmax' or error=='Could not find Rg' and not new_datgnom:
-
-            if rg <= 0:
-                rg, rger, i0, i0er, idx_min, idx_max =autoRg(sasm, error_weight=error_weight)
-                if rg>10:
-                    process=subprocess.Popen('"%s" "%s" -o "%s" -r %f' %(datgnomDir, datname, outname, rg),
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell,
-                        cwd=path, env=my_env)
-
-                    output, error = process.communicate()
-            else:
-                process=subprocess.Popen('"%s" "%s" -o "%s"' %(datgnomDir, datname, outname),
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell,
-                    cwd=path, env=my_env)
-
-                output, error = process.communicate()
-
-            if not isinstance(output, str):
-                output = str(output, encoding='UTF-8')
-
-            if not isinstance(error, str):
-                error = str(error, encoding='UTF-8')
-
-            error = error.strip()
 
         if (error == 'Cannot define Dmax' or error=='Could not find Rg'
             or error=='No intensity values (positive) found'
@@ -1251,36 +1234,9 @@ def writeGnomCFG(fname, outname, dmax, args):
     f.close()
 
 
-def runDatmw(sasm, method, raw_settings, path, datname):
-    #This runs the ATSAS package DATGNOM program, to automatically find the Dmax and P(r) function
-    #of a scattering profile.
-
-    rg = -1
-    i0 = -1
-    first = -1
-
-    analysis = sasm.getParameter('analysis')
-    if 'guinier' in analysis:
-        try:
-            rg = float(analysis['guinier']['Rg'])
-        except Exception:
-            pass
-
-        try:
-            i0 = float(analysis['guinier']['I0'])
-        except Exception:
-            pass
-
-        try:
-            #Plus one offset is because datmw has 1 as first point, not 0
-            first = int(analysis['guinier']['nStart']) - sasm.getQrange()[0] + 1
-        except Exception:
-            first = sasm.getQrange()[0]+1
-
-    if i0 == -1 or rg == -1:
-        raise SASExceptions.NoATSASError('Datmw requires rg and i0.')
-
-    atsasDir = raw_settings.get('ATSASDir')
+def runDatmw(rg, i0, first, method, atsasDir, path, datname):
+    #This runs the ATSAS package DATMW program, to automatically find the M.W.
+    #using one of the defined methods.
 
     opsys = platform.system()
 
@@ -1338,31 +1294,9 @@ def runDatmw(sasm, method, raw_settings, path, datname):
     else:
         raise SASExceptions.NoATSASError('Cannot find datmw.')
 
-def runDatclass(sasm, raw_settings, path, datname):
-    #This runs the ATSAS package DATGNOM program, to automatically find the Dmax and P(r) function
-    #of a scattering profile.
-
-    analysis = sasm.getParameter('analysis')
-    if 'guinier' in analysis:
-        try:
-            rg = float(analysis['guinier']['Rg'])
-        except Exception:
-            rg = -1
-    else:
-        rg = -1
-
-    if 'guinier' in analysis:
-        try:
-            i0 = float(analysis['guinier']['I0'])
-        except Exception:
-            i0 = -1
-    else:
-        i0 = -1
-
-    if i0 == -1 or rg == -1:
-        raise SASExceptions.NoATSASError('Datmw requires rg and i0.')
-
-    atsasDir = raw_settings.get('ATSASDir')
+def runDatclass(rg, i0, atsasDir, path, datname):
+    #This runs the ATSAS package DATCLASS program, to find the M.W. using
+    #the shape and size method.
 
     opsys = platform.system()
 
@@ -2036,7 +1970,7 @@ def runDammin(fname, prefix, args, path):
 
 def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
     is_protein, error_weight, vp_density, vp_cutoff, vp_qmax, vc_cutoff,
-    vc_qmax):
+    vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna, vc_b_rna):
 
     #Now calculate the RG, I0, and MW for each SASM
     rg = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
@@ -2065,7 +1999,8 @@ def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
                         current_sasm.getI(), rg[a], i0[a], vc_cutoff, vc_qmax)
 
                     vcmw[a], vcmwer[a], junk1, junk2 = calcVcMW(current_sasm, rg[a],
-                        i0[a], vcqmax, is_protein)
+                        i0[a], vcqmax, vc_a_prot, vc_b_prot, vc_a_rna, vc_b_rna,
+                        is_protein)
 
                     vpqmax = calcVqmax(current_sasm.getQ(),
                         current_sasm.getI(), rg[a], i0[a], vp_cutoff, vp_qmax)
@@ -2106,7 +2041,8 @@ def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
                         current_sasm.getI(), rg[a], i0[a], vc_cutoff, vc_qmax)
 
                     vcmw[index], vcmwer[index], junk1, junk2 = calcVcMW(current_sasm,
-                        rg[index], i0[index], vcqmax, is_protein)
+                        rg[index], i0[index], vcqmax, vc_a_prot, vc_b_prot,
+                        vc_a_rna, vc_b_rna, is_protein)
 
                     vpqmax = calcVqmax(current_sasm.getQ(),
                         current_sasm.getI(), rg[index], i0[index], vp_cutoff, vp_qmax)
@@ -2382,7 +2318,6 @@ def runRotation(D, intensity, err, ranges, force_positive, svd_v, previous_resul
     return converged, conv_data, rotation_data
 
 def runEFA(A, forward=True):
-    wx.GetApp().Yield()
     slist = np.zeros_like(A)
 
     jmax = A.shape[1]

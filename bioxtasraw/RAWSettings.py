@@ -488,7 +488,7 @@ def loadSettings(raw_settings, filename, auto_load = False):
         if key not in loaded_param:
             all_params[key] = default_settings[key]
 
-    postProcess(raw_settings, default_settings, loaded_param)
+    post_msg = postProcess(raw_settings, default_settings, loaded_param)
 
     msg = ''
 
@@ -532,7 +532,7 @@ def loadSettings(raw_settings, filename, auto_load = False):
         if update_settings:
             raw_settings.set('RequiredVersion', default_settings['RequiredVersion'][0])
 
-    return True, msg
+    return True, msg, post_msg
 
 def postProcess(raw_settings, default_settings, loaded_param):
     fixBackwardsCompatibility(raw_settings, loaded_param)
@@ -609,13 +609,19 @@ def postProcess(raw_settings, default_settings, loaded_param):
         text = text + message_dir[item] +'\n'
 
     if len(change_list) > 0:
-        wx.CallAfter(wx.MessageBox, 'The following settings have been disabled because the appropriate directory/file could not be found:\n'+text+'\nIf you are using a config file from a different computer please go into Advanced Options to change the settings, or save you config file to avoid this message next time.', 'Load Settings Warning', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+        msg = ('The following settings have been disabled because the '
+            'appropriate directory/file could not be found:\n'+text+'\nIf you '
+            'are using a config file from a different computer please go into '
+            'Advanced Options to change the settings, or save you config file '
+            'to avoid this message next time.')
+    else:
+        msg = ''
 
     if raw_settings.get('autoFindATSAS'):
         atsas_dir = SASUtils.findATSASDirectory()
         raw_settings.set('ATSASDir', atsas_dir)
 
-    return
+    return msg
 
 def saveSettings(raw_settings, savepath):
     main_frame = wx.FindWindowByName('MainFrame')

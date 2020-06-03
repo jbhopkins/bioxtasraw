@@ -2291,11 +2291,16 @@ class MainFrame(wx.Frame):
 
     def loadRAWSettings(self, file):
         if file:
-            success, msg = RAWSettings.loadSettings(self.raw_settings, file)
+            success, msg, post_msg = RAWSettings.loadSettings(self.raw_settings, file)
 
             if msg != '':
-                wx.CallAfter(wx.MessageBox, msg, 'Warning: incompatible version of RAW',
-                    style = wx.ICON_ERROR | wx.OK)
+                wx.CallAfter(wx.MessageBox, msg,
+                    'Warning: incompatible version of RAW',
+                    style=wx.ICON_ERROR|wx.OK)
+
+            if post_msg != '':
+                wx.CallAfter(wx.MessageBox, post_msg, 'Load Settings Warning',
+                    style=wx.ICON_ERROR|wx.OK|wx.STAY_ON_TOP)
 
             if success:
                 self.raw_settings.set('CurrentCfg', file)
@@ -3800,6 +3805,10 @@ class MainWorkerThread(threading.Thread):
         vp_qmax = self._raw_settings.get('MWVpQmax')
         vc_cutoff = self._raw_settings.get('MWVcCutoff')
         vc_qmax = self._raw_settings.get('MWVcQmax')
+        vc_a_prot = self._raw_settings.get('MWVcAProtein')
+        vc_b_prot = self._raw_settings.get('MWVcBProtein')
+        vc_a_rna = self._raw_settings.get('MWVcARna')
+        vc_b_rna = self._raw_settings.get('MWVcBRna')
 
         threshold = self._raw_settings.get('secCalcThreshold')
         error_weight = self._raw_settings.get('errorWeight')
@@ -4120,12 +4129,14 @@ class MainWorkerThread(threading.Thread):
 
             success, results = SASCalc.run_secm_calcs(bl_sasms,
                 baseline_use_subtracted_sasms, window_size, is_protein, error_weight,
-                vp_density, vp_cutoff, vp_qmax, vc_cutoff, vc_qmax)
+                vp_density, vp_cutoff, vp_qmax, vc_cutoff, vc_qmax, vc_a_prot,
+                vc_b_prot, vc_a_rna, vc_b_rna)
 
         else:
             success, results = SASCalc.run_secm_calcs(subtracted_sasm_list,
                 use_subtracted_sasm, window_size, is_protein, error_weight,
-                vp_density, vp_cutoff, vp_qmax, vc_cutoff, vc_qmax)
+                vp_density, vp_cutoff, vp_qmax, vc_cutoff, vc_qmax, vc_a_prot,
+                vc_b_prot, vc_a_rna, vc_b_rna)
 
         if not success:
             secm.releaseSemaphore()
@@ -5110,7 +5121,7 @@ class MainWorkerThread(threading.Thread):
 
     def _saveIFTM(self, data):
 
-        sasm = data[0]
+        iftm = data[0]
         save_path = data[1]
 
         if self.main_frame.OnlineControl.isRunning() and save_path == self.main_frame.OnlineControl.getTargetDir():
@@ -5122,12 +5133,12 @@ class MainWorkerThread(threading.Thread):
         RAWGlobals.save_in_progress = True
         wx.CallAfter(self.main_frame.setStatus, 'Saving ift item(s)', 0)
 
-        if sasm.getParameter('algorithm') == 'GNOM':
+        if iftm.getParameter('algorithm') == 'GNOM':
             newext = '.out'
         else:
             newext = '.ift'
 
-        filename = sasm.getParameter('filename')
+        filename = iftm.getParameter('filename')
 
         check_filename, ext = os.path.splitext(filename)
 
@@ -5138,7 +5149,7 @@ class MainWorkerThread(threading.Thread):
         filepath = save_path
 
         try:
-            SASFileIO.saveMeasurement(sasm, filepath, self._raw_settings, filetype = newext)
+            SASFileIO.saveMeasurement(iftm, filepath, self._raw_settings, filetype = newext)
         except SASExceptions.HeaderSaveError:
             wx.CallAfter(self._showSaveError, 'header')
         except Exception as e:

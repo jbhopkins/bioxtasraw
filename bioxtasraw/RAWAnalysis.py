@@ -487,35 +487,8 @@ class GuinierPlotPanel(wx.Panel):
     def _estimateError(self, x, y, yerr):
         error_weight = self.raw_settings.get('errorWeight')
 
-        win_size = len(x)
-
-        if win_size < 10:
-            est_rg_err = None
-            est_i0_err = None
-        else:
-            var = win_size//10
-            if var > 12:
-                step = int(np.ceil(var/12.))
-            else:
-                step = 1
-            rg_list = []
-            i0_list = []
-
-            for li in range(0, var+1, step):
-                for ri in range(0,var+1, step):
-                    if ri == 0:
-                        Rg, I0, Rger, I0er, a, b = SASCalc.calcRg(x[li:],
-                            y[li:], yerr[li:], transform=False, error_weight=error_weight)
-                    else:
-                        Rg, I0, Rger, I0er, a, b = SASCalc.calcRg(x[li:-ri],
-                            y[li:-ri], yerr[li:-ri], transform=False, error_weight=error_weight)
-
-                    rg_list.append(Rg)
-                    i0_list.append(I0)
-
-            est_rg_err = np.std(rg_list)
-            est_i0_err = np.std(i0_list)
-
+        est_rg_err, est_i0_err = SASCalc.estimate_guinier_error(x, y, yerr,
+            transform=False, error_weight=error_weight)
 
         return est_rg_err, est_i0_err
 
@@ -946,8 +919,10 @@ class GuinierControlPanel(wx.Panel):
         self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
 
-        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (60, -1), style = wx.TE_PROCESS_ENTER)
-        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (60, -1), style = wx.TE_PROCESS_ENTER)
+        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], '',
+            size = (60, -1), style = wx.TE_PROCESS_ENTER)
+        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], '',
+            size = (60, -1), style = wx.TE_PROCESS_ENTER)
 
         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
         self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
@@ -3100,7 +3075,17 @@ class MolWeightFrame(wx.Frame):
         else:
             i0 = 0
 
-        mw = SASCalc.calcRefMW(i0, conc)
+        try:
+            ref_mw = float(wx.FindWindowById(self.ids['conc']['sup_mw'], self).GetValue())
+            ref_i0 = float(wx.FindWindowById(self.ids['conc']['sup_i0'], self).GetValue())
+            ref_conc = float(wx.FindWindowById(self.ids['conc']['sup_conc'], self).GetValue())
+        except Exception:
+            ref_mw = -1
+
+        if ref_mw != -1:
+            mw = SASCalc.calcRefMW(i0, conc, ref_i0, ref_conc, ref_mw)
+        else:
+            mw = -1
 
         if mw > 0:
             self.mws['conc']['mw'] = str(mw)
@@ -3161,7 +3146,10 @@ class MolWeightFrame(wx.Frame):
 
         if rg > 0 and i0 > 0:
             mw, mw_error, vc, qr = SASCalc.calcVcMW(self.sasm, rg, i0, qmax,
-                is_protein)
+                self.raw_settings.get('MWVcAProtein'),
+                self.raw_settings.get('MWVcBProtein'),
+                self.raw_settings.get('MWVcARna'),
+                self.raw_settings.get('MWVcBRna'), is_protein)
 
             self.mws['vc']['mw'] = str(mw)
             self.mws['vc']['vc'] = str(vc)
@@ -3380,8 +3368,33 @@ class MolWeightFrame(wx.Frame):
         # This calculates the Bayesian estimated MW using datmw from ATSAS
 
         try:
-            res = SASCalc.runDatmw(self.sasm, 'bayes', self.raw_settings, path,
-                datname)
+            rg = -1
+            i0 = -1
+            first = -1
+
+            analysis = self.sasm.getParameter('analysis')
+            if 'guinier' in analysis:
+                try:
+                    rg = float(analysis['guinier']['Rg'])
+                except Exception:
+                    pass
+
+                try:
+                    i0 = float(analysis['guinier']['I0'])
+                except Exception:
+                    pass
+
+                try:
+                    #Plus one offset is because datmw has 1 as first point, not 0
+                    first = int(analysis['guinier']['nStart']) - self.sasm.getQrange()[0] + 1
+                except Exception:
+                    first = self.sasm.getQrange()[0]+1
+
+            if i0 == -1 or rg == -1:
+                raise SASExceptions.NoATSASError('Datmw requires rg and i0.')
+
+            res = SASCalc.runDatmw(rg, i0, first, 'bayes',
+                self.raw_settings.get('ATSASDir'), path, datname)
         except Exception:
             res = ()
 
@@ -3444,8 +3457,28 @@ class MolWeightFrame(wx.Frame):
         # This calculates the Bayesian estimated MW using datmw from ATSAS
 
         try:
-            res = SASCalc.runDatclass(self.sasm, self.raw_settings, path,
-                datname)
+            analysis = self.sasm.getParameter('analysis')
+            if 'guinier' in analysis:
+                try:
+                    rg = float(analysis['guinier']['Rg'])
+                except Exception:
+                    rg = -1
+            else:
+                rg = -1
+
+            if 'guinier' in analysis:
+                try:
+                    i0 = float(analysis['guinier']['I0'])
+                except Exception:
+                    i0 = -1
+            else:
+                i0 = -1
+
+            if i0 == -1 or rg == -1:
+                raise SASExceptions.NoATSASError('Datclass requires rg and i0.')
+
+            res = SASCalc.runDatclass(rg, i0, self.raw_settings.get('ATSASDir'),
+                path, datname)
         except Exception:
             res = ()
 
@@ -3505,13 +3538,6 @@ class MolWeightFrame(wx.Frame):
         self.calcBayesMW(tempdir, datname)
         self.calcDatclassMW(tempdir, datname)
 
-
-        if os.path.isfile(os.path.join(tempdir, datname)):
-            try:
-                os.remove(os.path.join(tempdir, datname))
-            except Exception:
-                pass
-
     def format_float(self, val):
         if val > 1e3 or val < 1e-2:
             ret = '%.2E' %(val)
@@ -3519,7 +3545,6 @@ class MolWeightFrame(wx.Frame):
             ret = '%.1f' %(val)
 
         return ret
-
 
     def OnClose(self):
         self.calc_mw_thread_running.set()
@@ -4737,10 +4762,10 @@ class GNOMControlPanel(wx.Panel):
         start = int(startSpin.GetValue())
         end = int(endSpin.GetValue())
 
+        # Save temporary .dat file
         tempdir = self.gnom_frame.standard_paths.GetTempDir()
 
-        save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q),
-            copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
+        save_sasm = copy.deepcopy(self.sasm)
 
         save_sasm.setQrange((start, end+1))
 
@@ -4765,8 +4790,25 @@ class GNOMControlPanel(wx.Panel):
         except SASExceptions.HeaderSaveError as e:
             self._showSaveError('header')
 
+        # Calculate Rg if not available
+        error_weight = self.raw_settings.get('errorWeight')
+
+        analysis = save_sasm.getParameter('analysis')
+        if 'guinier' in analysis:
+            rg = float(analysis['guinier']['Rg'])
+        else:
+            rg = -1
+
+        if rg < 0:
+            autorg_output = SASCalc.autoRg(save_sasm, error_weight=error_weight)
+            rg = autorg_output[0]
+            if rg < 0:
+                rg = 20
+
+        #Run datgnom
         try:
-            datgnom = SASCalc.runDatgnom(save_sasm, tempdir, savename, outname)
+            datgnom = SASCalc.runDatgnom(rg, self.raw_settings.get('ATSASDir'),
+                tempdir, savename, outname)
         except SASExceptions.NoATSASError as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM',
                 style=wx.ICON_ERROR|wx.OK)
@@ -4789,16 +4831,21 @@ class GNOMControlPanel(wx.Panel):
             try:
                 analysis = save_sasm.getParameter('analysis')
                 rg = float(analysis['guinier']['Rg'])
-            except:
+            except Exception:
                 rg = 10
 
             dmax = rg*3
 
-        if dmax != datgnom.getParameter('dmax') and str(dmax) not in self.out_list:
+        if (datgnom is not None and dmax != datgnom.getParameter('dmax')
+            and str(dmax) not in self.out_list):
             self.calcGNOM(dmax)
 
-        elif dmax == datgnom.getParameter('dmax') and str(dmax) not in self.out_list:
+        elif (datgnom is not None and dmax == datgnom.getParameter('dmax')
+            and str(dmax) not in self.out_list):
             self.out_list[str(dmax)] = datgnom
+
+        elif datgnom is None:
+            self.calcGNOM(dmax)
 
         dmaxWindow.SetValue(dmax)
         self.old_dmax = dmax
@@ -10434,8 +10481,8 @@ class BIFTControlPanel(wx.Panel):
             results_dict['LogAlpha_Err'] = str(self.iftm.getParameter('alpha_er'))
             results_dict['Evidence'] = str(self.iftm.getParameter('evidence'))
             results_dict['Evidence_Err'] = str(self.iftm.getParameter('evidence_er'))
-            results_dict['qStart'] = self.sasm.q[start_idx]
-            results_dict['qEnd'] = self.sasm.q[end_idx]
+            results_dict['qStart'] = str(self.sasm.q[start_idx])
+            results_dict['qEnd'] = str(self.sasm.q[end_idx])
 
             analysis_dict = self.sasm.getParameter('analysis')
             analysis_dict['BIFT'] = results_dict
@@ -13567,6 +13614,7 @@ class EFAControlPanel2(wx.Panel):
     def _runEFA(self, A):
         wx.GetApp().Yield()
         f_slist = SASCalc.runEFA(A)
+        wx.GetApp().Yield()
         b_slist = SASCalc.runEFA(A, False)
 
         wx.CallAfter(self._processEFAResults, f_slist, b_slist)
@@ -14317,8 +14365,8 @@ class EFAControlPanel3(wx.Panel):
                     'in the algorithm. Try adjusting ranges or changing method.')
 
         if self.converged:
-            wx.CallAfter(self.updateResultsPlot)
             self._makeSASMs()
+            wx.CallAfter(self.updateResultsPlot)
 
         else:
             wx.CallAfter(self.clearResultsPlot)
@@ -17583,6 +17631,10 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 vp_qmax = self.raw_settings.get('MWVpQmax')
                 vc_cutoff = self.raw_settings.get('MWVcCutoff')
                 vc_qmax = self.raw_settings.get('MWVcQmax')
+                vc_a_prot = self.raw_settings.get('MWVcAProtein')
+                vc_b_prot = self.raw_settings.get('MWVcBProtein')
+                vc_a_rna = self.raw_settings.get('MWVcARna')
+                vc_b_rna = self.raw_settings.get('MWVcBRna')
 
                 first_update_frame = int(self.original_secm.plot_frame_list[len(self.secm.getAllSASMs())])
                 last_frame = int(self.original_secm.plot_frame_list[-1])
@@ -17601,7 +17653,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
                 success, results = SASCalc.run_secm_calcs(sub_sasms,
                     use_sub_sasms, window_size, is_protein, error_weight,
-                    vp_density, vp_cutoff, vp_qmax, vc_cutoff, vc_qmax)
+                    vp_density, vp_cutoff, vp_qmax, vc_cutoff, vc_qmax,
+                    vc_a_prot, vc_b_prot, vc_a_rna, vc_b_rna)
 
                 if success:
                     new_rg = results['rg']
@@ -19022,6 +19075,10 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         vp_qmax = self.raw_settings.get('MWVpQmax')
         vc_cutoff = self.raw_settings.get('MWVcCutoff')
         vc_qmax = self.raw_settings.get('MWVcQmax')
+        vc_a_prot = self.raw_settings.get('MWVcAProtein')
+        vc_b_prot = self.raw_settings.get('MWVcBProtein')
+        vc_a_rna = self.raw_settings.get('MWVcARna')
+        vc_b_rna = self.raw_settings.get('MWVcBRna')
 
 
         if self.secm.intensity_change:
@@ -19109,7 +19166,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         success, results = SASCalc.run_secm_calcs(sub_sasms, use_sub_sasms,
             window_size, is_protein, error_weight, vp_density, vp_cutoff,
-            vp_qmax, vc_cutoff, vc_qmax)
+            vp_qmax, vc_cutoff, vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna,
+            vc_b_rna)
 
         if success:
             self.results['calc'] = results
@@ -19124,7 +19182,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
             success, results = SASCalc.run_secm_calcs(sub_sasms, use_sub_sasms,
                 window_size, is_protein, error_weight, vp_density, vp_cutoff,
-                vp_qmax, vc_cutoff, vc_qmax)
+                vp_qmax, vc_cutoff, vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna,
+                vc_b_rna)
 
             if success:
                 self.results['buffer']['calc'] = results
