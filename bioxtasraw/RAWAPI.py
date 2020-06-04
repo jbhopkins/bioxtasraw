@@ -1600,9 +1600,9 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
     return mw, shape, dmax
 
 
-def bift(profile, idx_min=0, idx_max=-1, pr_pts=100, alpha_min=150,
+def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
     alpha_max=1e10, alpha_pts=16, dmax_min=10, dmax_max=400, dmax_pts=10,
-    mc_runs=300, settings=None):
+    mc_runs=300, use_guinier_start=True, settings=None):
     """
     Calculates the Bayesian indirect Fourier transform (BIFT) of a scattering
     profile to generate a P(r) function and determine the maximum dimension
@@ -1614,10 +1614,12 @@ def bift(profile, idx_min=0, idx_max=-1, pr_pts=100, alpha_min=150,
         The profile to calculate the BIFT for.
     idx_min: int, optional
         The index of the q vector that corresponds to the minimum q point
-        to be used in the IFT.
+        to be used in the IFT. Default is to use the first point of the q
+        vector, unless use_guinier_start is set.
     idx_max: int, optional
         The index of the q vector that corresponds to the maximum q point
-        to be used in the IFT.
+        to be used in the IFT. Default is to use the last point of the
+        q vector.
     pr_pts: int, optional
         The number of points in the calculated P(r) function. This should
         be less than the number of points in the scattering profile.
@@ -1654,6 +1656,15 @@ def bift(profile, idx_min=0, idx_max=-1, pr_pts=100, alpha_min=150,
     mc_runs: int, optional
         The number of monte carlo runs used to generate the uncertainty
         estimates for the P(r) function.
+    use_guiner_start: bool, optional
+        If set to True, and no idx_min idx_min is provided, if a Guinier fit has
+        been done for the input profile, the start point of the Guinier fit is
+        used as the start point for the IFT.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, the
+        pr_Pts, alpha_min, alpha_max, alpha_pts, , cutoff, and qmax parameters will be overridden with the
+        values in the settings. Can be overridden by the use_previous_settings
+        parameter. Default is None.
 
     Returns
     -------
@@ -1702,7 +1713,18 @@ def bift(profile, idx_min=0, idx_max=-1, pr_pts=100, alpha_min=150,
     err = profile.getErr()
     filename = profile.getParameter('filename')
 
-    if idx_max != -1:
+    if idx_min is None and use_guinier_start:
+        analysis_dict = profile.getParameter('analysis')
+        if 'guinier' in analysis_dict:
+            guinier_dict = analysis_dict['guinier']
+            idx_min = int(guinier_dict['nStart']) - profile.getQrange()[0]
+        else:
+            idx_min = 0
+
+    elif idx_min is None:
+        idx_min = 0
+
+    if idx_max is not None:
         q = q[idx_min:idx_max+1]
         i = i[idx_min:idx_max+1]
         err = err[idx_min:idx_max+1]
@@ -1760,9 +1782,9 @@ def bift(profile, idx_min=0, idx_max=-1, pr_pts=100, alpha_min=150,
     return (ift, dmax, rg, i0, dmax_err, rg_err, i0_err, chi_sq, log_alpha,
         log_alpha_err, evidence, evidence_err)
 
-def datgnom(profile, rg=None, idx_min=0, idx_max=-1, atsas_dir=None,
-    use_rg_from='guinier', write_profile=True, datadir=None, filename=None,
-    save_ift=False, savename=None):
+def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
+    use_rg_from='guinier', use_guinier_start=True, write_profile=True,
+    datadir=None, filename=None, save_ift=False, savename=None):
     """
     Calculates the IFT and resulting P(r) function using datgnom from the
     ATSAS package to automatically find the Dmax value. This requires a
@@ -1793,6 +1815,10 @@ def datgnom(profile, rg=None, idx_min=0, idx_max=-1, atsas_dir=None,
         Determines whether the Rg value used for the IFT calculation
         is from the Guinier fit, or the GNOM or BIFT P(r) function. Ignored if
         the rg parameter is provided.
+    use_guiner_start: bool, optional
+        If set to True, and no idx_min idx_min is provided, if a Guinier fit has
+        been done for the input profile, the start point of the Guinier fit is
+        used as the start point for the IFT.
     write_profile: bool, optional
         If True, the input profile is written to file. If False, then the
         input profile is ignored, and the profile specified by datadir and
@@ -1871,11 +1897,27 @@ def datgnom(profile, rg=None, idx_min=0, idx_max=-1, atsas_dir=None,
                 rg = float(bift_dict['Real_Space_Rg'])
 
         save_profile = copy.deepcopy(profile)
-        if idx_max != -1:
+
+        if idx_min is None and use_guinier_start:
+            analysis_dict = profile.getParameter('analysis')
+            if 'guinier' in analysis_dict:
+                guinier_dict = analysis_dict['guinier']
+                idx_min = int(guinier_dict['nStart']) - profile.getQrange()[0]
+            else:
+                idx_min = 0
+
+        elif idx_min is None:
+            idx_min = 0
+
+        if idx_max is not None:
             save_profile.setQrange((idx_min, idx_max+1))
         else:
             _, idx_max = save_profile.getQrange()
             save_profile.setQrange((idx_min, idx_max))
+            print(idx_min)
+            print(idx_max)
+            print(save_profile.getQrange())
+            print(save_profile.getQ())
 
         SASFileIO.writeRadFile(save_profile, os.path.abspath(os.path.join(datadir, filename)),
             False)
@@ -2120,5 +2162,30 @@ def efa(series, ranges, profile_type='sub', framei=None, framef=None,
             history['EFA'] = history_dict
 
             efa_profiles.append(sasm)
+
+        if isinstance(series, SECM.SECM):
+            analysis_dict = series.getParameter('analysis')
+
+            efa_dict = {}
+
+            if profile_type == 'unsub':
+                profile_data = 'Unsubtracted'
+            elif profile_type == 'sub':
+                profile_data = 'Subtracted'
+            elif profile_type == 'baseline':
+                profile_data = 'Baseline Corrected'
+
+            efa_dict['fstart'] = str(framei)
+            efa_dict['fend'] = str(framef)
+            efa_dict['profile'] = profile_data
+            efa_dict['nsvs'] = str(len(ranges))
+            efa_dict['ranges'] = ranges
+            efa_dict['iter_limit'] = str(niter)
+            efa_dict['tolerance'] = str(tol)
+            efa_dict['method'] = method
+
+            analysis_dict['efa'] = efa_dict
+
+            series.setParameter('analysis', analysis_dict)
 
     return efa_profiles, converged, conv_data, rotation_data

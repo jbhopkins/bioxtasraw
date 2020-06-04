@@ -727,7 +727,7 @@ def setATSASEnv(atsasDir):
 
     return my_env
 
-def runGnom(fname, outname, dmax, args, path, new_gnom = False):
+def runGnom(fname, outname, dmax, args, path, atsasDir, new_gnom = False, ):
     #This function runs GNOM from the atsas package. It can do so without writing a GNOM cfg file.
     #It takes as input the filename to run GNOM on, the output name from the GNOM file, the dmax to evaluate
     #at, and a dictionary of arguments, which can be used to set the optional GNOM arguments.
@@ -793,9 +793,6 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
             use_cmd_line = True
         else:
             use_cmd_line = False
-
-    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
-    atsasDir = raw_settings.get('ATSASDir')
 
     opsys = platform.system()
     if opsys == 'Windows':
@@ -1070,6 +1067,8 @@ def runGnom(fname, outname, dmax, args, path, new_gnom = False):
 
                         previous_line2 = previous_line
                         previous_line = current_line
+
+                gnom_t.join()
         try:
             iftm=SASFileIO.loadOutFile(os.path.join(path, outname))[0]
         except IOError:

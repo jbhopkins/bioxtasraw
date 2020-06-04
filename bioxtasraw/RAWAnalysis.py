@@ -3773,6 +3773,9 @@ class GNOMFrame(wx.Frame):
             del self.bi
             self.bi = None
 
+    def updateGNOMSettings(self):
+        self.controlPanel.updateGNOMSettings()
+
     def OnClose(self):
 
         self.Destroy()
@@ -4892,7 +4895,8 @@ class GNOMControlPanel(wx.Panel):
 
         try:
             iftm = SASCalc.runGnom(savename, outname, dmax, self.gnom_settings,
-                tempdir, new_gnom=self.gnom_frame.new_gnom)
+                tempdir, self.raw_settings.get('ATSASDir'),
+                new_gnom=self.gnom_frame.new_gnom)
         except (SASExceptions.NoATSASError, SASExceptions.GNOMError) as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
             self.cleanupGNOM(tempdir, savename, outname)
