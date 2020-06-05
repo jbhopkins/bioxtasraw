@@ -3832,7 +3832,7 @@ class ATSASDamminAdvanced(scrolled.ScrolledPanel):
                                 ('Constant offset (blank to automatically set):', raw_settings.getId('damminConstant'), 'text')
                                 )
 
-        self.custom_options_short = (("Sphere diamaver [Angstrom]", raw_settings.getId('damminDiameter'), 'float'),
+        self.custom_options_short = (("Sphere diamater [Angstrom]", raw_settings.getId('damminDiameter'), 'float'),
                                 ('Packing radius of dummy atoms:', raw_settings.getId('damminPacking'), 'float'),
                                 ('Radius of 1st coordination sphere:', raw_settings.getId('damminCoordination'), 'float'),
                                 ('Disconnectivity penalty weight:', raw_settings.getId('damminDisconPen'), 'float'),

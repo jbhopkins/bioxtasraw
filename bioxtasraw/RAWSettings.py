@@ -623,10 +623,7 @@ def postProcess(raw_settings, default_settings, loaded_param):
 
     return msg
 
-def saveSettings(raw_settings, savepath):
-    main_frame = wx.FindWindowByName('MainFrame')
-    RAWGlobals.save_in_progress = True
-    wx.CallAfter(main_frame.setStatus, 'Saving settings', 0)
+def saveSettings(raw_settings, savepath, save_backup=True):
 
     param_dict = raw_settings.getAllParams()
 
@@ -653,32 +650,22 @@ def saveSettings(raw_settings, savepath):
 
     success = writeSettings(savepath, save_dict)
 
-    if not success:
-        RAWGlobals.save_in_progress = False
-        wx.CallAfter(main_frame.setStatus, '', 0)
-        return False
+    if success and save_backup:
+        ## Make a backup of the config file in case of crash:
+        backup_file = os.path.join(RAWGlobals.RAWWorkDir, 'backup.cfg')
 
-    ## Make a backup of the config file in case of crash:
-    backup_file = os.path.join(RAWGlobals.RAWWorkDir, 'backup.cfg')
+        success = writeSettings(backup_file, save_dict)
 
-    success = writeSettings(backup_file, save_dict)
+    if success:
+        dummy_settings = RawGuiSettings()
 
-    if not success:
-        RAWGlobals.save_in_progress = False
-        wx.CallAfter(main_frame.setStatus, '', 0)
-        return False
+        test_load = loadSettings(dummy_settings, savepath)
 
-    dummy_settings = RawGuiSettings()
+        if isinstance(test_load, bool) and not test_load:
+            os.remove(savepath)
+            success = False
 
-    test_load = loadSettings(dummy_settings, savepath)
-
-    if not test_load:
-        os.remove(savepath)
-
-    RAWGlobals.save_in_progress = False
-    wx.CallAfter(main_frame.setStatus, '', 0)
-
-    return test_load
+    return success
 
 
 def writeSettings(filename, settings):

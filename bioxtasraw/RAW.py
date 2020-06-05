@@ -2325,7 +2325,14 @@ class MainFrame(wx.Frame):
             if os.path.splitext(file)[1] != '.cfg':
                 file = file + '.cfg'
 
+            main_frame = wx.FindWindowByName('MainFrame')
+            RAWGlobals.save_in_progress = True
+            wx.CallAfter(main_frame.setStatus, 'Saving settings', 0)
+
             success = RAWSettings.saveSettings(self.raw_settings, file)
+
+            RAWGlobals.save_in_progress = False
+            wx.CallAfter(main_frame.setStatus, '', 0)
 
             if success:
                 self.raw_settings.set('CurrentCfg', file)

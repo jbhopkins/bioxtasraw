@@ -1096,7 +1096,7 @@ def runGnom(fname, outname, dmax, args, path, atsasDir, new_gnom = False, ):
         return None
 
 
-def runDatgnom(rg, atsasDir, path, datname, outname):
+def runDatgnom(rg, atsasDir, path, datname, outname, first_pt, last_pt):
     #This runs the ATSAS package DATGNOM program, to automatically find the Dmax and P(r) function
     #of a scattering profile.
 
@@ -1113,7 +1113,16 @@ def runDatgnom(rg, atsasDir, path, datname, outname):
 
         my_env = setATSASEnv(atsasDir)
 
-        cmd = '"%s" -o "%s" -r %f "%s"' %(datgnomDir, outname, rg, datname)
+        cmd = '"{}" -o "{}" -r {} '.format(datgnomDir, outname, rg)
+
+        if first_pt is not None:
+            cmd = cmd + '--first={} '.format(first_pt+1)
+
+        if last_pt is not None:
+            cmd = cmd + ' --last={} '.format(last_pt+1)
+
+        cmd = cmd + '"{}"'.format(datname)
+
         process=subprocess.Popen(cmd, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, shell=shell, cwd=path, env=my_env)
 
@@ -1341,14 +1350,11 @@ def runDatclass(rg, i0, atsasDir, path, datname):
     else:
         raise SASExceptions.NoATSASError('Cannot find datclass.')
 
-def runDammif(fname, prefix, args, path):
+def runDammif(fname, prefix, args, path, atsasDir):
     #Note: This run dammif command must be run with the current working directory as the directory
     #where the file is located. Otherwise, there are issues if the filepath contains a space.
 
     fname = os.path.split(fname)[1]
-
-    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
-    atsasDir = raw_settings.get('ATSASDir')
 
     opsys = platform.system()
 
@@ -1568,10 +1574,7 @@ def runDammif(fname, prefix, args, path):
         return None
 
 
-def runDamaver(flist, path, symmetry='P1'):
-
-    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
-    atsasDir = raw_settings.get('ATSASDir')
+def runDamaver(flist, path, atsasDir, symmetry='P1'):
 
     opsys = platform.system()
 
@@ -1598,12 +1601,9 @@ def runDamaver(flist, path, symmetry='P1'):
 
         return process
 
-def runSupcomb(file1, file2, path, symmetry='P1', mode='slow',
+def runSupcomb(file1, file2, path, atsasDir, symmetry='P1', mode='slow',
     superposition='ALL', enantiomorphs='YES', proximity='NSD',
     fraction=1.0):
-
-    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
-    atsasDir = raw_settings.get('ATSASDir')
 
     opsys = platform.system()
 
@@ -1635,9 +1635,7 @@ def runSupcomb(file1, file2, path, symmetry='P1', mode='slow',
 
     return process
 
-def runAmbimeter(fname, prefix, args, path):
-    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
-    atsasDir = raw_settings.get('ATSASDir')
+def runAmbimeter(fname, prefix, args, path, atsasDir):
 
     opsys = platform.system()
 
@@ -1680,10 +1678,7 @@ def runAmbimeter(fname, prefix, args, path):
         raise SASExceptions.NoATSASError('Cannot find ambimeter.')
         return None
 
-def runDamclust(flist, path, symmetry='P1'):
-
-    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
-    atsasDir = raw_settings.get('ATSASDir')
+def runDamclust(flist, path, atsasDir, symmetry='P1'):
 
     opsys = platform.system()
 
@@ -1711,14 +1706,11 @@ def runDamclust(flist, path, symmetry='P1'):
         return process
 
 
-def runDammin(fname, prefix, args, path):
+def runDammin(fname, prefix, args, path, atsasDir):
     #Note: This run dammin command must be run with the current working directory as the directory
     #where the file is located. Otherwise, there are issues if the filepath contains a space.
 
     fname = os.path.split(fname)[1]
-
-    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
-    atsasDir = raw_settings.get('ATSASDir')
 
     opsys = platform.system()
 

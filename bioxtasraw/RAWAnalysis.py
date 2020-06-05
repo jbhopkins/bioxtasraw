@@ -4811,7 +4811,7 @@ class GNOMControlPanel(wx.Panel):
         #Run datgnom
         try:
             datgnom = SASCalc.runDatgnom(rg, self.raw_settings.get('ATSASDir'),
-                tempdir, savename, outname)
+                tempdir, savename, outname, 0, end)
         except SASExceptions.NoATSASError as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM',
                 style=wx.ICON_ERROR|wx.OK)
@@ -5831,9 +5831,11 @@ class DammifRunPanel(wx.Panel):
                 program = 'DAMMIN'
 
             if program == 'DAMMIF':
-                dammif_proc = SASCalc.runDammif(outname, dam_prefix, dam_args, path)
+                dammif_proc = SASCalc.runDammif(outname, dam_prefix, dam_args,
+                    path, self.raw_settings.get('ATSASDir'))
             else:
-                dammif_proc = SASCalc.runDammin(outname, dam_prefix, dam_args, path)
+                dammif_proc = SASCalc.runDammin(outname, dam_prefix, dam_args,
+                    path, self.raw_settings.get('ATSASDir'))
 
             #Hackey, but necessary to prevent the process output buffer
             # from filling up and stalling the process
@@ -5941,8 +5943,8 @@ class DammifRunPanel(wx.Panel):
 
             symmetry = self.dammif_settings['sym']
 
-            damaver_proc = SASCalc.runDamaver(dam_filelist, path, symmetry)
-
+            damaver_proc = SASCalc.runDamaver(dam_filelist, path,
+                self.raw_settings.get('ATSASDir'), symmetry)
 
             damaver_q = queue.Queue()
             readout_t = threading.Thread(target=self.enqueue_output,
@@ -6068,7 +6070,8 @@ class DammifRunPanel(wx.Panel):
 
             symmetry = self.dammif_settings['sym']
 
-            damclust_proc = SASCalc.runDamclust(dam_filelist, path, symmetry)
+            damclust_proc = SASCalc.runDamclust(dam_filelist, path,
+                self.raw_settings.get('ATSASDir'), symmetry)
 
 
             damclust_q = queue.Queue()
@@ -6200,7 +6203,8 @@ class DammifRunPanel(wx.Panel):
                 wx.CallAfter(sup_window.AppendText, msg)
 
                 sup_proc = SASCalc.runSupcomb(template, target, path,
-                    symmetry=symmetry, mode=mode)
+                    self.raw_settings.get('ATSASDir'), symmetry=symmetry,
+                    mode=mode)
 
                 if sup_proc is None:
                     msg  = ('SUPCOMB failed to start for target file '
@@ -6808,7 +6812,8 @@ class DammifResultsPanel(wx.Panel):
                         }
 
         try:
-            output = SASCalc.runAmbimeter(outname, 'temp', ambi_settings, tempdir)
+            output = SASCalc.runAmbimeter(outname, 'temp', ambi_settings,
+                tempdir, self.raw_settings.get('ATSASDir'))
 
         except SASExceptions.NoATSASError as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running Ambimeter', style = wx.ICON_ERROR | wx.OK)
@@ -9080,7 +9085,8 @@ class DenssResultsPanel(wx.Panel):
                         }
 
         try:
-            output = SASCalc.runAmbimeter(outname, 'temp', ambi_settings, tempdir)
+            output = SASCalc.runAmbimeter(outname, 'temp', ambi_settings,
+                tempdir, self.raw_settings.get('ATSASDir'))
 
         except SASExceptions.NoATSASError as e:
             dialog = wx.MessageDialog(self, str(e), 'Error running Ambimeter',
@@ -10966,8 +10972,8 @@ class AmbimeterFrame(wx.Frame):
 
         try:
             output = SASCalc.runAmbimeter(outname,
-                self.ambi_settings['prefix'].replace(' ','_'), self.ambi_settings,
-                path)
+                self.ambi_settings['prefix'].replace(' ','_'),
+                self.ambi_settings, path, self.raw_settings.get('ATSASDir'))
 
         except SASExceptions.NoATSASError as e:
             dialog = wx.MessageDialog(self, str(e), 'Error running Ambimeter',
@@ -10979,7 +10985,11 @@ class AmbimeterFrame(wx.Frame):
             return
 
 
-        os.remove(os.path.join(path, outname))
+        if os.path.isfile(os.path.join(path, outname)):
+            try:
+                os.remove(os.path.join(path, outname))
+            except Exception:
+                pass
 
         if restart_timer:
             wx.CallAfter(self.main_frame.controlTimer, True)
@@ -11382,7 +11392,8 @@ class SupcombFrame(wx.Frame):
             wx.CallAfter(self.status.AppendText, 'Aborted!\n')
 
         if settings is not None and not self.abort_event.is_set():
-            sup_proc = SASCalc.runSupcomb(template, target, path, **settings)
+            sup_proc = SASCalc.runSupcomb(template, target, path,
+                self.raw_settings.get('ATSASDir'), **settings)
         else:
             sup_proc = None
 

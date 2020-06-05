@@ -33,6 +33,7 @@ from io import open
 import os
 import copy
 import tempfile
+import traceback
 
 import numpy as np
 
@@ -488,9 +489,37 @@ def save_ift(ift, fname=None, datadir='.'):
     SASFileIO.saveMeasurement(ift, savepath, settings, filetype=newext)
 
 
+def save_settings(settings, fname, datadir='.'):
+    """
+    Saves the settings to a file.
+
+    Parameters
+    ----------
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`
+        The settings to be saved.
+    fname: str
+        The save filename (without path). Should be a .cfg file.
+    datadir: str, optional
+        The directory to save the settings. Defaults to the current directory.
+
+    Returns
+    -------
+    success: bool
+        Whether the save was successful.
+    """
+    savepath = os.path.abspath(os.path.expanduser(datadir))
+    savename = os.path.join(savepath, fname)
+
+    success = RAWSettings.saveSettings(settings, savename, False)
+
+    return success
+
+
 def average(profiles, forced=False):
     """
-    Averages the input profiles into a single averaged profile.
+    Averages the input profiles into a single averaged profile. Note that
+    unlike in the RAW GUI there is no automatic testing for similarity in
+    this average function.
 
     Parameters
     ----------
@@ -513,6 +542,57 @@ def average(profiles, forced=False):
     """
 
     avg_profile = SASProc.average(profiles, forced)
+
+    return avg_profile
+
+def weighted_average(profiles, weight_by_error=True, weight_counter='',
+    forced=False, settings=None):
+    """
+    Averages the input profiles into a single averaged profile, using a
+    weighted average. Note that unlike in the RAW GUI there is no automatic
+    testing for similarity in this average function.
+
+    Parameters
+    ----------
+    profiles: list
+        A list of profiles (:class:`bioxtasraw.SASM.SASM`) to average.
+    weight_by_error: bool, optional
+        If true, weight in the average is determined by the profiles'
+        uncertainties. If False, then the weighting is done by a
+        counter value (such as incident intensity) specified by the
+        weight_counter parameter. Defaults to True.
+    weight_counter: str, optional
+        If weight_by_error is False, this is the counter used to do the
+        weighting, for example this might be incident intensity. This
+        counter must be present in the header of all of the profiles
+        (i.e. either in the 'counters' or 'imageHeader' dictionaries
+        of the profiles).
+    forced: bool, optional
+        If True, RAW will attempt to average profiles even if the q vectors
+        do not agree. Defaults to False.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, the
+        weight_by_error and weight_counter parameters will be overridden
+        with the values in the settings. Default is None.
+
+    Returns
+    -------
+    avg_profile: :class:`bioxtasraw.SASM.SASM`
+        The average profile.
+
+    Raises
+    ------
+    SASExceptions.DataNotCompatible
+        If the average list contains data sets with different q vectors and
+        not forced (or if it fails to find a solution even if forced).
+    """
+
+    if settings is not None:
+        weight_by_error = settings.get('weightByError')
+        weight_counter = settings.get('weightCounter')
+
+    avg_profile = SASProc.weightedAverage(profiles, weight_by_error,
+        weight_counter, forced = False)
 
     return avg_profile
 
@@ -559,7 +639,7 @@ def rebin(profiles, npts=100, rebin_factor=1, log_rebin=False):
     Parameters
     ----------
     profiles: list
-        A list of profiles (:class:`bioxtasraw.SASM.SASM`) to be subtracted.
+        A list of profiles (:class:`bioxtasraw.SASM.SASM`) to be rebinned.
     npts: int, optional
         The number of points in each rebinned profile. Only used if rebin_factor
         is left to the default value of 1. Default is 100.
@@ -600,6 +680,92 @@ def rebin(profiles, npts=100, rebin_factor=1, log_rebin=False):
 
     return rebinned_profiles
 
+def interpolate(profiles, ref_profile):
+    """
+    Interpolates the input profiles onto the reference profile's q vector.
+
+    Parameters
+    ----------
+    profiles: list
+        A list of profiles (:class:`bioxtasraw.SASM.SASM`) to be interpolated.
+    ref_profile: :class:`bioxtasraw.SASM.SASM`
+        The reference profile the profiles are interpolated onto.
+
+    Returns
+    -------
+    interpolated_profiles: list
+        A list of interpolated profiles. Each entry in the list corresponds to
+        the same entry in the input profiles list interpolated to the reference
+        profile.
+    """
+
+    interpolated_profiles = [SASProc.interpolateToFit(ref_profile, profile)
+        for profile in profiles]
+
+    return interpolated_profiles
+
+def merge(profiles):
+    """
+    Merges the input profiles onto a single profile. Overlapping regions
+    are averaged. Merging is done by sorting profiles by q range, then merging
+    adjacent profiles. Typically this might be two profiles, for example a
+    SAXS and a WAXS detector, but the function can merge an arbitrary number
+    of profiles. You must input at least two profiles to merge.
+
+    Parameters
+    ----------
+    profiles: list
+        A list of profiles (:class:`bioxtasraw.SASM.SASM`) to be merged.
+
+    Returns
+    -------
+    merged_profile: :class:`bioxtasraw.SASM.SASM`
+        A single merged profile.
+    """
+
+    merged_profile = SASProc.interpolateToFit(profiles[0], profiles[1:])
+
+    return merged_profile
+
+def superimpose(profiles, ref_profile, scale=True, offset=False):
+    """
+    Superimposes the profiles onto the reference profile using either a scale,
+    offset, or both.
+
+    Parameters
+    ----------
+    profiles: list
+        A list of profiles (:class:`bioxtasraw.SASM.SASM`) to be superimposed.
+    ref_profile: :class:`bioxtasraw.SASM.SASM`
+        The reference profile the profiles are superimposed onto.
+    scale: bool, optional
+        Whether a scale is used when superimposing. Default is True.
+    offset: bool, optional
+        Whether an offset is used when superimposing. Default is False.
+
+    Returns
+    -------
+    sup_profiles: list
+        A list of superimposed profiles. Each entry in the list corresponds to
+        the same entry in the input profiles list superimposed on the reference
+        profile.
+    """
+
+    sup_profiles = [copy.deepcopy(profile) for profile in profiles]
+
+    if scale and not offset:
+        choice='Scale'
+    elif offset and not scale:
+        choice='Offset'
+    elif offset and scale:
+        choice = 'Scale and Offset'
+    else:
+        choice = None
+
+    if choice is not None:
+        SASProc.superimpose(ref_profile, sup_profiles, choice)
+
+    return sup_profiles
 
 def auto_guinier(profile, error_weight=True, single_fit=True, settings=None):
     """
@@ -1421,18 +1587,19 @@ def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
         if first is None:
             first = 1
 
-        datadir = tempfile.gettempdir()
-        filename = tempfile.NamedTemporaryFile(dir=os.path.abspath(datadir)).name
+        datadir = os.path.abspath(os.path.expanduser(tempfile.gettempdir()))
+        filename = tempfile.NamedTemporaryFile(dir=datadir).name
 
         filename = os.path.split(filename)[-1] + '.dat'
 
-        SASFileIO.writeRadFile(profile, os.path.abspath(os.path.join(datadir, filename)),
-            False)
+        SASFileIO.writeRadFile(profile, os.path.join(datadir, filename), False)
 
-    try:
-        res = SASCalc.runDatmw(rg, i0, first, 'bayes', atsas_dir, datadir, filename)
-    except Exception:
-        res = ()
+    else:
+        datadir = os.path.abspath(os.path.expanduser(datadir))
+
+
+    res = SASCalc.runDatmw(rg, i0, first, 'bayes', atsas_dir, datadir, filename)
+
 
     if write_file and os.path.isfile(os.path.join(datadir, filename)):
             try:
@@ -1562,18 +1729,19 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
         if first is None:
             first = 1
 
-        datadir = tempfile.gettempdir()
-        filename = tempfile.NamedTemporaryFile(dir=os.path.abspath(datadir)).name
+        datadir = os.path.abspath(os.path.expanduser(tempfile.gettempdir()))
+        filename = tempfile.NamedTemporaryFile(dir=datadir).name
 
         filename = os.path.split(filename)[-1] + '.dat'
 
-        SASFileIO.writeRadFile(profile, os.path.abspath(os.path.join(datadir, filename)),
-            False)
+        SASFileIO.writeRadFile(profile, os.path.join(datadir, filename), False)
 
-    try:
-        res = SASCalc.runDatclass(rg, i0, atsas_dir, datadir, filename)
-    except Exception:
-        res = ()
+    else:
+        datadir = os.path.abspath(os.path.expanduser(datadir))
+
+
+    res = SASCalc.runDatclass(rg, i0, atsas_dir, datadir, filename)
+
 
     if write_file and os.path.isfile(os.path.join(datadir, filename)):
             try:
@@ -1662,9 +1830,9 @@ def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
         used as the start point for the IFT.
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
         RAW settings containing relevant parameters. If provided, the
-        pr_Pts, alpha_min, alpha_max, alpha_pts, , cutoff, and qmax parameters will be overridden with the
-        values in the settings. Can be overridden by the use_previous_settings
-        parameter. Default is None.
+        pr_Pts, alpha_min, alpha_max, alpha_pts, dmax_min, dmax_max, dmax_pts,
+        and mc_runs parameters will be overridden with the values in the
+        settings. Default is None.
 
     Returns
     -------
@@ -1783,8 +1951,9 @@ def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
         log_alpha_err, evidence, evidence_err)
 
 def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
-    use_rg_from='guinier', use_guinier_start=True, write_profile=True,
-    datadir=None, filename=None, save_ift=False, savename=None):
+    use_rg_from='guinier', use_guinier_start=True, cut_8rg=False,
+    write_profile=True, datadir=None, filename=None, save_ift=False,
+    savename=None):
     """
     Calculates the IFT and resulting P(r) function using datgnom from the
     ATSAS package to automatically find the Dmax value. This requires a
@@ -1804,10 +1973,14 @@ def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
         with the use_rg_from setting.
     idx_min: int, optional
         The index of the q vector that corresponds to the minimum q point
-        to be used in the IFT. Ignored if write_file is False.
+        to be used in the IFT. Defaults to the first point in the q vector.
+        Overrides use_guinier_start.
     idx_max: int, optional
         The index of the q vector that corresponds to the maximum q point
-        to be used in the IFT. Ignored if write_file is False.
+        to be used in the IFT. Defaults to the last point in the q vector.
+        If write_profile is false and no profile is provided then this cannot
+        be set, and datgnom will truncate to 8/Rg automatically. Overrides
+        cut_8rg.
     atsas_dir: str, optional
         The directory of the atsas programs (the bin directory). If not provided,
         the API uses the auto-detected directory.
@@ -1816,9 +1989,12 @@ def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
         is from the Guinier fit, or the GNOM or BIFT P(r) function. Ignored if
         the rg parameter is provided.
     use_guiner_start: bool, optional
-        If set to True, and no idx_min idx_min is provided, if a Guinier fit has
+        If set to True, and no idx_min is provided, if a Guinier fit has
         been done for the input profile, the start point of the Guinier fit is
-        used as the start point for the IFT.
+        used as the start point for the IFT. Ignored if there is no input profile.
+    cut_8rg: bool, optional
+        If set to True and no idx_max is provided, then the profile is
+        automatically truncated at q=8/Rg.
     write_profile: bool, optional
         If True, the input profile is written to file. If False, then the
         input profile is ignored, and the profile specified by datadir and
@@ -1872,13 +2048,15 @@ def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
         atsas_dir = settings.get('ATSASDir')
 
     if not save_ift and write_profile:
-        datadir = tempfile.gettempdir()
+        datadir = os.path.abspath(os.path.expanduser(tempfile.gettempdir()))
 
-        filename = tempfile.NamedTemporaryFile(dir=os.path.abspath(datadir)).name
+        filename = tempfile.NamedTemporaryFile(dir=datadir).name
         filename = os.path.split(filename)[-1] + '.dat'
 
     elif save_ift and write_profile:
         filename = profile.getParameter('filename')
+
+    datadir = os.path.abspath(os.path.expanduser(datadir))
 
     if write_profile:
         analysis_dict = profile.getParameter('analysis')
@@ -1912,40 +2090,65 @@ def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
         if idx_max is not None:
             save_profile.setQrange((idx_min, idx_max+1))
         else:
-            _, idx_max = save_profile.getQrange()
-            save_profile.setQrange((idx_min, idx_max))
-            print(idx_min)
-            print(idx_max)
-            print(save_profile.getQrange())
-            print(save_profile.getQ())
+            if cut_8rg:
+                q = save_profile.getQ()
+                idx_max = np.argmin(np.abs(q-(8/rg)))
+            else:
+                _, idx_max = save_profile.getQrange()
 
-        SASFileIO.writeRadFile(save_profile, os.path.abspath(os.path.join(datadir, filename)),
+            save_profile.setQrange((idx_min, idx_max))
+
+        SASFileIO.writeRadFile(save_profile, os.path.join(datadir, filename),
             False)
 
+    else:
+        if idx_min is None and use_guinier_start and profile is not None:
+            analysis_dict = profile.getParameter('analysis')
+            if 'guinier' in analysis_dict:
+                guinier_dict = analysis_dict['guinier']
+                idx_min = int(guinier_dict['nStart']) - profile.getQrange()[0]
+            else:
+                idx_min = 0
+
+        elif idx_min is None:
+            idx_min=0
+
+        if idx_max is None and profile is not None:
+            _, idx_max = save_profile.getQrange()
+
+
     if not save_ift:
-        savename = tempfile.NamedTemporaryFile(dir=os.path.abspath(datadir)).name
+        savename = tempfile.NamedTemporaryFile(dir=datadir).name
         while os.path.isfile(savename):
-            savename = tempfile.NamedTemporaryFile(dir=os.path.abspath(datadir)).name
+            savename = tempfile.NamedTemporaryFile(dir=datadir).name
 
         savename = os.path.split(savename)[1]
         savename = savename+'.out'
 
-    try:
-        ift = SASCalc.runDatgnom(rg, atsas_dir, datadir, filename, savename)
-    except Exception:
-        ift = None
+
+    ift = SASCalc.runDatgnom(rg, atsas_dir, datadir, filename, savename,
+        idx_min, idx_max)
+
 
     if write_profile and os.path.isfile(os.path.join(datadir, filename)):
-            try:
-                os.remove(os.path.join(datadir, filename))
-            except Exception:
-                pass
+        try:
+            os.remove(os.path.join(datadir, filename))
+        except Exception:
+            pass
 
     if not save_ift and os.path.isfile(os.path.join(datadir, savename)):
-            try:
-                os.remove(os.path.join(datadir, savename))
-            except Exception:
-                pass
+        try:
+            os.remove(os.path.join(datadir, savename))
+        except Exception:
+            pass
+
+        if write_profile:
+            ift_name = profile.getParameter('filename')
+        else:
+            ift_name = filename
+
+        ift_name = os.path.splitext(ift_name)[0] + '.out'
+        ift.setParameter('filename', ift_name)
 
     if ift is not None:
         dmax = float(ift.getParameter('dmax'))
@@ -1987,6 +2190,1109 @@ def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
 
     return ift, dmax, rg, i0, rg_err, i0_err, total_est, chi_sq, alpha, quality
 
+def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alpha=0,
+    atsas_dir=None, use_rg_from='guinier', use_guinier_start=True,
+    cut_8rg=False, write_profile=True, datadir=None, filename=None,
+    save_ift=False, savename=None, settings=None, dmin_zero=True, npts=0,
+    angular_scale=1, system=0, form_factor='', radius56=-1, rmin=-1, fwhm=-1,
+    ah=-1, lh=-1, aw=-1, lw=-1, spot=''):
+    """
+    Calculates the IFT and resulting P(r) function using gnom from the
+    ATSAS package. This requires a separate installation of the ATSAS package
+    to use. If gnom fails, values of ``None``, -1, or ``''`` are returned.
+
+    Parameters
+    ----------
+    profile: :class:`bioxtasraw.SASM.SASM`
+        The profile to calculate the IFT for. If using write_file false, you
+        can pass None here.
+    dmax: float
+        The Dmax to be used in calculating the IFT.
+    rg: float, optional
+        The Rg to be used in calculating the 8/rg cutoff, if cut_8/rg is
+        True. If not provided, then the Rg is taken from the analysis
+        dictionary of the profile, in conjunction with the use_rg_from setting.
+    idx_min: int, optional
+        The index of the q vector that corresponds to the minimum q point
+        to be used in the IFT. Defaults to the first point in the q vector.
+        Overrides use_guinier_start.
+    idx_max: int, optional
+        The index of the q vector that corresponds to the maximum q point
+        to be used in the IFT. Defaults to the last point in the q vector.
+        If write_profile is false and no profile is provided then this cannot
+        be set, and datgnom will truncate to 8/Rg automatically. Overrides
+        cut_8rg.
+    dmax_zero: bool, optional
+        If True, force P(r) function to zero at Dmax.
+    alpha: bool, optional
+        If not zero, force alpha value to the input value. If zero (default),
+        then alpha is automatically determined by GNOM.
+    atsas_dir: str, optional
+        The directory of the atsas programs (the bin directory). If not provided,
+        the API uses the auto-detected directory.
+    use_rg_from: {'guinier', 'gnom', 'bift'} str, optional
+        Determines whether the Rg value used for the 8/rg cutoff calculation
+        is from the Guinier fit, or the GNOM or BIFT P(r) function. Ignored if
+        the rg parameter is provided. Only used if cut_8/rg is True.
+    use_guiner_start: bool, optional
+        If set to True, and no idx_min is provided, if a Guinier fit has
+        been done for the input profile, the start point of the Guinier fit is
+        used as the start point for the IFT. Ignored if there is no input profile.
+    cut_8rg: bool, optional
+        If set to True and no idx_max is provided, then the profile is
+        automatically truncated at q=8/Rg.
+    write_profile: bool, optional
+        If True, the input profile is written to file. If False, then the
+        input profile is ignored, and the profile specified by datadir and
+        filename is used. This is convenient if you are trying to process
+        a lot of files that are already on disk, as it saves having to read
+        in each file and then save them again. Defaults to True. If False,
+        you must provide a value for the rg parameter.
+    datadir: str, optional
+        If write_file is False, this is used as the path to the scattering
+        profile on disk.
+    filename: str, optional.
+        If write_file is False, this is used as the filename of the scattering
+        profile on disk.
+    save_ift: bool, optional
+        If True, the IFT from datgnom (.out file) is saved on disk. Requires
+        specification of datadir and savename parameters.
+    savename: str, optional
+        If save_ift is True, this is used as the filename of the .out file on
+        disk. This should just be the filename, no path. The datadir parameter
+        is used as the parth.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, the
+        dmin_zero, npts, angular_scale, system, form_factor, radius56, rmin,
+        fwhm, ah, lh, aw, lw, and spot parameters will be overridden with the
+        values in the settings. Default is None.
+    dmin_zero: bool, optional
+        If True, force P(r) function to zero at Dmin.
+    npts: int, optional
+        If provided, fixes the number of points in the P(r) function. If 0
+        (default), number of points in th P(r) function is automatically
+        determined.
+    angular_scale: int, optional
+        Defines the angular scale of the data as given in the GNOM manual.
+        Default is 1/Angstrom.
+    system: int, optional
+        Defines the job type as in the GNOM manual. Default is 0, a
+        monodisperse system.
+    form_factor: str, optional
+        Path to the form factor file for system type 2. Default is not used.
+    radius56: float, optional
+        The radius/thickness for system type 5/6. Default is not used.
+    rmin: float, optional
+        Minimum size for system types 1-6. Default is not used.
+    fwhm: float, optional
+        Beam FWHM. Default is not used.
+    ah: float, optional
+        Slit height parameter A as defined in the GNOM manual. Default is not
+        used.
+    lh: float, optional
+        Slit height parameter L as defined in the GNOM manual. Default is not
+        used.
+    aw: float, optional
+        Slit width parameter A as defined in the GNOM manual. Default is not
+        used.
+    lw: float, optional
+        Slit width parameter L as defined in the GNOM manual. Default is not
+        used.
+    spot: str, optional
+        Beam profile file. Default is not used.
+
+
+    Returns
+    -------
+    ift: :class:`bioxtasraw.SASM.IFTM`
+        The IFT calculated by GNOM from the input profile.
+    dmax: float
+        The maximum dimension of the P(r) function.
+    rg: float
+        The real space radius of gyration (Rg) from the P(r) function.
+    i0: float
+        The real space scattering at zero angle (I(0)) from the P(r) function.
+    rg_err: float
+        The uncertainty in the real space radius of gyration (Rg) from the P(r)
+        function.
+    i0_err: float
+        The uncertainty in the real space scattering at zero angle (I(0)) from
+        the P(r) function.
+    total_est: float
+        The GNOM total estimate.
+    chi_sq: float
+        The chi squared value of the fit of the scattering profile calculated
+        from the P(r) function to the input scattering profile.
+    alpha: float
+        The alpha value determined by datgnom.
+    quality: str
+        The GNOM qualitative interpretation of the total estimate.
+    """
+
+    if atsas_dir is None:
+        atsas_dir = __default_settings.get('ATSASDir')
+
+    # Set input and output filenames and directory
+    if not save_ift and write_profile:
+        datadir = os.path.abspath(os.path.expanduser(tempfile.gettempdir()))
+
+        filename = tempfile.NamedTemporaryFile(dir=datadir).name
+        filename = os.path.split(filename)[-1] + '.dat'
+
+    elif save_ift and write_profile:
+        filename = profile.getParameter('filename')
+
+    datadir = os.path.abspath(os.path.expanduser(datadir))
+
+    if not save_ift:
+        savename = tempfile.NamedTemporaryFile(dir=datadir).name
+        while os.path.isfile(savename):
+            savename = tempfile.NamedTemporaryFile(dir=datadir).name
+
+        savename = os.path.split(savename)[1]
+        savename = savename+'.out'
+
+
+
+    # Save profile if necessary, truncating q range as appropriate
+    if write_profile:
+        analysis_dict = profile.getParameter('analysis')
+
+        if rg is None:
+            if use_rg_from == 'guinier':
+                guinier_dict = analysis_dict['guinier']
+                rg = float(guinier_dict['Rg'])
+
+            elif use_rg_from == 'gnom':
+                gnom_dict = analysis_dict['GNOM']
+                rg = float(gnom_dict['Real_Space_Rg'])
+
+            elif use_rg_from == 'bift':
+                bift_dict = analysis_dict['BIFT']
+                rg = float(bift_dict['Real_Space_Rg'])
+
+        save_profile = copy.deepcopy(profile)
+
+        if idx_min is None and use_guinier_start:
+            analysis_dict = profile.getParameter('analysis')
+            if 'guinier' in analysis_dict:
+                guinier_dict = analysis_dict['guinier']
+                idx_min = int(guinier_dict['nStart']) - profile.getQrange()[0]
+            else:
+                idx_min = 0
+
+        elif idx_min is None:
+            idx_min = 0
+
+        if idx_max is not None:
+            save_profile.setQrange((idx_min, idx_max+1))
+        else:
+            if cut_8rg:
+                q = save_profile.getQ()
+                idx_max = np.argmin(np.abs(q-(8/rg)))
+            else:
+                _, idx_max = save_profile.getQrange()
+
+            save_profile.setQrange((idx_min, idx_max))
+
+        SASFileIO.writeRadFile(save_profile, os.path.join(datadir, filename),
+            False)
+
+    else:
+        if idx_min is None and use_guinier_start and profile is not None:
+            analysis_dict = profile.getParameter('analysis')
+            if 'guinier' in analysis_dict:
+                guinier_dict = analysis_dict['guinier']
+                idx_min = int(guinier_dict['nStart']) - profile.getQrange()[0]
+            else:
+                idx_min = 0
+
+        elif idx_min is None:
+            idx_min=0
+
+        if idx_max is None and profile is not None:
+            _, idx_max = save_profile.getQrange()
+
+
+    #Initialize settings
+    if settings is not None:
+        gnom_settings = {
+            'expert'        : settings.get('gnomExpertFile'),
+            'rmin_zero'     : settings.get('gnomForceRminZero'),
+            'rmax_zero'     : dmax_zero,
+            'npts'          : settings.get('gnomNPoints'),
+            'alpha'         : alpha,
+            'angular'       : settings.get('gnomAngularScale'),
+            'system'        : settings.get('gnomSystem'),
+            'form'          : settings.get('gnomFormFactor'),
+            'radius56'      : settings.get('gnomRadius56'),
+            'rmin'          : settings.get('gnomRmin'),
+            'fwhm'          : settings.get('gnomFWHM'),
+            'ah'            : settings.get('gnomAH'),
+            'lh'            : settings.get('gnomLH'),
+            'aw'            : settings.get('gnomAW'),
+            'lw'            : settings.get('gnomLW'),
+            'spot'          : settings.get('gnomSpot'),
+            'expt'          : settings.get('gnomExpt')
+            }
+
+    else:
+        settings = __default_settings
+
+        gnom_settings = {
+            'expert'        : settings.get('gnomExpertFile'),
+            'rmin_zero'     : dmin_zero,
+            'rmax_zero'     : dmax_zero,
+            'npts'          : npts,
+            'alpha'         : alpha,
+            'angular'       : angular_scale,
+            'system'        : system,
+            'form'          : form_factor,
+            'radius56'      : radius56,
+            'rmin'          : rmin,
+            'fwhm'          : fwhm,
+            'ah'            : ah,
+            'lh'            : lh,
+            'aw'            : aw,
+            'lw'            : lw,
+            'spot'          : spot,
+            'expt'          : settings.get('gnomExpt')
+            }
+
+
+    # Run the IFT
+    ift = SASCalc.runGnom(filename, savename, dmax, gnom_settings, datadir,
+        atsas_dir, True)
+
+    # Clean up
+    if write_profile and os.path.isfile(os.path.join(datadir, filename)):
+        try:
+            os.remove(os.path.join(datadir, filename))
+        except Exception:
+            pass
+
+    if not save_ift and os.path.isfile(os.path.join(datadir, savename)):
+        try:
+            os.remove(os.path.join(datadir, savename))
+        except Exception:
+            pass
+
+        if write_profile:
+            ift_name = profile.getParameter('filename')
+        else:
+            ift_name = filename
+
+        ift_name = os.path.splitext(ift_name)[0] + '.out'
+        ift.setParameter('filename', ift_name)
+
+    # Save results
+    if ift is not None:
+        dmax = float(ift.getParameter('dmax'))
+        rg = float(ift.getParameter('rg'))
+        rg_err = float(ift.getParameter('rger'))
+        i0 = float(ift.getParameter('i0'))
+        i0_err = float(ift.getParameter('i0er'))
+        chi_sq = float(ift.getParameter('chisq'))
+        alpha = float(ift.getParameter('alpha'))
+        total_est = float(ift.getParameter('TE'))
+        quality = ift.getParameter('quality')
+
+        if profile is not None:
+            results_dict = {}
+            results_dict['Dmax'] = str(dmax)
+            results_dict['Total_Estimate'] = str(total_est)
+            results_dict['Real_Space_Rg'] = str(rg)
+            results_dict['Real_Space_Rg_Err'] = str(rg_err)
+            results_dict['Real_Space_I0'] = str(i0)
+            results_dict['Real_Space_I0_Err'] = str(i0_err)
+            results_dict['GNOM_ChiSquared'] = str(chi_sq)
+            results_dict['Alpha'] = str(alpha)
+            results_dict['qStart'] = save_profile.getQ()[0]
+            results_dict['qEnd'] = save_profile.getQ()[0]
+            results_dict['GNOM_Quality_Assessment'] = quality
+            analysis_dict['GNOM'] = results_dict
+            profile.setParameter('analysis', analysis_dict)
+
+    else:
+        dmax = -1
+        rg = -1
+        rg_err = -1
+        i0 = -1
+        i0_err = -1
+        chi_sq = -1
+        alpha = -1
+        total_est = -1
+        quality = ''
+
+    return ift, dmax, rg, i0, rg_err, i0_err, total_est, chi_sq, alpha, quality
+
+def cormap(profiles, ref_profile=None, correction='Bonferroni', settings=None):
+    """
+    Runs the cormap comparison test between the input profiles. If a reference
+    profile is provided, then all of the profiles are compared to the reference
+    profile. If not reference profile is provided, then all possible pairwise
+    comparisons are run between the input profiles.
+
+    Parameters
+    ----------
+    profiles: list
+        The input profiles (:class:`bioxtasraw.SASM.SASM` to be compared.
+    ref_profile: :class:`bioxtasraw.SASM.SASM`, optional
+        The reference profile to be used. If provided, all profiles are compared
+        to this profile. If not provided (default) then all profiles are compared
+        pairwise to each other.
+    correction: {'None', 'Bonferroni'} str, optional
+        What multiple testing correction to apply to the calculated pvalues.
+        A value of 'None' applies no correction.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, the
+        correction parameter will be overridden with the value in the settings.
+        Default is None.
+
+    Returns
+    -------
+    pvals: np.array
+        The p values from the comparison. If no reference is provided this is
+        an NxN array, where N is the number of input profiles, and each index
+        corresponds to the profile in profiles. So for example, pvals[0, 5]
+        would correspond to a comparison between profiles[0] and profiles[5].
+
+        If a reference is provided, pvals is a 1D array with the same size
+        as profiles. There is a direct correspondence between the index
+        of pvals and profiles. E.g. pvals[2] would correspond to the comparison
+        of profiles[2] and the ref_profile.
+    corrected_pvals: np.array
+        As pvals, but with the corrected p values based on the input correction.
+    failed_comparisons: list
+        If any comparisons fail, the list contains the names of the two profiles
+        (as determined by profile.getParameter('filename')) for which the
+        comparison failed.
+    """
+
+    if settings is not None:
+        correction = settings.get('similarityCorrection')
+
+    if ref_profile is None:
+        (item_data, pvals, corrected_pvals,
+            failed_comparisons) = SASProc.run_cormap_all(profiles, correction)
+
+    else:
+        pvals, corrected_pvals, failed_comparisons = SASProc.run_cormap_ref(profiles,
+            ref_profile, correction)
+
+    if correction == 'None':
+        corrected_pvals = pvals
+
+    return pvals, corrected_pvals, failed_comparisons
+
+
+# Operations on IFTs
+
+def ambimeter(ift, qRg_max=4, save_models='none', save_prefix=None,
+    datadir=None, write_ift=True, filename=None, atsas_dir=None):
+    """
+    Evaluates ambiguity of a potential 3D reconstruction from a GNOM IFT (.out
+    file) by running Ambimeter from the ATSAS package. Requires separate
+    installation of the ATSAS package. Doesn't work on BIFT IFTs. Returns
+    -1 and '' if it fails to run.
+
+    Parameters
+    ----------
+    ift: :class:`bioxtasraw.SASM.IFTM`
+        The GNOM IFT to be evaluated. If write_ift is False, an IFT already
+        on disk is used and this parameter can be ``None``.
+    qRg_max: float, optional
+        The maximum qRg to be used when evaluating the ambiguity. Allowed
+        range is 3-7, default is 4.
+    save_models: {'all', 'best', 'none'} str, optional
+        Whether to save all, the single best, or none of the models that
+        ambimeter finds to be similar to the input ift. Default is 'none'.
+        If set to 'all' or 'best', save_prefix and datadir parameters must
+        be provided.
+    datadir: str, optional
+        The datadir to use for reading a IFT already on disk and saving
+        models from ambimeter.
+    write_profile: bool, optional
+        If True, the input ift is written to file. If False, then the
+        input ift is ignored, and the ift specified by datadir and
+        filename is used. This is convenient if you are trying to process
+        a lot of files that are already on disk, as it saves having to read
+        in each file and then save them again. Defaults to True. If False,
+        you must provide a value for the datadir and filename parameters.
+    filename: str, optional
+        The filename of an ift on disk. Used if write_profile is False.
+    atsas_dir: str, optional
+        The directory of the atsas programs (the bin directory). If not provided,
+        the API uses the auto-detected directory.
+
+    Returns
+    -------
+    score: float
+        The ambiguity score (A score), which is log base 10 of the number of
+        compatible shape categories.
+    categories: int
+        The number of compatible shape categories.
+    evaluation: str
+        The Ambimeter evaluation of ift based on the ambiguity score.
+
+    Raises
+    ------
+    SASEXceptions.NoATSASError
+        If the Ambimeter program cannot be found in the ATSAS directory or
+        running Ambimeter times out (>120 s).
+    """
+
+    if atsas_dir is None:
+        atsas_dir = __default_settings.get('ATSASDir')
+
+    # Set input and output filenames and directory
+    if write_ift and save_models=='none':
+        datadir = os.path.abspath(os.path.expanduser(tempfile.gettempdir()))
+
+        filename = tempfile.NamedTemporaryFile(dir=datadir).name
+        filename = os.path.split(filename)[-1] + '.out'
+
+    elif write_ift:
+        datadir = os.path.abspath(os.path.expanduser(datadir))
+        filename = tempfile.NamedTemporaryFile(dir=datadir).name
+        filename = os.path.split(filename)[-1] + '.out'
+
+    else:
+        datadir = os.path.abspath(os.path.expanduser(datadir))
+
+    # Save profile if necessary, truncating q range as appropriate
+    if write_ift:
+        SASFileIO.writeOutFile(ift, os.path.join(datadir, filename))
+
+    # Run ambimeter
+    ambimeter_settings = {
+        'sRg'   : qRg_max,
+        'files' : save_models,
+        }
+
+    ret = SASCalc.runAmbimeter(filename, save_prefix, ambimeter_settings, datadir,
+        atsas_dir)
+
+    # Clean up
+    if write_ift and os.path.isfile(os.path.join(datadir, filename)):
+        try:
+            os.remove(os.path.join(datadir, filename))
+        except Exception:
+            pass
+
+    if ret is not None:
+        categories = ret[0]
+        score = ret[1]
+        evaluation = ret[2]
+
+    else:
+        categories = -1
+        score = -1
+        evaluation = ''
+
+    return score, categories, evaluation
+
+def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown',
+    write_ift=True, ift_name=None, atsas_dir=None, settings=None, unit='Unknown',
+    omit_solvent=True, chained=False, expected_shape='u', random_seed='',
+    constant='', max_bead_count=-1, dam_radius=-1, harmonics=-1, prop_to_fit=-1,
+    curve_weight='e', max_steps=-1, max_iters=-1, max_success=-1,
+    min_success=-1, T_factor=-1, rg_penalty=-1, center_penalty=-1,
+    loose_penalty=-1):
+    """
+    Creates a bead model (dummy atom) reconstruction using DAMMIF from the ATSAS
+    package. Requires a separate installation of the ATSAS package. Function
+    blocks until DAMMIF finishes.
+
+    Parameters
+    ----------
+    ift: :class:`bioxtasraw.SASM.IFTM`
+        The GNOM IFT to be used as DAMMIF input. If write_ift is False, an IFT already
+        on disk is used and this parameter can be ``None``.
+    prefix: str
+        The output prefix for the DAMMIF model.
+    datadir: str
+        The output directory for the DAMMIF model. If using an IFT on disk, then
+        the IFT must be in this directory.
+    mode: {'Fast', 'Slow' 'Custom'} str, optional
+        The DAMMIF mode. Note that most of the advanced settings require that
+        DAMMIF be in 'Custom' mode to use. Defaults to slow.
+    symmetry: str, optional
+        The symmetry applied to the reconstruction. Accepts any symmetry
+        known to DAMMIF. Defaults to P1.
+    anisometry: {'Unknown', 'Prolate', 'Oblate'} str, optional
+        The anisometry applied to the reconstruction. Defaults to Unknown.
+    write_ift: bool, optional
+        If True, the input IFT is written to disk. If False, an IFT already
+        on disk used, as defined by ift_name (directory must be datadir).
+    ift_name: str, optional
+        The IFT name on disk. Used if write_ift is False.
+    atsas_dir: str, optional
+        The directory of the atsas programs (the bin directory). If not provided,
+        the API uses the auto-detected directory.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, every model
+        parameter except mode, symmetry, and anisometry is overridden with
+        the value in the settings file. Default is None.
+    unit: {'Unknown', 'Angstrom', 'Nanometer'} str, optional
+        The unit of the P(r) function. Defaults to 'Unknown'.
+    omit_solvent: bool, optional
+        Whether the solvent file (-0.pdb) should be omitted. Defaults to True.
+    chained: bool, optional
+        Whether the beads should be connected in pseudo-chains. Defaults to
+        False.
+    expected_shape: {'u', 'c', 'e', 'f', 'r', 'h', 'hs', 'rc'} str, optional
+        Expected shape of the reconstruction: (u)nknown, (c)ompact, (e)xtended,
+        (f)lat, (r)ing, (h) compact-hollow, (hs) hollow-sphere, (rc)
+        random-chain. Default is unknown.
+    random_seed: str, optional
+        Random seed for the reconstruction. Default is to let DAMMIF generate
+        the seed.
+    constant: str, optional
+        Constant offset for reconstruction. Default is to let DAMMIF determine
+        the offset.
+    max_bead_count: int, optional
+        Maximum bead count for the model. Default is to let DAMMIF determine
+        the parameter value.
+    dam_radius: float, optional
+        Dummy atom radius of the reconstruction, in Angstrom (>=1.0). Default
+        is to let DAMMIF determine the parameter value.
+    harmonics: int, optional
+        Number of spherical harmonics to use in the reconstruction. Default is
+        the DAMMIF default.
+    prop_to_fit: float, optional
+        Proportion of the curve to fit for the reconstruction. Default is
+        the DAMMIF default.
+    curve_weight: {'l', 'p', 'e', 'n'} str, optional
+        Curve weighting function, [l]log, [p]orod, [e]mphasized porod, or
+        [n]one. Default is 'e'.
+    max_steps: int, optional
+        Maximum number of steps in the annealing procedure. Default is the
+        DAMMIF default.
+    max_iters: int, optional
+        Maximum number of iterations within a single temperature step. Default
+        is the DAMMIF default.
+    max_success: int, optional
+        Maximum number of successes in a temperature step. Default is the DAMMIF
+        default.
+    min_success: int, optional
+        Minimum number of successes in a temperature step. Default is the DAMMIF
+        default.
+    T_factor: float, optional
+        Temperature schedule factor. Default is the DAMMIF default.
+    rg_penalty: float, optional
+        Rg penalty weight. Default is the DAMMIF default.
+    center_penalty: float, optional
+        Center penalty weight. Default is the DAMMIF default.
+    loose_penalty: float, optional
+        Looseness penalty weight. Default is the DAMMIF default.
+
+    Returns
+    -------
+    chi_sq: float
+        The chi squared of the model's scattering profile to the data.
+    rg: float
+        The Rg of the model.
+    dmax: float
+        The Dmax of the model.
+    mw: float
+        The estimated molecular weight of the model, based on the excluded
+        volume.
+    excluded_volume: float
+        The excluded volume of the model.
+    """
+
+    if atsas_dir is None:
+        atsas_dir = __default_settings.get('ATSASDir')
+
+    datadir = os.path.abspath(os.path.expanduser(datadir))
+
+    if write_ift:
+        ift_name = os.path.join(datadir, ift.getParameter('filename'))
+        SASFileIO.writeOutFile(ift, os.path.join(datadir, ift_name))
+
+    if settings is None:
+        dam_settings = {
+            'mode'              : mode,
+            'unit'              : unit,
+            'sym'               : symmetry,
+            'anisometry'        : anisometry,
+            'omitSolvent'       : omit_solvent,
+            'chained'           : chained,
+            'constant'          : constant,
+            'maxBead'           : max_bead_count,
+            'radius'            : dam_radius,
+            'harmonics'         : harmonics,
+            'propFit'           : prop_to_fit,
+            'curveWeight'       : curve_weight,
+            'seed'              : random_seed,
+            'maxSteps'          : max_steps,
+            'maxIters'          : max_iters,
+            'maxSuccess'        : max_success,
+            'minSuccess'        : min_success,
+            'TFactor'           : T_factor,
+            'RgWeight'          : rg_penalty,
+            'cenWeight'         : center_penalty,
+            'looseWeight'       : loose_penalty,
+            'shape'             : expected_shape,
+            }
+    else:
+        dam_settings = {
+            'mode'              : mode,
+            'unit'              : settings.get('dammifUnit'),
+            'sym'               : symmetry,
+            'anisometry'        : anisometry,
+            'omitSolvent'       : settings.get('dammifOmitSolvent'),
+            'chained'           : settings.get('dammifChained'),
+            'constant'          : settings.get('dammifConstant'),
+            'maxBead'           : settings.get('dammifMaxBeadCount'),
+            'radius'            : settings.get('dammifDummyRadius'),
+            'harmonics'         : settings.get('dammifSH'),
+            'propFit'           : settings.get('dammifPropToFit'),
+            'curveWeight'       : settings.get('dammifCurveWeight'),
+            'seed'              : settings.get('dammifRandomSeed'),
+            'maxSteps'          : settings.get('dammifMaxSteps'),
+            'maxIters'          : settings.get('dammifMaxIters'),
+            'maxSuccess'        : settings.get('dammifMaxStepSuccess'),
+            'minSuccess'        : settings.get('dammifMinStepSuccess'),
+            'TFactor'           : settings.get('dammifTFactor'),
+            'RgWeight'          : settings.get('dammifRgPen'),
+            'cenWeight'         : settings.get('dammifCenPen'),
+            'looseWeight'       : settings.get('dammifLoosePen'),
+            'shape'             : settings.get('dammifExpectedShape'),
+            }
+
+    proc = SASCalc.runDammif(ift_name, prefix, dam_settings, datadir, atsas_dir)
+
+    if proc is not None:
+        while proc.poll() is None:
+            if proc.stdout is not None:
+                proc.stdout.read(1)
+
+    if write_ift and os.path.isfile(os.path.join(datadir, ift_name)):
+        try:
+            os.remove(os.path.join(datadir, ift_name))
+        except Exception:
+            pass
+
+    dam_name = os.path.join(datadir, prefix+'-1.pdb')
+    fir_name = os.path.join(datadir, prefix+'.fir')
+
+    _, _, model_data = SASFileIO.loadPDBFile(dam_name)
+
+    sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
+    chi_sq = float(sasm.getParameter('counters')['Chi_squared'])
+
+    rg = float(model_data['rg'])
+    dmax = float(model_data['dmax'])
+    excluded_volume=float(model_data['excluded_volume'])
+    mw = float(model_data['mw'])
+
+    return chi_sq, rg, dmax, mw, excluded_volume
+
+
+def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown',
+    initial_dam=None, write_ift=True, ift_name=None, atsas_dir=None,
+    settings=None, unit='Unknown', constant=0, dam_radius=-1, harmonics=-1,
+    prop_to_fit=-1, curve_weight='1', max_steps=-1, max_iters=-1, max_success=-1,
+    min_success=-1, T_factor=-1, loose_penalty=-1, knots=20, sphere_diam=-1,
+    coord_sphere=-1, disconnect_penalty=-1, periph_penalty=1):
+    """
+    Creates a bead model (dummy atom) reconstruction using DAMMIN from the ATSAS
+    package. Requires a separate installation of the ATSAS package. Function
+    blocks until DAMMIN finishes. Can be used to refine damstart.pdb files.
+
+    Parameters
+    ----------
+    ift: :class:`bioxtasraw.SASM.IFTM`
+        The GNOM IFT to be used as DAMMIN input. If write_ift is False, an IFT already
+        on disk is used and this parameter can be ``None``.
+    prefix: str
+        The output prefix for the DAMMIN model.
+    datadir: str
+        The output directory for the DAMMIN model. If using an IFT on disk, then
+        the IFT must be in this directory.
+    mode: {'Fast', 'Slow' 'Custom', 'Refine'} str, optional
+        The DAMMIN mode. Note that most of the advanced settings require that
+        DAMMIN be in 'Custom' mode to use. Defaults to slow. If using 'Refine'
+        mode then initial_dam must be specified.
+    symmetry: str, optional
+        The symmetry applied to the reconstruction. Accepts any symmetry
+        known to DAMMIN. Defaults to P1.
+    anisometry: {'Unknown', 'Prolate', 'Oblate'} str, optional
+        The anisometry applied to the reconstruction. Defaults to Unknown.
+    initial_dam: str, optional
+        Name of the input model file for refinement. Must be in datadir.
+    write_ift: bool, optional
+        If True, the input IFT is written to disk. If False, an IFT already
+        on disk used, as defined by ift_name (directory must be datadir).
+    ift_name: str, optional
+        The IFT name on disk. Used if write_ift is False.
+    atsas_dir: str, optional
+        The directory of the atsas programs (the bin directory). If not provided,
+        the API uses the auto-detected directory.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, every model
+        parameter except mode, symmetry, and anisometry is overridden with
+        the value in the settings file. Default is None.
+    unit: {'Unknown', 'Angstrom', 'Nanometer'} str, optional
+        The unit of the P(r) function. Defaults to 'Unknown'.
+    constant: str, optional
+        Constant offset for reconstruction. Default is to let DAMMIN determine
+        the offset.
+    dam_radius: float, optional
+        Packing radius of the dummy atoms. Default is to let DAMMIN determine
+        the parameter value.
+    harmonics: int, optional
+        Number of spherical harmonics to use in the reconstruction. Default is
+        the DAMMIN default.
+    prop_to_fit: float, optional
+        Proportion of the curve to fit for the reconstruction. Default is
+        the DAMMIN default.
+    curve_weight: {'0', '1', '2'} str, optional
+        Curve weighting function. 0 - Porod weighting. 1 - Porod weighting
+        with emphasis of initial points (default), 2 - logarithmic weighting.
+    max_steps: int, optional
+        Maximum number of steps in the annealing procedure. Default is the
+        DAMMIN default.
+    max_iters: int, optional
+        Maximum number of iterations within a single temperature step. Default
+        is the DAMMIN default.
+    max_success: int, optional
+        Maximum number of successes in a temperature step. Default is the DAMMIN
+        default.
+    min_success: int, optional
+        Minimum number of successes in a temperature step. Default is the DAMMIN
+        default.
+    T_factor: float, optional
+        Temperature schedule factor. Default is the DAMMIN default.
+    loose_penalty: float, optional
+        Looseness penalty weight. Default is the DAMMIN default.
+    knots: int, optional
+        Number of knots in curve to fit. Default is the DAMMIN default.
+    sphere_diam: float, optional
+        Sphere diameter in Angstrom. Default is the DAMMIN default.
+    coord_sphere: float, optional
+        Radius of the first coordination sphere. Default is the DAMMIN default.
+    disconnect_penalty: float, optional
+        Disconnectivity penalty weight. Default is DAMMIN default.
+    periph_penalty: float, optional
+        Peripheral penalty weight. Default is DAMMIN default.
+
+    Returns
+    -------
+    chi_sq: float
+        The chi squared of the model's scattering profile to the data.
+    rg: float
+        The Rg of the model.
+    dmax: float
+        The Dmax of the model.
+    mw: float
+        The estimated molecular weight of the model, based on the excluded
+        volume.
+    excluded_volume: float
+        The excluded volume of the model.
+    """
+
+    if atsas_dir is None:
+        atsas_dir = __default_settings.get('ATSASDir')
+
+    datadir = os.path.abspath(os.path.expanduser(datadir))
+
+    if write_ift:
+        ift_name = os.path.join(datadir, ift.getParameter('filename'))
+        SASFileIO.writeOutFile(ift, os.path.join(datadir, ift_name))
+
+    if settings is None:
+        dam_settings = {
+            'mode'              : mode,
+            'unit'              : unit,
+            'sym'               : symmetry,
+            'anisometry'        : anisometry,
+            'harmonics'         : harmonics,
+            'propFit'           : prop_to_fit,
+            'curveWeight'       : curve_weight,
+            'maxSteps'          : max_steps,
+            'maxIters'          : max_iters,
+            'maxSuccess'        : max_success,
+            'minSuccess'        : min_success,
+            'looseWeight'       : loose_penalty,
+            'initialDAM'        : initial_dam,
+            'knots'             : knots,
+            'damminConstant'    : constant,
+            'diameter'          : dam_radius,
+            'packing'           : dam_radius,
+            'coordination'      : coord_sphere,
+            'disconWeight'      : disconnect_penalty,
+            'periphWeight'      : periph_penalty,
+            'damminCurveWeight' : curve_weight,
+            'annealSched'       : T_factor,
+            }
+    else:
+        dam_settings = {
+            'mode'              : mode,
+            'unit'              : settings.get('dammifUnit'),
+            'sym'               : symmetry,
+            'anisometry'        : anisometry,
+            'harmonics'         : settings.get('dammifSH'),
+            'propFit'           : settings.get('dammifPropToFit'),
+            'curveWeight'       : settings.get('dammifCurveWeight'),
+            'maxSteps'          : settings.get('dammifMaxSteps'),
+            'maxIters'          : settings.get('dammifMaxIters'),
+            'maxSuccess'        : settings.get('dammifMaxStepSuccess'),
+            'minSuccess'        : settings.get('dammifMinStepSuccess'),
+            'looseWeight'       : settings.get('dammifLoosePen'),
+            'initialDAM'        : settings.get('damminInitial'),
+            'knots'             : settings.get('damminKnots'),
+            'damminConstant'    : settings.get('damminConstant'),
+            'diameter'          : settings.get('damminDiameter'),
+            'packing'           : settings.get('damminPacking'),
+            'coordination'      : settings.get('damminCoordination'),
+            'disconWeight'      : settings.get('damminDisconPen'),
+            'periphWeight'      : settings.get('damminPeriphPen'),
+            'damminCurveWeight' : settings.get('damminCurveWeight'),
+            'annealSched'       : settings.get('damminAnealSched'),
+            }
+
+    proc = SASCalc.runDammin(ift_name, prefix, dam_settings, datadir, atsas_dir)
+
+    if proc is not None:
+        while proc.poll() is None:
+            if proc.stdout is not None:
+                proc.stdout.read(1)
+
+    if write_ift and os.path.isfile(os.path.join(datadir, ift_name)):
+        try:
+            os.remove(os.path.join(datadir, ift_name))
+        except Exception:
+            pass
+
+    dam_name = os.path.join(datadir, prefix+'-1.pdb')
+    fir_name = os.path.join(datadir, prefix+'.fir')
+
+    _, _, model_data = SASFileIO.loadPDBFile(dam_name)
+
+    sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
+    chi_sq = float(sasm.getParameter('counters')['Chi_squared'])
+
+    rg = float(model_data['rg'])
+    dmax = float(model_data['dmax'])
+    excluded_volume=float(model_data['excluded_volume'])
+    mw = float(model_data['mw'])
+
+    return chi_sq, rg, dmax, mw, excluded_volume
+
+def damaver(files, prefix, datadir, symmetry='P1', atsas_dir=None):
+    """
+    Runs DAMAVER from the ATSAS package on a set of files. Requires a
+    separate installation of the ATSAS package. Function blocks until
+    DAMAVER finishes.
+
+    Parameters
+    ----------
+    files: list
+        A list of strings of the filenames on disk that are the DAMAVER inputs.
+        Must be just filenames, no paths, and all files must be in the same
+        directory.
+    prefix: str
+        The prefix to be appended to the DAMAVER output files.
+    datadir: str
+        The data directory in which all of the input files are located.
+        Also the location of the DAMAVER output.
+    symmetry: str, optional
+        The symmetry that DAMAVER will use during alignment. Accepts any
+        symmetry that DAMAVEr will accept. Defaults to 'P1'.
+    atsas_dir: str, optional
+        The directory of the atsas programs (the bin directory). If not provided,
+        the API uses the auto-detected directory.
+
+    Returns
+    -------
+    mean_nsd: float
+        The mean NSD of the models.
+    stdev_nsd: float
+        The standard deviation of the NSD of the models.
+    result_dict: dict
+        A dictionary of the model specific results. The keys are the input
+        filenames. The values are lists of the form ['Include' mean_model_nsd]
+        where 'Include' indicates the model was in the average whereas a
+        different value indicates the model was excluded from the average.
+    rep_model: str
+        The name of the representative model determined by DAMAVER.
+    res: float
+        The resolution of the reconstructions. Only available if more than 3
+        models were averaged.
+    res_err: float
+        The uncertainty in the resolution.
+    res_unit: str
+        The unit of the resolution.
+
+    """
+    if atsas_dir is None:
+        atsas_dir = __default_settings.get('ATSASDir')
+
+    datadir = os.path.abspath(os.path.expanduser(datadir))
+
+    proc = SASCalc.runDamaver(files, datadir, atsas_dir, symmetry)
+
+    if proc is not None:
+        while proc.poll() is None:
+            if proc.stdout is not None:
+                proc.stdout.read(1)
+
+    damsel_path = os.path.join(datadir, prefix+'_damsel.log')
+    damsup_path = os.path.join(datadir, prefix+'_damsup.log')
+
+    new_files = [
+        (os.path.join(datadir, 'damfilt.pdb'),
+            os.path.join(datadir, prefix+'_damfilt.pdb')),
+        (os.path.join(datadir, 'damsel.log'), damsel_path),
+        (os.path.join(datadir, 'damstart.pdb'),
+            os.path.join(datadir, prefix+'_damstart.pdb')),
+        (os.path.join(datadir, 'damsup.log'), damsup_path),
+        (os.path.join(datadir, 'damaver.pdb'),
+            os.path.join(datadir, prefix+'_damaver.pdb'))
+        ]
+
+    for item in new_files:
+        if os.path.isfile(item[0]):
+            os.rename(item[0], item[1])
+
+    (mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err,
+        res_unit) = SASFileIO.loadDamselLogFile(damsel_path)
+
+    model_data, rep_model = SASFileIO.loadDamsupLogFile(damsup_path)
+
+    return mean_nsd, stdev_nsd, rep_model, result_dict, res, res_err, res_unit
+
+def damclust(files, prefix, datadir, symmetry='P1', atsas_dir=None):
+    """
+    Runs DAMCLUST from the ATSAS package on a set of files. Requires a
+    separate installation of the ATSAS package. Function blocks until
+    DAMCLUST finishes.
+
+    Parameters
+    ----------
+    files: list
+        A list of strings of the filenames on disk that are the DAMAVER inputs.
+        Must be just filenames, no paths, and all files must be in the same
+        directory.
+    prefix: str
+        The prefix to be appended to the DAMAVER output files.
+    datadir: str
+        The data directory in which all of the input files are located.
+        Also the location of the DAMAVER output.
+    symmetry: str, optional
+        The symmetry that DAMAVER will use during alignment. Accepts any
+        symmetry that DAMAVEr will accept. Defaults to 'P1'.
+    atsas_dir: str, optional
+        The directory of the atsas programs (the bin directory). If not provided,
+        the API uses the auto-detected directory.
+
+    Returns
+    -------
+    cluster_list: list
+        A list of :class:`collections.namedtuple` items. Each list item has
+        entries: 'num', 'rep_model', and 'dev', where num is the number of
+        models in the cluster, rep_model is the representative model of the
+        cluster, and dev is the deviation within the cluster.
+    distance_list: list
+        A list of :class:`collections.namedtuple` items. Each list item has
+        entries 'cluster1', 'cluster2', and 'cluster_dist', where cluster1 is
+        the first cluster, cluster2 is the second cluster, and cluster_dist is
+        the distance between cluster1 and cluster2. If there is only one
+        cluster the distance list will be empty.
+
+    """
+    if atsas_dir is None:
+        atsas_dir = __default_settings.get('ATSASDir')
+
+    datadir = os.path.abspath(os.path.expanduser(datadir))
+
+    proc = SASCalc.runDamclust(files, datadir, atsas_dir, symmetry)
+
+    if proc is not None:
+        while proc.poll() is None:
+            if proc.stdout is not None:
+                proc.stdout.read(1)
+
+
+    damclust_log = os.path.join(datadir, prefix+'_damclust.log')
+    new_files = [(os.path.join(datadir, 'damclust.log'), damclust_log)]
+
+    for item in new_files:
+        if os.path.isfile(item[0]):
+            os.rename(item[0], item[1])
+
+    cluster_list, distance_list = SASFileIO.loadDamclustLogFile(damclust_log)
+
+    return cluster_list, distance_list
+
+def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
+        enantiomorphs='YES', proximity='NSD', symmetry='P1', fraction='1.0',
+        atsas_dir=None):
+    """
+    Aligns the target to the reference file using SUPCOMB from the ATSAS
+    package. Require a separate installation of ATSAS. Both files must be
+    in the same folder, and the aligned file is output in the folder. The
+    aligned file will have the same name as the target file with _aligned
+    appended to the end of the name. This function blocks until SUPCOMB is
+    done.
+
+    Parameters
+    ----------
+    target: str
+        The target file name, without path. This file is aligned to the
+        reference file, and must be in the same folder as the reference file.
+    ref_file: str
+        The reference file name, without path.
+    datadir: str
+        The directory containing both the target and ref_file. It is also the
+        directory for the output file.
+    mode: {'fast', 'slow'} str, optional
+        The alignment mode. Must be 'slow' if symmetry is not P1. Default is
+        fast.
+    superposition: {'ALL', 'BACKBONE'} str, optional
+        Whether to align all atoms or just the backbone. Default is ALL.
+    enantiomorphs: {'YES', 'NO'} str, optional
+        Whether to generate enantiomorphs during alignment. Default is YES.
+    proximity: {'NSD, 'VOL'} str, optional
+        What method to use to determine distance between two models. Default
+        is NSD.
+    symmetry: str, optional
+        The symmetry applied to the alignment. If the symmetry is not P1,
+        then the mode must be slow. Any symmetry allowed in the SUPCOMB
+        manual is an acceptable input.
+    fraction: str, optional
+        The amount of the structure closer to the surface to use for NSD
+        calculations.
+    atsas_dir: str, optional
+        The directory of the atsas programs (the bin directory). If not provided,
+        the API uses the auto-detected directory.
+    """
+
+    if atsas_dir is None:
+        atsas_dir = __default_settings.get('ATSASDir')
+
+    settings = {
+        'mode'          : mode,
+        'superposition' : superposition,
+        'enantiomorphs' : enantiomorphs,
+        'proximity'     : proximity,
+        'symmetry'      : symmetry,
+        'fraction'      : fraction,
+        }
+
+    proc = SASCalc.runSupcomb(ref_file, target, datadir, atsas_dir, **settings)
+
+    if proc is not None:
+        while proc.poll() is None:
+            if proc.stdout is not None:
+                proc.stdout.read(1)
+
+    return
+
+# Operations on series
 
 def efa(series, ranges, profile_type='sub', framei=None, framef=None,
     method='Hybrid', niter=1000, tol=1e-12, norm=True, force_positive=None,
