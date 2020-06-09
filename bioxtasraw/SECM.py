@@ -550,6 +550,7 @@ class SECM(object):
         copy_secm.mol_type = copy.deepcopy(self.mol_type)
         copy_secm.mol_density = copy.deepcopy(self.mol_density)
         copy_secm.already_subtracted = copy.deepcopy(self.already_subtracted)
+        copy_secm.calc_has_data = copy.deepcopy(self.calc_has_data)
 
         copy_secm.intensity_change = copy.deepcopy(self.intensity_change)
 
