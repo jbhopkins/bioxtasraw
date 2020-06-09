@@ -13653,8 +13653,6 @@ class EFAControlPanel2(wx.Panel):
                 if nvals == analysis_dict['efa']['nsvs'] and self.panel1_results['fstart'] == analysis_dict['efa']['fstart'] and self.panel1_results['fend'] == analysis_dict['efa']['fend'] and self.panel1_results['profile'] == analysis_dict['efa']['profile']:
                     points = np.array(analysis_dict['efa']['ranges'])
 
-                    print(points)
-                    print(type(points))
                     forward_sv = points[:,0]
                     backward_sv = points[:,1]
 
