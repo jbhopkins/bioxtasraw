@@ -1217,34 +1217,41 @@ def pdb2map_fastgauss(pdb,x,y,z,sigma,r=20.0):
 # RAW specific stuff
 ######################
 
-def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
-    wx_queue, abort_event, denss_settings, avg_model=None):
-    my_lock.acquire()
-    if avg_model is None:
-        my_num = thread_num_q.get()
-        den_queue, stop_event = comm_list[int(my_num)-1]
-    else:
-        my_num = '-1'
-        den_queue, stop_event = comm_list[0]
-    my_lock.release()
-
-    #Check to see if things have been aborted
-    if abort_event.is_set():
-        stop_event.set()
+def runDenss(q, I, sigq, D, prefix, path, denss_settings, avg_model=None,
+    comm_list=None, my_lock=None, thread_num_q=None, wx_queue=None,
+    abort_event=None, gui=True):
+    if gui:
         my_lock.acquire()
         if avg_model is None:
-            wx_queue.put_nowait(['window %s'%(str(my_num)), 'Aborted!\n'])
-            wx_queue.put_nowait(['finished', int(my_num)-1])
+            my_num = thread_num_q.get()
+            den_queue, stop_event = comm_list[int(my_num)-1]
         else:
-            wx_queue.put_nowait(['refine', 'Aborted!\n'])
+            my_num = '-1'
+            den_queue, stop_event = comm_list[0]
         my_lock.release()
-        return
+
+        #Check to see if things have been aborted
+        if abort_event.is_set():
+            stop_event.set()
+            my_lock.acquire()
+            if avg_model is None:
+                wx_queue.put_nowait(['window %s'%(str(my_num)), 'Aborted!\n'])
+                wx_queue.put_nowait(['finished', int(my_num)-1])
+            else:
+                wx_queue.put_nowait(['refine', 'Aborted!\n'])
+            my_lock.release()
+            return
 
     if avg_model is None:
-        den_prefix = prefix+'_%s' %(my_num.zfill(2))
+        if gui:
+            den_prefix = prefix+'_%s' %(my_num.zfill(2))
+        else:
+            den_prefix = prefix
     else:
-        den_prefix = '{}_refine'.format(prefix)
-
+        if gui:
+            den_prefix = '{}_refine'.format(prefix)
+        else:
+            den_prefix = prefix
     #Remove old files, so they don't mess up the program
     log_name = den_prefix+'.log'
     xplor_names = [den_prefix+'_current.xplor', den_prefix+'.xplor',
@@ -1266,10 +1273,11 @@ def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
             os.remove(item)
 
     #Run DENSS
-    my_lock.acquire()
-    if avg_model is None:
-        wx_queue.put_nowait(['status', 'Starting DENSS run %s\n' %(my_num)])
-    my_lock.release()
+    if gui:
+        my_lock.acquire()
+        if avg_model is None:
+            wx_queue.put_nowait(['status', 'Starting DENSS run %s\n' %(my_num)])
+        my_lock.release()
 
     my_logger = logging.getLogger(prefix)
     my_logger.setLevel(logging.DEBUG)
@@ -1281,11 +1289,13 @@ def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
     my_fh_formatter = logging.Formatter('%(asctime)s %(message)s', '%Y-%m-%d %I:%M:%S %p')
     my_fh.setFormatter(my_fh_formatter)
 
-    my_sh = RAWCustomCtrl.CustomConsoleHandler(den_queue)
-    my_sh.setLevel(logging.DEBUG)
-
     my_logger.addHandler(my_fh)
-    my_logger.addHandler(my_sh)
+
+    if gui:
+        my_sh = RAWCustomCtrl.CustomConsoleHandler(den_queue)
+        my_sh.setLevel(logging.DEBUG)
+
+        my_logger.addHandler(my_sh)
 
     try:
         # Rename to match denss code
@@ -1318,7 +1328,7 @@ def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
             'abort_event'       : abort_event,
             'my_logger'         : my_logger,
             'path'              : path,
-            'gui'               : True,
+            'gui'               : True, #Prevents printing to the console
         }
 
         if denss_settings['electrons'] != '':
@@ -1369,63 +1379,67 @@ def runDenss(q, I, sigq, D, prefix, path, comm_list, my_lock, thread_num_q,
         """
 
         data = denss(q, I, sigq, D, **denss_args)
+
     except Exception:
         error = traceback.format_exc()
-        wx_queue.put_nowait(['error', int(my_num)-1, error])
         my_logger.error('An error occured, aborting.')
         my_logger.error(error)
-        abort_event.set()
+
+        if gui:
+            wx_queue.put_nowait(['error', int(my_num)-1, error])
+            abort_event.set()
 
     my_fh.close()
 
-    stop_event.set()
+    if gui:
+        stop_event.set()
 
-    if not abort_event.is_set():
+        if not abort_event.is_set():
+            my_lock.acquire()
+            if avg_model is None:
+                wx_queue.put_nowait(['status', 'Finished run %s\n' %(my_num)])
+            my_lock.release()
+
         my_lock.acquire()
         if avg_model is None:
-            wx_queue.put_nowait(['status', 'Finished run %s\n' %(my_num)])
+            wx_queue.put_nowait(['finished', int(my_num)-1])
         my_lock.release()
-
-    my_lock.acquire()
-    if avg_model is None:
-        wx_queue.put_nowait(['finished', int(my_num)-1])
-    my_lock.release()
 
     return data
 
-def run_enantiomers(rhos, cores, num, avg_q, my_lock, wx_queue,
-    abort_event):
-    #Check to see if things have been aborted
+def run_enantiomers(rhos, cores, num=0, avg_q=None, my_lock=None, wx_queue=None,
+    abort_event=None, single_proc=False, gui=True):
 
-    if platform.system() == 'Darwin' and six.PY3:
-        single_proc = True
-    else:
-        single_proc = False
+    if gui:
+        #Check to see if things have been aborted
 
-    if abort_event.is_set():
-        my_lock.acquire()
-        wx_queue.put_nowait(['average', 'Aborted!\n'])
-        wx_queue.put_nowait(['finished', num])
-        my_lock.release()
-        return None, None
+        if abort_event.is_set():
+            my_lock.acquire()
+            wx_queue.put_nowait(['average', 'Aborted!\n'])
+            wx_queue.put_nowait(['finished', num])
+            my_lock.release()
+            return None, None
 
     best_enans, scores = select_best_enantiomers(rhos, rhos[0], cores, avg_q,
         abort_event, single_proc)
 
-    if abort_event.is_set():
-        my_lock.acquire()
-        wx_queue.put_nowait(['average', 'Aborted!\n'])
-        wx_queue.put_nowait(['finished', num])
-        my_lock.release()
-        return None, None
+    if gui:
+        if abort_event.is_set():
+            my_lock.acquire()
+            wx_queue.put_nowait(['average', 'Aborted!\n'])
+            wx_queue.put_nowait(['finished', num])
+            my_lock.release()
+            return None, None
 
     return best_enans, scores
 
-def run_align(rhos, sides, ref_file, avg_q, abort_event, center=True,
-    resolution=15.0, enantiomer=True, cores=1, single_proc=False):
+def run_align(rhos, sides, ref_file, avg_q=None, abort_event=None, center=True,
+    resolution=15.0, enantiomer=True, cores=1, single_proc=False, gui=True):
     #based on denss.align.py
 
-    avg_q.put_nowait('Loading reference model...\n')
+    if gui:
+        avg_q.put_nowait('Loading reference model...\n')
+
     if os.path.splitext(ref_file)[1] == '.pdb':
         refbasename, refext = os.path.splitext(ref_file)
         refoutput = refbasename+"_centered.pdb"
@@ -1453,11 +1467,14 @@ def run_align(rhos, sides, ref_file, avg_q, abort_event, center=True,
         rhos, scores = select_best_enantiomers(rhos, refrho, cores,
             avg_q, abort_event, single_proc)
 
-    if abort_event.is_set():
-        avg_q.put_nowait('Aborted!\n')
-    else:
-        avg_q.put_nowait('Aligning model(s) to reference\n')
-        aligned, scores = align_multiple(refrho, rhos, cores, abort_event,
-            single_proc)
+    if gui:
+        if abort_event.is_set():
+            avg_q.put_nowait('Aborted!\n')
+            return None, None
+        else:
+            avg_q.put_nowait('Aligning model(s) to reference\n')
+
+    aligned, scores = align_multiple(refrho, rhos, cores, abort_event,
+        single_proc)
 
     return aligned, scores

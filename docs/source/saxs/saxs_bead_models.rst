@@ -177,7 +177,7 @@ relatively low *q*, and because it is measured from a large number of particles
 in solution oriented at random angles. The SAXS scattering profile represents the
 scattering from a single particle, averaged over all possible orientations.
 This practical consequence of this is that there are often several possible
-shapes that could generate the same (over so similar as to be indistinguishable
+shapes that could generate the same (or so similar as to be indistinguishable
 within experimental noise) scattering profiles. As such, it may simply not
 be possible to generate a  bead model reconstruction from a dataset that
 accurately represents the solution shape, regardless of the overall data

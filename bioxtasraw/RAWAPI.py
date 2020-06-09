@@ -51,6 +51,7 @@ import bioxtasraw.RAWSettings as RAWSettings
 import bioxtasraw.RAWGlobals as RAWGlobals
 import bioxtasraw.SECM as SECM
 import bioxtasraw.BIFT as BIFT
+import bioxtasraw.DENSS as DENSS
 
 __version__ = RAWGlobals.version
 
@@ -145,6 +146,8 @@ def load_files(filename_list, settings):
     for filename in filename_list:
         file_ext = os.path.splitext(filename)[1]
 
+        is_profile = False
+
         if file_ext == '.sec':
             secm = SASFileIO.loadSeriesFile(filename, settings)
             series_list.append(secm)
@@ -155,7 +158,17 @@ def load_files(filename_list, settings):
             if isinstance(iftm, list):
                 ift_list.append(iftm[0])
 
+        elif file_ext == '.hdf5':
+            try:
+                secm = SASFileIO.loadSeriesFile(filename, settings)
+                series_list.append(secm)
+            except Exception:
+                is_profile = True
+
         else:
+            is_profile = True
+
+        if is_profile:
             sasm, img = SASFileIO.loadFile(filename, settings)
 
             if img is not None:
@@ -274,7 +287,7 @@ def load_series(filename_list, settings=None):
 
     all_secm = True
     for name in filename_list:
-        if os.path.splitext(name)[1] != '.sec' or os.path.splitext(name)[1]!='.hdf5':
+        if os.path.splitext(name)[1] != '.sec' and os.path.splitext(name)[1]!='.hdf5':
             all_secm = False
             break
 
@@ -488,6 +501,30 @@ def save_ift(ift, fname=None, datadir='.'):
     savepath = os.path.abspath(os.path.expanduser(datadir))
     SASFileIO.saveMeasurement(ift, savepath, settings, filetype=newext)
 
+def save_series(series, fname=None, datadir='.'):
+    """
+    Saves an individual series as a .hdf5 file.
+
+    Parameters
+    ----------
+    profile: :class:`bioxtasraw.SASM.IFTM`
+        The ift to be saved.
+    fname: str, optional
+        The output filename, without the directory path. If no filename
+        is provided, the filename associated with the profile (e.g. obtained
+        by using ``profile.getParameter('filename')``) is used.
+    datadir: str, optional
+        The directory to save the profile in. If no directory is provided,
+        the current directory is used.
+    """
+    if fname is not None:
+        series = copy.deepcopy(series)
+        series.setParameter('filename', fname)
+
+    datadir = os.path.abspath(os.path.expanduser(datadir))
+    savepath = os.path.join(datadir, fname)
+
+    SASFileIO.save_series(savepath, series)
 
 def save_settings(settings, fname, datadir='.'):
     """
@@ -3292,7 +3329,518 @@ def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
 
     return
 
+def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
+    initial_model=None, n_electrons=None, settings=None, voxel=5,
+    oversampling=3, steps=10000,
+    recenter=True, recenter_step=list(range(1001,8002, 500)),
+    recenter_mode='com', positivity=True, extrapolate=True, shrinkwrap=True,
+    sw_sigma_start=3.0, sw_sigma_end=1.5, sw_sigma_decay=0.99,
+    sw_sigma_thresh=0.2, sw_iter=20, sw_min_step=5000, connected=True,
+    connectivity_step=[7500], chi_end_frac=0.001, cut_output=False,
+    write_xplor=False, min_density=None, max_density=None, flatten_low=False,
+    sym_step=[3000, 5000, 7000, 9000]):
+    """
+    Generates an electron density reconstruction using DENSS. Function blocks
+    until DENSS finishes. Can be used to refine an existing model.
+
+    Parameters
+    ----------
+    ift: :class:`bioxtasraw.SASM.IFTM`
+        The IFT to be used as DENSS input.
+    prefix: str
+        The output prefix for the DENSS model.
+    datadir: str
+        The output directory for the DENSS model.
+    mode: {'Fast', 'Slow' 'Custom'} str, optional
+        The DENSS mode. Note that some of the advanced settings require that
+        DENSS be in 'Custom' mode to use. Defaults to slow.
+    symmetry: int, optional
+        Rotational symmetry applied as n-fold symmetry about the sym_axis.
+        Default is 0, i.e. no symmetry.
+    sym_axis: {'X', 'Y', 'Z'} str, optional
+        The symmetry axis used if a symmetry is specified. Correspond to the
+        xyz principal axes.
+    initial_model: class:`numpy.array`, optional
+        Initial electron density model as a numpy array. If input is provided,
+        then the model will be refined.
+    n_electrons: int, optional
+        Number of electrons in the molecule. If provided, the output density
+        will be scaled so that the sum of the density across the occupied volume
+        is equal to this value.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, every model
+        parameter except mode, symmetry, and sym_axis, and n_electrons is
+        overridden with the value in the settings file. Default is None.
+    voxel: float, optional
+        The voxel size for the model. Only used in Custom mode.
+    oversampling: int, optional
+        The sampling ratio.
+    steps: int, optional
+        Maximum number of iterations of the denss algorithm. Only used
+        in Custom mode.
+    recenter: bool, optional
+        Whether the particle should be recentered at the origin during
+        reconstruction. Default is True.
+    recenter_step: list, optional
+        A list of integers specifying the steps at which recentering
+        should be carried out. Only used in custom mode.
+    recenter_mode: {'com', 'max'} str, optional
+        Recenter based on the center of mass (com) or maximum density (max).
+        Default is com.
+    positivity: bool, optional
+        Enforces positive density. Only used in Custom mode. Default is True.
+        Set to False in Membrane mode.
+    extrapolate: bool, optional
+        Whether to extrapolate the measured scattering profile based on the
+        voxel size. Default is True.
+    shrinkwrap: bool, optional
+        Whether to apply the shrinkwrap algorithm to determine the underlying
+        support. Default is True. Not recommended to change.
+    sw_sigma_start: float, optional
+        The starting value to use for blurring during the shrinkwrap algorithm.
+        Default is 3.0.
+    sw_sigma_end: float, optional
+        The ending value to use for blurring during the shrinkwrap algorithm.
+        Default is 1.5.
+    sw_sigma_decay: float, optional
+        How quickly the sw_sigma value transitions from start to end.
+    sw_sigma_thresh: float, optional
+        The minimum threshold for inclusion of a voxel in the support during
+        the shrinkwrap algorithm. Membrane mode sets this to 0.1.
+    sw_iter: int, optional
+        How often the shrinkwrap algorithm is applied. Not recommended to
+        change.
+    sw_min_step: int, optional
+        The first step at which the shrinkwrap algorithm is applied. Only used
+        in Custom mode.
+    connected: bool, optional
+        Whether connectivity is enforced for the reconstruction. Default is
+        True.
+    connectivity_step: list, optional
+        A list of integers specifying the steps at which connectivity is
+        enforced. Only used in Custom model.
+    chi_end_frac: float, optional
+        The convergence criteria. Set as the minimum threshold of the chi
+        squared standard deviation in the last 100 steps, as a fraction of
+        the median chi squared in those steps.
+    cut_output: bool, optional
+        Whether to remove unused parts of the search space when writing the
+        output electron density files. Default is False.
+    write_xplor:  bool, optional
+        Whether to write the output density as xplor files and mrc files, or
+        just mrc files. Default is False.
+    min_density: float, optional
+        The minimum density value in e-/Angstrom^3. Must also set n_electrons
+        for this to be meaningful. Default is None.
+    max_density: float, optional
+        The maximum density value in e-/Angstrom^3. Must also set n_electrons
+        for this to be meaningful. Default is None.
+    flatten_low: bool, optional
+        Whether to flatten low density values (like solvent flattening). Must
+        also set n_electrons for this to be useful. Default is False.
+    sym_step: list, optional
+        A list of integers specifying the steps at which the symmetry
+        constraint should be applied.
+
+    Returns
+    -------
+    rho: :class:`numpy.array`
+        The calculated electron density of the model.
+    chi_sq: float
+        The chi squared value of the model fit to the data.
+    rg: float
+        The radius of gyration of the model.
+    support_vol: float
+        The support volume of the mode.
+    side: float
+        The real space box width in Angstroms of the reconstruction.
+    q_fit: :class:`numpy.array`
+        The q values, including any extrapolation, of the model fit to the data.
+    I_fit: :class:`numpy.array`
+        The I values, including any extrapolation, of the model fit to the data.
+    I_extrap: :class:`numpy.array`
+        The experimental intensity, including any extrapolation, used in the
+        reconstruction.
+    err_extrap: :class:`numpy.array`
+        The experimental uncertainty, including any extrapolation, used in the
+        reconstruction.
+    """
+
+    datadir = os.path.abspath(os.path.expanduser(datadir))
+
+    if settings is not None:
+        denss_settings = {
+            'voxel'             : settings.get('denssVoxel'),
+            'oversample'        : settings.get('denssOversampling'),
+            'electrons'         : n_electrons,
+            'steps'             : settings.get('denssSteps'),
+            'limitDmax'         : settings.get('denssLimitDmax'),
+            'dmaxStep'          : settings.get('denssLimitDmaxStep'),
+            'recenter'          : settings.get('denssRecenter'),
+            'recenterStep'      : settings.get('denssRecenterStep'),
+            'positivity'        : settings.get('denssPositivity'),
+            'extrapolate'       : settings.get('denssExtrapolate'),
+            'shrinkwrap'        : settings.get('denssShrinkwrap'),
+            'swSigmaStart'      : settings.get('denssShrinkwrapSigmaStart'),
+            'swSigmaEnd'        : settings.get('denssShrinkwrapSigmaEnd'),
+            'swSigmaDecay'      : settings.get('denssShrinkwrapSigmaDecay'),
+            'swThresFrac'       : settings.get('denssShrinkwrapThresFrac'),
+            'swIter'            : settings.get('denssShrinkwrapIter'),
+            'swMinStep'         : settings.get('denssShrinkwrapMinStep'),
+            'connected'         : settings.get('denssConnected'),
+            'conSteps'          : settings.get('denssConnectivitySteps'),
+            'chiEndFrac'        : settings.get('denssChiEndFrac'),
+            'cutOutput'         : settings.get('denssCutOut'),
+            'writeXplor'        : settings.get('denssWriteXplor'),
+            'mode'              : mode,
+            'recenterMode'      : settings.get('denssRecenterMode'),
+            'minDensity'        : settings.get('denssMinDensity'),
+            'maxDensity'        : settings.get('denssMaxDensity'),
+            'flattenLowDensity' : settings.get('denssFlattenLowDensity'),
+            'ncs'               : symmetry,
+            'ncsSteps'          : settings.get('denssNCSSteps'),
+            'ncsAxis'           : sym_axis,
+            }
+
+    else:
+        denss_settings = {
+            'voxel'             : voxel,
+            'oversample'        : oversampling,
+            'electrons'         : n_electrons,
+            'steps'             : steps,
+            'limitDmax'         : False,
+            'dmaxStep'          : '[500]',
+            'recenter'          : recenter,
+            'recenterStep'      : str(recenter_step),
+            'positivity'        : positivity,
+            'extrapolate'       : extrapolate,
+            'shrinkwrap'        : shrinkwrap,
+            'swSigmaStart'      : sw_sigma_start,
+            'swSigmaEnd'        : sw_sigma_end,
+            'swSigmaDecay'      : sw_sigma_decay,
+            'swThresFrac'       : sw_sigma_thresh,
+            'swIter'            : sw_iter,
+            'swMinStep'         : sw_min_step,
+            'connected'         : connected,
+            'conSteps'          : str(connectivity_step),
+            'chiEndFrac'        : chi_end_frac,
+            'cutOutput'         : cut_output,
+            'writeXplor'        : write_xplor,
+            'mode'              : mode,
+            'recenterMode'      : recenter_mode,
+            'minDensity'        : str(min_density),
+            'maxDensity'        : str(max_density),
+            'flattenLowDensity' : flatten_low,
+            'ncs'               : symmetry,
+            'ncsSteps'          : str(sym_step),
+            'ncsAxis'           : sym_axis,
+            }
+
+    q = ift.q_extrap
+    I = ift.i_extrap
+
+    ext_pts = len(I)-len(ift.i_orig)
+
+    if ext_pts > 0:
+        sigq =np.empty_like(I)
+        sigq[:ext_pts] = I[:ext_pts]*np.mean((ift.err_orig[:10]/ift.i_orig[:10]))
+        sigq[ext_pts:] = I[ext_pts:]*(ift.err_orig/ift.i_orig)
+    else:
+        sigq = I*(ift.err_orig/ift.i_orig)
+
+    D = ift.getParameter('dmax')
+
+    if denss_settings['mode'] == 'Fast':
+        denss_settings['swMinStep'] = 1000
+        denss_settings['conSteps'] = '[2000]'
+        denss_settings['recenterStep'] = '%s' %(list(range(501,2502,500)))
+        denss_settings['steps'] = None
+        denss_settings['voxel'] = D*denss_settings['oversample']/32.
+
+    elif denss_settings['mode'] == 'Slow':
+        denss_settings['swMinStep'] = 5000
+        denss_settings['conSteps'] = '[6000]'
+        denss_settings['recenterStep'] = '%s' %(list(range(501,8002,500)))
+        denss_settings['steps'] = None
+        denss_settings['voxel'] = D*denss_settings['oversample']/64.
+
+    elif denss_settings['mode'] == 'Membrane':
+        denss_settings['swMinStep'] = 0
+        denss_settings['swThresFrac'] = 0.1
+        denss_settings['conSteps'] = '[300]'
+        denss_settings['recenterStep'] = '%s' %(list(range(501,8002,500)))
+        denss_settings['steps'] = None
+        denss_settings['voxel'] = D*denss_settings['oversample']/64.
+        denss_settings['positivity'] = False
+
+    (qdata, I_extrap, err_extrap, q_fit, I_fit, chi_sq, rg, support_vol, rho,
+        side) = DENSS.runDenss(q, I, sigq, D, prefix, datadir, denss_settings,
+        initial_model, gui=False)
+
+    last_index = max(np.where(rg !=0)[0])
+    rg = rg[:last_index+1]
+    chi_sq = chi_sq[:last_index+1]
+    support_vol = support_vol[:last_index+1]
+
+    return (rho, chi_sq[-1], rg[-1], support_vol[-1], side, q_fit, I_fit,
+        I_extrap, err_extrap)
+
+def denss_average(densities, side, prefix, datadir, n_proc=1):
+    """
+    Averages multiple electron densities to produce a single average density.
+    Uses the averaging procedure from the DENSS package. Function blocks until
+    the average is complete.
+
+    Parameters
+    ----------
+    densities: :class:`numpy.array`
+        A :class:`numpy.array` where the the first axis (e.g. density[0],
+        density[1], etc) corresponds to each electron density to be averaged.
+    side: float
+        The real space box width in Angstroms of the reconstruction.
+    prefix: str
+        The output prefix for the averaged model.
+    datadir: str
+        The output directory for the averaged model.
+    n_proc: int
+        The number of processors to use. This could be up to as many cores
+        as your computer has.
+
+    Returns
+    -------
+    average_rho: :class:`numpy.array`
+        The average electron density. Of the input models, after rejecting the
+        outliers.
+    mean_cor: float
+        The mean correlation score of the models.
+    std_cor: float
+        The standard deviation of the model correlation scores.
+    threshold: float
+        The threshold used to reject models from the average.
+    res: float
+        The estimated model resolution in Angstrom from the Fourier shell
+        correlation.
+    scores: list
+        A list of the correlation scores. Each entry in the list is the score
+        for the corresponding entry in the input densities list.
+    fsc: :class:`numpy.array`
+        The average Fourier shell correlation between each model and a
+        average reference model. This is used to estimate the resolution.
+    """
+
+    datadir = os.path.abspath(os.path.expanduser(datadir))
+
+    if n_proc == 1:
+        single_proc = True
+    else:
+        single_proc = False
+
+    allrhos, scores = DENSS.run_enantiomers(densities, n_proc,
+        single_proc=single_proc, gui=False)
+
+    refrho = DENSS.binary_average(allrhos, n_proc, single_proc=single_proc)
+
+    aligned, scores = DENSS.align_multiple(refrho, allrhos, n_proc,
+        single_proc=single_proc)
+
+    #filter rhos with scores below the mean - 2*standard deviation.
+    mean_cor = np.mean(scores)
+    std_cor = np.std(scores)
+    threshold = mean_cor - 2*std_cor
+
+    aligned = aligned[scores>threshold]
+    average_rho = np.mean(aligned,axis=0)
+
+    DENSS.write_mrc(average_rho, side, os.path.join(datadir, prefix+'_average.mrc'))
+
+    #rather than compare two halves, average all fsc's to the reference
+    fscs = []
+    for calc_map in range(len(aligned)):
+        fscs.append(DENSS.calc_fsc(aligned[calc_map],refrho,side))
+    fscs = np.array(fscs)
+    fsc = np.mean(fscs,axis=0)
+    np.savetxt(os.path.join(datadir, prefix+'_fsc.dat'), fsc, delimiter=" ",
+        fmt="%.5e".encode('ascii'), header="1/resolution, FSC")
+    x = np.linspace(fsc[0,0],fsc[-1,0],100)
+    y = np.interp(x, fsc[:,0], fsc[:,1])
+    resi = np.argmin(y>=0.5)
+    resx = np.interp(0.5,[y[resi+1],y[resi]],[x[resi+1],x[resi]])
+    res = round(float(1./resx),1)
+
+    with open(os.path.join(datadir, '{}_average.log'.format(prefix)), 'w') as f:
+        f.write( "Mean of correlation scores: %.3f\n" % mean_cor)
+        f.write( "Standard deviation of scores: %.3f\n" % std_cor)
+        f.write('Total number of input maps for alignment: %i\n' % allrhos.shape[0])
+        f.write('Number of aligned maps accepted: %i\n' % aligned.shape[0])
+        f.write(('Correlation score between average and reference: %.3f\n'
+            % (1./DENSS.rho_overlap_score(average_rho, refrho))))
+        f.write("Resolution: %.1f " % res + 'Angstrom\n')
+
+
+    return average_rho, mean_cor, std_cor, threshold, res, scores, fsc
+
+def denss_align(density, side, ref_file, ref_datadir='.',  prefix='',
+    save_datadir='.', save=True, center=True, resolution=15.0, enantiomer=True,
+    n_proc=1):
+    """
+    Aligns each input electron density against a reference model. The
+    reference model can either be a PDB model (.pdb) or electron density (.mrc).
+    The aligned model can be saved to disk.
+
+    Parameters
+    ----------
+    density: :class:`numpy.array`
+        A :class:`numpy.array` of the electron density to be aligned to the
+        reference model.
+    sides: float
+        The real space box width in Angstroms of the reconstruction.
+    ref_file: str
+        The name (without path) of the reference model file to align the input
+        densities to. Should be either a .pdb or .mrc file.
+    ref_datadir: str, optional
+        The directory where ref_file is located. Defaults to the current
+        directory.
+    prefix: str
+        The name the aligned model will be saved with (minus extension) if
+        save is True.
+    save_datadir: str
+        The directory to save the aligned model in if save is True.
+    save: bool, optional
+        Whether or not to save the aligned model to disk.
+    center: bool, optional
+        Whether the reference file should first be centered on the origin.
+        Defaults to True. Only used if the reference file is a .pdb file.
+        If used, a _centered.pdb file is written to the same folder as
+        the ref_datadir.
+    resolution: float, optional
+        If a .pdb file is the reference file, this is the resolution used to
+        generate an electron density map for comparison with the input
+        densities.
+    enantiomer: bool, optional
+        Check for enantiomers during alignment.
+    n_proc: int, optional
+        The number of processors to use. This could be up to as many cores
+        as your computer has.
+
+    Returns
+    -------
+    aligned_density: :class:`numpy.array`
+        The input electron density aligned to the reference model.
+    scores: float
+        The correlation score of the model to the reference model.
+    """
+
+    ref_datadir = os.path.abspath(os.path.expanduser(ref_datadir))
+    save_datadir = os.path.abspath(os.path.expanduser(save_datadir))
+
+    ref_name = os.path.join(ref_datadir, ref_file)
+
+    if n_proc == 1:
+        single_proc = True
+    else:
+        single_proc = False
+
+    rho_list = np.array([density])
+    side_list = [side]
+
+    aligned_rhos, scores = DENSS.run_align(rho_list, side_list, ref_name,
+        center=center, resolution=resolution, enantiomer=enantiomer,
+        cores=n_proc, single_proc=single_proc, gui=False)
+
+    aligned_density = aligned_rhos[0]
+    score = scores[0]
+
+    outname = '{}.mrc'.format(prefix)
+
+    DENSS.write_mrc(aligned_density, side, os.path.join(save_datadir, outname))
+
+    return aligned_density, score
+
 # Operations on series
+
+def svd(series, profile_type='sub', framei=None, framef=None, norm=True):
+    """
+    Runs singular value decomposition (SVD) on the input series.
+
+    Parameters
+    ----------
+    series: list or :class:`bioxtasraw.SECM.SECM`
+        The input series to be deconvolved. It should either be a list
+        of individual scattering profiles (:class:`bioxtasraw.SASM.SASM`) or
+        a single series object (:class:`bioxtasraw.SECM.SECM`).
+    profile_type: {'unsub', 'sub', 'baseline'} str, optional
+        Only used if a :class:`bioxtasraw.SECM.SECM` is provided for the series
+        argument. Determines which type of profile to use from the series
+        for the EFA. Unsubtracted profiles - 'unsub', subtracted profiles -
+        'sub', baseline corrected profiles - 'baseline'.
+    framei: int, optional
+        The initial frame in the series to use for EFA. If not provided,
+        it defaults to the first frame in the series.
+    framef: int, optional
+        The final frame in the series to use for EFA. If not provided, it
+        defaults to the last frame in the series.
+    norm: bool, optional
+        Whether error normalized intensity should be used for EFA. Defaults
+        to True. Recommended to not change this.
+
+    Returns
+    -------
+    svd_s: class:`numpy.array`
+        The singular values.
+    svd_U: class:`numpy.array`
+        The left singular vectors
+    svd_V: class:`numpy.array`
+        The right singular vectors.
+
+    Raises
+    ------
+    SASExceptions.EFAError
+        If SVD cannot be carried out.
+    """
+    if framei is None:
+            framei = 0
+    if framef is None:
+        if isinstance(series, SECM.SECM):
+            framef = len(series.getAllSASMs())
+        else:
+            framef = len(series)
+
+    if isinstance(series, SECM.SECM):
+        sasm_list = series.getSASMList(framei, framef, profile_type)
+        filename = os.path.splitext(series.getParameter('filename'))[0]
+    else:
+        sasm_list = series[framei:framef+1]
+        names = [os.path.basename(sasm.getParameter('filename')) for sasm in series]
+        filename = os.path.commonprefix(names).rstrip('_')
+        if filename == '':
+            filename =  os.path.splitext(os.path.basename(series[0].getParameter('filename')))[0]
+
+    intensity = np.array([sasm.getI() for sasm in sasm_list])
+    err = np.array([sasm.getErr() for sasm in sasm_list])
+
+    intensity = intensity.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
+    err = err.T
+
+    if norm:
+        err_mean = np.mean(err, axis = 1)
+        if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+            err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), err.shape)
+        else:
+            err_avg = np.array([err_mean for k in range(intensity.shape[1])]).T
+
+        D = intensity/err_avg
+    else:
+        D = intensity
+
+    if not np.all(np.isfinite(D)):
+        raise SASExceptions.EFAError(('Initial SVD matrix contained nans or '
+            'infinities. SVD could not be carried out'))
+
+    svd_U, svd_s, svd_Vt = np.linalg.svd(D, full_matrices = True)
+
+    svd_V = svd_Vt.T
+
+    return svd_s, svd_U, svd_V
 
 def efa(series, ranges, profile_type='sub', framei=None, framef=None,
     method='Hybrid', niter=1000, tol=1e-12, norm=True, force_positive=None,
@@ -3394,9 +3942,9 @@ def efa(series, ranges, profile_type='sub', framei=None, framef=None,
             framei = 0
     if framef is None:
         if isinstance(series, SECM.SECM):
-            framef = len(series.getAllSASMs())
+            framef = len(series.getAllSASMs())-1
         else:
-            framef = len(series)
+            framef = len(series)-1
 
     if isinstance(series, SECM.SECM):
         sasm_list = series.getSASMList(framei, framef, profile_type)

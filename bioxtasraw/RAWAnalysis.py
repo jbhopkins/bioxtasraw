@@ -3759,7 +3759,7 @@ class GNOMFrame(wx.Frame):
 
     def getGnomVersion(self):
         #Checks if we have gnom4 or gnom5
-        version = SASCalc.getATSASVersion()
+        version = SASCalc.getATSASVersion(self._raw_settings.get('ATSASDir'))
 
         if int(version.split('.')[0]) > 2 or (int(version.split('.')[0]) == 2 and int(version.split('.')[1]) >=8):
             self.new_gnom = True
@@ -8211,8 +8211,10 @@ class DenssRunPanel(wx.Panel):
             for key in self.denss_ids:
                 if key != 'average' and key != 'refine' and key!= 'align':
                     result = my_pool.apply_async(DENSS.runDenss, args=(q, I, sigq,
-                        D, prefix, path, comm_list, self.my_lock, self.thread_nums,
-                        self.wx_queue, self.abort_event, self.denss_settings))
+                        D, prefix, path, self.denss_settings),
+                        kwargs={'comm_list':comm_list, 'my_lock':self.my_lock,
+                        'thread_num_q':self.thread_nums,
+                        'wx_queue':self.wx_queue, 'abort_event':self.abort_event})
 
                     self.results.append(result)
 
@@ -8236,8 +8238,9 @@ class DenssRunPanel(wx.Panel):
         for key in self.denss_ids:
             if key != 'average' and key != 'refine' and key != 'align':
                 data = DENSS.runDenss(q, I, sigq, D, prefix, path,
-                    comm_list,  self.my_lock, self.thread_nums, self.wx_queue,
-                    self.abort_event, self.denss_settings)
+                    self.denss_settings, **{'comm_list':comm_list,
+                    'my_lock':self.my_lock, 'thread_num_q':self.thread_nums,
+                    'wx_queue':self.wx_queue, 'abort_event':self.abort_event})
 
                 self.results.append(data)
 
@@ -8280,7 +8283,8 @@ class DenssRunPanel(wx.Panel):
 
         wx.CallAfter(averWindow.AppendText, 'Filtering enantiomers\n')
         allrhos, scores = DENSS.run_enantiomers(allrhos, procs, nruns,
-            avg_q, self.my_lock, self.wx_queue, self.abort_event)
+            avg_q, self.my_lock, self.wx_queue, self.abort_event,
+            self.single_proc)
 
         if self.abort_event.is_set():
             stop_event.set()
@@ -8449,17 +8453,20 @@ class DenssRunPanel(wx.Panel):
             my_pool = multiprocessing.Pool(procs)
 
             result = my_pool.apply_async(DENSS.runDenss, args=(q, I, sigq,
-                D, prefix, path, comm_list, self.my_lock, self.thread_nums,
-                self.wx_queue, self.abort_event, self.denss_settings, avg_model))
+                D, prefix, path, self.denss_settings, avg_model),
+                kwargs={'comm_list':comm_list, 'my_lock':self.my_lock,
+                    'thread_num_q':self.thread_nums, 'wx_queue':self.wx_queue,
+                    'abort_event':self.abort_event})
 
             my_pool.close()
             my_pool.join()
             self.refine_results = result.get()
 
         else:
-            self.refine_results = DENSS.runDenss(q, I, sigq, D, prefix, path, comm_list,
-                self.my_lock, self.thread_nums, self.wx_queue, self.abort_event,
-                self.denss_settings, avg_model)
+            self.refine_results = DENSS.runDenss(q, I, sigq, D, prefix, path,
+                self.denss_settings, avg_model, **{'comm_list':comm_list,
+                'my_lock':self.my_lock, 'thread_num_q':self.thread_nums,
+                'wx_queue':self.wx_queue, 'abort_event':self.abort_event})
 
         wx.CallAfter(self.status.AppendText, 'Finished Refinement\n')
 
@@ -8839,7 +8846,7 @@ class DenssRunPanel(wx.Panel):
             'maxDensity'        : self.raw_settings.get('denssMaxDensity'),
             'flattenLowDensity' : self.raw_settings.get('denssFlattenLowDensity'),
             'ncs'               : self.raw_settings.get('denssNCS'),
-            'NCSSteps'          : self.raw_settings.get('denssNCSSteps'),
+            'ncsSteps'          : self.raw_settings.get('denssNCSSteps'),
             'ncsAxis'           : self.raw_settings.get('denssNCSAxis'),
             'refine'            : self.raw_settings.get('denssRefine'),
             }
@@ -13644,8 +13651,10 @@ class EFAControlPanel2(wx.Panel):
 
             if 'efa' in analysis_dict:
                 if nvals == analysis_dict['efa']['nsvs'] and self.panel1_results['fstart'] == analysis_dict['efa']['fstart'] and self.panel1_results['fend'] == analysis_dict['efa']['fend'] and self.panel1_results['profile'] == analysis_dict['efa']['profile']:
-                    points = analysis_dict['efa']['ranges']
+                    points = np.array(analysis_dict['efa']['ranges'])
 
+                    print(points)
+                    print(type(points))
                     forward_sv = points[:,0]
                     backward_sv = points[:,1]
 

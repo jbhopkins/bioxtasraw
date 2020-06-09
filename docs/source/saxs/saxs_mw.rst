@@ -148,9 +148,8 @@ In [3] they defined the volume of correlation as
 
     V_c = \frac{I(0)}{\int_0^{\infty}qI(q)dq}
 
-Based on an empirical relation observed between the ratio :math:`V_c^2/R_g`
-is logarithmically proportional to molecular weight, and found the following
-formula:
+They empirically found the ratio :math:`V_c^2/R_g` is logarithmically
+proportional to molecular weight, with the following formula:
 
 .. math::
 

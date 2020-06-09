@@ -45,11 +45,9 @@ import re
 import math
 import traceback
 import copy
-import tempfile
 
 import numpy as np
 from scipy import integrate as integrate
-import wx
 import scipy.interpolate
 import scipy.signal
 from scipy.constants import Avogadro
@@ -686,11 +684,8 @@ def calcVcMW(sasm, rg, i0, qmax, a_prot, b_prot, a_rna, b_rna, protein=True,
     return mw, np.sqrt(np.absolute(mw)), vc, qr
 
 
-def getATSASVersion():
+def getATSASVersion(atsasDir):
     #Checks if we have gnom4 or gnom5
-    raw_settings = wx.FindWindowByName('MainFrame').raw_settings
-    atsasDir = raw_settings.get('ATSASDir')
-
     opsys = platform.system()
 
     if opsys == 'Windows':

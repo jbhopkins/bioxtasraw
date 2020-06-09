@@ -40,7 +40,7 @@ techniques including ab-initio reconstructions of the shape.
 Additionally, the P(r) function is sensitive to data quality issues, particularly
 aggregation and interparticle interference. Thus, doing an IFT is another
 quality check on your data. If you cannot obtain a good P(r) function, then
-your data probably one of those issues and usually should not be used for
+your data probably has one of those issues and usually should not be used for
 further analysis.
 
 
