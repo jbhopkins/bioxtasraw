@@ -236,7 +236,7 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
         tbs_mask = masks['TransparentBSMask'][0]
 
     if bs_mask is None:
-        bs_mask = np.zeroes(img.shape)
+        bs_mask = np.zeros(img.shape)
     else:
         bs_mask = np.logical_not(bs_mask) #Invert mask for pyFAI
 
