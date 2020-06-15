@@ -1067,7 +1067,7 @@ def loadImage(filename, raw_settings, hdf5_file=None):
             #     else hdr[key] for key in hdr}
 
 
-    if image_type != 'SASLab300':
+    if image_type != 'SAXSLab300':
         for i in range(len(img)):
             if fliplr:
                 img[i] = np.fliplr(img[i])

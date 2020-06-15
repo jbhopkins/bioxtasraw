@@ -3,7 +3,7 @@ Created on June 11, 2019
 
 @author: Jesse B. Hopkins
 
-******************************************************************************
+##############################################################################
  This file is part of RAW.
 
 RAW is free software: you can redistribute it and/or modify
@@ -19,7 +19,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with RAW.  If not, see <http://www.gnu.org/licenses/>.
 
-******************************************************************************
+##############################################################################
 
 The purpose of this module is to provide an API for calling RAW functions from
 other python programs. This is to provide easy access to RAW's functionality
@@ -4043,3 +4043,241 @@ def efa(series, ranges, profile_type='sub', framei=None, framef=None,
             series.setParameter('analysis', analysis_dict)
 
     return efa_profiles, converged, conv_data, rotation_data
+
+
+def find_buffer_range(series, profile_type='unsub', int_type='total', q_val=None,
+    q_range=None, avg_window=5, settings=None, sim_test='CorMap',
+    sim_cor='Bonferroni', sim_thresh=0.01):
+    """
+    Automatically determine the appropriate buffer range from subtraction from
+    the input series. This is designed to work with SEC-SAXS data, but may work
+    in other circumstances.
+
+    Parameters
+    ----------
+    series: list or :class:`bioxtasraw.SECM.SECM`
+        The input series to be deconvolved. It should either be a list
+        of individual scattering profiles (:class:`bioxtasraw.SASM.SASM`) or
+        a single series object (:class:`bioxtasraw.SECM.SECM`).
+    profile_type: {'unsub', 'sub', 'baseline'} str, optional
+        Only used if a :class:`bioxtasraw.SECM.SECM` is provided for the series
+        argument. Determines which type of profile to use from the series to
+        find the buffer range. Unsubtracted profiles - 'unsub', subtracted
+        profiles - 'sub', baseline corrected profiles - 'baseline'.
+    int_type: {'total', 'mean', 'q_val', 'q_range'} str, optional
+        The intensity type to use for the automated determination of buffer
+        range. Total integrated intensity - 'total', mean intensity - 'mean',
+        intensity at a particular q value - 'q_val', intensity in a given
+        q range - 'q_range'. Use of q_val or q_range requires the corresponding
+        parameter to be provided.
+    q_val: float, optional
+        If int_type is 'q_val', the q value used for the intensity is set by
+        this parameter.
+    q_range: list, optional
+        This should have two entries, both floats. The first is the minimum q
+        value of the range, the second the maximum q value of the range. If
+        int_type is 'q_range', the q range used for the intensity is set by
+        this parameter.
+    avg_window: int, optional
+        The size of the average window used for calculating parameters from
+        series data. Used to help set the size of the search window for the
+        buffer region. Defaults to 5.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, sim_test,
+        sim_cor, and sim_threshold are overridden by the values in the
+        settings.
+    sim_test: {'CorMap'} str, optional
+        Sets the type of similarity test to be used. Currently only CorMap is
+        supported as an option. Is overridden if settings are provided.
+    sim_cor: {'Bonferroni', 'None'} str, optional
+        Sets the multiple testing correction to be used as part of the similarity
+        test. Default is Bonferroni. Is overridden if settings are provided.
+    sim_thresh: float, optional
+        Sets the p value threshold for the similarity test. A higher value is
+        a more strict test (range from 0-1). Is overridden if settings are
+        provided.
+
+    Returns
+    -------
+    success: bool
+        If a buffer range was successfully found.
+    region_start: int
+        The starting index of the buffer region found.
+    region_end: int
+        The ending index of the buffer region found.
+    """
+    if settings is not None:
+        sim_thresh = settings.get('similarityThreshold')
+        sim_test = settings.get('similarityTest')
+        sim_cor = settings.get('similarityCorrection')
+
+    if isinstance(series, SECM.SECM):
+        if profile_type == 'unsub':
+            buffer_sasms = series._sasm_list
+        elif profile_type == 'sub':
+            buffer_sasms = series.subtracted_sasm_list
+        elif profile_type == 'baseline':
+            buffer_sasms = series.baseline_subtracted_sasm_list
+    else:
+        buffer_sasms = series
+
+    if int_type == 'total':
+        intensity = np.array([sasm.getTotalI() for sasm in buffer_sasms])
+    elif int_type == 'mean':
+        intensity = np.array([sasm.getMeanI() for sasm in buffer_sasms])
+    elif int_type == 'q_val':
+        intensity = np.array([sasm.getIofQ(q_val) for sasm in buffer_sasms])
+    elif int_type == 'q_range':
+        q1 = q_range[0]
+        q2 = q_range[1]
+        intensity = np.array([sasm.getIofQRange(q1, q2) for sasm in buffer_sasms])
+
+    success, region_start, region_end = SASCalc.findBufferRange(buffer_sasms,
+        intensity, avg_window, sim_test, sim_cor, sim_thresh)
+
+    return success, region_start, region_end
+
+def validate_buffer_range(series, buf_range, profile_type='unsub',
+    int_type='total', q_val=None, q_range=None, fast=False, settings=None,
+    sim_test='CorMap', sim_cor='Bonferroni', sim_thresh=0.01):
+    """
+    Validates whether the input data range is a trustworthy buffer range or not.
+    This is designed to work with SEC-SAXS data, but may work in other
+    circumstances.
+
+    Parameters
+    ----------
+    series: list or :class:`bioxtasraw.SECM.SECM`
+        The input series to be deconvolved. It should either be a list
+        of individual scattering profiles (:class:`bioxtasraw.SASM.SASM`) or
+        a single series object (:class:`bioxtasraw.SECM.SECM`).
+    buf_range: list
+        A list defining the input buffer range to be validated. The list is made
+        up of a set of sub-ranges, each defined by an entry in the list. Each
+        sub-range item should be a list or tuple where the first entry is the
+        starting index of the range and the second entry is the ending index
+        of the range. So a list like ``[[0, 10], [100, 110]]`` would define
+        a buffer range consisting of two sub-ranges, the first from profiles 0-10
+        in the series and the second from profiles 100-110 in the series.
+    profile_type: {'unsub', 'sub', 'baseline'} str, optional
+        Only used if a :class:`bioxtasraw.SECM.SECM` is provided for the series
+        argument. Determines which type of profile to use from the series to
+        validate the buffer range. Unsubtracted profiles - 'unsub', subtracted
+        profiles - 'sub', baseline corrected profiles - 'baseline'.
+    int_type: {'total', 'mean', 'q_val', 'q_range'} str, optional
+        The intensity type to use for the validation of the buffer range. Total
+        integrated intensity - 'total', mean intensity - 'mean', intensity at
+        a particular q value - 'q_val', intensity in a given q range -
+        'q_range'. Use of q_val or q_range requires the corresponding parameter
+        to be provided.
+    q_val: float, optional
+        If int_type is 'q_val', the q value used for the intensity is set by
+        this parameter.
+    q_range: list, optional
+        This should have two entries, both floats. The first is the minimum q
+        value of the range, the second the maximum q value of the range. If
+        int_type is 'q_range', the q range used for the intensity is set by
+        this parameter.
+    fast: bool, optional
+        Whether the test should be done in fast mode or not. A fast test stops
+        at the first failed check. In a normal test (not fast), all metrics
+        are checked. Using a fast test is best when trying to automatically
+        determine a buffer range, something which can take many separate
+        validation checks. A normal test is best when trying to determine what,
+        if anything, about your buffer selected region might be problematic.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, sim_test,
+        sim_cor, and sim_threshold are overridden by the values in the
+        settings.
+    sim_test: {'CorMap'} str, optional
+        Sets the type of similarity test to be used. Currently only CorMap is
+        supported as an option. Is overridden if settings are provided.
+    sim_cor: {'Bonferroni', 'None'} str, optional
+        Sets the multiple testing correction to be used as part of the similarity
+        test. Default is Bonferroni. Is overridden if settings are provided.
+    sim_thresh: float, optional
+        Sets the p value threshold for the similarity test. A higher value is
+        a more strict test (range from 0-1). Is overridden if settings are
+        provided.
+
+    Returns
+    -------
+    valid: bool
+        If the input buffer range is a valid buffer range.
+    similarity_results: dict
+        A dictionary with the results of the similarity test. In particular,
+        keys are: 'all_similar' - whether all profiles in the selected range
+        are similar over the entire profile. 'low_q_similar' - whether all
+        profiles in the selected range are similar over the low q region
+        of the profile. 'high_q_similar' - whether all profiles in the
+        selected range are similar over the high q region. 'max_idx' -
+        The index of the profile used as the reference for the similarity test,
+        corresponding to the profile with the highest intensity in the region.
+        'all_outliers' - Indices of the outlier profiles of the similarity
+        test at all q. 'low_q_outliers' - Indices of the outlier profiles of
+        the similarity test at low q. 'high_q_outliers' - Indices of the
+        outlier profiles of the similarity test at high q.
+    svd_results: dict
+        A dictionary with the results of the SVD test. In particular, keys are:
+        'svals' - the number of significant singular vectors in the region. 'U'
+        - the left singular vectors. 'V' - the right singular vectors.
+        'u_autocor' - The autocorrelation of the left singular vectors.
+        'v_autocor' - The autocorrelation of the right singular vectors.
+    intI_results: dict
+        A dictionary with the results of the intensity test. In particular, keys
+        are: 'intI_r' - the Spearman correlation coefficient of the intensity
+        in the region. 'inti_pval' - the p-value from the Spearman correlation
+        test on the intensity of the region. 'intI_valid' - Whether the
+        range is a valid buffer range based on the intensity correlation.
+        The same keys are provided but with smoothed in front, indicating
+        the test results on the smoothed intensity.
+    """
+    frame_idx = []
+    for item in buf_range:
+        frame_idx = frame_idx + list(range(item[0], item[1]+1))
+
+    frame_idx = sorted(set(frame_idx))
+    frame_idx = np.array(frame_idx)
+
+    if isinstance(series, SECM.SECM):
+        buffer_sasms = [series.getSASM(idx, profile_type) for idx in frame_idx]
+    else:
+        buffer_sasms = [series[idx] for idx in frame_idx]
+
+    if int_type == 'total':
+        intensity = np.array([sasm.getTotalI() for sasm in buffer_sasms])
+    elif int_type == 'mean':
+        intensity = np.array([sasm.getMeanI() for sasm in buffer_sasms])
+    elif int_type == 'q_val':
+        intensity = np.array([sasm.getIofQ(q_val) for sasm in buffer_sasms])
+    elif int_type == 'q_range':
+        q1 = q_range[0]
+        q2 = q_range[1]
+        intensity = np.array([sasm.getIofQRange(q1, q2) for sasm in buffer_sasms])
+
+    (valid, similarity_results, svd_results,
+        intI_results) = SASCalc.validateBuffer(buffer_sasms, frame_idx,
+        intensity, sim_test, sim_cor, sim_thresh, fast)
+
+    return valid, similarity_results, svd_results, intI_results
+
+def set_buffer_range():
+    pass
+
+def find_sample_range():
+    pass
+
+def validate_sample_range():
+    pass
+
+def set_sample_range():
+    pass
+
+def baseline_correction_linear():
+    pass
+
+def baseline_correction_integral():
+    pass
+
+def find_baseline_range():
+    pass

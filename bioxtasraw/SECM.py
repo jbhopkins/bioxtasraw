@@ -594,8 +594,20 @@ class SECM(object):
 
         return copy_secm
 
-    def getSASM(self, index=0):
-        return self._sasm_list[index]
+    def getSASM(self, index=0, int_type='unsub'):
+
+        if int_type == 'sub' and not self.subtracted_sasm_list:
+            sasm = self._sasm_list[index]
+        elif int_type == 'baseline' and not self.baseline_subtracted_sasm_list:
+            sasm = self._sasm_list[index]
+        elif int_type == 'unsub':
+            sasm = self._sasm_list[index]
+        elif int_type == 'sub':
+            sasm = self.subtracted_sasm_list[index]
+        elif int_type == 'baseline':
+            sasm = self.baseline_subtracted_sasm_list[index]
+
+        return sasm
 
     def I(self, qref):
         self.qref=float(qref)

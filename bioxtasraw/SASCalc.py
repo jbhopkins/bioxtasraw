@@ -50,6 +50,7 @@ import numpy as np
 from scipy import integrate as integrate
 import scipy.interpolate
 import scipy.signal
+import scipy.stats as stats
 from scipy.constants import Avogadro
 from numba import jit
 
@@ -2440,3 +2441,651 @@ def initHybridEFA(M, num_sv, D, C, converged, V_bar):
         C, failed, temp1, temp2, temp3 = runExplicitEFARotation(M, None, None, None, V_bar, T, None, None, None)
 
     return failed, C, None
+
+def validateBuffer(sasms, frame_idx, intensity, sim_test, sim_cor, sim_thresh,
+    fast):
+    max_i_idx = np.argmax(intensity)
+
+    ref_sasm = copy.deepcopy(sasms[max_i_idx])
+    superimpose_sub_sasms = copy.deepcopy(sasms)
+    SASProc.superimpose(ref_sasm, superimpose_sub_sasms, 'Scale')
+    qi, qf = ref_sasm.getQrange()
+
+    #Test for frame correlation
+    if len(sasms) > 1:
+        intI_test = stats.spearmanr(intensity, frame_idx)
+    else:
+        intI_test = [1,1]
+
+    intI_valid = intI_test[1]>0.05
+
+    if fast and not intI_valid:
+        return False, {}, {}, {}
+
+    win_len = len(intensity)//2
+    if win_len % 2 == 0:
+        win_len = win_len+1
+    win_len = min(51, win_len)
+
+    order = min(5, win_len-1)
+
+    if len(sasms) > 1:
+        smoothed_intI = smooth_data(intensity, window_length=win_len,
+            order=order)
+        smoothed_intI_test = stats.spearmanr(smoothed_intI, frame_idx)
+    else:
+        smoothed_intI_test = [1,1]
+
+    smoothed_intI_valid = smoothed_intI_test[1]>0.01
+
+    intI_results = {'intI_r'    : intI_test[0],
+        'intI_pval'             : intI_test[1],
+        'intI_valid'            : intI_valid,
+        'smoothed_intI_r'       : smoothed_intI_test[0],
+        'smoothed_intI_pval'    : smoothed_intI_test[1],
+        'smoothed_intI_valid'   : smoothed_intI_valid,
+        }
+
+    if fast and not smoothed_intI_valid:
+        return False, {}, {}, intI_results
+
+
+    #Test for regional frame similarity
+    if len(sasms) > 1:
+        if qf-qi>200:
+            ref_sasm.setQrange((qi, qi+100))
+            for sasm in superimpose_sub_sasms:
+                sasm.setQrange((qi, qi+100))
+            low_q_similar, low_q_outliers = run_similarity_test(ref_sasm,
+                superimpose_sub_sasms, sim_test, sim_cor, sim_thresh)
+
+            if fast and not low_q_similar:
+                ref_sasm.setQrange((qi, qf))
+                for sasm in superimpose_sub_sasms:
+                    sasm.setQrange((qi, qf))
+                return False, {}, {}, intI_results
+
+            ref_sasm.setQrange((qf-100, qf))
+            for sasm in superimpose_sub_sasms:
+                sasm.setQrange((qf-100, qf))
+            high_q_similar, high_q_outliers = run_similarity_test(ref_sasm,
+                superimpose_sub_sasms, sim_test, sim_cor, sim_thresh)
+
+            ref_sasm.setQrange((qi, qf))
+            for sasm in superimpose_sub_sasms:
+                sasm.setQrange((qi, qf))
+
+            if fast and not high_q_similar:
+                return False, {}, {}, intI_results
+
+        else:
+            low_q_similar = True
+            high_q_similar = True
+            low_q_outliers = []
+            high_q_outliers = []
+    else:
+        low_q_similar = True
+        high_q_similar = True
+        low_q_outliers = []
+        high_q_outliers = []
+
+
+    #Test for more than one significant singular value
+    if len(sasms) > 1:
+        svd_results = significantSingularValues(sasms)
+
+        if fast and not svd_results['svals']==1:
+            return False, {}, svd_results, intI_results
+    else:
+        svd_results = {'svals': 1}
+
+
+    #Test for all frame similarity
+    if len(sasms) > 1:
+        all_similar, all_outliers = run_similarity_test(ref_sasm,
+            superimpose_sub_sasms, sim_test, sim_cor, sim_thresh)
+    else:
+        all_similar = True
+        all_outliers = []
+
+    similarity_results = {'all_similar'     : all_similar,
+        'low_q_similar'     : low_q_similar,
+        'high_q_similar'    : high_q_similar,
+        'max_idx'           : max_i_idx,
+        'all_outliers'      : all_outliers,
+        'low_q_outliers'    : low_q_outliers,
+        'high_q_outliers'   : high_q_outliers,
+        }
+
+    similar_valid = (all_similar and low_q_similar and high_q_similar)
+
+    valid = similar_valid and svd_results['svals']==1 and intI_valid and smoothed_intI_valid
+
+    return valid, similarity_results, svd_results, intI_results
+
+def run_similarity_test(ref_sasm, sasm_list, sim_test, sim_cor, sim_thresh):
+    if sim_test == 'CorMap':
+        pvals, corrected_pvals, failed_comparisons = SASProc.run_cormap_ref(sasm_list, ref_sasm, sim_cor)
+
+    if np.any(pvals<sim_thresh):
+        similar = False
+    else:
+        similar = True
+
+    return similar, np.argwhere(pvals<sim_thresh).flatten()
+
+def significantSingularValues(sasms):
+    """
+    Calculates number of significant singular values.
+
+    Returns both SVD results and number of significant singular values.
+    """
+
+    i = np.array([sasm.getI() for sasm in sasms])
+    err = np.array([sasm.getErr() for sasm in sasms])
+
+    i = i.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
+    err = err.T
+
+    err_mean = np.mean(err, axis = 1)
+    if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+        err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), err.shape)
+    else:
+        err_avg = np.array([err_mean for k in range(i.shape[1])]).T
+
+    svd_a = i/err_avg
+
+    if np.all(np.isfinite(svd_a)):
+        try:
+            svd_U, svd_s, svd_Vt = np.linalg.svd(svd_a, full_matrices = True)
+            continue_svd_analysis = True
+        except Exception:
+            continue_svd_analysis = False
+
+        if continue_svd_analysis:
+            svd_V = svd_Vt.T
+            svd_U_autocor = np.abs(np.array([np.correlate(svd_U[:,k],
+                svd_U[:,k], mode = 'full')[-svd_U.shape[0]+1] for k in range(svd_U.shape[1])]))
+            svd_V_autocor = np.abs(np.array([np.correlate(svd_V[:,k],
+                svd_V[:,k], mode = 'full')[-svd_V.shape[0]+1] for k in range(svd_V.shape[1])]))
+        else:
+            svd_U = []
+            svd_s = []
+            svd_V = []
+            svd_U_autocor = []
+            svd_V_autocor = []
+    else:
+        svd_U = []
+        svd_s = []
+        svd_V = []
+        svd_U_autocor = []
+        svd_V_autocor = []
+        continue_svd_analysis = False
+
+    if continue_svd_analysis:
+        #Attempts to figure out the significant number of singular values
+        point1 = 0
+        point2 = 0
+        point3 = 0
+
+        i = 0
+        ratio_found = False
+
+        while i < svd_s.shape[0]-1 and not ratio_found:
+            ratio = svd_s/svd_s[i]
+
+            if ratio[i+1] > 0.75:
+                point1 = i
+                ratio_found = True
+
+            i = i +1
+
+        if not ratio_found:
+            point1 = svd_s.shape[0]
+
+        u_points = np.where(svd_U_autocor > 0.6)[0]
+        index_list = []
+
+        if len(u_points) > 0:
+
+            for i in range(1,len(u_points)):
+                if u_points[i-1] +1 == u_points[i]:
+                    index_list.append(i)
+
+            point2 = len(index_list)
+
+            if point2 == 0:
+                if u_points[0] == 0:
+                    point2 =1
+            else:
+                point2 = point2 + 1
+
+        v_points = np.where(svd_V_autocor > 0.6)[0]
+        index_list = []
+
+        if len(v_points) > 0:
+
+            for i in range(1,len(v_points)):
+                if v_points[i-1] +1 == v_points[i]:
+                    index_list.append(i)
+
+            point3 = len(index_list)
+
+            if point3 == 0:
+                if v_points[0] == 0:
+                    point3 =1
+            else:
+                point3 = point3 + 1
+
+        plist = [point1, point2, point3]
+
+        mode, count = stats.mode(plist)
+
+        mode = mode[0]
+        count = count[0]
+
+        if count > 1:
+            svals = mode
+
+        elif np.mean(plist) > np.std(plist):
+            svals = int(round(np.mean(plist)))
+
+        if svals <= 0:
+            svals = 1 #Assume algorithm failure and set to 1 to continue other validation steps
+
+        svd_results = {'svals'  : svals,
+            'U'             : svd_U,
+            'V'             : svd_V,
+            'u_autocor'     : svd_U_autocor,
+            'v_autocor'     : svd_V_autocor,
+            }
+
+    else:
+        svd_results = {'svals': 1} #Default to let other analysis continue in validation steps
+
+    return svd_results
+
+def findBufferRange(buffer_sasms, intensity, avg_window, sim_test, sim_cor,
+    sim_thresh):
+    region_start = None
+    region_end = None
+
+    win_len = len(intensity)//2
+    if win_len % 2 == 0:
+        win_len = win_len+1
+    win_len = min(51, win_len)
+
+    order = min(5, win_len-1)
+
+    smoothed_data = smooth_data(intensity, window_length=win_len,
+        order=order)
+
+    norm_sdata = smoothed_data/np.max(smoothed_data)
+    peaks, peak_params = find_peaks(norm_sdata, height=0.4)
+
+    avg_window = avg_window
+    min_window_width = min(max(10, int(round(avg_window/2.))), len(intensity)//2)
+    if min_window_width < 2:
+        min_window_width = 2
+
+    if len(peaks) == 0:
+        start_window_size =  min_window_width
+        start_point = 0
+        end_point = len(intensity) - 1 - start_window_size
+
+    else:
+        max_peak_idx = np.argmax(peak_params['peak_heights'])
+        main_peak_width = int(round(peak_params['widths'][max_peak_idx]))
+
+        start_window_size = max(main_peak_width, min_window_width)
+        start_point = 0
+
+        if start_window_size == min_window_width:
+            end_point = len(intensity) - 1 - start_window_size
+        else:
+            end_point = int(round(peak_params['left_ips'][max_peak_idx]))
+            if end_point + start_window_size > len(intensity) - 1 - start_window_size:
+                end_point = len(intensity) - 1 - start_window_size
+
+    found_region = False
+    failed = False
+
+    window_size = start_window_size
+
+    while not found_region and not failed:
+        step_size = max(1, int(round(window_size/4.)))
+
+        region_starts = list(range(start_point, end_point, step_size))
+
+        region_starts = region_starts[::-1]
+
+        for idx in region_starts:
+            region_sasms = buffer_sasms[idx:idx+window_size+1]
+            frame_idx = list(range(idx, idx+window_size+1))
+            region_intensity = intensity[idx:idx+window_size+1]
+            valid, similarity_results, svd_results, intI_results = validateBuffer(region_sasms,
+                frame_idx, region_intensity, sim_test, sim_cor, sim_thresh, True)
+
+            if np.all([peak not in frame_idx for peak in peaks]) and valid:
+                found_region = True
+            else:
+                found_region = False
+
+            if found_region:
+                region_start = idx
+                region_end = idx+window_size
+                break
+
+        window_size = int(round(window_size/2.))
+
+        if window_size < min_window_width and not found_region:
+            failed = True
+
+    if end_point != len(intensity) - 1 - start_window_size and failed:
+        failed = False
+        window_size = start_window_size
+
+        start_point = int(round(peak_params['right_ips'][max_peak_idx]))
+        end_point = len(intensity) - 1 - start_window_size
+
+        if start_point + start_window_size > len(intensity) - 1 - start_window_size:
+            failed = True
+
+        while not found_region and not failed:
+            step_size = max(1, int(round(window_size/4.)))
+            region_starts = list(range(start_point, end_point, step_size))
+
+            for idx in region_starts:
+                region_sasms = buffer_sasms[idx:idx+window_size+1]
+                frame_idx = list(range(idx, idx+window_size+1))
+                region_intensity = intensity[idx:idx+window_size+1]
+                valid, similarity_results, svd_results, intI_results = validateBuffer(region_sasms,
+                    frame_idx, region_intensity, sim_test, sim_cor, sim_thresh, True)
+
+                if np.all([peak not in frame_idx for peak in peaks]) and valid:
+                    found_region = True
+                else:
+                    found_region = False
+
+                if found_region:
+                    region_start = idx
+                    region_end = idx+window_size
+                    break
+
+            window_size = int(round(window_size/2.))
+
+            if window_size < min_window_width and not found_region:
+                failed = True
+
+    success = not failed
+
+    return success, region_start, region_end
+
+def validateSample(sub_sasms, frame_idx, intensity, rg, vcmw, vpmw,
+    sim_test, sim_cor, sim_thresh, fast):
+    max_i_idx = np.argmax(intensity)
+
+    ref_sasm = copy.deepcopy(sub_sasms[max_i_idx])
+    superimpose_sub_sasms = copy.deepcopy(sub_sasms)
+    SASProc.superimpose(ref_sasm, superimpose_sub_sasms, 'Scale')
+    qi, qf = ref_sasm.getQrange()
+
+    if np.any(rg==-1):
+        param_range_valid = False
+        param_bad_frames = np.argwhere(rg==-1).flatten()
+    else:
+        param_range_valid = True
+        param_bad_frames = []
+
+    if fast and not param_range_valid:
+        return False, {}, {}, {}, {}
+
+    if len(sub_sasms) > 1:
+        rg_test = stats.spearmanr(rg, frame_idx)
+    else:
+        rg_test = [1,1]
+
+    if not np.isnan(rg_test[1]):
+        rg_valid = rg_test[1]>0.05
+    else:
+        rg_valid = False
+
+    if fast and not rg_valid:
+        return False, {}, {}, {}, {}
+
+    if len(sub_sasms) > 1:
+        vcmw_test = stats.spearmanr(vcmw, frame_idx)
+    else:
+        vcmw_test = [1,1]
+
+    if not np.isnan(vcmw_test[1]):
+        vcmw_valid = vcmw_test[1]>0.05
+    else:
+        vcmw_valid = False
+
+    if fast and not vcmw_valid:
+        return False, {}, {}, {}, {}
+
+    if len(sub_sasms) > 1:
+        vpmw_test = stats.spearmanr(vpmw, frame_idx)
+    else:
+        vpmw_test = [1,1]
+
+    if not np.isnan(vpmw_test[1]):
+        vpmw_valid = vpmw_test[1]>0.05
+    else:
+        vpmw_valid = False
+
+    param_valid = (param_range_valid and rg_valid and vcmw_valid and vpmw_valid)
+
+    param_results = {'rg_r' : rg_test[0],
+        'rg_pval'           : rg_test[1],
+        'rg_valid'          : rg_valid,
+        'vcmw_r'            : vcmw_test[0],
+        'vcmw_pval'         : vcmw_test[1],
+        'vcmw_valid'        : vcmw_valid,
+        'vpmw_r'            : vpmw_test[0],
+        'vpmw_pval'         : vpmw_test[1],
+        'vpmw_valid'        : vpmw_valid,
+        'param_range_valid' : param_range_valid,
+        'param_bad_frames'  : param_bad_frames,
+        'param_valid'       : param_valid,
+        }
+
+    if fast and not param_valid:
+        return False, {}, param_results, {}, {}
+
+
+    #Test for regional frame similarity
+    if len(sub_sasms) > 1:
+        if qf-qi>200:
+            ref_sasm.setQrange((qi, qi+100))
+            for sasm in superimpose_sub_sasms:
+                sasm.setQrange((qi, qi+100))
+            low_q_similar, low_q_outliers = run_similarity_test(ref_sasm,
+                superimpose_sub_sasms, sim_test, sim_cor, sim_thresh)
+
+            if fast and not low_q_similar:
+                ref_sasm.setQrange((qi, qf))
+                for sasm in superimpose_sub_sasms:
+                    sasm.setQrange((qi, qf))
+                return False, {}, param_results, {}, {}
+
+            ref_sasm.setQrange((qf-100, qf))
+            for sasm in superimpose_sub_sasms:
+                sasm.setQrange((qf-100, qf))
+
+            high_q_similar, high_q_outliers = run_similarity_test(ref_sasm,
+                superimpose_sub_sasms, sim_test, sim_cor, sim_thresh)
+
+            ref_sasm.setQrange((qi, qf))
+            for sasm in superimpose_sub_sasms:
+                sasm.setQrange((qi, qf))
+
+            if fast and not high_q_similar:
+                return False, {}, param_results, {}, {}
+
+        else:
+            low_q_similar = True
+            high_q_similar = True
+            low_q_outliers = []
+            high_q_outliers = []
+    else:
+        low_q_similar = True
+        high_q_similar = True
+        low_q_outliers = []
+        high_q_outliers = []
+
+
+    #Test for more than one significant singular value
+    if len(sub_sasms) > 1:
+        svd_results = significantSingularValues(sub_sasms)
+    else:
+        svd_results = {'svals': 1}
+
+    if fast and not svd_results['svals']==1:
+        return False, {}, param_results, svd_results, {}
+
+
+    # Test whether averaging all selected frames is helping signal to noise,
+    # or if inclusion of some are hurting because they're too noisy
+
+    if len(sub_sasms) > 1:
+        sort_idx = np.argsort(intensity)[::-1]
+        old_s_to_n = 0
+        sn_valid = True
+        i = 0
+
+        while sn_valid and i < len(sort_idx):
+            idxs = sort_idx[:i+1]
+            avg_list = [sub_sasms[idx] for idx in idxs]
+
+            average_sasm = SASProc.average(avg_list, forced=True)
+            avg_i = average_sasm.getI()
+            avg_err = average_sasm.getErr()
+
+            s_to_n = np.abs(avg_i/avg_err).mean()
+
+            if s_to_n >= old_s_to_n:
+                old_s_to_n = s_to_n
+                i = i+1
+            else:
+                sn_valid = False
+    else:
+        sort_idx = []
+        i = 0
+        sn_valid = True
+
+    sn_results = {'low_sn'  : np.sort(sort_idx[i:]),
+        'sn_valid'  : sn_valid,
+        }
+
+    if fast and not sn_valid:
+        return False, {}, param_results, svd_results, sn_results
+
+
+    #Test for all frame similarity
+    if len(sub_sasms) > 1:
+        all_similar, all_outliers = run_similarity_test(ref_sasm,
+            superimpose_sub_sasms, sim_test, sim_cor, sim_thresh)
+    else:
+        all_similar = True
+        all_outliers = []
+
+    similarity_results = {'all_similar'     : all_similar,
+        'low_q_similar'     : low_q_similar,
+        'high_q_similar'    : high_q_similar,
+        'max_idx'           : max_i_idx,
+        'all_outliers'      : all_outliers,
+        'low_q_outliers'    : low_q_outliers,
+        'high_q_outliers'   : high_q_outliers,
+        }
+
+    similar_valid = (all_similar and low_q_similar and high_q_similar)
+
+    valid = (similar_valid and param_valid and svd_results['svals']==1 and sn_valid)
+
+    return valid, similarity_results, param_results, svd_results, sn_results
+
+def findSampleRange(sub_sasms, intensity, rg, vcmw, vpmw, avg_window, sim_test,
+    sim_cor, sim_thresh):
+    win_len = len(intensity)//2
+    if win_len % 2 == 0:
+        win_len = win_len+1
+    win_len = min(51, win_len)
+
+    order = min(5, win_len-1)
+
+    smoothed_data = smooth_data(intensity, window_length=win_len,
+        order=order)
+
+    norm_sdata = smoothed_data/np.max(smoothed_data)
+    peaks, peak_params = find_peaks(norm_sdata)
+
+    if len(peaks) == 0:
+        return False, None, None
+
+    max_peak_idx = np.argmax(peak_params['peak_heights'])
+
+    main_peak_pos = peaks[max_peak_idx]
+    main_peak_width = int(round(peak_params['widths'][max_peak_idx]))
+
+    avg_window = avg_window
+    min_window_width = max(3, int(round(avg_window/2.)))
+    search_region = main_peak_width*2
+
+    window_size = main_peak_width
+    start_point = main_peak_pos - int(round(search_region/2.))
+
+    found_region = False
+    failed = False
+
+    while not found_region and not failed:
+        step_size = max(1, int(round(window_size/8.)))
+
+        end_point = main_peak_pos + int(round(search_region/2.)) - window_size
+        num_pts_gen = int(round((end_point-start_point)/step_size/2.))
+
+        mid_point = main_peak_pos-int(round(window_size/2.))
+
+        region_starts = []
+
+        for i in range(num_pts_gen+1):
+            if i == 0:
+                if mid_point > 0:
+                    region_starts.append(mid_point)
+            else:
+                if (mid_point+ i*step_size + window_size < len(intensity)
+                    and mid_point+ i*step_size> 0):
+                    region_starts.append(mid_point+i*step_size)
+                if mid_point - i*step_size > 0:
+                    region_starts.append(mid_point-i*step_size)
+
+        for idx in region_starts:
+            region_sasms = sub_sasms[idx:idx+window_size+1]
+            region_intensity = intensity[idx:idx+window_size+1]
+            frame_idx = list(range(idx, idx+window_size+1))
+            rg_region = rg[idx:idx+window_size+1]
+            vcmw_region = vcmw[idx:idx+window_size+1]
+            vpmw_region = vpmw[idx:idx+window_size+1]
+            # valid, similarity_results, param_results, svd_results, sn_results = self._validateSample(region_sasms,
+            #     , True)
+            (valid, similarity_results, param_results, svd_results,
+                sn_results) = validateSample(region_sasms, frame_idx,
+                region_intensity, rg_region, vcmw_region, vpmw_region,
+                sim_test, sim_cor, sim_thresh, True)
+            found_region = valid
+
+            if found_region:
+                region_start = idx
+                region_end = idx+window_size
+                break
+
+        window_size = int(round(window_size/2.))
+
+        if window_size < min_window_width and not found_region:
+            failed = True
+
+    success = not failed
+
+    return success, region_start, region_end

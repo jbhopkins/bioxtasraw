@@ -366,11 +366,11 @@ class HeaderListCtrl(wx.ListCtrl):
         return item.GetText()
 
     def setColumnText(self, index, col, text):
-        self.SetStringItem(index, col, str(text))
+        self.SetItem(index, col, str(text))
 
     def clearColumn(self, col):
         for idx in range(0, self.GetItemCount()):
-            self.SetStringItem(idx, 2, '')
+            self.SetItem(idx, 2, '')
 
     def clear(self):
         self.ClearAll()
@@ -673,7 +673,7 @@ class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
                     self.lc.SetItem(num_items, 1, str(filehdr[key]))
                 else:
                     self.lc.InsertStringItem(num_items, key)
-                    self.lc.SetStringItem(num_items, 1, str(filehdr[key]))
+                    self.lc.SetItem(num_items, 1, str(filehdr[key]))
                 self.file_hdr_list_dict[key] = num_items
 
 
@@ -702,7 +702,7 @@ class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
                     self.lc.SetItem(num_items, 1, str(imghdr[key]))
                 else:
                     self.lc.InsertStringItem(num_items, key)
-                    self.lc.SetStringItem(num_items, 1, str(imghdr[key]))
+                    self.lc.SetItem(num_items, 1, str(imghdr[key]))
                 self.img_hdr_list_dict[key] = num_items
 
             self.lc.SetColumnWidth(0, wx.LIST_AUTOSIZE)
@@ -719,8 +719,8 @@ class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
                 else: hdr = self.file_hdr_list_dict
 
                 if data[0] in hdr:
-                    self.lc.SetStringItem(hdr[data[0]], 2, str(each))
-                    self.lc.SetStringItem(hdr[data[0]], 3, str(mod))
+                    self.lc.SetItem(hdr[data[0]], 2, str(each))
+                    self.lc.SetItem(hdr[data[0]], 3, str(mod))
 
         self.lc.Update()
 
@@ -843,14 +843,14 @@ class NormListCtrl(wx.ListCtrl):
             self.SetItem(no_of_items, 1, expr)
         else:
             self.InsertStringItem(no_of_items, op)
-            self.SetStringItem(no_of_items, 1, expr)
+            self.SetItem(no_of_items, 1, expr)
 
     def moveItemUp(self, idx):
         if idx > 0:
             data = self.getItemData(idx)
             self.DeleteItem(idx)
             self.InsertStringItem(idx-1, data[0])
-            self.SetStringItem(idx-1, 1, data[1])
+            self.SetItem(idx-1, 1, data[1])
             self.Select(idx-1, True)
 
     def moveItemDown(self, idx):
@@ -858,7 +858,7 @@ class NormListCtrl(wx.ListCtrl):
             data = self.getItemData(idx)
             self.DeleteItem(idx)
             self.InsertStringItem(idx+1, data[0])
-            self.SetStringItem(idx+1, 1, data[1])
+            self.SetItem(idx+1, 1, data[1])
             self.Select(idx+1, True)
 
     def getItemData(self, idx):
@@ -935,16 +935,16 @@ class OnlineListCtrl(wx.ListCtrl):
             self.SetItem(no_of_items, 2, pos)
         else:
             self.InsertStringItem(no_of_items, filt)
-            self.SetStringItem(no_of_items, 1, expr)
-            self.SetStringItem(no_of_items, 2, pos)
+            self.SetItem(no_of_items, 1, expr)
+            self.SetItem(no_of_items, 2, pos)
 
     def moveItemUp(self, idx):
         if idx > 0:
             data = self.getItemData(idx)
             self.DeleteItem(idx)
             self.InsertStringItem(idx-1, data[0])
-            self.SetStringItem(idx-1, 1, data[1])
-            self.SetStringItem(idx-1, 2, data[2])
+            self.SetItem(idx-1, 1, data[1])
+            self.SetItem(idx-1, 2, data[2])
             self.Select(idx-1, True)
 
     def moveItemDown(self, idx):
@@ -952,8 +952,8 @@ class OnlineListCtrl(wx.ListCtrl):
             data = self.getItemData(idx)
             self.DeleteItem(idx)
             self.InsertStringItem(idx+1, data[0])
-            self.SetStringItem(idx+1, 1, data[1])
-            self.SetStringItem(idx+1, 2, data[2])
+            self.SetItem(idx+1, 1, data[1])
+            self.SetItem(idx+1, 2, data[2])
             self.Select(idx+1, True)
 
     def getItemData(self, idx):
@@ -1029,14 +1029,14 @@ class MetadataListCtrl(wx.ListCtrl):
             self.SetItem(no_of_items, 1, expr)
         else:
             self.InsertStringItem(no_of_items, op)
-            self.SetStringItem(no_of_items, 1, expr)
+            self.SetItem(no_of_items, 1, expr)
 
     def moveItemUp(self, idx):
         if idx > 0:
             data = self.getItemData(idx)
             self.DeleteItem(idx)
             self.InsertStringItem(idx-1, data[0])
-            self.SetStringItem(idx-1, 1, data[1])
+            self.SetItem(idx-1, 1, data[1])
             self.Select(idx-1, True)
 
     def moveItemDown(self, idx):
@@ -1044,7 +1044,7 @@ class MetadataListCtrl(wx.ListCtrl):
             data = self.getItemData(idx)
             self.DeleteItem(idx)
             self.InsertStringItem(idx+1, data[0])
-            self.SetStringItem(idx+1, 1, data[1])
+            self.SetItem(idx+1, 1, data[1])
             self.Select(idx+1, True)
 
     def getItemData(self, idx):

@@ -533,7 +533,7 @@ class SaveAnalysisListCtrl(wx.ListCtrl):
         if wx.version().split()[0].strip()[0] == '4':
             self.SetItem(no_of_items, 0, expr)
         else:
-            self.SetStringItem(no_of_items, 0, expr)
+            self.SetItem(no_of_items, 0, expr)
 
     def moveItemUp(self, idx):
         if idx > 0:
@@ -544,7 +544,7 @@ class SaveAnalysisListCtrl(wx.ListCtrl):
                 self.SetItem(idx-1, 1, data[1])
             else:
                 self.InsertStringItem(idx-1, data[0])
-                self.SetStringItem(idx-1, 1, data[1])
+                self.SetItem(idx-1, 1, data[1])
             self.Select(idx-1, True)
 
     def moveItemDown(self, idx):
@@ -556,7 +556,7 @@ class SaveAnalysisListCtrl(wx.ListCtrl):
                 self.SetItem(idx+1, 1, data[1])
             else:
                 self.InsertStringItem(idx+1, data[0])
-                self.SetStringItem(idx+1, 1, data[1])
+                self.SetItem(idx+1, 1, data[1])
             self.Select(idx+1, True)
 
     def getItemData(self, idx):
