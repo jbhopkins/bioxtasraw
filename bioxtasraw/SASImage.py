@@ -219,7 +219,9 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
         # ********************
         try:
             mask_patches = SASMask.createMaskFromHdr(img, img_hdr, flipped = raw_settings.get('DetectorFlipped90'))
+            masks = raw_settings.get('Masks')
             bs_mask_patches = masks['BeamStopMask'][1]
+            tbs_mask = masks['TransparentBSMask'][0]
 
             if bs_mask_patches is not None:
                 all_mask_patches = mask_patches + bs_mask_patches
@@ -245,24 +247,29 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
         result = getBindListDataFromHeader(raw_settings, img_hdr, file_hdr,
             keys=['Sample Detector Distance', 'Detector X Pixel Size',
             'Detector Y Pixel Size', 'Wavelength', 'Beam X Center',
-            'Beam Y Center', 'Detector Tilt', 'Detector Tilt Plane Rotation'])
+            'Beam Y Center', 'Detector Tilt', 'Detector Tilt Plane Rotation',
+            'Detector Pixel Size'])
 
         if result[0] is not None:
             sd_distance = result[0]
         if result[1] is not None:
             pixel_size_x = result[1]
         if result[2] is not None:
-            pixel_size_y = result[1]
+            pixel_size_y = result[2]
         if result[3] is not None:
-            wavelength = result[2]
+            wavelength = result[3]
         if result[4] is not None:
-            x_c = result[3]
+            x_c = result[4]
         if result[5] is not None:
-            y_c = result[4]
+            y_c = result[5]
         if result[6] is not None:
             det_tilt = result[6]
         if result[7] is not None:
             det_tilt_plan_rot = result[7]
+        if result[8] is not None:
+            pixel_size_x = result[8]
+            pixel_size_y = result[8]
+            #Backwards compatability with old bindings for pixel size
 
     # ********* WARNING WARNING WARNING ****************#
     # Hmm.. axes start from the lower left, but array coords starts
