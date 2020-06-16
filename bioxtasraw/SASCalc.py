@@ -3088,3 +3088,124 @@ def findSampleRange(sub_sasms, intensity, rg, vcmw, vpmw, avg_window, sim_test,
     success = not failed
 
     return success, region_start, region_end
+
+def validateBaselineRange(sasms, frame_idx, intensity, bl_type, ref_sasms, start,
+    sim_test, sim_cor, sim_thresh, fast):
+    other_results = {}
+
+    if bl_type == 'Integral':
+        valid, similarity_results, svd_results, intI_results = validateBuffer(sasms,
+            frame_idx, intensity, sim_test, sim_cor, sim_thresh,
+    fast)
+
+        if fast and not valid:
+            return valid, similarity_results, svd_results, intI_results, other_results
+    else:
+        valid = True
+        similarity_results = {}
+        svd_results = {}
+        intI_results = {}
+
+
+    if bl_type == 'Integral':
+        # if start and frames[0] != 0:
+        #     full_frames = range(0, frames[-1]+1)
+        #     full_sasms = [all_sasms[i] for i in full_frames]
+
+        #     f_valid, f_similarity_results, f_svd_results, f_intI_results = self._validateBuffer(full_sasms,
+        #     full_frames, True)
+
+        #     valid = valid and f_valid
+
+        #     other_results['range_valid'] = f_valid
+
+        # elif not start and frames[-1] != len(all_sasms)-1:
+        #     full_frames = range(frames[0], len(all_sasms))
+        #     full_sasms = [all_sasms[i] for i in full_frames]
+
+        #     f_valid, f_similarity_results, f_svd_results, f_intI_results = self._validateBuffer(full_sasms,
+        #     full_frames, True)
+
+        #     valid = valid and f_valid
+
+        #     other_results['range_valid'] = f_valid
+
+        # else:
+        #     other_results['range_valid'] = True
+
+        # if fast and not valid:
+        #     return valid, similarity_results, svd_results, intI_results, other_results
+
+        if not start:
+            start_avg_sasm = SASProc.average(ref_sasms, forced=True)
+            end_avg_sasm = SASProc.average(sasms, forced=True)
+
+            diff_sasm = SASProc.subtract(end_avg_sasm, start_avg_sasm, forced=True)
+
+            diff_i = diff_sasm.getI()
+            end_err = end_avg_sasm.getErr()
+
+            neg_idx = diff_i<0
+
+            outlier_idx = np.abs(diff_i[neg_idx]) > 4*np.abs(end_err[neg_idx])
+
+            if np.any(outlier_idx):
+                other_results['zero_valid'] = False
+                other_results['zero_outliers'] = outlier_idx
+                other_results['zero_q'] = diff_sasm.getQ()
+
+            else:
+                other_results['zero_valid'] = True
+
+            valid = valid and other_results['zero_valid']
+
+        if fast and not valid:
+            return valid, similarity_results, svd_results, intI_results, other_results
+
+    elif bl_type == 'Linear':
+        if not start:
+            start_ints = np.array([sasm.getI() for sasm in ref_sasms])
+            end_ints = np.array([sasm.getI() for sasm in sasms])
+
+            start_ints_err = np.array([sasm.getErr() for sasm in ref_sasms])
+            end_ints_err = np.array([sasm.getErr() for sasm in sasms])
+
+            start_fit_results = []
+            end_fit_results = []
+
+            j = 0
+            fit_valid = True
+
+            while fit_valid and j < end_ints.shape[1]-1:
+
+                s_a, s_b, s_cov_a, s_cov_b = weighted_lin_reg(np.arange(start_ints.shape[0]),
+                    start_ints[:, j], start_ints_err[:, j])
+                start_fit_results.append((s_a, s_b, s_cov_a, s_cov_b))
+
+                e_a, e_b, e_cov_a, e_cov_b = weighted_lin_reg(np.arange(end_ints.shape[0]),
+                    end_ints[:, j], end_ints_err[:, j])
+                end_fit_results.append((e_a, e_b, e_cov_a, e_cov_b))
+
+
+                if s_a != -1 and e_a != -1:
+                    a_diff = abs(s_a - e_a)
+                    b_diff = abs(s_b - e_b)
+
+                    a_delta = 2*s_cov_a + 2*e_cov_a
+                    b_delta = 2*s_cov_b + 2*e_cov_b
+
+                    if a_diff > a_delta or b_diff > b_delta:
+                        fit_valid = False
+
+                j = j + 1
+
+            other_results['fit_valid'] = fit_valid
+            # other_results['start_fits'] = start_fit_results
+            # other_results['end_fits'] = end_fit_results
+
+            valid = valid and other_results['fit_valid']
+
+        if fast and not valid:
+            return valid, similarity_results, svd_results, intI_results, other_results
+
+    return valid, similarity_results, svd_results, intI_results, other_results
