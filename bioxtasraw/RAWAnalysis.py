@@ -19201,21 +19201,6 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         return valid, similarity_results, param_results, svd_results, sn_results
 
-    def _similarity(self, ref_sasm, sasm_list):
-        sim_thresh = self.raw_settings.get('similarityThreshold')
-        sim_test = self.raw_settings.get('similarityTest')
-        sim_cor = self.raw_settings.get('similarityCorrection')
-
-        similar, similar_idx = SASCalc.run_similarity_test(ref_sasm, sasm_list,
-            sim_test, sim_cor, sim_thresh)
-
-        return similar, similar_idx
-
-    def _singularValue(self, sasms):
-        svd_results = SASCalc.significantSingularValues(sasms)
-
-        return svd_results
-
     def _onToMainPlot(self, evt):
         t = threading.Thread(target=self._toMainPlot)
         t.daemon = True

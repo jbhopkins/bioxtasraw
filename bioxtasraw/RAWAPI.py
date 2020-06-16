@@ -4056,7 +4056,7 @@ def find_buffer_range(series, profile_type='unsub', int_type='total', q_val=None
     Parameters
     ----------
     series: list or :class:`bioxtasraw.SECM.SECM`
-        The input series to be deconvolved. It should either be a list
+        The input series to find the buffer range for. It should either be a list
         of individual scattering profiles (:class:`bioxtasraw.SASM.SASM`) or
         a single series object (:class:`bioxtasraw.SECM.SECM`).
     profile_type: {'unsub', 'sub', 'baseline'} str, optional
@@ -4148,9 +4148,9 @@ def validate_buffer_range(series, buf_range, profile_type='unsub',
     Parameters
     ----------
     series: list or :class:`bioxtasraw.SECM.SECM`
-        The input series to be deconvolved. It should either be a list
-        of individual scattering profiles (:class:`bioxtasraw.SASM.SASM`) or
-        a single series object (:class:`bioxtasraw.SECM.SECM`).
+        The input series to validate the buffer range for. It should either be
+        a list of individual scattering profiles (:class:`bioxtasraw.SASM.SASM`)
+        or a single series object (:class:`bioxtasraw.SECM.SECM`).
     buf_range: list
         A list defining the input buffer range to be validated. The list is made
         up of a set of sub-ranges, each defined by an entry in the list. Each
@@ -4184,7 +4184,7 @@ def validate_buffer_range(series, buf_range, profile_type='unsub',
         are checked. Using a fast test is best when trying to automatically
         determine a buffer range, something which can take many separate
         validation checks. A normal test is best when trying to determine what,
-        if anything, about your buffer selected region might be problematic.
+        if anything, about your selected region might be problematic.
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
         RAW settings containing relevant parameters. If provided, sim_test,
         sim_cor, and sim_threshold are overridden by the values in the
@@ -4232,6 +4232,11 @@ def validate_buffer_range(series, buf_range, profile_type='unsub',
         The same keys are provided but with smoothed in front, indicating
         the test results on the smoothed intensity.
     """
+    if settings is not None:
+        sim_thresh = settings.get('similarityThreshold')
+        sim_test = settings.get('similarityTest')
+        sim_cor = settings.get('similarityCorrection')
+
     frame_idx = []
     for item in buf_range:
         frame_idx = frame_idx + list(range(item[0], item[1]+1))
@@ -4261,23 +4266,692 @@ def validate_buffer_range(series, buf_range, profile_type='unsub',
 
     return valid, similarity_results, svd_results, intI_results
 
-def set_buffer_range():
-    pass
+def set_buffer_range(series, buffer_range, int_type='total', q_val=None,
+    q_range=None, already_subtracted=False, window_size=5, settings=None,
+    calc_thresh=1.02, sim_test='CorMap', sim_cor='Bonferroni', sim_thresh=0.01,
+    error_weight=True, vp_density=0.83*10**(-3), vp_cutoff='Default',
+    vp_qmax=0.5, vc_protein=True, vc_cutoff='Manual', vc_qmax=0.3,
+    vc_a_prot=1.0, vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934):
+    """
+    Sets the buffer range for a series, carries out the subtraction, and
+    calculates Rg and MW vs. frame number.
 
-def find_sample_range():
-    pass
+    Parameters
+    ----------
+    series: :class:`bioxtasraw.SECM.SECM`
+        The input series to set the buffer range for.
+    buf_range: list
+        A list defining the input buffer range to be set. The list is made
+        up of a set of sub-ranges, each defined by an entry in the list. Each
+        sub-range item should be a list or tuple where the first entry is the
+        starting index of the range and the second entry is the ending index
+        of the range. So a list like ``[[0, 10], [100, 110]]`` would define
+        a buffer range consisting of two sub-ranges, the first from profiles 0-10
+        in the series and the second from profiles 100-110 in the series.
+    int_type: {'total', 'mean', 'q_val', 'q_range'} str, optional
+        The intensity type to use when setting the buffer range. Total
+        integrated intensity - 'total', mean intensity - 'mean', intensity at
+        a particular q value - 'q_val', intensity in a given q range -
+        'q_range'. Use of q_val or q_range requires the corresponding parameter
+        to be provided.
+    q_val: float, optional
+        If int_type is 'q_val', the q value used for the intensity is set by
+        this parameter.
+    q_range: list, optional
+        This should have two entries, both floats. The first is the minimum q
+        value of the range, the second the maximum q value of the range. If
+        int_type is 'q_range', the q range used for the intensity is set by
+        this parameter.
+    window_size: int, optional
+        The size of the average window used when calculating Rg and MW.
+        So if the window is 5, 5 a window is size 5 is slid along the series,
+        and profiles in that window are averaged before being used to calculate
+        Rg and MW. For example, frames 1-5, 2-6, 3-7, etc would be averaged and
+        then have Rg and MW calculated from that average.
+    already_subtracted: bool, optional
+        Whether the series is already subtracted. If True, any buffer_range
+        input is ignored and the series unsubtracted profiles are set as the
+        subtracted profiles. Defaults to False
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, calc_thresh,
+        sim_test, sim_cor, sim_thresh, err_weight, vp_density, vp_cutoff,
+        vp_qmax, vc_protein, vc_cutoff, and vc_qmax are overridden by the
+        values in the settings.
+    calc_thresh: float, optional
+        If the ratio of the scattering profile intensity to the average buffer
+        intensity is greater than this threshold, the Rg and MW for the profile
+        is calculated. Defaults to 1.02.
+    sim_test: {'CorMap'} str, optional
+        Sets the type of similarity test to be used. Currently only CorMap is
+        supported as an option. Is overridden if settings are provided.
+    sim_cor: {'Bonferroni', 'None'} str, optional
+        Sets the multiple testing correction to be used as part of the similarity
+        test. Default is Bonferroni. Is overridden if settings are provided.
+    sim_thresh: float, optional
+        Sets the p value threshold for the similarity test. A higher value is
+        a more strict test (range from 0-1). Is overridden if settings are
+        provided.
+    error_weight: bool, optional
+        Whether to use error weighting when calculating the Rg.
+    vp_density: float, optional
+        The density used for the Porod volume M.W. calculation in kDa/A^3.
+        Defaults to 0.83*10**(-3).
+    vp_cutoff: {''Default', '8/Rg', 'log(I0/I(q))', 'Manual''} str, optional
+        The method to use to calculate the maximum q value used for the
+        Porod volume M.W. calculation. Defaults to 'Default'
+    vp_qmax: float, optional
+        The maximum q value to be used if the 'Manual' cutoff method is
+        selected for the Porod volume M.W. calculation. Defaults to 0.5.
+    vc_protein: bool
+        True if the sample is protein, False if the sample is RNA. Determines
+        which set of coefficients to use for calculating M.W.
+    vc_cutoff: {''Default', '8/Rg', 'log(I0/I(q))', 'Manual''} str, optional
+        The method to use to calculate the maximum q value used for the
+        M.W. calculation. Defaults to 'Manual'
+    vc_qmax: float, optional
+        The maximum q value to be used if the 'Manual' cutoff method is
+        selected. Defaults to 0.3.
+    vc_a_prot: float
+        The volume of correlation A coefficient for protein. Not recommended
+        to be changed.
+    vc_b_prot: float
+        The volume of correlation B coefficient for protein. Not recommended
+        to be changed. Note that here B is defined as 1/B from the original paper.
+    vc_a_rna: float
+        The volume of correlation A coefficient for RNA. Not recommended to
+        be changed.
+    vc_b_rna: float
+        The volume of correlation B coefficient for RNA. Not recommended to
+        be changed. Note that here B is defined as 1/B from the original paper.
 
-def validate_sample_range():
-    pass
+    Returns
+    -------
+    sub_profiles: list
+        A list of :class:`SASM.SASM` subtracted profiles. Each profile is created
+        by creating an average buffer from the range defined by buffer_range
+        and subtracting that from every unsubtracted profile in the series.
+    rg: :class:`numpy.array`
+        An array of the Rg values calculated for each subtracted profile. If
+        no Rg value could be calculated then the value is -1. Each array index
+        is the Rg corresponding to the subtracted profile at that index in
+        the sub_profiles list.
+    rger: :class:`numpy.array`
+        An array of the uncertainty in the Rg values calculated for each
+        subtracted profile. If no Rg value could be calculated then the
+        value is -1. Each array index is the uncertainty corresponding to the
+        subtracted profile at that index in  the sub_profiles list.
+    i0: :class:`numpy.array`
+        An array of the I(0) values calculated for each subtracted profile. If
+        no I(0) value could be calculated then the value is -1. Each array index
+        is the I(0) corresponding to the subtracted profile at that index in
+        the sub_profiles list.
+    i0er: :class:`numpy.array`
+        An array of the uncertainty in the I(0) values calculated for each
+        subtracted profile. If no I(0) value could be calculated then the
+        value is -1. Each array index is the uncertainty corresponding to the
+        subtracted profile at that index in  the sub_profiles list.
+    vcmw: :class:`numpy.array`
+        An array of the volume of correlation M.W. values calculated for each
+        subtracted profile. If no M.W. value could be calculated then the value
+        is -1. Each array index is the M.W. corresponding to the subtracted
+        profile at that index in the sub_profiles list.
+    vcmwer: :class:`numpy.array`
+        An array of the uncertainty in the volume of correlation M.W. values
+        calculated for each subtracted profile. If no M.W. value could be
+        calculated then the value is -1. Each array index is the uncertainty
+        corresponding to the subtracted profile at that index in  the
+        sub_profiles list.
+    vpmw: :class:`numpy.array`
+        An array of the Porod volume M.W. values calculated for each subtracted
+        profile. If no M.W. value could be calculated then the value is -1.
+        Each array index is the M.W. corresponding to the subtracted profile
+        at that index in the sub_profiles list.
+    """
 
-def set_sample_range():
-    pass
+    if settings is not None:
+        calc_thresh = settings.get('secCalcThreshold')
+        sim_thresh = settings.get('similarityThreshold')
+        sim_test = settings.get('similarityTest')
+        sim_cor = settings.get('similarityCorrection')
 
-def baseline_correction_linear():
-    pass
+        error_weight = settings.get('errorWeight')
 
-def baseline_correction_integral():
+        vp_cutoff = settings.get('MWVpCutoff')
+        vp_density = settings.get('MWVpRho')
+        vp_qmax = settings.get('MWVpQmax')
+
+        vc_cutoff = settings.get('MWVcCutoff')
+        vc_type = settings.get('MWVcType')
+        vc_qmax = settings.get('MWVcQmax')
+
+        if vc_type == 'Protein':
+            vc_protein = True
+        else:
+            vc_protein = False
+
+    if not already_subtracted:
+        avg_sasm, success, err = series.averageFrames(buffer_range, 'unsub',
+            sim_test, sim_thresh, sim_cor, True)
+
+        sub_profiles, use_sub_profiles = series.subtractAllSASMs(avg_sasm, int_type,
+            calc_thresh, q_val, q_range)
+    else:
+        avg_sasm = None
+        sub_profiles = series.getAllSASMs()
+        use_sub_profiles = [True for i in range(len(sub_profiles))]
+        buffer_range = []
+
+    success, results = SASCalc.run_secm_calcs(sub_profiles, use_sub_profiles,
+        window_size, vc_protein, error_weight, vp_density, vp_cutoff,
+        vp_qmax, vc_cutoff, vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna,
+        vc_b_rna)
+
+    if vc_protein:
+        mol_type = 'Protein'
+    else:
+        mol_type = 'RNA'
+
+    if success:
+        rg = results['rg']
+        rger = results['rger']
+        i0 = results['i0']
+        i0er = results['i0er']
+        vcmw = results['vcmw']
+        vcmwer = results['vcmwer']
+        vpmw = results['vpmw']
+    else:
+        rg = np.zeros(len(sub_profiles),dtype=float)-1
+        rger = np.zeros(len(sub_profiles),dtype=float)-1
+        i0 = np.zeros(len(sub_profiles),dtype=float)-1
+        i0er = np.zeros(len(sub_profiles),dtype=float)-1
+        vcmw = np.zeros(len(sub_profiles),dtype=float)-1
+        vcmwer = np.zeros(len(sub_profiles),dtype=float)-1
+        vpmw = np.zeros(len(sub_profiles),dtype=float)-1
+
+    series.buffer_range = buffer_range
+    series.already_subtracted = already_subtracted
+    series.average_buffer_sasm = avg_sasm
+    series.setSubtractedSASMs(sub_profiles, use_sub_profiles)
+
+    series.window_size = window_size
+    series.mol_type = mol_type
+    series.mol_density = vp_density
+
+    if rg.size > 0 and success:
+        series.setCalcValues(rg, rger, i0, i0er, vcmw, vcmwer, vpmw)
+        series.calc_has_data = True
+
+    return sub_profiles, rg, rger, i0, i0er, vcmw, vcmwer, vpmw
+
+def series_calc(sub_profiles, window_size=5, settings=None, error_weight=True,
+    vp_density=0.83*10**(-3), vp_cutoff='Default', vp_qmax=0.5,
+    vc_protein=True, vc_cutoff='Manual', vc_qmax=0.3, vc_a_prot=1.0,
+    vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934):
+    """
+    Calculates Rg and MW for the input subtracted profiles. If you are working
+    with a :class:`SECM.SECM` series object then use :func:`set_buffer_range`
+    instead of this function.
+
+    Parameters
+    ----------
+    sub_profiles: list
+        A list of subtracted profiles (:class:`SASM.SASM`) to calculate the
+        Rg and M.W. values for using the series calculation function.
+    window_size: int, optional
+        The size of the average window used when calculating Rg and MW.
+        So if the window is 5, 5 a window is size 5 is slid along the series,
+        and profiles in that window are averaged before being used to calculate
+        Rg and MW. For example, frames 1-5, 2-6, 3-7, etc would be averaged and
+        then have Rg and MW calculated from that average.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, err_weight,
+        vp_density, vp_cutoff, vp_qmax, vc_protein, vc_cutoff, and vc_qmax are
+        overridden by the values in the settings.
+    error_weight: bool, optional
+        Whether to use error weighting when calculating the Rg.
+    vp_density: float, optional
+        The density used for the Porod volume M.W. calculation in kDa/A^3.
+        Defaults to 0.83*10**(-3).
+    vp_cutoff: {''Default', '8/Rg', 'log(I0/I(q))', 'Manual''} str, optional
+        The method to use to calculate the maximum q value used for the
+        Porod volume M.W. calculation. Defaults to 'Default'
+    vp_qmax: float, optional
+        The maximum q value to be used if the 'Manual' cutoff method is
+        selected for the Porod volume M.W. calculation. Defaults to 0.5.
+    vc_protein: bool
+        True if the sample is protein, False if the sample is RNA. Determines
+        which set of coefficients to use for calculating M.W.
+    vc_cutoff: {''Default', '8/Rg', 'log(I0/I(q))', 'Manual''} str, optional
+        The method to use to calculate the maximum q value used for the
+        M.W. calculation. Defaults to 'Manual'
+    vc_qmax: float, optional
+        The maximum q value to be used if the 'Manual' cutoff method is
+        selected. Defaults to 0.3.
+    vc_a_prot: float
+        The volume of correlation A coefficient for protein. Not recommended
+        to be changed.
+    vc_b_prot: float
+        The volume of correlation B coefficient for protein. Not recommended
+        to be changed. Note that here B is defined as 1/B from the original paper.
+    vc_a_rna: float
+        The volume of correlation A coefficient for RNA. Not recommended to
+        be changed.
+    vc_b_rna: float
+        The volume of correlation B coefficient for RNA. Not recommended to
+        be changed. Note that here B is defined as 1/B from the original paper.
+
+    Returns
+    -------
+    rg: :class:`numpy.array`
+        An array of the Rg values calculated for each subtracted profile. If
+        no Rg value could be calculated then the value is -1. Each array index
+        is the Rg corresponding to the subtracted profile at that index in
+        the sub_profiles list.
+    rger: :class:`numpy.array`
+        An array of the uncertainty in the Rg values calculated for each
+        subtracted profile. If no Rg value could be calculated then the
+        value is -1. Each array index is the uncertainty corresponding to the
+        subtracted profile at that index in  the sub_profiles list.
+    i0: :class:`numpy.array`
+        An array of the I(0) values calculated for each subtracted profile. If
+        no I(0) value could be calculated then the value is -1. Each array index
+        is the I(0) corresponding to the subtracted profile at that index in
+        the sub_profiles list.
+    i0er: :class:`numpy.array`
+        An array of the uncertainty in the I(0) values calculated for each
+        subtracted profile. If no I(0) value could be calculated then the
+        value is -1. Each array index is the uncertainty corresponding to the
+        subtracted profile at that index in  the sub_profiles list.
+    vcmw: :class:`numpy.array`
+        An array of the volume of correlation M.W. values calculated for each
+        subtracted profile. If no M.W. value could be calculated then the value
+        is -1. Each array index is the M.W. corresponding to the subtracted
+        profile at that index in the sub_profiles list.
+    vcmwer: :class:`numpy.array`
+        An array of the uncertainty in the volume of correlation M.W. values
+        calculated for each subtracted profile. If no M.W. value could be
+        calculated then the value is -1. Each array index is the uncertainty
+        corresponding to the subtracted profile at that index in  the
+        sub_profiles list.
+    vpmw: :class:`numpy.array`
+        An array of the Porod volume M.W. values calculated for each subtracted
+        profile. If no M.W. value could be calculated then the value is -1.
+        Each array index is the M.W. corresponding to the subtracted profile
+        at that index in the sub_profiles list.
+    """
+    if settings is not None:
+        error_weight = settings.get('errorWeight')
+
+        vp_cutoff = settings.get('MWVpCutoff')
+        vp_density = settings.get('MWVpRho')
+        vp_qmax = settings.get('MWVpQmax')
+
+        vc_cutoff = settings.get('MWVcCutoff')
+        vc_type = settings.get('MWVcType')
+        vc_qmax = settings.get('MWVcQmax')
+
+        if vc_type == 'Protein':
+            vc_protein = True
+        else:
+            vc_protein = False
+
+    use_sub_profiles = [True for profile in sub_profiles]
+
+    success, results = SASCalc.run_secm_calcs(sub_profiles, use_sub_profiles,
+        window_size, vc_protein, error_weight, vp_density, vp_cutoff,
+        vp_qmax, vc_cutoff, vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna,
+        vc_b_rna)
+
+    if success:
+        rg = results['rg']
+        rger = results['rger']
+        i0 = results['i0']
+        i0er = results['i0er']
+        vcmw = results['vcmw']
+        vcmwer = results['vcmwer']
+        vpmw = results['vpmw']
+    else:
+        rg = np.zeros(len(sub_profiles),dtype=float)-1
+        rger = np.zeros(len(sub_profiles),dtype=float)-1
+        i0 = np.zeros(len(sub_profiles),dtype=float)-1
+        i0er = np.zeros(len(sub_profiles),dtype=float)-1
+        vcmw = np.zeros(len(sub_profiles),dtype=float)-1
+        vcmwer = np.zeros(len(sub_profiles),dtype=float)-1
+        vpmw = np.zeros(len(sub_profiles),dtype=float)-1
+
+    return rg, rger, i0, i0er, vcmw, vcmwer, vpmw
+
+def find_sample_range(series, profile_type='sub', window_size=5,
+    int_type='total', q_val=None, q_range=None, rg=None, vcmw=None, vpmw=None,
+    settings=None, sim_test='CorMap', sim_cor='Bonferroni', sim_thresh=0.01):
+    """
+    Automatically determine the appropriate sample range to average from
+    the input series. This is designed to work with SEC-SAXS data, but may
+    work in other circumstances.
+
+    Parameters
+    ----------
+    series: list or :class:`bioxtasraw.SECM.SECM`
+        The input series to find the sample range for. It should either be
+        a list of individual scattering profiles (:class:`bioxtasraw.SASM.SASM`)
+        or a single series object (:class:`bioxtasraw.SECM.SECM`).
+    profile_type: {'unsub', 'sub', 'baseline'} str, optional
+        Only used if a :class:`bioxtasraw.SECM.SECM` is provided for the series
+        argument. Determines which type of profile to use from the series to
+        find the sample range. Unsubtracted profiles - 'unsub', subtracted
+        profiles - 'sub', baseline corrected profiles - 'baseline'.
+    window_size: int
+        The size of the average window used when calculating Rg and MW.
+    int_type: {'total', 'mean', 'q_val', 'q_range'} str, optional
+        The intensity type to used when finding the sample range. Total
+        integrated intensity - 'total', mean intensity - 'mean', intensity at
+        a particular q value - 'q_val', intensity in a given q range -
+        'q_range'. Use of q_val or q_range requires the corresponding parameter
+        to be provided.
+    q_val: float, optional
+        If int_type is 'q_val', the q value used for the intensity is set by
+        this parameter.
+    q_range: list, optional
+        This should have two entries, both floats. The first is the minimum q
+        value of the range, the second the maximum q value of the range. If
+        int_type is 'q_range', the q range used for the intensity is set by
+        this parameter.
+    rg: list
+        A list of the Rg values corresponding to the input series data. Only
+        required if inputing a list of profiles rather than a series object.
+    vcmw: list
+        A list of the volume of correlation M.W. values corresponding to the
+        input series data. Only required if inputing a list of profiles rather
+        than a series object.
+    vpmw: list
+        A list of the Porod volume M.W. values corresponding to the  input
+        series data. Only required if inputing a list of profiles rather  than
+        a series object.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, sim_test,
+        sim_cor, and sim_threshold are overridden by the values in the
+        settings.
+    sim_test: {'CorMap'} str, optional
+        Sets the type of similarity test to be used. Currently only CorMap is
+        supported as an option. Is overridden if settings are provided.
+    sim_cor: {'Bonferroni', 'None'} str, optional
+        Sets the multiple testing correction to be used as part of the similarity
+        test. Default is Bonferroni. Is overridden if settings are provided.
+    sim_thresh: float, optional
+        Sets the p value threshold for the similarity test. A higher value is
+        a more strict test (range from 0-1). Is overridden if settings are
+        provided.
+
+    Returns
+    -------
+    success: bool
+        If a buffer range was successfully found.
+    region_start: int
+        The starting index of the sample region found.
+    region_end: int
+        The ending index of the sample region found.
+    """
+    if settings is not None:
+        sim_thresh = settings.get('similarityThreshold')
+        sim_test = settings.get('similarityTest')
+        sim_cor = settings.get('similarityCorrection')
+
+    if isinstance(series, SECM.SECM):
+        if profile_type == 'unsub':
+            sub_profiles = series._sasm_list
+        elif profile_type == 'sub':
+            sub_profiles = series.subtracted_sasm_list
+        elif profile_type == 'baseline':
+            sub_profiles = series.baseline_subtracted_sasm_list
+
+        rg, _ = series.getRg()
+        vcmw, _ = series.getVcMW()
+        vpmw, _ = series.getVpMW()
+    else:
+        sub_profiles = series
+
+    if int_type == 'total':
+        intensity = np.array([sasm.getTotalI() for sasm in sub_profiles])
+    elif int_type == 'mean':
+        intensity = np.array([sasm.getMeanI() for sasm in sub_profiles])
+    elif int_type == 'q_val':
+        intensity = np.array([sasm.getIofQ(q_val) for sasm in sub_profiles])
+    elif int_type == 'q_range':
+        q1 = q_range[0]
+        q2 = q_range[1]
+        intensity = np.array([sasm.getIofQRange(q1, q2) for sasm in sub_profiles])
+
+    success, region_start, region_end = SASCalc.findSampleRange(sub_profiles,
+        intensity, rg, vcmw, vpmw, window_size, sim_test, sim_cor,
+        sim_thresh)
+
+    return success, region_start, region_end
+
+def validate_sample_range(series, sample_range, profile_type='sub',
+    int_type='total', q_val=None, q_range=None, rg=None, vcmw=None, vpmw=None,
+    fast=False, settings=None, sim_test='CorMap', sim_cor='Bonferroni',
+    sim_thresh=0.01):
+    """
+    Validates whether the input data range is a trustworthy sample range or not.
+    This is designed to work with SEC-SAXS data, but may work in other
+    circumstances.
+
+    Parameters
+    ----------
+    series: list or :class:`bioxtasraw.SECM.SECM`
+        The input series to validate the sample range for. It should either be
+        a list of individual scattering profiles (:class:`bioxtasraw.SASM.SASM`)
+        or a single series object (:class:`bioxtasraw.SECM.SECM`).
+    sample_range: list
+        A list defining the input sample range to be validated. The list is made
+        up of a set of sub-ranges, each defined by an entry in the list. Each
+        sub-range item should be a list or tuple where the first entry is the
+        starting index of the range and the second entry is the ending index
+        of the range. So a list like ``[[0, 10], [100, 110]]`` would define
+        a sample range consisting of two sub-ranges, the first from profiles 0-10
+        in the series and the second from profiles 100-110 in the series.
+    profile_type: {'unsub', 'sub', 'baseline'} str, optional
+        Only used if a :class:`bioxtasraw.SECM.SECM` is provided for the series
+        argument. Determines which type of profile to use from the series to
+        validate the sample range. Unsubtracted profiles - 'unsub', subtracted
+        profiles - 'sub', baseline corrected profiles - 'baseline'.
+    int_type: {'total', 'mean', 'q_val', 'q_range'} str, optional
+        The intensity type to use for the validation of the sample range. Total
+        integrated intensity - 'total', mean intensity - 'mean', intensity at
+        a particular q value - 'q_val', intensity in a given q range -
+        'q_range'. Use of q_val or q_range requires the corresponding parameter
+        to be provided.
+    q_val: float, optional
+        If int_type is 'q_val', the q value used for the intensity is set by
+        this parameter.
+    q_range: list, optional
+        This should have two entries, both floats. The first is the minimum q
+        value of the range, the second the maximum q value of the range. If
+        int_type is 'q_range', the q range used for the intensity is set by
+        this parameter.
+    rg: list
+        A list of the Rg values corresponding to the input series data. Only
+        required if inputing a list of profiles rather than a series object.
+    vcmw: list
+        A list of the volume of correlation M.W. values corresponding to the
+        input series data. Only required if inputing a list of profiles rather
+        than a series object.
+    vpmw: list
+        A list of the Porod volume M.W. values corresponding to the  input
+        series data. Only required if inputing a list of profiles rather  than
+        a series object.
+    fast: bool, optional
+        Whether the test should be done in fast mode or not. A fast test stops
+        at the first failed check. In a normal test (not fast), all metrics
+        are checked. Using a fast test is best when trying to automatically
+        determine a sample range, something which can take many separate
+        validation checks. A normal test is best when trying to determine what,
+        if anything, about your selected region might be problematic.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, sim_test,
+        sim_cor, and sim_threshold are overridden by the values in the
+        settings.
+    sim_test: {'CorMap'} str, optional
+        Sets the type of similarity test to be used. Currently only CorMap is
+        supported as an option. Is overridden if settings are provided.
+    sim_cor: {'Bonferroni', 'None'} str, optional
+        Sets the multiple testing correction to be used as part of the similarity
+        test. Default is Bonferroni. Is overridden if settings are provided.
+    sim_thresh: float, optional
+        Sets the p value threshold for the similarity test. A higher value is
+        a more strict test (range from 0-1). Is overridden if settings are
+        provided.
+
+    Returns
+    -------
+    valid: bool
+        If the input buffer range is a valid buffer range.
+    similarity_results: dict
+        A dictionary with the results of the similarity test. In particular,
+        keys are: 'all_similar' - whether all profiles in the selected range
+        are similar over the entire profile. 'low_q_similar' - whether all
+        profiles in the selected range are similar over the low q region
+        of the profile. 'high_q_similar' - whether all profiles in the
+        selected range are similar over the high q region. 'max_idx' -
+        The index of the profile used as the reference for the similarity test,
+        corresponding to the profile with the highest intensity in the region.
+        'all_outliers' - Indices of the outlier profiles of the similarity
+        test at all q. 'low_q_outliers' - Indices of the outlier profiles of
+        the similarity test at low q. 'high_q_outliers' - Indices of the
+        outlier profiles of the similarity test at high q.
+    param_results: dict
+        A dictionary with the results of the Rg and M.W. tests. In particular,
+        keys are: 'rg_r' - the Spearman correlation coefficient of the Rg
+        values in the region. 'rg_pval' - the p-value from the Spearman
+        correlation test on the Rg values in the region. 'rg_valid' - Whether
+        the range is a valid sample range based on the Rg correlation. The
+        same keys are provided for vcmw and vpmw. Additional keys are
+        'param_range_valid' - Whether Rg is not calculated anywhere in the
+        defined range. 'param_bad_frames' - The frames at which the Rg is
+        undefined, if any. 'param_valid' - Whether all evaluation metrics (
+        rg_valid, vcmw_valid, vpmw_valid, param_range_valid) are True.
+    svd_results: dict
+        A dictionary with the results of the SVD test. In particular, keys are:
+        'svals' - the number of significant singular vectors in the region. 'U'
+        - the left singular vectors. 'V' - the right singular vectors.
+        'u_autocor' - The autocorrelation of the left singular vectors.
+        'v_autocor' - The autocorrelation of the right singular vectors.
+    sn_results: dict:
+        A dictionary with the results of the signal to noise test. In particular,
+        keys are 'low_sn' - an array of the indices of profiles that, when
+        averaged, lower the signal to noise of the resulting averaged profile.
+        'sn_valid' - Whether all profiles averaged improve signal to noise.
+    """
+    if settings is not None:
+        sim_thresh = settings.get('similarityThreshold')
+        sim_test = settings.get('similarityTest')
+        sim_cor = settings.get('similarityCorrection')
+
+    frame_idx = []
+    for item in sample_range:
+        frame_idx = frame_idx + list(range(item[0], item[1]+1))
+
+    frame_idx = sorted(set(frame_idx))
+    frame_idx = np.array(frame_idx)
+
+    if isinstance(series, SECM.SECM):
+        rg, _ = series.getRg()
+        vcmw, _ = series.getVcMW()
+        vpmw, _ = series.getVpMW()
+
+        sub_profiles = [series.getSASM(idx, profile_type) for idx in frame_idx]
+        rg = [rg[idx] for idx in frame_idx]
+        vcmw = [vcmw[idx] for idx in frame_idx]
+        vpmw = [vpmw[idx] for idx in frame_idx]
+    else:
+        sub_profiles = [series[idx] for idx in frame_idx]
+
+    if int_type == 'total':
+        intensity = np.array([sasm.getTotalI() for sasm in sub_profiles])
+    elif int_type == 'mean':
+        intensity = np.array([sasm.getMeanI() for sasm in sub_profiles])
+    elif int_type == 'q_val':
+        intensity = np.array([sasm.getIofQ(q_val) for sasm in sub_profiles])
+    elif int_type == 'q_range':
+        q1 = q_range[0]
+        q2 = q_range[1]
+        intensity = np.array([sasm.getIofQRange(q1, q2) for sasm in sub_profiles])
+
+    (valid, similarity_results, param_results, svd_results,
+        sn_results) = SASCalc.validateSample(sub_profiles, frame_idx,
+        intensity, rg, vcmw, vpmw, sim_test, sim_cor, sim_thresh, fast)
+
+    return valid, similarity_results, param_results, svd_results, sn_results
+
+def set_sample_range(series, sample_range, profile_type='sub'):
+    """
+    Sets the sample range for the series and returns the subtracted scattering
+    profile corresponding to the specified sample range.
+
+    Parameters
+    ----------
+    series: :class:`bioxtasraw.SECM.SECM`
+        The input series to set the sample range for.
+    sample_range: list
+        A list defining the input sample range to be set. The list is made
+        up of a set of sub-ranges, each defined by an entry in the list. Each
+        sub-range item should be a list or tuple where the first entry is the
+        starting index of the range and the second entry is the ending index
+        of the range. So a list like ``[[0, 10], [100, 110]]`` would define
+        a sample range consisting of two sub-ranges, the first from profiles 0-10
+        in the series and the second from profiles 100-110 in the series.
+    profile_type: {'unsub', 'sub', 'baseline'} str, optional
+        Determines which type of profile to use from the series to set the
+        sample range. Unsubtracted profiles - 'unsub', subtracted
+        profiles - 'sub', baseline corrected profiles - 'baseline'.
+
+    Returns
+    -------
+    sub_profile: :class:`bioxtasraw.SASM.SASM`
+        The subtracted scattering profile calculated from the specified
+        sample_range.
+    """
+    frame_idx = []
+    for item in sample_range:
+        frame_idx = frame_idx + list(range(item[0], item[1]+1))
+
+    frame_idx = sorted(set(frame_idx))
+    frame_idx = np.array(frame_idx)
+
+    if profile_type == 'sub':
+
+        profiles = series.getAllSASMs()
+        profiles_list = [profiles[idx] for idx in frame_idx]
+
+        average_profile = SASProc.average(profiles_list, forced=True)
+        average_profile.setParameter('filename', ('A_{}'
+            .format(average_profile.getParameter('filename'))))
+
+        buffer_profile = series.average_buffer_sasm
+
+        sub_profile = SASProc.subtract(average_profile, buffer_profile,
+            forced=True)
+        sub_profile.setParameter('filename', ('S_{}'
+            .format(sub_profile.getParameter('filename'))))
+
+    else:
+        sub_profiles = series.baseline_subtracted_sasm_list
+
+        profiles_list = [sub_profiles[idx] for idx in frame_idx]
+
+        sub_profile = SASProc.average(profiles_list, forced=True)
+        sub_profile.setParameter('filename', ('A_{}'
+            .format(sub_profile.getParameter('filename'))))
+
+    series.sample_range = sample_range
+
+    return sub_profile
+
+def baseline_correction():
     pass
 
 def find_baseline_range():
+    pass
+
+def validate_baseline_range():
     pass

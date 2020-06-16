@@ -1960,15 +1960,15 @@ def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
     vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna, vc_b_rna):
 
     #Now calculate the RG, I0, and MW for each SASM
-    rg = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-    rger = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-    i0 = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-    i0er = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-    vcmw = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-    vcmwer = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-    vpmw = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-    vp = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
-    vpcor = np.zeros_like(np.arange(len(subtracted_sasm_list)),dtype=float)
+    rg = np.zeros(len(subtracted_sasm_list),dtype=float)
+    rger = np.zeros(len(subtracted_sasm_list),dtype=float)
+    i0 = np.zeros(len(subtracted_sasm_list),dtype=float)
+    i0er = np.zeros(len(subtracted_sasm_list),dtype=float)
+    vcmw = np.zeros(len(subtracted_sasm_list),dtype=float)
+    vcmwer = np.zeros(len(subtracted_sasm_list),dtype=float)
+    vpmw = np.zeros(len(subtracted_sasm_list),dtype=float)
+    vp = np.zeros(len(subtracted_sasm_list),dtype=float)
+    vpcor = np.zeros(len(subtracted_sasm_list),dtype=float)
 
     if window_size == 1:
         for a in range(len(subtracted_sasm_list)):
