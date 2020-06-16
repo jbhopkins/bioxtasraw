@@ -2447,8 +2447,7 @@ def validateBuffer(sasms, frame_idx, intensity, sim_test, sim_cor, sim_thresh,
     max_i_idx = np.argmax(intensity)
 
     ref_sasm = copy.deepcopy(sasms[max_i_idx])
-    superimpose_sub_sasms = copy.deepcopy(sasms)
-    SASProc.superimpose(ref_sasm, superimpose_sub_sasms, 'Scale')
+    buffer_sasms = copy.deepcopy(sasms)
     qi, qf = ref_sasm.getQrange()
 
     #Test for frame correlation
@@ -2494,25 +2493,25 @@ def validateBuffer(sasms, frame_idx, intensity, sim_test, sim_cor, sim_thresh,
     if len(sasms) > 1:
         if qf-qi>200:
             ref_sasm.setQrange((qi, qi+100))
-            for sasm in superimpose_sub_sasms:
+            for sasm in buffer_sasms:
                 sasm.setQrange((qi, qi+100))
             low_q_similar, low_q_outliers = run_similarity_test(ref_sasm,
-                superimpose_sub_sasms, sim_test, sim_cor, sim_thresh)
+                buffer_sasms, sim_test, sim_cor, sim_thresh)
 
             if fast and not low_q_similar:
                 ref_sasm.setQrange((qi, qf))
-                for sasm in superimpose_sub_sasms:
+                for sasm in buffer_sasms:
                     sasm.setQrange((qi, qf))
                 return False, {}, {}, intI_results
 
             ref_sasm.setQrange((qf-100, qf))
-            for sasm in superimpose_sub_sasms:
+            for sasm in buffer_sasms:
                 sasm.setQrange((qf-100, qf))
             high_q_similar, high_q_outliers = run_similarity_test(ref_sasm,
-                superimpose_sub_sasms, sim_test, sim_cor, sim_thresh)
+                buffer_sasms, sim_test, sim_cor, sim_thresh)
 
             ref_sasm.setQrange((qi, qf))
-            for sasm in superimpose_sub_sasms:
+            for sasm in buffer_sasms:
                 sasm.setQrange((qi, qf))
 
             if fast and not high_q_similar:
@@ -2543,7 +2542,7 @@ def validateBuffer(sasms, frame_idx, intensity, sim_test, sim_cor, sim_thresh,
     #Test for all frame similarity
     if len(sasms) > 1:
         all_similar, all_outliers = run_similarity_test(ref_sasm,
-            superimpose_sub_sasms, sim_test, sim_cor, sim_thresh)
+            buffer_sasms, sim_test, sim_cor, sim_thresh)
     else:
         all_similar = True
         all_outliers = []
