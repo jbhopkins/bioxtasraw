@@ -148,6 +148,9 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
                 mask_param[0] = mask_img
                 mask_param[1] = masks
 
+    else:
+        mask_dict = raw_settings.get('Masks')
+
     # Get settings
     use_hdr_mask = raw_settings.get('UseHeaderForMask')
     use_hdr_calib = raw_settings.get('UseHeaderForCalib')
@@ -219,9 +222,8 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
         # ********************
         try:
             mask_patches = SASMask.createMaskFromHdr(img, img_hdr, flipped = raw_settings.get('DetectorFlipped90'))
-            masks = raw_settings.get('Masks')
-            bs_mask_patches = masks['BeamStopMask'][1]
-            tbs_mask = masks['TransparentBSMask'][0]
+            bs_mask_patches = mask_dict['BeamStopMask'][1]
+            tbs_mask = mask_dict['TransparentBSMask'][0]
 
             if bs_mask_patches is not None:
                 all_mask_patches = mask_patches + bs_mask_patches
@@ -233,9 +235,8 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
             raise SASExceptions.HeaderMaskLoadError('bsmask_configuration not found in header.')
 
     else:
-        masks = raw_settings.get('Masks')
-        bs_mask = masks['BeamStopMask'][0]
-        tbs_mask = masks['TransparentBSMask'][0]
+        bs_mask = mask_dict['BeamStopMask'][0]
+        tbs_mask = mask_dict['TransparentBSMask'][0]
 
     if bs_mask is None:
         bs_mask = np.zeros(img.shape)

@@ -31,7 +31,6 @@ import six
 import hdf5plugin #This has to be imported before fabio, and h5py (and, I think, PIL/pillow) . . .
 
 import os
-import sys
 import re
 import time
 import struct
@@ -40,12 +39,10 @@ import copy
 import collections
 import datetime
 from xml.dom import minidom
-import glob
 import ast
 
 import numpy as np
 import fabio
-import PIL
 from PIL import Image
 import matplotlib.backends.backend_pdf
 import h5py
@@ -101,10 +98,7 @@ def loadTiffImage(filename):
     ''' Load TIFF image '''
     try:
         im = Image.open(filename)
-        if int(PIL.PILLOW_VERSION.split('.')[0])>2:
-            img = np.fromstring(im.tobytes(), np.uint16) #tobytes is compatible with pillow >=3.0, tostring was depreciated
-        else:
-            img = np.fromstring(im.tostring(), np.uint16)
+        img = np.fromstring(im.tobytes(), np.uint16) #tobytes is compatible with pillow >=3.0, tostring was depreciated
 
         img = np.reshape(img, im.size)
         im.close()
@@ -119,10 +113,7 @@ def load32BitTiffImage(filename):
     ''' Load TIFF image '''
     try:
         im = Image.open(filename)
-        if int(PIL.PILLOW_VERSION.split('.')[0])>2:
-            img = np.fromstring(im.tobytes(), np.uint32) #tobytes is compatible with pillow >=3.0, tostring was depreciated
-        else:
-            img = np.fromstring(im.tostring(), np.uint32)
+        img = np.fromstring(im.tobytes(), np.uint32) #tobytes is compatible with pillow >=3.0, tostring was depreciated
 
         img = np.reshape(img, im.size)
         im.close()
@@ -262,11 +253,7 @@ def loadSAXSLAB300Image(filename):
         im1b = im1a.transpose(Image.ROTATE_90)
         im2 = im1b.transpose(Image.FLIP_TOP_BOTTOM)
 
-        # newArr = np.fromstring(im2.tobytes(), np.int32)
-        if int(PIL.PILLOW_VERSION.split('.')[0])<3:
-            newArr = np.fromstring(im2.tostring(), np.int32)
-        else:
-            newArr = np.fromstring(im2.tobytes(), np.int32)
+        newArr = np.fromstring(im2.tobytes(), np.int32)
 
         # reduce negative vals
         #newArr = np.where(newArr >= 0, newArr, 0)
@@ -281,10 +268,7 @@ def loadSAXSLAB300Image(filename):
         return None, None
 
     try:
-        if int(PIL.PILLOW_VERSION.split('.')[0])<3:
-            tag_with_data = tag[315]
-        else:
-            tag_with_data = tag[315][0]
+        tag_with_data = tag[315][0]
 
     except (TypeError, KeyError):
         print("Wrong file format. Missing TIFF tag number")
@@ -1050,7 +1034,6 @@ def loadImage(filename, raw_settings, hdf5_file=None):
         else:
             img, imghdr = all_image_types[image_type](filename)
     except (ValueError, TypeError, KeyError, fabio.fabioutils.NotGoodReader, Exception) as msg:
-        # print msg
         raise SASExceptions.WrongImageFormat('Error loading image, ' + str(msg))
 
     if not isinstance(img, list):
@@ -1107,7 +1090,6 @@ def loadFile(filename, raw_settings, no_processing = False):
         try:
             sasm, img = loadImageFile(filename, raw_settings, hdf5_file)
         except (ValueError, AttributeError) as msg:
-            print('SASFileIO.loadFile : ' + str(msg))
             raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
 
         #Always do some post processing for image files
