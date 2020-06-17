@@ -56,8 +56,6 @@ raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
     os.sys.path.append(raw_path)
 
-import bioxtasraw.RAWCustomCtrl as RAWCustomCtrl
-
 def chi2(exp, calc, sig):
     """Return the chi2 discrepancy between experimental and calculated data"""
     return np.sum(np.square(exp - calc) / np.square(sig))
@@ -1292,7 +1290,7 @@ def runDenss(q, I, sigq, D, prefix, path, denss_settings, avg_model=None,
     my_logger.addHandler(my_fh)
 
     if gui:
-        my_sh = RAWCustomCtrl.CustomConsoleHandler(den_queue)
+        my_sh = CustomConsoleHandler(den_queue)
         my_sh.setLevel(logging.DEBUG)
 
         my_logger.addHandler(my_sh)
@@ -1478,3 +1476,22 @@ def run_align(rhos, sides, ref_file, avg_q=None, abort_event=None, center=True,
         single_proc)
 
     return aligned, scores
+
+class CustomConsoleHandler(logging.Handler):
+    """Sends logger output to a queue
+    Based on code from:
+    https://www.blog.pythonlibrary.org/2013/08/09/wxpython-how-to-redirect-pythons-logging-module-to-a-textctrl/
+    """
+
+    #----------------------------------------------------------------------
+    def __init__(self, queue):
+        """"""
+        logging.Handler.__init__(self)
+        self.queue = queue
+
+    #----------------------------------------------------------------------
+    def emit(self, record):
+        """Constructor"""
+        msg = self.format(record)
+        self.queue.put_nowait(msg + "\n")
+        self.flush()

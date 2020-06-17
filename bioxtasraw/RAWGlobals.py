@@ -34,7 +34,11 @@ try:
 except Exception:
     has_pyopencl = False
 
-import wx
+try:
+    import wx
+    has_wx = True
+except Exception:
+    has_wx = False #Installed as API
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -61,4 +65,5 @@ version = bioxtasraw.__version__ #Defined in __init__.py
 
 save_in_progress = False
 
-highlight_color = wx.Colour(178, 215, 255)
+if has_wx:
+    highlight_color = wx.Colour(178, 215, 255)

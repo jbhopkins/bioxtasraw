@@ -1285,26 +1285,6 @@ class IntSpinCtrl(wx.Panel):
     def GetRange(self):
         return (self.min, self.max)
 
-class CustomConsoleHandler(logging.Handler):
-    """Sends logger output to a queue
-    Based on code from:
-    https://www.blog.pythonlibrary.org/2013/08/09/wxpython-how-to-redirect-pythons-logging-module-to-a-textctrl/
-    """
-
-    #----------------------------------------------------------------------
-    def __init__(self, queue):
-        """"""
-        logging.Handler.__init__(self)
-        self.queue = queue
-
-    #----------------------------------------------------------------------
-    def emit(self, record):
-        """Constructor"""
-        msg = self.format(record)
-        self.queue.put_nowait(msg + "\n")
-        self.flush()
-
-
 class RawPanelFileDropTarget(wx.FileDropTarget):
     """"""
 

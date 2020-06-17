@@ -42,7 +42,11 @@ import glob
 import json
 import sys
 
-import wx
+try:
+    import wx
+except Exception:
+    pass #Installed as API
+
 import numpy as np
 
 try:
