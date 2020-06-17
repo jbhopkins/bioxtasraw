@@ -10,6 +10,9 @@ consensus shape is made from the average of these reconstructions. The program D
 the ATSAS package is the most commonly used program for building consensus shapes. Note that you need
 :ref:`ATSAS installed <atsas>` to do this part of the tutorial.
 
+This is not a tutorial on basic principles and best practices for doing bead
+model reconstructions. For that, please see the :ref:`SAXS tutorial <saxs_bead_models>`.
+
 A video version of this tutorial is available:
 
 .. raw:: html
