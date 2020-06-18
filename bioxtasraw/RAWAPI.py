@@ -1124,8 +1124,7 @@ def mw_ref(profile, conc=0, i0=None, ref_i0=0, ref_conc=0, ref_mw=0, settings=No
     return mw
 
 def mw_abs(profile, conc=0, i0=None, rho_Mprot=3.22*10**23, rho_solv=3.34*10**23,
-    psv=0.7425, settings=None, use_i0_from='guinier',
-    use_previous_settings=True, r0=2.8179*10**-13):
+    psv=0.7425, settings=None, use_i0_from='guinier', r0=2.8179*10**-13):
     """
     Calculates the M.W. of the input profile using the reference to known
     standard method. The input profile needs to have a calculated I(0) value,
@@ -1158,14 +1157,6 @@ def mw_abs(profile, conc=0, i0=None, rho_Mprot=3.22*10**23, rho_solv=3.34*10**23
         Determines whether the I(0) value used for the M.W. calculation is
         from the Guinier fit, or the GNOM or BIFT P(r) function. Ignored if
         the i0 parameter is provided.
-    use_previous_settings: bool, optional
-        If True, if M.W. has previously been calculated for this profile using
-        this method, then the values of rho_Mprot, rho_solv, and psv are taken
-        from the previously used values, if available. This overrides the
-        values from either settings or the input parameters. If this is set to
-        True, but the profile doesn't have those values available, then
-        the next default is to look for them in settings. If that fails,
-        the parameters values are used as directly input.
     r0: float, optional
         The scattering length of an electron, in cm. Not recommended to change.
 
@@ -1180,16 +1171,7 @@ def mw_abs(profile, conc=0, i0=None, rho_Mprot=3.22*10**23, rho_solv=3.34*10**23
     else:
         mw_dict = {}
 
-    if (use_previous_settings and 'Absolute' in mw_dict
-        and 'Density_dry_protein' in mw_dict['Absolute']
-        and 'Density_buffer' in mw_dict['Absolute']
-        and 'Partial_specific_volume' in mw_dict['Absolute']):
-
-        rho_Mprot = float(mw_dict['Absolute']['Density_dry_protein'])
-        rho_solv = float(mw_dict['Absolute']['Density_buffer'])
-        psv =float(mw_dict['Absolute']['Partial_specific_volume'])
-
-    elif settings is not None:
+    if settings is not None:
         rho_Mprot = settings.get('MWAbsRhoMprot')
         rho_solv = settings.get('MWAbsRhoSolv')
         psv = settings.get('MWAbsNuBar')
@@ -1229,14 +1211,13 @@ def mw_abs(profile, conc=0, i0=None, rho_Mprot=3.22*10**23, rho_solv=3.34*10**23
     return mw
 
 def mw_vp(profile, rg=None, i0=None, density=0.83*10**(-3), cutoff='Default',
-    qmax=0.5, settings=None, use_i0_from='guinier', use_previous_settings=True):
+    qmax=0.5, settings=None, use_i0_from='guinier'):
     """
     Calculates the M.W. of the input profile using the corrected Porod volume
     method. The input profile needs to have calculated Rg and I(0) values,
     either from a Guinier fit or from a IFT P(r) function, so the Rg and I(0)
     values are known. You must supply either density, cutoff, and qmax,
-    settings, or if use_previous_settings is True then the profile needs
-    to have a previously calculated M.W. using this method.
+    settings.
 
     Parameters
     ----------
@@ -1262,20 +1243,12 @@ def mw_vp(profile, rg=None, i0=None, density=0.83*10**(-3), cutoff='Default',
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
         RAW settings containing relevant parameters. If provided, the
         density, cutoff, and qmax parameters will be overridden with the
-        values in the settings. Can be overridden by the use_previous_settings
+        values in the settings.
         parameter. Default is None.
     use_i0_from: {'guinier', 'gnom', 'bift'} str, optional
         Determines whether the Rg and I(0) value used for the M.W. calculation
         is from the Guinier fit, or the GNOM or BIFT P(r) function. Ignored if
         both rg and i0 parameters are provided.
-    use_previous_settings: bool, optional
-        If True, if M.W. has previously been calculated for this profile using
-        this method, then the values of density, cutoff, and qmax are taken
-        from the previously used values, if available. This overrides the
-        values from either settings or the input parameters. If this is set to
-        True, but the profile doesn't have those values available, then
-        the next default is to look for them in settings. If that fails,
-        the parameters values are used as directly input.
 
     Returns
     -------
@@ -1295,16 +1268,7 @@ def mw_vp(profile, rg=None, i0=None, density=0.83*10**(-3), cutoff='Default',
     else:
         mw_dict = {}
 
-    if (use_previous_settings and 'PorodVolume' in mw_dict
-        and 'Cutoff' in mw_dict['PorodVolume']
-        and 'Density' in mw_dict['PorodVolume']
-        and 'Q_max' in mw_dict['PorodVolume']):
-
-        cutoff = mw_dict['PorodVolume']['Cutoff']
-        density = float(mw_dict['PorodVolume']['Density'])
-        qmax =float(mw_dict['PorodVolume']['Q_max'])
-
-    elif settings is not None:
+    if settings is not None:
         cutoff = settings.get('MWVpCutoff')
         density = settings.get('MWVpRho')
         qmax = settings.get('MWVpQmax')
@@ -1366,15 +1330,14 @@ def mw_vp(profile, rg=None, i0=None, density=0.83*10**(-3), cutoff='Default',
     return mw, pvol_cor, pvol, qmax
 
 def mw_vc(profile, rg=None, i0=None, protein=True, cutoff='Manual', qmax=0.3,
-    settings=None, use_i0_from='guinier', use_previous_settings=True, A_prot=1.0,
-    B_prot=0.1231, A_rna=0.808, B_rna=0.00934):
+    settings=None, use_i0_from='guinier', A_prot=1.0, B_prot=0.1231,
+    A_rna=0.808, B_rna=0.00934):
     """
     Calculates the M.W. of the input profile using the volume of correlation
     method. The input profile needs to have calculated Rg and I(0) values,
     either from a Guinier fit or from a IFT P(r) function, so the Rg and I(0)
     values are known. You must supply either protein, cutoff, and qmax,
-    or settings, or if use_previous_settings is True then the profile needs
-    to have a previously calculated M.W. using this method.
+    or settings.
 
     Parameters
     ----------
@@ -1400,20 +1363,12 @@ def mw_vc(profile, rg=None, i0=None, protein=True, cutoff='Manual', qmax=0.3,
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
         RAW settings containing relevant parameters. If provided, the
         density, cutoff, and qmax parameters will be overridden with the
-        values in the settings. Can be overridden by the use_previous_settings
+        values in the settings.
         parameter. Default is None.
     use_i0_from: {'guinier', 'gnom', 'bift'} str, optional
         Determines whether the Rg and I(0) value used for the M.W. calculation
         is from the Guinier fit, or the GNOM or BIFT P(r) function. Ignored if
         both rg and i0 parameters are provided.
-    use_previous_settings: bool, optional
-        If True, if M.W. has previously been calculated for this profile using
-        this method, then the values of density, cutoff, and qmax are taken
-        from the previously used values, if available. This overrides the
-        values from either settings or the input parameters. If this is set to
-        True, but the profile doesn't have those values available, then
-        the next default is to look for them in settings. If that fails,
-        the parameters values are used as directly input.
     A_prot: float
         The A coefficient for protein. Not recommended to be changed.
     B_prot: float
@@ -1442,22 +1397,7 @@ def mw_vc(profile, rg=None, i0=None, protein=True, cutoff='Manual', qmax=0.3,
     else:
         mw_dict = {}
 
-
-    if (use_previous_settings and 'VolumeOfCorrelation' in mw_dict
-        and 'Cutoff' in mw_dict['VolumeOfCorrelation']
-        and 'Type' in mw_dict['VolumeOfCorrelation']
-        and 'Q_max' in mw_dict['VolumeOfCorrelation']):
-
-        cutoff = mw_dict['VolumeOfCorrelation']['Cutoff']
-        vc_type = mw_dict['VolumeOfCorrelation']['Type']
-        qmax =float(mw_dict['VolumeOfCorrelation']['Q_max'])
-
-        if vc_type == 'Protein':
-            protein = True
-        else:
-            protein = False
-
-    elif settings is not None:
+    if settings is not None:
         cutoff = settings.get('MWVcCutoff')
         vc_type = settings.get('MWVcType')
         qmax = settings.get('MWVcQmax')
@@ -1939,15 +1879,15 @@ def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
         err = err[idx_min:]
 
     bift_settings = {
-            'npts'      : pr_pts,
-            'alpha_max' : alpha_max,
-            'alpha_min' : alpha_min,
-            'alpha_n'   : alpha_pts,
-            'dmax_min'  : dmax_min,
-            'dmax_max'  : dmax_max,
-            'dmax_n'    : dmax_pts,
-            'mc_runs'   : mc_runs,
-            }
+        'npts'      : pr_pts,
+        'alpha_max' : alpha_max,
+        'alpha_min' : alpha_min,
+        'alpha_n'   : alpha_pts,
+        'dmax_min'  : dmax_min,
+        'dmax_max'  : dmax_max,
+        'dmax_n'    : dmax_pts,
+        'mc_runs'   : mc_runs,
+        }
 
     ift = BIFT.doBift(q, i, err, filename, **bift_settings)
 
@@ -4046,7 +3986,7 @@ def efa(series, ranges, profile_type='sub', framei=None, framef=None,
 
 
 def find_buffer_range(series, profile_type='unsub', int_type='total', q_val=None,
-    q_range=None, avg_window=5, settings=None, sim_test='CorMap',
+    q_range=None, window_size=5, settings=None, sim_test='CorMap',
     sim_cor='Bonferroni', sim_thresh=0.01):
     """
     Automatically determine the appropriate buffer range from subtraction from
@@ -4078,7 +4018,7 @@ def find_buffer_range(series, profile_type='unsub', int_type='total', q_val=None
         value of the range, the second the maximum q value of the range. If
         int_type is 'q_range', the q range used for the intensity is set by
         this parameter.
-    avg_window: int, optional
+    window_size: int, optional
         The size of the average window used for calculating parameters from
         series data. Used to help set the size of the search window for the
         buffer region. Defaults to 5.
@@ -4133,7 +4073,7 @@ def find_buffer_range(series, profile_type='unsub', int_type='total', q_val=None
         intensity = np.array([sasm.getIofQRange(q1, q2) for sasm in buffer_sasms])
 
     success, region_start, region_end = SASCalc.findBufferRange(buffer_sasms,
-        intensity, avg_window, sim_test, sim_cor, sim_thresh)
+        intensity, window_size, sim_test, sim_cor, sim_thresh)
 
     return success, region_start, region_end
 
@@ -4805,7 +4745,7 @@ def validate_sample_range(series, sample_range, profile_type='sub',
     Returns
     -------
     valid: bool
-        If the input buffer range is a valid buffer range.
+        If the input sample range is a valid sample range.
     similarity_results: dict
         A dictionary with the results of the similarity test. In particular,
         keys are: 'all_similar' - whether all profiles in the selected range
@@ -4947,11 +4887,488 @@ def set_sample_range(series, sample_range, profile_type='sub'):
 
     return sub_profile
 
-def baseline_correction():
-    pass
+def find_baseline_range(series, baseline_type='Integral', profile_type='sub',
+    window_size=5, int_type='total', q_val=None, q_range=None, settings=None,
+    sim_test='CorMap', sim_cor='Bonferroni', sim_thresh=0.01):
+    """
+    Automatically determine an appropriate range for the baseline
+    correction. Currently only works for integral baseline corrections.
 
-def find_baseline_range():
-    pass
+    Parameters
+    ----------
+    series: list or :class:`bioxtasraw.SECM.SECM`
+        The input series to find the baseline range for. It should either be
+        a list of individual scattering profiles (:class:`bioxtasraw.SASM.SASM`)
+        or a single series object (:class:`bioxtasraw.SECM.SECM`).
+    baseline_type: {'Integral', 'Linear'} str, optional
+        Defines the baseline type for validation purposes.
+    profile_type: {'unsub', 'sub', 'baseline'} str, optional
+        Only used if a :class:`bioxtasraw.SECM.SECM` is provided for the series
+        argument. Determines which type of profile to use from the series to
+        validate the baseline range. Unsubtracted profiles - 'unsub', subtracted
+        profiles - 'sub', baseline corrected profiles - 'baseline'.
+    window_size: int, optional
+        The size of the average window used for calculating parameters from
+        series data. Used to help set the size of the search window for the
+        buffer region. Defaults to 5.
+    int_type: {'total', 'mean', 'q_val', 'q_range'} str, optional
+        The intensity type to use for the validation of the baseline range. Total
+        integrated intensity - 'total', mean intensity - 'mean', intensity at
+        a particular q value - 'q_val', intensity in a given q range -
+        'q_range'. Use of q_val or q_range requires the corresponding parameter
+        to be provided.
+    q_val: float, optional
+        If int_type is 'q_val', the q value used for the intensity is set by
+        this parameter.
+    q_range: list, optional
+        This should have two entries, both floats. The first is the minimum q
+        value of the range, the second the maximum q value of the range. If
+        int_type is 'q_range', the q range used for the intensity is set by
+        this parameter.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, sim_test,
+        sim_cor, and sim_threshold are overridden by the values in the
+        settings.
+    sim_test: {'CorMap'} str, optional
+        Sets the type of similarity test to be used. Currently only CorMap is
+        supported as an option. Is overridden if settings are provided.
+    sim_cor: {'Bonferroni', 'None'} str, optional
+        Sets the multiple testing correction to be used as part of the similarity
+        test. Default is Bonferroni. Is overridden if settings are provided.
+    sim_thresh: float, optional
+        Sets the p value threshold for the similarity test. A higher value is
+        a more strict test (range from 0-1). Is overridden if settings are
+        provided.
 
-def validate_baseline_range():
-    pass #Needs to take both start and end range as separate arguments, I think
+    Results
+    -------
+    start_found: bool
+        True if a start region was successfully found.
+    end_found: bool
+        True if an end region was successfully found.
+    start_range: tuple
+        A tuple where the first entry is the start of the start region and
+        the second entry is the end of the start region. Returns -1 for each
+        value if not start_found.
+    end_range: tuple
+        A tuple where the first entry is the start of the end region and
+        the second entry is the end of the end region. Returns -1 for each
+        value if not end_found.
+    """
+
+    if settings is not None:
+        sim_thresh = settings.get('similarityThreshold')
+        sim_test = settings.get('similarityTest')
+        sim_cor = settings.get('similarityCorrection')
+
+    if isinstance(series, SECM.SECM):
+        if profile_type == 'unsub':
+            sub_profiles = series._sasm_list
+        elif profile_type == 'sub':
+            sub_profiles = series.subtracted_sasm_list
+        elif profile_type == 'baseline':
+            sub_profiles = series.baseline_subtracted_sasm_list
+
+        if not series.already_subtracted and len(series.buffer_range) ==1:
+            start_region = series.buffer_range[0]
+        else:
+            start_region = None
+
+    else:
+        sub_profiles = series
+        start_region = None
+
+    if int_type == 'total':
+        intensity = np.array([sasm.getTotalI() for sasm in sub_profiles])
+    elif int_type == 'mean':
+        intensity = np.array([sasm.getMeanI() for sasm in sub_profiles])
+    elif int_type == 'q_val':
+        intensity = np.array([sasm.getIofQ(q_val) for sasm in sub_profiles])
+    elif int_type == 'q_range':
+        q1 = q_range[0]
+        q2 = q_range[1]
+        intensity = np.array([sasm.getIofQRange(q1, q2) for sasm in sub_profiles])
+
+    (start_failed, end_failed, region1_start, region1_end, region2_start,
+        region2_end) = SASCalc.findBaselineRange(sub_profiles, intensity,
+        baseline_type, window_size, start_region, sim_test, sim_cor, sim_thresh)
+
+    start_found = not start_failed
+    end_found = not end_failed
+    start_range = (region1_start, region1_end)
+    end_range = (region2_start, region2_end)
+
+    return start_found, end_found, start_range, end_range
+
+def validate_baseline_range(series, start_range, end_range,
+    baseline_type='Integral', profile_type='sub', int_type='total',
+    q_val=None, q_range=None, fast=False, settings=None, sim_test='CorMap',
+    sim_cor='Bonferroni', sim_thresh=0.01):
+    """
+    Validates whether the input start and end ranges are a trustworthy baseline
+    range or not. This is designed to work with SEC-SAXS data, but may work in
+    other circumstances. Note that currently the validation for linear baselines
+    almost always returns false, and is of little use.
+
+    Parameters
+    ----------
+    series: list or :class:`bioxtasraw.SECM.SECM`
+        The input series to validate the baseline range for. It should either be
+        a list of individual scattering profiles (:class:`bioxtasraw.SASM.SASM`)
+        or a single series object (:class:`bioxtasraw.SECM.SECM`).
+    start_range: list
+        A list defining the baseline start range to be validated. The list is two
+        integers, the start of the range and the end of the range.
+    end_range: list
+        A list defining the baseline end range to be validated. The list is two
+        integers, the start of the range and the end of the range.
+    baseline_type: {'Integral', 'Linear'} str, optional
+        Defines the baseline type for validation purposes.
+    profile_type: {'unsub', 'sub', 'baseline'} str, optional
+        Only used if a :class:`bioxtasraw.SECM.SECM` is provided for the series
+        argument. Determines which type of profile to use from the series to
+        validate the baseline range. Unsubtracted profiles - 'unsub', subtracted
+        profiles - 'sub', baseline corrected profiles - 'baseline'.
+    int_type: {'total', 'mean', 'q_val', 'q_range'} str, optional
+        The intensity type to use for the validation of the baseline range. Total
+        integrated intensity - 'total', mean intensity - 'mean', intensity at
+        a particular q value - 'q_val', intensity in a given q range -
+        'q_range'. Use of q_val or q_range requires the corresponding parameter
+        to be provided.
+    q_val: float, optional
+        If int_type is 'q_val', the q value used for the intensity is set by
+        this parameter.
+    q_range: list, optional
+        This should have two entries, both floats. The first is the minimum q
+        value of the range, the second the maximum q value of the range. If
+        int_type is 'q_range', the q range used for the intensity is set by
+        this parameter.
+    fast: bool, optional
+        Whether the test should be done in fast mode or not. A fast test stops
+        at the first failed check. In a normal test (not fast), all metrics
+        are checked. Using a fast test is best when trying to automatically
+        determine a baseline range, something which can take many separate
+        validation checks. A normal test is best when trying to determine what,
+        if anything, about your selected range might be problematic.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, sim_test,
+        sim_cor, and sim_threshold are overridden by the values in the
+        settings.
+    sim_test: {'CorMap'} str, optional
+        Sets the type of similarity test to be used. Currently only CorMap is
+        supported as an option. Is overridden if settings are provided.
+    sim_cor: {'Bonferroni', 'None'} str, optional
+        Sets the multiple testing correction to be used as part of the similarity
+        test. Default is Bonferroni. Is overridden if settings are provided.
+    sim_thresh: float, optional
+        Sets the p value threshold for the similarity test. A higher value is
+        a more strict test (range from 0-1). Is overridden if settings are
+        provided.
+
+    Returns
+    -------
+    valid: bool
+        If the baseline start and end ranges are a valid baseline range.
+    valid_reuslts: tuple
+        A tuple of bools. The first entry is whether the start range is
+        valid, the second is whether the end range is valid. The start
+        range is always valid for a linear baseline correction.
+    similarity_results: tuple
+        A tuple of dicts. The first entry is the start range similarity
+        results, the second entry is the end range similarity results. A
+        similarity test is only done for integral baselines. For linear
+        baselines an empty dictionary is returned. For an integral baseline,
+        each dictionary has the following keys are: 'all_similar' - whether all
+        profiles in the selected range are similar over the entire profile.
+        'low_q_similar' - whether all profiles in the selected range are
+        similar over the low q region of the profile. 'high_q_similar' -
+        whether all profiles in the selected range are similar over the high q
+        region. 'max_idx' - The index of the profile used as the reference for
+        the similarity test, corresponding to the profile with the highest
+        intensity in the region. 'all_outliers' - Indices of the outlier
+        profiles of the similarity test at all q. 'low_q_outliers' - Indices of
+        the outlier profiles of the similarity test at low q. 'high_q_outliers'
+        - Indices of the outlier profiles of the similarity test at high q.
+    svd_results: tuple
+        A tuple of dicts. The first entry is the start range svd results, the
+        second is the end range svd results. A SVD test is only done for
+        integral baselines. For linear baselines an empty dictionary is
+        returned. For an integral baseline the dictionary keys are:
+        'svals' - the number of significant singular vectors in the region. 'U'
+        - the left singular vectors. 'V' - the right singular vectors.
+        'u_autocor' - The autocorrelation of the left singular vectors.
+        'v_autocor' - The autocorrelation of the right singular vectors.
+    intI_results: tuple
+        A tuple of dicts. The first entry is the start range intensity results,
+        the second entry is the end range intensity results. The intensity
+        test is only done for integral baselines. For linear baselines an
+        empty dictionary is returned. For an itnegral baseline, each
+        dictionary has the following keys: 'intI_r' - the Spearman correlation
+        coefficient of the intensity in the region. 'inti_pval' - the p-value
+        from the Spearman correlation test on the intensity of the region.
+        'intI_valid' - Whether the range is a valid buffer range based on the
+        intensity correlation. The same keys are provided but with smoothed in
+        front, indicating the test results on the smoothed intensity.
+    other_results: tuple
+        A tuple of dicts. The first entry is the start range other results, the
+        second entry is the end range other results. For either baseline type,
+        only the end range has other results, as this is an evaluation based on
+        comparing the end range to the start range. For an integral baseline,
+        This contains the following keys: 'zero_valid' - whether all q points
+        in the end region are higher than the same q points in the start region.
+        'zero_outliers' - An array of bools in the shape of the input profile
+        q vector. True where q values are more than 4 sigma lower in the
+        end region than the start region. 'zero_q' - the q vector. For a
+        linear baseline the following keys are available: 'fit_valid' -
+        whether the fit is valid. Note that fit_valid almost always returns False,
+        and is currently of little use.
+
+    """
+    if settings is not None:
+        sim_thresh = settings.get('similarityThreshold')
+        sim_test = settings.get('similarityTest')
+        sim_cor = settings.get('similarityCorrection')
+
+    #First do start range
+    start = True
+    start_ref_profiles = None
+
+    start_frame_idx = np.arange(start_range[0], start_range[1]+1)
+
+    if isinstance(series, SECM.SECM):
+        start_profiles = [series.getSASM(idx, profile_type) for idx
+            in start_frame_idx]
+    else:
+        start_profiles = [series[idx] for idx in start_frame_idx]
+
+    if int_type == 'total':
+        start_intensity = np.array([sasm.getTotalI() for sasm in start_profiles])
+    elif int_type == 'mean':
+        start_intensity = np.array([sasm.getMeanI() for sasm in start_profiles])
+    elif int_type == 'q_val':
+        start_intensity = np.array([sasm.getIofQ(q_val) for sasm
+            in start_profiles])
+    elif int_type == 'q_range':
+        q1 = q_range[0]
+        q2 = q_range[1]
+        start_intensity = np.array([sasm.getIofQRange(q1, q2) for sasm
+            in start_profiles])
+
+    (start_valid, start_similarity_results, start_svd_results,
+        start_intI_results, start_other_results) = SASCalc.validateBaseline(
+        start_profiles, start_frame_idx, start_intensity, baseline_type,
+        start_ref_profiles,  start, sim_test, sim_cor, sim_thresh, fast)
+
+
+    #Next do end range
+    start = False
+    end_ref_profiles = start_profiles
+
+    end_frame_idx = np.arange(end_range[0], end_range[1]+1)
+
+    if isinstance(series, SECM.SECM):
+        end_profiles = [series.getSASM(idx, profile_type) for idx
+            in end_frame_idx]
+    else:
+        end_profiles = [series[idx] for idx in end_frame_idx]
+
+    if int_type == 'total':
+        end_intensity = np.array([sasm.getTotalI() for sasm in end_profiles])
+    elif int_type == 'mean':
+        end_intensity = np.array([sasm.getMeanI() for sasm in end_profiles])
+    elif int_type == 'q_val':
+        end_intensity = np.array([sasm.getIofQ(q_val) for sasm
+            in end_profiles])
+    elif int_type == 'q_range':
+        q1 = q_range[0]
+        q2 = q_range[1]
+        end_intensity = np.array([sasm.getIofQRange(q1, q2) for sasm
+            in end_profiles])
+
+    (end_valid, end_similarity_results, end_svd_results,
+        end_intI_results, end_other_results) = SASCalc.validateBaseline(
+        end_profiles, end_frame_idx, end_intensity, baseline_type,
+        end_ref_profiles,  start, sim_test, sim_cor, sim_thresh, fast)
+
+    valid = start_valid and end_valid
+    valid_results = (start_valid, end_valid)
+    similarity_results = (start_similarity_results, end_similarity_results)
+    svd_results = (start_svd_results, end_svd_results)
+    intI_results = (start_intI_results, end_intI_results)
+    other_results = (start_other_results, end_other_results)
+
+    return valid, valid_results, similarity_results, svd_results, intI_results, other_results
+
+def set_baseline_correction(series, start_range, end_range, baseline_type,
+    bl_extrap=True, int_type='total', q_val=None, q_range=None, window_size=5,
+    settings=None, min_iter=100, max_iter=2000,  calc_thresh=1.02,
+    error_weight=True, vp_density=0.83*10**(-3), vp_cutoff='Default',
+    vp_qmax=0.5, vc_protein=True, vc_cutoff='Manual', vc_qmax=0.3,
+    vc_a_prot=1.0, vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934):
+    """
+    Calculates and sets the baseline correction for the input series. Then
+    recalculates the series Rg and M.W. values based on the baseline corrected
+    profiles. The input profile must have both unsubtracted and subtracted
+    profiles.
+
+    Parameters
+    ----------
+    series: :class:`bioxtasraw.SECM.SECM`
+        The input series to calculate the baseline for.
+    start_range: list
+        A list defining the baseline start range to be validated. The list is two
+        integers, the start of the range and the end of the range.
+    end_range: list
+        A list defining the baseline end range to be validated. The list is two
+        integers, the start of the range and the end of the range.
+    baseline_type: {'Integral', 'Linear'} str
+        Defines the baseline type as either Integral or Linear.
+    bl_extrap: bool, optional
+        Used for a linear baseline. If True, the linear baseline correction is
+        extrapolated to the entire series, if not it is only applied between
+        the start_range and end_range.
+    int_type: {'total', 'mean', 'q_val', 'q_range'} str, optional
+        The intensity type to use the calculation of the baseline range. Total
+        integrated intensity - 'total', mean intensity - 'mean', intensity at
+        a particular q value - 'q_val', intensity in a given q range -
+        'q_range'. Use of q_val or q_range requires the corresponding parameter
+        to be provided.
+    q_val: float, optional
+        If int_type is 'q_val', the q value used for the intensity is set by
+        this parameter.
+    q_range: list, optional
+        This should have two entries, both floats. The first is the minimum q
+        value of the range, the second the maximum q value of the range. If
+        int_type is 'q_range', the q range used for the intensity is set by
+        this parameter.
+    window_size: int, optional
+        The size of the average window used when calculating Rg and MW.
+        So if the window is 5, 5 a window is size 5 is slid along the series,
+        and profiles in that window are averaged before being used to calculate
+        Rg and MW. For example, frames 1-5, 2-6, 3-7, etc would be averaged and
+        then have Rg and MW calculated from that average.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, sim_test,
+        sim_cor, and sim_threshold are overridden by the values in the
+        settings.
+    min_iter: int, optional
+        The minimum number of iterations for calculating the integral baseline
+        correction. Overridden if settings are provided.
+    max_iter: int, optional
+        The maximum number of iterations for calculating the integral baseline
+        correction. Overridden if settings are provided.
+    calc_thresh: float, optional
+        If the ratio of the scattering profile intensity to the average buffer
+        intensity is greater than this threshold, the Rg and MW for the profile
+        is calculated. Defaults to 1.02.
+    error_weight: bool, optional
+        Whether to use error weighting when calculating the Rg.
+    vp_density: float, optional
+        The density used for the Porod volume M.W. calculation in kDa/A^3.
+        Defaults to 0.83*10**(-3).
+    vp_cutoff: {''Default', '8/Rg', 'log(I0/I(q))', 'Manual''} str, optional
+        The method to use to calculate the maximum q value used for the
+        Porod volume M.W. calculation. Defaults to 'Default'
+    vp_qmax: float, optional
+        The maximum q value to be used if the 'Manual' cutoff method is
+        selected for the Porod volume M.W. calculation. Defaults to 0.5.
+    vc_protein: bool
+        True if the sample is protein, False if the sample is RNA. Determines
+        which set of coefficients to use for calculating M.W.
+    vc_cutoff: {''Default', '8/Rg', 'log(I0/I(q))', 'Manual''} str, optional
+        The method to use to calculate the maximum q value used for the
+        M.W. calculation. Defaults to 'Manual'
+    vc_qmax: float, optional
+        The maximum q value to be used if the 'Manual' cutoff method is
+        selected. Defaults to 0.3.
+    vc_a_prot: float
+        The volume of correlation A coefficient for protein. Not recommended
+        to be changed.
+    vc_b_prot: float
+        The volume of correlation B coefficient for protein. Not recommended
+        to be changed. Note that here B is defined as 1/B from the original paper.
+    vc_a_rna: float
+        The volume of correlation A coefficient for RNA. Not recommended to
+        be changed.
+    vc_b_rna: float
+        The volume of correlation B coefficient for RNA. Not recommended to
+        be changed. Note that here B is defined as 1/B from the original paper.
+    """
+
+    # Set input values from settings if applicable
+
+    if settings is not None:
+        min_iter = settings.get('IBaselineMinIter')
+        max_iter = settings.get('IBaselineMaxIter')
+        calc_thresh = settings.get('secCalcThreshold')
+
+        error_weight = settings.get('errorWeight')
+
+        vp_cutoff = settings.get('MWVpCutoff')
+        vp_density = settings.get('MWVpRho')
+        vp_qmax = settings.get('MWVpQmax')
+
+        vc_cutoff = settings.get('MWVcCutoff')
+        vc_type = settings.get('MWVcType')
+        vc_qmax = settings.get('MWVcQmax')
+
+        if vc_type == 'Protein':
+            vc_protein = True
+        else:
+            vc_protein = False
+
+    unsub_profiles = series.getAllSASMs()
+    sub_profiles = series.subtracted_sasm_list
+
+    (bl_cor_profiles, use_sub_profiles, bl_corr, fit_results, sub_mean_i,
+        sub_total_i, bl_sub_mean_i, bl_sub_total_i) = SASCalc.processBaseline(
+        unsub_profiles, sub_profiles, start_range, end_range, baseline_type,
+        min_iter, max_iter, bl_extrap, int_type, q_val, q_range, calc_thresh)
+
+    success, results = SASCalc.run_secm_calcs(bl_cor_profiles, use_sub_profiles,
+        window_size, vc_protein, error_weight, vp_density, vp_cutoff,
+        vp_qmax, vc_cutoff, vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna,
+        vc_b_rna)
+
+    if vc_protein:
+        mol_type = 'Protein'
+    else:
+        mol_type = 'RNA'
+
+    if success:
+        rg = results['rg']
+        rger = results['rger']
+        i0 = results['i0']
+        i0er = results['i0er']
+        vcmw = results['vcmw']
+        vcmwer = results['vcmwer']
+        vpmw = results['vpmw']
+    else:
+        rg = np.zeros(len(sub_profiles),dtype=float)-1
+        rger = np.zeros(len(sub_profiles),dtype=float)-1
+        i0 = np.zeros(len(sub_profiles),dtype=float)-1
+        i0er = np.zeros(len(sub_profiles),dtype=float)-1
+        vcmw = np.zeros(len(sub_profiles),dtype=float)-1
+        vcmwer = np.zeros(len(sub_profiles),dtype=float)-1
+        vpmw = np.zeros(len(sub_profiles),dtype=float)-1
+
+
+    series.window_size = window_size
+    series.mol_type = mol_type
+    series.mol_density = vp_density
+
+    if rg.size > 0 and success:
+        series.setCalcValues(rg, rger, i0, i0er, vcmw, vcmwer, vpmw)
+        series.calc_has_data = True
+
+    series.setBCSubtractedSASMs(bl_cor_profiles, use_sub_profiles)
+
+    series.baseline_start_range = start_range
+    series.baseline_end_range = end_range
+    series.baseline_corr = bl_corr
+    series.baseline_type = baseline_type
+    series.baseline_extrap = bl_extrap
+    series.baseline_fit_results = fit_results
+
+    return (bl_cor_profiles, rg, rger, i0, i0er, vcmw, vcmwer, vpmw, bl_corr,
+        fit_results)

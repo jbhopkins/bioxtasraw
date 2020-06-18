@@ -325,13 +325,10 @@ def make_fit(q, r, pr):
     return i
 
 def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
-    dmax_max, dmax_n, mc_runs, queue=None, abort_check=threading.Event()):
+    dmax_max, dmax_n, mc_runs, queue=None, abort_check=threading.Event(),
+    single_proc=False):
 
-    # Start by finding the optimal dmax and alpha via minimization of evidence
-    if platform.system() == 'Darwin' and six.PY3:
-        single_proc = True
-    else:
-        single_proc = False
+    #Start by finding the optimal dmax and alpha via minimization of evidence
 
     alpha_min = np.log(alpha_min)
     alpha_max = np.log(alpha_max)

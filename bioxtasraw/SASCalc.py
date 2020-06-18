@@ -62,6 +62,7 @@ import bioxtasraw.SASFileIO as SASFileIO
 import bioxtasraw.SASExceptions as SASExceptions
 import bioxtasraw.RAWSettings as RAWSettings
 import bioxtasraw.SASProc as SASProc
+import bioxtasraw.SASM as SASM
 
 
 #Define the rg fit function
@@ -3089,7 +3090,7 @@ def findSampleRange(sub_sasms, intensity, rg, vcmw, vpmw, avg_window, sim_test,
 
     return success, region_start, region_end
 
-def validateBaselineRange(sasms, frame_idx, intensity, bl_type, ref_sasms, start,
+def validateBaseline(sasms, frame_idx, intensity, bl_type, ref_sasms, start,
     sim_test, sim_cor, sim_thresh, fast):
     other_results = {}
 
@@ -3151,11 +3152,12 @@ def validateBaselineRange(sasms, frame_idx, intensity, bl_type, ref_sasms, start
 
             if np.any(outlier_idx):
                 other_results['zero_valid'] = False
-                other_results['zero_outliers'] = outlier_idx
-                other_results['zero_q'] = diff_sasm.getQ()
 
             else:
                 other_results['zero_valid'] = True
+
+            other_results['zero_outliers'] = outlier_idx
+            other_results['zero_q'] = diff_sasm.getQ()
 
             valid = valid and other_results['zero_valid']
 
@@ -3209,3 +3211,331 @@ def validateBaselineRange(sasms, frame_idx, intensity, bl_type, ref_sasms, start
             return valid, similarity_results, svd_results, intI_results, other_results
 
     return valid, similarity_results, svd_results, intI_results, other_results
+
+def findBaselineRange(sub_sasms, intensity, bl_type, avg_window, start_region,
+    sim_test, sim_cor, sim_thresh):
+    region1_start = -1
+    region1_end = -1
+    region2_start = -1
+    region2_end = -1
+
+    win_len = len(intensity)//2
+    if win_len % 2 == 0:
+        win_len = win_len+1
+    win_len = min(51, win_len)
+
+    order = min(5, win_len-1)
+
+    smoothed_data = smooth_data(intensity, window_length=win_len,
+        order=order)
+
+    norm_sdata = smoothed_data/np.max(smoothed_data)
+    peaks, peak_params = find_peaks(norm_sdata, height=0.4)
+
+    min_window_width = max(10, int(round(avg_window/2.)))
+
+    # Start region
+    if len(peaks) == 0:
+        window_size =  min_window_width
+        start_point = 0
+        end_point = len(intensity) - 1 - window_size
+    else:
+        max_peak_idx = np.argmax(peak_params['peak_heights'])
+        main_peak_width = int(round(peak_params['widths'][max_peak_idx]))
+
+        window_size = max(main_peak_width, min_window_width)
+        start_point = 0
+
+        end_point = int(round(peak_params['left_ips'][max_peak_idx]))
+        if end_point + window_size > len(intensity) - 1 - window_size:
+            end_point = len(intensity) - 1 - window_size
+
+    found_region = False
+    start_failed = False
+
+    if start_region is not None:
+        region_sasms = sub_sasms[start_region[0]:start_region[1]+1]
+        frame_idx = np.arange(start_region[0], start_region[1]+1)
+        region_intensity = intensity[start_region[0]:start_region[1]+1]
+
+        (valid, similarity_results, svd_results, intI_results,
+            other_results) = validateBaseline(region_sasms, frame_idx,
+            region_intensity, bl_type, None, True, sim_test, sim_cor,
+            sim_thresh, True)
+
+        if np.all([peak not in frame_idx for peak in peaks]) and valid:
+            found_region = True
+            region1_start = start_region[0]
+            region1_end = start_region[1]
+        else:
+            found_region = False
+
+
+    while not found_region and not start_failed:
+        step_size = max(1, int(round(window_size/4.)))
+
+        region_starts = list(range(start_point, end_point, step_size))
+
+        region_starts = region_starts[::-1]
+
+        for idx in region_starts:
+            region_sasms = sub_sasms[idx:idx+window_size+1]
+            frame_idx = np.arange(idx, idx+window_size+1)
+            region_intensity = intensity[idx:idx+window_size+1]
+
+            (valid, similarity_results, svd_results, intI_results,
+                other_results) = validateBaseline(region_sasms, frame_idx,
+                region_intensity, bl_type, None, True, sim_test, sim_cor,
+                sim_thresh, True)
+
+            if np.all([peak not in frame_idx for peak in peaks]) and valid:
+                found_region = True
+            else:
+                found_region = False
+
+            if found_region:
+                region1_start = idx
+                region1_end = idx+window_size
+                break
+
+        window_size = int(round(window_size/2.))
+
+        if window_size < min_window_width and not found_region:
+            start_failed = True
+
+    if not start_failed:
+        start_sasms = sub_sasms[region1_start:region1_end+1]
+
+
+    # End region
+    if len(peaks) == 0:
+        window_size =  min_window_width
+        start_point = 0
+        end_point = len(intensity) - 1 - window_size
+    else:
+        max_peak_idx = np.argmax(peak_params['peak_heights'])
+        main_peak_width = int(round(peak_params['widths'][max_peak_idx]))
+
+        window_size = max(main_peak_width, min_window_width)
+
+        start_point = int(round(peak_params['left_ips'][max_peak_idx]))
+        if start_point + window_size > len(intensity) - 1 - window_size:
+            start_point = len(intensity) - 1 - window_size
+
+        end_point = len(intensity) - 1 - window_size
+
+    found_region = False
+    end_failed = False
+
+    while not found_region and not end_failed:
+        step_size = max(1, int(round(window_size/4.)))
+
+        region_starts = list(range(start_point, end_point, step_size))
+
+        for idx in region_starts:
+            region_sasms = sub_sasms[idx:idx+window_size+1]
+            frame_idx = np.arange(idx, idx+window_size+1)
+            region_intensity = intensity[idx:idx+window_size+1]
+
+            if not start_failed:
+                (valid, similarity_results, svd_results, intI_results,
+                    other_results) = validateBaseline(region_sasms, frame_idx,
+                    region_intensity, bl_type, start_sasms, False, sim_test,
+                    sim_cor, sim_thresh, True)
+            else:
+                (valid, similarity_results, svd_results, intI_results,
+                    other_results) = validateBaseline(region_sasms, frame_idx,
+                    region_intensity, bl_type, None, True, sim_test, sim_cor,
+                    sim_thresh, True)
+
+            if np.all([peak not in frame_idx for peak in peaks]) and valid:
+                found_region = True
+            else:
+                found_region = False
+
+            if found_region:
+                region2_start = idx
+                region2_end = idx+window_size
+                break
+
+        window_size = int(round(window_size/2.))
+
+        if window_size < min_window_width and not found_region:
+            end_failed = True
+
+    return (start_failed, end_failed, region1_start, region1_end, region2_start,
+        region2_end)
+
+def processBaseline(unsub_sasms, sub_sasms, r1, r2, bl_type, min_iter, max_iter,
+    bl_extrap, int_type, qref, qrange, calc_threshold):
+
+    if bl_type == 'Integral':
+        fit_results = [] #Need to declare here for integral baselines which don't return fit_results
+
+        baselines = integral_baseline(sub_sasms, r1, r2, max_iter,
+            min_iter)
+
+        bl_sasms = []
+
+        bl_corr = []
+        bl_q = copy.deepcopy(sub_sasms[0].getQ())
+        bl_err = np.zeros_like(baselines[0])
+
+        for j, sasm in enumerate(sub_sasms):
+            q = copy.deepcopy(sasm.getQ())
+
+            if j < r1[1]:
+                baseline = baselines[0]
+                i = copy.deepcopy(sasm.getI())
+                err = copy.deepcopy(sasm.getErr())
+            elif j >= r1[1] and j <= r2[0]:
+                baseline = baselines[j-r1[1]]
+                i = sasm.getI() - baseline
+                err = sasm.getErr() * i/sasm.getI()
+
+                newSASM = SASM.SASM(baseline, bl_q, bl_err, {})
+                bl_corr.append(newSASM)
+            else:
+                baseline = baselines[-1]
+                i = sasm.getI() - baseline
+                err = sasm.getErr() * i/sasm.getI()
+
+
+            parameters = copy.deepcopy(sasm.getAllParameters())
+            newSASM = SASM.SASM(i, q, err, {})
+            newSASM.setParameter('filename', parameters['filename'])
+
+            history = newSASM.getParameter('history')
+
+            history = {}
+
+            history1 = []
+            history1.append(copy.deepcopy(sasm.getParameter('filename')))
+            for key in sasm.getParameter('history'):
+                history1.append({ key : copy.deepcopy(sasm.getParameter('history')[key])})
+
+            history['baseline_correction'] = {'initial_file':history1,
+                'type':bl_type}
+
+            newSASM.setParameter('history', history)
+
+            bl_sasms.append(newSASM)
+
+    elif bl_type == 'Linear':
+
+        fit_results = linear_baseline(sub_sasms, r1, r2)
+
+        bl_sasms = []
+        bl_corr = []
+
+        bl_q = copy.deepcopy(sub_sasms[0].getQ())
+        bl_err = np.zeros_like(sub_sasms[0].getQ())
+
+        for j, sasm in enumerate(sub_sasms):
+            q = copy.deepcopy(sasm.getQ())
+
+            if bl_extrap:
+                baseline = np.array([linear_func(j, fit[0], fit[1]) for fit in fit_results])
+                i = sasm.getI() - baseline
+                err = sasm.getErr() * i/sasm.getI()
+
+                bl_newSASM = SASM.SASM(baseline, bl_q, bl_err, {})
+                bl_corr.append(bl_newSASM)
+
+            else:
+                if j >= r1[0] and j <= r2[1]:
+                    baseline = np.array([linear_func(j, fit[0], fit[1]) for fit in fit_results])
+                    i = sasm.getI() - baseline
+                    err = sasm.getErr() * i/sasm.getI()
+
+                    bl_newSASM = SASM.SASM(baseline, bl_q, bl_err, {})
+                    bl_corr.append(bl_newSASM)
+                else:
+                    i = copy.deepcopy(sasm.getI())
+                    err = copy.deepcopy(sasm.getErr())
+                    baseline = np.zeros_like(i)
+
+
+            parameters = copy.deepcopy(sasm.getAllParameters())
+            newSASM = SASM.SASM(i, q, err, {})
+            newSASM.setParameter('filename', parameters['filename'])
+
+            history = newSASM.getParameter('history')
+
+            history = {}
+
+            history1 = []
+            history1.append(copy.deepcopy(sasm.getParameter('filename')))
+            for key in sasm.getParameter('history'):
+                history1.append({ key : copy.deepcopy(sasm.getParameter('history')[key])})
+
+            history['baseline_correction'] = {'initial_file':history1,
+                'type':bl_type}
+
+            newSASM.setParameter('history', history)
+
+            bl_sasms.append(newSASM)
+
+
+    sub_mean_i = np.array([sasm.getMeanI() for sasm in bl_sasms])
+    sub_total_i = np.array([sasm.getTotalI() for sasm in bl_sasms])
+
+
+    use_subtracted_sasms = []
+    zeroSASM = SASM.SASM(np.zeros_like(sub_sasms[0].getQ()), sub_sasms[0].getQ(), sub_sasms[0].getErr(), {})
+    bl_unsub_sasms = []
+
+    for j in range(len(unsub_sasms)):
+        if bl_type == 'Integral':
+            if j < r1[1]:
+                bkg_sasm = zeroSASM
+            elif j >= r1[1] and j <= r2[0]:
+                bkg_sasm = bl_corr[j-r1[1]]
+            else:
+                bkg_sasm = bl_corr[-1]
+
+        elif bl_type == 'Linear':
+            if bl_extrap:
+                bkg_sasm = bl_corr[j]
+            else:
+                if j >= r1[0] and j <= r2[1]:
+                    bkg_sasm = bl_corr[j-r1[0]]
+                else:
+                    bkg_sasm = zeroSASM
+
+        bl_unsub_sasms.append(SASProc.subtract(unsub_sasms[j], bkg_sasm, forced = True))
+
+    start_frames = list(range(r1[0], r1[1]+1))
+    bl_unsub_ref_sasm = SASProc.average([bl_unsub_sasms[j] for j in start_frames], forced=True)
+
+    if  int_type == 'total':
+        ref_intensity = bl_unsub_ref_sasm.getTotalI()
+    elif int_type == 'mean':
+        ref_intensity = bl_unsub_ref_sasm.getMeanI()
+    elif int_type == 'q_val':
+        ref_intensity = bl_unsub_ref_sasm.getIofQ(qref)
+    elif int_type == 'q_range':
+        q1 = qrange[0]
+        q2 = qrange[1]
+        ref_intensity = bl_unsub_ref_sasm.getIofQRange(q1, q2)
+
+    for sasm in bl_unsub_sasms:
+        if int_type == 'total':
+            sasm_intensity = sasm.getTotalI()
+        elif int_type == 'mean':
+            sasm_intensity = sasm.getMeanI()
+        elif int_type == 'q_val':
+            sasm_intensity = sasm.getIofQ(qref)
+        elif int_type == 'q_range':
+            sasm_intensity = sasm.getIofQRange(q1, q2)
+
+        if abs(sasm_intensity/ref_intensity) > calc_threshold:
+            use_subtracted_sasms.append(True)
+        else:
+            use_subtracted_sasms.append(False)
+
+    bl_sub_mean_i = np.array([sasm.getMeanI() for sasm in bl_corr])
+    bl_sub_total_i = np.array([sasm.getTotalI() for sasm in bl_corr])
+
+    return (bl_sasms, use_subtracted_sasms, bl_corr, fit_results, sub_mean_i,
+        sub_total_i, bl_sub_mean_i, bl_sub_total_i)
