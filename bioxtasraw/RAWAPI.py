@@ -57,6 +57,10 @@ __version__ = RAWGlobals.version
 
 __default_settings = RAWSettings.RawGuiSettings()
 
+RAWGlobals.RAWResourcesDir = os.path.join(raw_path, 'bioxtasraw', 'resources')
+RAWGlobals.RAWDefinitionsDir = os.path.join(raw_path, 'bioxtasraw', 'definitions')
+RAWGlobals.RAWDocsDir = os.path.join(raw_path, 'docs', 'build', 'html')
+
 def load_settings(file, settings=None):
     """
     Loads RAW settings from a file.
