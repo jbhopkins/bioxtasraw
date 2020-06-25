@@ -52,10 +52,13 @@ import bioxtasraw.RAWGlobals as RAWGlobals
 import bioxtasraw.SECM as SECM
 import bioxtasraw.BIFT as BIFT
 import bioxtasraw.DENSS as DENSS
+import bioxtasraw.SASUtils as SASUtils
 
 __version__ = RAWGlobals.version
 
 __default_settings = RAWSettings.RawGuiSettings()
+atsas_dir = SASUtils.findATSASDirectory()
+__default_settings.set('ATSASDir', atsas_dir)
 
 RAWGlobals.RAWResourcesDir = os.path.join(raw_path, 'bioxtasraw', 'resources')
 RAWGlobals.RAWDefinitionsDir = os.path.join(raw_path, 'bioxtasraw', 'definitions')

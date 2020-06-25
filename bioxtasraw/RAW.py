@@ -14325,13 +14325,10 @@ class InformationPanel(scrolled.ScrolledPanel):
             pass
 
     def textRound(self, value, round_to):
-        if round_to > 1:
-            low_bound = 1./((round_to-1.)*10.)
-        else:
-            low_bound = 0.1
+        low_bound = 1./(10.**(round_to))
 
         if round_to > 1:
-            high_bound = 1000./((round_to-1.)*10.)
+            high_bound = 1000./(10.**(round_to-1))
         else:
             high_bound = 1000
 

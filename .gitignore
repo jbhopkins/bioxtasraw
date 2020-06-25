@@ -1,19 +1,7 @@
 #From:
 #https://github.com/github/gitignore/blob/master/Python.gitignore
 
-if self.plotparams['plot' + plot_number + 'type'] == 'normal' or self.plotparams['plot' + plot_number + 'type'] == 'subtracted':
-
-            if self.plotparams['axesscale' + plot_number + ''] == 'loglog':
-                item_list[2].Check(True)
-            elif self.plotparams['axesscale' + plot_number + ''] == 'linlog':
-                item_list[3].Check(True)
-            elif self.plotparams['axesscale' + plot_number + ''] == 'loglin':
-                item_list[1].Check(True)
-            elif self.plotparams['axesscale' + plot_number + ''] == 'linlin':
-                item_list[0].Check(True)
-
-        else:
-            # Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -36,6 +24,8 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
@@ -54,13 +44,15 @@ pip-delete-this-directory.txt
 # Unit test / coverage reports
 htmlcov/
 .tox/
+.nox/
 .coverage
 .coverage.*
 .cache
 nosetests.xml
 coverage.xml
-*.cover
+*.py,cover
 .hypothesis/
+.pytest_cache/
 
 # Translations
 *.mo
@@ -71,6 +63,8 @@ coverage.xml
 .static_storage/
 .media/
 local_settings.py
+db.sqlite3
+db.sqlite3-journal
 
 # Flask stuff:
 instance/
@@ -88,11 +82,16 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# IPython
+profile_default/
+ipython_config.py
+
 # pyenv
 .python-version
 
 # celery beat schedule file
 celerybeat-schedule
+celerybeat.pid
 
 # SageMath parsed files
 *.sage.py
@@ -118,11 +117,6 @@ venv.bak/
 
 # mypy
 .mypy_cache/
-                item_list[4].Check(True)
-            elif self.plotparams['plot' + plot_number + 'type'] == 'kratky':
-                item_list[5].Check(True)
-            elif self.plotparams['plot' + plot_number + 'type'] == 'porod':
-                item_list[6].Check(True)
 
 # Mac stuff
 *.DS_Store
