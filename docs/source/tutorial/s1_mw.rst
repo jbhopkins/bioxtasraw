@@ -41,12 +41,12 @@ The written version of the tutorial follows.
 
     *   *Note:* Neither the I(0) Ref. MW panel nor the Abs. MW panel should be reporting a MW.
 
-    *   *Note:* If you have ATSAS installed an accessible to RAW, you should see
-        see panels with MW, as in the image below. If you don't have ATSAS
+    *   *Note:* If you have ATSAS installed and accessible to RAW, you should see
+        six panels with MW, as in the image below. If you don't have ATSAS
         installed you will see just four panels, the rightmost panel in each
         row will be missing.
 
-    *   *Tip:* To learn more about any of the methods, lick on the "More Info"
+    *   *Tip:* To learn more about any of the methods, click on the "More Info"
         button.
 
     |mw_png|

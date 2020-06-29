@@ -128,7 +128,7 @@ The written version of the tutorial follows.
     |lc_analysis_buffer_range_png|
 
 #.  You can make fine manual adjustments to the buffer range if necessary. Zoom
-    in on the baseline with the buffer region. Use the up/down arrows for the
+    in on the baseline around the buffer region. Use the up/down arrows for the
     Start and End points to adjust the buffer region a little bit. You will see
     the region on the plot update as you make the changes.
 
@@ -168,7 +168,7 @@ The written version of the tutorial follows.
     Subtracted plot. If it doesn't, click on the 'Subtracted' tab in the plot.
     On this plot there is a new Intensity vs. Frame # curve, representing the
     subtracted data. There is also a set of markers, showing one of the calculated
-    parameters. By default the |Rg| displayed.. The calculated parameters are
+    parameters. By default the |Rg| displayed. The calculated parameters are
     plotted on the right Y axis. You can show |Rg|, I(0), and MW calculated by
     the volume of correlation (Vc) and adjusted Porod volume (Vp) methods. Click
     on the 'Calculated value' menu to switch between the different displays.
@@ -212,7 +212,7 @@ The written version of the tutorial follows.
     *   *Tip:* You can manually adjust the sample region range in the same way
         as the buffer range, using the controls in the Start/End boxes.
 
-#.  Once you are satisfied with the region picked (should be 693-722), click the
+#.  Once you are satisfied with the region picked (should be 690-719), click the
     'To Profiles Plot' button. This averages the selected region and sends the resulting
     average to RAW's Profiles Plot.
 
@@ -335,7 +335,7 @@ The written version of the tutorial follows.
     the ‘Average’ button. That will send the average buffer to the Profiles plot.
 
     *   *Try:* Send the average of the sample range you selected to the main
-        plot (693 to 722), carry out the subtraction, and verify it’s the same as
+        plot (690 to 719), carry out the subtraction, and verify it’s the same as
         the curve produced by the ‘To Profiles Plot’ button in the LC Series Analysis
         panel.
 
@@ -359,8 +359,8 @@ The written version of the tutorial follows.
     line to the Calc Markers by selecting line style ‘-’ (solid), and adjust
     the line color to your liking.
 
-    *   *Tip:* You can do the same thing to adjust the colors of the scattering profiles in
-        the Profiles and IFT control tabs.
+    *   *Tip:* You can do the same thing to adjust the colors of the scattering
+        profiles and IFTs in the Profiles and IFT control tabs.
 
     |series_color_png|
 
@@ -387,7 +387,7 @@ The written version of the tutorial follows.
 
     |series_panel_png|
 
-#.  The SEC-SAS run will automatically load. Note that because SAXS data can be
+#.  The SEC-SAXS run will automatically load. Note that because SAXS data can be
     reported with an arbitrary intensity scale, the total intensity of this
     series is much larger than the previous series.
 
@@ -403,11 +403,9 @@ The written version of the tutorial follows.
 
     |series_scale_png|
 
-#.  Hide the first series (**profiles_001**).
+#.  Hide the first series (**profile_001**).
 
 #.  Select a good buffer region, and calculate the |Rg| and MW across the peak for the BSA.
-
-    *   *Warning:* Don’t forget to star the curve you want to set/update parameters for!
 
     *   *Tip:* If you hover your mouse cursor over the info icon, you will see the buffer
         range and window size used to calculate the parameters.
@@ -427,7 +425,7 @@ The written version of the tutorial follows.
     *   *Try:* Open the **.csv** file you just saved in Excel or Libre/Open Office Calc.
 
 #.  Select both items in the Series control panel list, and save them in the **sec_data**
-    folder. This saves the Series plot data in a form that can be quickly loaded by RAW.
+    folder. This saves the series data in a form that can be quickly loaded by RAW.
 
     *   *Try:* Clear the Series data and then open one of your saved files from the Files tab
         using either the “Plot” or “Plot Series” button.

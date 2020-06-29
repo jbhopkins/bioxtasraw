@@ -55,7 +55,7 @@ The written version of the tutorial follows.
     to using Subtracted data.
 
     *   *Note:* The blue points are in the plot on the left are the region being
-        used for SVD, while the red points shows the rest of the SEC-SAXS curve.
+        used for SVD, while the red points show the rest of the SEC-SAXS curve.
 
     |svd_panel_sub_png|
 

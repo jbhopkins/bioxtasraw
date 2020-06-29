@@ -60,12 +60,6 @@ The written version of the tutorial follows.
 
     *   *Note:* |Dmax| is in units of Å.
 
-    *   *Tip:* Recall that we want the following qualities in a P(R) function:
-
-        #.  No negative values.
-        #.  A gentle approach to |Dmax| (not suddenly forced down).
-        #.  Minimal oscillation.
-
 #.  Return the |Dmax| value to that found by DATGNOM by clicking the “DATGNOM” button.
     |Dmax| should be 101. By default, GNOM forces the P(r) function to zero at |Dmax|.
     For a high quality data set and a good choice of |Dmax|, P(r) should go to zero

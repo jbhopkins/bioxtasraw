@@ -200,7 +200,7 @@ longer valid. In those cases, the lipid/detergent may have a lower electron
 density than the buffer. As scattering is measured relative to the solvent,
 this lower density will appear as negative electron pairs in the P(r) function.
 For example, proteins embedded in lipid nanodiscs have a characteristic dip
-in the P(r) function that can often go negative.
+in the P(r) function that can go negative.
 
 
 Determining a good P(r) function using GNOM

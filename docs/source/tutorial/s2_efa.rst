@@ -114,7 +114,7 @@ The written version of the tutorial follows.
     *   *Note:* For the Forward EFA plot, SVD is run on just the first two frames, then
         the first three, and so on, until all frames in the range are included. As more
         frames are added, the singular values change, as shown on the plot. When a singular
-        values starts increasingly sharply, it indicates that there is a new scattering
+        value starts increasingly sharply, it indicates that there is a new scattering
         component in the scattering profile measured at that point. So, for the first ~150
         frames, there are no new scattering components (i.e. just buffer scattering). At
         frame ~147, we see the first singular value (the singular value with index 0,
@@ -129,7 +129,7 @@ The written version of the tutorial follows.
 
     *   *Note:* For the Backward EFA plot, SVD is run on just the last two frames, then the
         last three, and so on, until all frames in the range are included. As more frames are
-        added, the singular values change, as shown on the plot. When a singular values starts
+        added, the singular values change, as shown on the plot. When a singular value starts
         increasingly sharply (as seen from right to left), it indicates that there is a new
         scattering component in the scattering profile measured at that point.
 
@@ -167,7 +167,7 @@ The written version of the tutorial follows.
 
 #.  To see these changes on the Forward and Backward EFA plots, click the “Back” button
     at the bottom right of the page. Verify that all of your start and end values are
-    close to where the components become significant, as discussed in Steps 12 and 13.
+    close to where the components become significant, as discussed in Steps 8 and 9.
 
 #.  Click the “Next” button to return to the final stage of the EFA analysis.
 
@@ -204,10 +204,10 @@ The written version of the tutorial follows.
             Forward and Backward EFA values (Steps 12-13).
 
         #.  Confirm that your chi-squared plot is close to 1, without any major
-            spikes (Step 21).
+            spikes.
 
         #.  Confirm that your concentrations are not significantly altered by
-            constraining the concentration to be positive (Steps 22-23).
+            constraining the concentration to be positive (Steps 17-19).
 
 #.  Click the “Save EFA Data (not profiles)” to save the EFA data, including the SVD,
     the Forward and Backward EFA data, the chi-squared, and the concentration, along

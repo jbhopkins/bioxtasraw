@@ -176,7 +176,7 @@ SAXS data contains very limited information, both because it is measured at
 relatively low *q*, and because it is measured from a large number of particles
 in solution oriented at random angles. The SAXS scattering profile represents the
 scattering from a single particle, averaged over all possible orientations.
-This practical consequence of this is that there are often several possible
+The practical consequence of this is that there are often several possible
 shapes that could generate the same (or so similar as to be indistinguishable
 within experimental noise) scattering profiles. As such, it may simply not
 be possible to generate a  bead model reconstruction from a dataset that
@@ -205,7 +205,7 @@ Criteria for a good DAMMIF/N reconstruction
 *   Model |Rg| and |Dmax| close to values from P(r) function for all models
 *   M.W. estimated from model volume close to expected M.W.
 
-More about each of these criteria can be found below.
+More about these criteria can be found below.
 
 Ambiguity
 *************
@@ -288,7 +288,7 @@ Model fit and parameters
 *****************************
 
 Each model has the following parameters that can be used to evaluate the success
-of an individual reconstruction: :math:`\chi^2`, |Rg|, |Dmax|, volume,  molecular
+of an individual reconstruction: :math:`\chi^2`, |Rg|, |Dmax|, volume, molecular
 weight estimated from volume, and the normalized residual of the model fit to
 the data. For a good fit to the data, the model :math:`\chi^2` should be close
 to 1 and the normalized residual between the model fit and the data should
@@ -308,7 +308,6 @@ it is an indication that your reconstruction isn't a good representation of what
 is in solution, and shouldn't be trusted. While there's no hard and fast rule
 here on how closely |Rg| and |Dmax| should agree, my experience is generally
 that for high quality data |Rg| agrees to better than ~5% and |Dmax| to ~10%.
-
 
 The volume is reported for each bead model, but it is usually easier to
 compare the molecular weight calculated from that volume with the expected

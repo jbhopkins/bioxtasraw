@@ -50,7 +50,7 @@ The written version of the tutorial follows.
 #.  If it's not already checked, check the "Align and cluster envelopes (damclust)"
     checkbox.
 
-#.  RAW can align the dammif/n output with a PDB structure using SUPCOMB from the
+#.  RAW can align the DAMMIF/N output with a PDB structure using SUPCOMB from the
     ATSAS package. To do so, check the 'Align output to PDB' box and select
     the **1XIB_4mer.pdb** file in the **reconstruction_data/gi_complete** folder.
 
@@ -72,8 +72,8 @@ The written version of the tutorial follows.
     *   Some settings are accessible in the panel, and all settings can be changed in the
         advanced settings panel.
 
-#.  Wait for all of the DAMMIF runs and DAMAVER to finish. Depending on the speed of your
-    computer this could take a bit.
+#.  Wait for all of the DAMMIF runs, DAMAVER, DAMCLUST, and alignment to finish.
+    Depending on the speed of your computer this could take a bit.
 
 #.  Once the reconstructions are finished, the window should automatically switch to the
     results tab. If it doesn’t, click on the results tab.
@@ -81,7 +81,7 @@ The written version of the tutorial follows.
     |dammif_results_png|
 
 #.  The results panel summarizes the results of the reconstruction run. At the top of the
-    panel there is the ambimeter evaluation of how ambiguous the reconstructions might be
+    panel there is the AMBIMETER evaluation of how ambiguous the reconstructions might be
     (see previous tutorial section). If DAMAVER was run, there are results from the normalized
     spatial discrepancy (NSD), showing the mean and standard deviation of the NSD, as well as
     how many of the reconstructions were included in the average. If DAMAVER was run on 3 or
@@ -121,7 +121,7 @@ The written version of the tutorial follows.
 
 #.  Click and drag the model to spin it.
 
-    *   Note: For glucose_isomerase, it should look more or less like a flattened sphere.
+    *   Note: For glucose isomerase, it should look more or less like a flattened sphere.
 
 #.   Right click and drag the model to zoom in and out.
 

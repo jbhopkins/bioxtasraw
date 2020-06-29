@@ -53,7 +53,7 @@ Linear Baseline Correction
 
 #.  If you look closely, it looks like the baseline may level off a little bit
     at the start of the series curve. So we will select a start range closer
-    to the peak. Clik the 'Pick' button for the baseline correction start region
+    to the peak. Click the 'Pick' button for the baseline correction start region
     and select a start region about halfway to the peak. Roughly 30-50 frames
     is a good length for the start and end regions.
 
@@ -106,7 +106,7 @@ Integral Baseline Correction
 ******************************
 
 Integral baseline correction proceeds very similarly to linear baseline correction.
-Here we provide detail only where the proceedures are different.
+Here we provide detail only where the procedures are different.
 
 #.  Clear all of the data in RAW. Load the **baseline.hdf5** SEC data in the
     **sec_data** folder.
@@ -146,7 +146,7 @@ Here we provide detail only where the proceedures are different.
     values are not brought up.
 
     *   *Note:* You can change the intensity display to individual *q* values or
-        a *q* range and look at different points in q to try figure out which q
+        a *q* range and look at different points in *q* to try figure out which *q*
         values are causing the issue.
 
     |lc_analysis_baseline_overcorrect_png|

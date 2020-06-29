@@ -31,8 +31,7 @@ The written version of the tutorial follows.
         when the Guinier window is opened for the first time.
 
     *   *Note:* The |Rg| value is in units of 1/q (e.g. if q is in Å\ :sup:`-1`
-        then |Rg| is in Å), while the two :math:`qR_g` boxes give, left to right,
-        :math:`q_{min}R_g` and :math:`q_{max}R_g` respectively.
+        then |Rg| is in Å).
 
     |guinier_gi_png|
 

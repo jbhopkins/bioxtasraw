@@ -25,7 +25,7 @@ SUPCOMB from the ATSAS suite can be used to align two PDB files. In this context
 one model (the reference) is the high resolution structure while the other
 (the target) is the bead model reconstruction.
 
-#.  Open the SUPCOMB window by selection Tools->ATSAS->SUPCOMB from the menu bar
+#.  Open the SUPCOMB window by selecting Tools->ATSAS->SUPCOMB from the menu bar
 
     |align_supcomb_menu_png|
 
@@ -46,7 +46,7 @@ one model (the reference) is the high resolution structure while the other
 
     |align_supcomb_select_png|
 
-#.  Click the start button, SUPCOMB will run.
+#.  Click the start button. SUPCOMB will run.
 
     |align_supcomb_start_png|
 
@@ -68,7 +68,7 @@ DENSS include a native tool for aligning two electron density files (.mrc)
 or an electron density to a PDB file. In this context, one model (the reference)
 is the high resolution
 
-#.  Open the Electron Density Alignment window by selection Tools->Electron
+#.  Open the Electron Density Alignment window by selecting Tools->Electron
     Density (DENSS) Alignment from the menu bar
 
     |align_denss_menu_png|
@@ -86,11 +86,11 @@ is the high resolution
         path to the file.
 
 #.  Use the Target 'Select' button to select
-    **reconstruction_data/gi_complete/gi_dammif/glucose_isomerase_refine.mrc**
+    **reconstruction_data/gi_complete/gi_denss/glucose_isomerase_refine.mrc**
 
     |align_denss_select_png|
 
-#.  Click the start button, DENSS alignement will run.
+#.  Click the start button. DENSS alignement will run.
 
     *   *Tip:* If there is already a file in the folder with the aligned output
         filename you will get a prompt to overwrite it.
@@ -113,8 +113,8 @@ is the high resolution
     *   *Number of cores:* Number of cores to use during alignment
     *   *Enantiomorphs:* Whether to generate enantiomorphs of the Target before doing
         the alignment.
-    *   *Center reference:* Whether to center the reference model at the origin
-        If used,this creates a **<reference_name>_centered.pdb** file in the same
+    *   *Center reference:* Whether to center the reference model at the origin.
+        If used, this creates a **<reference_name>_centered.pdb** file in the same
         folder as the reference file.
     *   *PDB calc. resolution:* The resolution of the density map created from
         the Reference PDB model to compare with the Target model. This has
