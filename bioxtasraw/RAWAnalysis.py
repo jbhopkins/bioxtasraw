@@ -9749,13 +9749,23 @@ class DenssAlignFrame(wx.Frame):
         self.SendSizeEvent()
 
     def _getSettings(self):
-        enantiomorphs = bool(self.enantiomorphs.GetStringSelection())
+        enantiomorphs = self.enantiomorphs.GetStringSelection()
         cores = int(self.nprocs.GetStringSelection())
-        center = bool(self.center.GetStringSelection())
+        center = self.center.GetStringSelection()
         resolution = self.resolution.GetValue()
 
+        if enantiomorphs == 'True':
+            enantiomorphs = True
+        else:
+            enantiomorphs = False
+
+        if center == 'True':
+            center = True
+        else:
+            center = False
 
         error = False
+
         try:
             resolution = float(resolution)
         except Exception:
@@ -9813,7 +9823,14 @@ class DenssAlignFrame(wx.Frame):
         refbasename, refext = os.path.splitext(self.template_file_name)
         refoutput = refbasename+"_centered.pdb"
 
-        if os.path.exists(refoutput):
+        center = self.center.GetStringSelection()
+
+        if center == 'True':
+            center = True
+        else:
+            center = False
+
+        if os.path.exists(refoutput) and center:
             msg = ('A file already exists in the template directory with the '
                 'name {}. This will be replaced with the centered template file. '
                 'Continue?'.format(os.path.split(refoutput)[1]))
