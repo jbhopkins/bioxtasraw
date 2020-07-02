@@ -431,6 +431,14 @@ class RawGuiSettings(object):
 
         return None
 
+    def __deepcopy__(self, memo):
+        new_settings = RawGuiSettings()
+
+        for key in self._params.keys():
+            new_settings.set(key, copy.deepcopy(self.get(key), memo))
+
+        return new_settings
+
 def fixBackwardsCompatibility(raw_settings, loaded_param):
     #Backwards compatibility for BindList:
     bind_list = raw_settings.get('HeaderBindList')

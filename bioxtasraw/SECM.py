@@ -592,6 +592,8 @@ class SECM(object):
         copy_secm._sub_q_range = copy.deepcopy(self._sub_q_range)
         copy_secm._bc_sub_q_range = copy.deepcopy(self._bc_sub_q_range)
 
+        copy_secm.series_type = copy.deepcopy(self.series_type)
+
         return copy_secm
 
     def getSASM(self, index=0, int_type='unsub'):

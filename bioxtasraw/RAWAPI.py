@@ -34,6 +34,7 @@ import os
 import copy
 import tempfile
 import traceback
+import copy
 
 import numpy as np
 
@@ -85,7 +86,7 @@ def load_settings(file, settings=None):
     """
 
     if settings is None:
-        settings = __default_settings
+        settings = copy.deepcopy(__default_settings)
 
     success, msg, post_msg = RAWSettings.loadSettings(settings, file)
 
@@ -351,8 +352,8 @@ def load_images(filename_list, settings):
         if img is None:
             raise SASExceptions.WrongImageFormat('not a valid file!')
 
-        img_list.append(img)
-        imghdr_list.append(imghdr)
+        img_list.append(img[0])
+        imghdr_list.append(imghdr[0])
 
     return img_list, imghdr_list
 
@@ -411,7 +412,7 @@ def profiles_to_series(profiles, settings=None):
         settings = __default_settings
 
     filename_list = [sasm.getParameter('filename') for sasm in profiles]
-    series = SECM.SECM(filename_list, profiles, range(profiles), {},
+    series = SECM.SECM(filename_list, profiles, range(len(profiles)), {},
                 settings)
 
     return series

@@ -270,7 +270,16 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
         if result[8] is not None:
             pixel_size_x = result[8]
             pixel_size_y = result[8]
-            #Backwards compatability with old bindings for pixel size
+            # Backwards compatability with old bindings for pixel size
+
+        # For historical reasons, the header bind list used to return pixel size
+        # in mm. So if the pixel is unrealistically small, put it into microns.
+        # I'm sure this is going to come back to bite me at some point.
+        if pixel_size_x < 1:
+            pixel_size_x = pixel_size_x*1000
+
+        if pixel_size_y < 1:
+            pixel_size_y = pixel_size_y*1000
 
     # ********* WARNING WARNING WARNING ****************#
     # Hmm.. axes start from the lower left, but array coords starts

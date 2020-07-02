@@ -19,3 +19,8 @@ When releasing new documentation, update the version number in the conf.py file.
 
 Useful site for embedding youtube videos in a mobile friendly way:
 https://embedresponsively.com/?
+
+For video tutorials, intro/outro:
+Hello and welcome to this tutorial for bioxtas raw. In this tutorial you will learn how to . . . .
+
+With that, that’s the end of the tutorial. You should now know how too . . . .
