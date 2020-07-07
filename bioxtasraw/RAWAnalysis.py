@@ -3612,6 +3612,8 @@ class MWPlotPanel(wx.Panel):
         i = sasm.getI()
         err = sasm.getErr()
 
+        qmax = float(qmax)
+
         if qmax not in q:
             idx = np.argmin(np.abs(q-qmax))
             qmax = q[idx]
