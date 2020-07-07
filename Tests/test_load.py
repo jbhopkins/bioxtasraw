@@ -1509,3 +1509,179 @@ def test_api_make_profile():
     assert all(new_profile.getQ() == profile.getQ())
     assert all(new_profile.getI() == profile.getI())
     assert all(new_profile.getErr() == profile.getErr())
+
+def test_api_load_crysol_int():
+    filenames = [os.path.join('.', 'data', 'crysol.int')]
+
+    profile = raw.load_profiles(filenames)[0]
+
+    assert profile.getQ()[0] == 0
+    assert profile.getQ()[-1] == 0.5
+    assert profile.getI()[0] == 503777000
+    assert profile.getI()[-1] == 181594.0
+    assert profile.getErr()[0] == 22444.977166395158
+    assert profile.getErr()[-1] == 426.1384751462839
+    assert len(profile.getQ()) == 51
+    assert len(profile.getI()) == 51
+    assert len(profile.getErr()) == 51
+    assert profile.getI().sum() == 2522896411.0
+
+def test_api_load_crysol_fit():
+    filenames = [os.path.join('.', 'data', 'crysol.fit')]
+
+    profiles = raw.load_profiles(filenames)
+    data = profiles[0]
+    fit = profiles[1]
+
+    assert data.getQ()[0] == 0
+    assert data.getQ()[-1] == 0.240054
+    assert data.getI()[0] == 0
+    assert data.getI()[-1] == -0.00456588
+    assert data.getErr()[0] == 0
+    assert data.getErr()[-1] == 0.00352755
+    assert len(data.getQ()) == 409
+    assert len(data.getI()) == 409
+    assert len(data.getErr()) == 409
+    assert data.getI().sum() == 150.841626209
+
+    assert fit.getQ()[0] == 0
+    assert fit.getQ()[-1] == 0.240054
+    assert fit.getI()[0] == 2.18238
+    assert fit.getI()[-1] == 0.00136142
+    assert fit.getErr()[0] == 0.0
+    assert fit.getErr()[-1] == 0.00352755
+    assert len(fit.getQ()) == 409
+    assert len(fit.getI()) == 409
+    assert len(fit.getErr()) == 409
+    assert fit.getI().sum() == 160.75817242999997
+
+def test_api_load_foxs_dat():
+    filenames = [os.path.join('.', 'data', 'foxs.dat')]
+
+    profile = raw.load_profiles(filenames)[0]
+
+    assert profile.getQ()[0] == 0
+    assert profile.getQ()[-1] == 0.5
+    assert profile.getI()[0] == 91131976
+    assert profile.getI()[-1] == 92309.8828125
+    assert profile.getErr()[0] == 19137.71484375
+    assert profile.getErr()[-1] == 12486.7578125
+    assert len(profile.getQ()) == 501
+    assert len(profile.getI()) == 501
+    assert len(profile.getErr()) == 501
+    assert profile.getI().sum() == 4620558481.1484375
+
+def test_api_load_foxs_fit():
+    filenames = [os.path.join('.', 'data', 'foxs.fit')]
+
+    profiles = raw.load_profiles(filenames)
+    data = profiles[0]
+    fit = profiles[1]
+
+    assert data.getQ()[0] == 0.00972485
+    assert data.getQ()[-1] == 0.24005422
+    assert data.getI()[0] == 2.19981909
+    assert data.getI()[-1] == -0.00456588
+    assert data.getErr()[0] == 0.02850627
+    assert data.getErr()[-1] == 0.00352755
+    assert len(data.getQ()) == 404
+    assert len(data.getI()) == 404
+    assert len(data.getErr()) == 404
+    assert data.getI().sum() == 150.84163809
+
+    assert fit.getQ()[0] == 0.00972485
+    assert fit.getQ()[-1] == 0.24005422
+    assert fit.getI()[0] == 2.10481598
+    assert fit.getI()[-1] == 0.00187786
+    assert fit.getErr()[0] == 0.02850627
+    assert fit.getErr()[-1] == 0.00352755
+    assert len(fit.getQ()) == 404
+    assert len(fit.getI()) == 404
+    assert len(fit.getErr()) == 404
+    assert fit.getI().sum() == 149.89277113
+
+def test_api_load_dammif_fir():
+    filenames = [os.path.join('.', 'data', 'dammif.fir')]
+
+    profiles = raw.load_profiles(filenames)
+    data = profiles[0]
+    fit = profiles[1]
+
+    assert data.getQ()[0] == 0.0100967
+    assert data.getQ()[-1] == 0.237417
+    assert data.getI()[0] == 0.0585325
+    assert data.getI()[-1] == -6.91805e-5
+    assert data.getErr()[0] == 0.00159856
+    assert data.getErr()[-1] == 0.000326748
+    assert len(data.getQ()) == 395
+    assert len(data.getI()) == 395
+    assert len(data.getErr()) == 395
+    assert data.getI().sum() == 3.7167194811999997
+
+    assert fit.getQ()[0] == 0.0100967
+    assert fit.getQ()[-1] == 0.237417
+    assert fit.getI()[0] == 0.0592096
+    assert fit.getI()[-1] == 7.68452e-5
+    assert fit.getErr()[0] == 0.00159856
+    assert fit.getErr()[-1] == 0.000326748
+    assert len(fit.getQ()) == 395
+    assert len(fit.getI()) == 395
+    assert len(fit.getErr()) == 395
+    assert fit.getI().sum() == 3.7354253277000002
+
+def test_api_load_dammif_fit():
+    filenames = [os.path.join('.', 'data', 'dammif.fit')]
+
+    profiles = raw.load_profiles(filenames)
+    fit1 = profiles[0]
+    fit2 = profiles[1]
+
+    assert fit1.getQ()[0] == 0.0005609
+    assert fit1.getQ()[-1] == 0.2374
+    assert fit1.getI()[0] == 0.0612
+    assert fit1.getI()[-1] == 1.18e-7
+    assert len(fit1.getQ()) == 412
+    assert len(fit1.getI()) == 412
+    assert len(fit1.getErr()) == 412
+    assert fit1.getI().sum() == 4.741580228799999
+
+    assert fit2.getQ()[0] == 0.0005609
+    assert fit2.getQ()[-1] == 0.2374
+    assert fit2.getI()[0] == 0.06119
+    assert fit2.getI()[-1] == 1.945e-5
+    assert len(fit2.getQ()) == 412
+    assert len(fit2.getI()) == 412
+    assert len(fit2.getErr()) == 412
+    assert fit2.getI().sum() == 4.7433277
+
+def test_api_load_waxsis_dat():
+    filenames = [os.path.join('.', 'data', 'waxsis.dat')]
+
+    profile = raw.load_profiles(filenames)[0]
+
+    assert profile.getQ()[0] == 0
+    assert profile.getQ()[-1] == 1
+    assert profile.getI()[0] == 89896000
+    assert profile.getI()[-1] == 67326.6
+    assert profile.getErr()[0] == 873004
+    assert profile.getErr()[-1] == 1394.74
+    assert len(profile.getQ()) == 101
+    assert len(profile.getI()) == 101
+    assert len(profile.getErr()) == 101
+    assert profile.getI().sum() == 491682748.7000001
+
+def test_api_load_csv_dat():
+    filenames = [os.path.join('.', 'data', 'csv.dat')]
+
+    profile = raw.load_profiles(filenames)[0]
+
+    assert len(profile.getQ()) == 474
+    assert len(profile.getI()) == 474
+    assert len(profile.getErr()) == 474
+    assert profile.getQ()[0] == 1.00967275E-02
+    assert profile.getQ()[-1] == 2.82996847E-01
+    assert profile.getI()[0] == 5.85325362E-02
+    assert profile.getI()[-1] == 6.45540600E-04
+    assert profile.getErr()[0] == 1.59855527E-03
+    assert profile.getErr()[-1] == 5.14117602E-04
+    assert profile.getI().sum() == 3.7220912003
