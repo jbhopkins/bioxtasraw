@@ -840,7 +840,7 @@ def runGnom(fname, outname, dmax, args, path, atsasDir, new_gnom = False, ):
                     cmd = cmd + ' --alpha=%s' %(str(args['alpha']))
 
                 cmd = cmd + ' "%s"' %(fname)
-
+                print(cmd)
                 proc = subprocess.Popen(cmd, shell=shell, cwd=path, env=my_env)
 
                 proc.wait()

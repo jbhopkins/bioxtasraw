@@ -1370,6 +1370,9 @@ def runDenss(q, I, sigq, D, prefix, path, denss_settings, avg_model=None,
         else:
             denss_args['ncs_axis'] = 1
 
+        if 'seed' in denss_settings:
+            denss_args['seed'] = denss_settings['seed']
+
         """
         Settings that are purposefully left as default:
         seed

@@ -438,13 +438,13 @@ def merge(sasm_star, sasm_list):
 
     #find overlapping s2 points
     highest_q = s1.q[s1.getQrange()[1]-1]
-    min, max = s2.getQrange()
-    overlapping_q2 = s2.q[min:max][np.where(s2.q[min:max] <= highest_q)]
+    qmin, qmax = s2.getQrange()
+    overlapping_q2 = s2.q[qmin:qmax][np.where(s2.q[qmin:qmax] <= highest_q)]
 
     #find overlapping s1 points
     lowest_s2_q = s2.q[s2.getQrange()[0]]
-    min, max = s1.getQrange()
-    overlapping_q1 = s1.q[min:max][np.where(s1.q[min:max] >= lowest_s2_q)]
+    qmin, qmax = s1.getQrange()
+    overlapping_q1 = s1.q[qmin:qmax][np.where(s1.q[qmin:qmax] >= lowest_s2_q)]
 
     tmp_s2i = s2.i.copy()
     tmp_s2q = s2.q.copy()
@@ -499,15 +499,15 @@ def merge(sasm_star, sasm_list):
 
     #Merge the two parts
     #cut away the overlapping part on s1 and append s2 to it
-    min, max = s1.getQrange()
-    newi = s1.i[min:q1_indexs[0]]
-    newq = s1.q[min:q1_indexs[0]]
-    newerr = s1.err[min:q1_indexs[0]]
+    qmin, qmax = s1.getQrange()
+    newi = s1.i[qmin:q1_indexs[0]]
+    newq = s1.q[qmin:q1_indexs[0]]
+    newerr = s1.err[qmin:q1_indexs[0]]
 
-    min, max = s2.getQrange()
-    newi = np.append(newi, tmp_s2i[min:max])
-    newq = np.append(newq, tmp_s2q[min:max])
-    newerr = np.append(newerr, tmp_s2err[min:max])
+    qmin, qmax = s2.getQrange()
+    newi = np.append(newi, tmp_s2i[qmin:qmax])
+    newq = np.append(newq, tmp_s2q[qmin:qmax])
+    newerr = np.append(newerr, tmp_s2err[qmin:qmax])
 
     #create a new SASM object with the merged parts.
     merge1_parameters = copy.deepcopy(s1.getAllParameters())
@@ -549,7 +549,6 @@ def interpolateToFit(sasm_star, sasm):
 
     lowest_q1, highest_q1 = s1.q[s1.getQrange()[0]], s1.q[s1.getQrange()[1]-1]
 
-    #fuck hvor besvaerligt!
     overlapping_q2_top = s2.q[min_q2:max_q2][np.where( (s2.q[min_q2:max_q2] <= highest_q1))]
     overlapping_q2 = overlapping_q2_top[np.where(overlapping_q2_top >= lowest_q1)]
 
@@ -576,10 +575,11 @@ def interpolateToFit(sasm_star, sasm):
 
     #interpolate find the I's that fits the q vector of s1:
     f = interp.interp1d(s2.q[q2_indexs], s2.i[q2_indexs])
+    f_err = interp.interp1d(s2.q[q2_indexs], s2.err[q2_indexs])
 
     intp_i_s2 = f(s1.q[q1_indexs])
     intp_q_s2 = s1.q[q1_indexs].copy()
-    newerr = s1.err[q1_indexs].copy()
+    newerr = f_err(s1.q[q1_indexs])
 
     parameters = copy.deepcopy(s1.getAllParameters())
 
@@ -605,40 +605,56 @@ def interpolateToFit(sasm_star, sasm):
     return newSASM
 
 def logBinning(sasm, no_points):
+    no_points = int(no_points)
 
-    #if end_idx == -1:
-#       end_idx = len(self._i_raw)
+    q = sasm.getQ()
+    i = sasm.getI()
+    err = sasm.getErr()
+    err_sqr = err**2
 
-    i_roi = sasm._i_raw
-    q_roi = sasm._q_raw
-    err_roi = sasm._err_raw
+    total_pts = len(q)
 
-    bins = np.logspace(1, np.log10(len(q_roi)), no_points)
+    if no_points <=1:
+        no_points = total_pts
 
-    binned_q = []
-    binned_i = []
-    binned_err = []
+    if no_points >= total_pts:
+        binned_q = q
+        binned_i = i
+        binned_err = err
+        bins = np.empty_like(q)
 
-    idx = 0
-    for i in range(0, len(bins)):
-        no_of_bins = int(np.floor(bins[i] - bins[i-1]))
+    else:
+        bins_calc = False
+        min_pt = 1
 
-        if no_of_bins > 1:
-            mean_q = np.mean( q_roi[ idx : idx + no_of_bins ] )
-            mean_i = np.mean( i_roi[ idx : idx + no_of_bins ] )
+        while not bins_calc:
+            bins = np.geomspace(min_pt, total_pts, no_points+1-min_pt)
 
-            mean_err = np.sqrt( sum( np.power( err_roi[ idx : idx + no_of_bins ], 2) ) ) / np.sqrt( no_of_bins )
+            pos_min_diff = np.argwhere(np.ediff1d(bins)>1)[0][0]
 
-            binned_q.append(mean_q)
-            binned_i.append(mean_i)
-            binned_err.append(mean_err)
+            if pos_min_diff == 0:
+                bins_calc = True
 
-            idx = idx + no_of_bins
-        else:
-            binned_q.append(q_roi[idx])
-            binned_i.append(i_roi[idx])
-            binned_err.append(err_roi[idx])
-            idx = idx + 1
+            else:
+                pos_min_diff = pos_min_diff + 1
+                min_pt = int(np.floor(bins[pos_min_diff]))
+
+        bins = bins.astype(int)
+        bins[0] = min_pt
+
+        log_bins = np.concatenate((np.arange(min_pt, dtype=int), bins))
+
+        binned_q = np.empty(log_bins.shape[0]-1)
+        binned_i = np.empty(log_bins.shape[0]-1)
+        binned_err = np.empty(log_bins.shape[0]-1)
+
+        for j in range(log_bins.shape[0]-1):
+            start_idx = log_bins[j]
+            end_idx = log_bins[j+1]
+
+            binned_q[j] = np.mean(q[start_idx:end_idx])
+            binned_i[j] = np.mean(i[start_idx:end_idx])
+            binned_err[j] = np.sqrt(np.sum(err_sqr[start_idx:end_idx])/(end_idx-start_idx))
 
     parameters = copy.deepcopy(sasm.getAllParameters())
 
@@ -654,7 +670,7 @@ def logBinning(sasm, no_points):
     for key in sasm.getParameter('history'):
         history1.append({key:copy.deepcopy(sasm.getParameter('history')[key])})
 
-    history['log_binning'] = {'initial_file' : history1, 'initial_points' : len(q_roi), 'final_points': len(bins)}
+    history['log_binning'] = {'initial_file' : history1, 'initial_points' : len(q), 'final_points': len(bins)}
 
     newSASM.setParameter('history', history)
 
@@ -666,16 +682,27 @@ def rebin(sasm, rebin_factor):
         if needed.
     '''
 
-    len_iq = len(sasm._i_raw)
+    rebin_factor = int(rebin_factor)
+
+    if rebin_factor < 1:
+        rebin_factor = 1
+
+    len_iq = len(sasm.getI())
 
     no_of_bins = int(np.floor(len_iq / rebin_factor))
+
+    if no_of_bins < 1:
+        no_of_bins = 1
 
     end_idx = no_of_bins * rebin_factor
 
     start_idx = 0
-    i_roi = sasm._i_raw[start_idx:end_idx]
-    q_roi = sasm._q_raw[start_idx:end_idx]
-    err_roi = sasm._err_raw[start_idx:end_idx]
+    i_roi = sasm.getI()[start_idx:end_idx]
+    q_roi = sasm.getQ()[start_idx:end_idx]
+    err_roi = sasm.getErr()[start_idx:end_idx]
+
+    err_sqr = err_roi**2
+    err_norm = np.sqrt(rebin_factor)
 
     new_i = np.zeros(no_of_bins)
     new_q = np.zeros(no_of_bins)
@@ -685,9 +712,9 @@ def rebin(sasm, rebin_factor):
         first_idx = eachbin * rebin_factor
         last_idx = (eachbin * rebin_factor) + rebin_factor
 
-        new_i[eachbin] = sum(i_roi[first_idx:last_idx]) / rebin_factor
-        new_q[eachbin] = sum(q_roi[first_idx:last_idx]) / rebin_factor
-        new_err[eachbin] = np.sqrt(sum(np.power(err_roi[first_idx:last_idx],2))) / np.sqrt(rebin_factor)
+        new_i[eachbin] = np.sum(i_roi[first_idx:last_idx]) / rebin_factor
+        new_q[eachbin] = np.sum(q_roi[first_idx:last_idx]) / rebin_factor
+        new_err[eachbin] = np.sqrt(np.sum(err_sqr[first_idx:last_idx])) / err_norm
 
 
     parameters = copy.deepcopy(sasm.getAllParameters())
@@ -696,10 +723,10 @@ def rebin(sasm, rebin_factor):
 
     qstart, qend = sasm.getQrange()
 
-    new_qstart = int(qstart/float(rebin_factor)+.5)
-    new_qend = int(qend/float(rebin_factor))
+    # new_qstart = int(qstart/float(rebin_factor)+.5)
+    # new_qend = int(qend/float(rebin_factor))
 
-    newSASM.setQrange([new_qstart, new_qend])
+    # newSASM.setQrange([new_qstart, new_qend])
 
     history = newSASM.getParameter('history')
 

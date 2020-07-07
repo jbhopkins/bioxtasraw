@@ -3111,9 +3111,11 @@ class MainWorkerThread(threading.Thread):
         self._sendImageToDisplay(img, bogus_sasm)
 
 
-    def _sendIFTMToPlot(self, iftm, item_colour = 'black', line_color = None, no_update = False, update_legend = False, notsaved = False):
+    def _sendIFTMToPlot(self, iftm, item_colour='black', line_color=None,
+        no_update=False, update_legend=False, notsaved=False):
         wx.CallAfter(self.ift_plot_panel.plotIFTM, iftm)
-        wx.CallAfter(self.ift_item_panel.addItem, iftm, item_colour, notsaved = notsaved)
+        wx.CallAfter(self.ift_item_panel.addItem, iftm, item_colour,
+            notsaved=notsaved)
 
         if update_legend:
             wx.CallAfter(self.ift_plot_panel.updateLegend, 1, False)
@@ -3123,10 +3125,13 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.ift_plot_panel.fitAxis)
 
 
-    def _sendSASMToPlot(self, sasm, axes_num = 1, item_colour = 'black', line_color = None, no_update = False, notsaved = False, update_legend = True):
+    def _sendSASMToPlot(self, sasm, axes_num=1, item_colour='black',
+        line_color=None, no_update=False, notsaved=False, update_legend=True):
 
-        wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num, color = line_color)
-        wx.CallAfter(self.manipulation_panel.addItem, sasm, item_colour, notsaved = notsaved)
+        wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num,
+            color=line_color)
+        wx.CallAfter(self.manipulation_panel.addItem, sasm, item_colour,
+            notsaved=notsaved)
 
         if update_legend:
             wx.CallAfter(self.plot_panel.updateLegend, axes_num, False)
@@ -3135,11 +3140,14 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.plot_panel.fitAxis)
 
 
-    def _sendSASMToPlotSEC(self, sasm, axes_num = 1, item_colour = 'black', line_color = None, no_update = False, notsaved = False, update_legend = True):
+    def _sendSASMToPlotSEC(self, sasm, axes_num=1, item_colour='black',
+        line_color=None, no_update=False, notsaved=False, update_legend=True):
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while plotting frames...')
 
-        wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num, color = line_color)
-        wx.CallAfter(self.manipulation_panel.addItem, sasm, item_colour, notsaved = notsaved)
+        wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num,
+            color=line_color)
+        wx.CallAfter(self.manipulation_panel.addItem, sasm, item_colour,
+            notsaved=notsaved)
 
         if update_legend:
             wx.CallAfter(self.plot_panel.updateLegend, axes_num, False)
@@ -3150,10 +3158,12 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
 
-    def _sendSECMToPlot(self, secm, item_colour = 'black', line_color = None, no_update = False, notsaved = False, update_legend = True):
+    def _sendSECMToPlot(self, secm, item_colour='black', line_color=None,
+        no_update=False, notsaved=False, update_legend=True):
 
         wx.CallAfter(self.sec_plot_panel.plotSECM, secm, color = line_color)
-        wx.CallAfter(self.sec_item_panel.addItem, secm, item_colour, notsaved = notsaved)
+        wx.CallAfter(self.sec_item_panel.addItem, secm, item_colour,
+            notsaved=notsaved)
 
         if update_legend:
             wx.CallAfter(self.sec_plot_panel.updateLegend, 1, False)
@@ -3162,13 +3172,15 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.sec_plot_panel.fitAxis)
 
 
-    def _updateSECMPlot(self, secm, item_colour = 'black', line_color = None, no_update = False, notsaved = False):
+    def _updateSECMPlot(self, secm, item_colour='black', line_color=None,
+        no_update=False, notsaved=False):
         if isinstance(secm, list):
             wx.CallAfter(self.sec_plot_panel.updatePlotData, secm, draw=False)
 
         else:
             secm_list=[secm]
-            wx.CallAfter(self.sec_plot_panel.updatePlotData, secm_list, draw=False)
+            wx.CallAfter(self.sec_plot_panel.updatePlotData, secm_list,
+                draw=False)
 
         wx.CallAfter(self.sec_plot_panel.updateLegend, 1, draw = False)
 
@@ -7643,7 +7655,8 @@ class ManipulationPanel(wx.Panel):
 
 
 class ManipItemPanel(wx.Panel):
-    def __init__(self, parent, sasm, font_colour = 'BLACK', legend_label = '', item_visible = True, modified = False):
+    def __init__(self, parent, sasm, font_colour='BLACK', legend_label='',
+        item_visible=True, modified=False):
 
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
 

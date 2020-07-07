@@ -88,6 +88,8 @@ def load_settings(file, settings=None):
     if settings is None:
         settings = copy.deepcopy(__default_settings)
 
+    file = os.path.abspath(os.path.expanduser(file))
+
     success, msg, post_msg = RAWSettings.loadSettings(settings, file)
 
     if msg != '':
@@ -152,6 +154,8 @@ def load_files(filename_list, settings):
     img_list = []
 
     for filename in filename_list:
+        filename = os.path.abspath(os.path.expanduser(filename))
+
         file_ext = os.path.splitext(filename)[1]
 
         is_profile = False
@@ -347,6 +351,7 @@ def load_images(filename_list, settings):
     imghdr_list = []
 
     for filename in filename_list:
+        filename = os.path.abspath(os.path.expanduser(filename))
         img, imghdr = SASFileIO.loadImage(filename, settings)
 
         if img is None:
@@ -384,6 +389,37 @@ def load_and_integrate_images(filename_list, settings):
     profile_list, iftm_list, secm_list, img_list = load_files(filename_list, settings)
 
     return profile_list, img_list
+
+def load_mrc(filename_list):
+    """
+    Loads DENSS .mrc files.
+
+    Parameters
+    ----------
+    filename_list: list
+        A list of strings containing the full path to each mrc file to be
+        loaded in.
+
+    Returns
+    -------
+    rho: list
+        A list of :class:`numpy.array` of the calculated electron density of
+        the models.
+    side: list
+        A list of floats of the real space box width in Angstroms of the
+        models.
+    """
+    rhos = []
+    sides = []
+
+    for fname in filename_list:
+        fname = os.path.abspath(os.path.expanduser(fname))
+        rho, side = DENSS.read_mrc(fname)
+
+        rhos.append(rho)
+        sides.append(side)
+
+    return rhos, sides
 
 def profiles_to_series(profiles, settings=None):
     """
@@ -711,10 +747,15 @@ def rebin(profiles, npts=100, rebin_factor=1, log_rebin=False):
     for profile in profiles:
 
         if rebin_factor != 1:
-            npts = np.floor(len(profile.q)/rebin_factor)
+            if rebin_factor != 0:
+                npts = int(np.floor(len(profile.getQ())/rebin_factor))
+            else:
+                npts = len(profile.getQ())
         else:
-            rebin_factor = np.floor(len(profile.q)/npts)
-
+            if npts >= 1:
+                rebin_factor = int(np.floor(len(profile.getQ())/float(npts)))
+            else:
+                rebin_factor = 1
 
         if log_rebin:
             rebin_profile = SASProc.logBinning(profile, npts)
@@ -768,7 +809,7 @@ def merge(profiles):
         A single merged profile.
     """
 
-    merged_profile = SASProc.interpolateToFit(profiles[0], profiles[1:])
+    merged_profile = SASProc.merge(profiles[0], profiles[1:])
 
     return merged_profile
 
@@ -865,6 +906,8 @@ def auto_guinier(profile, error_weight=True, single_fit=True, settings=None):
         The minimum index of the q vector used for Guinier fit.
     idx_max: int
         The maximum index of the q vector used for the GUinier fit.
+    r_sqr: float
+        The r^2 value of the fit.
     """
 
     if settings is not None:
@@ -926,7 +969,7 @@ def auto_guinier(profile, error_weight=True, single_fit=True, settings=None):
     analysis_dict['guinier'] = info_dict
     profile.setParameter('analysis', analysis_dict)
 
-    return rg, i0, rg_err, i0_err, qmin, qmax, qRg_min, qRg_max, idx_min, idx_max
+    return (rg, i0, rg_err, i0_err, qmin, qmax, qRg_min, qRg_max, idx_min, idx_max, r_sqr)
 
 def guinier_fit(profile, idx_min, idx_max, error_weight=True, settings=None):
     """
@@ -983,23 +1026,25 @@ def guinier_fit(profile, idx_min, idx_max, error_weight=True, settings=None):
         The q*Rg value at the minimmum q value of the Guinier fit.
     qRg_max: float
         The q*Rg value at the maximum q value of the Guinier fit.
-    idx_min: int
-        The minimum index of the q vector used for Guinier fit.
-    idx_max: int
-        The maximum index of the q vector used for the GUinier fit.
+    r_sqr: float
+        The r^2 value of the fit.
     """
 
     if settings is not None:
         error_weight = settings.get('errorWeight')
 
-    x = profile.getQ()[idx_min:idx_max+1]
-    y = profile.getI()[idx_min:idx_max+1]
-    yerr = profile.getErr()[idx_min:idx_max+1]
+    q = profile.getQ()[idx_min:idx_max+1]
+    i = profile.getI()[idx_min:idx_max+1]
+    ierr = profile.getErr()[idx_min:idx_max+1]
 
     #Remove NaN and Inf values:
-    x = x[np.where(np.isfinite(y))]
-    yerr = yerr[np.where(np.isfinite(y))]
-    y = y[np.where(np.isfinite(y))]
+    q = q[np.where(np.isfinite(i))]
+    ierr = ierr[np.where(np.isfinite(i))]
+    i = i[np.where(np.isfinite(i))]
+
+    x = np.square(q)
+    yerr = np.absolute(ierr/i)
+    y = np.log(i)
 
     rg, i0, rger_fit, i0er_fit, a, b = SASCalc.calcRg(x, y, yerr, transform=False,
         error_weight=error_weight)
@@ -1043,7 +1088,7 @@ def guinier_fit(profile, idx_min, idx_max, error_weight=True, settings=None):
     analysis_dict['guinier'] = info_dict
     profile.setParameter('analysis', analysis_dict)
 
-    return rg, i0, rg_err, i0_err, qmin, qmax, qRg_min, qRg_max, idx_min, idx_max
+    return rg, i0, rg_err, i0_err, qmin, qmax, qRg_min, qRg_max, r_sqr
 
 def mw_ref(profile, conc=0, i0=None, ref_i0=0, ref_conc=0, ref_mw=0, settings=None,
     use_i0_from='guinier'):
@@ -2666,8 +2711,8 @@ def ambimeter(ift, qRg_max=4, save_models='none', save_prefix=None,
             pass
 
     if ret is not None:
-        categories = ret[0]
-        score = ret[1]
+        categories = int(ret[0])
+        score = float(ret[1])
         evaluation = ret[2]
 
     else:
@@ -3146,6 +3191,11 @@ def damaver(files, prefix, datadir, symmetry='P1', atsas_dir=None):
     (mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err,
         res_unit) = SASFileIO.loadDamselLogFile(damsel_path)
 
+    mean_nsd = float(mean_nsd)
+    stdev_nsd = float(stdev_nsd)
+    res = float(res)
+    res_err = float(res_err)
+
     model_data, rep_model = SASFileIO.loadDamsupLogFile(damsup_path)
 
     return mean_nsd, stdev_nsd, rep_model, result_dict, res, res_err, res_unit
@@ -3286,7 +3336,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     sw_sigma_thresh=0.2, sw_iter=20, sw_min_step=5000, connected=True,
     connectivity_step=[7500], chi_end_frac=0.001, cut_output=False,
     write_xplor=False, min_density=None, max_density=None, flatten_low=False,
-    sym_step=[3000, 5000, 7000, 9000]):
+    sym_step=[3000, 5000, 7000, 9000], seed=None):
     """
     Generates an electron density reconstruction using DENSS. Function blocks
     until DENSS finishes. Can be used to refine an existing model.
@@ -3389,6 +3439,9 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     sym_step: list, optional
         A list of integers specifying the steps at which the symmetry
         constraint should be applied.
+    seed: int, optional
+        The random seed to be used for the DENSS reconstruction. If None
+        (default) than a new seed is generated.
 
     Returns
     -------
@@ -3448,6 +3501,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
             'ncs'               : symmetry,
             'ncsSteps'          : settings.get('denssNCSSteps'),
             'ncsAxis'           : sym_axis,
+            'seed'              : seed,
             }
 
     else:
@@ -3482,6 +3536,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
             'ncs'               : symmetry,
             'ncsSteps'          : str(sym_step),
             'ncsAxis'           : sym_axis,
+            'seed'              : seed,
             }
 
     q = ift.q_extrap
@@ -3527,8 +3582,9 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
 
     last_index = max(np.where(rg !=0)[0])
     rg = rg[:last_index+1]
-    chi_sq = chi_sq[:last_index+1]
     support_vol = support_vol[:last_index+1]
+    #Weird DENSS thing where last index of chi is 1 less than of Rg
+    chi_sq = chi_sq[:last_index]
 
     return (rho, chi_sq[-1], rg[-1], support_vol[-1], side, q_fit, I_fit,
         I_extrap, err_extrap)
@@ -3805,10 +3861,11 @@ def efa(series, ranges, profile_type='sub', framei=None, framef=None,
         a single series object (:class:`bioxtasraw.SECM.SECM`).
     ranges: iterable
         A list, :class:`numpy.array`, or other iterable of the EFA ranges,
-        which each row is the range of a given component, and contains two
+        which each item is the range of a given component, and contains two
         integers, the first is start of that component range the second the
         end of the component range. Must be a type that can be cast as a
-        numpy array.
+        numpy array. Should be relative to the full range of the series,
+        even if framei and framef are provided.
     profile_type: {'unsub', 'sub', 'baseline'} str, optional
         Only used if a :class:`bioxtasraw.SECM.SECM` is provided for the series
         argument. Determines which type of profile to use from the series
@@ -3893,6 +3950,10 @@ def efa(series, ranges, profile_type='sub', framei=None, framef=None,
             framef = len(series.getAllSASMs())-1
         else:
             framef = len(series)-1
+
+    for efa_range in ranges:
+        efa_range[0] = efa_range[0] - framei
+        efa_range[1] = efa_range[1] - framei
 
     if isinstance(series, SECM.SECM):
         sasm_list = series.getSASMList(framei, framef, profile_type)
@@ -4813,6 +4874,9 @@ def validate_sample_range(series, sample_range, profile_type='sub',
         vpmw = [vpmw[idx] for idx in frame_idx]
     else:
         sub_profiles = [series[idx] for idx in frame_idx]
+        rg = [rg[idx] for idx in frame_idx]
+        vcmw = [vcmw[idx] for idx in frame_idx]
+        vpmw = [vpmw[idx] for idx in frame_idx]
 
     if int_type == 'total':
         intensity = np.array([sasm.getTotalI() for sasm in sub_profiles])
@@ -4973,6 +5037,7 @@ def find_baseline_range(series, baseline_type='Integral', profile_type='sub',
         if profile_type == 'unsub':
             sub_profiles = series._sasm_list
         elif profile_type == 'sub':
+            print('using subtracted profiles')
             sub_profiles = series.subtracted_sasm_list
         elif profile_type == 'baseline':
             sub_profiles = series.baseline_subtracted_sasm_list
@@ -5205,7 +5270,8 @@ def validate_baseline_range(series, start_range, end_range,
     intI_results = (start_intI_results, end_intI_results)
     other_results = (start_other_results, end_other_results)
 
-    return valid, valid_results, similarity_results, svd_results, intI_results, other_results
+    return (valid, valid_results, similarity_results, svd_results,
+        intI_results, other_results)
 
 def set_baseline_correction(series, start_range, end_range, baseline_type,
     bl_extrap=True, int_type='total', q_val=None, q_range=None, window_size=5,

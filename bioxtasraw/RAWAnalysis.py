@@ -8659,8 +8659,9 @@ class DenssRunPanel(wx.Panel):
             for i in range(nruns):
                 last_index = max(np.where(denss_outputs[i][5] !=0)[0])
                 chis.append(denss_outputs[i][5][last_index])
-                rgs.append(denss_outputs[i][6][last_index])
-                svs.append(denss_outputs[i][7][last_index])
+                rgs.append(denss_outputs[i][6][last_index+1])
+                svs.append(denss_outputs[i][7][last_index+1])
+                #Weird DENSS thing where last index of chi is 1 less than of Rg
 
             self.denss_stats = {'rg': rgs, 'chi': chis, 'sv': svs}
 
