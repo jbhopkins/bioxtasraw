@@ -1,0 +1,18 @@
+Run all tests (from the Tests directory) (~530 s):
+pytest
+
+Run all fast tests (~20 s):
+pytest -k "not slow"
+
+Run all but very slow tests (~60 s)
+pytest -m "not very_slow"
+
+
+When making tests, use:
+@pytest.mark.new
+
+To mark new tests. And then use:
+pytest -m "new"
+
+To run just the new tests, instead of having to rerun the entire set of tests
+every time you add/modify one.

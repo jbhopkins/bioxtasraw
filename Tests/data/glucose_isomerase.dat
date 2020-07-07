@@ -484,6 +484,19 @@
 #    "Conc": 0.47,
 #    "MW": "173.86062629638118",
 #    "analysis": {
+#        "GNOM": {
+#            "Alpha": 6.732,
+#            "Dmax": "101",
+#            "GNOM_ChiSquared": 1.247327862577605,
+#            "GNOM_Quality_Assessment": "a EXCELLENT solution",
+#            "Real_Space_I0": 0.06132,
+#            "Real_Space_I0_Err": 0.000171,
+#            "Real_Space_Rg": 33.52,
+#            "Real_Space_Rg_Err": 0.09701,
+#            "Total_Estimate": 0.9611,
+#            "qEnd": 0.282996847,
+#            "qStart": 0.0100967275
+#        },
 #        "guinier": {
 #            "I0": "0.06122464612335101",
 #            "I0_autorg_err": -1,

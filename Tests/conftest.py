@@ -1,4 +1,5 @@
 import os
+import copy
 
 import pytest
 
@@ -42,3 +43,20 @@ def series_images():
     series = raw.load_series([os.path.join('.', 'data',
             'series_new_images.hdf5')])[0]
     return series
+
+@pytest.fixture(scope="function")
+def clean_gi_sub_profile(gi_sub_profile):
+    return copy.deepcopy(gi_sub_profile)
+
+@pytest.fixture(scope='package')
+def bsa_series_profiles():
+    filenames = [os.path.join('.', 'data', 'series_dats',
+        'BSA_001_{:04d}.dat'.format(i)) for i in range(10)]
+
+    profiles = raw.load_profiles(filenames)
+
+    return profiles
+
+@pytest.fixture(scope="package")
+def temp_directory(tmp_path_factory):
+    return tmp_path_factory.mktemp('raw')

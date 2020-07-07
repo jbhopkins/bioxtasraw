@@ -9,11 +9,6 @@ if raw_path not in os.sys.path:
 
 import bioxtasraw.RAWAPI as raw
 
-
-@pytest.fixture(scope="package")
-def temp_directory(tmp_path_factory):
-    return tmp_path_factory.mktemp('raw')
-
 @pytest.fixture()
 def new_settings():
     settings = raw.load_settings(os.path.join('.', 'data', 'settings_new.cfg'))

@@ -879,9 +879,9 @@ def test_api_load_gnom_ift():
     assert len(iftm.i_fit) == 474
     assert len(iftm.q_extrap) == 492
     assert len(iftm.i_extrap) == 492
-    assert len(iftm.r) == 171
-    assert len(iftm.p) == 171
-    assert len(iftm.err) == 171
+    assert len(iftm.r) == 174
+    assert len(iftm.p) == 174
+    assert len(iftm.err) == 174
 
     assert iftm.q_orig[0] == 0.100967E-01
     assert iftm.q_orig[-1] == 0.282997E+00
@@ -890,30 +890,30 @@ def test_api_load_gnom_ift():
     assert iftm.err_orig[0] == 0.159856E-02
     assert iftm.err_orig[-1] == 0.514118E-03
     assert iftm.i_orig.sum() == 3.7220912315
-    assert iftm.i_fit[0] == 0.589261E-01
-    assert iftm.i_fit[-1] == 0.486577E-04
-    assert iftm.i_fit.sum() == 3.7306381246
+    assert iftm.i_fit[0] == 0.589055E-01
+    assert iftm.i_fit[-1] == 0.489008E-04
+    assert iftm.i_fit.sum() == 3.7299845326999996
     assert iftm.q_extrap[0] == 0
     assert iftm.q_extrap[-1] == 0.282997E+00
-    assert iftm.i_extrap[0] == 0.612047E-01
-    assert iftm.i_extrap[-1] == 0.486577E-04
-    assert iftm.i_extrap.sum() == 4.8196746246
+    assert iftm.i_extrap[0] == 0.611794E-01
+    assert iftm.i_extrap[-1] == 0.489008E-04
+    assert iftm.i_extrap.sum() == 4.8185919326999995
 
     assert iftm.r[0] == 0
-    assert iftm.r[20] == 0.1188E+02
+    assert iftm.r[20] == 0.1168E+02
     assert iftm.r[-1] == 0.1010E+03
     assert iftm.p[0] == 0.0000E+00
-    assert iftm.p[20] == 0.2250E-04
+    assert iftm.p[20] == 0.2181E-04
     assert iftm.p[-1] == 0.0000E+00
     assert iftm.err[0] == 0.0000E+00
-    assert iftm.err[20] == 0.2664E-06
+    assert iftm.err[20] == 0.3170E-06
     assert iftm.err[-1] == 0.0000E+00
-    assert iftm.p.sum() == 0.008197727060000002
+    assert iftm.p.sum() == 0.00833920043
 
-    assert iftm.getParameter('rg') == 0.3338E+02
-    assert iftm.getParameter('rger') == 0.1271E+00
-    assert iftm.getParameter('TE') == 0.9700
-    assert iftm.getParameter('smooth') == 0.163
+    assert iftm.getParameter('rg') == 0.3336E+02
+    assert iftm.getParameter('rger') == 0.1073E+00
+    assert iftm.getParameter('TE') == 0.9708
+    assert iftm.getParameter('smooth') == 0.164
 
 
 def test_api_load_bift_ift():
