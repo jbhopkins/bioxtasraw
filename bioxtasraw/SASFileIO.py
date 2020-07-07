@@ -2587,7 +2587,7 @@ def loadPDBFile(filename):
 def loadPrimusDatFile(filename):
     ''' Loads a Primus .dat format file '''
 
-    iq_pattern = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*')
+    iq_pattern = re.compile('\s*-?\d*\.?\d*[+eE-]*\d+\s*[\s,]\s*-?\d*\.?\d*[+eE-]*\d+\s*[\s,]\s*-?\d*\.?\d*[+eE-]*\d+\s*')
 
     i = []
     q = []
@@ -2602,7 +2602,7 @@ def loadPrimusDatFile(filename):
     comment = ''
     line = lines[0]
     j=0
-    while line.split() and line.split()[0].strip()[0] == '#':
+    while line.split() and line.strip()[0] == '#':
         comment = comment+line
         j = j+1
         line = lines[j]
@@ -2626,12 +2626,19 @@ def loadPrimusDatFile(filename):
 
         if iq_match:
             if not is_foxs_fit:
-                found = iq_match.group().split()
+                found = iq_match.group()
+                if ',' in found:
+                    found = found.split(',')
+                else:
+                    found = found.split()
                 q.append(float(found[0]))
                 i.append(float(found[1]))
                 err.append(abs(float(found[2])))
             else:
-                found = line.split()
+                if ',' in line:
+                    found = line.split(',')
+                else:
+                    found = line.split()
                 q.append(float(found[0]))
                 i.append(float(found[1]))
                 imodel.append(float(found[2]))
