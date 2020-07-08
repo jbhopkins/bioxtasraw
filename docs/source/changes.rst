@@ -1,6 +1,52 @@
 Changes
 ============
 
+2.0.2
+-----------
+
+Release date: 2020-07-08
+
+Overview
+^^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 2.0.2. The
+major change in this version is:
+
+*   Fixed a bug where SAXSLAB images couldn't be loaded.
+
+There are also several other small bug fixes and new features.
+
+All changes:
+^^^^^^^^^^^^^
+
+*   Can now load .dat files from WAXSiS, .dat files that are comma separated.
+*   Fixed a bug where the Vc integrated intensity plot was blank if the
+    scattering profile had saved M.W. results.
+*   Improved rebinning functions, particularly the log binning function.
+*   Fixed a bug where error wasn't interpolated properly when interpolating
+    a profile.
+*   Fixed a bug where pixel size from header bindings was in the wrong units.
+*   Fixed a bug where series type could get lost in certain operations.
+*   Fixed a bug where centering and enantiomorph selection options were
+    ignored in the DENSS alignment panel.
+*   Fixed a bug where series buffer range finding was scaling profiles before
+    testing for similarity.
+*   Fixed a bug where SAXSLAB images failed to load with pillow version 7.
+*   Fixed a bug where SAXSLAB images failed to load.
+*   Fixed a bug where images wouldn't load if there was no beamstop mask.
+*   Fixed a bug that could result in calculated data not displaying on the
+    series plot.
+*   Fixed a bug where series saved as .hdf5 with EFA analysis would fail to
+    open the EFA window when reloaded.
+*   Fixed a bug where datgnom couldn't be run on truncated profiles.
+*   Fixed a bug where opening the advanced settings window from the GNOM
+    window didn't properly update changed settings in the GNOM window.
+*   Fixed a bug where .hdf5 files couldn't be plotted by dragging and dropping
+    or using the 'Plot Series' button.
+*   Fixed a bug where running a dammin refine with too long a filename would
+    fail (previously thought to be fixed in 2.0.0).
+
+
 2.0.1
 ------------
 

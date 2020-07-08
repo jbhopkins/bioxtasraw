@@ -203,7 +203,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
             if wx.version().split()[0].strip()[0] == '4':
                 self.include_listctrl.InsertItem(idx, txt)
             else:
-                self.include_listctrl.InsertStringItem(idx, txt)
+                self.include_listctrl.InsertItem(idx, txt)
 
             self.included_data[idx] = data
 
@@ -349,7 +349,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
             if wx.version().split()[0].strip()[0] == '4':
                 self.variable_listctrl.InsertItem(idx, each[0])
             else:
-                self.variable_listctrl.InsertStringItem(idx, each[0])
+                self.variable_listctrl.InsertItem(idx, each[0])
             self.variable_data[idx] = ['general' , each[1], each[0]]
 
             idx = idx + 1
@@ -366,7 +366,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         if wx.version().split()[0].strip()[0] == '4':
             self.variable_listctrl.InsertItem(idx, 'Guinier Analysis')
         else:
-            self.variable_listctrl.InsertStringItem(idx, 'Guinier Analysis')
+            self.variable_listctrl.InsertItem(idx, 'Guinier Analysis')
         self.variable_data[idx] = ['guinier', None]
 
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
@@ -375,7 +375,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
             if wx.version().split()[0].strip()[0] == '4':
                 self.variable_listctrl.InsertItem(idx, '\t'+each)
             else:
-                self.variable_listctrl.InsertStringItem(idx, '\t'+each)
+                self.variable_listctrl.InsertItem(idx, '\t'+each)
             self.variable_data[idx] = ['guinier', each, each]
             idx = idx + 1
 
@@ -392,7 +392,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         if wx.version().split()[0].strip()[0] == '4':
             self.variable_listctrl.InsertItem(idx, 'MW Analysis')
         else:
-            self.variable_listctrl.InsertStringItem(idx, 'MW Analysis')
+            self.variable_listctrl.InsertItem(idx, 'MW Analysis')
         self.variable_data[idx] = ['molecularWeight', None]
 
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
@@ -401,7 +401,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
             if wx.version().split()[0].strip()[0] == '4':
                 self.variable_listctrl.InsertItem(idx, '\t%s_%s' %(each[0], each[1]))
             else:
-                self.variable_listctrl.InsertStringItem(idx, '\t%s_%s' %(each[0], each[1]))
+                self.variable_listctrl.InsertItem(idx, '\t%s_%s' %(each[0], each[1]))
             self.variable_data[idx] = ['molecularWeight', each[0], each[1]]
             idx = idx + 1
 
@@ -417,7 +417,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         if wx.version().split()[0].strip()[0] == '4':
             self.variable_listctrl.InsertItem(idx, 'GNOM Analysis')
         else:
-            self.variable_listctrl.InsertStringItem(idx, 'GNOM Analysis')
+            self.variable_listctrl.InsertItem(idx, 'GNOM Analysis')
         self.variable_data[idx] = ['GNOM', None]
 
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
@@ -426,7 +426,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
             if wx.version().split()[0].strip()[0] == '4':
                 self.variable_listctrl.InsertItem(idx, '\t'+each)
             else:
-                self.variable_listctrl.InsertStringItem(idx, '\t'+each)
+                self.variable_listctrl.InsertItem(idx, '\t'+each)
             self.variable_data[idx] = ['GNOM', each, each]
             idx = idx + 1
 
@@ -441,7 +441,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         if wx.version().split()[0].strip()[0] == '4':
             self.variable_listctrl.InsertItem(idx, 'BIFT Analysis')
         else:
-            self.variable_listctrl.InsertStringItem(idx, 'BIFT Analysis')
+            self.variable_listctrl.InsertItem(idx, 'BIFT Analysis')
         self.variable_data[idx] = ['BIFT', None]
 
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
@@ -450,7 +450,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
             if wx.version().split()[0].strip()[0] == '4':
                 self.variable_listctrl.InsertItem(idx, '\t'+each)
             else:
-                self.variable_listctrl.InsertStringItem(idx, '\t'+each)
+                self.variable_listctrl.InsertItem(idx, '\t'+each)
             self.variable_data[idx] = ['BIFT', each, each]
             idx = idx + 1
 
@@ -465,7 +465,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         if wx.version().split()[0].strip()[0] == '4':
             self.variable_listctrl.InsertItem(idx, 'Header File')
         else:
-            self.variable_listctrl.InsertStringItem(idx, 'Header File')
+            self.variable_listctrl.InsertItem(idx, 'Header File')
         self.variable_data[idx] = ['Header File', None]
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
@@ -473,7 +473,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
             if wx.version().split()[0].strip()[0] == '4':
                 self.variable_listctrl.InsertItem(idx, '\t'+each)
             else:
-                self.variable_listctrl.InsertStringItem(idx, '\t'+each)
+                self.variable_listctrl.InsertItem(idx, '\t'+each)
             self.variable_data[idx] = ['counters', each, each]
             idx = idx + 1
 
@@ -488,7 +488,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         if wx.version().split()[0].strip()[0] == '4':
             self.variable_listctrl.InsertItem(idx, 'Image Header')
         else:
-            self.variable_listctrl.InsertStringItem(idx, 'Image Header')
+            self.variable_listctrl.InsertItem(idx, 'Image Header')
         self.variable_data[idx] = ['Image Header', None]
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
@@ -496,7 +496,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
             if wx.version().split()[0].strip()[0] == '4':
                 self.variable_listctrl.InsertItem(idx, '\t'+each)
             else:
-                self.variable_listctrl.InsertStringItem(idx, '\t'+each)
+                self.variable_listctrl.InsertItem(idx, '\t'+each)
             self.variable_data[idx] = ['imageHeader', each, each]
             idx = idx + 1
 
@@ -512,7 +512,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
             if wx.version().split()[0].strip()[0] == '4':
                 self.include_listctrl.InsertItem(idx, include_data[each][2])
             else:
-                self.include_listctrl.InsertStringItem(idx, include_data[each][2])
+                self.include_listctrl.InsertItem(idx, include_data[each][2])
 
             self.included_data[idx] = include_data[each]
 
@@ -543,7 +543,7 @@ class SaveAnalysisListCtrl(wx.ListCtrl):
                 self.InsertItem(idx-1, data[0])
                 self.SetItem(idx-1, 1, data[1])
             else:
-                self.InsertStringItem(idx-1, data[0])
+                self.InsertItem(idx-1, data[0])
                 self.SetItem(idx-1, 1, data[1])
             self.Select(idx-1, True)
 
@@ -555,7 +555,7 @@ class SaveAnalysisListCtrl(wx.ListCtrl):
                 self.InsertItem(idx+1, data[0])
                 self.SetItem(idx+1, 1, data[1])
             else:
-                self.InsertStringItem(idx+1, data[0])
+                self.InsertItem(idx+1, data[0])
                 self.SetItem(idx+1, 1, data[1])
             self.Select(idx+1, True)
 

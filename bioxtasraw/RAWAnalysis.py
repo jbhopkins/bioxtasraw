@@ -5447,9 +5447,6 @@ class DammifRunPanel(wx.Panel):
 
         align = self.align_result.GetValue()
 
-
-        outname = os.path.join(path, prefix+'.out')
-
         if len(prefix)>30:
             msg = ("Warning: The file prefix '{}'' is too long (>30 characters). It "
                 "will be truncated to '{}'. Proceed?".format(prefix, prefix[:30]))
@@ -5463,6 +5460,8 @@ class DammifRunPanel(wx.Panel):
                 prefix_window.SetValue(prefix)
             else:
                 return
+
+        outname = os.path.join(path, prefix+'.out')
 
         #Check to see if any files will be overwritten. Prompt use if that is the case. Write the .out file for dammif to use
         if os.path.exists(outname):
@@ -6016,7 +6015,8 @@ class DammifRunPanel(wx.Panel):
 
                 outname = os.path.join(path, prefix+'.out')
 
-                t = threading.Thread(target = self.runDammif, args = (outname, prefix, path, program, refine))
+                t = threading.Thread(target = self.runDammif, args = (outname,
+                    prefix, path, program, refine))
                 t.daemon = True
                 t.start()
                 self.threads.append(t)
@@ -15937,11 +15937,11 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
             index = self.list_ctrl.InsertStringItem(sys.maxsize, '', it_kind=1)
         except Exception:
             index = self.list_ctrl.InsertStringItem(sys.maxint, '', it_kind=1)
-        self.list_ctrl.SetItem(index, 1, name)
-        self.list_ctrl.SetItem(index, 2, '')
-        self.list_ctrl.SetItem(index, 3, str(rg))
-        self.list_ctrl.SetItem(index, 4, str(i0))
-        self.list_ctrl.SetItem(index, 5, str(vc))
+        self.list_ctrl.SetStringItem(index, 1, name)
+        self.list_ctrl.SetStringItem(index, 2, '')
+        self.list_ctrl.SetStringItem(index, 3, str(rg))
+        self.list_ctrl.SetStringItem(index, 4, str(i0))
+        self.list_ctrl.SetStringItem(index, 5, str(vc))
 
         self.itemDataMap[index] = ('', name, '', rg, i0, vc)
 
