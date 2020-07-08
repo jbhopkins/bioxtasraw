@@ -2,6 +2,7 @@ import os
 import copy
 
 import pytest
+import numpy as np
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -47,9 +48,10 @@ def test_efa(bsa_series):
         [[130, 187], [149, 230]], framei=130, framef=230)
 
     assert converged
-    assert conv_data['final_step'] == 9.254595973975021e-13
+    assert np.allclose(conv_data['final_step'], 9.254595973975021e-13,
+        atol=1e-15)
     assert len(efa_profiles) == 2
-    assert efa_profiles[0].getI().sum() == 75885.43573919893
+    assert np.allclose(efa_profiles[0].getI().sum(), 75885.43573919893)
 
 def test_efa_list(bsa_series):
     sasms = bsa_series.subtracted_sasm_list
@@ -58,9 +60,10 @@ def test_efa_list(bsa_series):
         [[130, 187], [149, 230]], framei=130, framef=230)
 
     assert converged
-    assert conv_data['final_step'] == 9.254595973975021e-13
+    assert np.allclose(conv_data['final_step'], 9.254595973975021e-13,
+        atol=1e-15)
     assert len(efa_profiles) == 2
-    assert efa_profiles[0].getI().sum() == 75885.43573919893
+    assert np.allclose(efa_profiles[0].getI().sum(), 75885.43573919893)
 
 def test_find_buffer_range(bsa_series):
     success, region_start, region_end = raw.find_buffer_range(bsa_series)
@@ -361,10 +364,11 @@ def test_set_baseline_correction_integral(clean_baseline_series):
         fit_results) = raw.set_baseline_correction(clean_baseline_series,
         [42, 71], [318, 347], 'Integral')
 
-    assert rg[200] == 27.72702098139628
-    assert rger[200] == 0.05435118847512014
+    assert np.allclose(rg[200], 27.72702098139628)
+    assert np.allclose(rger[200], 0.05435118847512014)
     assert all(rg == clean_baseline_series.getRg()[0])
-    assert clean_baseline_series.getIntIBCSub().sum() == 0.1031091826570453
+    assert np.allclose(clean_baseline_series.getIntIBCSub().sum(), 
+        0.1031091826570453)
 
 def test_set_baseline_correction_linear(clean_baseline_series):
     (bl_cor_profiles, rg, rger, i0, i0er, vcmw, vcmwer, vpmw, bl_corr,

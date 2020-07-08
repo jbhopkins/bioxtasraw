@@ -48,7 +48,7 @@ def test_mw_ref(clean_gi_sub_profile, old_settings):
 def test_mw_abs(clean_gi_sub_profile, old_settings):
     mw = raw.mw_abs(clean_gi_sub_profile, settings=old_settings)
 
-    assert mw == 180.38733730964776
+    assert np.allclose(mw, 180.38733730964776)
 
 def test_mw_vp(clean_gi_sub_profile, old_settings):
     mw, pvol_cor, pvol, qmax = raw.mw_vp(clean_gi_sub_profile,
