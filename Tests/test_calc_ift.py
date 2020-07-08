@@ -66,7 +66,7 @@ def test_damclust(temp_directory):
 
     assert len(cluster_list) == 1
     assert len(distance_list) == 0
-    assert float(cluster_list[0].dev) == 0.43326809411161260
+    assert np.isclose(float(cluster_list[0].dev), 0.43326809411161260, rtol=1e-2)
 
 @pytest.mark.slow
 def test_supcomb(temp_directory):
@@ -109,9 +109,9 @@ def test_denss_average(temp_directory):
         fsc) = raw.denss_average(np.array(rhos), sides[0], 'denss',
         temp_directory)
 
-    assert average_rho.sum() == 11.763942082722979
-    assert mean_cor == 0.9729911145565486
-    assert std_cor == 0.017942342024373233
+    assert np.isclose(average_rho.sum(), 11.763942082722979)
+    assert np.isclose(mean_cor, 0.9729911145565486)
+    assert np.isclose(std_cor, 0.017942342024373233, rtol=1e-3)
     assert res == 36.9
     assert os.path.exists(os.path.join(temp_directory, 'denss_average.log'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_fsc.dat'))
@@ -124,5 +124,5 @@ def test_denss_align(temp_directory):
     aligned_density, score = raw.denss_align(rhos[0], sides[0], '1XIB_4mer.pdb',
         './data/dammif_data/', save_datadir=temp_directory)
 
-    assert score == 0.8993042569480916
-    assert aligned_density.sum() == 11.784799575805664
+    assert np.isclose(score, 0.8993042569480916)
+    assert np.isclose(aligned_density.sum(), 11.784799575805664)

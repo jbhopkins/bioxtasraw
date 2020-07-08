@@ -91,8 +91,8 @@ def test_bift(clean_gi_sub_profile, old_settings, gi_bift_ift):
         log_alpha_err, evidence, evidence_err) = raw.bift(clean_gi_sub_profile,
         settings=old_settings)
 
-    assert dmax == gi_bift_ift.getParameter('dmax')
-    assert rg == gi_bift_ift.getParameter('rg')
+    assert np.allclose(dmax, gi_bift_ift.getParameter('dmax'))
+    assert np.allclose(rg, gi_bift_ift.getParameter('rg'))
     assert np.allclose(ift.r, gi_bift_ift.r)
     assert np.allclose(ift.p, gi_bift_ift.p)
 

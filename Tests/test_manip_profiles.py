@@ -83,7 +83,7 @@ def test_subtract(bsa_series_profiles):
     for j, sasm in enumerate(sub_profiles):
         assert all(sasm.getQ() == profiles[j].getQ())
         assert all(sasm.getI() == test_sub_i[j])
-        assert all(sasm.getErr() == test_sub_err[j])
+        assert np.allclose(sasm.getErr(), test_sub_err[j])
 
 def test_linear_rebin_factor(gi_sub_profile, rebin_factor):
     rebinned = raw.rebin([gi_sub_profile], rebin_factor=rebin_factor)[0]
