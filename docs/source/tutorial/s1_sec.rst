@@ -228,13 +228,13 @@ The written version of the tutorial follows.
     *   Adjust the Buffer end to include some of the leading edge peaks, such as
         ending at 600. You will want to click on the 'Unsubtracted' plot to
         see the buffer range. Then click 'Set Buffer'. You will see a warning window
-        telling you want might be wrong with the selected region. Click 'Cancel'.
+        telling you what might be wrong with the selected region. Click 'Cancel'.
 
         |lc_analysis_buffer_range_warning_png|
 
     *   Adjust the Sample start to include some of the non-flat region, such as
         starting at 681. Then click 'To Profiles Plot'. You will see a warning window
-        telling you want might be wrong with the selected region. Click 'Cancel'.
+        telling you what might be wrong with the selected region. Click 'Cancel'.
 
         |lc_analysis_sample_range_warning_png|
 
@@ -270,7 +270,7 @@ The written version of the tutorial follows.
     scattering profiles. A better scattering profile might be obtained by using buffer
     from both sides of the peak. To do so, start by reopening the LC Series Analysis panel.
 
-#.  Switch to showing the unsubtracted profiles by clicking on the 'Unsubtracted' plot tab.
+#.  Switch to showing the unsubtracted intensity by clicking on the 'Unsubtracted' plot tab.
 
 #.  Add a second buffer region by clicking the 'Add region' button.
 

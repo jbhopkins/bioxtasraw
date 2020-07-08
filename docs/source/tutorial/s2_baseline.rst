@@ -82,7 +82,7 @@ Linear Baseline Correction
 
     |lc_analysis_baseline_linear_baseline_png|
 
-#.  Switch back to displaying the total intensity and the Baseline Corrected plot.
+#.  Switch back to displaying the Baseline Corrected plot.
 
 #.  Remove any existing sample region and find a new sample region using the 'Auto'
     button. Send that region to the Profiles plot.

@@ -30,7 +30,7 @@ The written version of the tutorial follows.
 
 #.  Right click on the **glucose_isomerase.out** item in the IFT list. Select the “Bead Model (DAMMIF/N)” option.
 
-#.  Running DAMMIF generates a lot of files. Click the “Select/Change Directory” button,
+#.  Running DAMMIF generates a lot of files. Click the “Select” button for the output directory,
     make a new folder in the **reconstruction_data** directory called **gi_dammif** and select
     that folder.
 

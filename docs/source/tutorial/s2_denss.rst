@@ -33,7 +33,7 @@ The written version of the tutorial follows.
 
 #.  Right click on the **glucose_isomerase.ift** item in the IFT list. Select the “Electron Density (DENSS)” option.
 
-#.  Running DENSS generates a lot of files. Click the “Select/Change Directory” button,
+#.  Running DENSS generates a lot of files. Click the “Select” button for the output directory,
     make a new folder in the **reconstruction_data** directory called **gi_denss** and select
     that folder.
 
