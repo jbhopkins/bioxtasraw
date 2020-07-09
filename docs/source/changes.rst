@@ -45,6 +45,7 @@ All changes:
     or using the 'Plot Series' button.
 *   Fixed a bug where running a dammin refine with too long a filename would
     fail (previously thought to be fixed in 2.0.0).
+*   Fixed a bug that could prevent DENSS from starting on Windows and Linux.
 
 
 2.0.1
