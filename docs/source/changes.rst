@@ -4,7 +4,7 @@ Changes
 2.0.2
 -----------
 
-Release date: 2020-07-08
+Release date: 2020-07-09
 
 Overview
 ^^^^^^^^^^^
