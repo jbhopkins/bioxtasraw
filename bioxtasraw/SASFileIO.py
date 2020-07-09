@@ -778,7 +778,10 @@ def parseBioCATlogfile(filename):
             else:
                 key = line.strip('#').split(':')[0].strip()
                 val = ':'.join(line.strip('#').split(':')[1:])
-                counters[key] = val.strip()
+                if key in counters:
+                    counters[key] = counters[key] + '\n' + val.strip()
+                else:
+                    counters[key] = val.strip()
         else:
             break
 
