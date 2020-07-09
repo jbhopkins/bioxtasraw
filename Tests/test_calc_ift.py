@@ -49,7 +49,7 @@ def test_damaver(temp_directory):
     (mean_nsd, stdev_nsd, rep_model, result_dict, res, res_err,
         res_unit) = raw.damaver(fnames, 'damaver', temp_directory)
 
-    assert mean_nsd == 0.443
+    assert np.allclose(mean_nsd, 0.443, rtol=1e-2)
     assert stdev_nsd == 0.014
     assert res == 25
     assert res_err == 2
@@ -92,10 +92,10 @@ def test_denss(gi_gnom_ift, temp_directory):
     assert os.path.exists(os.path.join(temp_directory, 'denss_support.mrc'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_map.fit'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_stats_by_step.dat'))
-    assert chi_sq == 0.002411384413114013
-    assert rg == 38.18223704287973
-    assert support_vol == 506818.2928161621
-    assert I_fit.sum() == 0.1350911293849589
+    assert np.allclose(chi_sq, 0.002411384413114013)
+    assert np.allclose(rg, 38.18223704287973)
+    assert np.allclose(support_vol, 506818.2928161621)
+    assert np.allclose(I_fit.sum(), 0.1350911293849589)
 
 @pytest.mark.very_slow
 def test_denss_average(temp_directory):

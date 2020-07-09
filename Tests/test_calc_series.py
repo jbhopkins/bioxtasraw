@@ -35,13 +35,13 @@ def clean_baseline_series(int_baseline_series):
 
 def test_svd(bsa_series):
     svd_s, svd_U, svd_V = raw.svd(bsa_series)
-    assert svd_s[0] == 7474.750264659797
+    assert np.allclose(svd_s[0], 7474.750264659797)
 
 def test_svd_list(bsa_series):
     sasms = bsa_series.subtracted_sasm_list
 
     svd_s, svd_U, svd_V = raw.svd(sasms)
-    assert svd_s[0] == 7474.750264659797
+    assert np.allclose(svd_s[0], 7474.750264659797)
 
 def test_efa(bsa_series):
     efa_profiles, converged, conv_data, rotation_data = raw.efa(bsa_series,
