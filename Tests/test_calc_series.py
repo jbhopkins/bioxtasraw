@@ -49,7 +49,7 @@ def test_efa(bsa_series):
 
     assert converged
     assert np.allclose(conv_data['final_step'], 9.254595973975021e-13,
-        atol=1e-15)
+        atol=1e-15, rtol=1e-2)
     assert len(efa_profiles) == 2
     assert np.allclose(efa_profiles[0].getI().sum(), 75885.43573919893)
 
@@ -61,7 +61,7 @@ def test_efa_list(bsa_series):
 
     assert converged
     assert np.allclose(conv_data['final_step'], 9.254595973975021e-13,
-        atol=1e-15)
+        atol=1e-15, rtol=1e-2)
     assert len(efa_profiles) == 2
     assert np.allclose(efa_profiles[0].getI().sum(), 75885.43573919893)
 
