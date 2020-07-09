@@ -8214,7 +8214,7 @@ class DenssRunPanel(wx.Panel):
                 if key != 'average' and key != 'refine' and key!= 'align':
                     result = my_pool.apply_async(DENSS.runDenss, args=(q, I, sigq,
                         D, prefix, path, self.denss_settings),
-                        kwargs={'comm_list':comm_list, 'my_lock':self.my_lock,
+                        kwds={'comm_list':comm_list, 'my_lock':self.my_lock,
                         'thread_num_q':self.thread_nums,
                         'wx_queue':self.wx_queue, 'abort_event':self.abort_event})
 
@@ -8456,7 +8456,7 @@ class DenssRunPanel(wx.Panel):
 
             result = my_pool.apply_async(DENSS.runDenss, args=(q, I, sigq,
                 D, prefix, path, self.denss_settings, avg_model),
-                kwargs={'comm_list':comm_list, 'my_lock':self.my_lock,
+                kwds={'comm_list':comm_list, 'my_lock':self.my_lock,
                     'thread_num_q':self.thread_nums, 'wx_queue':self.wx_queue,
                     'abort_event':self.abort_event})
 
