@@ -2690,6 +2690,9 @@ def significantSingularValues(sasms):
         elif np.mean(plist) > np.std(plist):
             svals = int(round(np.mean(plist)))
 
+        else:
+            svals = 1
+
         if svals <= 0:
             svals = 1 #Assume algorithm failure and set to 1 to continue other validation steps
 
