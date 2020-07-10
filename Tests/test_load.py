@@ -1398,7 +1398,7 @@ def test_api_load_images_saxslab(saxslab_settings):
     assert img_hdr['det_exposure_time'] == 999.0
     assert img_hdr['saxsconf_wavelength'] == 1.5418
 
-def test_api_integrate_images(old_settings):
+def test_api_load_and_integrate_images(old_settings):
     filenames = [os.path.join('.', 'data', 'GI2_A9_19_001_0000.tiff')]
 
     profile_list, img_list = raw.load_and_integrate_images(filenames, old_settings)
@@ -1435,7 +1435,7 @@ def test_api_integrate_images(old_settings):
     assert params['imageHeader']['Gain_setting'] == "mid gain (vrf = -0.200)"
     assert 'calibration_params' in params
 
-def test_api_integrate_images_saxslab(saxslab_settings):
+def test_api_load_and_integrate_images_saxslab(saxslab_settings):
     filenames = [os.path.join('.', 'data', 'saxslab_image.tiff')]
 
     profile_list, img_list = raw.load_and_integrate_images(filenames, saxslab_settings)
@@ -1685,3 +1685,36 @@ def test_api_load_csv_dat():
     assert profile.getErr()[0] == 1.59855527E-03
     assert profile.getErr()[-1] == 5.14117602E-04
     assert profile.getI().sum() == 3.7220912003
+
+def test_api_load_counter_values(old_settings):
+    filenames = [os.path.join('.', 'data', 'GI2_A9_19_001_0000.tiff')]
+
+    counters = raw.load_counter_values(filenames, old_settings)[0]
+
+    assert float(counters['I1']) == 92616
+    assert float(counters['diode']) == 39391
+    assert float(counters['Seconds']) == 1
+    assert float(counters['I3']) == 1149
+    assert float(counters['Time']) == 5.9604645e-6
+    assert float(counters['Epoch']) == 2
+    assert float(counters['hep']) == 0
+    assert float(counters['gdoor']) == 1187
+
+def test_api_integrate_image(old_settings):
+    filenames = [os.path.join('.', 'data', 'GI2_A9_19_001_0000.tiff')]
+
+    counters = raw.load_counter_values(filenames, old_settings)[0]
+
+    img, img_hdr = raw.load_images(filenames, old_settings)
+    img = img[0]
+    img_hdr = img_hdr[0]
+
+    profile = raw.integrate_image(img, old_settings, 'test_image', img_hdr,
+        counters, filenames[0])
+
+    profile_list, img_list = raw.load_and_integrate_images(filenames, old_settings)
+
+    assert all(profile.getQ() == profile_list[0].getQ())
+    assert all(profile.getI() == profile_list[0].getI())
+    assert all(profile.getErr() == profile_list[0].getErr())
+
