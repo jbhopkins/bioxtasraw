@@ -1100,27 +1100,8 @@ def loadFile(filename, raw_settings, no_processing = False):
             sasm = [sasm]
 
         for current_sasm in sasm:
-            SASM.postProcessSasm(current_sasm, raw_settings) #Does dezingering
+            postProcessProfile(current_sasm, raw_settings, no_processing)
 
-            if not no_processing:
-                #Need to do a little work before we can do glassy carbon normalization
-                if raw_settings.get('NormAbsCarbon') and not raw_settings.get('NormAbsCarbonIgnoreBkg'):
-                    bkg_filename = raw_settings.get('NormAbsCarbonSamEmptyFile')
-                    bkg_sasm = raw_settings.get('NormAbsCarbonSamEmptySASM')
-                    if bkg_sasm is None or bkg_sasm.getParameter('filename') != os.path.split(bkg_filename)[1]:
-                        bkg_sasm, junk_img = loadFile(bkg_filename, raw_settings, no_processing=True)
-                        if isinstance(bkg_sasm,list):
-                            if len(bkg_sasm) > 1:
-                                bkg_sasm = SASProc.average(bkg_sasm)
-                            else:
-                                bkg_sasm = bkg_sasm[0]
-                        raw_settings.set('NormAbsCarbonSamEmptySASM', bkg_sasm)
-
-                try:
-                    #Does fully glassy carbon abs scale
-                    SASCalib.postProcessImageSasm(current_sasm, raw_settings)
-                except SASExceptions.AbsScaleNormFailed:
-                    raise
     elif file_type == 'hdf5':
         sasm = loadHdf5File(filename, raw_settings)
         img = None
@@ -1136,6 +1117,32 @@ def loadFile(filename, raw_settings, no_processing = False):
         raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
 
     return sasm, img
+
+def postProcessProfile(sasm, raw_settings, no_processing):
+    """
+    Does post-processing on profiles created from images.
+    """
+    SASM.postProcessSasm(sasm, raw_settings) #Does dezingering
+
+    if not no_processing:
+        #Need to do a little work before we can do glassy carbon normalization
+        if raw_settings.get('NormAbsCarbon') and not raw_settings.get('NormAbsCarbonIgnoreBkg'):
+            bkg_filename = raw_settings.get('NormAbsCarbonSamEmptyFile')
+            bkg_sasm = raw_settings.get('NormAbsCarbonSamEmptySASM')
+            if bkg_sasm is None or bkg_sasm.getParameter('filename') != os.path.split(bkg_filename)[1]:
+                bkg_sasm, junk_img = loadFile(bkg_filename, raw_settings, no_processing=True)
+                if isinstance(bkg_sasm,list):
+                    if len(bkg_sasm) > 1:
+                        bkg_sasm = SASProc.average(bkg_sasm)
+                    else:
+                        bkg_sasm = bkg_sasm[0]
+                raw_settings.set('NormAbsCarbonSamEmptySASM', bkg_sasm)
+
+        try:
+            #Does fully glassy carbon abs scale
+            SASCalib.postProcessImageSasm(sasm, raw_settings)
+        except SASExceptions.AbsScaleNormFailed:
+            raise
 
 def loadAsciiFile(filename, file_type):
     ascii_formats = {'rad'        : loadRadFile,
@@ -1208,27 +1215,35 @@ def loadImageFile(filename, raw_settings, hdf5_file=None):
                       'filename'    : new_filename,
                       'load_path'   : filename}
 
-        for key in parameters['counters']:
-            if key.lower().find('concentration') > -1 or key.lower().find('mg/ml') > -1:
-                parameters['Conc'] = parameters['counters'][key]
-                break
-
-        sasm = SASImage.integrateCalibrateNormalize(img, parameters, raw_settings)
-
-        ### Check for UV data if set in bindlist
-        if raw_settings.get('UseHeaderForCalib'):
-            uvvis = SASImage.getBindListDataFromHeader(raw_settings, img_hdr,
-                hdrfile_info, keys=['UV Path Length', 'UV Transmission', 'UV Dark Transmission'])
-
-            if not all(v is None for v in uvvis):
-                sasm._parameters['analysis']['uvvis'] = {'UVPathlength'       : uvvis[0],
-                                                         'UVTransmission'     : uvvis[1],
-                                                         'UVDarkTransmission' : uvvis[2]}
+        sasm = processImage(img, parameters, raw_settings)
 
         sasm_list[i] = sasm
 
 
     return sasm_list, loaded_data
+
+def processImage(img, parameters, raw_settings):
+    for key in parameters['counters']:
+        if key.lower().find('concentration') > -1 or key.lower().find('mg/ml') > -1:
+            parameters['Conc'] = parameters['counters'][key]
+            break
+
+    sasm = SASImage.integrateCalibrateNormalize(img, parameters, raw_settings)
+
+    img_hdr = parameters['imageHeader']
+    hdrfile_info = parameters['counters']
+
+    ### Check for UV data if set in bindlist
+    if raw_settings.get('UseHeaderForCalib'):
+        uvvis = SASImage.getBindListDataFromHeader(raw_settings, img_hdr,
+            hdrfile_info, keys=['UV Path Length', 'UV Transmission', 'UV Dark Transmission'])
+
+        if not all(v is None for v in uvvis):
+            sasm._parameters['analysis']['uvvis'] = {'UVPathlength'       : uvvis[0],
+                                                     'UVTransmission'     : uvvis[1],
+                                                     'UVDarkTransmission' : uvvis[2]}
+
+    return sasm
 
 def loadHdf5File(filename, raw_settings):
     """

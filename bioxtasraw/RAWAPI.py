@@ -390,6 +390,54 @@ def load_and_integrate_images(filename_list, settings):
 
     return profile_list, img_list
 
+def load_counter_values(filename_list, settings, new_filename_list=[]):
+    """
+    Loads in the counter values from a separate header file associated with
+    a given image.
+
+    Parameters
+    ----------
+    filename_list: list
+        A list of strings containing the full path to each image filename to
+        load the counter values for.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`
+        The RAW settings to be used when loading in the header, which defines
+        what type of header to look for.
+    new_filename_list: list, optional
+        A list of strings containing optional flienames for the images.
+        If an image file contains multiple images such as some hdf5 files),
+        this filename is used to determine what image inside the image file
+        the header should be loaded for. RAW expects this to be in the form
+        <image_name>_00001.<ext>, where 00001 would be first image in a file,
+        00002 the second image, and so on.
+
+    Returns
+    -------
+    counter_list: list
+        A list of dictionaries where each key is a counter name (such as I0)
+        and each value is the value of that counter for the input image name.
+    """
+    hdr_fmt = settings.get('ImageHdrFormat')
+
+    counter_list = []
+
+    if len(new_filename_list) == 0:
+        new_filename_list = ['' for j in range(len(filename_list))]
+
+    for j, filename in enumerate(filename_list):
+        filename = os.path.abspath(os.path.expanduser(filename))
+
+        if new_filename_list[j] == '':
+            new_filename = os.path.split(filename)[1]
+        else:
+            new_filename = os.path.abspath(os.path.expanduser(new_filename))
+
+        counters = SASFileIO.loadHeader(filename, new_filename, hdr_fmt)
+
+        counter_list.append(counters)
+
+    return counter_list
+
 def load_mrc(filename_list):
     """
     Loads DENSS .mrc files.
@@ -420,6 +468,59 @@ def load_mrc(filename_list):
         sides.append(side)
 
     return rhos, sides
+
+def integrate_image(img, settings, name, img_hdr={}, counters={}, load_path=''):
+    """
+    Processes a loaded image into a 1D scattering profile.
+
+    Parameters
+    ----------
+    img: :class:`numpy.array`
+        The image as a numpy array.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`
+        The RAW settings to be used when integrating the image.
+    name: str
+        The name to be used for the scattering profile.
+    img_hdr: dict, optional
+        The image header associated with the given image. May be required for
+        normalization.
+    counters: dict, optional
+        The counters associated with a given image. May be required for
+        normalization.
+    load_path: str, optional
+        The load path of the image. Only used for metadata purposes.
+
+    Returns
+    -------
+    profile: :class:`bioxtasraw.SASM.SASM`
+        The integrated 1D scattering profile.
+    """
+    if load_path != '':
+        load_path = os.path.abspath(os.path.expanduser(load_path))
+
+    parameters = {
+        'imageHeader'   : img_hdr,
+        'counters'      : counters,
+        'filename'      : name,
+        'load_path'     : load_path
+        }
+
+    profile = SASFileIO.processImage(img, parameters, settings)
+
+    SASFileIO.postProcessProfile(profile, settings, False)
+
+    start_point = settings.get('StartPoint')
+    end_point = settings.get('EndPoint')
+
+    if not isinstance(profile, list):
+        qrange = (start_point, len(profile.getRawQ())-end_point)
+        profile.setQrange(qrange)
+    else:
+        qrange = (start_point, len(profile[0].getRawQ())-end_point)
+        for each_profile in profile:
+            each_profile.setQrange(qrange)
+
+    return profile
 
 def profiles_to_series(profiles, settings=None):
     """
@@ -521,7 +622,7 @@ def save_ift(ift, fname=None, datadir='.'):
 
     Parameters
     ----------
-    profile: :class:`bioxtasraw.SASM.IFTM`
+    ift: :class:`bioxtasraw.SASM.IFTM`
         The ift to be saved.
     fname: str, optional
         The output filename, without the directory path. If no filename
@@ -551,12 +652,12 @@ def save_series(series, fname=None, datadir='.'):
 
     Parameters
     ----------
-    profile: :class:`bioxtasraw.SASM.IFTM`
-        The ift to be saved.
+    series: :class:`bioxtasraw.SASM.IFTM`
+        The series to be saved.
     fname: str, optional
         The output filename, without the directory path. If no filename
         is provided, the filename associated with the profile (e.g. obtained
-        by using ``profile.getParameter('filename')``) is used.
+        by using ``series.getParameter('filename')``) is used.
     datadir: str, optional
         The directory to save the profile in. If no directory is provided,
         the current directory is used.
@@ -991,12 +1092,6 @@ def guinier_fit(profile, idx_min, idx_max, error_weight=True, settings=None):
         weighted fashion. If not, the Guinier fit is calculated without
         error weight. This is overriden by the value in the settings if
         a settings object is provided.
-    single_fit: bool, optional
-        If True (default), then after the correct range for the Guinier fit
-        is found a traditional Guinier fit is performed using that range. If
-        False, currently the same is true. In the future, if False then the Rg
-        and I(0) values may be averages over some range of best Guinier fit
-        intervals.
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
         RAW settings containing relevant parameters. If provided, the
         error_weight parameter will be overridden with the value in the
@@ -1555,7 +1650,7 @@ def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
     datadir: str, optional
         If write_file is False, this is used as the path to the scattering
         profile on disk.
-    filename: str, optional.
+    filename: str, optional
         If write_file is False, this is used as the filename of the scattering
         profile on disk.
 
@@ -2566,7 +2661,7 @@ def cormap(profiles, ref_profile=None, correction='Bonferroni', settings=None):
     Parameters
     ----------
     profiles: list
-        The input profiles (:class:`bioxtasraw.SASM.SASM` to be compared.
+        The input profiles (:class:`bioxtasraw.SASM.SASM`) to be compared.
     ref_profile: :class:`bioxtasraw.SASM.SASM`, optional
         The reference profile to be used. If provided, all profiles are compared
         to this profile. If not provided (default) then all profiles are compared
@@ -2639,6 +2734,8 @@ def ambimeter(ift, qRg_max=4, save_models='none', save_prefix=None,
         ambimeter finds to be similar to the input ift. Default is 'none'.
         If set to 'all' or 'best', save_prefix and datadir parameters must
         be provided.
+    save_prefix: str, optional
+        The prefix to use for the saved modes, if any are saved.
     datadir: str, optional
         The datadir to use for reading a IFT already on disk and saving
         models from ambimeter.
@@ -3142,13 +3239,13 @@ def damaver(files, prefix, datadir, symmetry='P1', atsas_dir=None):
         The mean NSD of the models.
     stdev_nsd: float
         The standard deviation of the NSD of the models.
+    rep_model: str
+        The name of the representative model determined by DAMAVER.
     result_dict: dict
         A dictionary of the model specific results. The keys are the input
         filenames. The values are lists of the form ['Include' mean_model_nsd]
         where 'Include' indicates the model was in the average whereas a
         different value indicates the model was excluded from the average.
-    rep_model: str
-        The name of the representative model determined by DAMAVER.
     res: float
         The resolution of the reconstructions. Only available if more than 3
         models were averaged.
@@ -3696,7 +3793,7 @@ def denss_align(density, side, ref_file, ref_datadir='.',  prefix='',
     density: :class:`numpy.array`
         A :class:`numpy.array` of the electron density to be aligned to the
         reference model.
-    sides: float
+    side: float
         The real space box width in Angstroms of the reconstruction.
     ref_file: str
         The name (without path) of the reference model file to align the input
@@ -4289,7 +4386,7 @@ def set_buffer_range(series, buffer_range, int_type='total', q_val=None,
     ----------
     series: :class:`bioxtasraw.SECM.SECM`
         The input series to set the buffer range for.
-    buf_range: list
+    buffer_range: list
         A list defining the input buffer range to be set. The list is made
         up of a set of sub-ranges, each defined by an entry in the list. Each
         sub-range item should be a list or tuple where the first entry is the
@@ -4311,16 +4408,16 @@ def set_buffer_range(series, buffer_range, int_type='total', q_val=None,
         value of the range, the second the maximum q value of the range. If
         int_type is 'q_range', the q range used for the intensity is set by
         this parameter.
+    already_subtracted: bool, optional
+        Whether the series is already subtracted. If True, any buffer_range
+        input is ignored and the series unsubtracted profiles are set as the
+        subtracted profiles. Defaults to False
     window_size: int, optional
         The size of the average window used when calculating Rg and MW.
         So if the window is 5, 5 a window is size 5 is slid along the series,
         and profiles in that window are averaged before being used to calculate
         Rg and MW. For example, frames 1-5, 2-6, 3-7, etc would be averaged and
         then have Rg and MW calculated from that average.
-    already_subtracted: bool, optional
-        Whether the series is already subtracted. If True, any buffer_range
-        input is ignored and the series unsubtracted profiles are set as the
-        subtracted profiles. Defaults to False
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
         RAW settings containing relevant parameters. If provided, calc_thresh,
         sim_test, sim_cor, sim_thresh, err_weight, vp_density, vp_cutoff,
@@ -5012,7 +5109,7 @@ def find_baseline_range(series, baseline_type='Integral', profile_type='sub',
         a more strict test (range from 0-1). Is overridden if settings are
         provided.
 
-    Results
+    Returns
     -------
     start_found: bool
         True if a start region was successfully found.
@@ -5367,6 +5464,57 @@ def set_baseline_correction(series, start_range, end_range, baseline_type,
     vc_b_rna: float
         The volume of correlation B coefficient for RNA. Not recommended to
         be changed. Note that here B is defined as 1/B from the original paper.
+
+    Returns
+    -------
+    bl_cor_profiles: list
+        A list of the baseline corrected profiles.
+    rg: :class:`numpy.array`
+        An array of the Rg values calculated for each subtracted profile. If
+        no Rg value could be calculated then the value is -1. Each array index
+        is the Rg corresponding to the subtracted profile at that index in
+        the sub_profiles list.
+    rger: :class:`numpy.array`
+        An array of the uncertainty in the Rg values calculated for each
+        subtracted profile. If no Rg value could be calculated then the
+        value is -1. Each array index is the uncertainty corresponding to the
+        subtracted profile at that index in  the sub_profiles list.
+    i0: :class:`numpy.array`
+        An array of the I(0) values calculated for each subtracted profile. If
+        no I(0) value could be calculated then the value is -1. Each array index
+        is the I(0) corresponding to the subtracted profile at that index in
+        the sub_profiles list.
+    i0er: :class:`numpy.array`
+        An array of the uncertainty in the I(0) values calculated for each
+        subtracted profile. If no I(0) value could be calculated then the
+        value is -1. Each array index is the uncertainty corresponding to the
+        subtracted profile at that index in  the sub_profiles list.
+    vcmw: :class:`numpy.array`
+        An array of the volume of correlation M.W. values calculated for each
+        subtracted profile. If no M.W. value could be calculated then the value
+        is -1. Each array index is the M.W. corresponding to the subtracted
+        profile at that index in the sub_profiles list.
+    vcmwer: :class:`numpy.array`
+        An array of the uncertainty in the volume of correlation M.W. values
+        calculated for each subtracted profile. If no M.W. value could be
+        calculated then the value is -1. Each array index is the uncertainty
+        corresponding to the subtracted profile at that index in  the
+        sub_profiles list.
+    vpmw: :class:`numpy.array`
+        An array of the Porod volume M.W. values calculated for each subtracted
+        profile. If no M.W. value could be calculated then the value is -1.
+        Each array index is the M.W. corresponding to the subtracted profile
+        at that index in the sub_profiles list.
+    bl_corr: list
+        A list of the baesline correction applied. Each item is a
+        :class:`bioxtasraw.SASM.SASM`, and there is one for every baseline
+        corrected profile. The intensity is the value subtracted from the
+        starting intensity of the corresponding profile to achieve the
+        baseline corrected intensity.
+    fit_results: list
+        Only contains items if a linear correction is done. In that case,
+        Each item is the linear fit results a, b, and corresponding covariances
+        for a given q value. There is one item per q value of the input profiles.
     """
 
     # Set input values from settings if applicable
