@@ -39,20 +39,42 @@ import bioxtasraw.SASExceptions as SASExceptions
 
 
 class SASM(object):
-    '''
-        Small Angle Scattering Measurement (SASM) Object.
-        Contains all information extracted from a SAS data file.
-    '''
+    """
+    Small Angle Scattering Measurement (SASM) Object. Essentially a
+    scattering profile with q, i, and uncertainty, plus a lot of metadata.
+
+    Attributes
+    ----------
+    q: numpy.array
+        The scaled q vector, without the trimming specified by
+        :func:`setQrange`.
+    i: numpy.array
+        The scaled intensity vector, without the trimming specified by
+        :func:`setQrange`.
+    err: numpy.array
+        The scaled error vector, without the trimming specified by
+        :func:`setQrange`.
+    """
 
     def __init__(self, i, q, err, parameters):
-        ''' Constructor
+        """
+        Constructor
 
-            parameters contains at least {'filename': filename_with_no_path}
-            other reserved keys are:
-
+        Parameters
+        ----------
+        i: numpy.array
+            The intensity vector.
+        q: numpy.array
+            The q vector.
+        err: numpy.array
+            The error vector.
+        parameters: dict
+            A dictionary of metadata for the object. This should contain at
+            least {'filename': filename_with_no_path}. Other reserved keys are:
             'counters' : [(countername, value),...] Info from counterfiles
-            'fileHeader' : [(label, value),...] Info from the header in the loaded file
-        '''
+            'fileHeader' : [(label, value),...] Info from the header in the
+            loaded file
+        """
 
         #Raw intensity variables
         self._i_raw = np.array(i)
@@ -160,42 +182,120 @@ class SASM(object):
             self.mean_intensity = -1
 
     def getScale(self):
+        """
+        Returns the scale factor for the profile.
+
+        Returns
+        -------
+        scale: float
+            The scale factor.
+        """
         return self._scale_factor
 
     def getOffset(self):
+        """
+        Returns the offset for the profile.
+
+        Returns
+        -------
+        offset: float
+            The offset.
+        """
         return self._offset_value
 
     def getLine(self):
+        """
+        Returns the plotted line for the profile. Only used in the RAW GUI.
+        """
         return self.line
 
     def scaleRelative(self, relscale):
+        """
+        Applies a relative scale to the profile intensity. If the scale factor
+        is currently 1, then this is the same as :func:`scale`. Otherwise,
+        this scales relative to the current scale factor. For example, suppose
+        the scale factor is currently 2. If a relative scale of 2 is provided,
+        the resulting scale factor if 4. Scale factors are always positive.
+
+        Parameters
+        ----------
+        relscale: float
+            The relative scale factor to be applied to the the profile
+            intensity and uncertainty.
+        """
         self._scale_factor = abs(self._scale_factor * relscale)
         self._update()
 
     def scale(self, scale_factor):
-        ''' Scale intensity by a factor from the raw intensity, also scales errorbars appropiately '''
+        """
+        Applies an absolute scale to the profile intensity. The scale factor
+        supersedes the existing scale factor. For example, suppose the scale
+        factor is currently 2. If a scale of 4 is provided, the resulting
+        scale factor is 4 (not 8). Scale factors are always positive.
+
+        Parameters
+        ----------
+        scale_factor: float
+            The scale factor to be applied to the the profile intensity and
+            uncertainty.
+        """
 
         self._scale_factor = abs(scale_factor)
         self._update()
 
     def offset(self, offset_value):
-        ''' Offset raw intensity by a constant. Only modified intensity is affected '''
+        """
+        Applies an absolute offset to the profile intensity. For example, if
+        the offset is 1, then all the the intensities in the profile are
+        increased by 1. Offset supersedes the existing offset, so if the
+        current offset is 1, and an offset_value of 2 is provided, the
+        resulting offset is 2 (not 3).
+
+        Parameters
+        ----------
+        offset_value: float
+            The offset to be applied to the profile intensity.
+
+        """
 
         self._offset_value = offset_value
         self._update()
 
     def scaleRawQ(self, scale_factor):
+        """
+        Scales the raw q values. These are the q values without any scale
+        applied. The raw q scale factor is not tracked, so this cannot easily
+        be undone, unlike the :func:scaleQ function.
+
+        Parameters
+        ----------
+        scale_factor: float
+            The scale factor to be applied to the raw profile q values.
+        """
         self._q_raw = self._q_raw * scale_factor
         self._update()
 
     def scaleQ(self, q_scale_factor):
-        ''' scale Q values by a factor (calibrate) '''
+        """
+        Scales the profile q values by a factor. The scale factor
+        supersedes the existing scale factor. For example, suppose the scale
+        factor is currently 2. If a scale of 4 is provided, the resulting
+        scale factor if 4 (not 8). Useful for converting between 1/A and 1/nm,
+        for example.
+
+        Parameters
+        ----------
+        q_scale_factor: float
+            The scale factor to be applied to the profile q values.
+        """
 
         self._q_scale_factor = q_scale_factor
         self._update()
 
     def reset(self):
-        ''' Reset q, i and err to their original values '''
+        """
+        Removes scale and offset values from the intensity, uncertainty, and q.
+        """
 
         self.i = self._i_raw.copy()
         self.q = self._q_raw.copy()
@@ -206,6 +306,18 @@ class SASM(object):
         self._q_scale_factor = 1
 
     def setQrange(self, qrange):
+        """
+        Sets the q range used for the profile. Useful for trimming leading or
+        training values of the q profile that are not useful data.
+
+        Parameters
+        ----------
+        qrange: tuple or list
+            A tuple or list with two items. The first item is the starting
+            index of the q vector to be used, the second item is the ending
+            index of the q vector to be used, such that q[start:end] returns
+            the desired q range.
+        """
         if qrange[0] < 0 or qrange[1] > (len(self._q_raw)):
             msg = ('Qrange: ' + str(qrange) + ' is not a valid q-range for a '
                 'q-vector of length ' + str(len(self._q_raw)-1))
@@ -228,16 +340,57 @@ class SASM(object):
 
 
     def getQrange(self):
+        """
+        Profiles the currently selected q range as described in
+        :func:`setQrange`.
+
+        Returns
+        -------
+        q_range: tuple
+            A tuple with 2 indices, the start and end of the selected
+            q range, such that q[start:end] returns the desired q range.
+        """
         return self._selected_q_range
 
     def setAllParameters(self, new_parameters):
+        """
+        Sets the parameters dictionary, which contains the profile metadata,
+        to the new input value.
+
+        Parameters
+        ----------
+        new_parameters: dict
+            A dictionary containing the new parameters.
+        """
         self._parameters = new_parameters
 
     def getAllParameters(self):
+        """
+        Returns all of the metadata parameters associated with the profile as
+        a dictionary.
+
+        Returns
+        -------
+        parameters: dict
+            The metadata associated with the profile.
+        """
         return self._parameters
 
     def getParameter(self, key):
-        ''' Get parameter from parameters dict '''
+        """
+        Gets a particular metadata parameter based on the provided key.
+
+        Parameters
+        ----------
+        key: str
+            A string that is a key in the parameters metadata dictionary.
+
+        Returns
+        -------
+        parameter
+            The parameter associated with the specified key. If the key is not
+            in the parameter dictionary, None is returned.
+        """
 
         if key in self._parameters:
             return self._parameters[key]
@@ -245,22 +398,44 @@ class SASM(object):
             return None
 
     def setParameter(self, key, value):
-        ''' insert key,value pair into parameters dict '''
+        """
+        Sets a particular metadata parameter based on the provided key and value.
+
+        Parameters
+        ----------
+        key: str
+            The name of the new bit of metadata.
+        value: object
+            The value of the new bit of metadata. Could be anything that is
+            an acceptable value for a dictionary.
+        """
         self._parameters[key] = value
 
     def removeParameter(self, key):
+        """
+        Removes a particular metadata parameter based on the provided key.
+
+        Parameters
+        ----------
+        key: str
+            A string that is a key in the parameters metadata dictionary.
+        """
         del self._parameters[key]
 
     def removeZingers(self, start_idx = 0, window_length = 10, stds = 4.0):
-        ''' Removes spikes from the radial averaged data
-            Threshold is currently 4 times the standard deviation (stds)
+        """
+        Removes spikes (zingers) from radially averaged data based on smoothing
+        of the intensity profile.
 
-            window_length :     The number of points before the spike
-                                that are averaged and used to replace the spike.
-
-            start_idx :         Index in the intensityArray to start the search for spikes
-
-        '''
+        Parameters
+        ----------
+        start_idx: int
+            The initial index in the intensity to start the dezingering process.
+        window_length: int
+            The size of the window used to search for an replace spikes, as the
+            number of intensity points.
+        stds: The standard deviation threshold used to detect spikes.
+        """
 
         intensity = self._i_raw
 
@@ -278,42 +453,144 @@ class SASM(object):
         self._update()
 
     def getRawQ(self):
+        """
+        Gets the raw q vector, without scaling based on the :func:`scaleQ` and
+        without trimming based on :func:`setQrange`.
+
+        Returns
+        -------
+        q_raw: numpy.array
+            The raw q vector.
+        """
         return self._q_raw
 
     def getRawI(self):
+        """
+        Gets the raw intensity vector, without scaling or offset from
+        :func:`scale` and :func:`offset` and without trimming based on
+        :func:`setQrange`.
+
+        Returns
+        -------
+        q_raw: numpy.array
+            The raw intensity vector.
+        """
         return self._i_raw
 
     def getRawErr(self):
+        """
+        Gets the raw error vector, without scaling or offset from
+        :func:`scale` and :func:`offset` and without trimming based on
+        :func:`setQrange`.
+
+        Returns
+        -------
+        q_raw: numpy.array
+            The raw error vector.
+        """
         return self._err_raw
 
     def setRawI(self, new_raw_i):
+        """
+        Sets the raw q vector. Will overwrite whatever q vector is already
+        in the object! Typically only used during calibration.
+
+        Parameters
+        ----------
+        new_raw_i: numpy.array
+            The new intensity vector.
+        """
         self._i_raw = new_raw_i
 
     def setRawQ(self, new_raw_q):
+        """
+        Sets the raw intensity vector. Will overwrite whatever intensity vector
+        is already in the object! Typically only used during calibration.
+
+        Parameters
+        ----------
+        new_raw_q: numpy.array
+            The new q vector.
+        """
         self._q_raw = new_raw_q
 
     def setRawErr(self, new_raw_err):
+        """
+        Sets the raw error vector. Will overwrite whatever error vector
+        is already in the object! Typically only used during calibration.
+
+        Parameters
+        ----------
+        new_raw_err: numpy.array
+            The new error vector.
+        """
         self._err_raw = new_raw_err
 
     def setScaleValues(self, scale_factor, offset_value, q_scale_factor):
+        """
+        A convenience method that lets you set the scale offset, and q scale
+        values all at once.
 
+        Parameters
+        ----------
+        scale_factor: float
+            The scale factor to be applied to the the profile intensity and
+            uncertainty.
+        offset_value: float
+            The offset to be applied to the profile intensity.
+        q_scale_factor: float
+            The scale factor to be applied to the profile q values.
+        """
         self._scale_factor = scale_factor
         self._offset_value = offset_value
         self._q_scale_factor = q_scale_factor
         self._update()
 
     def scaleRawIntensity(self, scale):
+        """
+        Scales the raw intensity and error values. These are the intensity and
+        error values without any scale applied. The raw scale factor is not
+        tracked, so this cannot easily be undone, unlike the :func:scaleQ function.
+
+        Parameters
+        ----------
+        scale: float
+            The scale factor to be applied to the raw profile intensity and
+            error values.
+        """
         self._i_raw = self._i_raw * scale
         self._err_raw = self._err_raw * scale
         self._update()
 
     def offsetRawIntensity(self, offset):
+        """
+        Offsets the raw intensity and error values. These are the intensity and
+        error values without any offset applied. The raw offset factor is not
+        tracked, so this cannot easily be undone, unlike the :func:scaleQ function.
+
+        Parameters
+        ----------
+        offset: float
+            The offset to be applied to the raw profile intensity and error
+            values.
+        """
         self._i_raw = self._i_raw + offset
         self._err_raw = self._err_raw
         self._update()
 
     def extractAll(self):
-        ''' extracts all data from the object and delivers it as a dict '''
+        """
+        Extracts the raw and scaled q, intensity, and error, the scale and
+        offset values, the selected q range, and the parameters in a single
+        dictionary.
+
+        Returns
+        -------
+        all_data: dict
+            A dictionary with keys q_raw, i_raw, err_raw, q, i, err, scale_factor,
+            offset_value, q_scale_factor, selected_qrange, and parameters, which
+            correspond to those values from the SASM.
+        """
 
         all_data = {}
 
@@ -336,17 +613,60 @@ class SASM(object):
         return all_data
 
     def copy(self):
-        ''' return a copy of the object '''
+        """
+        Creates a copy of the SASM, without scale information, using, for
+        example, the scaled, trimmed intensity as the raw intensity for
+        the new SASM.
 
-        return SASM(copy.copy(self.i), copy.copy(self.q), copy.copy(self.err), copy.copy(self._parameters))
+        The preferred method of copying a profile is to use copy.deepcopy on
+        the profile.
+
+        Returns
+        -------
+        profile: bioxtasraw.SASM.SASM
+            The copied profile
+        """
+
+        return SASM(copy.deepcopy(self.i), copy.deepcopy(self.q),
+            copy.deepcopy(self.err), copy.deepcopy(self._parameters))
 
     def getMeanI(self):
+        """
+        Gets the mean intensity of the intensity vector.
+
+        Returns
+        -------
+        mean_intensity: float
+            The mean intensity.
+        """
         return self.mean_intensity
 
     def getTotalI(self):
+        """
+        Gets the total integrated intensity of the intensity vector.
+
+        Returns
+        -------
+        total_intensity: float
+            The total intensity.
+        """
         return self.total_intensity
 
     def getIofQ(self, qref):
+        """
+        Gets the intensity at a specific q value (or the closest such value in
+        the q vector).
+
+        Parameters
+        ----------
+        qref: float
+            The reference q to get the intensity at.
+
+        Returns
+        -------
+        intensity: float
+            The intensity at the q point nearest the provided qref.
+        """
         q = self.getQ()
         index = self.closest(q, qref)
         i = self.getI()
@@ -355,6 +675,22 @@ class SASM(object):
         return intensity
 
     def getIofQRange(self, q1, q2):
+        """
+        Gets the total integrated intensity in the q range from q1 to q2 (or
+        the closest such values in the q vector).
+
+        Parameters
+        ----------
+        q1: float
+            The starting q value in the q range
+        q2: float
+            The ending q value in the q range.
+
+        Returns
+        -------
+        total_intensity: float
+            The total intensity.
+        """
         q = self.getQ()
         index1 = self.closest(q, q1)
         index2 = self.closest(q, q2)
@@ -362,34 +698,106 @@ class SASM(object):
 
         return integrate.trapz(i[index1:index2+1], q[index1:index2+1])
 
-    def closest(self, qlist, q):
+    @staticmethod
+    def closest(qlist, q):
+        """
+        A convenience function which returns the index of the nearest
+        q point in qlist to the input q value.
+
+        Parameters
+        ----------
+        qlist: np.array
+            The q list to search in.
+        q: float
+            The q value to search for in the qlist.
+
+        Returns
+        -------
+        index: int
+            The index of the q value in qlist closest to the input q.
+        """
         return np.argmin(np.absolute(qlist-q))
 
     def getQ(self):
+        """
+        Gets the scaled, offset, trimmed q vector. Usually this is what you
+        want to use to the get the q vector.
+        """
         return self.q[self._selected_q_range[0]:self._selected_q_range[1]]
 
     def getI(self):
+        """
+        Gets the scaled, offset, trimmed intensity vector. Usually this is what
+        you want to use to the get the intensity vector.
+        """
         return self.i[self._selected_q_range[0]:self._selected_q_range[1]]
 
     def getErr(self):
+        """
+        Gets the scaled, offset, trimmed error vector. Usually this is what you
+        want to use to the get the error vector.
+        """
         return self.err[self._selected_q_range[0]:self._selected_q_range[1]]
 
 
 class IFTM(object):
-    '''
-        Inverse fourier tranform measurement (IFTM) Object.
-        Contains all information extracted from a IFT.
-    '''
+    """
+    Inverse fourier tranform measurement (IFTM) object. Contains the P(r), r
+    and error vectors, as well as the original data, the fit of the P(r) to
+    the data, and all associated metadata.
+
+    Attributes
+    ----------
+    r: numpy.array
+        The r vector of the P(r) function.
+    p: numpy.array
+        The values of the P(r) function.
+    err: numpy.array
+        The errors of the P(r) function.
+    q_orig: numpy.array
+        The q vector of the input data.
+    i_orig: numpy.array
+        The intensity vector of the input data.
+    err_orig: numpy.array
+        The error vector of the input data.
+    i_fit: numpy.array
+        The intensity vector of the fit to the input data.
+    q_extrap: numpy.array
+        The q vector of the input data extrapolated to q=0.
+    i_extrap: numpy.array
+        The intensity vector of the fit to the input data extrapolated to q=0.
+    """
 
     def __init__(self, p, r, err, i_orig, q_orig, err_orig, i_fit, parameters, i_extrap = [], q_extrap = []):
-        ''' Constructor
+        """
+        Constructor
 
-            parameters contains at least {'filename': filename_with_no_path}
-            other reserved keys are:
-
-            'counters' : [(countername, value),...] Info from counterfiles
-            'fileHeader' : [(label, value),...] Info from the header in the loaded file
-        '''
+        Parameters
+        ----------
+        p: numpy.array
+            The input P(r) values.
+        r:  numpy.array
+            The input r values for the P(r) function.
+        err: numpy.array
+            The input error values for the P(r) function.
+        i_orig: numpy.array
+            The intensity values of the data used to do the IFT.
+        q_orig: numpy.array
+            The q values of the data used to do the IFT.
+        err_orig: numpy.array
+            The error values of the data used to do the IFT.
+        i_fit: numpy.array
+            The intensity values of the fit of the P(r) function to the data.
+        parameters: dict
+            A dictionary of the metadata. Should ontain at least {'filename':
+            filename_with_no_path}
+        i_extrap: numpy.array, optional
+            The intensity values of the fit of the P(r) function to the data
+            extrapolated to q=0. If not provided, an empty array is used.
+        q_extrap: numpy.array, optional
+            The q values of the input data extrapolated to q=0. If not
+            provided, an empty array is used.
+        """
 
         #Raw intensity variables
         self._r_raw = np.array(r)
@@ -423,12 +831,6 @@ class IFTM(object):
         self.i_extrap = self._i_extrap_raw.copy()
         self.q_extrap = self._q_extrap_raw.copy()
 
-
-        # self._scale_factor = 1
-        # self._offset_value = 0
-        # self._q_scale_factor = 1
-        # self._bin_size = 1
-
         #variables used for plot management
         self.item_panel = None
 
@@ -452,65 +854,95 @@ class IFTM(object):
         self.canvas = None
 
         self.is_plotted = False
-        self._selected_q_range = (0, len(self._q_orig_raw))
 
+    def __deepcopy__(self, memo):
+        p = copy.deepcopy(self._p_raw, memo)
+        r = copy.deepcopy(self._r_raw, memo)
+        err = copy.deepcopy(self._err_raw, memo)
 
-    def _update(self):
-        ''' updates modified intensity after scale, normalization and offset changes '''
+        i_orig = copy.deepcopy(self._i_orig_raw, memo)
+        q_orig = copy.deepcopy(self._q_orig_raw, memo)
+        err_orig = copy.deepcopy(self._err_orig_raw, memo)
 
-        self.i = (self._i_raw * self._scale_factor) + self._offset_value
-        self.err = self._err_raw * abs(self._scale_factor)
-        self.q = self._q_raw * self._q_scale_factor
+        i_fit = copy.deepcopy(self._i_fit_raw, memo)
+
+        i_extrap = copy.deepcopy(self._i_extrap_raw, memo)
+        q_extrap = copy.deepcopy(self._q_extrap_raw, memo)
+
+        parameters = copy.deepcopy(self._parameters, memo)
+
+        new_iftm = IFTM(p, r, err, i_orig, q_orig, err_orig, i_fit, parameters,
+        i_extrap, q_extrap)
+
+        return new_iftm
 
     def getScale(self):
+        """
+        Returns the scale factor for the P(r) function.
+
+        Returns
+        -------
+        scale: float
+            The scale factor.
+        """
         return self._scale_factor
 
     def getOffset(self):
+        """
+        Returns the offset for the P(r) function.
+
+        Returns
+        -------
+        offset: float
+            The offset.
+        """
         return self._offset_value
 
     def getLine(self):
+        """
+        Returns the plotted line for the P(r) function. Only used in the RAW GUI.
+        """
         return self.line
 
-    def scaleRelative(self, relscale):
-        self._scale_factor = abs(self._scale_factor * relscale)
-        self._update()
-
-    def scale(self, scale_factor):
-        ''' Scale intensity by a factor from the raw intensity, also scales errorbars appropiately '''
-
-        self._scale_factor = abs(scale_factor)
-        self._update()
-
-    def offset(self, offset_value):
-        ''' Offset raw intensity by a constant. Only modified intensity is affected '''
-
-        self._offset_value = offset_value
-        self._update()
-
-    def reset(self):
-        # ''' Reset q, i and err to their original values '''
-        pass
-
-    def setQrange(self, qrange):
-
-        if qrange[0] < 0 or qrange[1] > (len(self._q_orig_raw)):
-            raise SASExceptions.InvalidQrange('Qrange: ' + str(qrange) + ' is not a valid q-range for a q-vector of length ' + str(len(self._q_orig_raw)-1))
-        else:
-            self._selected_q_range = list(map(int, qrange))
-
-        self._update()
-
-    def getQrange(self):
-        return self._selected_q_range
-
     def setAllParameters(self, new_parameters):
+        """
+        Sets the parameters dictionary, which contains the IFT metadata,
+        to the new input value.
+
+        Parameters
+        ----------
+        new_parameters: dict
+            A dictionary containing the new parameters.
+        """
         self._parameters = new_parameters
 
     def getAllParameters(self):
+        """
+        Returns all of the metadata parameters associated with the IFT as
+        a dictionary.
+
+        Returns
+        -------
+        parameters: dict
+            The metadata associated with the IFT.
+        """
         return self._parameters
 
     def getParameter(self, key):
-        ''' Get parameter from parameters dict '''
+        """
+        Gets a particular metadata parameter based on the provided key.
+
+        Parameters
+        ----------
+        key: str
+            A string that is a key in the parameters metadata dictionary.
+
+        Returns
+        -------
+        parameter
+            The parameter associated with the specified key. If the key is not
+            in the parameter dictionary, None is returned.
+        """
 
         if key in self._parameters:
             return self._parameters[key]
@@ -518,19 +950,32 @@ class IFTM(object):
             return None
 
     def setParameter(self, key, value):
-        ''' insert key,value pair into parameters dict '''
+        """
+        Sets a particular metadata parameter based on the provided key and value.
+
+        Parameters
+        ----------
+        key: str
+            The name of the new bit of metadata.
+        value: object
+            The value of the new bit of metadata. Could be anything that is
+            an acceptable value for a dictionary.
+        """
         self._parameters[key] = value
 
-
-    def setScaleValues(self, scale_factor, offset_value, q_scale_factor, bin_size):
-
-        self._scale_factor = scale_factor
-        self._offset_value = offset_value
-        self._q_scale_factor = q_scale_factor
-        self._bin_size = bin_size
-
     def extractAll(self):
-        ''' extracts all data from the object and delivers it as a dict '''
+        """
+        Extracts the raw and scaled q, intensity, and error, the scale and
+        offset values, the selected q range, and the parameters in a single
+        dictionary.
+
+        Returns
+        -------
+        all_data: dict
+            A dictionary with keys r_raw, p_raw, err_raw, i_orig_raw, q_orig_raw,
+            err_orig_raw, i_fit_raw, i_extrap_raw, q_extrap_raw, and parameters,
+            which correspond to those values from the IFTM.
+        """
 
         all_data = {}
 
@@ -546,8 +991,6 @@ class IFTM(object):
         all_data['i_extrap_raw'] = self._i_extrap_raw
         all_data['q_extrap_raw'] = self._q_extrap_raw
 
-        all_data['selected_qrange'] = self._selected_q_range
-
         all_data['parameters'] = self._parameters
 
         return all_data
@@ -555,13 +998,20 @@ class IFTM(object):
         pass
 
     def copy(self):
-        ''' return a copy of the object '''
+        """
+        Creates a copy of the IFT.
 
-        iftm_copy = IFTM(copy.copy(self._p_raw), copy.copy(self._r_raw),
-            copy(self._err_raw), copy.copy(self._i_orig_raw),
-            copy.copy(self._q_orig_raw), copy.copy(self._err_orig_raw),
-            copy.copy(self._i_fit_raw), copy.deepcopy(self._parameters),
-            copy.copy(self._i_extrap_raw), copy.copy(self._q_extrap_raw))
+        Returns
+        -------
+        ift: bioxtasraw.SASM.IFTM
+            The copied IFTM
+        """
+
+        iftm_copy = IFTM(copy.deepcopy(self._p_raw), copy.deepcopy(self._r_raw),
+            copy.deepcopy(self._err_raw), copy.deepcopy(self._i_orig_raw),
+            copy.deepcopy(self._q_orig_raw), copy.deepcopy(self._err_orig_raw),
+            copy.deepcopy(self._i_fit_raw), copy.deepcopy(self._parameters),
+            copy.deepcopy(self._i_extrap_raw), copy.deepcopy(self._q_extrap_raw))
 
         return iftm_copy
 

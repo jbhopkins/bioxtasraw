@@ -2380,8 +2380,6 @@ class IftPlotPanel(PlotPanel):
 
         for iftm in iftm_list:
 
-            q_min, q_max = iftm.getQrange()
-
             if legend_label_in is None:
                 legend_label = iftm.getParameter('filename')
             else:
@@ -2398,25 +2396,39 @@ class IftPlotPanel(PlotPanel):
             pr_line.set_label(legend_label)
 
             if type2 == 'normal' or type2 == 'subtracted':
-                orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig[q_min:q_max], iftm.i_orig[q_min:q_max], iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp', **kwargs)
+                orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig, \
+                    iftm.i_orig, iftm.err_orig, picker=3,
+                    label=legend_label+'_Exp', **kwargs)
             elif type2 == 'kratky':
-                orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig[q_min:q_max], iftm.i_orig[q_min:q_max] * np.power(iftm.q_orig[q_min:q_max],2), iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
+                orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig,
+                    iftm.i_orig*np.power(iftm.q_orig,2), iftm.err_orig,
+                    picker=3, label=legend_label+'_Exp', **kwargs)
             elif type2 == 'guinier':
-                orig_line, orig_ec, orig_el = a2.errorbar(np.power(iftm.q_orig[q_min:q_max],2), iftm.i_orig[q_min:q_max], iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
+                orig_line, orig_ec, orig_el = a2.errorbar(np.power(iftm.q_orig,2),
+                    iftm.i_orig, iftm.err_orig, picker=3,
+                    label=legend_label+'_Exp', **kwargs)
             elif type2 == 'porod':
-                orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig[q_min:q_max], np.power(iftm.q_orig[q_min:q_max],4)*iftm.i_orig[q_min:q_max], iftm.err_orig[q_min:q_max], picker = 3, label = legend_label+'_Exp',**kwargs)
+                orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig,
+                    np.power(iftm.q_orig,4)*iftm.i_orig, iftm.err_orig,
+                    picker=3, label=legend_label+'_Exp',**kwargs)
 
             orig_line.set_label(legend_label+'_Exp')
 
 
             if type2 == 'normal' or type2 == 'subtracted':
-                fit_line = a2.plot(iftm.q_orig[q_min:q_max], iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit', **kwargs)
+                fit_line = a2.plot(iftm.q_orig, iftm.i_fit, picker=3,
+                    label=legend_label+'_Fit', **kwargs)
             elif type2 == 'kratky':
-                fit_line = a2.plot(iftm.q_orig[q_min:q_max], iftm.i_fit[q_min:q_max] * np.power(iftm.q_orig[q_min:q_max],2), picker = 3, label = legend_label+'_Fit',**kwargs)
+                fit_line = a2.plot(iftm.q_orig,
+                    iftm.i_fit*np.power(iftm.q_orig,2), picker=3,
+                    label=legend_label+'_Fit',**kwargs)
             elif type2 == 'guinier':
-                fit_line = a2.plot(np.power(iftm.q_orig[q_min:q_max],2), iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit',**kwargs)
+                fit_line = a2.plot(np.power(iftm.q_orig,2), iftm.i_fit,
+                    picker=3, label=legend_label+'_Fit',**kwargs)
             elif type2 == 'porod':
-                fit_line = a2.plot(iftm.q_orig[q_min:q_max], np.power(iftm.q_orig[q_min:q_max],4)*iftm.i_fit[q_min:q_max], picker = 3, label = legend_label+'_Fit',**kwargs)
+                fit_line = a2.plot(iftm.q_orig,
+                    np.power(iftm.q_orig,4)*iftm.i_fit, picker=3,
+                    label=legend_label+'_Fit',**kwargs)
 
             #Hide errorbars:
             if self.plotparams['errorbars_on'] == False:

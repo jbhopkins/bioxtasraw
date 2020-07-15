@@ -5454,8 +5454,6 @@ class MainWorkerThread(threading.Thread):
 
                 new_iftm = SASM.IFTM(p, r, err, i_orig, q_orig, err_orig, i_fit, parameters, i_extrap, q_extrap)
 
-                new_iftm.setQrange(iftm_data['selected_qrange'])
-
                 line_data = {}
                 line_data['r_line_color'] = iftm_data['r_line_color']
                 line_data['r_line_width'] = iftm_data['r_line_width']
