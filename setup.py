@@ -54,6 +54,10 @@ setup(
         'dbus-python;platform_system=="Linux"',
         ],
     ext_modules=cythonize("bioxtasraw/sascalc_exts.pyx"),
+    entry_points={
+        'gui_scripts': [ 'bioxtas_raw = bioxtasraw.RAW:main']
+
+        }
 )
 
 # Run this command to build the extensions:

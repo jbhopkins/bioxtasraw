@@ -138,7 +138,7 @@ def test_set_buffer_range(clean_bsa_series):
     assert vcmw[200] == 65.55494106050756
     assert vpmw[200] == 68.91548154696382
     assert all(clean_bsa_series.getRg()[0] == rg)
-    assert clean_bsa_series.getIntISub().sum() == 331.3353154360302
+    assert clean_bsa_series.getIntI(int_type='sub').sum() == 331.3353154360302
 
 def test_series_calc(bsa_series):
     sasms = bsa_series.subtracted_sasm_list
@@ -367,7 +367,7 @@ def test_set_baseline_correction_integral(clean_baseline_series):
     assert np.allclose(rg[200], 27.72702098139628)
     assert np.allclose(rger[200], 0.05435118847512014)
     assert all(rg == clean_baseline_series.getRg()[0])
-    assert np.allclose(clean_baseline_series.getIntIBCSub().sum(), 
+    assert np.allclose(clean_baseline_series.getIntI(int_type='baseline').sum(),
         0.1031091826570453)
 
 def test_set_baseline_correction_linear(clean_baseline_series):
@@ -378,4 +378,4 @@ def test_set_baseline_correction_linear(clean_baseline_series):
     assert rg[200] == 27.671983516407735
     assert rger[200] == 0.054747246997416635
     assert all(rg == clean_baseline_series.getRg()[0])
-    assert clean_baseline_series.getIntIBCSub().sum() == 0.10684702672323632
+    assert clean_baseline_series.getIntI(int_type='baseline').sum() == 0.10684702672323632

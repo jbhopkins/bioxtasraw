@@ -1,4 +1,8 @@
-'''
+""""""
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+"""
 Created on Jul 5, 2010
 
 @author: Soren S. Nielsen
@@ -20,8 +24,8 @@ Created on Jul 5, 2010
 #    along with RAW.  If not, see <http://www.gnu.org/licenses/>.
 #
 #******************************************************************************
-'''
-from __future__ import absolute_import, division, print_function, unicode_literals
+"""
+
 from builtins import object, range, map, zip
 from io import open
 
@@ -206,6 +210,11 @@ class SASM(object):
     def getLine(self):
         """
         Returns the plotted line for the profile. Only used in the RAW GUI.
+
+        Returns
+        -------
+        line: matplotlib.lines.Line2D
+            The plotted line.
         """
         return self.line
 
@@ -255,7 +264,6 @@ class SASM(object):
         ----------
         offset_value: float
             The offset to be applied to the profile intensity.
-
         """
 
         self._offset_value = offset_value
@@ -308,7 +316,7 @@ class SASM(object):
     def setQrange(self, qrange):
         """
         Sets the q range used for the profile. Useful for trimming leading or
-        training values of the q profile that are not useful data.
+        trailing values of the q profile that are not useful data.
 
         Parameters
         ----------
@@ -341,7 +349,7 @@ class SASM(object):
 
     def getQrange(self):
         """
-        Profiles the currently selected q range as described in
+        Returns the currently selected q range as described in
         :func:`setQrange`.
 
         Returns
@@ -901,6 +909,11 @@ class IFTM(object):
     def getLine(self):
         """
         Returns the plotted line for the P(r) function. Only used in the RAW GUI.
+
+        Returns
+        -------
+        line: matplotlib.lines.Line2D
+            The plotted line.
         """
         return self.line
 

@@ -14616,7 +14616,7 @@ class MySplashScreen(SplashScreen):
         evt.Skip()
 
     def ShowMain(self):
-        frame = MainFrame('RAW %s' %(RAWGlobals.version), -1)
+        MainFrame('RAW %s' %(RAWGlobals.version), -1)
 
 
 
@@ -14684,11 +14684,15 @@ class RawTaskbarIcon(TaskBarIcon):
     #     self.PopupMenu(menu)
     #     menu.Destroy()
 
-if __name__ == '__main__':
+def main():
     multiprocessing.freeze_support()
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__
     setup_thread_excepthook()
+    global app
     app = MyApp(0)   #MyApp(redirect = True)
     app.MainLoop()
+
+if __name__ == '__main__':
+    main()
 

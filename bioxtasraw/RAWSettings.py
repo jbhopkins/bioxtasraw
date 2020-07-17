@@ -1,4 +1,8 @@
-'''
+""""""
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+"""
 Created on Jul 16, 2010
 
 @author: Soren Nielsen
@@ -20,9 +24,9 @@ Created on Jul 16, 2010
 #    along with RAW.  If not, see <http://www.gnu.org/licenses/>.
 #
 #******************************************************************************
-'''
+"""
 
-from __future__ import absolute_import, division, print_function, unicode_literals
+
 from builtins import object, range, map, zip
 from io import open
 import six
@@ -56,14 +60,20 @@ def get_id():
     return my_id
 
 class RawGuiSettings(object):
-    '''
-    This object contains all the settings nessecary for the GUI.
-
-    '''
+    """
+    Essentially just a fancy wrapper for a big dictionary. It contains pretty
+    much all of RAW's settings, both for the GUI and for computation.
+    """
     def __init__(self, settings = None):
-        '''
-        Accepts a dictionary argument for the parameters. Uses default is no settings are given.
-        '''
+        """
+        Constructor.
+
+        Parameters
+        ----------
+        settings: dict, optional
+            A dictionary with RAW settings. If not provided, then the default
+            values of the settings are used.
+        """
 
         self._params = settings
 
@@ -406,24 +416,115 @@ class RawGuiSettings(object):
                     self._params['fileDefinitions'][0][ftype][fname] = defs
 
     def get(self, key):
+        """
+        Gets the setting value for the input key.
+
+        Parameters
+        ----------
+        key: str
+            The setting name to get the value of.
+
+        Returns
+        -------
+        setting: object
+            The setting value, which can be anything that can be included
+            in a dictionary.
+        """
         return self._params[key][0]
 
     def set(self, key, value):
+        """
+        Sets the setting value for the input key to the input value.
+
+        Parameters
+        ----------
+        key: str
+            The setting name to get the value of.
+        value: object
+            The new value of the setting.
+        """
         self._params[key][0] = value
 
     def getId(self, key):
+        """
+        Gets the Id associated with the setting. In the RAW GUI, this is a
+        unique wx ID that can be used in windows that contain the setting
+        value.
+
+        Parameters
+        ----------
+        key: str
+            The setting name to get the value of.
+
+        Returns
+        -------
+        id: int
+            The setting id.
+        """
         return self._params[key][1]
 
     def getType(self, key):
+        """
+        Gets the type of the setting, useful when auto-creating a GUI based
+        on the settings.
+
+        Parameters
+        ----------
+        key: str
+            The setting name to get the value of.
+
+        Returns
+        -------
+        type: str
+            The setting type. Can be: text, bool, choice, float, int.
+        """
         return self._params[key][2]
 
     def getIdAndType(self, key):
+        """
+        Gets the id and type of the setting.
+
+        Parameters
+        ----------
+        key: str
+            The setting name to get the value of.
+
+        Returns
+        -------
+        id: int
+            The setting id.
+
+        type: str
+            The setting type. Can be: text, bool, choice, float, int.
+        """
         return (self._params[key][1], self._params[key][2])
 
     def getAllParams(self):
+        """
+        Gets the entire settings dictionary.
+
+        Returns
+        -------
+        settings: dict
+            All of the settings.
+        """
         return self._params
 
     def findParamById(self, param_id):
+        """
+        Given a particular setting id, finds the name (key) associated with
+        that id. Note that this will only work in a GUI setting.
+
+        Parameters
+        ----------
+        param_id: int
+            The setting's id.
+
+        Returns
+        -------
+        key: str
+            The setting name.
+        """
         for key in self._params:
             if len(self._params[key]) > 2:
                 if self._params[key][1] == param_id:

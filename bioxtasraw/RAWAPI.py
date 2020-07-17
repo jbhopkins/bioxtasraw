@@ -1,3 +1,7 @@
+""""""
+
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 """
 Created on June 11, 2019
 
@@ -26,7 +30,6 @@ other python programs. This is to provide easy access to RAW's functionality
 in any data processing program you want to write in python
 """
 
-from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import object, range, map, zip
 from io import open
 
@@ -5513,7 +5516,7 @@ def set_baseline_correction(series, start_range, end_range, baseline_type,
         baseline corrected intensity.
     fit_results: list
         Only contains items if a linear correction is done. In that case,
-        Each item is the linear fit results a, b, and corresponding covariances
+        each item is the linear fit results a, b, and corresponding covariances
         for a given q value. There is one item per q value of the input profiles.
     """
 
