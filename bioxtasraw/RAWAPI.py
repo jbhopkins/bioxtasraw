@@ -727,6 +727,8 @@ def average(profiles, forced=False):
     """
 
     avg_profile = SASProc.average(profiles, forced)
+    avg_profile.setParameter('filename',
+        'A_{}'.format(avg_profile.getParameter('filename')))
 
     return avg_profile
 
@@ -779,6 +781,9 @@ def weighted_average(profiles, weight_by_error=True, weight_counter='',
     avg_profile = SASProc.weightedAverage(profiles, weight_by_error,
         weight_counter, forced = False)
 
+    avg_profile.setParameter('filename',
+        'A_{}'.format(avg_profile.getParameter('filename')))
+
     return avg_profile
 
 def subtract(profiles, bkg_profile, forced=False, full=False):
@@ -813,6 +818,10 @@ def subtract(profiles, bkg_profile, forced=False, full=False):
 
     sub_profiles = [SASProc.subtract(profile, bkg_profile, forced, full)
         for profile in profiles]
+
+    for profile in sub_profiles:
+        profile.setParameter('filename',
+            'S_{}'.format(profile.getParameter('filename')))
 
     return sub_profiles
 
@@ -866,6 +875,9 @@ def rebin(profiles, npts=100, rebin_factor=1, log_rebin=False):
         else:
             rebin_profile = SASProc.rebin(profile, rebin_factor)
 
+        rebin_profile.setParameter('filename',
+            'R_{}'.format(rebin_profile.getParameter('filename')))
+
         rebinned_profiles.append(rebin_profile)
 
     return rebinned_profiles
@@ -892,6 +904,10 @@ def interpolate(profiles, ref_profile):
     interpolated_profiles = [SASProc.interpolateToFit(ref_profile, profile)
         for profile in profiles]
 
+    for profile in interpolated_profiles:
+        profile.setParameter('filename',
+            'I_{}'.format(profile.getParameter('filename')))
+
     return interpolated_profiles
 
 def merge(profiles):
@@ -914,6 +930,9 @@ def merge(profiles):
     """
 
     merged_profile = SASProc.merge(profiles[0], profiles[1:])
+
+    merged_profile.setParameter('filename',
+            'M_{}'.format(merged_profile.getParameter('filename')))
 
     return merged_profile
 
@@ -3738,6 +3757,9 @@ def denss_average(densities, side, prefix, datadir, n_proc=1):
         single_proc = True
     else:
         single_proc = False
+
+    if isinstance(densities, list):
+        densities = np.array(densities)
 
     allrhos, scores = DENSS.run_enantiomers(densities, n_proc,
         single_proc=single_proc, gui=False)

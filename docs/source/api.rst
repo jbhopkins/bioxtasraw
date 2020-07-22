@@ -6,6 +6,8 @@ RAW API
     :includehidden:
 
     api/installation
+    api/getting_started
+    api/examples
     api/the_api
 
 
