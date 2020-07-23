@@ -107,7 +107,7 @@ then use the API to convert those set of profiles into a series.
     import glob
 
     #Define a list of profile filenames to load
-    profile_names = sorted(glob.glob('./sec_data/sec_sample2/BSA_001_*.dat'))
+    profile_names = sorted(glob.glob('./sec_data/sec_sample_2/BSA_001_*.dat'))
 
     #Load the profiles
     profiles = raw.load_profiles(profile_names)
@@ -147,11 +147,11 @@ This contains data that has been truncated, scaled and offset according to the
 profile settings. If you want to access the scaled, offset, and un-truncated
 data (e.g. without zeros at the beginning skipped for loaded images) you can
 access ``profile.q``, ``profile.i`` and ``profile.err`` attributes. If there is
-any truncation, you can get that using ``profile.getQRange()``. So, for example
+any truncation, you can get that using ``profile.getQrange()``. So, for example
 
 .. code-block:: python
 
-    q_range = gi_profile.getQRange()
+    q_range = gi_profile.getQrange()
 
     gi_profile.getQ() == gi_profile.q[q_range[0]:q_range[1]]
     gi_profile.getI() == gi_profile.i[q_range[0]:q_range[1]]
@@ -191,7 +191,7 @@ To get a specific category of metadata,
 
     analysis = gi_profile.getParameter('analysis')
 
-    guinier_rg = analysis['Guinier']['Rg']
+    guinier_rg = analysis['guinier']['Rg']
 
 
 Working with IFTs
@@ -226,7 +226,7 @@ All of the P(r) data and fit is accessible as attributes of the class.
 
     #Get the fit extrapolated to q=0.
     q_extrap = gi_ift.q_extrap
-    fit_extrap = gi_ift.i_extra
+    fit_extrap = gi_ift.i_extrap
 
 Analyzing the IFT
 ******************
@@ -268,50 +268,49 @@ intensity as a function of frame number. You can get that data as:
 
 .. code-block:: python
 
-    series_names = ['./sec_data/xylanase.hdf5']
+    series_names = ['./sec_data/baseline.hdf5']
     series = raw.load_series(series_names)
 
-    xyl_series = series[0]
+    my_series = series[0]
 
-    frames = xyl_series.getFrames()
-    total_i = xyl_series.getIntI()
-    mean_i = xyl_series.getMeanI()
+    frames = my_series.getFrames()
+    total_i = my_series.getIntI()
+    mean_i = my_series.getMeanI()
 
 The calculated parameter data is similarly accessed:
 
 .. code-block:: python
 
-    rg = xyl_series.getRg()
-    i0 = xyl_series.getI0()
-    mw_vc = xyl_series.getVcMW()[0]
-    mw_vp = xyl_series.getVpMW()[0]
+    rg = my_series.getRg()
+    i0 = my_series.getI0()
+    mw_vc = my_series.getVcMW()[0]
+    mw_vp = my_series.getVpMW()[0]
 
 The intensity for subtracted of baseline corrected data is accessed by specifying
 the data type
 
 .. code-block:: python
 
-    subtracted_total_i = xyl_series.getIntI('sub')
-    subtracted_mean_i = xyl_series.getMeanI('sub')
+    subtracted_total_i = my_series.getIntI('sub')
+    subtracted_mean_i = my_series.getMeanI('sub')
 
-    baseline_corrected_total_i = xyl_series.getIntI('baseline')
-    baseline_corrected_mean_i = xyl_series.getMeanI('baseline')
+Note that for data with baseline corrected profiles you would use 'baseline'
 
 If you want to access the underlying profiles, it is done similarly.
 
 .. code-block:: python
 
     #Gets all profiles in the series
-    profiles = xyl_series.getAllSASMs()
-    sub_profiles = xyl_series.getAllSASMs('sub')
+    profiles = my_series.getAllSASMs()
+    sub_profiles = my_series.getAllSASMs('sub')
 
     #Gets a single profile in the series, zero indexed
-    profile_5 = xyl_series.getSASM(5)
-    sub_profile_5 = xyl_series.getSASM(5, 'sub')
+    profile_5 = my_series.getSASM(5)
+    sub_profile_5 = my_series.getSASM(5, 'sub')
 
     #Get profiles from the series in a given range, zero indexed
-    profiles_roi = xyl_series.getSASMList(10, 20)
-    sub_profiles_roi = xyl_series.getSASMList(10, 20, 'sub')
+    profiles_roi = my_series.getSASMList(10, 20)
+    sub_profiles_roi = my_series.getSASMList(10, 20, 'sub')
 
 Analyzing the series
 *********************
@@ -321,7 +320,7 @@ example, to automatically find a good buffer region:
 
 .. code-block:: python
 
-    success, region_start, region_end = raw.find_buffer_range(xyl_series)
+    success, region_start, region_end = raw.find_buffer_range(my_series)
 
 Accessing series metadata
 ***************************
@@ -332,9 +331,8 @@ or the sample range. Most of these are accessible as attributes of the SECM.
 
 .. code-block:: python
 
-    buffer_range = xyl_series.buffer_range
-    sample_range = xyl_series.sample_range
-    baseline_type = xyl_series.baseline_type
+    buffer_range = my_series.buffer_range
+    sample_range = my_series.sample_range
 
 
 Saving data

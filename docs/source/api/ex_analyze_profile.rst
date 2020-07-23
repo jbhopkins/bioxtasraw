@@ -1,6 +1,8 @@
 Analyzing a scattering profile
 ********************************
 
+.. _profile_analysis:
+
 One of the most common tasks is analyzing a scattering profile. Here's
 an example of how that might be done, from Guinier analysis through creating
 a 3D reconstruction.
