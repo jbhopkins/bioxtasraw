@@ -1992,7 +1992,6 @@ class IftPlotPanel(PlotPanel):
 
         for each in self.plotted_iftms:
             if each is not None and each.qo_line is not None and each.qf_line is not None:
-                q_min, q_max = each.getQrange()
 
                 if axes == self.subplot1:
                     c = '1'
@@ -2013,32 +2012,32 @@ class IftPlotPanel(PlotPanel):
 
                 elif axes == self.subplot2:
                     if plot_type == 'kratky':
-                        each.qo_line.set_ydata(each.i_orig[q_min:q_max] * np.power(each.q_orig[q_min:q_max],2))
-                        each.qo_line.set_xdata(each.q_orig[q_min:q_max])
+                        each.qo_line.set_ydata(each.i_orig * np.power(each.q_orig,2))
+                        each.qo_line.set_xdata(each.q_orig)
 
-                        each.qf_line.set_ydata(each.i_fit[q_min:q_max] * np.power(each.q_orig[q_min:q_max],2))
-                        each.qf_line.set_xdata(each.q_orig[q_min:q_max])
+                        each.qf_line.set_ydata(each.i_fit * np.power(each.q_orig,2))
+                        each.qf_line.set_xdata(each.q_orig)
 
                     elif plot_type == 'guinier':
-                        each.qo_line.set_ydata(np.log(each.i_orig[q_min:q_max]))
-                        each.qo_line.set_xdata(np.power(each.q_orig[q_min:q_max],2))
+                        each.qo_line.set_ydata(np.log(each.i_orig))
+                        each.qo_line.set_xdata(np.power(each.q_orig,2))
 
-                        each.qf_line.set_ydata(np.log(each.i_fit[q_min:q_max]))
-                        each.qf_line.set_xdata(np.power(each.q_orig[q_min:q_max],2))
+                        each.qf_line.set_ydata(np.log(each.i_fit))
+                        each.qf_line.set_xdata(np.power(each.q_orig,2))
 
                     elif plot_type == 'porod':
-                        each.qo_line.set_ydata(np.power(each.q_orig[q_min:q_max],4)*each.i_orig[q_min:q_max])
-                        each.qo_line.set_xdata(each.q_orig[q_min:q_max])
+                        each.qo_line.set_ydata(np.power(each.q_orig,4)*each.i_orig)
+                        each.qo_line.set_xdata(each.q_orig)
 
-                        each.qf_line.set_ydata(np.power(each.q_orig[q_min:q_max],4)*each.i_fit[q_min:q_max])
-                        each.qf_line.set_xdata(each.q_orig[q_min:q_max])
+                        each.qf_line.set_ydata(np.power(each.q_orig,4)*each.i_fit)
+                        each.qf_line.set_xdata(each.q_orig)
 
                     elif plot_type == 'normal' or plot_type == 'subtracted':
-                        each.qo_line.set_ydata(each.i_orig[q_min:q_max])
-                        each.qo_line.set_xdata(each.q_orig[q_min:q_max])
+                        each.qo_line.set_ydata(each.i_orig)
+                        each.qo_line.set_xdata(each.q_orig)
 
-                        each.qf_line.set_ydata(each.i_fit[q_min:q_max])
-                        each.qf_line.set_xdata(each.q_orig[q_min:q_max])
+                        each.qf_line.set_ydata(each.i_fit)
+                        each.qf_line.set_xdata(each.q_orig)
 
 
                 self.updateErrorBars(each)
@@ -2090,9 +2089,8 @@ class IftPlotPanel(PlotPanel):
             elif a == self.subplot2:
                 type = self.plotparams.get('plot2type')
 
-            q_min, q_max = sasm.getQrange()
-            q = sasm.q[q_min:q_max]
-            i = sasm.i[q_min:q_max]
+            q = sasm.q
+            i = sasm.i
 
             if type == 'normal' or type == 'subtracted':
                 sasm.line.set_data(q, i)
@@ -2398,37 +2396,37 @@ class IftPlotPanel(PlotPanel):
             if type2 == 'normal' or type2 == 'subtracted':
                 orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig, \
                     iftm.i_orig, iftm.err_orig, picker=3,
-                    label=legend_label+'_Exp', **kwargs)
+                    label=legend_label+'_Exp', zorder=1, **kwargs)
             elif type2 == 'kratky':
                 orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig,
                     iftm.i_orig*np.power(iftm.q_orig,2), iftm.err_orig,
-                    picker=3, label=legend_label+'_Exp', **kwargs)
+                    picker=3, label=legend_label+'_Exp', zorder=1, **kwargs)
             elif type2 == 'guinier':
                 orig_line, orig_ec, orig_el = a2.errorbar(np.power(iftm.q_orig,2),
                     iftm.i_orig, iftm.err_orig, picker=3,
-                    label=legend_label+'_Exp', **kwargs)
+                    label=legend_label+'_Exp', zorder=1, **kwargs)
             elif type2 == 'porod':
                 orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig,
                     np.power(iftm.q_orig,4)*iftm.i_orig, iftm.err_orig,
-                    picker=3, label=legend_label+'_Exp',**kwargs)
+                    picker=3, label=legend_label+'_Exp', zorder=1, **kwargs)
 
             orig_line.set_label(legend_label+'_Exp')
 
 
             if type2 == 'normal' or type2 == 'subtracted':
                 fit_line = a2.plot(iftm.q_orig, iftm.i_fit, picker=3,
-                    label=legend_label+'_Fit', **kwargs)
+                    label=legend_label+'_Fit', zorder=2, **kwargs)
             elif type2 == 'kratky':
                 fit_line = a2.plot(iftm.q_orig,
                     iftm.i_fit*np.power(iftm.q_orig,2), picker=3,
-                    label=legend_label+'_Fit',**kwargs)
+                    label=legend_label+'_Fit', zorder=2, **kwargs)
             elif type2 == 'guinier':
                 fit_line = a2.plot(np.power(iftm.q_orig,2), iftm.i_fit,
-                    picker=3, label=legend_label+'_Fit',**kwargs)
+                    picker=3, label=legend_label+'_Fit', zorder=2, **kwargs)
             elif type2 == 'porod':
                 fit_line = a2.plot(iftm.q_orig,
                     np.power(iftm.q_orig,4)*iftm.i_fit, picker=3,
-                    label=legend_label+'_Fit',**kwargs)
+                    label=legend_label+'_Fit', zorder=2, **kwargs)
 
             #Hide errorbars:
             if self.plotparams['errorbars_on'] == False:
