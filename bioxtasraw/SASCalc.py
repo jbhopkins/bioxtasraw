@@ -1337,8 +1337,14 @@ def runDatclass(rg, i0, atsasDir, path, datname):
             shape, mw, dmax, _ = output.split()
 
             shape=shape.strip()
-            mw = float(mw.strip())/1000.
-            dmax = float(dmax.strip())
+            try:
+                mw = float(mw.strip())/1000.
+            except ValueError:
+                mw = -1
+            try:
+                dmax = float(dmax.strip())
+            except ValueError:
+                dmax = -1
 
             ret_values = (shape, mw, dmax)
 
