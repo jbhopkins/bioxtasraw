@@ -1169,8 +1169,15 @@ def guinier_fit(profile, idx_min, idx_max, error_weight=True, settings=None):
     rger_est, i0er_est = SASCalc.estimate_guinier_error(x, y, yerr,
         transform=False, error_weight=error_weight)
 
-    rg_err = max(float(rger_fit), float(rger_est))
-    i0_err = max(float(i0er_fit), float(i0er_est))
+    if rger_est is None:
+        rg_err = float(rger_fit)
+    else:
+        rg_err = max(float(rger_fit), float(rger_est))
+
+    if i0er_est is None:
+        i0_err = float(i0er_fit)
+    else:
+        i0_err = max(float(i0er_fit), float(i0er_est))
 
     #Get fit statistics:
     y_fit = SASCalc.linear_func(x, a, b)

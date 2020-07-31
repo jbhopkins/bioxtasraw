@@ -490,6 +490,12 @@ class GuinierPlotPanel(wx.Panel):
         est_rg_err, est_i0_err = SASCalc.estimate_guinier_error(x, y, yerr,
             transform=False, error_weight=error_weight)
 
+        if est_rg_err is None:
+            est_rg_err = -1
+
+        if est_i0_err is None:
+            est_i0_err = -1
+
         return est_rg_err, est_i0_err
 
     def plotExpObj(self, ExpObj):

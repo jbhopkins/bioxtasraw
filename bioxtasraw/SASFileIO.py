@@ -2605,17 +2605,22 @@ def loadPDBFile(filename):
 def loadPrimusDatFile(filename):
     ''' Loads a Primus .dat format file '''
 
-    iq_pattern = re.compile('\s*-?\d*\.?\d*[+eE-]*\d+\s*[\s,]\s*-?\d*\.?\d*[+eE-]*\d+\s*[\s,]\s*-?\d*\.?\d*[+eE-]*\d+\s*')
-
-    i = []
-    q = []
-    err = []
-
     with open(filename, 'rU') as f:
         lines = f.readlines()
 
     if len(lines) == 0:
         raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file.')
+
+    sasm = makeDatFile(lines, filename)
+
+    return sasm
+
+def makeDatFile(lines, filename):
+    iq_pattern = re.compile('\s*-?\d*\.?\d*[+eE-]*\d+\s*[\s,]\s*-?\d*\.?\d*[+eE-]*\d+\s*[\s,]\s*-?\d*\.?\d*[+eE-]*\d+\s*')
+
+    i = []
+    q = []
+    err = []
 
     comment = ''
     line = lines[0]
