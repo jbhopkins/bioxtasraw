@@ -12584,6 +12584,8 @@ class EFAFrame(wx.Frame):
                                 'conc'      : [],
                                 'chisq'     : []}
 
+        self.old_svd_input = -1
+
         self.current_panel = 1
 
         self._createLayout(self.panel)
@@ -12759,6 +12761,11 @@ class EFAFrame(wx.Frame):
                     style = wx.ICON_INFORMATION | wx.OK)
                 dlg.ShowModal()
                 dlg.Destroy()
+
+            if self.panel1_results['input'] != self.old_svd_input:
+                self.old_svd_input = self.panel1_results['input']
+                self.controlPanel3.converged = False
+                self.controlPanel3.rotation_data = {}
 
         elif self.current_panel == 2:
 
