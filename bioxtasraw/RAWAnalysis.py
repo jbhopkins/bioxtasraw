@@ -8216,15 +8216,20 @@ class DenssRunPanel(wx.Panel):
 
             self.abort_event.clear()
 
-            for key in self.denss_ids:
-                if key != 'average' and key != 'refine' and key!= 'align':
-                    result = my_pool.apply_async(DENSS.runDenss, args=(q, I, sigq,
-                        D, prefix, path, self.denss_settings),
-                        kwds={'comm_list':comm_list, 'my_lock':self.my_lock,
-                        'thread_num_q':self.thread_nums,
-                        'wx_queue':self.wx_queue, 'abort_event':self.abort_event})
+            try:
+                for key in self.denss_ids:
+                    if key != 'average' and key != 'refine' and key!= 'align':
+                        result = my_pool.apply_async(DENSS.runDenss, args=(q, I, sigq,
+                            D, prefix, path, self.denss_settings),
+                            kwds={'comm_list':comm_list, 'my_lock':self.my_lock,
+                            'thread_num_q':self.thread_nums,
+                            'wx_queue':self.wx_queue, 'abort_event':self.abort_event})
 
-                    self.results.append(result)
+                        self.results.append(result)
+
+            except Exception:
+                my_pool.close()
+                raise
 
             my_pool.close()
 

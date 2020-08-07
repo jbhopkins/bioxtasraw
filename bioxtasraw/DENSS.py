@@ -829,6 +829,9 @@ def select_best_enantiomers(rhos, refrho=None, cores=1, avg_queue=None,
                 pool.terminate()
                 pool.close()
                 raise
+            except Exception:
+                pool.close()
+                raise
 
         else:
             results = [align(refrho, enan, abort_event=abort_event) for
@@ -873,6 +876,9 @@ def align_multiple(refrho, rhos, cores=1, abort_event=None, single_proc=False):
             pool.terminate()
             pool.close()
             raise
+        except Exception:
+            pool.close()
+            raise
 
     else:
         results = [align(refrho, rho, abort_event=abort_event) for rho in rhos]
@@ -909,6 +915,9 @@ def average_pairs(rhos, cores=1, abort_event=None, single_proc=False):
             pool.join()
         except KeyboardInterrupt:
             pool.terminate()
+            pool.close()
+            raise
+        except Exception:
             pool.close()
             raise
 

@@ -134,6 +134,10 @@ def calcRg(q, i, err, transform=True, error_weight=True):
         yerr = err
 
     if error_weight:
+        if np.any(yerr == 0):
+            error_weight = False
+
+    if error_weight:
         a, b, cov_a, cov_b = weighted_lin_reg(x, y, yerr)
     else:
         a, b, cov_a, cov_b = lin_reg(x, y)

@@ -245,7 +245,12 @@ def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False,
         pts = list(zip(alpha_array, dmax_array))
 
         if not single_proc:
-            results = mp_pool.map(mp_get_evidence, pts)
+            try:
+                results = mp_pool.map(mp_get_evidence, pts)
+            except Exception:
+                mp_pool.close()
+                mp_pool.join()
+                raise
         else:
             results = [getEvidence(params, q, i, err, N) for params in pts]
 
@@ -328,6 +333,39 @@ def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
     dmax_max, dmax_n, mc_runs, queue=None, abort_check=threading.Event(),
     single_proc=False):
 
+    # Clean up data
+    start_idx = 0
+
+    for j in range(i.size):
+        if i[j] == 0 or err[j] == 0:
+            start_idx = j+1
+        else:
+            break
+
+    end_idx = i.size
+
+    for j in range(i.size, 0, -1):
+        if i[j-1] == 0 or err[j-1] == 0:
+            end_idx = j-1
+        else:
+            break
+
+    q = q[start_idx:end_idx]
+    i = i[start_idx:end_idx]
+    err = err[start_idx:end_idx]
+
+    i_zeros = np.argwhere(i==0)
+    err_zeros = np.argwhere(err==0)
+
+    both_zeros = np.intersect1d(i_zeros, err_zeros)
+
+    q = np.delete(q, both_zeros)
+    i = np.delete(i, both_zeros)
+    err = np.delete(err, both_zeros)
+
+    if npts > len(q)//2:
+        npts = len(q)//2
+
     #Start by finding the optimal dmax and alpha via minimization of evidence
 
     alpha_min = np.log(alpha_min)
@@ -362,7 +400,12 @@ def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
         pts = [(alpha, dmax) for alpha in alpha_points]
 
         if not single_proc:
-            results = mp_pool.map(mp_get_evidence, pts)
+            try:
+                results = mp_pool.map(mp_get_evidence, pts)
+            except Exception:
+                mp_pool.close()
+                mp_pool.join()
+                raise
         else:
             results = [getEvidence(params, q, i, err, N) for params in pts]
 
@@ -424,82 +467,88 @@ def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
 
     if opt_res.get('success'):
         alpha, dmax = opt_res.get('x')
-        evidence, c, f, r = getEvidence((alpha, dmax), q, i, err, N)
 
-        if queue is not None:
-            bift_status = {
-                'alpha'     : alpha,
-                'evidence'  : evidence,
-                'chi'       : c,          #Actually chi squared
-                'dmax'      : dmax,
-                'spoint'    : alpha_points.size*dmax_points.size,
-                'tpoint'    : alpha_points.size*dmax_points.size,
-                'status'    : 'Calculating Monte Carlo errors',
+        if dmax > 0:
+            evidence, c, f, r = getEvidence((alpha, dmax), q, i, err, N)
+
+            if queue is not None:
+                bift_status = {
+                    'alpha'     : alpha,
+                    'evidence'  : evidence,
+                    'chi'       : c,          #Actually chi squared
+                    'dmax'      : dmax,
+                    'spoint'    : alpha_points.size*dmax_points.size,
+                    'tpoint'    : alpha_points.size*dmax_points.size,
+                    'status'    : 'Calculating Monte Carlo errors',
+                    }
+
+                queue.put({'update' : bift_status})
+
+            pr = f
+
+            area = np.trapz(pr, r)
+            area2 = np.trapz(np.array(pr)*np.array(r)**2, r)
+
+            rg = np.sqrt(abs(area2/(2.*area)))
+            i0 = area*4*np.pi
+
+            fit = make_fit(q, r, pr)
+
+            q_extrap = np.arange(0, q[1]-q[0], q[1])
+            q_extrap = np.concatenate((q_extrap, q))
+
+            fit_extrap = make_fit(q_extrap, r, pr)
+
+            # Use a monte carlo method to estimate the errors in pr function, values found
+            err_calc = calc_bift_errors((alpha, dmax), q, i, err, N, mc_runs,
+                abort_check=abort_check, single_proc=single_proc)
+
+            if abort_check.is_set():
+                if queue is not None:
+                    queue.put({'canceled' : True})
+                return None
+
+            r_err, _, pr_err, a_res, d_res, c_res, ev_res, rg_res, i0_res = err_calc
+
+            # NOTE: Unlike Hansen, we don't return the average pr function from the montecarlo
+            # error estimate, but rather the best pr from the optimal dmax/alpha found above
+            # This is consistent with the old RAW behavior. In the future this could change.
+
+            rg_sd = rg_res[1]
+            i0_sd = i0_res[1]
+            alpha_sd = a_res[1]
+            dmax_sd = d_res[1]
+            c_sd = c_res[1]
+            ev_sd = ev_res[1]
+
+            interp = scipy.interpolate.interp1d(r_err, pr_err, copy=False)
+            err_interp = interp(r)
+
+            results = {
+                'dmax'          : dmax,         # Dmax
+                'dmaxer'        : dmax_sd,      # Uncertainty in Dmax
+                'rg'            : rg,           # Real space Rg
+                'rger'          : rg_sd,        # Real space rg error
+                'i0'            : i0,           # Real space I0
+                'i0er'          : i0_sd,        # Real space I0 error
+                'chisq'         : c,            # Actual chi squared value
+                'chisq_er'      : c_sd,         # Uncertainty in chi squared
+                'alpha'         : alpha,        # log(Alpha) used for the IFT
+                'alpha_er'      : alpha_sd,     # Uncertainty in log(alpha)
+                'evidence'      : evidence,     # Evidence of solution
+                'evidence_er'   : ev_sd,        # Uncertainty in evidence of solution
+                'qmin'          : q[0],         # Minimum q
+                'qmax'          : q[-1],        # Maximum q
+                'algorithm'     : 'BIFT',       # Lets us know what algorithm was used to find the IFT
+                'filename'      : os.path.splitext(filename)[0]+'.ift'
                 }
 
-            queue.put({'update' : bift_status})
+            iftm = SASM.IFTM(pr, r, err_interp, i, q, err, fit, results, fit_extrap, q_extrap)
 
-        pr = f
-
-        area = np.trapz(pr, r)
-        area2 = np.trapz(np.array(pr)*np.array(r)**2, r)
-
-        rg = np.sqrt(abs(area2/(2.*area)))
-        i0 = area*4*np.pi
-
-        fit = make_fit(q, r, pr)
-
-        q_extrap = np.arange(0, q[1]-q[0], q[1])
-        q_extrap = np.concatenate((q_extrap, q))
-
-        fit_extrap = make_fit(q_extrap, r, pr)
-
-        # Use a monte carlo method to estimate the errors in pr function, values found
-        err_calc = calc_bift_errors((alpha, dmax), q, i, err, N, mc_runs,
-            abort_check=abort_check, single_proc=single_proc)
-
-        if abort_check.is_set():
+        else:
             if queue is not None:
-                queue.put({'canceled' : True})
+                queue.put({'failed' : True})
             return None
-
-        r_err, _, pr_err, a_res, d_res, c_res, ev_res, rg_res, i0_res = err_calc
-
-        # NOTE: Unlike Hansen, we don't return the average pr function from the montecarlo
-        # error estimate, but rather the best pr from the optimal dmax/alpha found above
-        # This is consistent with the old RAW behavior. In the future this could change.
-
-        rg_sd = rg_res[1]
-        i0_sd = i0_res[1]
-        alpha_sd = a_res[1]
-        dmax_sd = d_res[1]
-        c_sd = c_res[1]
-        ev_sd = ev_res[1]
-
-        interp = scipy.interpolate.interp1d(r_err, pr_err, copy=False)
-        err_interp = interp(r)
-
-        results = {
-            'dmax'          : dmax,         # Dmax
-            'dmaxer'        : dmax_sd,      # Uncertainty in Dmax
-            'rg'            : rg,           # Real space Rg
-            'rger'          : rg_sd,        # Real space rg error
-            'i0'            : i0,           # Real space I0
-            'i0er'          : i0_sd,        # Real space I0 error
-            'chisq'         : c,            # Actual chi squared value
-            'chisq_er'      : c_sd,         # Uncertainty in chi squared
-            'alpha'         : alpha,        # log(Alpha) used for the IFT
-            'alpha_er'      : alpha_sd,     # Uncertainty in log(alpha)
-            'evidence'      : evidence,     # Evidence of solution
-            'evidence_er'   : ev_sd,        # Uncertainty in evidence of solution
-            'qmin'          : q[0],         # Minimum q
-            'qmax'          : q[-1],        # Maximum q
-            'algorithm'     : 'BIFT',       # Lets us know what algorithm was used to find the IFT
-            'filename'      : os.path.splitext(filename)[0]+'.ift'
-            }
-
-        iftm = SASM.IFTM(pr, r, err_interp, i, q, err, fit, results, fit_extrap, q_extrap)
-
     else:
         if queue is not None:
             queue.put({'failed' : True})

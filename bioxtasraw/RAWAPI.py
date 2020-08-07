@@ -1924,11 +1924,11 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
 
 def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
     alpha_max=1e10, alpha_pts=16, dmax_min=10, dmax_max=400, dmax_pts=10,
-    mc_runs=300, use_guinier_start=True, settings=None):
+    mc_runs=300, use_guinier_start=True, single_proc=False, settings=None):
     """
     Calculates the Bayesian indirect Fourier transform (BIFT) of a scattering
     profile to generate a P(r) function and determine the maximum dimension
-    Dmax.
+    Dmax. Returns None and -1 values if BIFT fails.
 
     Parameters
     ----------
@@ -1982,6 +1982,8 @@ def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
         If set to True, and no idx_min idx_min is provided, if a Guinier fit has
         been done for the input profile, the start point of the Guinier fit is
         used as the start point for the IFT.
+    single_proc: bool, optional
+        Whether to use one or multple processes. Defaults to False.
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
         RAW settings containing relevant parameters. If provided, the
         pr_Pts, alpha_min, alpha_max, alpha_pts, dmax_min, dmax_max, dmax_pts,
@@ -2064,42 +2066,60 @@ def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
         'dmax_max'  : dmax_max,
         'dmax_n'    : dmax_pts,
         'mc_runs'   : mc_runs,
+        'single_proc' : single_proc,
         }
 
     ift = BIFT.doBift(q, i, err, filename, **bift_settings)
 
-    dmax = float(ift.getParameter('dmax'))
-    dmax_err = float(ift.getParameter('dmaxer'))
-    rg = float(ift.getParameter('rg'))
-    rg_err = float(ift.getParameter('rger'))
-    i0 = float(ift.getParameter('i0'))
-    i0_err = float(ift.getParameter('i0er'))
-    chi_sq = float(ift.getParameter('chisq'))
-    log_alpha = float(ift.getParameter('alpha'))
-    log_alpha_err = float(ift.getParameter('alpha_er'))
-    evidence = float(ift.getParameter('evidence'))
-    evidence_err = float(ift.getParameter('evidence_er'))
-    qmin = q[0]
-    qmax = q[-1]
+    if ift is not None:
 
-    results_dict = {}
-    results_dict['Dmax'] = str(dmax)
-    results_dict['Dmax_Err'] = str(dmax_err)
-    results_dict['Real_Space_Rg'] = str(rg)
-    results_dict['Real_Space_Rg_Err'] = str(rg_err)
-    results_dict['Real_Space_I0'] = str(i0)
-    results_dict['Real_Space_I0_Err'] = str(i0_err)
-    results_dict['ChiSquared'] = str(chi_sq)
-    results_dict['LogAlpha'] = str(log_alpha)
-    results_dict['LogAlpha_Err'] = str(log_alpha_err)
-    results_dict['Evidence'] = str(evidence)
-    results_dict['Evidence_Err'] = str(evidence_err)
-    results_dict['qStart'] = str(qmin)
-    results_dict['qEnd'] = str(qmax)
+        dmax = float(ift.getParameter('dmax'))
+        dmax_err = float(ift.getParameter('dmaxer'))
+        rg = float(ift.getParameter('rg'))
+        rg_err = float(ift.getParameter('rger'))
+        i0 = float(ift.getParameter('i0'))
+        i0_err = float(ift.getParameter('i0er'))
+        chi_sq = float(ift.getParameter('chisq'))
+        log_alpha = float(ift.getParameter('alpha'))
+        log_alpha_err = float(ift.getParameter('alpha_er'))
+        evidence = float(ift.getParameter('evidence'))
+        evidence_err = float(ift.getParameter('evidence_er'))
+        qmin = q[0]
+        qmax = q[-1]
 
-    analysis_dict = profile.getParameter('analysis')
-    analysis_dict['BIFT'] = results_dict
-    profile.setParameter('analysis', analysis_dict)
+        results_dict = {}
+        results_dict['Dmax'] = str(dmax)
+        results_dict['Dmax_Err'] = str(dmax_err)
+        results_dict['Real_Space_Rg'] = str(rg)
+        results_dict['Real_Space_Rg_Err'] = str(rg_err)
+        results_dict['Real_Space_I0'] = str(i0)
+        results_dict['Real_Space_I0_Err'] = str(i0_err)
+        results_dict['ChiSquared'] = str(chi_sq)
+        results_dict['LogAlpha'] = str(log_alpha)
+        results_dict['LogAlpha_Err'] = str(log_alpha_err)
+        results_dict['Evidence'] = str(evidence)
+        results_dict['Evidence_Err'] = str(evidence_err)
+        results_dict['qStart'] = str(qmin)
+        results_dict['qEnd'] = str(qmax)
+
+        analysis_dict = profile.getParameter('analysis')
+        analysis_dict['BIFT'] = results_dict
+        profile.setParameter('analysis', analysis_dict)
+
+    else:
+        dmax = -1
+        dmax_err = -1
+        rg = -1
+        rg_err = -1
+        i0 = -1
+        i0_err = -1
+        chi_sq = -1
+        log_alpha = -1
+        log_alpha_err = -1
+        evidence = -1
+        evidence_err = -1
+        qmin = q[0]
+        qmax = q[-1]
 
     return (ift, dmax, rg, i0, dmax_err, rg_err, i0_err, chi_sq, log_alpha,
         log_alpha_err, evidence, evidence_err)
