@@ -28,7 +28,6 @@ def lys_waxs():
 
     return profiles[0]
 
-
 @pytest.fixture(scope='package', params=[-1, 0, 1.1, 2, 5, 10, 100, 1000, 10000])
 def rebin_factor(request):
     return request.param

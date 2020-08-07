@@ -10,12 +10,14 @@ if raw_path not in os.sys.path:
 
 import bioxtasraw.RAWAPI as raw
 
+@pytest.mark.atsas
 def test_ambimeter(gi_gnom_ift):
     score, categories, evaluation = raw.ambimeter(gi_gnom_ift)
 
     assert score == 0
     assert categories == 1
 
+@pytest.mark.atsas
 @pytest.mark.slow
 def test_dammif(gi_gnom_ift, temp_directory):
 
@@ -27,6 +29,7 @@ def test_dammif(gi_gnom_ift, temp_directory):
     assert os.path.exists(os.path.join(temp_directory, 'dammif.fir'))
     assert os.path.exists(os.path.join(temp_directory, 'dammif.in'))
 
+@pytest.mark.atsas
 @pytest.mark.very_slow
 def test_dammin(gi_gnom_ift, temp_directory):
 
@@ -38,6 +41,7 @@ def test_dammin(gi_gnom_ift, temp_directory):
     assert os.path.exists(os.path.join(temp_directory, 'dammin.fit'))
     assert os.path.exists(os.path.join(temp_directory, 'dammin.fir'))
 
+@pytest.mark.atsas
 @pytest.mark.very_slow
 def test_damaver(temp_directory):
     fnames = ['glucose_isomerase_{:02d}-1.pdb'.format(i) for i in range(1, 4)]
@@ -54,6 +58,7 @@ def test_damaver(temp_directory):
     assert res == 25
     assert res_err == 2
 
+@pytest.mark.atsas
 @pytest.mark.very_slow
 def test_damclust(temp_directory):
     fnames = ['glucose_isomerase_{:02d}-1.pdb'.format(i) for i in range(1, 4)]
@@ -68,6 +73,7 @@ def test_damclust(temp_directory):
     assert len(distance_list) == 0
     assert np.isclose(float(cluster_list[0].dev), 0.43326809411161260, rtol=1e-2)
 
+@pytest.mark.atsas
 @pytest.mark.slow
 def test_supcomb(temp_directory):
     shutil.copy2(os.path.join('./data/dammif_data', 'glucose_isomerase_01-1.pdb'),

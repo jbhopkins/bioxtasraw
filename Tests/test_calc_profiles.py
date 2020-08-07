@@ -67,6 +67,7 @@ def test_mw_vc(clean_gi_sub_profile, old_settings):
     assert mw_err == 12.045549627261789
     assert qmax == 0.282996847
 
+@pytest.mark.atsas
 def test_mw_bayes(clean_gi_sub_profile):
     mw, mw_prob, ci_lower, ci_upper, ci_prob = raw.mw_bayes(clean_gi_sub_profile)
 
@@ -76,6 +77,7 @@ def test_mw_bayes(clean_gi_sub_profile):
     assert ci_upper == 176.6
     assert ci_prob == 98.1173
 
+@pytest.mark.atsas
 def test_mw_datclass(clean_gi_sub_profile):
     profile = copy.deepcopy(clean_gi_sub_profile)
 
@@ -96,6 +98,7 @@ def test_bift(clean_gi_sub_profile, old_settings, gi_bift_ift):
     assert np.allclose(ift.r, gi_bift_ift.r)
     assert np.allclose(ift.p, gi_bift_ift.p)
 
+@pytest.mark.atsas
 def test_datgnom(clean_gi_sub_profile):
     (ift, dmax, rg, i0, rg_err, i0_err, total_est, chi_sq, alpha,
         quality) = raw.datgnom(clean_gi_sub_profile)
@@ -105,6 +108,7 @@ def test_datgnom(clean_gi_sub_profile):
     assert i0 == 0.06118
     assert total_est == 0.9708
 
+@pytest.mark.atsas
 def test_gnom(clean_gi_sub_profile, gi_gnom_ift):
     (ift, dmax, rg, i0, rg_err, i0_err, total_est, chi_sq, alpha,
         quality) = raw.gnom(clean_gi_sub_profile, 101)
