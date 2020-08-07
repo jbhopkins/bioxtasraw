@@ -3154,7 +3154,7 @@ def save_series(save_name, seriesm, save_gui_data=False):
 
     seriesm_data = copy.deepcopy(seriesm_dict)
 
-    with h5py.File(save_name, 'w', driver='core', libver='latest') as f:
+    with h5py.File(save_name, 'w', driver='core', libver='earliest') as f:
         f.attrs['file_type'] = 'RAW_Series'
         f.attrs['raw_version'] = RAWGlobals.version
         f.attrs['parameters'] = formatHeader(seriesm_data['parameters'])
