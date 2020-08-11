@@ -17,7 +17,7 @@ package and you can call RAW functions in your own scripts. The API is fully
 documented, and the :ref:`documentation plus install instructions and some
 examples are available on the RAW website. <api>`
 
-A short example of the useage would be:
+A short example of the usage would be:
 
 .. code-block:: python
 
