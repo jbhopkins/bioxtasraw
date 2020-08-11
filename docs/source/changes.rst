@@ -1,6 +1,75 @@
 Changes
 ============
 
+2.0.3
+-----------
+
+Release date: 2020-08-11
+
+Overview
+^^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 2.0.3. While
+this is only a point release, we are releasing a major new feature for RAW.
+There are only minor modifications to the RAW GUI, but we are releasing an
+entirely new RAW API. This means that RAW can now be imported as a python
+package and you can call RAW functions in your own scripts. The API is fully
+documented, and the :ref:`documentation plus install instructions and some
+examples are available on the RAW website. <api>`
+
+A short example of the useage would be:
+
+.. code-block:: python
+
+    import bioxtasraw.RAWAPI as raw
+
+    #Load the settings
+    settings = raw.load_settings('./standards_data/SAXS.cfg')
+
+    #Load the profile of interest
+    profile_names = ['./reconstruction_data/glucose_isomerase.dat']
+    profiles = raw.load_profiles(profile_names)
+
+    gi_prof = profiles[0]
+
+    #Automatically calculate the Guinier range and fit
+    (rg, i0, rg_err, i0_err, qmin, qmax, qrg_min, qrg_max, idx_min, idx_max,
+        r_sq) = raw.auto_guinier(gi_prof, settings=settings)
+
+The API should be considered in beta right now. It is tested, but based on
+further testing and user feedback the API may still change significantly.
+If you use the API, please let us know if you encounter any bugs, incomplete
+(or inaccurate) documentation or examples, or have suggestions for changes or
+additions.
+
+There are also several small bug fixes for the main RAW GUI.
+
+All changes:
+^^^^^^^^^^^^^
+
+*   First release of the RAW API
+*   Added new unit tests for the API.
+*   Improved backwards compatibility of the RAW series .hdf5 files.
+*   Fixed some depreciation warnings.
+*   Fixed a bug where returning to the first EFA panel from the last and
+    changing the number of significant singular values, then returning to the
+    third panel would result in an error.
+*   Fixed several bugs that could cause multiprocessing calculations to lock
+    up.
+*   Fixed several bugs in BIFT to make it more robust for poorly formatted
+    data.
+*   Fixed a Guinier fit bug where the fit could fail if a point in the fit
+    had an uncertainty value of 0.
+*   Fixed a bug where DATCLASS M.W. calculation could fail with an error.
+*   Fixed a bug where if the estimation of the Rg error failed the Rg results
+    would fail to save with the profile when the Guinier window was closed.
+*   Fixed a bug where axes for the IFT profile plot couldn't be changed.
+*   The P(r) fit is now plotted on top of the IFT data.
+*   Fixed a bug where workspaces with IFTs couldn't be loaded.
+*   Modified the BioCAT header load function to parse a single field spread
+    out over multiple lines in the header.
+
+
 2.0.2
 -----------
 

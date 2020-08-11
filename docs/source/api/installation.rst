@@ -4,10 +4,11 @@ Installing the API
 Installation
 ^^^^^^^^^^^^
 
-Users should proceed as if installing RAW from source on their OS of choice.
-If you are not going to use the RAW GUI from source, then you do not need
-to install the wx package. Once you've installed all required packages and
-downloaded and unpacked the source code, you then proceed differently:
+Users should proceed as if :ref:`installing RAW from source on their OS of
+choice.<install>` If you are not going to use the RAW GUI from source,
+then you do not need to install the wx package. Once you've installed all
+required packages and downloaded and unpacked the source code, you then
+proceed differently:
 
 #.  Open a terminal window and cd into the top level source directory.
 

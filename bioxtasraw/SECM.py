@@ -54,62 +54,62 @@ class SECM(object):
     buffer ranges and baseline correction ranges, etc.
 
     Attributes
-        ----------
-        qref: float
-            The reference q value specified by :func:`I`.
-        qrange: tuple
-            The q range specified by :func:`calc_qrange_I`.
-        buffer_range: list
-            A list defining the set buffer range. The list is made up of a set
-            of sub-ranges, each defined by an entry in the list. Each sub-range
-            item should be a list or tuple where the first entry is the
-            starting index of the range and the second entry is the ending index
-            of the range. So a list like ``[[0, 10], [100, 110]]`` would define
-            a buffer range consisting of two sub-ranges, the first from profiles
-            0-10 in the series and the second from profiles 100-110 in the
-            series.
-        window_size: int
-            The size of the average window used when calculating parameters
-            such as Rg.
-        mol_type: str
-            The macromolecule type used when calculating the Vc M.W.
-        mol_density: float
-            The macromolecular density used when calculating the Vp M.W.
-        already_subtracted: bool
-            Whether the initial input profiles represent an already subtracted
-            series or not.
-        average_buffer_sasm: bioxtasraw.SASM.SASM
-            The average buffer profile from the buffer_range.
-        baseline_start_range: tuple
-            A tuple where the first item is the start of the baseline start
-            range and the second item is the end of the baseline start range.
-        baseline_end_range: tuple
-            A tuple where the first item is the start of the baseline end range
-            and the second item is the end of the baseline end range.
-        baseline_corr: list
-            A list of the baseline correction applied. Each item is a
-            :class:`bioxtasraw.SASM.SASM`, and there is one for every baseline
-            corrected profile. The intensity is the value subtracted from the
-            starting intensity of the corresponding profile to achieve the
-            baseline corrected intensity.
-        baseline_type: str
-            The baseline type.
-        baseline_extrap: bool
-            Whether the baseline was extrapolated to all profiles.
-        baseline_fit_results: list
-            Only contains items if a linear baseline correction is done. In
-            that case, each item is the linear fit results a, b, and
-            corresponding covariances for a given q value. There is one item
-            per q value of the input profiles.
-        sample_range: list
-            A list defining the set sample range. The list is made up of a set
-            of sub-ranges, each defined by an entry in the list. Each sub-range
-            item should be a list or tuple where the first entry is the
-            starting index of the range and the second entry is the ending
-            index of the range. So a list like ``[[0, 10], [100, 110]]`` would
-            define a sample range consisting of two sub-ranges, the first from
-            profiles 0-10 in the series and the second from profiles 100-110
-            in the series.
+    ----------
+    qref: float
+        The reference q value specified by :func:`I`.
+    qrange: tuple
+        The q range specified by :func:`calc_qrange_I`.
+    buffer_range: list
+        A list defining the set buffer range. The list is made up of a set
+        of sub-ranges, each defined by an entry in the list. Each sub-range
+        item should be a list or tuple where the first entry is the
+        starting index of the range and the second entry is the ending index
+        of the range. So a list like ``[[0, 10], [100, 110]]`` would define
+        a buffer range consisting of two sub-ranges, the first from profiles
+        0-10 in the series and the second from profiles 100-110 in the
+        series.
+    window_size: int
+        The size of the average window used when calculating parameters
+        such as Rg.
+    mol_type: str
+        The macromolecule type used when calculating the Vc M.W.
+    mol_density: float
+        The macromolecular density used when calculating the Vp M.W.
+    already_subtracted: bool
+        Whether the initial input profiles represent an already subtracted
+        series or not.
+    average_buffer_sasm: bioxtasraw.SASM.SASM
+        The average buffer profile from the buffer_range.
+    baseline_start_range: tuple
+        A tuple where the first item is the start of the baseline start
+        range and the second item is the end of the baseline start range.
+    baseline_end_range: tuple
+        A tuple where the first item is the start of the baseline end range
+        and the second item is the end of the baseline end range.
+    baseline_corr: list
+        A list of the baseline correction applied. Each item is a
+        :class:`bioxtasraw.SASM.SASM`, and there is one for every baseline
+        corrected profile. The intensity is the value subtracted from the
+        starting intensity of the corresponding profile to achieve the
+        baseline corrected intensity.
+    baseline_type: str
+        The baseline type.
+    baseline_extrap: bool
+        Whether the baseline was extrapolated to all profiles.
+    baseline_fit_results: list
+        Only contains items if a linear baseline correction is done. In
+        that case, each item is the linear fit results a, b, and
+        corresponding covariances for a given q value. There is one item
+        per q value of the input profiles.
+    sample_range: list
+        A list defining the set sample range. The list is made up of a set
+        of sub-ranges, each defined by an entry in the list. Each sub-range
+        item should be a list or tuple where the first entry is the
+        starting index of the range and the second entry is the ending
+        index of the range. So a list like ``[[0, 10], [100, 110]]`` would
+        define a sample range consisting of two sub-ranges, the first from
+        profiles 0-10 in the series and the second from profiles 100-110
+        in the series.
     """
 
     def __init__(self, file_list, sasm_list, frame_list, parameters, settings):

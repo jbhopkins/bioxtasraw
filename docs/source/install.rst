@@ -15,6 +15,8 @@ RAW is also available through `SBGrid <https://sbgrid.org/software/titles/bioxta
 Some features in RAW require a separate installation of the
 `ATSAS <https://www.embl-hamburg.de/biosaxs/software.html>`_ package.
 
+For installation instructions for the API, see the :ref:`API documentation.<api>`
+
 Detailed installation instructions
 -----------------------------------
 .. toctree::

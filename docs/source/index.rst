@@ -33,6 +33,18 @@ Features
     Pilatus, CBF, Eiger, and more than 20 other types of images.
 
 
+What is the RAW API?
+---------------------
+
+You can also :ref:`install BioXTAS RAW as a python package <api>` without the
+GUI. This lets you import RAW directly into your python scripts and use the
+API to call any of the functions in RAW. This is great for creating custom
+processing scripts, either for unusual datasets that aren't handled in the
+GUI (such as ion exchange or time resolved SAXS data), or to ensure
+reproducibility in your analysis. It can also be used as the basis for an
+open-source automated SAXS data processing pipeline at a beamline or homesource.
+
+
 History and Usage
 -----------------
 RAW was first developed in 2008 by Soren Skou as part of the biological x-ray total analysis
@@ -68,6 +80,7 @@ prebuilt versions of RAW are free for anyone to download and use.
    saxs_tutorial
    videos
    cite_raw
+   api
    manual
    changes
 
