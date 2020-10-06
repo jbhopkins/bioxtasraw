@@ -403,13 +403,13 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
 
     try:
         ai_settings = ai.getFit2D()
-        reinitialize_ai = not (round(ai_settings['directDist'], 10) == round(sd_distance, 10)
-            and round(ai_settings['centerX'], 10) == round(x_c, 10)
-            and round(ai_settings['centerY'], 10) == round(y_c, 10)
-            and round(ai_settings['tilt'], 10) == round(det_tilt, 10)
-            and round(ai_settings['tiltPlanRotation'], 10) == round(det_tilt_plan_rot, 10)
-            and round(ai.get_pixel2()*1e6, 10) == round(pixel_size_x, 10)
-            and round(ai.get_pixel1()*1e6, 10) == round(pixel_size_y, 10))
+        reinitialize_ai = not (round(ai_settings['directDist'], 6) == round(sd_distance, 6)
+            and round(ai_settings['centerX'], 6) == round(x_c, 6)
+            and round(ai_settings['centerY'], 6) == round(y_c, 6)
+            and round(ai_settings['tilt'], 6) == round(det_tilt, 6)
+            and round(ai_settings['tiltPlanRotation'], 6) == round(det_tilt_plan_rot, 6)
+            and round(ai.get_pixel2()*1e6, 6) == round(pixel_size_x, 6)
+            and round(ai.get_pixel1()*1e6, 6) == round(pixel_size_y, 6))
     except Exception:
         reinitialize_ai = True
 
