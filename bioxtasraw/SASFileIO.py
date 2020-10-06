@@ -1225,8 +1225,19 @@ def loadImageFile(filename, raw_settings, hdf5_file=None):
 def processImage(img, parameters, raw_settings):
     for key in parameters['counters']:
         if key.lower().find('concentration') > -1 or key.lower().find('mg/ml') > -1:
-            parameters['Conc'] = parameters['counters'][key]
-            break
+            if ('BioCAT' in raw_settings.get('ImageHdrFormat') and
+                'Experiment_type' in parameters['counters'] and
+                'batch' in parameters['counters']['Experiment_type'].lower()):
+                parameters['Conc'] = parameters['counters'][key]
+                break
+            elif ('BioCAT' in raw_settings.get('ImageHdrFormat') and
+                'Experiment_type' not in parameters['counters']):
+                parameters['Conc'] = parameters['counters'][key]
+                break
+            elif 'BioCAT' not in raw_settings.get('ImageHdrFormat'):
+                parameters['Conc'] = parameters['counters'][key]
+                break
+
 
     sasm = SASImage.integrateCalibrateNormalize(img, parameters, raw_settings)
 
