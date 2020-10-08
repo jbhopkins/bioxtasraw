@@ -94,7 +94,8 @@ end of the fit? The answer is that the Guinier fit is done iteratively:
 
 #.  Guess a starting maximum q value for the fit.
 #.  Calculate the Guinier fit and get |Rg|.
-#.  If |qRg| > 1.3 (or 1.0), reduce the maximum q. If |qRg| < 1.3 (or 1.0), increase the maximum q.
+#.  If q\ :sub:`max`\ R\ :sub:`g` > 1.3 (or 1.0), reduce the maximum q. If
+    q\ :sub:`max`\ R\ :sub:`g` < 1.3 (or 1.0), increase the maximum q.
 #.  Repeat steps 2 and 3 until you converge on a final maximum q.
 
 Most software these days will do this iterative search for you, and for good

@@ -57,7 +57,7 @@ How do we do bead model reconstructions?
 
 There are a number of different programs available to do bead modeling, some
 suited for general systems and some tuned for very specific applications
-like reconstructions of membrane proteins with detergent halos. Regardless.
+like reconstructions of membrane proteins with detergent halos. Regardless,
 all of these methods share a similar approach.
 
 #.  Generate a volume of beads (aka 'dummy atoms') and randomly assign the

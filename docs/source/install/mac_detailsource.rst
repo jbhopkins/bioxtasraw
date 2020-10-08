@@ -4,10 +4,10 @@ OS X and macOS install from source instructions
 
 #.  Install Miniconda python distribution
 
-    *   Download the free miniconda python 3.7 installer from:
+    *   Download the free miniconda python 3.x, e.g. 3.8, installer from:
         `https://docs.conda.io/en/latest/miniconda.htmll <https://docs.conda.io/en/latest/miniconda.htmll>`_
 
-        *   Make sure you get the python 3.7 version!
+        *   Make sure you get the python 3.x version!
 
     *   Open a Terminal window by starting the Terminal app.
 
@@ -36,8 +36,11 @@ OS X and macOS install from source instructions
 
     *   Type ``conda upgrade conda pip wheel setuptools`` and hit enter. Agree to all the prompts.
 
-    *   Type ``conda install numpy scipy 'matplotlib<3.2' pillow 'wxpython<4.1' numba h5py cython numexpr`` and hit enter.
+    *   Type ``conda install numpy scipy 'matplotlib<3.2' pillow numba h5py cython numexpr`` and hit enter.
         Agree to all the prompts.
+
+    *   Type ``conda install -c conda-forge 'wxpython<4.1'`` and hit enter. Agree
+        to all prompts.
 
 #.  Install the hdf5plugin, silx, fabio, and pyFAI packages using pip
 

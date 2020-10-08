@@ -171,7 +171,7 @@ the uncertainty in molecular weight from this is ~10% for most systems, though t
 Molecular weight by comparison to known structures
 *****************************************************
 
-In [4] they describe a machine learning method that categories SAXS data into
+In [4] they describe a machine learning method that categorizes SAXS data into
 shape categories based on comparison with a catalog of known structures from the PDB.
 By finding the nearest structures in shape and size (also the name of the method:
 Shape&Size), they can obtain estimates for the molecular weight of the sample.

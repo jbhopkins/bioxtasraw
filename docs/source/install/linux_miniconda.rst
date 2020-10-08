@@ -5,11 +5,11 @@ Linux install from source instructions
 #.  Open a new terminal window (in many distros you can right click on the desktop
     and select :menuselection:`New Terminal` or :menuselection:`Open in terminal`).
 
-#.  Download Miniconda Python (Python 3.7) distribution and install.
+#.  Download Miniconda Python (Python 3.x, e.g. 3.8) distribution and install.
 
     *   `https://docs.conda.io/en/latest/miniconda.html <https://docs.conda.io/en/latest/miniconda.html>`_
 
-    *   Make sure you chose the python 3.7 installer.
+    *   Make sure you chose the python 3.x installer.
 
     *   Save to the downloads folder
 
@@ -32,7 +32,9 @@ Linux install from source instructions
 
     *   ``conda upgrade conda pip wheel setuptools``
 
-    *   ``conda install numpy scipy 'matplotlib<3.2' pillow 'wxpython<4.1' numba h5py cython numexpr``
+    *   ``conda install numpy scipy 'matplotlib<3.2' pillow numba h5py cython numexpr``
+
+    *  ``conda install -c conda-forge 'wxpython<4.1'``
 
     *   ``conda install -c conda-forge dbus-python``
 

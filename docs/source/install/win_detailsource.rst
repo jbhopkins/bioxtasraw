@@ -16,10 +16,10 @@ Windows 7, 8.1, and 10 install from source instructions
 
 #.  Install Miniconda python distribution
 
-    *   Download the free miniconda python 3.7 installer from:
+    *   Download the free miniconda python 3.x, e.g. 3.8, installer from:
         `https://docs.conda.io/en/latest/miniconda.html <https://docs.conda.io/en/latest/miniconda.html>`_
 
-        *   Make sure you get the python 3.7 version!
+        *   Make sure you get the python 3.x version!
 
         *   Pick the appropriate 64 bit/32 bit version (64 bit recommended!).
 
@@ -36,7 +36,9 @@ Windows 7, 8.1, and 10 install from source instructions
 
     *   ``conda upgrade conda pip wheel setuptools``
 
-    *   ``conda install numpy scipy 'matplotlib<3.2' pillow 'wxpython<4.1' numba h5py cython numexpr``
+    *   ``conda install numpy scipy 'matplotlib<3.2' pillow numba h5py cython numexpr``
+
+    *  ``conda install -c conda-forge 'wxpython<4.1'``
 
     *   ``pip install hdf5plugin silx fabio pyfai``
 
