@@ -1388,7 +1388,7 @@ def mw_abs(profile, conc=0, i0=None, rho_Mprot=3.22*10**23, rho_solv=3.34*10**23
     return mw
 
 def mw_vp(profile, rg=None, i0=None, density=0.83*10**(-3), cutoff='Default',
-    qmax=0.5, settings=None, use_i0_from='guinier'):
+    qmin=None, qmax=0.5, settings=None, use_i0_from='guinier'):
     """
     Calculates the M.W. of the input profile using the corrected Porod volume
     method. The input profile needs to have calculated Rg and I(0) values,
@@ -1414,6 +1414,9 @@ def mw_vp(profile, rg=None, i0=None, density=0.83*10**(-3), cutoff='Default',
     cutoff: {''Default', '8/Rg', 'log(I0/I(q))', 'Manual''} str, optional
         The method to use to calculate the maximum q value used for the
         M.W. calculation. Defaults to 'Default'
+    qmin: float, optional
+        The minimum q value to be used if rg and I(0) are supplied. Ignored if
+        rg and i0 parameters are not provided.
     qmax: float, optional
         The maximum q value to be used if the 'Manual' cutoff method is
         selected. Defaults to 0.5.
@@ -1482,6 +1485,10 @@ def mw_vp(profile, rg=None, i0=None, density=0.83*10**(-3), cutoff='Default',
                 qmin = float(guinier_dict['qStart'])
             else:
                 qmin = q[0]
+
+    else:
+        if qmin is None:
+            qmin = q[0]
 
     if cutoff != 'Manual':
         qmax = SASCalc.calcVqmax(q, i, rg, i0, cutoff, qmax)
