@@ -30,15 +30,15 @@ Windows 7, 8.1, and 10 install from source instructions
 
 #.  Install the necessary python packages
 
-    *   Open an anaconda prompt by clicking on the start menu -> All Programs -> Anaconda2 -> Anaconda Prompt
+    *   Open an anaconda prompt by clicking on the start menu -> All Programs -> Anaconda3 -> Anaconda Prompt
 
     *   Run the following commands in the anaconda prompt:
 
     *   ``conda upgrade conda pip wheel setuptools``
 
-    *   ``conda install numpy scipy 'matplotlib<3.2' pillow numba h5py cython numexpr``
+    *   ``conda install numpy scipy "matplotlib<3.2" pillow numba h5py cython numexpr``
 
-    *  ``conda install -c conda-forge 'wxpython<4.1'``
+    *  ``conda install -c conda-forge "wxpython<4.1"``
 
     *   ``pip install hdf5plugin silx fabio pyfai``
 

@@ -4248,18 +4248,20 @@ def translateHeader(header, to_sasbdb=True):
     to add compatibility with SASBDB while maintaining compatibility with older
     RAW formats and RAW internals.
     """
-    for key in header:
+    new_header = copy.deepcopy(header)
+
+    for key in header.keys():
         if isinstance(header[key], dict):
-            header[key] = translateHeader(header[key], to_sasbdb)
+            new_header[key] = translateHeader(header[key], to_sasbdb)
         else:
             if to_sasbdb:
                 if key in sasbdb_trans:
-                    header[sasbdb_trans[key]] = header.pop(key)
+                    new_header[sasbdb_trans[key]] = new_header.pop(key)
             else:
                 if key in sasbdb_back_trans:
-                    header[sasbdb_back_trans[key]] = header.pop(key)
+                    new_header[sasbdb_back_trans[key]] = new_header.pop(key)
 
-    return header
+    return new_header
 
 sasbdb_trans = {
     # First general RAW keywords
