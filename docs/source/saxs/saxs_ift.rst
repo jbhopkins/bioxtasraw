@@ -215,7 +215,7 @@ using GNOM via the RAW interface:
 #.  If necessary, set the starting q value for the P(r) function to match
     that of the Guinier fit (newer versions of RAW do this automatically).
 #.  Set the |Dmax| value to 2-3 times larger than the initial value.
-#.  Look for where the |Dmax| value drops to 0 naturally. Set the |Dmax|
+#.  Look for where the P(r) function drops to 0 naturally. Set the |Dmax|
     value to this point.
 #.  Turn off the force to zero at |Dmax| condition.
 #.  Tweak |Dmax| up and down until it naturally goes to zero (with the force

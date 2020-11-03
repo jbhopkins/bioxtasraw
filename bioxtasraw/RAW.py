@@ -363,6 +363,10 @@ class MainFrame(wx.Frame):
 
             if answer == wx.ID_YES:
                 self.loadRAWSettings(file)
+            else:
+                if self.raw_settings.get('autoFindATSAS'):
+                    atsas_dir = SASUtils.findATSASDirectory()
+                    self.raw_settings.set('ATSASDir', atsas_dir)
 
         else:
             if self.raw_settings.get('autoFindATSAS'):
