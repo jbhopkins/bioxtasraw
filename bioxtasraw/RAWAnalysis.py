@@ -13695,7 +13695,10 @@ class EFAControlPanel2(wx.Panel):
             nvals = self.panel1_results['input']
 
             if 'efa' in analysis_dict:
-                if nvals == analysis_dict['efa']['nsvs'] and self.panel1_results['fstart'] == analysis_dict['efa']['fstart'] and self.panel1_results['fend'] == analysis_dict['efa']['fend'] and self.panel1_results['profile'] == analysis_dict['efa']['profile']:
+                if nvals == (analysis_dict['efa']['nsvs']
+                    and self.panel1_results['fstart'] == analysis_dict['efa']['fstart']
+                    and self.panel1_results['fend'] == analysis_dict['efa']['fend']
+                    and self.panel1_results['profile'] == analysis_dict['efa']['profile']):
                     points = np.array(analysis_dict['efa']['ranges'])
 
                     forward_sv = points[:,0]
@@ -14194,7 +14197,11 @@ class EFAControlPanel3(wx.Panel):
 
         if 'efa' in analysis_dict:
             efa_dict = analysis_dict['efa']
-            if efa_dict['fstart'] == self.panel1_results['fstart'] and efa_dict['fend'] == self.panel1_results['fend'] and efa_dict['profile'] == self.panel1_results['profile'] and efa_dict['nsvs'] == self.panel1_results['input'] and np.all(efa_dict['ranges'] == self._getRanges()):
+            if (efa_dict['fstart'] == self.panel1_results['fstart']
+                and efa_dict['fend'] == self.panel1_results['fend']
+                and efa_dict['profile'] == self.panel1_results['profile']
+                and efa_dict['nsvs'] == self.panel1_results['input']
+                and np.all(efa_dict['ranges'] == self._getRanges())):
 
                 keylist = ['n_iter', 'tol', 'method']
 
@@ -14462,7 +14469,13 @@ class EFAControlPanel3(wx.Panel):
         else:
             old_filename = old_filename[0]
 
-        q = self.secm.getSASM().getQ()
+        if self.panel1_results['profile'] == 'Unsubtracted':
+            q = self.secm.getSASM(int_type='unsub').getQ()
+        elif self.panel1_results['profile'] == 'Subtracted':
+            q = self.secm.getSASM(int_type='sub').getQ()
+        elif self.panel1_results['profile'] == 'Baseline Corrected':
+            q = self.secm.getSASM(int_type='baseline').getQ()
+
         ranges = self._getRanges()
 
         for i in range(nprofiles):
@@ -14645,7 +14658,7 @@ class EFAResultsPlotPanel3(wx.Panel):
         if len(self.a_lines) == 0:
 
             for j in range(len(profile_data)):
-                line, = a.semilogy(profile_data[j].q, profile_data[j].i, label = 'Range %i' %(j), animated = True)
+                line, = a.semilogy(profile_data[j].getQ(), profile_data[j].getI(), label = 'Range %i' %(j), animated = True)
                 self.a_lines.append(line)
 
             line, = b.plot(rmsd_data[1], rmsd_data[0], animated = True)
