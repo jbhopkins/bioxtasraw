@@ -3101,6 +3101,10 @@ def findSampleRange(sub_sasms, intensity, rg, vcmw, vpmw, avg_window, sim_test,
 
     success = not failed
 
+    if not success:
+        region_start = -1
+        region_end = -1
+
     return success, region_start, region_end
 
 def validateBaseline(sasms, frame_idx, intensity, bl_type, ref_sasms, start,
