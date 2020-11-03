@@ -12344,8 +12344,8 @@ class SVDControlPanel(wx.Panel):
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
             sasm_list = []
 
-        i = np.array([sasm.i[sasm.getQrange()[0]:sasm.getQrange()[1]] for sasm in sasm_list])
-        err = np.array([sasm.err[sasm.getQrange()[0]:sasm.getQrange()[1]] for sasm in sasm_list])
+        i = np.array([sasm.getI() for sasm in sasm_list])
+        err = np.array([sasm.getErr() for sasm in sasm_list])
 
         self.i = i.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
         self.err = err.T

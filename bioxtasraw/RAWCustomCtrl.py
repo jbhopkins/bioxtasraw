@@ -37,6 +37,7 @@ import wx.lib.agw.supertooltip as STT
 from wx.lib.wordwrap import wordwrap
 from wx.lib.stattext import GenStaticText as StaticText
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
+import matplotlib as mpl
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -1588,7 +1589,13 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         :param wx.Window parent: The parent window
         :param matplotlib.Canvas: The canvas associated with the toolbar.
         """
-        NavigationToolbar2WxAgg.__init__(self, canvas, coordinates=False)
+        if (float(mpl.__version__.split('.')[0]) == 3 and
+            float(mpl.__version__.split('.')[1]) >= 3 and
+            float(mpl.__version__.split('.')[2]) >= 1 or
+            float(mpl.__version__.split('.')[0]) > 3):
+            NavigationToolbar2WxAgg.__init__(self, canvas, coordinates=False)
+        else:
+            NavigationToolbar2WxAgg.__init__(self, canvas)
 
         self.status = wx.StaticText(self, label='')
         self.parent = parent

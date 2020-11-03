@@ -134,7 +134,13 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self._MTB_CLR2 = self.NewControlId()
         self._MTB_SHOWBOTTOM = self.NewControlId()
 
-        NavigationToolbar2WxAgg.__init__(self, canvas, coordinates=False)
+        if (float(matplotlib.__version__.split('.')[0]) == 3 and
+            float(matplotlib.__version__.split('.')[1]) >= 3 and
+            float(matplotlib.__version__.split('.')[2]) >= 1 or
+            float(matplotlib.__version__.split('.')[0]) > 3):
+            NavigationToolbar2WxAgg.__init__(self, canvas, coordinates=False)
+        else:
+            NavigationToolbar2WxAgg.__init__(self, canvas)
 
         self.workdir = RAWGlobals.RAWWorkDir
 

@@ -63,7 +63,13 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
                                self._MTB_PREVIMG,
                                self._MTB_NEXTIMG]
 
-        NavigationToolbar2WxAgg.__init__(self, canvas, coordinates=False)
+        if (float(matplotlib.__version__.split('.')[0]) == 3 and
+            float(matplotlib.__version__.split('.')[1]) >= 3 and
+            float(matplotlib.__version__.split('.')[2]) >= 1 or
+            float(matplotlib.__version__.split('.')[0]) > 3):
+            NavigationToolbar2WxAgg.__init__(self, canvas, coordinates=False)
+        else:
+            NavigationToolbar2WxAgg.__init__(self, canvas)
 
         hdrinfo = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-view-details-24.png')
         imgctrl = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-control-of-level-filled-24.png')
