@@ -63,7 +63,7 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
                                self._MTB_PREVIMG,
                                self._MTB_NEXTIMG]
 
-        NavigationToolbar2WxAgg.__init__(self, canvas)
+        NavigationToolbar2WxAgg.__init__(self, canvas, coordinates=False)
 
         hdrinfo = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-view-details-24.png')
         imgctrl = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-control-of-level-filled-24.png')

@@ -134,7 +134,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self._MTB_CLR2 = self.NewControlId()
         self._MTB_SHOWBOTTOM = self.NewControlId()
 
-        NavigationToolbar2WxAgg.__init__(self, canvas)
+        NavigationToolbar2WxAgg.__init__(self, canvas, coordinates=False)
 
         self.workdir = RAWGlobals.RAWWorkDir
 
@@ -769,13 +769,13 @@ class PlotPanel(wx.Panel):
                 legend_label = legend_label_in
 
             if plottype== 'normal' or plottype== 'subtracted':
-                line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label, **kwargs)
+                line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max], sasm.err[q_min:q_max], pickradius = 3, label = legend_label, **kwargs)
             elif plottype== 'kratky':
-                line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max] * np.power(sasm.q[q_min:q_max],2), sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
+                line, ec, el = a.errorbar(sasm.q[q_min:q_max], sasm.i[q_min:q_max] * np.power(sasm.q[q_min:q_max],2), sasm.err[q_min:q_max], pickradius = 3, label = legend_label,**kwargs)
             elif plottype== 'guinier':
-                line, ec, el = a.errorbar(np.power(sasm.q[q_min:q_max],2), sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
+                line, ec, el = a.errorbar(np.power(sasm.q[q_min:q_max],2), sasm.i[q_min:q_max], sasm.err[q_min:q_max], pickradius = 3, label = legend_label,**kwargs)
             elif plottype== 'porod':
-                line, ec, el = a.errorbar(sasm.q[q_min:q_max], np.power(sasm.q[q_min:q_max],4)*sasm.i[q_min:q_max], sasm.err[q_min:q_max], picker = 3, label = legend_label,**kwargs)
+                line, ec, el = a.errorbar(sasm.q[q_min:q_max], np.power(sasm.q[q_min:q_max],4)*sasm.i[q_min:q_max], sasm.err[q_min:q_max], pickradius = 3, label = legend_label,**kwargs)
 
             line.set_label(legend_label)
 
@@ -2385,47 +2385,47 @@ class IftPlotPanel(PlotPanel):
 
             if type1 == 'unnormalized':
                 pr_line, pr_ec, pr_el = a1.errorbar(iftm.r, iftm.p, iftm.err,
-                    picker = 3, label = legend_label+'_P(r)', **kwargs)
+                    pickradius = 3, label = legend_label+'_P(r)', **kwargs)
             elif type1 == 'normalized':
                 i0 = float(iftm.getParameter('i0'))
                 pr_line, pr_ec, pr_el = a1.errorbar(iftm.r, iftm.p/i0, iftm.err/i0,
-                    picker = 3, label = legend_label+'_P(r)', **kwargs)
+                    pickradius = 3, label = legend_label+'_P(r)', **kwargs)
 
             pr_line.set_label(legend_label)
 
             if type2 == 'normal' or type2 == 'subtracted':
                 orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig, \
-                    iftm.i_orig, iftm.err_orig, picker=3,
+                    iftm.i_orig, iftm.err_orig, pickradius=3,
                     label=legend_label+'_Exp', zorder=1, **kwargs)
             elif type2 == 'kratky':
                 orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig,
                     iftm.i_orig*np.power(iftm.q_orig,2), iftm.err_orig,
-                    picker=3, label=legend_label+'_Exp', zorder=1, **kwargs)
+                    pickradius=3, label=legend_label+'_Exp', zorder=1, **kwargs)
             elif type2 == 'guinier':
                 orig_line, orig_ec, orig_el = a2.errorbar(np.power(iftm.q_orig,2),
-                    iftm.i_orig, iftm.err_orig, picker=3,
+                    iftm.i_orig, iftm.err_orig, pickradius=3,
                     label=legend_label+'_Exp', zorder=1, **kwargs)
             elif type2 == 'porod':
                 orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig,
                     np.power(iftm.q_orig,4)*iftm.i_orig, iftm.err_orig,
-                    picker=3, label=legend_label+'_Exp', zorder=1, **kwargs)
+                    pickradius=3, label=legend_label+'_Exp', zorder=1, **kwargs)
 
             orig_line.set_label(legend_label+'_Exp')
 
 
             if type2 == 'normal' or type2 == 'subtracted':
-                fit_line = a2.plot(iftm.q_orig, iftm.i_fit, picker=3,
+                fit_line = a2.plot(iftm.q_orig, iftm.i_fit, pickradius=3,
                     label=legend_label+'_Fit', zorder=2, **kwargs)
             elif type2 == 'kratky':
                 fit_line = a2.plot(iftm.q_orig,
-                    iftm.i_fit*np.power(iftm.q_orig,2), picker=3,
+                    iftm.i_fit*np.power(iftm.q_orig,2), pickradius=3,
                     label=legend_label+'_Fit', zorder=2, **kwargs)
             elif type2 == 'guinier':
                 fit_line = a2.plot(np.power(iftm.q_orig,2), iftm.i_fit,
-                    picker=3, label=legend_label+'_Fit', zorder=2, **kwargs)
+                    pickradius=3, label=legend_label+'_Fit', zorder=2, **kwargs)
             elif type2 == 'porod':
                 fit_line = a2.plot(iftm.q_orig,
-                    np.power(iftm.q_orig,4)*iftm.i_fit, picker=3,
+                    np.power(iftm.q_orig,4)*iftm.i_fit, pickradius=3,
                     label=legend_label+'_Fit', zorder=2, **kwargs)
 
             #Hide errorbars:
@@ -3160,7 +3160,7 @@ class SeriesPlotPanel(wx.Panel):
             if xdata is None or ydata is None:
                 return
 
-            line = self.subplot1.plot(xdata, ydata, picker=3, label=legend_label, **kwargs)[0]
+            line = self.subplot1.plot(xdata, ydata, pickradius=3, label=legend_label, **kwargs)[0]
             line.set_label(legend_label)
 
             secm.line = line
@@ -3179,7 +3179,7 @@ class SeriesPlotPanel(wx.Panel):
                 calc_data = np.zeros_like(xdata)-1
 
             calc_line = self.ryaxis.plot(xdata, calc_data,
-                marker=next(self.markers), linestyle ='', picker=3,
+                marker=next(self.markers), linestyle ='', pickradius=3,
                 label=self.plotparams['secm_plot_calc'], **kwargs)[0]
             calc_line.set_label(self.plotparams['secm_plot_calc'])
 

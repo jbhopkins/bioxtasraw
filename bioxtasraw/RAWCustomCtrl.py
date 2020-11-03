@@ -1588,7 +1588,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         :param wx.Window parent: The parent window
         :param matplotlib.Canvas: The canvas associated with the toolbar.
         """
-        NavigationToolbar2WxAgg.__init__(self, canvas)
+        NavigationToolbar2WxAgg.__init__(self, canvas, coordinates=False)
 
         self.status = wx.StaticText(self, label='')
         self.parent = parent
