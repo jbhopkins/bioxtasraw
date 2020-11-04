@@ -101,6 +101,7 @@ import bioxtasraw.RAWCustomDialogs as RAWCustomDialogs
 import bioxtasraw.SASProc as SASProc
 import bioxtasraw.SASUtils as SASUtils
 import bioxtasraw.SECM as SECM
+import bioxtasraw.RAWReport as RAWReport
 from bioxtasraw.RAWGlobals import mainworker_cmd_queue
 
 thread_wait_event = threading.Event()
@@ -201,6 +202,7 @@ class MainFrame(wx.Frame):
             'rundenss'              : self.NewControlId(),
             'calcUVconc'            : self.NewControlId(),
             'lcanalysis'            : self.NewControlId(),
+            'makereport'            : self.NewControlId(),
             }
 
         self.tbIcon = RawTaskbarIcon(self)
@@ -257,15 +259,15 @@ class MainFrame(wx.Frame):
 
 
         self.control_notebook = aui.AuiNotebook(self, style = aui.AUI_NB_TAB_MOVE)
-        page2 = ManipulationPanel(self.control_notebook, self.raw_settings)
-        page4 = SECPanel(self.control_notebook, self.raw_settings)
-        page3 = IFTPanel(self.control_notebook, self.raw_settings)
-        page1 = FilePanel(self.control_notebook)
+        self.profile_panel = ManipulationPanel(self.control_notebook, self.raw_settings)
+        self.series_panel = SECPanel(self.control_notebook, self.raw_settings)
+        self.ift_panel = IFTPanel(self.control_notebook, self.raw_settings)
+        self.file_panel = FilePanel(self.control_notebook)
 
-        self.control_notebook.AddPage(page1, "Files", True)
-        self.control_notebook.AddPage(page2, "Profiles", False)
-        self.control_notebook.AddPage(page3, "IFTs", False)
-        self.control_notebook.AddPage(page4, "Series",False)
+        self.control_notebook.AddPage(self.file_panel, "Files", True)
+        self.control_notebook.AddPage(self.profile_panel, "Profiles", False)
+        self.control_notebook.AddPage(self.ift_panel, "IFTs", False)
+        self.control_notebook.AddPage(self.series_panel, "Series",False)
 
         self.control_notebook.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.onControlTabChange)
 
@@ -1204,6 +1206,17 @@ class MainFrame(wx.Frame):
 
             self.lc_series_frames.append(lc_series_frame)
 
+    def showReportFrame(self, profiles=[], ifts=[], series=[]):
+
+        all_profiles = [item.getSASM() for item in self.profile_panel.all_manipulation_items]
+        all_ifts = [item.getIFTM() for item in self.ift_panel.all_manipulation_items]
+        all_series = [item.getSECM() for item in self.series_panel.all_manipulation_items]
+
+        report_frame = RAWReport.ReportFrame(self, 'Save Report', all_profiles,
+            all_ifts, all_series, profiles, ifts, series)
+        report_frame.SetIcon(self.GetIcon())
+        report_frame.Show(True)
+
     def _createSingleMenuBarItem(self, info):
 
         menu = wx.Menu()
@@ -1429,6 +1442,8 @@ class MainFrame(wx.Frame):
                 (None, None, None, 'separator'),
                 ('&Centering/Calibration', self.MenuIDs['centering'], self._onToolsMenu, 'normal'),
                 ('&Masking', self.MenuIDs['masking'], self._onToolsMenu, 'normal'),
+                (None, None, None, 'separator'),
+                ('&Save Report', self.MenuIDs['makereport'], self._onToolsMenu, 'normal'),
                 ]
             ),
 
@@ -2024,6 +2039,9 @@ class MainFrame(wx.Frame):
             retval = dlg.ShowModal()
             #ret, logbin = dlg.getValues()
             dlg.Destroy()
+
+        elif id == self.MenuIDs['makereport']:
+            self.showReportFrame()
 
     def _onViewMenu(self, evt):
 
@@ -8265,7 +8283,7 @@ class ManipItemPanel(wx.Panel):
                 menu.Append(31, 'IFT (GNOM)')
 
         menu.Append(37, 'Similarity Test')
-        menu.Append(38, 'Normalized Kratky Plots')
+        menu.Append(38, 'Dimensionless Kratky Plot')
         menu.AppendSubMenu(other_an_menu, 'Other Analysis')
 
         menu.AppendSeparator()
@@ -8286,6 +8304,7 @@ class ManipItemPanel(wx.Panel):
         menu.Append(30, 'Save all analysis info')
         menu.Append(18, 'Save item info')
         menu.Append(7, 'Save selected file(s)')
+        menu.Append(41, 'Save report')
 
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
         self.PopupMenu(menu)
@@ -8300,6 +8319,8 @@ class ManipItemPanel(wx.Panel):
             mainworker_cmd_queue.put(['show_image', [path, fnum]])
 
     def _onPopupMenuChoice(self, evt):
+
+        Mainframe = wx.FindWindowByName('MainFrame')
 
         if evt.GetId() == 4:
             #Subtract
@@ -8335,7 +8356,6 @@ class ManipItemPanel(wx.Panel):
 
         elif evt.GetId() == 13:
             #Guinier fit
-            Mainframe = wx.FindWindowByName('MainFrame')
             selectedSASMList = self.manipulation_panel.getSelectedItems()
 
             sasm = selectedSASMList[0].getSASM()
@@ -8415,7 +8435,6 @@ class ManipItemPanel(wx.Panel):
 
         elif evt.GetId() == 29:
             #Molecular weight panel fit
-            Mainframe = wx.FindWindowByName('MainFrame')
             selectedSASMList = self.manipulation_panel.getSelectedItems()
 
             sasm = selectedSASMList[0].getSASM()
@@ -8427,7 +8446,6 @@ class ManipItemPanel(wx.Panel):
 
         elif evt.GetId() == 31:
             #Open the GNOM window
-            Mainframe = wx.FindWindowByName('MainFrame')
             selectedSASMList = self.manipulation_panel.getSelectedItems()
 
             sasm = selectedSASMList[0].getSASM()
@@ -8435,7 +8453,6 @@ class ManipItemPanel(wx.Panel):
 
         elif evt.GetId() == 32:
             #Open the GNOM window
-            Mainframe = wx.FindWindowByName('MainFrame')
             selectedSASMList = self.manipulation_panel.getSelectedItems()
 
             sasm = selectedSASMList[0].getSASM()
@@ -8461,7 +8478,6 @@ class ManipItemPanel(wx.Panel):
 
         elif evt.GetId() == 37:
             #Similarity testing
-            Mainframe = wx.FindWindowByName('MainFrame')
             selected_items = self.manipulation_panel.getSelectedItems()
 
             if selected_items:
@@ -8473,7 +8489,6 @@ class ManipItemPanel(wx.Panel):
 
         elif evt.GetId() == 38:
             #Normalized Kratky Plots
-            Mainframe = wx.FindWindowByName('MainFrame')
             selected_items = self.manipulation_panel.getSelectedItems()
 
             if selected_items:
@@ -8484,10 +8499,25 @@ class ManipItemPanel(wx.Panel):
             Mainframe.showNormKratkyFrame(selected_sasms)
 
         elif evt.GetId() == 39:
+            #Synchronize
             self.manipulation_panel.Sync()
 
         elif evt.GetId() == 40:
+            #Superimpose
             self.manipulation_panel.Superimpose()
+
+        elif evt.GetId() == 41:
+            #Save report
+
+            selected_items = self.manipulation_panel.getSelectedItems()
+
+            if selected_items:
+                selected_sasms = [item.getSASM() for item in selected_items]
+            else:
+                selected_sasms = []
+
+            Mainframe.showReportFrame(profiles=selected_sasms)
+
 
 
     def _saveAllAnalysisInfo(self):
@@ -9698,6 +9728,7 @@ class IFTItemPanel(wx.Panel):
 
         menu.AppendSeparator()
         menu.Append(7, 'Save selected file(s)')
+        menu.Append(29, 'Save report')
 
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
         self.PopupMenu(menu)
@@ -9763,6 +9794,18 @@ class IFTItemPanel(wx.Panel):
         elif evt.GetId() == 28:
             #DENSS
             self.main_frame.showDenssFrame(self.iftm, self)
+
+        elif evt.GetId() == 29:
+            #Save report
+
+            selected_items = self.ift_panel.getSelectedItems()
+
+            if selected_items:
+                selected_iftms = [item.getIFTM() for item in selected_items]
+            else:
+                selected_iftms = []
+
+            self.main_frame.showReportFrame(ifts=selected_iftms)
 
     def _toMainPlot(self):
         selected_items = self.ift_panel.getSelectedItems()
@@ -10972,7 +11015,8 @@ class SeriesItemPanel(wx.Panel):
             menu.Append(11, 'Save all subtracted profiles as .dats')
         if self.secm.baseline_subtracted_sasm_list:
             menu.Append(12, 'Save all baseline corrected profiles as .dats')
-        menu.Append(3, 'Save')
+        menu.Append(3, 'Save selected file(s)')
+        menu.Append(14, 'Save report')
         menu.AppendSeparator()
         menu.Append(10, 'LC Series analysis')
         menu.Append(7, 'SVD')
@@ -11080,6 +11124,18 @@ class SeriesItemPanel(wx.Panel):
 
         elif evt.GetId() == 13:
             self._adjustSeries()
+
+        elif evt.GetId() == 14:
+            #Save report
+            mainframe = wx.FindWindowByName('MainFrame')
+            selected_items = self.sec_panel.getSelectedItems()
+
+            if selected_items:
+                selected_secms = [item.getSECM() for item in selected_items]
+            else:
+                selected_secms = []
+
+            mainframe.showReportFrame(series=selected_secms)
 
     def _onKeyPress(self, evt):
 

@@ -1,6 +1,6 @@
 The RAW documentation is now formatted for sphinx. This requires sphinx be
 installed, along with appropriate themes (alabaster and read-the-docs). To do so:
-conda install sphinx sphinx-rtd
+conda install sphinx sphinx_rtd_theme
 
 To build html, be in the top level (docs) folder and use:
 make html

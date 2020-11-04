@@ -15883,8 +15883,7 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         wx.Panel.__init__(self, parent, wx.ID_ANY)
 
         self.list_ctrl = ULC.UltimateListCtrl(self, agwStyle=ULC.ULC_REPORT
-                        | ULC.ULC_SORT_ASCENDING, size=(-1,450)
-                        )
+            | ULC.ULC_SORT_ASCENDING|ULC.ULC_NO_HIGHLIGHT, size=(-1,450))
 
         self.norm_kratky_frame = parent.norm_kratky_frame
 
