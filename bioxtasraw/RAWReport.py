@@ -287,6 +287,33 @@ class SECData(object):
             self.efa_start = efa_dict['fstart']
             self.efa_end = efa_dict['fend']
             self.efa_nsvs = efa_dict['nsvs']
+            self.efa_iter_limit = efa_dict['iter_limit']
+            self.efa_method = efa_dict['method']
+            self.efa_profile_type = efa_dict['profile']
+            self.efa_tolerance = efa_dict['tolerance']
+            self.efa_frames = list(range(int(self.efa_start), int(self.efa_end)+1))
+
+            if self.efa_profile_type == 'Subtracted':
+                prof_type = 'sub'
+            elif self.efa_profile_type == 'Unsubtracted':
+                prof_type = 'unsub'
+            elif self.efa_profile_type == 'Basline Corrected':
+                prof_type = 'baseline'
+
+            efa_results = raw.efa(secm, self.efa_ranges, prof_type,
+                int(self.efa_start), int(self.efa_end), self.efa_method,
+                int(self.efa_iter_limit), float(self.efa_tolerance))
+
+            if efa_results[1]:
+                self.efa_extra_data = True
+                self.efa_profiles = [SAXSData(prof) for prof in efa_results[0]]
+                self.efa_conc = efa_results[3]['C']
+                self.efa_chi = efa_results[3]['chisq']
+            else:
+                self.efa_extra_data = False
+                self.efa_profiles = []
+                self.efa_conc = []
+                self.efa_chi = ''
 
         else:
             self.efa_done = False
@@ -294,6 +321,15 @@ class SECData(object):
             self.efa_start = ''
             self.efa_end = ''
             self.efa_nsvs = ''
+            self.efa_iter_limit = ''
+            self.efa_method = ''
+            self.efa_profile = ''
+            self.efa_tolerance = ''
+            self.efa_frames = []
+            self.efa_extra_data = False
+            self.efa_profiles = []
+            self.efa_conc = []
+            self.efa_chi = ''
 
 
 
@@ -1194,7 +1230,7 @@ class efa_plot(object):
     b) Log-lin profiles. c) Normalized Kratky profiles. d) P(r)
     """
 
-    def __init__(self, series, efa_data, int_type='Total',
+    def __init__(self, series, int_type='Total',
         series_data='Rg', img_width=6, img_height=6):
 
         with mpl.rc_context({'font.size' : 8.0, 'font.family': 'Arial',
@@ -1206,13 +1242,12 @@ class efa_plot(object):
             'lines.linewidth' : 1, 'mathtext.default': 'regular'}):
 
             self.series = series
-            self.efa_data = efa_data
 
             self.int_type = int_type
             self.series_data = series_data
 
 
-            if efa_data is None:
+            if not series.efa_extra_data:
                 if img_width == 6 and img_height == 6:
                     self.figure = plt.figure(figsize=(6, 2))
                 else:
@@ -1221,37 +1256,21 @@ class efa_plot(object):
                 self.gs = self.figure.add_gridspec(1, 2)
 
             else:
-                if efa_data['profiles'] is None:
-                    if img_width == 6 and img_height == 6:
-                        self.figure = plt.figure(figsize=(6, 4))
-                    else:
-                        self.figure = plt.figure(figsize=(img_width, img_height))
-
-                    self.gs = self.figure.add_gridspec(2, 2)
-
-                else:
-                    self.figure = plt.figure(figsize=(img_width, img_height))
-                    self.gs = self.figure.add_gridspec(3, 2)
+                self.figure = plt.figure(figsize=(img_width, img_height))
+                self.gs = self.figure.add_gridspec(3, 2)
 
             self._make_series_plot()
             self._make_efa_range_plot()
 
-            if efa_data is not None:
+            if series.efa_extra_data:
                 self._make_efa_chi_plot()
                 self._make_efa_concentration_plot()
+                self._make_efa_profiles_plot()
 
-                if efa_data['profiles'] is not None:
-                    self._make_efa_profiles_plot()
+            if series.efa_extra_data:
 
-            if efa_data is not None:
-
-                if efa_data['profiles'] is not None:
-                    self.figure.subplots_adjust(left=0.1, right=0.98, wspace=0.3,
-                        bottom=0.07, top=0.98, hspace=0.3)
-
-                else:
-                    self.figure.subplots_adjust(left=0.1, right=0.98, wspace=0.3,
-                        bottom=0.08, top=0.96, hspace=0.23)
+                self.figure.subplots_adjust(left=0.1, right=0.98, wspace=0.3,
+                    bottom=0.07, top=0.98, hspace=0.3)
             else:
                 self.figure.subplots_adjust(left=0.1, right=0.98, wspace=0.3,
                     bottom=0.16, top=0.93, hspace=0.3)
@@ -1361,8 +1380,8 @@ class efa_plot(object):
             size='large')
 
     def _make_efa_chi_plot(self, row=1, column=0):
-        frames = self.efa_data['data'].frames
-        chi = self.efa_data['data'].chi
+        frames = self.series.efa_frames
+        chi = self.series.efa_chi
 
         ax = self.figure.add_subplot(self.gs[row, column])
         ax.plot(frames, chi, '-', color='k')
@@ -1374,8 +1393,8 @@ class efa_plot(object):
             size='large')
 
     def _make_efa_concentration_plot(self, row=1, column=1):
-        frames = self.efa_data['data'].frames
-        conc = self.efa_data['data'].conc
+        frames = self.series.efa_frames
+        conc = self.series.efa_conc
 
         ax = self.figure.add_subplot(self.gs[row, column])
 
@@ -1389,7 +1408,7 @@ class efa_plot(object):
             size='large')
 
     def _make_efa_profiles_plot(self, row=2):
-        profiles = self.efa_data['profiles']
+        profiles = self.series.efa_profiles
 
         ax = self.figure.add_subplot(self.gs[row, :])
 
@@ -2078,13 +2097,9 @@ def generate_series_params(profiles, ifts, series, extra_data):
             # efa_table = KeepTogether([efa_table])
 
 
-            # Make EFA plot
-            if extra_data is not None and extra_data['efa'] is not None:
-                extra_efa_data = extra_data['efa'][j]
-            else:
-                extra_efa_data = None
+             # Make EFA plot
 
-            efa_plot_panel = efa_plot(s, extra_efa_data)
+            efa_plot_panel = efa_plot(s)
 
             img_width = 6
             img_height = 2
@@ -2097,20 +2112,17 @@ def generate_series_params(profiles, ifts, series, extra_data):
                 'the top left, and component number increasing in descending '
                 'order to the right.')
 
-            if extra_efa_data is not None:
+            if s.efa_extra_data:
                 efa_caption = efa_caption + (' c) Mean chi^2 values between the '
                     'fit of the EFA deconvolution and the original data. d) '
                     'Area normalized concentration profiles for each component. '
                     'Colors match the component range colors in b.')
 
-                img_height = 4
+                efa_caption = efa_caption + (' e) Deconvolved scattering '
+                    'profiles. Colors match the component range colors in '
+                    'b and the concentration range colors in d.')
 
-                if extra_efa_data['profiles'] is not None:
-                    efa_caption = efa_caption + (' e) Deconvolved scattering '
-                        'profiles. Colors match the component range colors in '
-                        'b and the concentration range colors in d.')
-
-                    img_height = 6
+                img_height = 6
 
             efa_figure = make_figure(efa_plot_panel.figure, efa_caption, img_width,
                 img_height, styles)
@@ -2682,7 +2694,7 @@ def make_figure(figure, caption, img_width, img_height, styles):
 ###### New stuff ######
 
 def make_report_from_raw(name, out_dir, profiles, ifts, series,
-    efa_data=None, efa_profiles=None, dammif_data=None):
+        dammif_data=None):
 
     profile_data = [SAXSData(profile) for profile in profiles]
 
@@ -2701,31 +2713,6 @@ def make_report_from_raw(name, out_dir, profiles, ifts, series,
 
     series_data = [SECData(s) for s in series]
 
-    efa_results = []
-
-    if efa_data is not None:
-        for efa_file in efa_data:
-            if efa_file is not None:
-                results = parse_efa_file(efa_file)
-            else:
-                results = None
-
-            efa_results.append(results)
-
-
-    efa_profile_results = []
-
-    if efa_profiles is not None:
-        for profile_list in efa_profiles:
-            if profile_list is not None:
-                profs = raw.load_profiles(profile_list)
-                results = [SAXSData(prof) for prof in profs]
-            else:
-                results = None
-
-            efa_profile_results.append(results)
-
-
     dammif_results = []
 
     if dammif_data is not None:
@@ -2737,23 +2724,7 @@ def make_report_from_raw(name, out_dir, profiles, ifts, series,
 
             dammif_results.append(results)
 
-    if efa_data is None or len(efa_data) == 0:
-        efa_input = None
-
-    else:
-        efa_input = []
-
-        for j in range(len(efa_results)):
-            efa_dict = {'data': efa_results[j]}
-
-            if j < len(efa_profile_results):
-                efa_dict['profiles'] = efa_profile_results[j]
-            else:
-                efa_dict['profiles'] = None
-
-            efa_input.append(efa_dict)
-
-    extra_data = {'dammif': dammif_results, 'efa': efa_input}
+    extra_data = {'dammif': dammif_results}
 
     generate_report(name, out_dir, profile_data, ift_data, series_data,
         extra_data)
