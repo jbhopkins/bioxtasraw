@@ -2456,8 +2456,11 @@ class MolWeightFrame(wx.Frame):
         if show:
             self.bi = wx.BusyInfo('Calculating Molecular weight, please wait.', self)
         else:
-            del self.bi
-            self.bi = None
+            try:
+                del self.bi
+                self.bi = None
+            except Exception:
+                pass
 
     def setFilename(self, filename):
         self.filenameTxtCtrl.SetValue(str(filename))
@@ -3778,8 +3781,11 @@ class GNOMFrame(wx.Frame):
         if show:
             self.bi = wx.BusyInfo('Initializing GNOM, please wait.', self)
         else:
-            del self.bi
-            self.bi = None
+            try:
+                del self.bi
+                self.bi = None
+            except Exception:
+                pass
 
     def updateGNOMSettings(self):
         self.controlPanel.updateGNOMSettings()
@@ -11054,8 +11060,11 @@ class AmbimeterFrame(wx.Frame):
         if show:
             self.bi = wx.BusyInfo('Running AMBIMETER, please wait.', self)
         else:
-            del self.bi
-            self.bi = None
+            try:
+                del self.bi
+                self.bi = None
+            except Exception:
+                pass
 
 
     def onChangeDirectoryButton(self, evt):
