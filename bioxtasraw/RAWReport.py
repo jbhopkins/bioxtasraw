@@ -49,8 +49,9 @@ import wx
 import wx.lib.mixins.listctrl as listmix
 from wx.lib.agw import ultimatelistctrl as ULC
 
-import RAWAPI as raw
-import RAWGlobals
+import bioxtasraw.RAWAPI as raw
+import bioxtasraw.RAWGlobals as RAWGlobals
+import bioxtasraw.SASUtils as SASUtils
 
 # mpl.rc('font', size = 8.0, family='Arial')
 # mpl.rc('legend', frameon=False, fontsize='medium')
@@ -2737,7 +2738,8 @@ class ReportFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(450, client_display.Width), min(350, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.SetSize(self._FromDIP(size))
 
         self.main_frame = wx.FindWindowByName('MainFrame')
 
@@ -2753,22 +2755,7 @@ class ReportFrame(wx.Frame):
 
         self._initialize(selected_profiles, selected_ifts, selected_series)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -2844,6 +2831,7 @@ class ReportFrame(wx.Frame):
         ctrl_box = wx.StaticBox(panel, label='Controls')
 
         self.report_type = wx.Choice(ctrl_box, choices=['pdf'])
+        self.report_type.SetSelection(0)
         make_report = wx.Button(ctrl_box, label='Save Report')
         make_report.Bind(wx.EVT_BUTTON, self._on_make_report)
 
@@ -2966,26 +2954,15 @@ class CheckListCtrl(ULC.UltimateListCtrl, listmix.ListCtrlAutoWidthMixin):
     https://www.blog.pythonlibrary.org/2011/11/02/wxpython-an-intro-to-the-ultimatelistctrl/
     """
     def __init__(self, *args, **kwargs):
-        # wx.Panel.__init__(self, *args, **kwargs)
 
-
-        # self.list_ctrl = ULC.UltimateListCtrl(self, agwStyle=ULC.ULC_REPORT|ULC.ULC_NO_HEADER|ULC.ULC_NO_HIGHLIGHT)
-
-        ULC.UltimateListCtrl.__init__(self, *args, agwStyle=ULC.ULC_REPORT|ULC.ULC_NO_HEADER|ULC.ULC_NO_HIGHLIGHT,
-            **kwargs)
+        ULC.UltimateListCtrl.__init__(self, *args, agwStyle=ULC.ULC_REPORT
+            |ULC.ULC_NO_HEADER|ULC.ULC_NO_HIGHLIGHT, **kwargs)
 
         self.InsertColumn(0, 'Show')
         self.InsertColumn(1, 'Filename')
 
-
-        # self.list_ctrl.Bind(ULC.EVT_LIST_ITEM_CHECKED, self._onItemChecked)
-
         self.itemDataMap = {}
         listmix.ListCtrlAutoWidthMixin.__init__(self)
-
-        # sizer = wx.BoxSizer(wx.VERTICAL)
-        # sizer.Add(self.list_ctrl, 1, wx.ALL | wx.EXPAND, 5)
-        # self.SetSizer(sizer)
 
     def addItem(self, sasm):
         name = sasm.getParameter('filename')
@@ -2999,10 +2976,6 @@ class CheckListCtrl(ULC.UltimateListCtrl, listmix.ListCtrlAutoWidthMixin):
         self.itemDataMap[index] = ('', name)
 
         self.SetItemData(index, index)
-
-        # item = self.GetItem(index, 0)
-        # item.Check(True)
-        # self.SetItem(item)
 
         item = self.GetItem(index, 0)
         item.SetAlign(ULC.ULC_FORMAT_CENTER)

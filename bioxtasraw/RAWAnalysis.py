@@ -77,10 +77,12 @@ import bioxtasraw.SASProc as SASProc
 import bioxtasraw.BIFT as BIFT
 import bioxtasraw.DENSS as DENSS
 import bioxtasraw.SECM as SECM
+import bioxtasraw.SASUtils as SASUtils
 
 class UVConcentrationDialog(wx.Dialog):
     def __init__(self, parent, title, selected_sasms, bg_sasm):
-        wx.Dialog.__init__(self, None, title = title, size = self._FromDIP((250,150)))
+        wx.Dialog.__init__(self, None, title = title)
+        self.SetSize(self._FromDIP((250,150)))
 
         layout_sizer = wx.BoxSizer(wx.VERTICAL)
         self.panel = UVConcentrationPanel(self, 'UVConcPanel', selected_sasms = selected_sasms, bg_sasm = bg_sasm)
@@ -91,23 +93,7 @@ class UVConcentrationDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnCancelButton, id=wx.ID_CANCEL)
         self.SetSizerAndFit(layout_sizer)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -1505,7 +1491,8 @@ class GuinierFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(800, client_display.Width), min(600, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.SetSize(self._FromDIP(size))
 
         panel = wx.Panel(self)
 
@@ -1539,23 +1526,7 @@ class GuinierFrame(wx.Frame):
         top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
         self.SetSizer(top_sizer)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        print(best_size)
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.controlPanel._initSettings()
 
@@ -1600,7 +1571,8 @@ class MolWeightFrame(wx.Frame):
         else:
             size = (min(720, client_display.Width), min(550, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.SetSize(self._FromDIP(size))
 
         self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -1709,22 +1681,7 @@ class MolWeightFrame(wx.Frame):
         top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
         self.SetSizer(top_sizer)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -3748,7 +3705,8 @@ class GNOMFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(800, client_display.Width), min(700, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -3779,22 +3737,7 @@ class GNOMFrame(wx.Frame):
         top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
         self.SetSizer(top_sizer)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
         self.Raise()
@@ -5066,7 +5009,8 @@ class DammifFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(725, client_display.Width), min(900, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.SetSize(self._FromDIP(size))
 
         self.manip_item = manip_item
         self.iftm = iftm
@@ -5175,10 +5119,7 @@ class DammifRunPanel(wx.Panel):
 
     def __init__(self, parent, iftm, manip_item):
 
-        try:
-            wx.Panel.__init__(self, parent, wx.ID_ANY)
-        except:
-            wx.Panel.__init__(self, None, wx.ID_ANY)
+        wx.Panel.__init__(self, parent, wx.ID_ANY)
 
         self.parent = parent
 
@@ -6684,10 +6625,7 @@ class DammifResultsPanel(wx.Panel):
 
     def __init__(self, parent, iftm, manip_item):
 
-        try:
-            wx.Panel.__init__(self, parent, wx.ID_ANY)
-        except:
-            wx.Panel.__init__(self, None, wx.ID_ANY)
+        wx.Panel.__init__(self, parent, wx.ID_ANY)
 
         self.parent = parent
 
@@ -7263,7 +7201,8 @@ class DammifPlotPanel(wx.Panel):
 
     def __init__(self, parent, sasm, fit_sasm, chisq):
 
-        wx.Panel.__init__(self, parent, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, wx.ID_ANY, style=wx.BG_STYLE_SYSTEM
+            |wx.RAISED_BORDER)
 
         self.sasm = sasm
         self.fit_sasm = fit_sasm
@@ -7425,10 +7364,8 @@ class DenssFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(725, client_display.Width), min(900, client_display.Height))
 
-        try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
-        except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=self._FromDIP(size))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.SetSize(self._FromDIP(size))
 
         self.manip_item = manip_item
         self.iftm = iftm
@@ -7525,10 +7462,7 @@ class DenssRunPanel(wx.Panel):
 
     def __init__(self, parent, iftm, manip_item):
 
-        try:
-            wx.Panel.__init__(self, parent, wx.ID_ANY)
-        except:
-            wx.Panel.__init__(self, None, wx.ID_ANY)
+        wx.Panel.__init__(self, parent, wx.ID_ANY)
 
         self.parent = parent
 
@@ -9063,10 +8997,7 @@ class DenssResultsPanel(wx.Panel):
 
     def __init__(self, parent, iftm, manip_item):
 
-        try:
-            wx.Panel.__init__(self, parent, wx.ID_ANY)
-        except:
-            wx.Panel.__init__(self, None, wx.ID_ANY)
+        wx.Panel.__init__(self, parent, wx.ID_ANY)
 
         self.parent = parent
 
@@ -9503,10 +9434,7 @@ class DenssViewerPanel(wx.Panel):
 
     def __init__(self, parent):
 
-        try:
-            wx.Panel.__init__(self, parent, wx.ID_ANY, name = 'DenssViewerPanel')
-        except:
-            wx.Panel.__init__(self, None, wx.ID_ANY, name = 'DenssViewerPanel')
+        wx.Panel.__init__(self, parent, wx.ID_ANY, name = 'DenssViewerPanel')
 
         self.parent = parent
 
@@ -9598,7 +9526,8 @@ class DenssPlotPanel(wx.Panel):
 
     def __init__(self, parent, denss_results, iftm):
 
-        wx.Panel.__init__(self, parent, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, wx.ID_ANY, style=wx.BG_STYLE_SYSTEM
+            |wx.RAISED_BORDER)
 
         self.denss_results = denss_results
         self.iftm = iftm
@@ -9720,7 +9649,8 @@ class DenssAveragePlotPanel(wx.Panel):
 
     def __init__(self, parent, settings, average_results):
 
-        wx.Panel.__init__(self, parent, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, wx.ID_ANY, style=wx.BG_STYLE_SYSTEM
+            |wx.RAISED_BORDER)
 
         self.denss_settings = settings
         self.avg_results = average_results
@@ -9764,7 +9694,8 @@ class DenssAlignFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(450, client_display.Width), min(450, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.SetSize(self._FromDIP(size))
 
         self.main_frame = wx.FindWindowByName('MainFrame')
 
@@ -9786,22 +9717,7 @@ class DenssAlignFrame(wx.Frame):
 
         self._createLayout()
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -10160,7 +10076,8 @@ class BIFTFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(800, client_display.Width), min(700, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -10189,22 +10106,7 @@ class BIFTFrame(wx.Frame):
         top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
         self.SetSizer(top_sizer)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
         self.Raise()
@@ -10925,7 +10827,8 @@ class AmbimeterFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(450, client_display.Width), min(525, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.SetSize(self._FromDIP(size))
 
         self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -10968,22 +10871,7 @@ class AmbimeterFrame(wx.Frame):
         top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
         self.SetSizer(top_sizer)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
 
         self.CenterOnParent()
@@ -11331,7 +11219,8 @@ class SupcombFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(450, client_display.Width), min(450, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.SetSize(self._FromDIP(size))
 
         self.main_frame = wx.FindWindowByName('MainFrame')
 
@@ -11350,22 +11239,7 @@ class SupcombFrame(wx.Frame):
 
         self._createLayout()
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -11735,7 +11609,8 @@ class SVDFrame(wx.Frame):
 
         self.secm = secm
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -11764,22 +11639,7 @@ class SVDFrame(wx.Frame):
         top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
         self.SetSizer(top_sizer)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
         self.Raise()
@@ -12746,7 +12606,8 @@ class EFAFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(950, client_display.Width), min(750, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -12806,22 +12667,7 @@ class EFAFrame(wx.Frame):
         top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
         self.SetSizer(top_sizer)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
         self.Raise()
@@ -14797,7 +14643,8 @@ class EFAResultsPlotPanel3(wx.Panel):
 
     def __init__(self, parent, panel_id):
 
-        wx.Panel.__init__(self, parent, panel_id, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id, style=wx.BG_STYLE_SYSTEM
+            |wx.RAISED_BORDER)
 
         main_frame = wx.FindWindowByName('MainFrame')
 
@@ -15032,8 +14879,8 @@ class EFARangePlotPanel(wx.Panel):
     def __init__(self, parent, panel_id):
 
         wx.Panel.__init__(self, parent, panel_id,
-            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER,
-            size=self._FromDIP((275,300)))
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
+        self.SetSize(self._FromDIP((275, 300)))
 
         main_frame = wx.FindWindowByName('MainFrame')
 
@@ -15270,7 +15117,8 @@ class SimilarityFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(600, client_display.Width), min(400, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.SetSize(self._FromDIP(size))
 
 
         self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
@@ -15302,22 +15150,7 @@ class SimilarityFrame(wx.Frame):
         top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
         self.SetSizer(top_sizer)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -15669,7 +15502,8 @@ class NormKratkyFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(800, client_display.Width), min(600, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -15701,22 +15535,7 @@ class NormKratkyFrame(wx.Frame):
         top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
         self.SetSizer(top_sizer)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
         self.Raise()
@@ -16357,7 +16176,8 @@ class LCSeriesFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(1000, client_display.Width), min(900, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.SetSize(self._FromDIP(size))
 
         panel = wx.Panel(self)
 
@@ -16389,22 +16209,7 @@ class LCSeriesFrame(wx.Frame):
         top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
         self.SetSizer(top_sizer)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseEvt)
 

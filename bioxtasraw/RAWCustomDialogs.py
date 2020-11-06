@@ -53,6 +53,7 @@ if raw_path not in os.sys.path:
 
 import bioxtasraw.RAWCustomCtrl as RAWCustomCtrl
 import bioxtasraw.RAWGlobals as RAWGlobals
+import bioxtasraw.SASUtils as SASUtils
 
 
 class SaveAnalysisInfoDialog(wx.Dialog):
@@ -60,8 +61,8 @@ class SaveAnalysisInfoDialog(wx.Dialog):
     def __init__(self, parent, raw_settings, item_list = None, *args, **kwargs):
 
         wx.Dialog.__init__(self, parent, -1, 'Select variables to include in the comma separated file.',
-            style = wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX,
-            size=self._FromDIP((900,600)), *args, **kwargs)
+             *args, style = wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
+        self.SetSize(self._FromDIP((900,600)))
 
         self.raw_settings = raw_settings
 
@@ -80,23 +81,7 @@ class SaveAnalysisInfoDialog(wx.Dialog):
 
         self.SetSizer(self.sizer)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -631,8 +616,8 @@ class HdrDataDialog(wx.Dialog):
 
     def __init__(self, parent, sasm = None, *args, **kwargs):
 
-        wx.Dialog.__init__(self, parent, -1, 'Header Data Display',
-            style = wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'Header Data Display', *args,
+            style = wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -674,23 +659,7 @@ class HdrDataDialog(wx.Dialog):
         self.data_grid.AutoSizeColumns()
         # self.Fit()
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -823,8 +792,8 @@ class DataDialog(wx.Dialog):
 
     def __init__(self, parent, sasm = None, *args, **kwargs):
 
-        wx.Dialog.__init__(self, parent, -1, 'Scattering Data Display',
-            style = wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'Scattering Data Display', *args,
+            style = wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -867,23 +836,7 @@ class DataDialog(wx.Dialog):
         self.data_grid.AutoSizeColumns()
         self.Fit()
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -938,8 +891,8 @@ class SeriesDataDialog(wx.Dialog):
 
     def __init__(self, parent, secm = None, *args, **kwargs):
 
-        wx.Dialog.__init__(self, parent, -1, 'Series Data Display',
-            style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'Series Data Display', *args,
+            style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -975,23 +928,7 @@ class SeriesDataDialog(wx.Dialog):
         self.data_grid.AutoSizeColumns()
         self.Fit()
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -1168,8 +1105,8 @@ class IFTDataDialog(wx.Dialog):
 
     def __init__(self, parent, iftm = None, *args, **kwargs):
 
-        wx.Dialog.__init__(self, parent, -1, 'IFT Data Display',
-            style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'IFT Data Display', *args,
+            style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1225,23 +1162,7 @@ class IFTDataDialog(wx.Dialog):
         self.data_grid.AutoSizeColumns()
         self.Fit()
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -1310,8 +1231,8 @@ class HistoryDialog(wx.Dialog):
     def __init__(self, parent, sasm = None, *args, **kwargs):
 
         wx.Dialog.__init__(self, parent, -1, 'History Display',
-            style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, size=self._FromDIP((-1,600)),
-            *args, **kwargs)
+            *args, style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
+        self.SetSize(self._FromDIP((500,600)))
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1359,23 +1280,7 @@ class HistoryDialog(wx.Dialog):
 
         self.Layout()
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -1433,23 +1338,7 @@ class SyncDialog(wx.Dialog):
 
         self.Fit()
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -1520,23 +1409,7 @@ class QuickReduceDialog(wx.Dialog):
 
         self.Fit()
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -1607,23 +1480,7 @@ class FilenameChangeDialog(wx.Dialog):
         self.SetSizer(final_sizer)
         self.Fit()
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -1675,23 +1532,7 @@ class RebinDialog(wx.Dialog):
         self.SetSizer(top_sizer)
         self.Fit()
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -1761,23 +1602,7 @@ class ColourChangeDialog(wx.Dialog):
         self.SetSizer(top_sizer)
         self.Fit()
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -1920,8 +1745,9 @@ class LinePropertyDialog(wx.Dialog):
             return
 
 
-        wx.Dialog.__init__(self, parent, -1, "Line Properties",
-            size=self._FromDIP(size), style=style, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, "Line Properties", *args,
+            style=style, **kwargs)
+        self.SetSize(self._FromDIP(size))
 
         self.sasm = sasm
         self.line = sasm.line
@@ -2012,23 +1838,7 @@ class LinePropertyDialog(wx.Dialog):
 
         self.SetSizer(top_sizer)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -2291,8 +2101,9 @@ class IFTMLinePropertyDialog(wx.Dialog):
             return
 
 
-        wx.Dialog.__init__(self, parent, -1, "IFT Line Properties",
-            size=self._FromDIP(size), style = style, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, "IFT Line Properties", *args,
+            style = style, **kwargs)
+        self.SetSize(self._FromDIP(size))
 
         self.iftm = iftm
         self.r_line = iftm.r_line
@@ -2498,23 +2309,7 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
         self.SetSizer(top_sizer)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -3130,8 +2925,9 @@ class SECMLinePropertyDialog(wx.Dialog):
             return
 
 
-        wx.Dialog.__init__(self, parent, -1, "Series Line Properties",
-            size=self._FromDIP(size), style = style, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, "Series Line Properties", *args,
+            style = style, **kwargs)
+        self.SetSize(self._FromDIP(size))
 
         self.secm = secm
         self.line = secm.line
@@ -3258,23 +3054,7 @@ class SECMLinePropertyDialog(wx.Dialog):
 
         self.SetSizer(top_sizer)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -3820,8 +3600,8 @@ class PlotOptionsDialog(wx.Dialog):
     def __init__(self, parent, plotparams, axes, *args, **kwargs):
 
         wx.Dialog.__init__(self, parent, -1, 'Plot Options',
-            size=self._FromDIP((575,522)), style=wx.RESIZE_BORDER|wx.CAPTION
-            |wx.CLOSE_BOX, *args, **kwargs)
+            *args, style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
+        self.SetSize(self._FromDIP((576,522)))
 
         self.axes = axes
         self.plotparams = plotparams
@@ -3902,23 +3682,7 @@ class PlotOptionsDialog(wx.Dialog):
 
         self.SetSizer(top_sizer)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
@@ -4697,8 +4461,8 @@ class HelpFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(1110, client_display.Width), min(768, client_display.Height))
 
-        wx.Frame.__init__(self, parent, -1, "RAW {} Help".format(RAWGlobals.version),
-            size=self._FromDIP(size))
+        wx.Frame.__init__(self, parent, -1, "RAW {} Help".format(RAWGlobals.version))
+        self.SetSize(self._FromDIP(size))
 
         self.doc_path = RAWGlobals.RAWDocsDir
         self.home = os.path.join(self.doc_path, "tutorial.html")
@@ -4709,22 +4473,7 @@ class HelpFrame(wx.Frame):
         self.wv.LoadURL(self.home)
 
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
         self.Raise()
@@ -4789,8 +4538,8 @@ class SeriesAdjustmentFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(100, client_display.Width), min(100, client_display.Height))
 
-        wx.Frame.__init__(self, parent, -1, "Series Adjustment",
-            size=self._FromDIP(size))
+        wx.Frame.__init__(self, parent, -1, "Series Adjustment")
+        self.SetSize(self._FromDIP(size))
 
         self.seriesm = seriesm
         self.series_item_panel = series_item_panel
@@ -4804,22 +4553,7 @@ class SeriesAdjustmentFrame(wx.Frame):
         self._createLayout(self)
         self._initValues()
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseEvt)
 

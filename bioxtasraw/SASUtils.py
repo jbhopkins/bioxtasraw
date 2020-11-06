@@ -544,4 +544,22 @@ def load_DIP_bitmap(filepath, bitmap_type):
 
     return bmp
 
+def set_best_size(window):
 
+    best_size = window.GetBestSize()
+    current_size = window.GetSize()
+
+    client_display = wx.GetClientDisplayRect()
+    if best_size.GetWidth() > current_size.GetWidth():
+        best_width = min(best_size.GetWidth(), client_display.Width)
+        best_size.SetWidth(best_width)
+    else:
+        best_size.SetWidth(current_size.GetWidth())
+
+    if best_size.GetHeight() > current_size.GetHeight():
+        best_height = min(best_size.GetHeight(), client_display.Height)
+        best_size.SetHeight(best_height)
+    else:
+        best_size.SetHeight(current_size.GetHeight())
+
+    window.SetSize(best_size)

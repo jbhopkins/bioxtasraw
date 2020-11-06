@@ -6038,8 +6038,8 @@ class MainWorkerThread(threading.Thread):
 class FilePanel(wx.Panel):
     def __init__(self, parent):
 
-        wx.Panel.__init__(self, parent, size=self._FromDIP((400,600)),
-            name='FilePanel')
+        wx.Panel.__init__(self, parent, name='FilePanel')
+        self.SetSize(self._FromDIP((400, 600)))
 
         self.plot_panel = wx.FindWindowByName('PlotPanel')
         self.manipulation_panel = wx.FindWindowByName('ManipulationPanel')
@@ -14704,24 +14704,7 @@ class WelcomeDialog(wx.Dialog):
         top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
         self.SetSizer(top_sizer)
 
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        client_display = wx.GetClientDisplayRect()
-
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(best_size)
+        SASUtils.set_best_size(self)
 
         self.SetDefaultItem(self.ok_button)
 
@@ -14731,6 +14714,12 @@ class WelcomeDialog(wx.Dialog):
 
         self.CenterOnParent()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _onOKButton(self, event):
         # mainworker_cmd_queue.put(['startup', sys.argv])

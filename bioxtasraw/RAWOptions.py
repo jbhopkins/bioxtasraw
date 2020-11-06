@@ -499,11 +499,11 @@ class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
         self.clear_bind_button.Bind(wx.EVT_BUTTON, self.onClearBindingsButton)
 
         self.load_button = wx.Button(self, -1, 'Load Image',
-            size = self._FromDIP((self.clear_bind_button.GetSize()[0], -1)))
+            size=self.clear_bind_button.GetSize())
         self.load_button.Bind(wx.EVT_BUTTON, self.onLoadButton)
 
         self.clear_all_button = wx.Button(self, -1, 'Clear All',
-            size = self._FromDIP((self.clear_bind_button.GetSize()[0], -1)))
+            size=self.clear_bind_button.GetSize())
         self.clear_all_button.Bind(wx.EVT_BUTTON, self.onClearAllButton)
 
         sizer.Add(self.load_button, 0, wx.RIGHT, 3)
@@ -540,14 +540,11 @@ class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
         self.bind_ctrl = wx.Choice(self, -1, choices = self.bind_choice_list)
         self.bind_ctrl.Bind(wx.EVT_CHOICE, self.onBindChoice)
         self.bind_name_ctrl = wx.TextCtrl(self, -1,
-            size=self._FromDIP((self.bind_ctrl.GetSize()[0], -1)),
-            style=wx.TE_PROCESS_ENTER)
+            size=self.bind_ctrl.GetSize(), style=wx.TE_PROCESS_ENTER)
         self.bind_value_ctrl = wx.TextCtrl(self, -1,
-            size=self._FromDIP((self.bind_ctrl.GetSize()[0], -1)),
-            style=wx.TE_PROCESS_ENTER)
+            size=self.bind_ctrl.GetSize(), style=wx.TE_PROCESS_ENTER)
         self.bind_mod_ctrl = wx.TextCtrl(self, -1,
-            size=self._FromDIP((self.bind_ctrl.GetSize()[0], -1)),
-            style=wx.TE_PROCESS_ENTER)
+            size=self.bind_ctrl.GetSize(), style=wx.TE_PROCESS_ENTER)
 
         sizer.Add(name_text, 1, wx.ALIGN_CENTER)
         sizer.Add(self.bind_name_ctrl, 1)
@@ -4796,6 +4793,7 @@ class OptionsDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, 'Options', *args, name='OptionsDialog',
             style=wx.RESIZE_BORDER|wx.CAPTION, **kwargs)
+        self.SetSize(self._FromDIP((850,750)))
 
         #################################################################
         # To append more options make a custom panel class with theF
@@ -4855,26 +4853,9 @@ class OptionsDialog(wx.Dialog):
 
         client_display = wx.GetClientDisplayRect()
         minsize = (min(800, client_display.Width), min(600, client_display.Height))
-        self.SetMinSize(minsize)
+        self.SetMinSize(self._FromDIP(minsize))
 
-        self.SetSize(self._FromDIP((850,750)))
-
-        best_size = self.GetBestSize()
-        current_size = self.GetSize()
-
-        if best_size.GetWidth() > current_size.GetWidth():
-            best_width = min(best_size.GetWidth(), client_display.Width)
-            best_size.SetWidth(best_width)
-        else:
-            best_size.SetWidth(current_size.GetWidth())
-
-        if best_size.GetHeight() > current_size.GetHeight():
-            best_height = min(best_size.GetHeight(), client_display.Height)
-            best_size.SetHeight(best_height)
-        else:
-            best_size.SetHeight(current_size.GetHeight())
-
-        self.SetSize(self._FromDIP(best_size))
+        SASUtils.set_best_size(self)
 
         self.CenterOnParent()
 
