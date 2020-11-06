@@ -269,6 +269,12 @@ class CalibrationOptionsPanel(scrolled.ScrolledPanel):
 
         self.SetSizer(panelsizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def create2DReductionParameters(self, parent):
 
@@ -284,7 +290,7 @@ class CalibrationOptionsPanel(scrolled.ScrolledPanel):
 
             if ctrl_type == 'float' or ctrl_type == 'int' or ctrl_type == 'text':
                 txt = wx.StaticText(parent, label=each_text)
-                ctrl = wx.TextCtrl(parent, ctrl_id, size=(60, -1))
+                ctrl = wx.TextCtrl(parent, ctrl_id, size=self._FromDIP((60, -1)))
 
                 ctrl_sizer.Add(txt, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
                 ctrl_sizer.Add(ctrl, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -356,10 +362,10 @@ class HeaderListCtrl(wx.ListCtrl):
         self.insertAllColumns()
 
     def insertAllColumns(self):
-        self.InsertColumn(0, 'Name', width = 150)
-        self.InsertColumn(1, 'Value', width = 150)
-        self.InsertColumn(2, 'Binding', width = 150)
-        self.InsertColumn(3, 'Modifier', width = 150)
+        self.InsertColumn(0, 'Name', width = self._FromDIP(150))
+        self.InsertColumn(1, 'Value', width = self._FromDIP(150))
+        self.InsertColumn(2, 'Binding', width = self._FromDIP(150))
+        self.InsertColumn(3, 'Modifier', width = self._FromDIP(150))
 
     def getColumnText(self, index, col):
         item = self.GetItem(index, col)
@@ -377,7 +383,12 @@ class HeaderListCtrl(wx.ListCtrl):
         self.insertAllColumns()
         self.Refresh()
 
-
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
 class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
 
@@ -441,6 +452,12 @@ class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
 
         self._updateList(imghdr, filehdr)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def enableAllBindCtrls(self, state):
 
@@ -481,10 +498,12 @@ class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
         self.clear_bind_button = wx.Button(self, -1, 'Clear Bindings')
         self.clear_bind_button.Bind(wx.EVT_BUTTON, self.onClearBindingsButton)
 
-        self.load_button = wx.Button(self, -1, 'Load Image', size = self.clear_bind_button.GetSize())
+        self.load_button = wx.Button(self, -1, 'Load Image',
+            size = self._FromDIP((self.clear_bind_button.GetSize()[0], -1)))
         self.load_button.Bind(wx.EVT_BUTTON, self.onLoadButton)
 
-        self.clear_all_button = wx.Button(self, -1, 'Clear All', size = self.clear_bind_button.GetSize())
+        self.clear_all_button = wx.Button(self, -1, 'Clear All',
+            size = self._FromDIP((self.clear_bind_button.GetSize()[0], -1)))
         self.clear_all_button.Bind(wx.EVT_BUTTON, self.onClearAllButton)
 
         sizer.Add(self.load_button, 0, wx.RIGHT, 3)
@@ -520,9 +539,15 @@ class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
 
         self.bind_ctrl = wx.Choice(self, -1, choices = self.bind_choice_list)
         self.bind_ctrl.Bind(wx.EVT_CHOICE, self.onBindChoice)
-        self.bind_name_ctrl = wx.TextCtrl(self, -1, size = self.bind_ctrl.GetSize(), style = wx.TE_PROCESS_ENTER)
-        self.bind_value_ctrl = wx.TextCtrl(self, -1, size = self.bind_ctrl.GetSize(), style = wx.TE_PROCESS_ENTER)
-        self.bind_mod_ctrl = wx.TextCtrl(self, -1, size = self.bind_ctrl.GetSize(), style = wx.TE_PROCESS_ENTER)
+        self.bind_name_ctrl = wx.TextCtrl(self, -1,
+            size=self._FromDIP((self.bind_ctrl.GetSize()[0], -1)),
+            style=wx.TE_PROCESS_ENTER)
+        self.bind_value_ctrl = wx.TextCtrl(self, -1,
+            size=self._FromDIP((self.bind_ctrl.GetSize()[0], -1)),
+            style=wx.TE_PROCESS_ENTER)
+        self.bind_mod_ctrl = wx.TextCtrl(self, -1,
+            size=self._FromDIP((self.bind_ctrl.GetSize()[0], -1)),
+            style=wx.TE_PROCESS_ENTER)
 
         sizer.Add(name_text, 1, wx.ALIGN_CENTER)
         sizer.Add(self.bind_name_ctrl, 1)
@@ -678,8 +703,8 @@ class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
 
 
             self.lc.SetColumnWidth(0, wx.LIST_AUTOSIZE)
-            self.lc.SetColumnWidth(1, 170)
-            self.lc.SetColumnWidth(2, 150)
+            self.lc.SetColumnWidth(1, self._FromDIP(170))
+            self.lc.SetColumnWidth(2, self._FromDIP(150))
 
         self.imghdr_start_idx = self.lc.GetItemCount()
 
@@ -706,8 +731,8 @@ class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
                 self.img_hdr_list_dict[key] = num_items
 
             self.lc.SetColumnWidth(0, wx.LIST_AUTOSIZE)
-            self.lc.SetColumnWidth(1, 170)
-            self.lc.SetColumnWidth(2, 150)
+            self.lc.SetColumnWidth(1, self._FromDIP(170))
+            self.lc.SetColumnWidth(2, self._FromDIP(150))
 
 
         for each in self.bind_list:
@@ -831,10 +856,17 @@ class NormListCtrl(wx.ListCtrl):
         wx.ListCtrl.__init__(self, parent, id, *args, **kwargs)
         self.populateList()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def populateList(self):
         self.InsertColumn(0, 'Operator')
         self.InsertColumn(1, 'Expression')
-        self.SetColumnWidth(1, 250)
+        self.SetColumnWidth(1, self._FromDIP(250))
 
     def add(self, op, expr):
         no_of_items = self.GetItemCount()
@@ -920,12 +952,19 @@ class OnlineListCtrl(wx.ListCtrl):
         wx.ListCtrl.__init__(self, parent, id, *args, **kwargs)
         self.populateList()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def populateList(self):
         self.InsertColumn(0, 'Ignore/Open')
         self.InsertColumn(1, 'Filter String')
         self.InsertColumn(2, 'Location')
-        self.SetColumnWidth(0, 100)
-        self.SetColumnWidth(1, 200)
+        self.SetColumnWidth(0, self._FromDIP(100))
+        self.SetColumnWidth(1, self._FromDIP(200))
 
     def add(self, filt, expr, pos):
         no_of_items = self.GetItemCount()
@@ -1017,10 +1056,17 @@ class MetadataListCtrl(wx.ListCtrl):
         wx.ListCtrl.__init__(self, parent, id, *args, **kwargs)
         self.populateList()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def populateList(self):
         self.InsertColumn(0, 'Key')
         self.InsertColumn(1, 'Value')
-        self.SetColumnWidth(1, 250)
+        self.SetColumnWidth(1, self._FromDIP(250))
 
     def add(self, op, expr):
         no_of_items = self.GetItemCount()
@@ -1158,6 +1204,13 @@ class ReductionNormalizationAbsScPanel(scrolled.ScrolledPanel):
 
         self.SetSizer(top_sizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _createLayout(self):
         water_sizer = self._createWaterLayout()
         carbon_sizer = self._createCarbonLayout()
@@ -1217,9 +1270,11 @@ class ReductionNormalizationAbsScPanel(scrolled.ScrolledPanel):
             txt = wx.StaticText(self, -1, eachLabel)
 
             if item_type == 'choice':
-                ctrl = wx.Choice(self, item_id, choices = counter_choices, size = (80, -1))
+                ctrl = wx.Choice(self, item_id, choices = counter_choices,
+                    size=self._FromDIP((80, -1)))
             else:
-                ctrl = wx.TextCtrl(self, item_id, '0', style = wx.TE_PROCESS_ENTER | wx.TE_RIGHT, size = (80, -1))
+                ctrl = wx.TextCtrl(self, item_id, '0', style=wx.TE_PROCESS_ENTER
+                    |wx.TE_RIGHT, size=self._FromDIP((80, -1)))
 
             norm_const_sizer.Add(txt, 1, wx.ALIGN_CENTER_VERTICAL)
             norm_const_sizer.Add(ctrl, 1)
@@ -1284,10 +1339,12 @@ class ReductionNormalizationAbsScPanel(scrolled.ScrolledPanel):
             txt = wx.StaticText(self, -1, eachLabel)
 
             if id == self.normConstantsData[0][1]:
-                ctrl = wx.Choice(self, id, choices = sorted(temps, key=int), size = (80, -1))
+                ctrl = wx.Choice(self, id, choices = sorted(temps, key=int),
+                    size=self._FromDIP((80, -1)))
                 ctrl.Bind(wx.EVT_CHOICE, self._onTempChoice)
             else:
-                ctrl = wx.TextCtrl(self, id, '0', style = wx.TE_PROCESS_ENTER | wx.TE_RIGHT, size = (80, -1))
+                ctrl = wx.TextCtrl(self, id, '0', style=wx.TE_PROCESS_ENTER
+                    |wx.TE_RIGHT, size=self._FromDIP((80, -1)))
 
             hSizer.Add(txt, 1, wx.ALIGN_CENTER_VERTICAL)
             hSizer.Add(ctrl, 1)
@@ -1826,6 +1883,13 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
 
         self.SetSizer(final_sizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def createRelMWSettings(self):
 
         hSizer = wx.FlexGridSizer(cols = 4, rows = 1, vgap = 3, hgap = 5)
@@ -1833,7 +1897,8 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
         for txt, id in self.RelMWData:
             sizer = wx.BoxSizer(wx.VERTICAL)
             if id == self.raw_settings.getId('MWStandardFile'):
-                ctrl = wx.TextCtrl(self, id, '', size = (200,-1), style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(self, id, '', size=self._FromDIP((200,-1)),
+                    style = wx.TE_PROCESS_ENTER)
             else:
                 ctrl = wx.TextCtrl(self, id, '', style = wx.TE_PROCESS_ENTER)
             txt = wx.StaticText(self, -1, txt)
@@ -2741,6 +2806,13 @@ class IftOptionsPanel(scrolled.ScrolledPanel):
 
         self.SetSizer(top_sizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def createBiftOptions(self, bift_panel):
 
         no_of_rows = ceil(int(len(self.bift_options_data))/2.0)
@@ -2751,7 +2823,8 @@ class IftOptionsPanel(scrolled.ScrolledPanel):
             id = each[1]
 
             labeltxt = wx.StaticText(bift_panel, -1, str(label))
-            ctrl = wx.TextCtrl(bift_panel, id, '0', size = (60, 21), style = wx.TE_RIGHT | wx.TE_PROCESS_ENTER)
+            ctrl = wx.TextCtrl(bift_panel, id, '0', size=self._FromDIP((60, 21)),
+                style=wx.TE_RIGHT|wx.TE_PROCESS_ENTER)
 
             grid_sizer.Add(labeltxt, 1)
             grid_sizer.Add(ctrl, 1)
@@ -2781,6 +2854,13 @@ class AutomationOptionsPanel(scrolled.ScrolledPanel):
         panelsizer.Add(self.autobiftsizer,0, wx.EXPAND | wx.BOTTOM | wx.LEFT | wx.RIGHT, 5)
         self.SetSizer(panelsizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def createAutoAverageSettings(self):
 
         topbox = wx.StaticBox(self, -1, 'Averaging')
@@ -2794,21 +2874,25 @@ class AutomationOptionsPanel(scrolled.ScrolledPanel):
         box12 = wx.BoxSizer(wx.HORIZONTAL)
 
         self.reglabel = wx.StaticText(self, -1, 'Regular Expression (frame):')
-        self.regctrl = wx.TextCtrl(self, self.raw_settings.getId('AutoAvgRegExp'), size = (150,-1), style = wx.TE_PROCESS_ENTER)
+        self.regctrl = wx.TextCtrl(self, self.raw_settings.getId('AutoAvgRegExp'),
+            size=self._FromDIP((150,-1)), style = wx.TE_PROCESS_ENTER)
 
         box1 = wx.BoxSizer(wx.VERTICAL)
         box1.Add(self.reglabel,0)
         box1.Add(self.regctrl,0)
 
         self.reglabelname = wx.StaticText(self, -1, 'Regular Expression (name):')
-        self.regctrlname = wx.TextCtrl(self, self.raw_settings.getId('AutoAvgNameRegExp'), size = (150,-1), style = wx.TE_PROCESS_ENTER)
+        self.regctrlname = wx.TextCtrl(self, self.raw_settings.getId('AutoAvgNameRegExp'),
+            size=self._FromDIP((150,-1)), style = wx.TE_PROCESS_ENTER)
 
         box5 = wx.BoxSizer(wx.VERTICAL)
         box5.Add(self.reglabelname,0)
         box5.Add(self.regctrlname,0)
 
         self.numofframesLabel = wx.StaticText(self, -1, 'No. of Frames:')
-        self.numofframesCtrl = wx.TextCtrl(self, self.raw_settings.getId('AutoAvgNoOfFrames'), '1', style = wx.TE_CENTER | wx.TE_PROCESS_ENTER)
+        self.numofframesCtrl = wx.TextCtrl(self,
+            self.raw_settings.getId('AutoAvgNoOfFrames'), '1',
+            style = wx.TE_CENTER | wx.TE_PROCESS_ENTER)
         box2 = wx.BoxSizer(wx.VERTICAL)
         box2.Add(self.numofframesLabel,0)
         box2.Add(self.numofframesCtrl,0)
@@ -2821,19 +2905,23 @@ class AutomationOptionsPanel(scrolled.ScrolledPanel):
         box34 = wx.BoxSizer(wx.HORIZONTAL)
 
         testfilenameLabel = wx.StaticText(self, -1, 'Test Filename:')
-        self.testfilenameCtrl = wx.TextCtrl(self, -1, size = (150,-1), style = wx.TE_PROCESS_ENTER)
+        self.testfilenameCtrl = wx.TextCtrl(self, -1,
+            size=self._FromDIP((150,-1)), style = wx.TE_PROCESS_ENTER)
         box3 = wx.BoxSizer(wx.VERTICAL)
         box3.Add(testfilenameLabel,0)
         box3.Add(self.testfilenameCtrl,0)
 
         testfilenameLabelex = wx.StaticText(self, -1, 'Extracted Filename:')
-        self.testfilenameCtrlex = wx.TextCtrl(self, -1, size = (150,-1), style = wx.TE_CENTER | wx.TE_READONLY | wx.TE_PROCESS_ENTER)
+        self.testfilenameCtrlex = wx.TextCtrl(self, -1,
+            size=self._FromDIP((150,-1)), style = wx.TE_CENTER | wx.TE_READONLY
+            | wx.TE_PROCESS_ENTER)
         box6 = wx.BoxSizer(wx.VERTICAL)
         box6.Add(testfilenameLabelex,0)
         box6.Add(self.testfilenameCtrlex,0)
 
         testframenum = wx.StaticText(self, -1, 'Frame #:')
-        self.testframectrl = wx.TextCtrl(self, -1, style = wx.TE_CENTER | wx.TE_READONLY | wx.TE_PROCESS_ENTER)
+        self.testframectrl = wx.TextCtrl(self, -1, style = wx.TE_CENTER
+            | wx.TE_READONLY | wx.TE_PROCESS_ENTER)
         testbutton = wx.Button(self, -1 , 'Test')
         testbutton.Bind(wx.EVT_BUTTON, self.OnAutoAvgTest)
 
@@ -2879,7 +2967,8 @@ class AutomationOptionsPanel(scrolled.ScrolledPanel):
         box12 = wx.BoxSizer(wx.HORIZONTAL)
 
         self.autobgreglabel = wx.StaticText(self, -1, 'Regular Expression:')
-        self.autobgregctrl = wx.TextCtrl(self, self.raw_settings.getId('AutoBgSubRegExp'), size = (150,-1), style = wx.TE_PROCESS_ENTER)
+        self.autobgregctrl = wx.TextCtrl(self, self.raw_settings.getId('AutoBgSubRegExp'),
+            size=self._FromDIP((150,-1)), style = wx.TE_PROCESS_ENTER)
 
         box1 = wx.BoxSizer(wx.VERTICAL)
         box1.Add(self.autobgreglabel,0)
@@ -2891,7 +2980,8 @@ class AutomationOptionsPanel(scrolled.ScrolledPanel):
         box34 = wx.BoxSizer(wx.HORIZONTAL)
 
         testfilenameLabel = wx.StaticText(self, -1, 'Test Filename:')
-        self.autobgtestfilenameCtrl = wx.TextCtrl(self, -1, size = (150,-1), style = wx.TE_PROCESS_ENTER)
+        self.autobgtestfilenameCtrl = wx.TextCtrl(self, -1,
+            size=self._FromDIP((150,-1)), style = wx.TE_PROCESS_ENTER)
         box3 = wx.BoxSizer(wx.VERTICAL)
         box3.Add(testfilenameLabel,0)
         box3.Add(self.autobgtestfilenameCtrl,0)
@@ -2983,6 +3073,12 @@ class SeriesPanel(scrolled.ScrolledPanel):
         top_sizer.Add(sizer, 1, wx.EXPAND | wx.ALL, 5)
         self.SetSizer(top_sizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def createOptions(self):
 
@@ -2991,7 +3087,7 @@ class SeriesPanel(scrolled.ScrolledPanel):
         for item in self.settings:
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             label = wx.StaticText(self, -1, item[0])
-            value = wx.TextCtrl(self, item[1], '', size = (60, -1))
+            value = wx.TextCtrl(self, item[1], '', size=self._FromDIP((60, -1)))
 
             sizer.Add(label, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.ALIGN_CENTER_VERTICAL, 5)
             sizer.Add(value, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.ALIGN_CENTER_VERTICAL, 5)
@@ -3029,6 +3125,13 @@ class ATSASGeneralPanel(scrolled.ScrolledPanel):
 
         self.SetSizer(final_sizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def createATSASOptions(self):
 
         # wx.StaticBox(self, -1, '')
@@ -3037,7 +3140,9 @@ class ATSASGeneralPanel(scrolled.ScrolledPanel):
         self.autoFind.Bind(wx.EVT_CHECKBOX, self.onAutoFind)
 
         self.dirLabel = wx.StaticText(self, -1, self.data[0][0])
-        self.datadir = wx.TextCtrl(self, self.data[0][1], self.raw_settings.get('ATSASDir'), size = (475,-1), style = wx.TE_PROCESS_ENTER)
+        self.datadir = wx.TextCtrl(self, self.data[0][1],
+            self.raw_settings.get('ATSASDir'), size = self._FromDIP((475,-1)),
+            style = wx.TE_PROCESS_ENTER)
 
         self.dirButton = wx.Button(self, -1, 'Select Directory')
         self.dirButton.Bind(wx.EVT_BUTTON, self.onDirButton)
@@ -3114,6 +3219,13 @@ class ATSASGnom(scrolled.ScrolledPanel):
 
         self.SetSizer(options_sizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def createGNOMOptions(self):
         rmin_text = wx.StaticText(self, -1, 'Force P(r) to 0 at r = 0 :')
         rmin_choice = wx.Choice(self, self.raw_settings.getId('gnomForceRminZero'),
@@ -3134,7 +3246,7 @@ class ATSASGnom(scrolled.ScrolledPanel):
 
         npts_text = wx.StaticText(self, -1, 'Number of points in real space (0=auto, value sets to default):')
         npts_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomNPoints'),
-            '', size = (60, -1), style = wx.TE_PROCESS_ENTER)
+            '', size=self._FromDIP((60, -1)), style=wx.TE_PROCESS_ENTER)
 
         npts_sizer = wx.BoxSizer(wx.HORIZONTAL)
         npts_sizer.Add(npts_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
@@ -3143,7 +3255,7 @@ class ATSASGnom(scrolled.ScrolledPanel):
 
         alpha_text = wx.StaticText(self, -1, 'Initial Alpha (0=auto, value sets default):')
         alpha_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomInitialAlpha'),
-            '', size = (60, -1), style = wx.TE_PROCESS_ENTER)
+            '', size=self._FromDIP((60, -1)), style=wx.TE_PROCESS_ENTER)
 
         alpha_sizer = wx.BoxSizer(wx.HORIZONTAL)
         alpha_sizer.Add(alpha_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
@@ -3266,13 +3378,24 @@ class ATSASGnomAdvanced(scrolled.ScrolledPanel):
 
         self.SetSizer(options_sizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def createGNOMOptions(self):
 
 
         angular_box = wx.StaticBox(self)
         angular_text1 = wx.StaticText(self, -1, 'Angular Scale :')
-        angular_text2 = wx.StaticText(self, -1, '1 - q=4pi*sin(theta)/lambda [A^-1]\n2 - q=4pi*sin(theta)/lambda, convert [nm^-1] to [A^-1]\n3 - q=2*sin(theta)/lambda [A^-1]\n4 - q=2*sin(theta)/lambda, convert [nm^-1] to [A^-1]', style = wx.TE_MULTILINE)
-        angular_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomAngularScale'), '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+        angular_text2 = wx.StaticText(self, -1, ('1 - q=4pi*sin(theta)/lambda '
+            '[A^-1]\n2 - q=4pi*sin(theta)/lambda, convert [nm^-1] to [A^-1]\n3 '
+            '- q=2*sin(theta)/lambda [A^-1]\n4 - q=2*sin(theta)/lambda, convert '
+            '[nm^-1] to [A^-1]'), style = wx.TE_MULTILINE)
+        angular_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomAngularScale'),
+            '', size = self._FromDIP((60,-1)), style = wx.TE_PROCESS_ENTER)
 
         angular_sizer = wx.StaticBoxSizer(angular_box, wx.VERTICAL)
         angular_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
@@ -3285,8 +3408,17 @@ class ATSASGnomAdvanced(scrolled.ScrolledPanel):
 
         system_box = wx.StaticBox(self)
         system_text1 = wx.StaticText(self, -1, 'Job Type :')
-        system_text2 = wx.StaticText(self, -1, '0 - P(r) for a mondisperse system\n1 - Volume distribution function for polydisperse system of solid spheres\n2 - P(r) with a user supplied form factor\n3 - Thickness distance distribution of a monodisperse system of flattened particles\n4 - Cross-section distance distribution of monodisperse rod-like particles\n5 - Length distribution of a polydisperse system of long cylinders\n6 - Surface distribution function for a polydisperse system of spherical shells', style = wx.TE_MULTILINE)
-        system_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomSystem'), '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+        system_text2 = wx.StaticText(self, -1, ('0 - P(r) for a mondisperse '
+            'system\n1 - Volume distribution function for polydisperse system '
+            'of solid spheres\n2 - P(r) with a user supplied form factor\n3 '
+            '- Thickness distance distribution of a monodisperse system of '
+            'flattened particles\n4 - Cross-section distance distribution of '
+            'monodisperse rod-like particles\n5 - Length distribution of a '
+            'polydisperse system of long cylinders\n6 - Surface distribution '
+            'function for a polydisperse system of spherical shells'),
+            style = wx.TE_MULTILINE)
+        system_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomSystem'),
+            '', size = self._FromDIP((60,-1)), style = wx.TE_PROCESS_ENTER)
 
         system_sizer = wx.StaticBoxSizer(system_box, wx.VERTICAL)
         system_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
@@ -3298,7 +3430,8 @@ class ATSASGnomAdvanced(scrolled.ScrolledPanel):
 
 
         expert_text = wx.StaticText(self, -1, 'Expert parameters file :',)
-        expert_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomExpertFile'), '', size = (325,-1), style = wx.TE_PROCESS_ENTER)
+        expert_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomExpertFile'),
+            '', size = self._FromDIP((325,-1)), style = wx.TE_PROCESS_ENTER)
         expert_button = wx.Button(self, self.button_ids['expert'], 'Select')
         expert_button.Bind(wx.EVT_BUTTON, self.onSelectButton)
 
@@ -3309,7 +3442,8 @@ class ATSASGnomAdvanced(scrolled.ScrolledPanel):
 
 
         form_text = wx.StaticText(self, -1, 'Form factor file (job 2) :',)
-        form_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomFormFactor'), '', size = (325,-1), style = wx.TE_PROCESS_ENTER)
+        form_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomFormFactor'),
+            '', size = self._FromDIP((325,-1)), style = wx.TE_PROCESS_ENTER)
         form_button = wx.Button(self, self.button_ids['form'], 'Select')
         form_button.Bind(wx.EVT_BUTTON, self.onSelectButton)
 
@@ -3320,14 +3454,16 @@ class ATSASGnomAdvanced(scrolled.ScrolledPanel):
 
 
         radius_text = wx.StaticText(self, -1, 'Radius/thickness (job 5/6) :')
-        radius_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomRadius56'), size = (60, -1), style = wx.TE_PROCESS_ENTER)
+        radius_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomRadius56'),
+            size = self._FromDIP((60, -1)), style = wx.TE_PROCESS_ENTER)
 
         radius_sizer = wx.BoxSizer(wx.HORIZONTAL)
         radius_sizer.Add(radius_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
         radius_sizer.Add(radius_ctrl, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
 
         radmin_text = wx.StaticText(self, -1, 'Dmin (jobs 1, 2, 5, 6) :')
-        radmin_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomRmin'), size = (60,-1), style = wx.TE_PROCESS_ENTER)
+        radmin_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomRmin'),
+            size = self._FromDIP((60,-1)), style = wx.TE_PROCESS_ENTER)
 
         radmin_sizer = wx.BoxSizer(wx.HORIZONTAL)
         radmin_sizer.Add(radmin_text, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
@@ -3337,7 +3473,8 @@ class ATSASGnomAdvanced(scrolled.ScrolledPanel):
         comb_sizer1.Add(radius_sizer)
         comb_sizer1.Add(radmin_sizer)
 
-        advanced_text = wx.StaticText(self, -1, 'This panel allows you to set the less common advanced settings used by the ATSAS software GNOM.')
+        advanced_text = wx.StaticText(self, -1, ('This panel allows you to set '
+            'the less common advanced settings used by the ATSAS software GNOM.'))
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -3422,6 +3559,13 @@ class ATSASDammix(scrolled.ScrolledPanel):
 
         self.Layout()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _createLayout(self, parent):
 
         defaultBox = wx.StaticBox(parent, -1, 'Defaults')
@@ -3446,7 +3590,8 @@ class ATSASDammix(scrolled.ScrolledPanel):
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
                 labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, myId, '', size = self._FromDIP((60,-1)),
+                    style = wx.TE_PROCESS_ENTER)
 
                 sizer.Add(labeltxt, 0, wx.ALL, 2)
                 sizer.Add(ctrl, 0, wx.ALL, 2)
@@ -3455,7 +3600,9 @@ class ATSASDammix(scrolled.ScrolledPanel):
                 ctrl = wx.CheckBox(parent, myId, label)
                 sizer.Add(ctrl, 0, wx.ALL, 2)
 
-                if myId == self.raw_settings.getId('dammifDamaver') or myId == self.raw_settings.getId('dammifDamclust') or myId == self.raw_settings.getId('dammifRefine'):
+                if (myId == self.raw_settings.getId('dammifDamaver')
+                    or myId == self.raw_settings.getId('dammifDamclust')
+                    or myId == self.raw_settings.getId('dammifRefine')):
                     ctrl.Bind(wx.EVT_CHECKBOX, self._onCheckBox)
 
             defaultSizer.Add(sizer, 0)
@@ -3484,7 +3631,8 @@ class ATSASDammix(scrolled.ScrolledPanel):
                     sizer.Add(ctrl, 0, wx.ALL, 3)
                 elif itemType == 'text':
                     labeltxt = wx.StaticText(parent, -1, label)
-                    ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+                    ctrl = wx.TextCtrl(parent, myId, '', size = self._FromDIP((60,-1)),
+                        style = wx.TE_PROCESS_ENTER)
 
                     sizer.Add(labeltxt, 0, wx.ALL, 3)
                     sizer.Add(ctrl, 0, wx.ALL, 3)
@@ -3626,6 +3774,13 @@ class ATSASDammixAdvanced(scrolled.ScrolledPanel):
 
         self.SetSizer(layoutSizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _createLayout(self, parent):
 
         customSizer = wx.BoxSizer(wx.VERTICAL)
@@ -3653,7 +3808,8 @@ class ATSASDammixAdvanced(scrolled.ScrolledPanel):
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
                 labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((60,-1)),
+                    style = wx.TE_PROCESS_ENTER)
 
                 sizer.Add(labeltxt, 0, wx.ALL, 2)
                 sizer.Add(ctrl, 0, wx.ALL, 2)
@@ -3680,7 +3836,8 @@ class ATSASDammixAdvanced(scrolled.ScrolledPanel):
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
                 labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((60,-1)),
+                    style = wx.TE_PROCESS_ENTER)
 
                 short_sizer.Add(labeltxt, 0)
                 short_sizer.Add(ctrl, 0)
@@ -3740,11 +3897,22 @@ class ATSASDammifAdvanced(scrolled.ScrolledPanel):
 
         self.SetSizer(layoutSizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _createLayout(self, parent):
 
         customSizer = wx.BoxSizer(wx.VERTICAL)
 
-        customText = wx.StaticText(parent, -1, 'These settings are used when "Custom" is selected as the mode in the DAMMIF/N panel.\nThis is equivalent to the DAMMIF interactive mode in the command line.\nUnless otherwise noted, a value of -1 means DAMMIF will use the default setting.')
+        customText = wx.StaticText(parent, -1, ('These settings are used when '
+            '"Custom" is selected as the mode in the DAMMIF/N panel.\nThis is '
+            'equivalent to the DAMMIF interactive mode in the command line.\n'
+            'Unless otherwise noted, a value of -1 means DAMMIF will use the '
+            'default setting.'))
         customSizer.Add(customText, 0, wx.ALL, 5)
 
         for item in self.custom_options_long:
@@ -3763,7 +3931,8 @@ class ATSASDammifAdvanced(scrolled.ScrolledPanel):
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
                 labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((60,-1)),
+                    style = wx.TE_PROCESS_ENTER)
 
                 sizer.Add(labeltxt, 0, wx.ALL, 2)
                 sizer.Add(ctrl, 0, wx.ALL, 2)
@@ -3774,7 +3943,8 @@ class ATSASDammifAdvanced(scrolled.ScrolledPanel):
 
             customSizer.Add(sizer, 0)
 
-        short_sizer = wx.FlexGridSizer(rows = int(len(self.custom_options_short)/2.+.5), cols =4, hgap =2, vgap =2)
+        short_sizer = wx.FlexGridSizer(rows = int(len(self.custom_options_short)/2.+.5),
+            cols =4, hgap =2, vgap =2)
 
         for item in self.custom_options_short:
             label = item[0]
@@ -3790,7 +3960,8 @@ class ATSASDammifAdvanced(scrolled.ScrolledPanel):
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
                 labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((60,-1)),
+                    style = wx.TE_PROCESS_ENTER)
 
                 short_sizer.Add(labeltxt, 0)
                 short_sizer.Add(ctrl, 0)
@@ -3844,11 +4015,22 @@ class ATSASDamminAdvanced(scrolled.ScrolledPanel):
 
         self.SetSizer(layoutSizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _createLayout(self, parent):
 
         customSizer = wx.BoxSizer(wx.VERTICAL)
 
-        customText = wx.StaticText(parent, -1, 'These settings are used when "Custom" is selected as the mode in the DAMMIF/N panel.\nThis is equivalent to the DAMMIN interactive mode in the command line.\nUnless otherwise noted, a value of -1 means DAMMIN will use the default setting.')
+        customText = wx.StaticText(parent, -1, ('These settings are used when '
+            '"Custom" is selected as the mode in the DAMMIF/N panel.\nThis is '
+            'equivalent to the DAMMIN interactive mode in the command line.\n'
+            'Unless otherwise noted, a value of -1 means DAMMIN will use the '
+            'default setting.'))
         customSizer.Add(customText, 0, wx.ALL, 5)
 
         for item in self.custom_options_long:
@@ -3867,7 +4049,8 @@ class ATSASDamminAdvanced(scrolled.ScrolledPanel):
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
                 labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((60,-1)),
+                    style = wx.TE_PROCESS_ENTER)
 
                 sizer.Add(labeltxt, 0, wx.ALL, 2)
                 sizer.Add(ctrl, 0, wx.ALL, 2)
@@ -3878,7 +4061,7 @@ class ATSASDamminAdvanced(scrolled.ScrolledPanel):
 
             customSizer.Add(sizer, 0)
 
-        short_sizer = wx.FlexGridSizer(rows = int(len(self.custom_options_short)/2.+.5), cols =4, hgap =2, vgap =2)
+        short_sizer = wx.FlexGridSizer(cols =4, hgap =2, vgap =2)
 
         for item in self.custom_options_short:
             label = item[0]
@@ -3894,7 +4077,8 @@ class ATSASDamminAdvanced(scrolled.ScrolledPanel):
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
                 labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((60,-1)),
+                    style = wx.TE_PROCESS_ENTER)
 
                 short_sizer.Add(labeltxt, 0)
                 short_sizer.Add(ctrl, 0)
@@ -3943,6 +4127,13 @@ class WeightedAveragePanel(scrolled.ScrolledPanel):
         top_sizer.Add(sizer, 1, wx.EXPAND | wx.ALL, 5)
         self.SetSizer(top_sizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
 
     def createOptions(self, parent):
 
@@ -3964,7 +4155,8 @@ class WeightedAveragePanel(scrolled.ScrolledPanel):
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
                 labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((60,-1)),
+                    style = wx.TE_PROCESS_ENTER)
 
                 short_sizer.Add(labeltxt, 0)
                 short_sizer.Add(ctrl, 0)
@@ -4019,6 +4211,12 @@ class SimilarityPanel(scrolled.ScrolledPanel):
         top_sizer.Add(sizer, 1, wx.EXPAND | wx.ALL, 5)
         self.SetSizer(top_sizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def createOptions(self, parent):
 
@@ -4040,7 +4238,8 @@ class SimilarityPanel(scrolled.ScrolledPanel):
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
                 labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((60,-1)),
+                    style = wx.TE_PROCESS_ENTER)
 
                 short_sizer.Add(labeltxt, 0)
                 short_sizer.Add(ctrl, 0)
@@ -4082,6 +4281,12 @@ class FittingPanel(scrolled.ScrolledPanel):
         top_sizer.Add(sizer, 1, wx.EXPAND | wx.ALL, 5)
         self.SetSizer(top_sizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def createOptions(self, parent):
 
@@ -4103,7 +4308,8 @@ class FittingPanel(scrolled.ScrolledPanel):
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
                 labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((60,-1)),
+                    style = wx.TE_PROCESS_ENTER)
 
                 short_sizer.Add(labeltxt, 0)
                 short_sizer.Add(ctrl, 0)
@@ -4190,6 +4396,13 @@ class DenssPanel(scrolled.ScrolledPanel):
 
         self.SetSizer(layoutSizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _createLayout(self, parent):
         box = wx.StaticBox(parent, wx.ID_ANY, 'Default settings')
         default_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
@@ -4210,7 +4423,8 @@ class DenssPanel(scrolled.ScrolledPanel):
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
                 labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size=(475,-1), style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((475,-1)),
+                    style = wx.TE_PROCESS_ENTER)
 
                 sizer.Add(labeltxt, 0, wx.ALL, 2)
                 sizer.Add(ctrl, 1, wx.ALL | wx.EXPAND, 2)
@@ -4240,7 +4454,8 @@ class DenssPanel(scrolled.ScrolledPanel):
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
                 labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((60,-1)),
+                    style = wx.TE_PROCESS_ENTER)
 
                 sizer.Add(labeltxt, 0, wx.ALL, 2)
                 sizer.Add(ctrl, 0, wx.ALL, 2)
@@ -4251,7 +4466,7 @@ class DenssPanel(scrolled.ScrolledPanel):
 
             customSizer.Add(sizer, 0)
 
-        short_sizer = wx.FlexGridSizer(rows = int(len(self.custom_options_short)/2.+.5), cols =4, hgap =2, vgap =2)
+        short_sizer = wx.FlexGridSizer(cols =4, hgap =2, vgap =2)
 
         for item in self.custom_options_short:
             label = item[0]
@@ -4267,7 +4482,8 @@ class DenssPanel(scrolled.ScrolledPanel):
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
                 labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = (60,-1), style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((60,-1)),
+                    style = wx.TE_PROCESS_ENTER)
 
                 short_sizer.Add(labeltxt, 0)
                 short_sizer.Add(ctrl, 0)
@@ -4499,13 +4715,19 @@ class OptionsTreebook(wx.Panel):
         self.tree = ConfigTree(splitter)
         self.page_panel = PagePanel(splitter, raw_settings)
 
-        splitter.SplitVertically(self.tree, self.page_panel, 180)
-        splitter.SetMinimumPaneSize(100)
+        splitter.SplitVertically(self.tree, self.page_panel, self._FromDIP(180))
+        splitter.SetMinimumPaneSize(self._FromDIP(100))
 
         sizer = wx.BoxSizer()
         sizer.Add(splitter, 1, wx.EXPAND)
         self.SetSizer(sizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def getAllUpdateKeys(self):
 
@@ -4572,7 +4794,8 @@ class OptionsDialog(wx.Dialog):
     '''
     def __init__(self, parent, raw_settings, focusHeader = None, *args, **kwargs):
 
-        wx.Dialog.__init__(self, parent, -1, 'Options', *args, name = 'OptionsDialog', style = wx.RESIZE_BORDER | wx.CAPTION, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'Options', *args, name='OptionsDialog',
+            style=wx.RESIZE_BORDER|wx.CAPTION, **kwargs)
 
         #################################################################
         # To append more options make a custom panel class with theF
@@ -4634,7 +4857,7 @@ class OptionsDialog(wx.Dialog):
         minsize = (min(800, client_display.Width), min(600, client_display.Height))
         self.SetMinSize(minsize)
 
-        self.SetSize((850,750))
+        self.SetSize(self._FromDIP((850,750)))
 
         best_size = self.GetBestSize()
         current_size = self.GetSize()
@@ -4651,9 +4874,16 @@ class OptionsDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def createButtonPanel(self):
 

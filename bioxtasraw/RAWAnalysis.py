@@ -80,7 +80,7 @@ import bioxtasraw.SECM as SECM
 
 class UVConcentrationDialog(wx.Dialog):
     def __init__(self, parent, title, selected_sasms, bg_sasm):
-        wx.Dialog.__init__(self, None, title = title, size = (250,150))
+        wx.Dialog.__init__(self, None, title = title, size = self._FromDIP((250,150)))
 
         layout_sizer = wx.BoxSizer(wx.VERTICAL)
         self.panel = UVConcentrationPanel(self, 'UVConcPanel', selected_sasms = selected_sasms, bg_sasm = bg_sasm)
@@ -107,7 +107,14 @@ class UVConcentrationDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def OnOKButton(self, event):
         self.panel.processAndSaveAll()
@@ -860,6 +867,13 @@ class GuinierControlPanel(wx.Panel):
 
         self.setFilename(os.path.basename(ExpObj.getParameter('filename')))
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def createQRgInfo(self):
 
         sizer = wx.FlexGridSizer(cols=2, hgap=5, vgap=5)
@@ -916,8 +930,10 @@ class GuinierControlPanel(wx.Panel):
         sizer.Add(wx.StaticText(self,-1,'q_max'),1)
         sizer.Add(wx.StaticText(self,-1,'n_max'),1)
 
-        self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1))
-        self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1))
+        self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qstart'],
+            size=self._FromDIP((60,-1)))
+        self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qend'],
+            size =self._FromDIP((60,-1)))
 
         self.startSpin.SetValue(0)
         self.endSpin.SetValue(0)
@@ -926,9 +942,9 @@ class GuinierControlPanel(wx.Panel):
         self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
 
         self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], '',
-            size = (60, -1), style = wx.TE_PROCESS_ENTER)
+            size = self._FromDIP((60, -1)), style = wx.TE_PROCESS_ENTER)
         self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], '',
-            size = (60, -1), style = wx.TE_PROCESS_ENTER)
+            size = self._FromDIP((60, -1)), style = wx.TE_PROCESS_ENTER)
 
         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
         self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
@@ -948,8 +964,10 @@ class GuinierControlPanel(wx.Panel):
         sum_sizer.AddGrowableCol(3)
         rg_sum_lbl = wx.StaticText(self, wx.ID_ANY, 'Rg : ')
         i0_sum_lbl = wx.StaticText(self, wx.ID_ANY, 'I0 : ')
-        rg_sum_txt = wx.TextCtrl(self, self.error_data['sum_rg'], '', size = (60, -1))
-        i0_sum_txt = wx.TextCtrl(self, self.error_data['sum_i0'], '', size = (60, -1))
+        rg_sum_txt = wx.TextCtrl(self, self.error_data['sum_rg'], '',
+            size = self._FromDIP((60, -1)))
+        i0_sum_txt = wx.TextCtrl(self, self.error_data['sum_i0'], '',
+            size = self._FromDIP((60, -1)))
 
         sum_sizer.Add(rg_sum_lbl, flag=wx.ALIGN_CENTER_VERTICAL)
         sum_sizer.Add(rg_sum_txt, flag=wx.EXPAND|wx.ALIGN_CENTER_VERTICAL)
@@ -972,9 +990,12 @@ class GuinierControlPanel(wx.Panel):
             ])
 
         rg_text = wx.StaticText(self, wx.ID_ANY, 'Rg :')
-        rg_fit = wx.TextCtrl(self, self.error_data['fsigma_rg'], '', size=(60,-1))
-        rg_auto = wx.TextCtrl(self, self.error_data['autorg_rg'], '', size=(60,-1))
-        rg_est = wx.TextCtrl(self, self.error_data['est_rg'], '', size=(60,-1))
+        rg_fit = wx.TextCtrl(self, self.error_data['fsigma_rg'], '',
+            size=self._FromDIP((60,-1)))
+        rg_auto = wx.TextCtrl(self, self.error_data['autorg_rg'], '',
+            size=self._FromDIP((60,-1)))
+        rg_est = wx.TextCtrl(self, self.error_data['est_rg'], '',
+            size=self._FromDIP((60,-1)))
 
         self.err_sizer.AddMany([(rg_text, 0, wx.ALIGN_CENTER_VERTICAL),
             (rg_fit, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND),
@@ -983,9 +1004,12 @@ class GuinierControlPanel(wx.Panel):
             ])
 
         i0_text = wx.StaticText(self, wx.ID_ANY, 'I0 :')
-        i0_fit = wx.TextCtrl(self, self.error_data['fsigma_i0'], '', size=(60,-1))
-        i0_auto = wx.TextCtrl(self, self.error_data['autorg_i0'], '', size=(60,-1))
-        i0_est = wx.TextCtrl(self, self.error_data['est_i0'], '', size=(60,-1))
+        i0_fit = wx.TextCtrl(self, self.error_data['fsigma_i0'], '',
+            size=self._FromDIP((60,-1)))
+        i0_auto = wx.TextCtrl(self, self.error_data['autorg_i0'], '',
+            size=self._FromDIP((60,-1)))
+        i0_est = wx.TextCtrl(self, self.error_data['est_i0'], '',
+            size=self._FromDIP((60,-1)))
 
         self.err_sizer.AddMany([(i0_text, 0, wx.ALIGN_CENTER_VERTICAL),
             (i0_fit, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND),
@@ -1006,7 +1030,8 @@ class GuinierControlPanel(wx.Panel):
         self.err_top_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         self.err_top_sizer.Add(sum_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
         self.err_top_sizer.Add(self.err_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-        self.err_top_sizer.Add(button_sizer, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL, 5)
+        self.err_top_sizer.Add(button_sizer, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL
+            | wx.ALIGN_CENTER_VERTICAL, 5)
 
         self.err_top_sizer.Hide(self.err_sizer, recursive=True)
 
@@ -1480,10 +1505,7 @@ class GuinierFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(800, client_display.Width), min(600, client_display.Height))
 
-        try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
-        except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
 
         panel = wx.Panel(self)
 
@@ -1500,12 +1522,12 @@ class GuinierFrame(wx.Frame):
         self.plotPanel = GuinierPlotPanel(splitter1, wx.ID_ANY)
         self.controlPanel = GuinierControlPanel(splitter1, wx.ID_ANY, ExpObj, manip_item)
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, 300)
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(300))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter1.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+            splitter1.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
         else:
-            splitter1.SetMinimumPaneSize(50)
+            splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
         self.plotPanel.plotExpObj(ExpObj)
 
@@ -1532,13 +1554,20 @@ class GuinierFrame(wx.Frame):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        print(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.controlPanel._initSettings()
 
         self.CenterOnParent()
         self.Raise()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def OnClose(self):
         self.Destroy()
@@ -1571,10 +1600,7 @@ class MolWeightFrame(wx.Frame):
         else:
             size = (min(720, client_display.Width), min(550, client_display.Height))
 
-        try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
-        except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
 
         self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -1698,7 +1724,7 @@ class MolWeightFrame(wx.Frame):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
 
@@ -1754,6 +1780,13 @@ class MolWeightFrame(wx.Frame):
         top_sizer.Add(self.button_panel, 0, wx.ALIGN_RIGHT | wx.TOP | wx.BOTTOM | wx.LEFT, 5)
 
         return top_sizer
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _initSettings(self):
 
@@ -1951,7 +1984,8 @@ class MolWeightFrame(wx.Frame):
 
         concsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        conc = wx.TextCtrl(parent, conc_ids['conc'], '', size = (60, -1),
+        conc = wx.TextCtrl(parent, conc_ids['conc'], '',
+            size=self._FromDIP((60, -1)),
             validator=RAWCustomCtrl.CharValidator('float'))
         conc_txt = wx.StaticText(parent, -1,  'Concentration: ')
         conc_txt2 = wx.StaticText(parent, -1,  'mg/ml')
@@ -1980,10 +2014,14 @@ class MolWeightFrame(wx.Frame):
         sup_txt5 = wx.StaticText(parent, -1, 'mg/ml')
         sup_txt6 = wx.StaticText(parent, -1, 'File :')
 
-        sup_i0 = wx.TextCtrl(parent, conc_ids['sup_i0'], '', size = (60, -1), style = wx.TE_READONLY)
-        sup_mw = wx.TextCtrl(parent, conc_ids['sup_mw'], '', size = (60, -1), style = wx.TE_READONLY)
-        sup_conc = wx.TextCtrl(parent, conc_ids['sup_conc'], '', size = (60, -1), style = wx.TE_READONLY)
-        sup_file = wx.TextCtrl(parent, conc_ids['sup_file'], '', size = (200, -1), style = wx.TE_READONLY)
+        sup_i0 = wx.TextCtrl(parent, conc_ids['sup_i0'], '',
+            size = self._FromDIP((60, -1)), style = wx.TE_READONLY)
+        sup_mw = wx.TextCtrl(parent, conc_ids['sup_mw'], '',
+            size = self._FromDIP((60, -1)), style = wx.TE_READONLY)
+        sup_conc = wx.TextCtrl(parent, conc_ids['sup_conc'], '',
+            size = self._FromDIP((60, -1)), style = wx.TE_READONLY)
+        sup_file = wx.TextCtrl(parent, conc_ids['sup_file'], '',
+            size = self._FromDIP((200, -1)), style = wx.TE_READONLY)
 
         sup_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
         sup_sizer1.Add(sup_txt1, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -2043,7 +2081,8 @@ class MolWeightFrame(wx.Frame):
 
         mwsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        VCmw = wx.TextCtrl(parent, vc_ids['calc_mw'], '', size = (80, -1), style = wx.TE_READONLY)
+        VCmw = wx.TextCtrl(parent, vc_ids['calc_mw'], '',
+            size = self._FromDIP((80, -1)), style = wx.TE_READONLY)
         txt = wx.StaticText(parent, -1, 'MW :')
         txt2 = wx.StaticText(parent, -1,  'kDa')
 
@@ -2059,15 +2098,16 @@ class MolWeightFrame(wx.Frame):
         sup_txt5 = wx.StaticText(parent, -1, 'a :')
         sup_txt6 = wx.StaticText(parent, -1, 'b :')
 
-        sup_vc = wx.TextCtrl(parent, vc_ids['sup_vc'], '', size = (60, -1),
-            style = wx.TE_READONLY)
-        sup_qr = wx.TextCtrl(parent, vc_ids['sup_qr'], '', size = (60, -1),
-            style = wx.TE_READONLY)
-        sup_a = wx.TextCtrl(parent, vc_ids['sup_a'], '', size = (60, -1),
-            style = wx.TE_READONLY)
-        sup_b = wx.TextCtrl(parent, vc_ids['sup_b'], '', size = (60, -1),
-            style = wx.TE_READONLY)
-        sup_qmax = wx.TextCtrl(parent, vc_ids['sup_qmax'], '', size = (80, -1),
+        sup_vc = wx.TextCtrl(parent, vc_ids['sup_vc'], '',
+            size = self._FromDIP((60, -1)), style = wx.TE_READONLY)
+        sup_qr = wx.TextCtrl(parent, vc_ids['sup_qr'], '',
+            size = self._FromDIP((60, -1)), style = wx.TE_READONLY)
+        sup_a = wx.TextCtrl(parent, vc_ids['sup_a'], '',
+            size = self._FromDIP((60, -1)), style = wx.TE_READONLY)
+        sup_b = wx.TextCtrl(parent, vc_ids['sup_b'], '',
+            size = self._FromDIP((60, -1)), style = wx.TE_READONLY)
+        sup_qmax = wx.TextCtrl(parent, vc_ids['sup_qmax'], '',
+            size = self._FromDIP((80, -1)),
             validator=RAWCustomCtrl.CharValidator('float'))
         sup_cutoff = wx.Choice(parent, vc_ids['sup_cutoff'], choices=['Default',
             '8/Rg', 'log(I0/I(q))', 'Manual'])
@@ -2136,7 +2176,8 @@ class MolWeightFrame(wx.Frame):
 
         mwsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        VpMW = wx.TextCtrl(parent, vp_ids['calc_mw'], '', size = (80, -1), style = wx.TE_READONLY)
+        VpMW = wx.TextCtrl(parent, vp_ids['calc_mw'], '',
+            size = self._FromDIP((80, -1)), style = wx.TE_READONLY)
         txt = wx.StaticText(parent, -1, 'MW :')
         txt2 = wx.StaticText(parent, -1,  'kDa')
 
@@ -2162,11 +2203,15 @@ class MolWeightFrame(wx.Frame):
         sup_txt8 = wx.StaticText(parent, wx.ID_ANY, 'q_max')
         sup_txt9 = wx.StaticText(parent, wx.ID_ANY, '1/A')
 
-        sup_vp = wx.TextCtrl(parent, vp_ids['sup_vp'], '', size = (80, -1), style = wx.TE_READONLY)
-        sup_vpc = wx.TextCtrl(parent, vp_ids['sup_vpc'], '', size = (80, -1), style = wx.TE_READONLY)
-        sup_density = wx.TextCtrl(parent, vp_ids['sup_density'], '', size = (80, -1),
+        sup_vp = wx.TextCtrl(parent, vp_ids['sup_vp'], '',
+            size = self._FromDIP((80, -1)), style = wx.TE_READONLY)
+        sup_vpc = wx.TextCtrl(parent, vp_ids['sup_vpc'], '',
+            size = self._FromDIP((80, -1)), style = wx.TE_READONLY)
+        sup_density = wx.TextCtrl(parent, vp_ids['sup_density'], '',
+            size = self._FromDIP((80, -1)),
             validator=RAWCustomCtrl.CharValidator('float'))
-        sup_qmax = wx.TextCtrl(parent, vp_ids['sup_qmax'], '', size = (80, -1),
+        sup_qmax = wx.TextCtrl(parent, vp_ids['sup_qmax'], '',
+         size = self._FromDIP((80, -1)),
             validator=RAWCustomCtrl.CharValidator('float'))
 
         sup_cutoff = wx.Choice(parent, vp_ids['sup_cutoff'], choices=['Default',
@@ -2241,7 +2286,7 @@ class MolWeightFrame(wx.Frame):
 
         concsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        conc = wx.TextCtrl(parent, abs_ids['conc'], '', size = (60, -1),
+        conc = wx.TextCtrl(parent, abs_ids['conc'], '', size=self._FromDIP((60, -1)),
             validator=RAWCustomCtrl.CharValidator('float'))
         conc_txt = wx.StaticText(parent, -1,  'Concentration: ')
         conc_txt2 = wx.StaticText(parent, -1,  'mg/ml')
@@ -2254,7 +2299,8 @@ class MolWeightFrame(wx.Frame):
 
         mwsizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        absMW = wx.TextCtrl(parent, abs_ids['calc_mw'], '', size = (80, -1), style = wx.TE_READONLY)
+        absMW = wx.TextCtrl(parent, abs_ids['calc_mw'], '',
+            size = self._FromDIP((80, -1)), style = wx.TE_READONLY)
         txt = wx.StaticText(parent, -1, 'MW :')
         txt2 = wx.StaticText(parent, -1,  'kDa')
 
@@ -2272,13 +2318,17 @@ class MolWeightFrame(wx.Frame):
         sup_txt9 = wx.StaticText(parent, -1, 'Calc. Scattering contrast per mass :')
         sup_txt10 = wx.StaticText(parent, -1, 'e- cm/g')
 
-        sup_pm = wx.TextCtrl(parent, abs_ids['sup_pm'], '', size = (80, -1),
+        sup_pm = wx.TextCtrl(parent, abs_ids['sup_pm'], '',
+            size = self._FromDIP((80, -1)),
             validator=RAWCustomCtrl.CharValidator('float'))
-        sup_ps = wx.TextCtrl(parent, abs_ids['sup_ps'], '', size = (80, -1),
+        sup_ps = wx.TextCtrl(parent, abs_ids['sup_ps'], '',
+            size = self._FromDIP((80, -1)),
             validator=RAWCustomCtrl.CharValidator('float'))
-        sup_pv = wx.TextCtrl(parent, abs_ids['sup_pv'], '', size = (80, -1),
+        sup_pv = wx.TextCtrl(parent, abs_ids['sup_pv'], '',
+            size = self._FromDIP((80, -1)),
             validator=RAWCustomCtrl.CharValidator('float'))
-        sup_sc = wx.TextCtrl(parent, abs_ids['sup_sc'], '', size = (80, -1), style=wx.TE_READONLY)
+        sup_sc = wx.TextCtrl(parent, abs_ids['sup_sc'], '',
+            size = self._FromDIP((80, -1)), style=wx.TE_READONLY)
 
         sup_pm.Bind(wx.EVT_TEXT, self._updateAbsmwParams)
         sup_ps.Bind(wx.EVT_TEXT, self._updateAbsmwParams)
@@ -2328,16 +2378,16 @@ class MolWeightFrame(wx.Frame):
         self.bayes_top_sizer = wx.StaticBoxSizer(wx.VERTICAL, parent, "datmw Bayes MW")
         ctrl_parent = self.bayes_top_sizer.GetStaticBox()
 
-        mw = wx.TextCtrl(ctrl_parent, bayes_ids['calc_mw'], '', size=(80,-1),
-            style=wx.TE_READONLY)
-        ci_start = wx.TextCtrl(ctrl_parent, bayes_ids['ci_start'], '', size=(80,-1),
-            style=wx.TE_READONLY)
-        ci_end = wx.TextCtrl(ctrl_parent, bayes_ids['ci_end'], '', size=(80,-1),
-            style=wx.TE_READONLY)
-        ci_prob = wx.TextCtrl(ctrl_parent, bayes_ids['ci_prob'], '', size=(80,-1),
-            style=wx.TE_READONLY)
-        mw_prob = wx.TextCtrl(ctrl_parent, bayes_ids['mw_prob'], '', size=(80,-1),
-            style=wx.TE_READONLY)
+        mw = wx.TextCtrl(ctrl_parent, bayes_ids['calc_mw'], '',
+            size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
+        ci_start = wx.TextCtrl(ctrl_parent, bayes_ids['ci_start'], '',
+            size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
+        ci_end = wx.TextCtrl(ctrl_parent, bayes_ids['ci_end'], '',
+            size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
+        ci_prob = wx.TextCtrl(ctrl_parent, bayes_ids['ci_prob'], '',
+            size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
+        mw_prob = wx.TextCtrl(ctrl_parent, bayes_ids['mw_prob'], '',
+            size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
         info_button = wx.Button(ctrl_parent, bayes_ids['info'], label='More Info')
         details_button = wx.Button(ctrl_parent, bayes_ids['more'],
             label='Show Details')
@@ -2393,12 +2443,12 @@ class MolWeightFrame(wx.Frame):
         self.datclass_top_sizer = wx.StaticBoxSizer(wx.VERTICAL, parent, "Shape&&Size MW")
         ctrl_parent = self.datclass_top_sizer.GetStaticBox()
 
-        mw = wx.TextCtrl(ctrl_parent, datclass_ids['calc_mw'], '', size=(80,-1),
-            style=wx.TE_READONLY)
-        shape = wx.TextCtrl(ctrl_parent, datclass_ids['shape'], '', size=(80,-1),
-            style=wx.TE_READONLY)
-        dmax = wx.TextCtrl(ctrl_parent, datclass_ids['dmax'], '', size=(80,-1),
-            style=wx.TE_READONLY)
+        mw = wx.TextCtrl(ctrl_parent, datclass_ids['calc_mw'], '',
+            size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
+        shape = wx.TextCtrl(ctrl_parent, datclass_ids['shape'], '',
+            size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
+        dmax = wx.TextCtrl(ctrl_parent, datclass_ids['dmax'], '',
+            size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
         info_button = wx.Button(ctrl_parent, datclass_ids['info'], label='More Info')
         details_button = wx.Button(ctrl_parent, datclass_ids['more'],
             label='Show Details')
@@ -3565,7 +3615,8 @@ class MWPlotPanel(wx.Panel):
 
     def __init__(self, parent, panel_id, name):
 
-        wx.Panel.__init__(self, parent, panel_id, name = name, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id, name = name,
+            style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
         main_frame = wx.FindWindowByName('MainFrame')
 
@@ -3697,10 +3748,7 @@ class GNOMFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(800, client_display.Width), min(700, client_display.Height))
 
-        try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
-        except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -3719,12 +3767,12 @@ class GNOMFrame(wx.Frame):
         self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY)
         self.controlPanel = GNOMControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, 290)
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(290))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter1.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+            splitter1.SetMinimumPaneSize(self._FromDIP(290))   #Back compatability with older wxpython versions
         else:
-            splitter1.SetMinimumPaneSize(50)
+            splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -3746,7 +3794,7 @@ class GNOMFrame(wx.Frame):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
         self.Raise()
@@ -3759,6 +3807,13 @@ class GNOMFrame(wx.Frame):
         t = threading.Thread(target=self.initGNOM, args=(sasm,))
         t.daemon=True
         t.start()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def initGNOM(self, sasm):
 
@@ -4103,6 +4158,13 @@ class GNOMControlPanel(wx.Panel):
 
         self._createLayout()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _createLayout(self):
         info_button = wx.Button(self, -1, 'How To Cite')
         info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
@@ -4154,44 +4216,55 @@ class GNOMControlPanel(wx.Panel):
         sizer.Add(i0label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         guinierlabel = wx.StaticText(self, -1, 'Guinier :')
-        self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg'][1], '0', size = (80,-1), style = wx.TE_READONLY)
-        self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+        self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
+        self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
 
         sizer.Add(guinierlabel, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.guinierRg, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.guinierI0, 0, wx.ALIGN_CENTER_VERTICAL)
 
         guinierlabel = wx.StaticText(self, -1, 'Guinier Err. :')
-        self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg_err'][1], '0', size = (80,-1), style = wx.TE_READONLY)
-        self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0_err'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+        self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg_err'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
+        self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0_err'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
 
         sizer.Add(guinierlabel, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.guinierRg, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.guinierI0, 0, wx.ALIGN_CENTER_VERTICAL)
 
         gnomlabel = wx.StaticText(self, -1, 'P(r) :')
-        self.gnomRg = wx.TextCtrl(self, self.infodata['gnomRg'][1], '0', size = (80,-1), style = wx.TE_READONLY)
-        self.gnomI0 = wx.TextCtrl(self, self.infodata['gnomI0'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+        self.gnomRg = wx.TextCtrl(self, self.infodata['gnomRg'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
+        self.gnomI0 = wx.TextCtrl(self, self.infodata['gnomI0'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
 
         sizer.Add(gnomlabel, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.gnomRg, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.gnomI0, 0, wx.ALIGN_CENTER_VERTICAL)
 
         gnomlabel = wx.StaticText(self, -1, 'P(r) Err. :')
-        self.gnomRg = wx.TextCtrl(self, self.infodata['gnomRg_err'][1], '0', size = (80,-1), style = wx.TE_READONLY)
-        self.gnomI0 = wx.TextCtrl(self, self.infodata['gnomI0_err'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+        self.gnomRg = wx.TextCtrl(self, self.infodata['gnomRg_err'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
+        self.gnomI0 = wx.TextCtrl(self, self.infodata['gnomI0_err'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
 
         sizer.Add(gnomlabel, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.gnomRg, 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.gnomI0, 0, wx.ALIGN_CENTER_VERTICAL)
 
-        self.alpha = wx.TextCtrl(self, self.infodata['alpha'][1], '', size=(80,-1), style=wx.TE_READONLY)
+        self.alpha = wx.TextCtrl(self, self.infodata['alpha'][1], ''
+            , size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
 
         teLabel = wx.StaticText(self, -1, self.infodata['TE'][0])
-        self.totalEstimate = wx.TextCtrl(self, self.infodata['TE'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+        self.totalEstimate = wx.TextCtrl(self, self.infodata['TE'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
 
         chisqLabel = wx.StaticText(self, -1, self.infodata['chisq'][0])
-        self.chisq = wx.TextCtrl(self, self.infodata['chisq'][1], '0', size = (80,-1), style = wx.TE_READONLY)
+        self.chisq = wx.TextCtrl(self, self.infodata['chisq'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
 
         qualityLabel = wx.StaticText(self, -1, self.infodata['gnomQuality'][0])
         self.quality = wx.TextCtrl(self, self.infodata['gnomQuality'][1], '', style = wx.TE_READONLY)
@@ -4226,8 +4299,10 @@ class GNOMControlPanel(wx.Panel):
         sizer.Add(wx.StaticText(self,-1,'q_max'),1)
         sizer.Add(wx.StaticText(self,-1,'n_max'),1)
 
-        self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qstart'], size = (60,-1), min =0)
-        self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qend'], size = (60,-1), min = 0)
+        self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qstart'],
+            size = self._FromDIP((60,-1)), min =0)
+        self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qend'],
+            size = self._FromDIP((60,-1)), min = 0)
 
         self.startSpin.SetValue(0)
         self.endSpin.SetValue(0)
@@ -4235,8 +4310,10 @@ class GNOMControlPanel(wx.Panel):
         self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
 
-        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ', size = (55, 22), style = wx.TE_PROCESS_ENTER)
-        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ', size = (55, 22), style = wx.TE_PROCESS_ENTER)
+        self.qstartTxt = wx.TextCtrl(self, self.staticTxtIDs['qstart'], 'q: ',
+            size = self._FromDIP((55, 22)), style = wx.TE_PROCESS_ENTER)
+        self.qendTxt = wx.TextCtrl(self, self.staticTxtIDs['qend'], 'q: ',
+            size = self._FromDIP((55, 22)), style = wx.TE_PROCESS_ENTER)
 
         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
         self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
@@ -4249,12 +4326,14 @@ class GNOMControlPanel(wx.Panel):
 
         ctrl2_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.dmaxSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['dmax'], size = (60,-1), min = 1)
+        self.dmaxSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['dmax'],
+            size = self._FromDIP((60,-1)), min = 1)
         self.dmaxSpin.SetValue(0)
         self.dmaxSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.dmaxSpin.Bind(wx.EVT_TEXT, self.onDmaxText)
 
-        self.alpha_ctrl = wx.TextCtrl(self, self.staticTxtIDs['alpha'], size=(40,-1), style=wx.TE_PROCESS_ENTER)
+        self.alpha_ctrl = wx.TextCtrl(self, self.staticTxtIDs['alpha'],
+            size=self._FromDIP((40,-1)), style=wx.TE_PROCESS_ENTER)
         self.alpha_ctrl.Bind(wx.EVT_TEXT_ENTER, self.onAlpha)
 
         self.cut_qrg = wx.CheckBox(self, label='Cut to q_max=8/Rg (dammif/n)')
@@ -4987,10 +5066,7 @@ class DammifFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(725, client_display.Width), min(900, client_display.Height))
 
-        try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
-        except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
 
         self.manip_item = manip_item
         self.iftm = iftm
@@ -5030,8 +5106,8 @@ class DammifFrame(wx.Frame):
 
             if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
                 size = self.GetSize()
-                size[1] = size[1] + 20
-                self.SetSize(size)
+                size[1] = size[1] + self._FromDIP(20)
+                self.SetSize(self._FromDIP(size))
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
@@ -5040,6 +5116,13 @@ class DammifFrame(wx.Frame):
         self.CenterOnParent()
 
         self.Raise()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createLayout(self, parent):
         close_button = wx.Button(parent, -1, 'Close')
@@ -5143,9 +5226,17 @@ class DammifRunPanel(wx.Panel):
 
         self.SetSizer(topsizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _createLayout(self, parent):
 
-        file_ctrl = wx.TextCtrl(parent, self.ids['fname'], self.filename, size = (150, -1), style = wx.TE_READONLY)
+        file_ctrl = wx.TextCtrl(parent, self.ids['fname'], self.filename,
+            size = self._FromDIP((150, -1)), style = wx.TE_READONLY)
 
         file_box = wx.StaticBox(parent, -1, 'Filename')
         file_sizer = wx.StaticBoxSizer(file_box, wx.HORIZONTAL)
@@ -5157,7 +5248,8 @@ class DammifRunPanel(wx.Panel):
         settings_box = settings_sizer.GetStaticBox()
 
         savedir_text = wx.StaticText(settings_box, -1, 'Output directory :')
-        savedir_ctrl = wx.TextCtrl(settings_box, self.ids['save'], '', size = (350, -1))
+        savedir_ctrl = wx.TextCtrl(settings_box, self.ids['save'], '',
+            size = self._FromDIP((350, -1)))
 
         try:
             savedir_ctrl.AutoCompleteDirectories() #compatability for older versions of wxpython
@@ -5177,7 +5269,8 @@ class DammifRunPanel(wx.Panel):
 
 
         prefix_text = wx.StaticText(settings_box, -1, 'Output prefix :')
-        prefix_ctrl = wx.TextCtrl(settings_box, self.ids['prefix'], '', size = (150, -1))
+        prefix_ctrl = wx.TextCtrl(settings_box, self.ids['prefix'], '',
+            size = self._FromDIP((150, -1)))
 
         prefix_sizer = wx.BoxSizer(wx.HORIZONTAL)
         prefix_sizer.Add(prefix_text, 0, wx.LEFT, 5)
@@ -5186,7 +5279,8 @@ class DammifRunPanel(wx.Panel):
 
 
         nruns_text = wx.StaticText(settings_box, -1, 'Number of reconstructions :')
-        nruns_ctrl = wx.TextCtrl(settings_box, self.ids['runs'], '', size = (60, -1))
+        nruns_ctrl = wx.TextCtrl(settings_box, self.ids['runs'], '',
+            size = self._FromDIP((60, -1)))
         nruns_ctrl.Bind(wx.EVT_TEXT, self.onRunsText)
 
         nruns_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -5303,7 +5397,8 @@ class DammifRunPanel(wx.Panel):
         control_sizer.Add(button_sizer, 0, wx.EXPAND)
 
 
-        self.status = wx.TextCtrl(parent, self.ids['status'], '', style = wx.TE_MULTILINE | wx.TE_READONLY, size = (100,200))
+        self.status = wx.TextCtrl(parent, self.ids['status'], '',
+            style = wx.TE_MULTILINE | wx.TE_READONLY, size = self._FromDIP((100,200)))
         status_box = wx.StaticBox(parent, -1, 'Status')
         status_sizer = wx.StaticBoxSizer(status_box, wx.VERTICAL)
         status_sizer.Add(self.status, 1, wx.EXPAND | wx.ALL, 2)
@@ -6630,18 +6725,28 @@ class DammifResultsPanel(wx.Panel):
 
         self.SetSizer(self.topsizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _createLayout(self, parent):
         ambi_box = wx.StaticBox(parent, wx.ID_ANY, 'Ambimeter')
         self.ambi_sizer = wx.StaticBoxSizer(ambi_box, wx.VERTICAL)
 
         match_text = wx.StaticText(parent, wx.ID_ANY, 'Compatible shape categories:')
-        match_ctrl = wx.TextCtrl(parent, self.ids['ambiCats'], '', size=(60,-1), style=wx.TE_READONLY)
+        match_ctrl = wx.TextCtrl(parent, self.ids['ambiCats'], '',
+            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
 
         score_text = wx.StaticText(parent, -1, 'Ambiguity score:')
-        score_ctrl = wx.TextCtrl(parent, self.ids['ambiScore'], '', size = (60, -1), style = wx.TE_READONLY)
+        score_ctrl = wx.TextCtrl(parent, self.ids['ambiScore'], '',
+            size = self._FromDIP((60, -1)), style = wx.TE_READONLY)
 
         eval_text = wx.StaticText(parent, -1, 'AMBIMETER says:')
-        eval_ctrl = wx.TextCtrl(parent, self.ids['ambiEval'], '', size = (300, -1), style = wx.TE_READONLY)
+        eval_ctrl = wx.TextCtrl(parent, self.ids['ambiEval'], '',
+            size = self._FromDIP((300, -1)), style = wx.TE_READONLY)
 
         ambi_subsizer1 = wx.BoxSizer(wx.HORIZONTAL)
         ambi_subsizer1.Add(match_text, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -6661,15 +6766,19 @@ class DammifResultsPanel(wx.Panel):
         self.nsd_sizer = wx.StaticBoxSizer(nsd_box, wx.HORIZONTAL)
 
         mean_text = wx.StaticText(parent, wx.ID_ANY, 'Mean NSD:')
-        mean_ctrl = wx.TextCtrl(parent, self.ids['nsdMean'], '', size=(60,-1), style=wx.TE_READONLY)
+        mean_ctrl = wx.TextCtrl(parent, self.ids['nsdMean'], '',
+            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
 
         stdev_text = wx.StaticText(parent, wx.ID_ANY, 'Stdev. NSD:')
-        stdev_ctrl = wx.TextCtrl(parent, self.ids['nsdStdev'], '', size=(60,-1), style=wx.TE_READONLY)
+        stdev_ctrl = wx.TextCtrl(parent, self.ids['nsdStdev'], '',
+            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
 
         inc_text = wx.StaticText(parent, wx.ID_ANY, 'DAMAVER included:')
-        inc_ctrl = wx.TextCtrl(parent, self.ids['nsdInc'], '', size=(60,-1), style=wx.TE_READONLY)
+        inc_ctrl = wx.TextCtrl(parent, self.ids['nsdInc'], '',
+            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
         inc_text2 = wx.StaticText(parent, wx.ID_ANY, 'of')
-        total_ctrl = wx.TextCtrl(parent, self.ids['nsdTot'], '', size=(60,-1), style=wx.TE_READONLY)
+        total_ctrl = wx.TextCtrl(parent, self.ids['nsdTot'], '',
+            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
 
         self.nsd_sizer.Add(mean_text, 0, wx.ALIGN_CENTER_VERTICAL)
         self.nsd_sizer.Add(mean_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
@@ -6685,12 +6794,15 @@ class DammifResultsPanel(wx.Panel):
         self.res_sizer = wx.StaticBoxSizer(res_box, wx.HORIZONTAL)
 
         res_text = wx.StaticText(parent, wx.ID_ANY, 'Ensemble Resolution:')
-        res_ctrl = wx.TextCtrl(parent, self.ids['res'], '', size=(60,-1), style=wx.TE_READONLY)
+        res_ctrl = wx.TextCtrl(parent, self.ids['res'], '',
+            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
 
         reserr_text = wx.StaticText(parent, wx.ID_ANY, '+/-')
-        reserr_ctrl = wx.TextCtrl(parent, self.ids['resErr'], '', size=(60,-1), style=wx.TE_READONLY)
+        reserr_ctrl = wx.TextCtrl(parent, self.ids['resErr'], '',
+            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
 
-        resunit_ctrl = wx.TextCtrl(parent, self.ids['resUnit'], '', size=(100,-1), style=wx.TE_READONLY)
+        resunit_ctrl = wx.TextCtrl(parent, self.ids['resUnit'], '',
+            size=self._FromDIP((100,-1)), style=wx.TE_READONLY)
 
         self.res_sizer.Add(res_text, 0, wx.ALIGN_CENTER_VERTICAL)
         self.res_sizer.Add(res_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL,2)
@@ -6703,19 +6815,22 @@ class DammifResultsPanel(wx.Panel):
         self.clust_sizer = wx.StaticBoxSizer(clust_box, wx.VERTICAL)
 
         clust_num_text = wx.StaticText(parent, wx.ID_ANY, 'Number of clusters:')
-        clust_num_ctrl = wx.TextCtrl(parent, self.ids['clustNum'], '', size=(60,-1), style=wx.TE_READONLY)
+        clust_num_ctrl = wx.TextCtrl(parent, self.ids['clustNum'], '',
+            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
 
         clust_num_sizer = wx.BoxSizer(wx.HORIZONTAL)
         clust_num_sizer.Add(clust_num_text, 0, wx.ALIGN_CENTER_VERTICAL)
         clust_num_sizer.Add(clust_num_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
 
-        clust_list1= wx.ListCtrl(parent, self.ids['clustDescrip'], size=(-1,150), style=wx.LC_REPORT)
+        clust_list1= wx.ListCtrl(parent, self.ids['clustDescrip'],
+            size=self._FromDIP((-1,150)), style=wx.LC_REPORT)
         clust_list1.InsertColumn(0, 'Cluster')
         clust_list1.InsertColumn(1, 'Isolated')
         clust_list1.InsertColumn(2, 'Rep. Model')
         clust_list1.InsertColumn(3, 'Deviation')
 
-        clust_list2= wx.ListCtrl(parent, self.ids['clustDist'], size=(-1,150), style=wx.LC_REPORT)
+        clust_list2= wx.ListCtrl(parent, self.ids['clustDist'],
+            size=self._FromDIP((-1,150)), style=wx.LC_REPORT)
         clust_list2.InsertColumn(0, 'Cluster 1')
         clust_list2.InsertColumn(1, 'Cluster 2')
         clust_list2.InsertColumn(2, 'Distance')
@@ -6739,7 +6854,7 @@ class DammifResultsPanel(wx.Panel):
         summary_panel = wx.Panel(self.models)
 
         models_list = wx.ListCtrl(summary_panel, self.ids['model_sum'],
-            size=(-1,-1), style=wx.LC_REPORT)
+            size=self._FromDIP((-1,-1)), style=wx.LC_REPORT)
         models_list.InsertColumn(0, 'Model')
         models_list.InsertColumn(1, 'Chi^2')
         models_list.InsertColumn(2, 'Rg')
@@ -6751,7 +6866,7 @@ class DammifResultsPanel(wx.Panel):
         if platform.system() == 'Windows':
             models_list.SetColumnWidth(5, -2)
         else:
-            models_list.SetColumnWidth(5, 100)
+            models_list.SetColumnWidth(5, self._FromDIP(100))
 
         mp_sizer = wx.BoxSizer()
         mp_sizer.Add(models_list, 1, flag=wx.EXPAND)
@@ -7311,9 +7426,9 @@ class DenssFrame(wx.Frame):
         size = (min(725, client_display.Width), min(900, client_display.Height))
 
         try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
+            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
         except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
+            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=self._FromDIP(size))
 
         self.manip_item = manip_item
         self.iftm = iftm
@@ -7353,7 +7468,7 @@ class DenssFrame(wx.Frame):
             if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
                 size = self.GetSize()
                 size[1] = size[1] + 20
-                self.SetSize(size)
+                self.SetSize(self._FromDIP(size))
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
@@ -7362,6 +7477,13 @@ class DenssFrame(wx.Frame):
         self.CenterOnParent()
 
         self.Raise()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createLayout(self, parent):
         close_button = wx.Button(parent, -1, 'Close')
@@ -7458,9 +7580,17 @@ class DenssRunPanel(wx.Panel):
 
         self.SetSizer(topsizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _createLayout(self, parent):
 
-        file_ctrl = wx.TextCtrl(parent, self.ids['fname'], self.filename, size = (150, -1), style = wx.TE_READONLY)
+        file_ctrl = wx.TextCtrl(parent, self.ids['fname'], self.filename,
+            size=self._FromDIP((150, -1)), style=wx.TE_READONLY)
 
         file_box = wx.StaticBox(parent, -1, 'Filename')
         file_sizer = wx.StaticBoxSizer(file_box, wx.HORIZONTAL)
@@ -7468,7 +7598,8 @@ class DenssRunPanel(wx.Panel):
         file_sizer.AddStretchSpacer(1)
 
         savedir_text = wx.StaticText(parent, -1, 'Output directory :')
-        savedir_ctrl = wx.TextCtrl(parent, self.ids['save'], '', size = (350, -1))
+        savedir_ctrl = wx.TextCtrl(parent, self.ids['save'], '',
+            size=self._FromDIP((350, -1)))
 
         try:
             savedir_ctrl.AutoCompleteDirectories() #compatability for older versions of wxpython
@@ -7488,7 +7619,8 @@ class DenssRunPanel(wx.Panel):
 
 
         prefix_text = wx.StaticText(parent, -1, 'Output prefix :')
-        prefix_ctrl = wx.TextCtrl(parent, self.ids['prefix'], '', size = (150, -1))
+        prefix_ctrl = wx.TextCtrl(parent, self.ids['prefix'], '',
+            size=self._FromDIP((150, -1)))
 
         prefix_sizer = wx.BoxSizer(wx.HORIZONTAL)
         prefix_sizer.Add(prefix_text, 0, wx.LEFT, 5)
@@ -7497,7 +7629,8 @@ class DenssRunPanel(wx.Panel):
 
 
         nruns_text = wx.StaticText(parent, -1, 'Number of reconstructions :')
-        nruns_ctrl = wx.TextCtrl(parent, self.ids['runs'], '', size = (60, -1))
+        nruns_ctrl = wx.TextCtrl(parent, self.ids['runs'], '',
+            size=self._FromDIP((60, -1)))
         nruns_ctrl.Bind(wx.EVT_TEXT, self.onRunsText)
 
         nruns_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -7528,7 +7661,8 @@ class DenssRunPanel(wx.Panel):
 
 
         ne_text = wx.StaticText(parent, wx.ID_ANY, 'Total number of electrons (optional) :')
-        ne_ctrl = wx.TextCtrl(parent, self.ids['electrons'], '', size=(60,-1))
+        ne_ctrl = wx.TextCtrl(parent, self.ids['electrons'], '',
+            size=self._FromDIP((60,-1)))
 
         ne_sizer = wx.BoxSizer(wx.HORIZONTAL)
         ne_sizer.Add(ne_text, 0, wx.LEFT, 5)
@@ -7543,7 +7677,8 @@ class DenssRunPanel(wx.Panel):
         refine_sizer.Add(refine_chk)
 
         sym_chk = wx.CheckBox(parent, self.ids['sym_on'], 'Apply symmetry constraint')
-        sym_val = wx.TextCtrl(parent, self.ids['ncs'], size=(40, -1), value='2',
+        sym_val = wx.TextCtrl(parent, self.ids['ncs'],
+            size=self._FromDIP((40, -1)), value='2',
             validator=RAWCustomCtrl.CharValidator('int'))
         sym_axis = wx.Choice(parent, self.ids['ncsAxis'], choices=['X', 'Y', 'Z'])
         sym_axis.SetStringSelection('X')
@@ -7613,7 +7748,8 @@ class DenssRunPanel(wx.Panel):
         control_sizer.Add(button_sizer, 0, wx.EXPAND)
 
 
-        self.status = wx.TextCtrl(parent, self.ids['status'], '', style = wx.TE_MULTILINE | wx.TE_READONLY, size = (130,200))
+        self.status = wx.TextCtrl(parent, self.ids['status'], '',
+            style=wx.TE_MULTILINE|wx.TE_READONLY, size=self._FromDIP((130,200)))
         status_box = wx.StaticBox(parent, -1, 'Status')
         status_sizer = wx.StaticBoxSizer(status_box, wx.VERTICAL)
         status_sizer.Add(self.status, 1, wx.EXPAND | wx.ALL, 2)
@@ -8963,18 +9099,28 @@ class DenssResultsPanel(wx.Panel):
 
         self.SetSizer(self.topsizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _createLayout(self, parent):
         ambi_box = wx.StaticBox(parent, wx.ID_ANY, 'Ambimeter')
         self.ambi_sizer = wx.StaticBoxSizer(ambi_box, wx.VERTICAL)
 
         match_text = wx.StaticText(parent, wx.ID_ANY, 'Compatible shape categories:')
-        match_ctrl = wx.TextCtrl(parent, self.ids['ambiCats'], '', size=(60,-1), style=wx.TE_READONLY)
+        match_ctrl = wx.TextCtrl(parent, self.ids['ambiCats'], '',
+            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
 
         score_text = wx.StaticText(parent, -1, 'Ambiguity score:')
-        score_ctrl = wx.TextCtrl(parent, self.ids['ambiScore'], '', size = (60, -1), style = wx.TE_READONLY)
+        score_ctrl = wx.TextCtrl(parent, self.ids['ambiScore'], '',
+            size=self._FromDIP((60, -1)), style = wx.TE_READONLY)
 
         eval_text = wx.StaticText(parent, -1, 'AMBIMETER says:')
-        eval_ctrl = wx.TextCtrl(parent, self.ids['ambiEval'], '', size = (300, -1), style = wx.TE_READONLY)
+        eval_ctrl = wx.TextCtrl(parent, self.ids['ambiEval'], '',
+            size=self._FromDIP((300, -1)), style = wx.TE_READONLY)
 
         ambi_subsizer1 = wx.BoxSizer(wx.HORIZONTAL)
         ambi_subsizer1.Add(match_text, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -8994,13 +9140,17 @@ class DenssResultsPanel(wx.Panel):
         self.rscor_sizer = wx.StaticBoxSizer(rscor_box, wx.HORIZONTAL)
 
         corm_text = wx.StaticText(parent, label='Mean RSC:')
-        corm_ctrl = wx.TextCtrl(parent, self.ids['rscorMean'], '', size=(60,-1), style=wx.TE_READONLY)
+        corm_ctrl = wx.TextCtrl(parent, self.ids['rscorMean'], '',
+            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
         cors_text = wx.StaticText(parent, label='Stdev. RSC:')
-        cors_ctrl = wx.TextCtrl(parent, self.ids['rscorStd'], '', size=(60,-1), style=wx.TE_READONLY)
+        cors_ctrl = wx.TextCtrl(parent, self.ids['rscorStd'], '',
+            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
         cori1_text = wx.StaticText(parent, label='Average included:')
-        cori1_ctrl = wx.TextCtrl(parent, self.ids['rscorInc'], '', size=(60,-1), style=wx.TE_READONLY)
+        cori1_ctrl = wx.TextCtrl(parent, self.ids['rscorInc'], '',
+            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
         cori2_text = wx.StaticText(parent, label='of')
-        cori2_ctrl = wx.TextCtrl(parent, self.ids['rscorTot'], '', size=(60,-1), style=wx.TE_READONLY)
+        cori2_ctrl = wx.TextCtrl(parent, self.ids['rscorTot'], '',
+            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
 
         self.rscor_sizer.Add(corm_text, flag=wx.ALIGN_CENTER_VERTICAL)
         self.rscor_sizer.Add(corm_ctrl, border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
@@ -9015,7 +9165,8 @@ class DenssResultsPanel(wx.Panel):
         self.res_sizer = wx.StaticBoxSizer(res_box, wx.HORIZONTAL)
 
         res_text = wx.StaticText(parent, wx.ID_ANY, 'Fourier Shell Correlation Resolution:')
-        res_ctrl = wx.TextCtrl(parent, self.ids['res'], '', size=(60,-1), style=wx.TE_READONLY)
+        res_ctrl = wx.TextCtrl(parent, self.ids['res'], '',
+            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
 
         resunit_text = wx.StaticText(parent, label='Angstrom')
 
@@ -9035,7 +9186,8 @@ class DenssResultsPanel(wx.Panel):
 
         summary_panel = wx.Panel(self.models)
 
-        models_list = wx.ListCtrl(summary_panel, id=self.ids['model_sum'], size=(-1,-1), style=wx.LC_REPORT)
+        models_list = wx.ListCtrl(summary_panel, id=self.ids['model_sum'],
+            size=(-1,-1), style=wx.LC_REPORT)
         models_list.InsertColumn(0, 'Model')
         models_list.InsertColumn(1, 'Chi^2')
         models_list.InsertColumn(2, 'Rg')
@@ -9612,10 +9764,7 @@ class DenssAlignFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(450, client_display.Width), min(450, client_display.Height))
 
-        try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
-        except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
 
         self.main_frame = wx.FindWindowByName('MainFrame')
 
@@ -9652,11 +9801,18 @@ class DenssAlignFrame(wx.Frame):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
 
         self.Raise()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createLayout(self):
 
@@ -10004,10 +10160,7 @@ class BIFTFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(800, client_display.Width), min(700, client_display.Height))
 
-        try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
-        except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -10025,12 +10178,12 @@ class BIFTFrame(wx.Frame):
         self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY)
         self.controlPanel = BIFTControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, 290)
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(290))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter1.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+            splitter1.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
         else:
-            splitter1.SetMinimumPaneSize(50)
+            splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
@@ -10051,7 +10204,7 @@ class BIFTFrame(wx.Frame):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
         self.Raise()
@@ -10059,6 +10212,13 @@ class BIFTFrame(wx.Frame):
         self.Bind(wx.EVT_CLOSE, self._onClose)
 
         wx.CallLater(50, self.initBIFT)
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def initBIFT(self):
         self.controlPanel.runBIFT()
@@ -10077,7 +10237,8 @@ class BIFTControlPanel(wx.Panel):
 
     def __init__(self, parent, panel_id, sasm, manip_item):
 
-        wx.Panel.__init__(self, parent, panel_id, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent, panel_id,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.parent = parent
 
@@ -10151,6 +10312,13 @@ class BIFTControlPanel(wx.Panel):
         self.BIFT_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.onBIFTTimer, self.BIFT_timer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def createLayout(self):
         info_button = wx.Button(self, -1, 'How To Cite')
         info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
@@ -10212,27 +10380,27 @@ class BIFTControlPanel(wx.Panel):
 
         guinierlabel = wx.StaticText(self, -1, 'Guinier :')
         self.guinierRg = wx.TextCtrl(self, self.infodata['guinierRg'][1], '',
-            size=(80,-1), style=wx.TE_READONLY)
+            size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
         self.guinierI0 = wx.TextCtrl(self, self.infodata['guinierI0'][1], '',
-            size=(80,-1), style=wx.TE_READONLY)
+            size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
 
         guinierlabel_err = wx.StaticText(self, -1, 'Guinier Err. :')
         self.guinierRgErr = wx.TextCtrl(self, self.infodata['guinierRg_err'][1],
-            '', size=(80,-1), style=wx.TE_READONLY)
+            '', size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
         self.guinierI0Err = wx.TextCtrl(self, self.infodata['guinierI0_err'][1],
-            '', size=(80,-1), style=wx.TE_READONLY)
+            '', size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
 
         biftlabel = wx.StaticText(self, -1, 'P(r) :')
         self.biftRg = wx.TextCtrl(self, self.infodata['biftRg'][1], '',
-            size=(80,-1), style=wx.TE_READONLY)
+            size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
         self.biftI0 = wx.TextCtrl(self, self.infodata['biftI0'][1], '',
-            size=(80,-1), style=wx.TE_READONLY)
+            size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
 
         biftlabel_err = wx.StaticText(self, -1, 'P(r) Err. :')
         self.biftRgErr = wx.TextCtrl(self, self.infodata['biftRg_err'][1], '',
-            size=(80,-1), style=wx.TE_READONLY)
+            size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
         self.biftI0Err = wx.TextCtrl(self, self.infodata['biftI0_err'][1], '',
-            size=(80,-1), style=wx.TE_READONLY)
+            size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
 
         sizer = wx.FlexGridSizer(rows=5, cols=3, hgap=5, vgap=2)
         sizer.Add((0,0))
@@ -10254,22 +10422,22 @@ class BIFTControlPanel(wx.Panel):
 
         dmaxLabel = wx.StaticText(self, -1, 'Dmax :')
         self.dmax = wx.TextCtrl(self, self.infodata['dmax'][1], '',
-            size=(70,-1), style=wx.TE_READONLY)
+            size=self._FromDIP((70,-1)), style=wx.TE_READONLY)
         self.dmax_err = wx.TextCtrl(self, self.infodata['dmax_err'][1], '',
-            size=(70,-1), style=wx.TE_READONLY)
+            size=self._FromDIP((70,-1)), style=wx.TE_READONLY)
 
         alphaLabel = wx.StaticText(self, -1, 'Log(Alpha) :')
         self.alpha = wx.TextCtrl(self, self.infodata['alpha'][1], '',
-            size=(70,-1), style=wx.TE_READONLY)
+            size=self._FromDIP((70,-1)), style=wx.TE_READONLY)
         self.alpha_err = wx.TextCtrl(self, self.infodata['alpha_err'][1], '',
-            size=(70,-1), style=wx.TE_READONLY)
+            size=self._FromDIP((70,-1)), style=wx.TE_READONLY)
 
         chisqLabel = wx.StaticText(self, -1, self.infodata['chisq'][0])
         self.chisq = wx.TextCtrl(self, self.infodata['chisq'][1], '',
-            size=(70,-1), style=wx.TE_READONLY)
+            size=self._FromDIP((70,-1)), style=wx.TE_READONLY)
 
         self.evidence = wx.TextCtrl(self, self.infodata['evidence'][1], '',
-            size=(70,-1), style=wx.TE_READONLY)
+            size=self._FromDIP((70,-1)), style=wx.TE_READONLY)
 
         sizer2 = wx.FlexGridSizer(rows=4, cols=4, hgap=5, vgap=2)
         sizer2.Add(dmaxLabel, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -10307,8 +10475,10 @@ class BIFTControlPanel(wx.Panel):
         sizer.Add(wx.StaticText(self,-1,'q_max'),1)
         sizer.Add(wx.StaticText(self,-1,'n_max'),1)
 
-        self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, size=(60,-1), min=0)
-        self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, size=(60,-1), min=0)
+        self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, size=self._FromDIP((60,-1)),
+            min=0)
+        self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, size=self._FromDIP((60,-1)),
+            min=0)
 
         self.startSpin.SetValue(0)
         self.endSpin.SetValue(0)
@@ -10316,8 +10486,10 @@ class BIFTControlPanel(wx.Panel):
         self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
 
-        self.qstartTxt = wx.TextCtrl(self, size = (55, 22), style = wx.TE_PROCESS_ENTER)
-        self.qendTxt = wx.TextCtrl(self, size = (55, 22), style = wx.TE_PROCESS_ENTER)
+        self.qstartTxt = wx.TextCtrl(self, size=self._FromDIP((55, 22)),
+            style=wx.TE_PROCESS_ENTER)
+        self.qendTxt = wx.TextCtrl(self, size=self._FromDIP((55, 22)),
+            style=wx.TE_PROCESS_ENTER)
 
         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
         self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
@@ -10753,10 +10925,7 @@ class AmbimeterFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(450, client_display.Width), min(525, client_display.Height))
 
-        try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
-        except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
 
         self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -10814,7 +10983,7 @@ class AmbimeterFrame(wx.Frame):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
 
         self.CenterOnParent()
@@ -10826,11 +10995,18 @@ class AmbimeterFrame(wx.Frame):
         t.daemon = True
         t.start()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createLayout(self, parent):
 
         file_text = wx.StaticText(parent, -1, 'File :')
-        file_ctrl = wx.TextCtrl(parent, self.ids['input'], '', size = (150, -1), style = wx.TE_READONLY)
+        file_ctrl = wx.TextCtrl(parent, self.ids['input'], '',
+            size=self._FromDIP((150, -1)), style=wx.TE_READONLY)
 
         file_sizer = wx.BoxSizer(wx.HORIZONTAL)
         file_sizer.Add(file_text, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
@@ -10838,7 +11014,8 @@ class AmbimeterFrame(wx.Frame):
         file_sizer.AddStretchSpacer(1)
 
         rg_text = wx.StaticText(parent, -1, 'Rg :')
-        rg_ctrl = wx.TextCtrl(parent, self.ids['rg'], '', size = (60, -1), style = wx.TE_READONLY)
+        rg_ctrl = wx.TextCtrl(parent, self.ids['rg'], '',
+            size=self._FromDIP((60, -1)), style=wx.TE_READONLY)
 
         rg_sizer = wx.BoxSizer(wx.HORIZONTAL)
         rg_sizer.Add(rg_text, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
@@ -10846,7 +11023,8 @@ class AmbimeterFrame(wx.Frame):
 
 
         srg_text = wx.StaticText(parent, -1, 'Upper q*Rg limit (3 < q*Rg <7) :')
-        srg_ctrl = wx.TextCtrl(parent, self.ids['sRg'], '4', size = (60, -1))
+        srg_ctrl = wx.TextCtrl(parent, self.ids['sRg'], '4',
+            size=self._FromDIP((60, -1)))
         srg_ctrl.Bind(wx.EVT_TEXT, self.onSrgText)
 
         srg_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -10855,7 +11033,8 @@ class AmbimeterFrame(wx.Frame):
 
 
         shape_text = wx.StaticText(parent, -1, 'Output shape(s) to save: ')
-        shape_choice = wx.Choice(parent, self.ids['files'], choices = ['None', 'Best', 'All'])
+        shape_choice = wx.Choice(parent, self.ids['files'],
+            choices=['None', 'Best', 'All'])
         shape_choice.SetSelection(0)
 
         shape_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -10863,7 +11042,8 @@ class AmbimeterFrame(wx.Frame):
         shape_sizer.Add(shape_choice, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
 
         savedir_text = wx.StaticText(parent, -1, 'Output directory :')
-        savedir_ctrl = wx.TextCtrl(parent, self.ids['save'], '', size = (350, -1))
+        savedir_ctrl = wx.TextCtrl(parent, self.ids['save'], '',
+            size=self._FromDIP((350, -1)))
 
         try:
             savedir_ctrl.AutoCompleteDirectories() #compatability for older versions of wxpython
@@ -10880,7 +11060,8 @@ class AmbimeterFrame(wx.Frame):
 
 
         prefix_text = wx.StaticText(parent, -1, 'Output prefix :')
-        prefix_ctrl = wx.TextCtrl(parent, self.ids['prefix'], '', size = (150, -1))
+        prefix_ctrl = wx.TextCtrl(parent, self.ids['prefix'], '',
+            size=self._FromDIP((150, -1)))
 
         prefix_sizer = wx.BoxSizer(wx.HORIZONTAL)
         prefix_sizer.Add(prefix_text, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
@@ -10903,7 +11084,8 @@ class AmbimeterFrame(wx.Frame):
 
 
         cats_text = wx.StaticText(parent, -1, 'Number of compatible shape categories :')
-        cats_ctrl = wx.TextCtrl(parent, self.ids['ambiCats'], '', size = (60, -1), style = wx.TE_READONLY)
+        cats_ctrl = wx.TextCtrl(parent, self.ids['ambiCats'], '',
+            size=self._FromDIP((60, -1)), style=wx.TE_READONLY)
 
         cats_sizer = wx.BoxSizer(wx.HORIZONTAL)
         cats_sizer.Add(cats_text, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
@@ -10911,14 +11093,16 @@ class AmbimeterFrame(wx.Frame):
 
 
         score_text = wx.StaticText(parent, -1, 'Ambiguity score :')
-        score_ctrl = wx.TextCtrl(parent, self.ids['ambiScore'], '', size = (60, -1), style = wx.TE_READONLY)
+        score_ctrl = wx.TextCtrl(parent, self.ids['ambiScore'], '',
+            size=self._FromDIP((60, -1)), style = wx.TE_READONLY)
 
         score_sizer = wx.BoxSizer(wx.HORIZONTAL)
         score_sizer.Add(score_text, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
         score_sizer.Add(score_ctrl, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
 
         eval_text = wx.StaticText(parent, -1, 'AMBIMETER says :')
-        eval_ctrl = wx.TextCtrl(parent, self.ids['ambiEval'], '', size = (250, -1), style = wx.TE_READONLY)
+        eval_ctrl = wx.TextCtrl(parent, self.ids['ambiEval'], '',
+            size=self._FromDIP((250, -1)), style=wx.TE_READONLY)
 
         eval_sizer = wx.BoxSizer(wx.HORIZONTAL)
         eval_sizer.Add(eval_text, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
@@ -11147,10 +11331,7 @@ class SupcombFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(450, client_display.Width), min(450, client_display.Height))
 
-        try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
-        except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
 
         self.main_frame = wx.FindWindowByName('MainFrame')
 
@@ -11184,13 +11365,18 @@ class SupcombFrame(wx.Frame):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
 
         self.Raise()
 
-
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createLayout(self):
 
@@ -11549,10 +11735,7 @@ class SVDFrame(wx.Frame):
 
         self.secm = secm
 
-        try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
-        except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -11564,12 +11747,12 @@ class SVDFrame(wx.Frame):
         self.plotPanel = SVDResultsPlotPanel(splitter1, wx.ID_ANY)
         self.controlPanel = SVDControlPanel(splitter1, wx.ID_ANY, copy_secm, manip_item)
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, 290)
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(290))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter1.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+            splitter1.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
         else:
-            splitter1.SetMinimumPaneSize(50)
+            splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
         splitter1.Layout()
 
@@ -11596,10 +11779,17 @@ class SVDFrame(wx.Frame):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
         self.Raise()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def OnClose(self):
 
@@ -11798,7 +11988,9 @@ class SVDSECPlotPanel(wx.Panel):
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
 
-        if (int(matplotlib.__version__.split('.')[0]) == 1 and int(matplotlib.__version__.split('.')[1]) >= 5) or int(matplotlib.__version__.split('.')[0]) > 1:
+        if ((int(matplotlib.__version__.split('.')[0]) == 1
+            and int(matplotlib.__version__.split('.')[1]) >= 5)
+            or int(matplotlib.__version__.split('.')[0]) > 1):
             self.fig = Figure((4,4), 75)
         else:
             if not svd:
@@ -11815,12 +12007,14 @@ class SVDSECPlotPanel(wx.Panel):
         self.subplots = {}
 
         for i in range(0, len(subplotLabels)):
-            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, label = subplotLabels[i][0])
+            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1,
+                label = subplotLabels[i][0])
             subplot.set_xlabel(subplotLabels[i][1])
             subplot.set_ylabel(subplotLabels[i][2])
             self.subplots[subplotLabels[i][0]] = subplot
 
-        self.fig.subplots_adjust(left = 0.18, bottom = 0.13, right = 0.93, top = 0.93, hspace = 0.26)
+        self.fig.subplots_adjust(left = 0.18, bottom = 0.13, right = 0.93,
+            top = 0.93, hspace = 0.26)
         self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
@@ -11876,7 +12070,8 @@ class SVDSECPlotPanel(wx.Panel):
         if self.secm is None:
             self.secm, = a.plot(frame_list, intensity, 'r.-', animated = True)
 
-            self.cut_line, = a.plot(frame_list[framei:framef+1], intensity[framei:framef+1], 'b.-', animated = True)
+            self.cut_line, = a.plot(frame_list[framei:framef+1],
+                intensity[framei:framef+1], 'b.-', animated = True)
 
             self.canvas.mpl_disconnect(self.cid)
             self.canvas.draw()
@@ -11995,6 +12190,12 @@ class SVDControlPanel(wx.Panel):
 
         self.initValues()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createLayout(self):
 
@@ -12004,7 +12205,8 @@ class SVDControlPanel(wx.Panel):
         box = wx.StaticBox(self, -1, 'Filename')
         filesizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
 
-        filenameTxtCtrl = wx.TextCtrl(self, self.field_ids['fname'], '', style = wx.TE_READONLY)
+        filenameTxtCtrl = wx.TextCtrl(self, self.field_ids['fname'], '',
+            style = wx.TE_READONLY)
 
         filesizer.Add(filenameTxtCtrl, 1, wx.ALL, 3)
 
@@ -12031,8 +12233,10 @@ class SVDControlPanel(wx.Panel):
         #control what the range of curves you're using is.
         label1 = wx.StaticText(self, -1, 'Use Frames :')
         label2 = wx.StaticText(self, -1, 'to')
-        start_frame = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['fstart'], size = (60,-1))
-        end_frame = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['fend'], size = (60,-1))
+        start_frame = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['fstart'],
+            size=self._FromDIP((60,-1)))
+        end_frame = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['fend'],
+            size=self._FromDIP((60,-1)))
 
         start_frame.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeFrame)
         end_frame.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeFrame)
@@ -12068,8 +12272,10 @@ class SVDControlPanel(wx.Panel):
         #Control plotted SVD range
         label1 = wx.StaticText(self, -1, 'Plot indexes :')
         label2 = wx.StaticText(self, -1, 'to')
-        start_svd = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['svd_start'], size = (60,-1))
-        end_svd = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['svd_end'], size = (60,-1))
+        start_svd = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['svd_start'],
+            size=self._FromDIP((60,-1)))
+        end_svd = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['svd_end'],
+            size=self._FromDIP((60,-1)))
 
         start_svd.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeSVD)
         end_svd.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeSVD)
@@ -12540,10 +12746,7 @@ class EFAFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(950, client_display.Width), min(750, client_display.Height))
 
-        try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size = size)
-        except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, size = size)
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -12618,10 +12821,17 @@ class EFAFrame(wx.Frame):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
         self.Raise()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createLayout(self, parent):
 
@@ -12631,19 +12841,19 @@ class EFAFrame(wx.Frame):
         self.plotPanel1 = SVDResultsPlotPanel(self.splitter1, -1)
         self.controlPanel1 = EFAControlPanel1(self.splitter1, -1, self.secm, self.manip_item)
 
-        self.splitter1.SplitVertically(self.controlPanel1, self.plotPanel1, 325)
+        self.splitter1.SplitVertically(self.controlPanel1, self.plotPanel1, self._FromDIP(325))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter1.SetMinimumPaneSize(325)    #Back compatability with older wxpython versions
+            self.splitter1.SetMinimumPaneSize(self._FromDIP(325))    #Back compatability with older wxpython versions
         else:
-            self.splitter1.SetMinimumPaneSize(50)
+            self.splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
             self.splitter1.Fit()
             if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
                 size = self.GetSize()
                 size[1] = size[1] + 20
-                self.SetSize(size)
+                self.SetSize(self._FromDIP(size))
 
 
         self.splitter2 = wx.SplitterWindow(parent, self.splitter_ids[2])
@@ -12651,12 +12861,12 @@ class EFAFrame(wx.Frame):
         self.plotPanel2 = EFAResultsPlotPanel2(self.splitter2, -1)
         self.controlPanel2 = EFAControlPanel2(self.splitter2, -1, self.secm, self.manip_item)
 
-        self.splitter2.SplitVertically(self.controlPanel2, self.plotPanel2, 300)
+        self.splitter2.SplitVertically(self.controlPanel2, self.plotPanel2, self._FromDIP(300))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter2.SetMinimumPaneSize(300)    #Back compatability with older wxpython versions
+            self.splitter2.SetMinimumPaneSize(self._FromDIP(300))    #Back compatability with older wxpython versions
         else:
-            self.splitter2.SetMinimumPaneSize(50)
+            self.splitter2.SetMinimumPaneSize(self._FromDIP(50))
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
             self.splitter2.Fit()
@@ -12667,12 +12877,12 @@ class EFAFrame(wx.Frame):
         self.plotPanel3 = EFAResultsPlotPanel3(self.splitter3, -1)
         self.controlPanel3 = EFAControlPanel3(self.splitter3, -1, self.secm, self.manip_item)
 
-        self.splitter3.SplitVertically(self.controlPanel3, self.plotPanel3, 300)
+        self.splitter3.SplitVertically(self.controlPanel3, self.plotPanel3, self._FromDIP(300))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter3.SetMinimumPaneSize(300)    #Back compatability with older wxpython versions
+            self.splitter3.SetMinimumPaneSize(self._FromDIP(300))    #Back compatability with older wxpython versions
         else:
-            self.splitter3.SetMinimumPaneSize(50)
+            self.splitter3.SetMinimumPaneSize(self._FromDIP(50))
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
             self.splitter3.Fit()
@@ -12724,6 +12934,12 @@ class EFAFrame(wx.Frame):
         # self.SendSizeEvent()
         # self.panel.Layout()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _onNextButton(self, evt):
 
@@ -13037,6 +13253,12 @@ class EFAControlPanel1(wx.Panel):
 
         self.initValues()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createLayout(self):
 
@@ -13076,8 +13298,10 @@ class EFAControlPanel1(wx.Panel):
         #control what the range of curves you're using is.
         label1 = wx.StaticText(self, -1, 'Use Frames :')
         label2 = wx.StaticText(self, -1, 'to')
-        start_frame = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['fstart'], size = (60,-1))
-        end_frame = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['fend'], size = (60,-1))
+        start_frame = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['fstart'],
+            size=self._FromDIP((60,-1)))
+        end_frame = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['fend'],
+            size=self._FromDIP((60,-1)))
 
         start_frame.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeFrame)
         end_frame.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeFrame)
@@ -13108,8 +13332,10 @@ class EFAControlPanel1(wx.Panel):
         #Control plotted SVD range
         label1 = wx.StaticText(self, -1, 'Plot indexes :')
         label2 = wx.StaticText(self, -1, 'to')
-        start_svd = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['svd_start'], size = (60,-1))
-        end_svd = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['svd_end'], size = (60,-1))
+        start_svd = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['svd_start'],
+            size=self._FromDIP((60,-1)))
+        end_svd = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['svd_end'],
+            size=self._FromDIP((60,-1)))
 
         start_svd.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeSVD)
         end_svd.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeSVD)
@@ -13128,7 +13354,8 @@ class EFAControlPanel1(wx.Panel):
         input_sizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
 
         label1 = wx.StaticText(self, -1, '# Significant SVs :')
-        user_input = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['input'], size = (60,-1))
+        user_input = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['input'],
+            size=self._FromDIP((60,-1)))
 
 
         input_sizer.Add(label1, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 3)
@@ -13509,6 +13736,12 @@ class EFAControlPanel2(wx.Panel):
 
         self.SetSizer(control_sizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createLayout(self):
 
@@ -13564,7 +13797,8 @@ class EFAControlPanel2(wx.Panel):
         for i in range(nvals):
 
             flabel = wx.StaticText(self.top_efa, -1, 'Value %i start :' %(i))
-            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.forward_ids[i], size = (60, -1))
+            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.forward_ids[i],
+                size=self._FromDIP((60, -1)))
             fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onForwardControl)
             fcontrol.SetValue(start)
             fcontrol.SetRange((start,end))
@@ -13573,7 +13807,8 @@ class EFAControlPanel2(wx.Panel):
             self.fsizer.Add(fcontrol, 0)
 
             blabel = wx.StaticText(self.top_efa, -1, 'Value %i start :' %(i))
-            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.backward_ids[i], size = (60, -1))
+            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.backward_ids[i],
+                size=self._FromDIP((60, -1)))
             bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onBackwardControl)
             bcontrol.SetValue(start)
             bcontrol.SetRange((start,end))
@@ -13633,7 +13868,8 @@ class EFAControlPanel2(wx.Panel):
         for i in range(nvals):
 
             flabel = wx.StaticText(self.top_efa, -1, 'Value %i start :' %(i))
-            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.forward_ids[i], size = (60, -1))
+            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.forward_ids[i],
+                size=self._FromDIP((60, -1)))
             fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onForwardControl)
             fcontrol.SetValue(start)
             fcontrol.SetRange((start,end))
@@ -13642,7 +13878,8 @@ class EFAControlPanel2(wx.Panel):
             self.fsizer.Add(fcontrol, 0)
 
             blabel = wx.StaticText(self.top_efa, -1, 'Value %i end :' %(i))
-            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.backward_ids[i], size = (60, -1))
+            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.backward_ids[i],
+                size=self._FromDIP((60, -1)))
             bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onBackwardControl)
             bcontrol.SetValue(start)
             bcontrol.SetRange((start,end))
@@ -14073,6 +14310,12 @@ class EFAControlPanel3(wx.Panel):
 
         self.SetSizer(control_sizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createLayout(self):
 
@@ -14106,7 +14349,8 @@ class EFAControlPanel3(wx.Panel):
 
         num_label = wx.StaticText(self, -1, 'Number of iterations :')
 
-        num_control = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['n_iter'], size = (60,-1))
+        num_control = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['n_iter'],
+            size=self._FromDIP((60,-1)))
         num_control.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onIterControl)
         num_control.SetValue(str(self.control_values['n_iter']))
         num_control.SetRange((1, 1e12))
@@ -14117,7 +14361,8 @@ class EFAControlPanel3(wx.Panel):
 
         tol_label = wx.StaticText(self, -1, 'Convergence threshold :')
 
-        tol_control = RAWCustomCtrl.FloatSpinCtrl(self, self.control_ids['tol'], size = (60,-1), never_negative = True)
+        tol_control = RAWCustomCtrl.FloatSpinCtrl(self, self.control_ids['tol'],
+            size=self._FromDIP((60,-1)), never_negative = True)
         tol_control.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onIterControl)
         tol_control.SetValue(str(self.control_values['tol']))
 
@@ -14178,7 +14423,8 @@ class EFAControlPanel3(wx.Panel):
         for i in range(nvals):
 
             label1 = wx.StaticText(self.top_efa, -1, 'Range %i :' %(i))
-            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][0], size = (60, -1))
+            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][0],
+                size=self._FromDIP((60, -1)))
             fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
             fcontrol.SetValue(points[i][0])
             fcontrol.SetRange((start, end))
@@ -14187,7 +14433,8 @@ class EFAControlPanel3(wx.Panel):
             self.range_sizer.Add(fcontrol, 0)
 
             label2 = wx.StaticText(self.top_efa, -1, 'to')
-            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][1], size = (60, -1))
+            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][1],
+                size=self._FromDIP((60, -1)))
             bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
             bcontrol.SetValue(points[i][1])
             bcontrol.SetRange((start, end))
@@ -14270,7 +14517,8 @@ class EFAControlPanel3(wx.Panel):
             for i in range(nvals):
 
                 label1 = wx.StaticText(self.top_efa, -1, 'Range %i :' %(i))
-                fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][0], size = (60, -1))
+                fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][0],
+                    size=self._FromDIP((60, -1)))
                 fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
                 fcontrol.SetValue(points[i][0])
                 fcontrol.SetRange((start,end))
@@ -14279,7 +14527,8 @@ class EFAControlPanel3(wx.Panel):
                 self.range_sizer.Add(fcontrol, 0)
 
                 label2 = wx.StaticText(self.top_efa, -1, 'to')
-                bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][1], size = (60, -1))
+                bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.range_ids[i][1],
+                    size=self._FromDIP((60, -1)))
                 bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
                 bcontrol.SetValue(points[i][1])
                 bcontrol.SetRange((start,end))
@@ -14783,7 +15032,8 @@ class EFARangePlotPanel(wx.Panel):
     def __init__(self, parent, panel_id):
 
         wx.Panel.__init__(self, parent, panel_id,
-            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER, size=(275,300))
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER,
+            size=self._FromDIP((275,300)))
 
         main_frame = wx.FindWindowByName('MainFrame')
 
@@ -14792,7 +15042,9 @@ class EFARangePlotPanel(wx.Panel):
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
 
-        if (int(matplotlib.__version__.split('.')[0]) ==1 and int(matplotlib.__version__.split('.')[1]) >=5) or int(matplotlib.__version__.split('.')[0]) > 1:
+        if ((int(matplotlib.__version__.split('.')[0]) ==1
+            and int(matplotlib.__version__.split('.')[1]) >=5)
+            or int(matplotlib.__version__.split('.')[0])) > 1:
             self.fig = Figure((4,4), 75)
         else:
             self.fig = Figure((275./75,4), dpi = 75)
@@ -14808,12 +15060,14 @@ class EFARangePlotPanel(wx.Panel):
         self.subplots = {}
 
         for i in range(0, len(subplotLabels)):
-            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, label = subplotLabels[i][0])
+            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1,
+                label=subplotLabels[i][0])
             subplot.set_xlabel(subplotLabels[i][1])
             subplot.set_ylabel(subplotLabels[i][2])
             self.subplots[subplotLabels[i][0]] = subplot
 
-        self.fig.subplots_adjust(left = 0.18, bottom = 0.13, right = 0.93, top = 0.93, hspace = 0.26)
+        self.fig.subplots_adjust(left = 0.18, bottom = 0.13, right = 0.93,
+            top = 0.93, hspace = 0.26)
         self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
@@ -14830,6 +15084,13 @@ class EFARangePlotPanel(wx.Panel):
 
         # Connect the callback for the draw_event so that window resizing works:
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
@@ -15009,10 +15270,8 @@ class SimilarityFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(600, client_display.Width), min(400, client_display.Height))
 
-        try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
-        except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
+
 
         self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
@@ -15058,18 +15317,26 @@ class SimilarityFrame(wx.Frame):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
 
         self.Raise()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createLayout(self, parent):
         method_text = wx.StaticText(parent, -1, 'Method:')
         method_choice = wx.Choice(parent, self.ids['method'], choices = ['CorMap'])
         method_choice.Bind(wx.EVT_CHOICE, self._onMethodChange)
         correction_text = wx.StaticText(parent, -1, 'Multiple testing correction:')
-        correction_choice = wx.Choice(parent, self.ids['correction'], choices=['None', 'Bonferroni'])
+        correction_choice = wx.Choice(parent, self.ids['correction'],
+            choices=['None', 'Bonferroni'])
         correction_choice.SetStringSelection('Bonferroni')
         correction_choice.Bind(wx.EVT_CHOICE, self._onMethodChange)
 
@@ -15079,15 +15346,19 @@ class SimilarityFrame(wx.Frame):
         method_sizer.Add(correction_text, 0, wx.RIGHT, 3)
         method_sizer.Add(correction_choice, 0, wx.RIGHT, 3)
 
-        highlight_diff_chkbx = wx.CheckBox(parent, self.ids['hl_diff_chk'], 'Highlight with p-value <')
+        highlight_diff_chkbx = wx.CheckBox(parent, self.ids['hl_diff_chk'],
+            'Highlight with p-value <')
         highlight_diff_chkbx.Bind(wx.EVT_CHECKBOX, self._onHighlightChange)
-        highlight_diff_pval = wx.TextCtrl(parent, self.ids['hl_diff_val'], '0.01', size = (65, -1))
+        highlight_diff_pval = wx.TextCtrl(parent, self.ids['hl_diff_val'], '0.01',
+            size=self._FromDIP((65, -1)))
         highlight_diff_pval.SetBackgroundColour(wx.Colour(255,128,96))
         highlight_diff_pval.Bind(wx.EVT_TEXT, self._onTextEntry)
 
-        highlight_same_chkbx = wx.CheckBox(parent, self.ids['hl_same_chk'], 'Highlight with p-value >')
+        highlight_same_chkbx = wx.CheckBox(parent, self.ids['hl_same_chk'],
+            'Highlight with p-value >')
         highlight_same_chkbx.Bind(wx.EVT_CHECKBOX, self._onHighlightChange)
-        highlight_same_pval = wx.TextCtrl(parent, self.ids['hl_same_val'], '0.01', size = (65, -1))
+        highlight_same_pval = wx.TextCtrl(parent, self.ids['hl_same_val'], '0.01',
+            size=self._FromDIP((65, -1)))
         highlight_same_pval.SetBackgroundColour('LIGHT BLUE')
         highlight_same_pval.Bind(wx.EVT_TEXT, self._onTextEntry)
 
@@ -15307,8 +15578,8 @@ class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
     def __init__(self, parent, size):
         wx.Panel.__init__(self, parent, wx.ID_ANY)
 
-        self.list_ctrl = wx.ListCtrl(self, style=wx.LC_REPORT, size=size
-                        )
+        self.list_ctrl = wx.ListCtrl(self, style=wx.LC_REPORT,
+            size=self._FromDIP(size))
 
         self.list_ctrl.InsertColumn(0, 'File# 1')
         self.list_ctrl.InsertColumn(1, 'File# 2')
@@ -15325,6 +15596,13 @@ class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.list_ctrl, 1, wx.ALL | wx.EXPAND, 5)
         self.SetSizer(sizer)
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def GetListCtrl(self):
         """Used by the ColumnSorterMixin
@@ -15391,10 +15669,7 @@ class NormKratkyFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(800, client_display.Width), min(600, client_display.Height))
 
-        try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
-        except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
@@ -15413,12 +15688,12 @@ class NormKratkyFrame(wx.Frame):
         self.plotPanel = NormKratkyPlotPanel(splitter1, wx.ID_ANY)
         self.controlPanel = NormKratkyControlPanel(splitter1, wx.ID_ANY, sasm_list)
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, 290)
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(290))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter1.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+            splitter1.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
         else:
-            splitter1.SetMinimumPaneSize(50)
+            splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
         splitter1.Layout()
 
@@ -15441,10 +15716,17 @@ class NormKratkyFrame(wx.Frame):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
         self.Raise()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def OnClose(self):
 
@@ -15476,7 +15758,9 @@ class NormKratkyPlotPanel(wx.Panel):
 
         self.plot_type = 'Dimensionless (Rg)'
 
-        self.subplot = self.fig.add_subplot(1,1,1, title = self.plot_labels[self.plot_type][0], label = self.plot_labels[self.plot_type][0])
+        self.subplot = self.fig.add_subplot(1,1,1,
+            title=self.plot_labels[self.plot_type][0],
+            label=self.plot_labels[self.plot_type][0])
         self.subplot.set_xlabel(self.plot_labels[self.plot_type][1])
         self.subplot.set_ylabel(self.plot_labels[self.plot_type][2])
         self.subplot.axhline(0, color='k', linewidth=1.0)
@@ -15484,7 +15768,8 @@ class NormKratkyPlotPanel(wx.Panel):
         self.v_line = None
         self.h_line = None
 
-        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
+        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93,
+            top = 0.93, hspace = 0.26)
         self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
@@ -15892,7 +16177,8 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         wx.Panel.__init__(self, parent, wx.ID_ANY)
 
         self.list_ctrl = ULC.UltimateListCtrl(self, agwStyle=ULC.ULC_REPORT
-            | ULC.ULC_SORT_ASCENDING|ULC.ULC_NO_HIGHLIGHT, size=(-1,450))
+            | ULC.ULC_SORT_ASCENDING|ULC.ULC_NO_HIGHLIGHT,
+            size=self._FromDIP((-1,450)))
 
         self.norm_kratky_frame = parent.norm_kratky_frame
 
@@ -15912,6 +16198,13 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.list_ctrl, 0, wx.ALL | wx.EXPAND, 5)
         self.SetSizer(sizer)
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def GetListCtrl(self):
         """Used by the ColumnSorterMixin
@@ -15990,7 +16283,8 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         item.Check(True)
         self.list_ctrl.SetItem(item)
 
-        colour_indicator = RAWCustomCtrl.ColourIndicator(self.list_ctrl, index, color, size = (30,15))
+        colour_indicator = RAWCustomCtrl.ColourIndicator(self.list_ctrl, index,
+            color, size = self._FromDIP((30,15)))
         colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onColorButton)
 
         item = self.list_ctrl.GetItem(index, 2)
@@ -16008,7 +16302,7 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         self.list_ctrl.SetItem(item)
 
         self.list_ctrl.SetColumnWidth(0, wx.LIST_AUTOSIZE_USEHEADER)
-        self.list_ctrl.SetColumnWidth(1, 130)
+        self.list_ctrl.SetColumnWidth(1, self._FromDIP(130))
         self.list_ctrl.SetColumnWidth(2, wx.LIST_AUTOSIZE_USEHEADER)
 
     def _onItemChecked(self, evt):
@@ -16035,7 +16329,8 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
 
         plotpanel = self.norm_kratky_frame.plotPanel
 
-        dlg = RAWCustomDialogs.ColourChangeDialog(self, None, 'NormKratky', line, plotpanel)
+        dlg = RAWCustomDialogs.ColourChangeDialog(self, None, 'NormKratky',
+            line, plotpanel)
         dlg.ShowModal()
         dlg.Destroy()
 
@@ -16062,7 +16357,7 @@ class LCSeriesFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(1000, client_display.Width), min(900, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
 
         panel = wx.Panel(self)
 
@@ -16083,12 +16378,12 @@ class LCSeriesFrame(wx.Frame):
         self.controlPanel = LCSeriesControlPanel(splitter, self.original_secm)
 
 
-        splitter.SplitVertically(self.controlPanel, self.plotPanel, 325)
+        splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(325))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter.SetMinimumPaneSize(290)    #Back compatability with older wxpython versions
+            splitter.SetMinimumPaneSizeself._FromDIP((290))    #Back compatability with older wxpython versions
         else:
-            splitter.SetMinimumPaneSize(50)
+            splitter.SetMinimumPaneSize(self._FromDIP(50))
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
@@ -16109,7 +16404,7 @@ class LCSeriesFrame(wx.Frame):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseEvt)
 
@@ -16120,6 +16415,13 @@ class LCSeriesFrame(wx.Frame):
         t = threading.Thread(target=self.initialize)
         t.daemon = True
         t.start()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def initialize(self):
         self.secm = copy.deepcopy(self.original_secm)
@@ -17034,7 +17336,12 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         self.results = {}
 
-
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createLayout(self):
 
@@ -17088,10 +17395,10 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.vc_mol_type.SetStringSelection('Protein')
         self.vc_mol_type.Bind(wx.EVT_CHOICE, self.onUpdateProc)
 
-        self.vp_density = wx.TextCtrl(info_win, value=str(vp_density), size=(60,-1),
-            style=wx.TE_PROCESS_ENTER)
-        self.avg_window = wx.TextCtrl(info_win, value='5', size=(60,-1),
-            style=wx.TE_PROCESS_ENTER)
+        self.vp_density = wx.TextCtrl(info_win, value=str(vp_density),
+            size=self._FromDIP((60,-1)), style=wx.TE_PROCESS_ENTER)
+        self.avg_window = wx.TextCtrl(info_win, value='5',
+            size=self._FromDIP((60,-1)), style=wx.TE_PROCESS_ENTER)
         self.vp_density.Bind(wx.EVT_TEXT_ENTER, self.onUpdateProc)
         self.avg_window.Bind(wx.EVT_TEXT_ENTER, self.onUpdateProc)
 
@@ -17124,7 +17431,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.subtracted.Bind(wx.EVT_CHECKBOX, self._onSubtracted)
 
         self.buffer_range_list = SeriesRangeItemList(self, 'buffer', buffer_win)
-        self.buffer_range_list.SetMinSize((-1,115))
+        self.buffer_range_list.SetMinSize(self._FromDIP((-1,115)))
 
         self.buffer_auto_btn = wx.Button(buffer_win, label='Auto')
         self.buffer_auto_btn.Bind(wx.EVT_BUTTON, self._onBufferAuto)
@@ -17182,17 +17489,17 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             r2_2 = frames[-11]
 
         self.bl_r1_start = RAWCustomCtrl.IntSpinCtrl(baseline_win,
-            wx.ID_ANY, min=r1_0, max=r1_1, size=(60,-1))
+            wx.ID_ANY, min=r1_0, max=r1_1, size=self._FromDIP((60,-1)))
         self.bl_r1_end = RAWCustomCtrl.IntSpinCtrl(baseline_win,
-            wx.ID_ANY, min=r1_0, max=frames[-1], size=(60,-1))
+            wx.ID_ANY, min=r1_0, max=frames[-1], size=self._FromDIP((60,-1)))
         self.bl_r1_end.SetValue(r1_1)
         self.bl_r1_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
         self.bl_r1_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
 
         self.bl_r2_start = RAWCustomCtrl.IntSpinCtrl(baseline_win,
-            wx.ID_ANY, min=r2_0, max=frames[-1], size=(60,-1))
+            wx.ID_ANY, min=r2_0, max=frames[-1], size=self._FromDIP((60,-1)))
         self.bl_r2_end = RAWCustomCtrl.IntSpinCtrl(baseline_win,
-            wx.ID_ANY, min=r2_2, max=frames[-1], size=(60,-1))
+            wx.ID_ANY, min=r2_2, max=frames[-1], size=self._FromDIP((60,-1)))
         self.bl_r2_start.SetValue(r2_2)
         self.bl_r2_end.SetValue(frames[-1])
         self.bl_r2_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
@@ -17257,7 +17564,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         sample_win = sample_pane.GetPane()
 
         self.sample_range_list = SeriesRangeItemList(self, 'sample', sample_win)
-        self.sample_range_list.SetMinSize((-1,85))
+        self.sample_range_list.SetMinSize(self._FromDIP((-1,85)))
 
         self.sample_auto_btn = wx.Button(sample_win, label='Auto')
         self.sample_auto_btn.Bind(wx.EVT_BUTTON, self._onSampleAuto)
@@ -17426,8 +17733,10 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             self.baseline_options_sizer.Hide(self.baseline_extrap)
 
 
-        array_test = (isinstance(self.secm.vpmw_list, np.ndarray) and (not np.all(self.secm.vpmw_list == -1)
-            or np.all(self.secm.rg_list == -1)) and self.secm.vpmw_list.size > 0)
+        array_test = (isinstance(self.secm.vpmw_list, np.ndarray)
+            and (not np.all(self.secm.vpmw_list == -1)
+            or np.all(self.secm.rg_list == -1))
+            and self.secm.vpmw_list.size > 0)
         list_test = isinstance(self.secm.vpmw_list, list) and self.secm.vpmw_list
 
         if array_test or list_test:
@@ -19472,13 +19781,20 @@ class SeriesRangeItem(RAWCustomCtrl.ListItem):
 
         RAWCustomCtrl.ListItem.__init__(self, *args, **kwargs)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _create_layout(self):
         frames = self.series_panel.secm.getFrames()
 
         self.start_ctrl = RAWCustomCtrl.IntSpinCtrl(self, wx.ID_ANY,
-            min=frames[0], max=frames[-1], size=(60,-1))
+            min=frames[0], max=frames[-1], size=self._FromDIP((60,-1)))
         self.end_ctrl = RAWCustomCtrl.IntSpinCtrl(self, wx.ID_ANY,
-            min=frames[0], max=frames[-1], size=(60,-1))
+            min=frames[0], max=frames[-1], size=self._FromDIP((60,-1)))
 
         self.start_ctrl.SetValue(frames[0])
         self.end_ctrl.SetValue(frames[-1])

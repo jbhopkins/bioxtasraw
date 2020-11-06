@@ -43,6 +43,7 @@ import bioxtasraw.RAWGlobals as RAWGlobals
 import bioxtasraw.SASMask as SASMask
 import bioxtasraw.SASCalib as SASCalib
 import bioxtasraw.RAWCustomCtrl as RAWCustomCtrl
+import bioxtasraw.SASUtils as SASUtils
 
 class ImagePanelToolbar(NavigationToolbar2WxAgg):
     ''' The toolbar under the image in the image panel '''
@@ -76,10 +77,10 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         back = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-green-pointing-left-24.png')
         forward = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-green-pointing-right-24.png')
 
-        hdrInfoIcon   = wx.Bitmap(hdrinfo, wx.BITMAP_TYPE_PNG)
-        ImgSetIcon    = wx.Bitmap(imgctrl, wx.BITMAP_TYPE_PNG)
-        prevImgIcon = wx.Bitmap(back, wx.BITMAP_TYPE_PNG)
-        nextImgIcon = wx.Bitmap(forward, wx.BITMAP_TYPE_PNG)
+        hdrInfoIcon   = SASUtils.load_DIP_bitmap(hdrinfo, wx.BITMAP_TYPE_PNG)
+        ImgSetIcon    = SASUtils.load_DIP_bitmap(imgctrl, wx.BITMAP_TYPE_PNG)
+        prevImgIcon = SASUtils.load_DIP_bitmap(back, wx.BITMAP_TYPE_PNG)
+        nextImgIcon = SASUtils.load_DIP_bitmap(forward, wx.BITMAP_TYPE_PNG)
 
 
         if wx.version().split()[0].strip()[0] == '4':
@@ -1081,7 +1082,9 @@ class ImagePanel(wx.Panel):
                 self.fig.gca().draw_artist(self._circle_guide_line)
                 self.canvas.blit(self.fig.gca().bbox)
             else:
-                self._circle_guide_line = matplotlib.patches.Circle((self._chosen_points_x[-1], self._chosen_points_y[-1]), radius_c, color = 'r', fill = False, linewidth = 2, animated = True)
+                self._circle_guide_line = matplotlib.patches.Circle((self._chosen_points_x[-1],
+                    self._chosen_points_y[-1]), radius_c, color = 'r', fill = False,
+                    linewidth = 2, animated = True)
                 a.add_patch(self._circle_guide_line)
                 self.canvas.draw()
                 self.background = self.canvas.copy_from_bbox(self.fig.gca().bbox)
@@ -1135,9 +1138,12 @@ class ImagePanel(wx.Panel):
         radius_c = abs(points[1][0] - points[0][0])
 
         if animated:
-            cir = matplotlib.patches.Circle( (points[0][0], points[0][1]), color = color, radius = radius_c, alpha = 0.5, picker = True, animated=True)
+            cir = matplotlib.patches.Circle( (points[0][0], points[0][1]),
+                color = color, radius = radius_c, alpha = 0.5, picker = True,
+                animated=True)
         else:
-            cir = matplotlib.patches.Circle( (points[0][0], points[0][1]), color = color, radius = radius_c, alpha = 0.5, picker = True)
+            cir = matplotlib.patches.Circle( (points[0][0], points[0][1]),
+                color = color, radius = radius_c, alpha = 0.5, picker = True)
         cir.id = mask_id       # Creating a new parameter called id to distingush them!
         cir.mask = mask
         cir.selected = 0
@@ -1159,9 +1165,11 @@ class ImagePanel(wx.Panel):
         width = xEnd - xStart
         height = yEnd - yStart
         if animated:
-            rect = matplotlib.patches.Rectangle( (xStart, yStart), width, height, color = color, alpha = 0.5, picker = True, animated=True )
+            rect = matplotlib.patches.Rectangle( (xStart, yStart), width,
+                height, color = color, alpha = 0.5, picker = True, animated=True )
         else:
-            rect = matplotlib.patches.Rectangle( (xStart, yStart), width, height, color = color, alpha = 0.5, picker = True)
+            rect = matplotlib.patches.Rectangle( (xStart, yStart), width,
+                height, color = color, alpha = 0.5, picker = True)
         rect.mask = mask
 
         rect.id = mask_id
@@ -1176,9 +1184,11 @@ class ImagePanel(wx.Panel):
         a = self.fig.gca()
 
         if animated:
-            poly = matplotlib.patches.Polygon(points, alpha = 0.5, picker = True , color = color, animated=True)
+            poly = matplotlib.patches.Polygon(points, alpha = 0.5, picker = True ,
+                color = color, animated=True)
         else:
-            poly = matplotlib.patches.Polygon(points, alpha = 0.5, picker = True , color = color)
+            poly = matplotlib.patches.Polygon(points, alpha = 0.5, picker = True ,
+                color = color)
         poly.mask = mask
         a.add_patch(poly)
 
@@ -1197,11 +1207,14 @@ class ImagePanel(wx.Panel):
                 self.clearPatches()
 
             if not a.patches:
-                cir = matplotlib.patches.Circle( x, radius = 3, alpha = 1, facecolor = 'red', edgecolor = 'red', animated=True)
+                cir = matplotlib.patches.Circle( x, radius = 3, alpha = 1,
+                    facecolor = 'red', edgecolor = 'red', animated=True)
                 a.add_patch(cir)
 
                 for r in r_list:
-                    cir = matplotlib.patches.Circle(x, radius = r, alpha = 1, fill = False, linestyle = 'dashed', linewidth = 1.5, edgecolor = 'red',animated=True)
+                    cir = matplotlib.patches.Circle(x, radius = r, alpha = 1,
+                        fill = False, linestyle = 'dashed', linewidth = 1.5,
+                        edgecolor = 'red',animated=True)
                     a.add_patch(cir)
 
                 self.canvas.draw()
@@ -1222,7 +1235,8 @@ class ImagePanel(wx.Panel):
         a = self.fig.gca()
 
         for point in points:
-            cir = matplotlib.patches.Circle((point[1], point[0]), radius = 1, alpha = 1, color = self.pyfai_color_cycle[int(point[2]) % len(self.pyfai_color_cycle)])
+            cir = matplotlib.patches.Circle((point[1], point[0]), radius = 1,
+                alpha = 1, color = self.pyfai_color_cycle[int(point[2]) % len(self.pyfai_color_cycle)])
             a.add_patch(cir)
 
         self.canvas.draw()
@@ -1388,7 +1402,9 @@ class HdrInfoDialog(wx.Dialog):
 
     def __init__(self, parent, sasm):
 
-        wx.Dialog.__init__(self, parent, -1, 'Image Header', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX,  size = (500,500))
+        wx.Dialog.__init__(self, parent, -1, 'Image Header',
+            style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX,
+            size=self._FromDIP((500,500)))
 
         self.sasm = sasm
 
@@ -1419,9 +1435,16 @@ class HdrInfoDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self.FromDIP(best_size))
 
         self.CenterOnParent()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def createHdrInfoWindow(self):
 
@@ -1524,7 +1547,7 @@ class ImageSettingsDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         try:
             file_list_ctrl = wx.FindWindowByName('FilePanel')
@@ -1535,6 +1558,13 @@ class ImageSettingsDialog(wx.Dialog):
                 self.MoveXY(pos[0], pos[1])
         except:
             pass
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def OnOk(self, event):
 
@@ -1678,7 +1708,8 @@ class ImageSettingsDialog(wx.Dialog):
         for each in self.sliderinfo:
 
             label = wx.StaticText(self, -1, each[0])
-            val = wx.TextCtrl(self, each[1], size = (60, 21), style = wx.TE_PROCESS_ENTER)
+            val = wx.TextCtrl(self, each[1], size=self._FromDIP((60, 21)),
+                style=wx.TE_PROCESS_ENTER)
             val.Bind(wx.EVT_TEXT_ENTER, self.OnTxtEnter)
             val.Bind(wx.EVT_KILL_FOCUS, self.OnTxtEnter)
 

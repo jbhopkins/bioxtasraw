@@ -41,6 +41,7 @@ import subprocess
 import glob
 import json
 import sys
+import math
 
 try:
     import wx
@@ -505,4 +506,42 @@ if six.PY3:
 def signal_handler(sig, frame):
     main_frame = wx.Window.FindWindowByName('MainFrame')
     main_frame.cleanup_and_quit_forced()
+
+
+def load_DIP_bitmap(filepath, bitmap_type):
+    try:
+        content_scale = wx.GetApp().GetTopWindow().GetDPIScaleFactor()
+    except Exception:
+        content_scale = wx.GetApp().GetTopWindow().GetContentScaleFactor()
+
+    img_scale = math.ceil(content_scale)
+
+    img = None
+
+    if platform.system() == 'Darwin':
+        img = wx.Image(filepath, bitmap_type)
+    else:
+        current_scale = img_scale
+
+        while current_scale > 1:
+            path, ext = os.path.splitext(filepath)
+            imgpath = '{}@{}x{}'.format(path, current_scale, ext)
+            if os.path.isfile(imgpath):
+                img = wx.Image(imgpath, bitmap_type)
+                break
+            else:
+                current_scale = current_scale -1
+
+        if img is None:
+            img = wx.Image(filepath, bitmap_type)
+
+        # Should I rescale for intermediate resolutions? Or just have larger crisp icons?
+        w, h = img.GetSize()
+        extra_scale = content_scale/current_scale
+        img.Rescale(int(w*extra_scale), int(h*extra_scale))
+
+    bmp = wx.Bitmap(img)
+
+    return bmp
+
 

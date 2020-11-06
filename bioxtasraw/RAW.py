@@ -51,6 +51,7 @@ import multiprocessing
 from collections import OrderedDict, defaultdict
 import functools
 import signal
+import ctypes
 
 
 import hdf5plugin #HAS TO BE FIRST
@@ -237,7 +238,7 @@ class MainFrame(wx.Frame):
         # *************** Set minimum frame size ***************
         client_display = wx.GetClientDisplayRect()
         minsize = (min(800, client_display.Width), min(600, client_display.Height))
-        self.SetMinSize(minsize)
+        self.SetMinSize(self._FromDIP(minsize))
 
         # /* CREATE PLOT NOTEBOOK */
         self._closing = False #A hack for what seems to be an AUI bug
@@ -245,7 +246,8 @@ class MainFrame(wx.Frame):
         self._mgr = aui.AuiManager()
         self._mgr.SetManagedWindow(self)
 
-        self.plot_notebook = aui.AuiNotebook(self, style = aui.AUI_NB_TAB_MOVE | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_SCROLL_BUTTONS)
+        self.plot_notebook = aui.AuiNotebook(self, style = aui.AUI_NB_TAB_MOVE
+            | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_SCROLL_BUTTONS)
 
         self.plot_panel = RAWPlot.PlotPanel(self.plot_notebook, -1, 'PlotPanel')
         img_panel = RAWImage.ImagePanel(self.plot_notebook, -1, 'ImagePanel')
@@ -281,7 +283,8 @@ class MainFrame(wx.Frame):
 
         self._mgr.AddPane(self.control_notebook, aui.AuiPaneInfo().Name("ctrlpanel").
                           CloseButton(False).Left().Layer(0).Caption("Control Panel").
-                          MinSize((425,300)).PinButton(True).Row(0).Position(1))
+                          MinSize(self._FromDIP((425,300))).PinButton(True).Row(0).
+                          Position(1))
 
         self._mgr.AddPane(self.plot_notebook, aui.AuiPaneInfo().Name("plotpanel").
                           CloseButton(False).Centre().Layer(0).Caption("Plot Panel"))
@@ -300,14 +303,14 @@ class MainFrame(wx.Frame):
         self._mgr.GetPane(self.masking_panel).Show(False)
         self._mgr.GetPane(self.masking_panel).dock_proportion = 350000
 
-        self._mgr.GetPane(self.info_panel).FloatingSize((450,600))
+        self._mgr.GetPane(self.info_panel).FloatingSize(self._FromDIP((450,600)))
         self._mgr.GetPane(self.control_notebook).dock_proportion = 350000
 
         self._mgr.GetPane(self.info_panel).dock_proportion = 120000
 
         self._mgr.Update()
 
-        self._mgr.GetPane(self.control_notebook).MinSize((200,300))
+        self._mgr.GetPane(self.control_notebook).MinSize(self._FromDIP((200,300)))
 
         self._createMenuBar()
 
@@ -326,12 +329,19 @@ class MainFrame(wx.Frame):
         app.SetTopWindow(self)
 
         size = (min(1200, client_display.Width), min(900, client_display.Height))
-        self.SetSize(size)
+        self.SetSize(self._FromDIP(size))
         self.CenterOnScreen()
         self.Show(True)
 
 
         wx.CallAfter(self._showWelcomeDialog)
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _showWelcomeDialog(self):
         dlg = WelcomeDialog(self, name = "WelcomeDialog")
@@ -1044,7 +1054,8 @@ class MainFrame(wx.Frame):
         missing_rg = []
         for sasm in sasm_list:
             analysis_dict = sasm.getParameter('analysis')
-            if 'guinier' not in analysis_dict or 'Rg' not in analysis_dict['guinier'] or 'I0' not in analysis_dict['guinier']:
+            if ('guinier' not in analysis_dict or 'Rg' not in
+                analysis_dict['guinier'] or 'I0' not in analysis_dict['guinier']):
                 missing_rg.append(sasm)
 
         if len(missing_rg) > 0:
@@ -2785,7 +2796,8 @@ class OnlineController(object):
 
                 dir_list_dict = {}
                 for each_file in dir_list:
-                    dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)),os.path.getsize(os.path.join(self.seek_dir, each_file)))
+                    dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)),
+                        os.path.getsize(os.path.join(self.seek_dir, each_file)))
 
                 self.old_dir_list_dict = dir_list_dict
 
@@ -2805,7 +2817,8 @@ class OnlineController(object):
 
             dir_list_dict = {}
             for each_file in dir_list:
-                dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)), os.path.getsize(os.path.join(self.seek_dir, each_file)))
+                dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)),
+                    os.path.getsize(os.path.join(self.seek_dir, each_file)))
 
             self.old_dir_list_dict = dir_list_dict
 
@@ -2979,7 +2992,8 @@ class OnlineController(object):
         dir_list_dict = {}
 
         for each_file in file_list:
-            dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)), os.path.getsize(os.path.join(self.seek_dir, each_file)))
+            dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)),
+                os.path.getsize(os.path.join(self.seek_dir, each_file)))
 
         diff_list = list(set(dir_list_dict.items()) - set(self.old_dir_list_dict.items()))
         diff_list.sort(key = lambda name: name[0])
@@ -6024,7 +6038,8 @@ class MainWorkerThread(threading.Thread):
 class FilePanel(wx.Panel):
     def __init__(self, parent):
 
-        wx.Panel.__init__(self, parent, size = (400,600), name = 'FilePanel')
+        wx.Panel.__init__(self, parent, size=self._FromDIP((400,600)),
+            name='FilePanel')
 
         self.plot_panel = wx.FindWindowByName('PlotPanel')
         self.manipulation_panel = wx.FindWindowByName('ManipulationPanel')
@@ -6061,12 +6076,19 @@ class FilePanel(wx.Panel):
 
         self.SetSizer(b2sizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _createBackgroundFileLabels(self):
         box = wx.StaticBox(self, -1, 'Background File:')
         bg_label_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
         bg_filename = wx.StaticText(self, -1, 'None')
-        bg_filename.SetMinSize((230,20))
+        bg_filename.SetMinSize(self._FromDIP((230,20)))
 
         bg_label_sizer.Add(bg_filename, 1, wx.EXPAND)
 
@@ -6269,10 +6291,10 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         self.InsertColumn(1, 'Ext')
         self.InsertColumn(2, 'Modified')
         self.InsertColumn(3, 'Size', wx.LIST_FORMAT_RIGHT)
-        self.SetColumnWidth(0, 160)
-        self.SetColumnWidth(1, 40)
-        self.SetColumnWidth(2, 125)
-        self.SetColumnWidth(3, 70)
+        self.SetColumnWidth(0, self._FromDIP(160))
+        self.SetColumnWidth(1, self._FromDIP(40))
+        self.SetColumnWidth(2, self._FromDIP(125))
+        self.SetColumnWidth(3, self._FromDIP(70))
 
         try:
             self.attr1 = wx.ItemAttr()
@@ -6285,7 +6307,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         self.attr2.SetBackgroundColour("White")
 
         ### Prepare list images:
-        self.il = wx.ImageList(16, 16)
+        self.il = wx.ImageList(self._FromDIP(16), self._FromDIP(16))
 
         dir_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-folder-16.png')
         doc_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-document-16.png')
@@ -6293,11 +6315,11 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         sort_up_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-up-filled-16.png')
         sort_down_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-down-filled-16.png')
 
-        self.documentimg = self.il.Add(wx.Bitmap(doc_png, wx.BITMAP_TYPE_PNG))
-        self.folderimg = self.il.Add(wx.Bitmap(dir_png, wx.BITMAP_TYPE_PNG))
-        self.upimg = self.il.Add(wx.Bitmap(up_png, wx.BITMAP_TYPE_PNG))
-        self.sm_up = self.il.Add(wx.Bitmap(sort_up_png, wx.BITMAP_TYPE_PNG))
-        self.sm_dn = self.il.Add(wx.Bitmap(sort_down_png, wx.BITMAP_TYPE_PNG))
+        self.documentimg = self.il.Add(SASUtils.load_DIP_bitmap(doc_png, wx.BITMAP_TYPE_PNG))
+        self.folderimg = self.il.Add(SASUtils.load_DIP_bitmap(dir_png, wx.BITMAP_TYPE_PNG))
+        self.upimg = self.il.Add(SASUtils.load_DIP_bitmap(up_png, wx.BITMAP_TYPE_PNG))
+        self.sm_up = self.il.Add(SASUtils.load_DIP_bitmap(sort_up_png, wx.BITMAP_TYPE_PNG))
+        self.sm_dn = self.il.Add(SASUtils.load_DIP_bitmap(sort_down_png, wx.BITMAP_TYPE_PNG))
         self.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
         #Init the list:
@@ -6320,6 +6342,12 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         # These methods are callbacks for implementing the
         # "virtualness" of the list...
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def OnGetItemText(self, item, col):
         index=self.itemIndexMap[item]
@@ -6465,7 +6493,8 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
                         size = 0
                         sec = 1
 
-                    self.file_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M', time.localtime(sec)), str(round(size/1000.,1)) + ' KB', 'file')
+                    self.file_list_dict[j] = (name, ex, time.strftime('%Y-%m-%d %H:%M',
+                        time.localtime(sec)), str(round(size/1000.,1)) + ' KB', 'file')
 
                     j += 1
 
@@ -6845,6 +6874,12 @@ class DirCtrlPanel(wx.Panel):
 
         self.file_list = []
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _useSavedPathIfExisits(self):
         path = None
@@ -6875,15 +6910,16 @@ class DirCtrlPanel(wx.Panel):
 
         dir_label_sizer = wx.BoxSizer()
 
-        self.dir_label = wx.TextCtrl(self, size = (30,16), style = wx.TE_PROCESS_ENTER)
+        self.dir_label = wx.TextCtrl(self, size = self._FromDIP((30,16)),
+            style = wx.TE_PROCESS_ENTER)
         self.dir_label.Bind(wx.EVT_KILL_FOCUS, self._onEnterOrFocusShiftInDirLabel)
         self.dir_label.Bind(wx.EVT_TEXT_ENTER, self._onEnterOrFocusShiftInDirLabel)
 
         dir_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-opened-folder-16.png')
         refresh_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-synchronize-16.png')
 
-        dir_bitmap = wx.Bitmap(dir_png, wx.BITMAP_TYPE_PNG)
-        refresh_bitmap = wx.Bitmap(refresh_png, wx.BITMAP_TYPE_PNG)
+        dir_bitmap = SASUtils.load_DIP_bitmap(dir_png, wx.BITMAP_TYPE_PNG)
+        refresh_bitmap = SASUtils.load_DIP_bitmap(refresh_png, wx.BITMAP_TYPE_PNG)
 
         self.dir_button = wx.BitmapButton(self, -1, dir_bitmap)
         self.dir_button.Bind(wx.EVT_BUTTON, self._onSetDirButton)
@@ -6992,7 +7028,7 @@ class ManipulationPanel(wx.Panel):
         toolbarsizer = self._createToolbar()
 
         self.underpanel = scrolled.ScrolledPanel(self, -1, style = wx.BORDER_SUNKEN)
-        self.underpanel.SetVirtualSize((200, 200))
+        self.underpanel.SetVirtualSize( self._FromDIP((200, 200)))
         self.underpanel.SetScrollRate(20,20)
 
         file_drop_target = RAWCustomCtrl.RawPanelFileDropTarget(self.underpanel, 'main')
@@ -7019,6 +7055,13 @@ class ManipulationPanel(wx.Panel):
         self._star_marked_item = None
         self._raw_settings = raw_settings
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _initializeIcons(self):
 
         #Icons for ManipulationPanel (some shared with ManipItemPanel)
@@ -7028,11 +7071,11 @@ class ManipulationPanel(wx.Panel):
         hide_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-hide-16.png')
         select_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-select-all-16.png')
 
-        self.collapse_all_png = wx.Bitmap(collapse_all, wx.BITMAP_TYPE_PNG)
-        self.expand_all_png = wx.Bitmap(expand_all, wx.BITMAP_TYPE_PNG)
-        self.show_all_png = wx.Bitmap(show_all, wx.BITMAP_TYPE_PNG)
-        self.hide_all_png = wx.Bitmap(hide_all, wx.BITMAP_TYPE_PNG)
-        self.select_all_png = wx.Bitmap(select_all, wx.BITMAP_TYPE_PNG)
+        self.collapse_all_png = SASUtils.load_DIP_bitmap(collapse_all, wx.BITMAP_TYPE_PNG)
+        self.expand_all_png = SASUtils.load_DIP_bitmap(expand_all, wx.BITMAP_TYPE_PNG)
+        self.show_all_png = SASUtils.load_DIP_bitmap(show_all, wx.BITMAP_TYPE_PNG)
+        self.hide_all_png = SASUtils.load_DIP_bitmap(hide_all, wx.BITMAP_TYPE_PNG)
+        self.select_all_png = SASUtils.load_DIP_bitmap(select_all, wx.BITMAP_TYPE_PNG)
 
         #Items for ManipItemPanel
         gray_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-gray-16.png')
@@ -7043,13 +7086,13 @@ class ManipulationPanel(wx.Panel):
         expand = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-down-filled-16.png')
         collapse = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-up-filled-16.png')
 
-        self.gray_png = wx.Bitmap(gray_star, wx.BITMAP_TYPE_PNG)
-        self.star_png = wx.Bitmap(orange_star, wx.BITMAP_TYPE_PNG)
-        self.target_png = wx.Bitmap(target, wx.BITMAP_TYPE_PNG)
-        self.target_on_png = wx.Bitmap(target_on, wx.BITMAP_TYPE_PNG)
-        self.info_png = wx.Bitmap(info, wx.BITMAP_TYPE_PNG)
-        self.expand_png = wx.Bitmap(expand, wx.BITMAP_TYPE_PNG)
-        self.collapse_png = wx.Bitmap(collapse, wx.BITMAP_TYPE_PNG)
+        self.gray_png = SASUtils.load_DIP_bitmap(gray_star, wx.BITMAP_TYPE_PNG)
+        self.star_png = SASUtils.load_DIP_bitmap(orange_star, wx.BITMAP_TYPE_PNG)
+        self.target_png = SASUtils.load_DIP_bitmap(target, wx.BITMAP_TYPE_PNG)
+        self.target_on_png = SASUtils.load_DIP_bitmap(target_on, wx.BITMAP_TYPE_PNG)
+        self.info_png = SASUtils.load_DIP_bitmap(info, wx.BITMAP_TYPE_PNG)
+        self.expand_png = SASUtils.load_DIP_bitmap(expand, wx.BITMAP_TYPE_PNG)
+        self.collapse_png = SASUtils.load_DIP_bitmap(collapse, wx.BITMAP_TYPE_PNG)
 
     def _createToolbar(self):
 
@@ -7062,8 +7105,10 @@ class ManipulationPanel(wx.Panel):
 
         collapse_all = wx.BitmapButton(self, -1, self.collapse_all_png)
         expand_all = wx.BitmapButton(self, -1, self.expand_all_png)
-        show_all = wx.BitmapButton(self, -1, self.show_all_png, size=size)
-        hide_all = wx.BitmapButton(self, -1, self.hide_all_png, size=size)
+        show_all = wx.BitmapButton(self, -1, self.show_all_png,
+            size=self._FromDIP(size))
+        hide_all = wx.BitmapButton(self, -1, self.hide_all_png,
+            size=self._FromDIP(size))
         select_all= wx.BitmapButton(self, -1, self.select_all_png)
 
         select_all.Bind(wx.EVT_BUTTON, self._onSelectAllButton)
@@ -7746,7 +7791,8 @@ class ManipItemPanel(wx.Panel):
         color = conv.to_rgb(self.sasm.line.get_mfc())
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
 
-        self.colour_indicator = RAWCustomCtrl.ColourIndicator(self, -1, color, size = (20,15))
+        self.colour_indicator = RAWCustomCtrl.ColourIndicator(self, -1, color,
+            size=self._FromDIP((20,15)))
         self.colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onLinePropertyButton)
 
         self.bg_star = wx.Button(self, wx.ID_ANY,
@@ -7869,6 +7915,12 @@ class ManipItemPanel(wx.Panel):
         self.updateShowItem()
         self._updateLegendLabel(False)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def updateInfoTip(self, analysis_dict, fromGuinierDialog = False):
 
@@ -8824,7 +8876,8 @@ class ManipItemPanel(wx.Panel):
                 spin_label.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
                 spin_label.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
-            spin_control = RAWCustomCtrl.IntSpinCtrl(self, spin_id, min = nlow, max = nhigh, TextLength = 43)
+            spin_control = RAWCustomCtrl.IntSpinCtrl(self, spin_id, min = nlow,
+                max = nhigh, TextLength = 43)
 
             if spin_name == 'nlow':
                 spin_control.SetValue(nlow)
@@ -8833,7 +8886,8 @@ class ManipItemPanel(wx.Panel):
 
             spin_control.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onQrangeChange)
 
-            q_ctrl = wx.TextCtrl(self, qtxtId, '', size = (55,-1), style = wx.TE_PROCESS_ENTER)
+            q_ctrl = wx.TextCtrl(self, qtxtId, '', size = self._FromDIP((55,-1)),
+                style = wx.TE_PROCESS_ENTER)
             q_ctrl.Bind(wx.EVT_TEXT_ENTER, self._onEnterInQrangeTextCtrl)
 
             spin_sizer = wx.BoxSizer()
@@ -8868,7 +8922,7 @@ class IFTPanel(wx.Panel):
         toolbarsizer = self._createToolbar()
 
         self.underpanel = scrolled.ScrolledPanel(self, -1, style = wx.BORDER_SUNKEN)
-        self.underpanel.SetVirtualSize((200, 200))
+        self.underpanel.SetVirtualSize(self._FromDIP((200, 200)))
         self.underpanel.SetScrollRate(20,20)
 
         file_drop_target = RAWCustomCtrl.RawPanelFileDropTarget(self.underpanel, 'ift')
@@ -8893,6 +8947,13 @@ class IFTPanel(wx.Panel):
         self._star_marked_item = None
         self._raw_settings = raw_settings
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _initializeIcons(self):
 
         #Icons for the IFTPanel and IFTItemPanel
@@ -8900,18 +8961,18 @@ class IFTPanel(wx.Panel):
         hide_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-hide-16.png')
         select_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-select-all-16.png')
 
-        self.show_all_png = wx.Bitmap(show_all, wx.BITMAP_TYPE_PNG)
-        self.hide_all_png = wx.Bitmap(hide_all, wx.BITMAP_TYPE_PNG)
-        self.select_all_png = wx.Bitmap(select_all, wx.BITMAP_TYPE_PNG)
+        self.show_all_png = SASUtils.load_DIP_bitmap(show_all, wx.BITMAP_TYPE_PNG)
+        self.hide_all_png = SASUtils.load_DIP_bitmap(hide_all, wx.BITMAP_TYPE_PNG)
+        self.select_all_png = SASUtils.load_DIP_bitmap(select_all, wx.BITMAP_TYPE_PNG)
 
         #Icons for the IFTItemPanel
         target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-16.png')
         target_on = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-red-16.png')
         info = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-info-16.png')
 
-        self.info_png = wx.Bitmap(info, wx.BITMAP_TYPE_PNG)
-        self.target_png = wx.Bitmap(target, wx.BITMAP_TYPE_PNG)
-        self.target_on_png = wx.Bitmap(target_on, wx.BITMAP_TYPE_PNG)
+        self.info_png = SASUtils.load_DIP_bitmap(info, wx.BITMAP_TYPE_PNG)
+        self.target_png = SASUtils.load_DIP_bitmap(target, wx.BITMAP_TYPE_PNG)
+        self.target_on_png = SASUtils.load_DIP_bitmap(target_on, wx.BITMAP_TYPE_PNG)
 
     def _createToolbar(self):
 
@@ -8922,8 +8983,10 @@ class IFTPanel(wx.Panel):
         else:
             size = (-1, -1)
 
-        show_all = wx.BitmapButton(self, -1, self.show_all_png, size=size)
-        hide_all = wx.BitmapButton(self, -1, self.hide_all_png, size=size)
+        show_all = wx.BitmapButton(self, -1, self.show_all_png,
+            size=self._FromDIP(size))
+        hide_all = wx.BitmapButton(self, -1, self.hide_all_png,
+            size=self._FromDIP(size))
         select_all= wx.BitmapButton(self, -1, self.select_all_png)
 
 
@@ -9362,7 +9425,8 @@ class IFTItemPanel(wx.Panel):
         color = [1,1,1]
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
 
-        self.colour_indicator = RAWCustomCtrl.ColourIndicator(self, -1, color, size = (20,15))
+        self.colour_indicator = RAWCustomCtrl.ColourIndicator(self, -1, color,
+            size=self._FromDIP((20,15)))
         self.colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onLinePropertyButton)
 
         self.target_icon = wx.Button(self, wx.ID_ANY,
@@ -9463,6 +9527,12 @@ class IFTItemPanel(wx.Panel):
             if self not in self.ift_panel.modified_items:
                 self.ift_panel.modified_items.append(self)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def setCurrentIFTParameters(self, ift_parameters):
         self.ift_parameters = ift_parameters
@@ -10036,7 +10106,7 @@ class SECPanel(wx.Panel):
         toolbarsizer = self._createToolbar()
 
         self.underpanel = scrolled.ScrolledPanel(self, -1, style = wx.BORDER_SUNKEN)
-        self.underpanel.SetVirtualSize((200, 200))
+        self.underpanel.SetVirtualSize(self._FromDIP((200, 200)))
         self.underpanel.SetScrollRate(20,20)
 
         file_drop_target = RAWCustomCtrl.RawPanelFileDropTarget(self.underpanel, 'sec')
@@ -10062,6 +10132,13 @@ class SECPanel(wx.Panel):
 
         self.SetSizer(self.panelsizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _onRemoveButton(self, event):
         self.removeSelectedItems()
 
@@ -10076,9 +10153,9 @@ class SECPanel(wx.Panel):
         hide_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-hide-16.png')
         select_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-select-all-16.png')
 
-        self.show_all_png = wx.Bitmap(show_all, wx.BITMAP_TYPE_PNG)
-        self.hide_all_png = wx.Bitmap(hide_all, wx.BITMAP_TYPE_PNG)
-        self.select_all_png = wx.Bitmap(select_all, wx.BITMAP_TYPE_PNG)
+        self.show_all_png =SASUtils.load_DIP_bitmap(show_all, wx.BITMAP_TYPE_PNG)
+        self.hide_all_png = SASUtils.load_DIP_bitmap(hide_all, wx.BITMAP_TYPE_PNG)
+        self.select_all_png = SASUtils.load_DIP_bitmap(select_all, wx.BITMAP_TYPE_PNG)
 
         #Icons for the SeriesItemPanel
         gray_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-gray-16.png')
@@ -10087,11 +10164,11 @@ class SECPanel(wx.Panel):
         target_on = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-red-16.png')
         info = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-info-16.png')
 
-        self.gray_png = wx.Bitmap(gray_star, wx.BITMAP_TYPE_PNG)
-        self.star_png = wx.Bitmap(orange_star, wx.BITMAP_TYPE_PNG)
-        self.target_png = wx.Bitmap(target, wx.BITMAP_TYPE_PNG)
-        self.target_on_png = wx.Bitmap(target_on, wx.BITMAP_TYPE_PNG)
-        self.info_png = wx.Bitmap(info, wx.BITMAP_TYPE_PNG)
+        self.gray_png = SASUtils.load_DIP_bitmap(gray_star, wx.BITMAP_TYPE_PNG)
+        self.star_png = SASUtils.load_DIP_bitmap(orange_star, wx.BITMAP_TYPE_PNG)
+        self.target_png = SASUtils.load_DIP_bitmap(target, wx.BITMAP_TYPE_PNG)
+        self.target_on_png = SASUtils.load_DIP_bitmap(target_on, wx.BITMAP_TYPE_PNG)
+        self.info_png = SASUtils.load_DIP_bitmap(info, wx.BITMAP_TYPE_PNG)
 
 
     def _createToolbar(self):
@@ -10104,8 +10181,10 @@ class SECPanel(wx.Panel):
             size = (-1, -1)
 
         select_all= wx.BitmapButton(self, -1, self.select_all_png)
-        show_all = wx.BitmapButton(self, -1, self.show_all_png, size=size)
-        hide_all = wx.BitmapButton(self, -1, self.hide_all_png,size=size)
+        show_all = wx.BitmapButton(self, -1, self.show_all_png,
+            size=self._FromDIP(size))
+        hide_all = wx.BitmapButton(self, -1, self.hide_all_png,
+            size=self._FromDIP(size))
 
         if platform.system() == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
@@ -10633,7 +10712,8 @@ class SeriesItemPanel(wx.Panel):
         color = conv.to_rgb(self.secm.line.get_mfc())
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
 
-        self.colour_indicator = RAWCustomCtrl.ColourIndicator(self, -1, color, size = (20,15))
+        self.colour_indicator = RAWCustomCtrl.ColourIndicator(self, -1, color,
+            size=self._FromDIP((20,15)))
         self.colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onLinePropertyButton)
 
 
@@ -10736,6 +10816,12 @@ class SeriesItemPanel(wx.Panel):
 
         self._updateLegendLabel(False)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def updateInfoTip(self):
 
@@ -11293,6 +11379,13 @@ class SeriesControlPanel(wx.Panel):
 
         self.SetSizer(topsizer)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def createControls(self):
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -11334,7 +11427,8 @@ class SeriesControlPanel(wx.Panel):
                 labelbox2=wx.StaticText(self,-1,"to")
 
                 self.initial_frame_number_box = wx.TextCtrl(self, id=id,
-                    value=self.initial_frame_number, size=(45,-1), style=wx.TE_READONLY)
+                    value=self.initial_frame_number, size=self._FromDIP((45,-1)),
+                    style=wx.TE_READONLY)
 
                 run_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -11347,7 +11441,8 @@ class SeriesControlPanel(wx.Panel):
 
             elif type == 'fframenum':
                 self.final_frame_number_box = wx.TextCtrl(self, id=id,
-                    value=self.final_frame_number, size=(45,-1), style=wx.TE_READONLY)
+                    value=self.final_frame_number, size=self._FromDIP((45,-1)),
+                    style=wx.TE_READONLY)
 
                 run_sizer.Add(self.final_frame_number_box, 1,
                     flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, border=5)
@@ -11379,7 +11474,7 @@ class SeriesControlPanel(wx.Panel):
                 labelbox = wx.StaticText(self, -1, "Frames:")
                 labelbox2 = wx.StaticText(self, -1, "to")
                 self.initial_selected_box = wx.TextCtrl(self, ctrl_id,
-                    value=self.initial_selected_frame, size=(50,-1))
+                    value=self.initial_selected_frame, size=self._FromDIP((50,-1)))
 
                 selected_sizer.Add(labelbox, border=2,
                     flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.LEFT)
@@ -11390,7 +11485,7 @@ class SeriesControlPanel(wx.Panel):
 
             elif ctrl_type == 'fsframenum':
                 self.final_selected_box = wx.TextCtrl(self, ctrl_id,
-                    value=self.final_selected_frame, size=(50,-1))
+                    value=self.final_selected_frame, size=self._FromDIP((50,-1)))
                 selected_sizer.Add(self.final_selected_box, border=5,
                     flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
 
@@ -11907,6 +12002,13 @@ class MaskingPanel(scrolled.ScrolledPanel):
 
         self.mask_modified = False
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def setTool(self, tool):
         self.image_panel.setTool(tool)
 
@@ -11930,9 +12032,12 @@ class MaskingPanel(scrolled.ScrolledPanel):
 
     def _createDrawCtrls(self):
 
-        self.circle_button = wxbutton.GenBitmapToggleButton(self, self.CIRCLE_ID, self.circle_bmp, size = (60,60))
-        self.rectangle_button = wxbutton.GenBitmapToggleButton(self, self.RECTANGLE_ID, self.rectangle_bmp, size = (60,60))
-        self.polygon_button = wxbutton.GenBitmapToggleButton(self, self.POLYGON_ID, self.polygon_bmp, size = (60,60))
+        self.circle_button = wxbutton.GenBitmapToggleButton(self, self.CIRCLE_ID,
+            self.circle_bmp, size=self._FromDIP((60,60)))
+        self.rectangle_button = wxbutton.GenBitmapToggleButton(self, self.RECTANGLE_ID,
+            self.rectangle_bmp, size=self._FromDIP((60,60)))
+        self.polygon_button = wxbutton.GenBitmapToggleButton(self, self.POLYGON_ID,
+            self.polygon_bmp, size=self._FromDIP((60,60)))
 
         self.circle_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
         self.rectangle_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
@@ -11946,9 +12051,9 @@ class MaskingPanel(scrolled.ScrolledPanel):
         draw_sizer.Add(wx.StaticText(self, label='Rectangle'), flag=wx.ALIGN_CENTER_HORIZONTAL)
         draw_sizer.Add(wx.StaticText(self, label='Polygon'), flag=wx.ALIGN_CENTER_HORIZONTAL)
 
-        self.circ_radius = wx.TextCtrl(self, size=(50,-1))
-        self.circ_x = wx.TextCtrl(self, size=(50,-1))
-        self.circ_y = wx.TextCtrl(self, size=(50,-1))
+        self.circ_radius = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
+        self.circ_x = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
+        self.circ_y = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
         circ_btn2 = wx.Button(self, label='Create')
         circ_btn2.Bind(wx.EVT_BUTTON, self._on_create_circle)
 
@@ -11976,10 +12081,10 @@ class MaskingPanel(scrolled.ScrolledPanel):
         circ_sizer.Add(circ_sub_sizer1)
         circ_sizer.Add(circ_sub_sizer2, border=3, flag=wx.TOP)
 
-        self.rect_width = wx.TextCtrl(self, size=(50,-1))
-        self.rect_height = wx.TextCtrl(self, size=(50,-1))
-        self.rect_x = wx.TextCtrl(self, size=(50,-1))
-        self.rect_y = wx.TextCtrl(self, size=(50,-1))
+        self.rect_width = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
+        self.rect_height = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
+        self.rect_x = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
+        self.rect_y = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
         rect_btn2 = wx.Button(self, label='Create')
         rect_btn2.Bind(wx.EVT_BUTTON, self._on_create_rectangle)
 
@@ -12022,7 +12127,7 @@ class MaskingPanel(scrolled.ScrolledPanel):
 
         self.auto_type = wx.Choice(self, choices=['>', '<','=', '>=', '<='])
         self.auto_type.SetSelection(2)
-        self.auto_val = wx.TextCtrl(self, value='-2', size=(65,-1))
+        self.auto_val = wx.TextCtrl(self, value='-2', size=self._FromDIP((65,-1)))
         auto_pixel_btn = wx.Button(self, label='Create')
         auto_pixel_btn.Bind(wx.EVT_BUTTON, self._on_auto_pixel_mask)
 
@@ -12033,7 +12138,8 @@ class MaskingPanel(scrolled.ScrolledPanel):
         pixel_sizer.Add(self.auto_val, border=3, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
         pixel_sizer.Add(auto_pixel_btn, border=15, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
 
-        self.auto_det_type = wx.Choice(self, choices=self._getDetList(), size=(150,-1))
+        self.auto_det_type = wx.Choice(self, choices=self._getDetList(),
+            size=self._FromDIP((150,-1)))
         self.auto_det_type.SetStringSelection(self._main_frame.raw_settings.get('Detector'))
         auto_det_btn = wx.Button(self, label='Create')
         auto_det_btn.Bind(wx.EVT_BUTTON, self._on_auto_det_mask)
@@ -12109,13 +12215,13 @@ class MaskingPanel(scrolled.ScrolledPanel):
         self.selector_choice = wx.Choice(self, -1, choices=list(self.mask_choices.keys()))
         self.selector_choice.SetStringSelection('Beamstop mask')
 
-        set_button = wx.Button(self, -1, 'Set', size = (60,-1))
+        set_button = wx.Button(self, -1, 'Set', size=self._FromDIP((60,-1)))
         set_button.Bind(wx.EVT_BUTTON, self._onSetButton)
 
-        clear_button = wx.Button(self, -1, 'Remove', size = (65,-1))
+        clear_button = wx.Button(self, -1, 'Remove', size=self._FromDIP((65,-1)))
         clear_button.Bind(wx.EVT_BUTTON, self._onClearButton)
 
-        show_button = wx.Button(self, -1, 'Show', size = (60,-1))
+        show_button = wx.Button(self, -1, 'Show', size=self._FromDIP((60,-1)))
         show_button.Bind(wx.EVT_BUTTON, self._onShowButton)
 
         sizer.Add(self.selector_choice, 1, wx.EXPAND | wx.RIGHT, 5)
@@ -12471,9 +12577,9 @@ class MaskingPanel(scrolled.ScrolledPanel):
         rectangle_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-rectangular-48.png')
         polygon_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-polygon-48.png')
 
-        self.circle_bmp = wx.Bitmap(circle_png, wx.BITMAP_TYPE_PNG)
-        self.rectangle_bmp = wx.Bitmap(rectangle_png, wx.BITMAP_TYPE_PNG)
-        self.polygon_bmp = wx.Bitmap(polygon_png, wx.BITMAP_TYPE_PNG)
+        self.circle_bmp = SASUtils.load_DIP_bitmap(circle_png, wx.BITMAP_TYPE_PNG)
+        self.rectangle_bmp = SASUtils.load_DIP_bitmap(rectangle_png, wx.BITMAP_TYPE_PNG)
+        self.polygon_bmp = SASUtils.load_DIP_bitmap(polygon_png, wx.BITMAP_TYPE_PNG)
 
 
 
@@ -12560,6 +12666,13 @@ class CenteringPanel(scrolled.ScrolledPanel):
         self.updateCenterFromSettings()
         wx.CallAfter(self._updateCenteringRings)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _initBitmaps(self):
         up = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-up-32.png')
         right = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-right-32.png')
@@ -12567,11 +12680,11 @@ class CenteringPanel(scrolled.ScrolledPanel):
         left = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-left-32.png')
         target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-32.png')
 
-        self.up_arrow_bmp = wx.Bitmap(up, wx.BITMAP_TYPE_PNG)
-        self.right_arrow_bmp = wx.Bitmap(right, wx.BITMAP_TYPE_PNG)
-        self.down_arrow_bmp = wx.Bitmap(down, wx.BITMAP_TYPE_PNG)
-        self.left_arrow_bmp = wx.Bitmap(left, wx.BITMAP_TYPE_PNG)
-        self.target_bmp = wx.Bitmap(target, wx.BITMAP_TYPE_PNG)
+        self.up_arrow_bmp = SASUtils.load_DIP_bitmap(up, wx.BITMAP_TYPE_PNG)
+        self.right_arrow_bmp = SASUtils.load_DIP_bitmap(right, wx.BITMAP_TYPE_PNG)
+        self.down_arrow_bmp = SASUtils.load_DIP_bitmap(down, wx.BITMAP_TYPE_PNG)
+        self.left_arrow_bmp = SASUtils.load_DIP_bitmap(left, wx.BITMAP_TYPE_PNG)
+        self.target_bmp = SASUtils.load_DIP_bitmap(target, wx.BITMAP_TYPE_PNG)
 
     def _createAutoCenteringSizer(self):
 
@@ -12596,7 +12709,8 @@ class CenteringPanel(scrolled.ScrolledPanel):
 
 
         ring_text = wx.StaticText(self, -1, 'Ring #:')
-        ring_ctrl = RAWCustomCtrl.IntSpinCtrl(self, self.pyfai_autofit_ids['ring'], min = 0, max = 100, TextLength = 43)
+        ring_ctrl = RAWCustomCtrl.IntSpinCtrl(self, self.pyfai_autofit_ids['ring'],
+            min = 0, max = 100, TextLength = 43)
         ring_ctrl.SetValue(0)
         ring_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onAutoRingSpinner)
 
@@ -12698,8 +12812,10 @@ class CenteringPanel(scrolled.ScrolledPanel):
 
         pattern_list = ['None'] + sorted(pyFAI.calibrant.names(), key = str.lower)
 
-        self._x_cent_text = wx.TextCtrl(self, -1, '0', size = (65, -1), style = wx.TE_PROCESS_ENTER)
-        self._y_cent_text = wx.TextCtrl(self, -1, '0', size = (65, -1), style = wx.TE_PROCESS_ENTER)
+        self._x_cent_text = wx.TextCtrl(self, -1, '0', size=self._FromDIP((65, -1)),
+            style = wx.TE_PROCESS_ENTER)
+        self._y_cent_text = wx.TextCtrl(self, -1, '0', size=self._FromDIP((65, -1)),
+            style = wx.TE_PROCESS_ENTER)
         self._y_cent_text.Bind(wx.EVT_TEXT_ENTER, self._onEnterInCenterCtrl)
         self._x_cent_text.Bind(wx.EVT_TEXT_ENTER, self._onEnterInCenterCtrl)
         self._x_cent_text.Bind(wx.EVT_KILL_FOCUS, self._onEnterInCenterCtrl)
@@ -13282,14 +13398,21 @@ class InformationPanel(scrolled.ScrolledPanel):
         self.SendSizeEvent()
         self.Refresh()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def _getIcons(self):
         expand = os.path.join(RAWGlobals.RAWResourcesDir,
             'icons8-sort-down-filled-16.png')
         collapse = os.path.join(RAWGlobals.RAWResourcesDir,
             'icons8-sort-up-filled-16.png')
 
-        self.expand_png = wx.Bitmap(expand, wx.BITMAP_TYPE_PNG)
-        self.collapse_png = wx.Bitmap(collapse, wx.BITMAP_TYPE_PNG)
+        self.expand_png = SASUtils.load_DIP_bitmap(expand, wx.BITMAP_TYPE_PNG)
+        self.collapse_png = SASUtils.load_DIP_bitmap(collapse, wx.BITMAP_TYPE_PNG)
 
     def _createLayout(self):
 
@@ -13331,13 +13454,20 @@ class InformationPanel(scrolled.ScrolledPanel):
         guinier_show_item.SetBitmapMargins(0,0)
         guinier_show_item.Bind(wx.EVT_BUTTON, self._onShowItem)
 
-        rg_ctrl = wx.TextCtrl(guinier_box, size=(50, -1), style=wx.TE_READONLY)
-        rg_err_ctrl = wx.TextCtrl(guinier_box, size=(50, -1), style=wx.TE_READONLY)
-        i0_ctrl = wx.TextCtrl(guinier_box, size=(50, -1), style=wx.TE_READONLY)
-        i0_err_ctrl = wx.TextCtrl(guinier_box, size=(50, -1), style=wx.TE_READONLY)
-        qrg_min = wx.TextCtrl(guinier_box, size=(50, -1), style=wx.TE_READONLY)
-        qrg_max = wx.TextCtrl(guinier_box, size=(50, -1), style=wx.TE_READONLY)
-        rsq = wx.TextCtrl(guinier_box, size=(50, -1), style=wx.TE_READONLY)
+        rg_ctrl = wx.TextCtrl(guinier_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        rg_err_ctrl = wx.TextCtrl(guinier_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        i0_ctrl = wx.TextCtrl(guinier_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        i0_err_ctrl = wx.TextCtrl(guinier_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        qrg_min = wx.TextCtrl(guinier_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        qrg_max = wx.TextCtrl(guinier_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        rsq = wx.TextCtrl(guinier_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
 
         guinier_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         guinier_main_sizer.Add(guinier_show_item, border=2,
@@ -13391,24 +13521,42 @@ class InformationPanel(scrolled.ScrolledPanel):
         mw_show_item.SetBitmapMargins(0,0)
         mw_show_item.Bind(wx.EVT_BUTTON, self._onShowItem)
 
-        abs_mw_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
-        std_mw_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
-        vp_mw_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
-        vc_mw_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
-        vc_type_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
-        vc_qmax_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
-        vp_vpc_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
-        vp_qmax_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
-        vp_density_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
-        abs_psv_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
-        bayes_mw_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
-        bayes_ci_low_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
-        bayes_ci_up_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
-        bayes_mw_prob_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
-        bayes_ci_prob_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
-        datclass_mw_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
-        datclass_shape_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
-        datclass_dmax_ctrl = wx.TextCtrl(mw_box, size=(50, -1), style=wx.TE_READONLY)
+        abs_mw_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        std_mw_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        vp_mw_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        vc_mw_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        vc_type_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        vc_qmax_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        vp_vpc_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        vp_qmax_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        vp_density_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        abs_psv_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        bayes_mw_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        bayes_ci_low_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        bayes_ci_up_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        bayes_mw_prob_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        bayes_ci_prob_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        datclass_mw_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        datclass_shape_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        datclass_dmax_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
 
         mw_main_sizer = wx.FlexGridSizer(cols=9, vgap=2, hgap=2)
         mw_main_sizer.Add(mw_show_item,  flag=wx.ALIGN_CENTER_VERTICAL)
@@ -13491,15 +13639,24 @@ class InformationPanel(scrolled.ScrolledPanel):
         gnom_show_item.SetBitmapMargins(0,0)
         gnom_show_item.Bind(wx.EVT_BUTTON, self._onShowItem)
 
-        gnom_dmax_ctrl = wx.TextCtrl(gnom_box, size=(40, -1), style=wx.TE_READONLY)
-        gnom_rg_ctrl = wx.TextCtrl(gnom_box, size=(40, -1), style=wx.TE_READONLY)
-        gnom_rg_err_ctrl = wx.TextCtrl(gnom_box, size=(50, -1), style=wx.TE_READONLY)
-        gnom_i0_ctrl = wx.TextCtrl(gnom_box, size=(50, -1), style=wx.TE_READONLY)
-        gnom_i0_err_ctrl = wx.TextCtrl(gnom_box, size=(50, -1), style=wx.TE_READONLY)
-        gnom_te_ctrl = wx.TextCtrl(gnom_box, size=(50, -1), style=wx.TE_READONLY)
-        gnom_alpha_ctrl = wx.TextCtrl(gnom_box, size=(50, -1), style=wx.TE_READONLY)
-        gnom_qstart_ctrl = wx.TextCtrl(gnom_box, size=(50, -1), style=wx.TE_READONLY)
-        gnom_qend_ctrl = wx.TextCtrl(gnom_box, size=(50, -1), style=wx.TE_READONLY)
+        gnom_dmax_ctrl = wx.TextCtrl(gnom_box, size=self._FromDIP((40, -1)),
+            style=wx.TE_READONLY)
+        gnom_rg_ctrl = wx.TextCtrl(gnom_box, size=self._FromDIP((40, -1)),
+            style=wx.TE_READONLY)
+        gnom_rg_err_ctrl = wx.TextCtrl(gnom_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        gnom_i0_ctrl = wx.TextCtrl(gnom_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        gnom_i0_err_ctrl = wx.TextCtrl(gnom_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        gnom_te_ctrl = wx.TextCtrl(gnom_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        gnom_alpha_ctrl = wx.TextCtrl(gnom_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        gnom_qstart_ctrl = wx.TextCtrl(gnom_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        gnom_qend_ctrl = wx.TextCtrl(gnom_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
 
         gnom_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         gnom_main_sizer.Add(gnom_show_item, border=2,
@@ -13553,19 +13710,32 @@ class InformationPanel(scrolled.ScrolledPanel):
         bift_show_item.SetBitmapMargins(0,0)
         bift_show_item.Bind(wx.EVT_BUTTON, self._onShowItem)
 
-        bift_dmax_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
-        bift_dmax_err_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
-        bift_rg_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
-        bift_rg_err_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
-        bift_i0_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
-        bift_i0_err_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
-        bift_chisq_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
-        bift_logalpha_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
-        bift_logalpha_err_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
-        bift_evidence_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
-        bift_evidence_err_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
-        bift_qstart_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
-        bift_qend_ctrl = wx.TextCtrl(bift_box, size=(50, -1), style=wx.TE_READONLY)
+        bift_dmax_ctrl = wx.TextCtrl(bift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        bift_dmax_err_ctrl = wx.TextCtrl(bift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        bift_rg_ctrl = wx.TextCtrl(bift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        bift_rg_err_ctrl = wx.TextCtrl(bift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        bift_i0_ctrl = wx.TextCtrl(bift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        bift_i0_err_ctrl = wx.TextCtrl(bift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        bift_chisq_ctrl = wx.TextCtrl(bift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        bift_logalpha_ctrl = wx.TextCtrl(bift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        bift_logalpha_err_ctrl = wx.TextCtrl(bift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        bift_evidence_ctrl = wx.TextCtrl(bift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        bift_evidence_err_ctrl = wx.TextCtrl(bift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        bift_qstart_ctrl = wx.TextCtrl(bift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        bift_qend_ctrl = wx.TextCtrl(bift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
 
         bift_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         bift_main_sizer.Add(bift_show_item, border=2,
@@ -13628,7 +13798,7 @@ class InformationPanel(scrolled.ScrolledPanel):
         other_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, 'Other')
         other_box = other_sizer.GetStaticBox()
 
-        self.concentration = wx.TextCtrl(other_box, size=(100, -1),
+        self.concentration = wx.TextCtrl(other_box, size=self._FromDIP((100, -1)),
             validator=RAWCustomCtrl.CharValidator('float'))
         self.concentration.Bind(wx.EVT_TEXT, self._updateConc)
 
@@ -13765,22 +13935,38 @@ class InformationPanel(scrolled.ScrolledPanel):
         ift_show_item.SetBitmapMargins(0,0)
         ift_show_item.Bind(wx.EVT_BUTTON, self._onShowItem)
 
-        ift_dmax_ctrl = wx.TextCtrl(ift_box, size=(40, -1), style=wx.TE_READONLY)
-        ift_rg_ctrl = wx.TextCtrl(ift_box, size=(40, -1), style=wx.TE_READONLY)
-        ift_rg_err_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
-        ift_i0_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
-        ift_i0_err_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
-        ift_te_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
-        ift_alpha_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
-        ift_qstart_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
-        ift_qend_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
-        ift_dmax_err_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
-        ift_chisq_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
-        ift_logalpha_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
-        ift_logalpha_err_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
-        ift_evidence_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
-        ift_evidence_err_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
-        ift_method_ctrl = wx.TextCtrl(ift_box, size=(50, -1), style=wx.TE_READONLY)
+        ift_dmax_ctrl = wx.TextCtrl(ift_box, size=self._FromDIP((40, -1)),
+            style=wx.TE_READONLY)
+        ift_rg_ctrl = wx.TextCtrl(ift_box, size=self._FromDIP((40, -1)),
+            style=wx.TE_READONLY)
+        ift_rg_err_ctrl = wx.TextCtrl(ift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        ift_i0_ctrl = wx.TextCtrl(ift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        ift_i0_err_ctrl = wx.TextCtrl(ift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        ift_te_ctrl = wx.TextCtrl(ift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        ift_alpha_ctrl = wx.TextCtrl(ift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        ift_qstart_ctrl = wx.TextCtrl(ift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        ift_qend_ctrl = wx.TextCtrl(ift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        ift_dmax_err_ctrl = wx.TextCtrl(ift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        ift_chisq_ctrl = wx.TextCtrl(ift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        ift_logalpha_ctrl = wx.TextCtrl(ift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        ift_logalpha_err_ctrl = wx.TextCtrl(ift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        ift_evidence_ctrl = wx.TextCtrl(ift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        ift_evidence_err_ctrl = wx.TextCtrl(ift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        ift_method_ctrl = wx.TextCtrl(ift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
         ift_interp = wx.TextCtrl(ift_box, style=wx.TE_READONLY)
 
         ift_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -13865,8 +14051,10 @@ class InformationPanel(scrolled.ScrolledPanel):
         ambi_show_item.Bind(wx.EVT_BUTTON, self._onShowItem)
 
         ambi_interp_ctrl = wx.TextCtrl(ambi_box, style=wx.TE_READONLY)
-        ambi_cat_ctrl = wx.TextCtrl(ambi_box, size=(50, -1), style=wx.TE_READONLY)
-        ambi_score_ctrl = wx.TextCtrl(ambi_box, size=(50, -1), style=wx.TE_READONLY)
+        ambi_cat_ctrl = wx.TextCtrl(ambi_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        ambi_score_ctrl = wx.TextCtrl(ambi_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
 
         ambi_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         ambi_main_sizer.Add(ambi_show_item, border=2,
@@ -13942,10 +14130,14 @@ class InformationPanel(scrolled.ScrolledPanel):
         info_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, 'Series Info')
         info_box = info_sizer.GetStaticBox()
 
-        series_type = wx.TextCtrl(info_box, size=(50, -1), style=wx.TE_READONLY)
-        series_vc_type = wx.TextCtrl(info_box, size=(50, -1), style=wx.TE_READONLY)
-        series_vp_density = wx.TextCtrl(info_box, size=(50, -1), style=wx.TE_READONLY)
-        series_avg_win = wx.TextCtrl(info_box, size=(50, -1), style=wx.TE_READONLY)
+        series_type = wx.TextCtrl(info_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        series_vc_type = wx.TextCtrl(info_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        series_vp_density = wx.TextCtrl(info_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        series_avg_win = wx.TextCtrl(info_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
 
         info_grid_sizer = wx.FlexGridSizer(cols=7, vgap=2, hgap=2)
         info_grid_sizer.Add(wx.StaticText(info_box, label='Series type:'),
@@ -13986,8 +14178,8 @@ class InformationPanel(scrolled.ScrolledPanel):
         buffer_main_sizer.Add(buffer_ranges, proportion=1,
             flag=wx.ALIGN_CENTER_VERTICAL)
 
-        buffer_already_subtracted = wx.TextCtrl(buffer_box, size=(50, -1),
-            style=wx.TE_READONLY)
+        buffer_already_subtracted = wx.TextCtrl(buffer_box, size=self._FromDIP((50, -1)),
+                    style=wx.TE_READONLY)
 
         buffer_sub_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -14007,9 +14199,12 @@ class InformationPanel(scrolled.ScrolledPanel):
         baseline_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, 'Baseline')
         baseline_box = baseline_sizer.GetStaticBox()
 
-        baseline_type = wx.TextCtrl(baseline_box, size=(50, -1), style=wx.TE_READONLY)
-        baseline_start = wx.TextCtrl(baseline_box, size=(70, -1), style=wx.TE_READONLY)
-        baseline_end = wx.TextCtrl(baseline_box, size=(70, -1), style=wx.TE_READONLY)
+        baseline_type = wx.TextCtrl(baseline_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        baseline_start = wx.TextCtrl(baseline_box, size=self._FromDIP((70, -1)),
+            style=wx.TE_READONLY)
+        baseline_end = wx.TextCtrl(baseline_box, size=self._FromDIP((70, -1)),
+            style=wx.TE_READONLY)
 
         baseline_info_sizer = wx.FlexGridSizer(cols=7, hgap=2, vgap=2)
         baseline_info_sizer.Add(wx.StaticText(baseline_box, label='Type:'),
@@ -14460,8 +14655,20 @@ class WelcomeDialog(wx.Dialog):
         self.ok_button.Bind(wx.EVT_BUTTON, self._onOKButton)
         self.ok_button.SetDefault()
 
-        raw_bitmap = RAWIcons.raw.GetBitmap()
-        rawimg = wx.StaticBitmap(self.panel, wx.ID_ANY, raw_bitmap)
+        raw_img = RAWIcons.raw.GetImage()
+
+        try:
+            content_scale = self.GetDPIScaleFactor()
+        except Exception:
+            content_scale = self.GetContentScaleFactor()
+
+        if platform.system() != 'Darwin' and content_scale > 1:
+            w, h = raw_img.GetSize()
+            raw_img.Rescale(int(w*content_scale), int(h*content_scale))
+
+        raw_bitmap = wx.Bitmap(raw_img)
+
+        raw_icon = wx.StaticBitmap(self.panel, wx.ID_ANY, raw_bitmap)
 
         headline = wx.StaticText(self.panel, wx.ID_ANY, 'Welcome to RAW %s!' %(RAWGlobals.version))
 
@@ -14482,7 +14689,7 @@ class WelcomeDialog(wx.Dialog):
         all_text = [text1, text2, text3, text4, text7, text8, text9]
 
         final_sizer = wx.BoxSizer(wx.VERTICAL)
-        final_sizer.Add(rawimg, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 10)
+        final_sizer.Add(raw_icon, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 10)
         final_sizer.Add(headline, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 15)
 
         for each in all_text:
@@ -14652,7 +14859,10 @@ class MySplashScreen(SplashScreen):
 
     def __init__(self, parent = None):
 
-        aBitmap = RAWIcons.logo_atom.GetBitmap()
+
+        splash_img = RAWIcons.logo_atom.GetImage()
+
+        aBitmap = wx.Bitmap(splash_img)
 
         if wx.version().split()[0].strip()[0] == '4':
             splashStyle = wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_TIMEOUT
@@ -14661,6 +14871,18 @@ class MySplashScreen(SplashScreen):
         splashDuration = 2000 # milliseconds
 
         SplashScreen.__init__(self, aBitmap, splashStyle, splashDuration, parent)
+
+        try:
+            content_scale = self.GetDPIScaleFactor()
+        except Exception:
+            content_scale = self.GetContentScaleFactor()
+
+        if platform.system() != 'Darwin' and content_scale > 1:
+            w, h = splash_img.GetSize()
+            splash_img.Rescale(int(w*content_scale), int(h*content_scale))
+
+            scaled_aBitmap = wx.Bitmap(splash_img)
+            self.SetBitmap(scaled_aBitmap)
 
         self.Bind(wx.EVT_CLOSE, self.OnExit)
 
@@ -14748,6 +14970,13 @@ def main():
     multiprocessing.freeze_support()
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__
+
+    # Windows high DPI support
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(True)
+    except:
+        pass
+
     setup_thread_excepthook()
     global app
     app = MyApp(0)   #MyApp(redirect = True)

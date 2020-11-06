@@ -59,7 +59,9 @@ class SaveAnalysisInfoDialog(wx.Dialog):
 
     def __init__(self, parent, raw_settings, item_list = None, *args, **kwargs):
 
-        wx.Dialog.__init__(self, parent, -1, 'Select variables to include in the comma separated file.', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, size = (900,600), *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'Select variables to include in the comma separated file.',
+            style = wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX,
+            size=self._FromDIP((900,600)), *args, **kwargs)
 
         self.raw_settings = raw_settings
 
@@ -94,7 +96,14 @@ class SaveAnalysisInfoDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _onOk(self, event):
         include_data = self.panel.getIncludeData()
@@ -134,7 +143,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
     def __init__(self, parent, item_list = None, include_data = None):
         wx.Panel.__init__(self, parent, name = 'SaveAnalysisInfoPanel')
 
-        self.SetMinSize((600,600))
+        self.SetMinSize(self._FromDIP((600,600)))
 
         self.variable_data = {}
 
@@ -172,8 +181,8 @@ class SaveAnalysisInfoPanel(wx.Panel):
         self.variable_listctrl.InsertColumn(0, 'name')
         width, height = self.variable_listctrl.GetSize()
 
-        self.variable_listctrl.SetColumnWidth(0, 300)
-        self.include_listctrl.SetColumnWidth(0, 300)
+        self.variable_listctrl.SetColumnWidth(0, self._FromDIP(300))
+        self.include_listctrl.SetColumnWidth(0, self._FromDIP(300))
 
         self._addGeneralVariables()
         self._addGuinierVariables()
@@ -184,6 +193,13 @@ class SaveAnalysisInfoPanel(wx.Panel):
         self._addImageHdrVariables()
 
         self._updateIncludeList(include_data)
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _onIncludeButton(self, event):
         selected_items = self.variable_listctrl.getSelectedItems()
@@ -615,7 +631,8 @@ class HdrDataDialog(wx.Dialog):
 
     def __init__(self, parent, sasm = None, *args, **kwargs):
 
-        wx.Dialog.__init__(self, parent, -1, 'Header Data Display', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'Header Data Display',
+            style = wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, *args, **kwargs)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -638,7 +655,7 @@ class HdrDataDialog(wx.Dialog):
         self.data_grid.CreateGrid(data_len, 2)
         self.data_grid.SetColLabelValue(0, 'Key')
         self.data_grid.SetColLabelValue(1, 'Value')
-        self.data_grid.SetMinSize((400,400))
+        self.data_grid.SetMinSize(self._FromDIP((400,400)))
 
         self.sizer.Add(filename_label, 0, wx.TOP | wx.LEFT, 10)
         self.sizer.Add(self.data_grid, 1, wx.ALL | wx.EXPAND, 10)
@@ -673,9 +690,16 @@ class HdrDataDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _onEditCell(self, event):
         col = self.data_grid.GridCursorCol
@@ -799,7 +823,8 @@ class DataDialog(wx.Dialog):
 
     def __init__(self, parent, sasm = None, *args, **kwargs):
 
-        wx.Dialog.__init__(self, parent, -1, 'Scattering Data Display', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'Scattering Data Display',
+            style = wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, *args, **kwargs)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -820,7 +845,7 @@ class DataDialog(wx.Dialog):
         self.data_grid.SetColLabelValue(0, 'q')
         self.data_grid.SetColLabelValue(1, 'i')
         self.data_grid.SetColLabelValue(2, 'err')
-        self.data_grid.SetMinSize((400,400))
+        self.data_grid.SetMinSize(self._FromDIP((400,400)))
 
         self.data_grid.EnableEditing(False)
 
@@ -858,9 +883,16 @@ class DataDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _onEditCell(self, event):
         col = self.data_grid.GridCursorCol
@@ -906,7 +938,8 @@ class SeriesDataDialog(wx.Dialog):
 
     def __init__(self, parent, secm = None, *args, **kwargs):
 
-        wx.Dialog.__init__(self, parent, -1, 'Series Data Display', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'Series Data Display',
+            style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, *args, **kwargs)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -958,9 +991,16 @@ class SeriesDataDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def create_layout(self):
         if self.secm is None:
@@ -1051,7 +1091,7 @@ class SeriesDataDialog(wx.Dialog):
 
         self.data_grid.SetColLabelValue(index, 'File Name')
 
-        self.data_grid.SetMinSize((600,400))
+        self.data_grid.SetMinSize(self._FromDIP((600,400)))
 
         self.sizer.Add(filename_label, 0, wx.TOP | wx.LEFT, 10)
         self.sizer.Add(self.data_grid, 1, wx.ALL | wx.EXPAND, 10)
@@ -1128,7 +1168,8 @@ class IFTDataDialog(wx.Dialog):
 
     def __init__(self, parent, iftm = None, *args, **kwargs):
 
-        wx.Dialog.__init__(self, parent, -1, 'IFT Data Display', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'IFT Data Display',
+            style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, *args, **kwargs)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1169,7 +1210,7 @@ class IFTDataDialog(wx.Dialog):
             index = index +2
 
 
-        self.data_grid.SetMinSize((700,400))
+        self.data_grid.SetMinSize(self._FromDIP((700,400)))
 
         self.sizer.Add(filename_label, 0, wx.TOP | wx.LEFT, 10)
         self.sizer.Add(self.data_grid, 1, wx.ALL | wx.EXPAND, 10)
@@ -1200,9 +1241,16 @@ class IFTDataDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _insertData(self):
 
@@ -1261,7 +1309,9 @@ class HistoryDialog(wx.Dialog):
 
     def __init__(self, parent, sasm = None, *args, **kwargs):
 
-        wx.Dialog.__init__(self, parent, -1, 'History Display', style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, size = (-1,600), *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'History Display',
+            style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, size=self._FromDIP((-1,600)),
+            *args, **kwargs)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1325,10 +1375,16 @@ class HistoryDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _onOk(self, event):
 
@@ -1393,9 +1449,16 @@ class SyncDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _onOkClicked(self, event):
         manipulation_panel = wx.FindWindowByName('ManipulationPanel')
@@ -1418,7 +1481,8 @@ class QuickReduceDialog(wx.Dialog):
 
     def __init__(self, parent, path, selected_files, *args, **kwargs):
 
-        wx.Dialog.__init__(self,parent, -1, 'Quick Reduce Settings', *args, **kwargs)
+        wx.Dialog.__init__(self,parent, -1, 'Quick Reduce Settings', *args,
+            **kwargs)
 
         self._path = path
         filecount_label = wx.StaticText(self, -1, '# of files selected : ' + str(len(selected_files)))
@@ -1427,7 +1491,8 @@ class QuickReduceDialog(wx.Dialog):
         # format_label = wx.StaticText(self, -1, 'Format :')
 
         savedir_sizer = wx.BoxSizer()
-        self.save_textctrl = wx.TextCtrl(self, -1, path, size = (400, -1))
+        self.save_textctrl = wx.TextCtrl(self, -1, path,
+            size=self._FromDIP((400, -1)))
 
         folder_bmp = wx.ArtProvider.GetBitmap(wx.ART_FOLDER,  wx.ART_MENU)
         save_search_button = wx.BitmapButton(self, -1, folder_bmp)
@@ -1471,9 +1536,16 @@ class QuickReduceDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _onOkClicked(self, event):
 
@@ -1498,7 +1570,8 @@ class QuickReduceDialog(wx.Dialog):
 
 class FilenameChangeDialog(wx.Dialog):
 
-    def __init__(self, parent, filename, dlgtype = None, style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
+    def __init__(self, parent, filename, dlgtype = None,
+        style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
 
         if dlgtype == 'Folder':
             hdr = 'Folder Name'
@@ -1519,7 +1592,7 @@ class FilenameChangeDialog(wx.Dialog):
         button_sizer.Add(self.cancel_button,0)
 
         label = wx.StaticText(self, -1, 'Name :')
-        self.ctrl = wx.TextCtrl(self, -1, '', size = (200, -1))
+        self.ctrl = wx.TextCtrl(self, -1, '', size = self._FromDIP((200, -1)))
         self.ctrl.SetValue(str(filename))
 
         filename_sizer = wx.BoxSizer()
@@ -1550,9 +1623,16 @@ class FilenameChangeDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _onOKButton(self, event):
         self._filename = self.ctrl.GetValue()
@@ -1567,7 +1647,8 @@ class FilenameChangeDialog(wx.Dialog):
 
 class RebinDialog(wx.Dialog):
 
-    def __init__(self, parent, style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
+    def __init__(self, parent, style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX,
+        *args, **kwargs):
 
         wx.Dialog.__init__(self, parent, -1, 'Rebinning', *args, **kwargs)
 
@@ -1610,9 +1691,16 @@ class RebinDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _onOkClicked(self, event):
         ret = int(self.choice.GetStringSelection())
@@ -1626,7 +1714,8 @@ class RebinDialog(wx.Dialog):
 
 
 class ColourChangeDialog(wx.Dialog):
-    def __init__(self, parent, sasm, linename, line=None, plotpanel=None ,style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
+    def __init__(self, parent, sasm, linename, line=None, plotpanel=None,
+        style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
 
         wx.Dialog.__init__(self, parent, -1, 'Pick a Colour', *args, **kwargs)
         top_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -1688,9 +1777,16 @@ class ColourChangeDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def getOldColour(self):
 
@@ -1817,13 +1913,15 @@ class ColourChangeDialog(wx.Dialog):
 
 class LinePropertyDialog(wx.Dialog):
 
-    def __init__(self, parent, sasm, legend_label, size = (400, 418), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
+    def __init__(self, parent, sasm, legend_label, size=(400, 418),
+        style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, *args, **kwargs):
         if sasm.line is None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
             return
 
 
-        wx.Dialog.__init__(self, parent, -1, "Line Properties", size =size, style=style, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, "Line Properties",
+            size=self._FromDIP(size), style=style, *args, **kwargs)
 
         self.sasm = sasm
         self.line = sasm.line
@@ -1930,10 +2028,16 @@ class LinePropertyDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createLegendLabelControls(self):
         topbox = wx.StaticBox(self, -1, 'Legend Label')
@@ -2179,14 +2283,16 @@ class LinePropertyDialog(wx.Dialog):
 
 class IFTMLinePropertyDialog(wx.Dialog):
 
-    def __init__(self, parent, iftm, legend_label, size = (500, 598), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
+    def __init__(self, parent, iftm, legend_label, size=(500, 598),
+        style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, *args, **kwargs):
 
         if iftm.r_line is None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
             return
 
 
-        wx.Dialog.__init__(self, parent, -1, "IFT Line Properties", size=size, style = style, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, "IFT Line Properties",
+            size=self._FromDIP(size), style = style, *args, **kwargs)
 
         self.iftm = iftm
         self.r_line = iftm.r_line
@@ -2408,10 +2514,16 @@ class IFTMLinePropertyDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createLegendLabelControls(self, line):
         if line == self.r_line:
@@ -2615,7 +2727,8 @@ class IFTMLinePropertyDialog(wx.Dialog):
             mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
             mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
 
-            self.qo_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.qo_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+                TextLength = 60, never_negative = True)
             self.qo_mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.qo_mar_size.SetValue(str(self._old_qo_marsize))
 
@@ -3009,14 +3122,16 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
 class SECMLinePropertyDialog(wx.Dialog):
 
-    def __init__(self, parent, secm, legend_label, size = (433, 549), style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
+    def __init__(self, parent, secm, legend_label, size=(433, 549),
+        style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, *args, **kwargs):
 
         if secm.line is None:
             wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
             return
 
 
-        wx.Dialog.__init__(self, parent, -1, "Series Line Properties", size = size, style = style, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, "Series Line Properties",
+            size=self._FromDIP(size), style = style, *args, **kwargs)
 
         self.secm = secm
         self.line = secm.line
@@ -3159,10 +3274,16 @@ class SECMLinePropertyDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createLegendLabelControls(self, line):
 
@@ -3583,7 +3704,7 @@ class CustomQuestionDialog(wx.Dialog):
         total_width = qp_size[0]+icn_size[0]+55
         total_height = qp_size[1]+bp_size[1]+75
 
-        self.SetMaxSize((800,600))
+        self.SetMaxSize(self._FromDIP((800,600)))
 
         panel_size = self.GetBestSize()
 
@@ -3599,7 +3720,14 @@ class CustomQuestionDialog(wx.Dialog):
         best_width = min(best_width, client_display.Width)
         best_height = min(best_height, client_display.Height)
 
-        self.SetSize((best_width, best_height))
+        self.SetSize(self._FromDIP((best_width, best_height)))
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createButtonPanel(self):
 
@@ -3679,13 +3807,21 @@ class CustomQuestionPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.SetSizer(vbox)
         self.SetupScrolling()
         self.Layout()
-        self.SetMinSize((200,100))
+        self.SetMinSize(self._FromDIP((200,100)))
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
 class PlotOptionsDialog(wx.Dialog):
     def __init__(self, parent, plotparams, axes, *args, **kwargs):
 
-        wx.Dialog.__init__(self, parent, -1, 'Plot Options' , size = (575,522),
-            style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, *args, **kwargs)
+        wx.Dialog.__init__(self, parent, -1, 'Plot Options',
+            size=self._FromDIP((575,522)), style=wx.RESIZE_BORDER|wx.CAPTION
+            |wx.CLOSE_BOX, *args, **kwargs)
 
         self.axes = axes
         self.plotparams = plotparams
@@ -3782,10 +3918,16 @@ class PlotOptionsDialog(wx.Dialog):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _getFonts(self):
         font_list = fm.get_fontconfig_fonts()
@@ -3962,20 +4104,23 @@ class PlotOptionsDialog(wx.Dialog):
         limit_sizer = wx.FlexGridSizer(rows = 2, cols = 2, hgap = 5, vgap = 3)
         for i in range(0, 2):
             id = self.axes_fixed_limits_data[i][1]
-            limit_sizer.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]), size = (80, -1)), 0)
+            limit_sizer.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]),
+                size=self._FromDIP((80, -1))), 0)
             wx.FindWindowById(id, self).Bind(wx.EVT_TEXT, self._updateAxesRange)
 
         limit_sizer2 = wx.FlexGridSizer(rows = 1, cols = 2, hgap = 5, vgap = 3)
         for i in range(2, 4):
             id = self.axes_fixed_limits_data[i][1]
-            limit_sizer2.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]), size = (80, -1)), 0)
+            limit_sizer2.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]),
+                size=self._FromDIP((80, -1))), 0)
             wx.FindWindowById(id, self).Bind(wx.EVT_TEXT, self._updateAxesRange)
 
         if self.is_sec and self.sec_calc != 'None':
             limit_sizer3 = wx.FlexGridSizer(rows = 1, cols = 2, hgap = 5, vgap = 3)
             for i in range(4, 6):
                 id = self.axes_fixed_limits_data[i][1]
-                limit_sizer3.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]), size = (80, -1)), 0)
+                limit_sizer3.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]),
+                    size=self._FromDIP((80, -1))), 0)
                 wx.FindWindowById(id, self).Bind(wx.EVT_TEXT, self._updateAxesRange)
 
         maxmin_sizer = wx.BoxSizer()
@@ -4553,7 +4698,7 @@ class HelpFrame(wx.Frame):
         size = (min(1110, client_display.Width), min(768, client_display.Height))
 
         wx.Frame.__init__(self, parent, -1, "RAW {} Help".format(RAWGlobals.version),
-            size=size)
+            size=self._FromDIP(size))
 
         self.doc_path = RAWGlobals.RAWDocsDir
         self.home = os.path.join(self.doc_path, "tutorial.html")
@@ -4579,10 +4724,17 @@ class HelpFrame(wx.Frame):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
         self.Raise()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createLayout(self, parent):
         panel = wx.Panel(parent)
@@ -4638,7 +4790,7 @@ class SeriesAdjustmentFrame(wx.Frame):
         size = (min(100, client_display.Width), min(100, client_display.Height))
 
         wx.Frame.__init__(self, parent, -1, "Series Adjustment",
-            size=size)
+            size=self._FromDIP(size))
 
         self.seriesm = seriesm
         self.series_item_panel = series_item_panel
@@ -4667,12 +4819,19 @@ class SeriesAdjustmentFrame(wx.Frame):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseEvt)
 
         self.CenterOnParent()
         self.Raise()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _createLayout(self, parent):
         panel = wx.Panel(parent)
@@ -4705,12 +4864,14 @@ class SeriesAdjustmentFrame(wx.Frame):
         q_box = self.q_sizer.GetStaticBox()
 
         self.min_q = wx.TextCtrl(q_box, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
-            validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
+            validator=RAWCustomCtrl.CharValidator('float_te'),
+            size=self._FromDIP((70, -1)))
         self.nmin = RAWCustomCtrl.IntSpinCtrl(q_box, wx.ID_ANY, '1.0',
             TextLength=50)
 
         self.max_q = wx.TextCtrl(q_box, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
-            validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
+            validator=RAWCustomCtrl.CharValidator('float_te'),
+            size=self._FromDIP((70, -1)))
         self.nmax = RAWCustomCtrl.IntSpinCtrl(q_box, wx.ID_ANY, '1.0',
             TextLength=50)
 
@@ -4743,12 +4904,14 @@ class SeriesAdjustmentFrame(wx.Frame):
         q_sub_box = self.q_sub_sizer.GetStaticBox()
 
         self.min_q_sub = wx.TextCtrl(q_sub_box, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
-            validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
+            validator=RAWCustomCtrl.CharValidator('float_te'),
+            size=self._FromDIP((70, -1)))
         self.nmin_sub = RAWCustomCtrl.IntSpinCtrl(q_sub_box, wx.ID_ANY, '1.0',
             TextLength=50)
 
         self.max_q_sub = wx.TextCtrl(q_sub_box, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
-            validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
+            validator=RAWCustomCtrl.CharValidator('float_te'),
+            size=self._FromDIP((70, -1)))
         self.nmax_sub = RAWCustomCtrl.IntSpinCtrl(q_sub_box, wx.ID_ANY, '1.0',
             TextLength=50)
 
@@ -4781,12 +4944,14 @@ class SeriesAdjustmentFrame(wx.Frame):
         q_bcsub_box = self.q_bcsub_sizer.GetStaticBox()
 
         self.min_q_bcsub = wx.TextCtrl(q_bcsub_box, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
-            validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
+            validator=RAWCustomCtrl.CharValidator('float_te'),
+            size=self._FromDIP((70, -1)))
         self.nmin_bcsub = RAWCustomCtrl.IntSpinCtrl(q_bcsub_box, wx.ID_ANY, '1.0',
             TextLength=50)
 
         self.max_q_bcsub = wx.TextCtrl(q_bcsub_box, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
-            validator=RAWCustomCtrl.CharValidator('float_te'), size=(70, -1))
+            validator=RAWCustomCtrl.CharValidator('float_te'),
+            size=self._FromDIP((70, -1)))
         self.nmax_bcsub = RAWCustomCtrl.IntSpinCtrl(q_bcsub_box, wx.ID_ANY, '1.0',
             TextLength=50)
 

@@ -47,6 +47,7 @@ if raw_path not in os.sys.path:
 import bioxtasraw.RAWCustomCtrl as RAWCustomCtrl
 import bioxtasraw.RAWGlobals as RAWGlobals
 import bioxtasraw.RAWCustomDialogs as RAWCustomDialogs
+import bioxtasraw.SASUtils as SASUtils
 
 class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
 
@@ -163,15 +164,15 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
             showtop_toggled = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-1-toggled-24.png')
             showbottom_toggled = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-2-toggled-24.png')
 
-            errbars_icon = wx.Bitmap(errbars, wx.BITMAP_TYPE_PNG)
-            showboth_icon = wx.Bitmap(showboth, wx.BITMAP_TYPE_PNG)
-            showtop_icon = wx.Bitmap(showtop, wx.BITMAP_TYPE_PNG)
-            showbottom_icon = wx.Bitmap(showbottom, wx.BITMAP_TYPE_PNG)
+            errbars_icon = SASUtils.load_DIP_bitmap(errbars, wx.BITMAP_TYPE_PNG)
+            showboth_icon = SASUtils.load_DIP_bitmap(showboth, wx.BITMAP_TYPE_PNG)
+            showtop_icon = SASUtils.load_DIP_bitmap(showtop, wx.BITMAP_TYPE_PNG)
+            showbottom_icon = SASUtils.load_DIP_bitmap(showbottom, wx.BITMAP_TYPE_PNG)
 
-            errbars_icon_toggled = wx.Bitmap(errbars_toggled, wx.BITMAP_TYPE_PNG)
-            showboth_icon_toggled = wx.Bitmap(showboth_toggled, wx.BITMAP_TYPE_PNG)
-            showtop_icon_toggled = wx.Bitmap(showtop_toggled, wx.BITMAP_TYPE_PNG)
-            showbottom_icon_toggled = wx.Bitmap(showbottom_toggled, wx.BITMAP_TYPE_PNG)
+            errbars_icon_toggled = SASUtils.load_DIP_bitmap(errbars_toggled, wx.BITMAP_TYPE_PNG)
+            showboth_icon_toggled = SASUtils.load_DIP_bitmap(showboth_toggled, wx.BITMAP_TYPE_PNG)
+            showtop_icon_toggled = SASUtils.load_DIP_bitmap(showtop_toggled, wx.BITMAP_TYPE_PNG)
+            showbottom_icon_toggled = SASUtils.load_DIP_bitmap(showbottom_toggled, wx.BITMAP_TYPE_PNG)
 
             self._bitmaps['errbars'] = {'Normal': errbars_icon,
                 'Toggled': errbars_icon_toggled}

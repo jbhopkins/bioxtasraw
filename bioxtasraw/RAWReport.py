@@ -2737,10 +2737,7 @@ class ReportFrame(wx.Frame):
         client_display = wx.GetClientDisplayRect()
         size = (min(450, client_display.Width), min(350, client_display.Height))
 
-        try:
-            wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=size)
-        except:
-            wx.Frame.__init__(self, None, wx.ID_ANY, title, size=size)
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title, size=self._FromDIP(size))
 
         self.main_frame = wx.FindWindowByName('MainFrame')
 
@@ -2771,12 +2768,18 @@ class ReportFrame(wx.Frame):
         else:
             best_size.SetHeight(current_size.GetHeight())
 
-        self.SetSize(best_size)
+        self.SetSize(self._FromDIP(best_size))
 
         self.CenterOnParent()
 
         self.Raise()
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _initialize(self, sel_profiles, sel_ifts, sel_series):
         for i, sasm in enumerate(self.all_profiles):
@@ -2798,9 +2801,9 @@ class ReportFrame(wx.Frame):
 
         inc_box = wx.StaticBox(panel, label='Included items')
 
-        self.profile_list = CheckListCtrl(inc_box, size=(200, 200))
-        self.ift_list = CheckListCtrl(inc_box, size=(200, 200))
-        self.series_list = CheckListCtrl(inc_box, size=(200, 200))
+        self.profile_list = CheckListCtrl(inc_box, size=self._FromDIP((200, 200)))
+        self.ift_list = CheckListCtrl(inc_box, size=self._FromDIP((200, 200)))
+        self.series_list = CheckListCtrl(inc_box, size=self._FromDIP((200, 200)))
 
         for sasm in self.all_profiles:
             self.profile_list.addItem(sasm)
