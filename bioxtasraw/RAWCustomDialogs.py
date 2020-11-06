@@ -1522,9 +1522,10 @@ class RebinDialog(wx.Dialog):
         buttonsizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
         self.Bind( wx.EVT_BUTTON, self._onOkClicked, id=wx.ID_OK )
 
-        sizer.Add(text, 1)
-        sizer.Add(self.choice, 0)
-        sizer.Add(self.log_box, 0, wx.TOP, 5)
+        sizer.Add(text, 1, flag=wx.ALIGN_CENTER_VERTICAL|wx.ALL, border=5)
+        sizer.Add(self.choice, 0, flag=wx.ALIGN_CENTER_VERTICAL|wx.TOP|wx.BOTTOM,
+            border=5)
+        sizer.Add(self.log_box, 0, flag=wx.ALIGN_CENTER_VERTICAL|wx.ALL, border=5)
 
         top_sizer.Add(sizer, 1, wx.ALL, 10)
         top_sizer.Add(buttonsizer, 1, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL)
