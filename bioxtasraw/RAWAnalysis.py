@@ -88,7 +88,8 @@ class UVConcentrationDialog(wx.Dialog):
         self.panel = UVConcentrationPanel(self, 'UVConcPanel', selected_sasms = selected_sasms, bg_sasm = bg_sasm)
 
         layout_sizer.Add(self.panel, 0)
-        layout_sizer.Add(self.CreateButtonSizer( wx.OK | wx.CANCEL ), 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 10)
+        layout_sizer.Add(self.CreateButtonSizer( wx.OK | wx.CANCEL ), 0,
+            flag=wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, border=self._FromDIP(10))
         self.Bind(wx.EVT_BUTTON, self.OnOKButton, id = wx.ID_OK)
         self.Bind(wx.EVT_BUTTON, self.OnCancelButton, id=wx.ID_CANCEL)
         self.SetSizerAndFit(layout_sizer)
@@ -137,7 +138,8 @@ class UVConcentrationPanel(wx.Panel):
                               'UVPathlength'       : [wx.NewControlId(), wx.NewControlId(), 'UV Path Length [mm]', 1.5],
                               'UVExtinctionCoeff'  : [wx.NewControlId(), wx.NewControlId(), 'Extinction Coeff.', 24.0]}
 
-        self.all_spins = ['UVDarkTransmission', 'UVTransmissionBg', 'UVTransmissionSamp', 'UVPathlength', 'UVExtinctionCoeff']
+        self.all_spins = ['UVDarkTransmission', 'UVTransmissionBg',
+            'UVTransmissionSamp', 'UVPathlength', 'UVExtinctionCoeff']
         self.double_spins = ['UVPathlength', 'UVExtinctionCoeff']
 
 
@@ -145,6 +147,13 @@ class UVConcentrationPanel(wx.Panel):
         self._initValues()
         self.onChoiceUpdate(None)
         #self._updateCalculation()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
 
     def _calcConcentration(self, A = None):
         #A=lec
@@ -272,9 +281,10 @@ class UVConcentrationPanel(wx.Panel):
 
         choice_sizer = wx.BoxSizer(wx.HORIZONTAL)
         choice_sizer.Add(self.units_choice, 0, wx.EXPAND)
-        choice_sizer.Add(self.extc_choice, 0, wx.EXPAND | wx.LEFT, 5)
+        choice_sizer.Add(self.extc_choice, 0, wx.EXPAND | wx.LEFT, border=self._FromDIP(5))
 
-        file_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 4, hgap = 4)
+        file_sizer = wx.FlexGridSizer(cols=2, rows=2, vgap=self._FromDIP(4),
+            hgap=self._FromDIP(4))
         bg_label = wx.StaticText(self, -1, 'Background : ')
         samp_label = wx.StaticText(self, -1, 'Sample : ')
         self.bg_txt = wx.StaticText(self, -1, 'Bgfile')
@@ -283,20 +293,23 @@ class UVConcentrationPanel(wx.Panel):
         file_sizer.Add(self.bg_txt, 0, wx.EXPAND)
         file_sizer.Add(samp_label, 0)
         file_sizer.Add(self.sample_txt, 0)
-        layout_sizer.Add(file_sizer,0, wx.EXPAND | wx.ALL, 10)
+        layout_sizer.Add(file_sizer,0, wx.EXPAND | wx.ALL, border=self._FromDIP(10))
 
-        spin_sizer = wx.FlexGridSizer(cols = 3, rows = len(self.all_spins), vgap = 4, hgap= 4)
+        spin_sizer = wx.FlexGridSizer(cols = 3, rows = len(self.all_spins),
+            vgap=self._FromDIP(4), hgap=self._FromDIP(4))
 
         for key in self.all_spins:
             spin_id, button_id, label, val = self.spin_ctrl_ids[key]
 
             if key in self.double_spins:
-                spin_ctrl = wx.SpinCtrlDouble(self, spin_id, value = '1.0', min = 0, max = 16000, initial = 1)
+                spin_ctrl = wx.SpinCtrlDouble(self, spin_id, value = '1.0',
+                    min = 0, max = 16000, initial = 1)
                 spin_ctrl.SetIncrement(0.1)
                 spin_ctrl.SetDigits(3)
                 spin_ctrl.Bind(wx.EVT_SPINCTRLDOUBLE, self.onSpinUpdate)
             else:
-                spin_ctrl = wx.SpinCtrlDouble(self, spin_id, value = '1.0', min = 0, max = 16000, initial = 1)
+                spin_ctrl = wx.SpinCtrlDouble(self, spin_id, value = '1.0',
+                    min = 0, max = 16000, initial = 1)
                 spin_ctrl.SetIncrement(0.1)
                 spin_ctrl.SetDigits(2)
                 spin_ctrl.Bind(wx.EVT_SPINCTRLDOUBLE, self.onSpinUpdate)
@@ -314,10 +327,12 @@ class UVConcentrationPanel(wx.Panel):
 
         spin_sizer.Add(choice_sizer, 0, wx.EXPAND)
 
-        layout_sizer.Add(spin_sizer, 0, wx.EXPAND | wx.ALL, 10)
-        layout_sizer.Add(wx.StaticLine(self, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+        layout_sizer.Add(spin_sizer, 0, wx.EXPAND | wx.ALL, border=self._FromDIP(10))
+        layout_sizer.Add(wx.StaticLine(self, -1, style = wx.LI_HORIZONTAL),
+            0, wx.EXPAND | wx.LEFT | wx.RIGHT, border=self._FromDIP(5))
 
-        conc_sizer = wx.FlexGridSizer(rows = 2, cols = 3, vgap = 4, hgap=4)
+        conc_sizer = wx.FlexGridSizer(rows=2, cols=3, vgap=self._FromDIP(4),
+            hgap=self._FromDIP(4))
         absorb_label = wx.StaticText(self, -1, 'Absorbance')
         self.absorb_ctrl = wx.TextCtrl(self, -1, '0', style = wx.TE_RIGHT)
 
@@ -331,7 +346,7 @@ class UVConcentrationPanel(wx.Panel):
         conc_sizer.Add(self.conc_ctrl, 0)
         conc_sizer.Add(wx.StaticText(self, -1, 'mg/ml'), 0, wx.ALIGN_CENTRE_VERTICAL)
 
-        layout_sizer.Add(conc_sizer, 0, wx.EXPAND | wx.ALL, 10)
+        layout_sizer.Add(conc_sizer, 0, wx.EXPAND | wx.ALL, self._FromDIP(10))
 
         self.SetSizerAndFit(layout_sizer)
 
@@ -821,15 +836,17 @@ class GuinierControlPanel(wx.Panel):
         autorg_button.Bind(wx.EVT_BUTTON, self.onAutoRg)
 
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttonSizer.Add(savebutton, 1, wx.RIGHT, 5)
+        buttonSizer.Add(savebutton, 1, wx.RIGHT, border=self._FromDIP(5))
         buttonSizer.Add(button, 1)
 
         box = wx.StaticBox(self, -1, 'Parameters')
         infoSizer = self.createInfoBox()
         boxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        boxSizer.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP ,5)
+        boxSizer.Add(infoSizer, 0, wx.EXPAND | wx.LEFT | wx.TOP ,
+            border=self._FromDIP(5))
         qrgsizer = self.createQRgInfo()
-        boxSizer.Add(qrgsizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 5)
+        boxSizer.Add(qrgsizer, 0, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM,
+            border=self._FromDIP(5))
 
         error_sizer = self.createErrorSizer()
 
@@ -838,16 +855,22 @@ class GuinierControlPanel(wx.Panel):
         boxSizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
         boxSizer2.Add(controlSizer, 0, wx.EXPAND)
         line_sizer = wx.StaticLine(parent = self, style = wx.LI_HORIZONTAL)
-        boxSizer2.Add(line_sizer, 0, flag = wx.EXPAND | wx.ALL, border = 10)
-        boxSizer2.Add(autorg_button, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT, 5)
+        boxSizer2.Add(line_sizer, 0, flag = wx.EXPAND | wx.ALL,
+            border=self._FromDIP(10))
+        boxSizer2.Add(autorg_button, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT,
+            border=self._FromDIP(5))
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.ALL, 5)
-        # top_sizer.Add(self.createConcInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
-        top_sizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
-        top_sizer.Add(error_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
-        top_sizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
-        top_sizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT| wx.TOP, 5)
+        top_sizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.ALL,
+            border=self._FromDIP(5))
+        top_sizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+            border=self._FromDIP(5))
+        top_sizer.Add(error_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+            border=self._FromDIP(5))
+        top_sizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT,
+            border=self._FromDIP(5))
+        top_sizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT| wx.TOP,
+            border=self._FromDIP(5))
 
         self.SetSizer(top_sizer)
 
@@ -862,7 +885,8 @@ class GuinierControlPanel(wx.Panel):
 
     def createQRgInfo(self):
 
-        sizer = wx.FlexGridSizer(cols=2, hgap=5, vgap=5)
+        sizer = wx.FlexGridSizer(cols=2, hgap=self._FromDIP(5),
+            vgap=self._FromDIP(5))
 
         txt1 = wx.StaticText(self, -1, self.infodata['qRg_min'][0])
         txt2 = wx.StaticText(self, -1, self.infodata['qRg_max'][0])
@@ -878,7 +902,8 @@ class GuinierControlPanel(wx.Panel):
 
     def createInfoBox(self):
 
-        sizer = wx.FlexGridSizer(rows=len(self.infodata), cols=2, hgap=3, vgap=3)
+        sizer = wx.FlexGridSizer(rows=len(self.infodata), cols=2,
+            hgap=self._FromDIP(3), vgap=self._FromDIP(3))
 
         for key in self.infodata:
 
@@ -905,13 +930,14 @@ class GuinierControlPanel(wx.Panel):
 
     def createControls(self):
 
-        sizer = wx.FlexGridSizer(rows=2, cols=4, hgap=0, vgap=2)
+        sizer = wx.FlexGridSizer(rows=2, cols=4, hgap=self._FromDIP(0),
+            vgap=self._FromDIP(2))
         sizer.AddGrowableCol(0)
         sizer.AddGrowableCol(1)
         sizer.AddGrowableCol(2)
         sizer.AddGrowableCol(3)
 
-        sizer.Add(wx.StaticText(self,-1,'q_min'),1, wx.LEFT, 5)
+        sizer.Add(wx.StaticText(self,-1,'q_min'),1, wx.LEFT, border=self._FromDIP(5))
         sizer.Add(wx.StaticText(self,-1,'n_min'),1)
         sizer.Add(wx.StaticText(self,-1,'q_max'),1)
         sizer.Add(wx.StaticText(self,-1,'n_max'),1)
@@ -935,17 +961,20 @@ class GuinierControlPanel(wx.Panel):
         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
         self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
 
-        sizer.Add(self.qstartTxt, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 3)
-        sizer.Add(self.startSpin, 0, wx.EXPAND | wx.RIGHT, 3)
-        sizer.Add(self.qendTxt, 0, wx.EXPAND | wx.RIGHT, 3)
-        sizer.Add(self.endSpin, 0, wx.EXPAND | wx.RIGHT, 5)
+        sizer.Add(self.qstartTxt, 0, wx.EXPAND | wx.LEFT | wx.RIGHT,
+            border=self._FromDIP(3))
+        sizer.Add(self.startSpin, 0, wx.EXPAND | wx.RIGHT,
+            border=self._FromDIP(3))
+        sizer.Add(self.qendTxt, 0, wx.EXPAND | wx.RIGHT, border=self._FromDIP(3))
+        sizer.Add(self.endSpin, 0, wx.EXPAND | wx.RIGHT, border=self._FromDIP(5))
 
         return sizer
 
     def createErrorSizer(self):
         box = wx.StaticBox(self, wx.ID_ANY, 'Uncertainty')
 
-        sum_sizer = wx.FlexGridSizer(1, 4, 3, 3)
+        sum_sizer = wx.FlexGridSizer(rows=1, cols=4, hgap=self._FromDIP(3),
+            vgap=self._FromDIP(3))
         sum_sizer.AddGrowableCol(1)
         sum_sizer.AddGrowableCol(3)
         rg_sum_lbl = wx.StaticText(self, wx.ID_ANY, 'Rg : ')
@@ -960,7 +989,8 @@ class GuinierControlPanel(wx.Panel):
         sum_sizer.Add(i0_sum_lbl, flag=wx.ALIGN_CENTER_VERTICAL)
         sum_sizer.Add(i0_sum_txt, flag=wx.EXPAND|wx.ALIGN_CENTER_VERTICAL)
 
-        self.err_sizer = wx.FlexGridSizer(3, 4, 3, 3)
+        self.err_sizer = wx.FlexGridSizer(rows=3, cols=4, hgap=self._FromDIP(3),
+            vgap=self._FromDIP(3))
         self.err_sizer.AddGrowableCol(1)
         self.err_sizer.AddGrowableCol(2)
         self.err_sizer.AddGrowableCol(3)
@@ -1010,8 +1040,8 @@ class GuinierControlPanel(wx.Panel):
         info_btn = wx.Button(self, self.button_ids['info'], 'More Info')
         info_btn.Bind(wx.EVT_BUTTON, self._onInfoButton)
 
-        button_sizer.Add(show_btn, 0, wx.ALL, 5)
-        button_sizer.Add(info_btn, 0, wx.ALL, 5)
+        button_sizer.Add(show_btn, 0, wx.ALL, border=self._FromDIP(5))
+        button_sizer.Add(info_btn, 0, wx.ALL, border=self._FromDIP(5))
 
         self.err_top_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         self.err_top_sizer.Add(sum_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
