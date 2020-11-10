@@ -3705,6 +3705,7 @@ class MWPlotPanel(wx.Panel):
         self.canvas.SetBackgroundColour('white')
         self.fig.subplots_adjust(left = 0.35, bottom = 0.16, right = 0.95, top = 0.91)
         self.fig.set_facecolor('white')
+        self.fig.tight_layout()
 
         font_size = 10
         a = self.subplots['VC']
