@@ -1734,10 +1734,12 @@ class MolWeightFrame(wx.Frame):
             self.datclass_panel = self._createDatclassLayout(self.top_mw)
 
         if self.has_atsas:
-            mw_sizer = wx.FlexGridSizer(cols=3, vgap=5, hgap=5)
+            mw_sizer = wx.FlexGridSizer(cols=3, vgap=self._FromDIP(5),
+                hgap=self._FromDIP(5))
             mw_sizer.AddGrowableCol(2)
         else:
-            mw_sizer = wx.FlexGridSizer(cols=2, vgap=5, hgap=5)
+            mw_sizer = wx.FlexGridSizer(cols=2, vgap=self._FromDIP(5),
+                hgap=self._FromDIP(5))
         mw_sizer.AddGrowableCol(0)
         mw_sizer.AddGrowableCol(1)
 
@@ -1759,12 +1761,13 @@ class MolWeightFrame(wx.Frame):
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(self.info_panel, 0, wx.EXPAND)
         top_sizer.Add(wx.StaticLine(parent = parent, style = wx.LI_HORIZONTAL),
-            0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
-        top_sizer.Add(self.top_mw, 10, wx.EXPAND)
+            0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border=self._FromDIP(5))
+        top_sizer.Add(self.top_mw, 10, wx.EXPAND|wx.ALL, border=self._FromDIP(5))
         top_sizer.AddStretchSpacer(1)
         top_sizer.Add(wx.StaticLine(parent = parent, style = wx.LI_HORIZONTAL),
-            0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = 5)
-        top_sizer.Add(self.button_panel, 0, wx.ALIGN_RIGHT | wx.TOP | wx.BOTTOM | wx.LEFT, 5)
+            0, flag = wx.EXPAND | wx.LEFT | wx.RIGHT, border = self._FromDIP(5))
+        top_sizer.Add(self.button_panel, 0, wx.ALIGN_RIGHT | wx.TOP | wx.BOTTOM | wx.LEFT,
+            border=self._FromDIP(5))
 
         return top_sizer
 
@@ -1934,22 +1937,28 @@ class MolWeightFrame(wx.Frame):
             txt = wx.StaticText(parent, -1, self.infodata[key][0])
             ctrl1 = wx.TextCtrl(parent, self.infodata[key][1], '0', style = wx.TE_READONLY)
 
-            infoSizer.Add(txt,0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 2)
-            infoSizer.Add(ctrl1,0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 2)
-            infoSizer.AddSpacer(5)
+            infoSizer.Add(txt,0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL,
+                border=self._FromDIP(5))
+            infoSizer.Add(ctrl1,0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL,
+                border=self._FromDIP(5))
+            infoSizer.AddSpacer(self._FromDIP(5))
 
         guinierfitbutton = wx.Button(parent, -1, 'Guinier Fit')
         guinierfitbutton.Bind(wx.EVT_BUTTON, self.onGuinierFit)
 
         box2 = wx.StaticBox(parent, -1, 'Guinier Parameters')
         boxSizer2 = wx.StaticBoxSizer(box2, wx.HORIZONTAL)
-        boxSizer2.Add(infoSizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL ,5)
-        boxSizer2.Add(guinierfitbutton, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT| wx.TOP, 5)
+        boxSizer2.Add(infoSizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL ,
+            border=self._FromDIP(5))
+        boxSizer2.Add(guinierfitbutton, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL,
+            border=self._FromDIP(5))
 
         box = wx.StaticBox(parent, wx.ID_ANY, 'Info')
         top_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        top_sizer.Add(boxSizer1, 1, wx.EXPAND | wx.TOP | wx.BOTTOM , 5)
-        top_sizer.Add(boxSizer2, 0, wx.TOP | wx.BOTTOM , 5)
+        top_sizer.Add(boxSizer1, 1, wx.EXPAND | wx.ALL ,
+            border=self._FromDIP(5))
+        top_sizer.Add(boxSizer2, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
 
         return top_sizer
 
@@ -1965,8 +1974,8 @@ class MolWeightFrame(wx.Frame):
         conc_details.Bind(wx.EVT_BUTTON, self._onMore)
 
         conc_buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
-        conc_buttonsizer.Add(conc_details, 0, wx.RIGHT, 2)
-        conc_buttonsizer.Add(conc_info, 0, wx.LEFT, 2)
+        conc_buttonsizer.Add(conc_details, 0, wx.RIGHT, border=self._FromDIP(5))
+        conc_buttonsizer.Add(conc_info, 0)
 
 
         concsizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -1979,27 +1988,32 @@ class MolWeightFrame(wx.Frame):
 
         conc.Bind(wx.EVT_TEXT, self._onUpdateConc)
 
-        concsizer.Add(conc_txt,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
-        concsizer.Add(conc, 1, wx.ALIGN_CENTER_VERTICAL)
-        concsizer.Add(conc_txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        concsizer.Add(conc_txt,0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+        concsizer.Add(conc, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        concsizer.Add(conc_txt2, 0, wx.ALIGN_CENTER_VERTICAL)
 
 
         mwsizer = wx.BoxSizer(wx.HORIZONTAL)
-        conc_mw = wx.TextCtrl(parent, conc_ids['calc_mw'], '', size = (80, -1), style = wx.TE_READONLY)
-        mw_txt = wx.StaticText(parent, -1, 'MW :')
+        conc_mw = wx.TextCtrl(parent, conc_ids['calc_mw'], '',
+            size = self._FromDIP((80, -1)), style = wx.TE_READONLY)
+        mw_txt = wx.StaticText(parent, -1, 'MW:')
         mw_txt2 = wx.StaticText(parent, -1,  'kDa')
 
-        mwsizer.Add(mw_txt,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
-        mwsizer.Add(conc_mw, 1, wx.ALIGN_CENTER_VERTICAL)
-        mwsizer.Add(mw_txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        mwsizer.Add(mw_txt,0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+        mwsizer.Add(conc_mw, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        mwsizer.Add(mw_txt2, 0, wx.ALIGN_CENTER_VERTICAL)
 
 
-        sup_txt1 = wx.StaticText(parent, -1, 'Ref. I(0) :')
-        sup_txt2 = wx.StaticText(parent, -1, 'Ref. MW :')
+        sup_txt1 = wx.StaticText(parent, -1, 'Ref. I(0):')
+        sup_txt2 = wx.StaticText(parent, -1, 'Ref. MW:')
         sup_txt3 = wx.StaticText(parent, -1, 'kDa')
-        sup_txt4 = wx.StaticText(parent, -1, 'Ref. Concentration :')
+        sup_txt4 = wx.StaticText(parent, -1, 'Ref. Concentration:')
         sup_txt5 = wx.StaticText(parent, -1, 'mg/ml')
-        sup_txt6 = wx.StaticText(parent, -1, 'File :')
+        sup_txt6 = wx.StaticText(parent, -1, 'File:')
 
         sup_i0 = wx.TextCtrl(parent, conc_ids['sup_i0'], '',
             size = self._FromDIP((60, -1)), style = wx.TE_READONLY)
@@ -2011,37 +2025,47 @@ class MolWeightFrame(wx.Frame):
             size = self._FromDIP((200, -1)), style = wx.TE_READONLY)
 
         sup_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer1.Add(sup_txt1, 0, wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer1.Add(sup_txt1, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
         sup_sizer1.Add(sup_i0, 1, wx.ALIGN_CENTER_VERTICAL)
 
         sup_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer2.Add(sup_txt2,0, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer2.Add(sup_mw,1,wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer2.Add(sup_txt3,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        sup_sizer2.Add(sup_txt2, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer2.Add(sup_mw, 1,wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer2.Add(sup_txt3, 0, wx.ALIGN_CENTER_VERTICAL)
 
         sup_sizer3 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer3.Add(sup_txt4,0, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer3.Add(sup_conc,1, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer3.Add(sup_txt5,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        sup_sizer3.Add(sup_txt4, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer3.Add(sup_conc, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer3.Add(sup_txt5, 0, wx.ALIGN_CENTER_VERTICAL)
 
         sup_sizer4 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer4.Add(sup_txt6, 0, wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer4.Add(sup_txt6, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
         sup_sizer4.Add(sup_file, 1, wx.ALIGN_CENTER_VERTICAL)
 
         self.conc_sup_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.conc_sup_sizer.Add(sup_sizer1, 0, wx.BOTTOM, 5)
-        self.conc_sup_sizer.Add(sup_sizer2, 0, wx.BOTTOM, 5)
-        self.conc_sup_sizer.Add(sup_sizer3, 0, wx.BOTTOM, 5)
+        self.conc_sup_sizer.Add(sup_sizer1, 0, wx.BOTTOM, border=self._FromDIP(5))
+        self.conc_sup_sizer.Add(sup_sizer2, 0, wx.BOTTOM, border=self._FromDIP(5))
+        self.conc_sup_sizer.Add(sup_sizer3, 0, wx.BOTTOM, border=self._FromDIP(5))
         self.conc_sup_sizer.Add(sup_sizer4, 0)
 
 
         self.conc_top_sizer = wx.StaticBoxSizer(concbox, wx.VERTICAL)
-        self.conc_top_sizer.Add(concsizer, 0, wx.BOTTOM, 5)
-        self.conc_top_sizer.Add(mwsizer, 0, wx.BOTTOM, 5)
-        self.conc_top_sizer.Add(self.conc_sup_sizer, 0, wx.BOTTOM, 5)
-        self.conc_top_sizer.Add(conc_buttonsizer, 0, wx.ALIGN_CENTER | wx.TOP, 2)
+        self.conc_top_sizer.Add(concsizer, 0, wx.TOP|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(5))
+        self.conc_top_sizer.Add(mwsizer, 0, wx.TOP|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(5))
+        self.conc_top_sizer.Add(self.conc_sup_sizer, 0, wx.TOP|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(5))
+        self.conc_top_sizer.Add(conc_buttonsizer, 0, wx.ALIGN_CENTER | wx.ALL,
+            border=self._FromDIP(5))
 
-        self.conc_top_sizer.Hide(self.conc_sup_sizer,recursive = True)
+        self.conc_top_sizer.Hide(self.conc_sup_sizer, recursive=True)
 
         return self.conc_top_sizer
 
@@ -2058,8 +2082,8 @@ class MolWeightFrame(wx.Frame):
         vc_details.Bind(wx.EVT_BUTTON, self._onMore)
 
         vc_buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
-        vc_buttonsizer.Add(vc_details, 0, wx.RIGHT, 2)
-        vc_buttonsizer.Add(vc_info, 0, wx.LEFT, 2)
+        vc_buttonsizer.Add(vc_details, 0, wx.RIGHT, border=self._FromDIP(5))
+        vc_buttonsizer.Add(vc_info, 0)
 
 
 
@@ -2070,20 +2094,22 @@ class MolWeightFrame(wx.Frame):
 
         VCmw = wx.TextCtrl(parent, vc_ids['calc_mw'], '',
             size = self._FromDIP((80, -1)), style = wx.TE_READONLY)
-        txt = wx.StaticText(parent, -1, 'MW :')
+        txt = wx.StaticText(parent, -1, 'MW:')
         txt2 = wx.StaticText(parent, -1,  'kDa')
 
-        mwsizer.Add(txt,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
-        mwsizer.Add(VCmw, 1, wx.ALIGN_CENTER_VERTICAL)
-        mwsizer.Add(txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        mwsizer.Add(txt,0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+        mwsizer.Add(VCmw, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        mwsizer.Add(txt2, 0, wx.ALIGN_CENTER_VERTICAL)
 
 
-        sup_txt1 = wx.StaticText(parent, -1, 'Vc :')
+        sup_txt1 = wx.StaticText(parent, -1, 'Vc:')
         sup_txt2 = wx.StaticText(parent, -1, 'A^2')
-        sup_txt3 = wx.StaticText(parent, -1, 'Qr :')
+        sup_txt3 = wx.StaticText(parent, -1, 'Qr:')
         sup_txt4 = wx.StaticText(parent, -1, 'A^3')
-        sup_txt5 = wx.StaticText(parent, -1, 'a :')
-        sup_txt6 = wx.StaticText(parent, -1, 'b :')
+        sup_txt5 = wx.StaticText(parent, -1, 'a:')
+        sup_txt6 = wx.StaticText(parent, -1, 'b:')
 
         sup_vc = wx.TextCtrl(parent, vc_ids['sup_vc'], '',
             size = self._FromDIP((60, -1)), style = wx.TE_READONLY)
@@ -2102,26 +2128,30 @@ class MolWeightFrame(wx.Frame):
         sup_cutoff.Bind(wx.EVT_CHOICE, self._onVcCutoff)
         sup_qmax.Bind(wx.EVT_TEXT, self._updateVcmwParam)
 
-        sup_sizer = wx.FlexGridSizer(rows = 2, cols = 5, hgap =1, vgap=5)
+        sup_sizer = wx.FlexGridSizer(rows=2, cols=5, hgap=self._FromDIP(5),
+            vgap=self._FromDIP(5))
         sup_sizer.Add(sup_txt1, 0, wx.ALIGN_CENTER_VERTICAL)
         sup_sizer.Add(sup_vc, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer.Add(sup_txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        sup_sizer.Add(sup_txt2, 0, wx.ALIGN_CENTER_VERTICAL)
 
-        sup_sizer.Add(sup_txt5, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
+        sup_sizer.Add(sup_txt5, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(10))
         sup_sizer.Add(sup_a, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
 
         sup_sizer.Add(sup_txt3, 0, wx.ALIGN_CENTER_VERTICAL)
         sup_sizer.Add(sup_qr, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer.Add(sup_txt4, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        sup_sizer.Add(sup_txt4, 0, wx.ALIGN_CENTER_VERTICAL)
 
-        sup_sizer.Add(sup_txt6, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
+        sup_sizer.Add(sup_txt6, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(10))
         sup_sizer.Add(sup_b, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
 
-        sup_sizer2 = wx.FlexGridSizer(cols=3, hgap=2, vgap=5)
+        sup_sizer2 = wx.FlexGridSizer(cols=3, hgap=self._FromDIP(5),
+            vgap=self._FromDIP(5))
         sup_sizer2.Add(wx.StaticText(parent, label='q cutoff:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         sup_sizer2.Add(sup_cutoff, flag=wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer2.AddSpacer(1)
+        sup_sizer2.AddSpacer(self._FromDIP(1))
         sup_sizer2.Add(wx.StaticText(parent, label='q_max:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         sup_sizer2.Add(sup_qmax, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -2131,16 +2161,20 @@ class MolWeightFrame(wx.Frame):
         vc_plot = MWPlotPanel(parent, vc_ids['sup_plot'], '')
 
         self.vc_sup_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.vc_sup_sizer.Add(sup_sizer, 0, wx.BOTTOM, 5)
+        self.vc_sup_sizer.Add(sup_sizer, 0, wx.BOTTOM, border=self._FromDIP(5))
         self.vc_sup_sizer.Add(sup_sizer2, border=5, flag=wx.BOTTOM)
         self.vc_sup_sizer.Add(vc_plot, 0, wx.EXPAND)
 
 
         self.vc_top_sizer = wx.StaticBoxSizer(vcbox, wx.VERTICAL)
-        self.vc_top_sizer.Add(mol_type, 0, wx.BOTTOM, 5)
-        self.vc_top_sizer.Add(mwsizer, 0, wx.BOTTOM, 5)
-        self.vc_top_sizer.Add(self.vc_sup_sizer, 0, wx.BOTTOM, 5)
-        self.vc_top_sizer.Add(vc_buttonsizer, 0, wx.ALIGN_CENTER | wx.TOP, 2)
+        self.vc_top_sizer.Add(mol_type, 0, wx.TOP|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(5))
+        self.vc_top_sizer.Add(mwsizer, 0, wx.TOP|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(5))
+        self.vc_top_sizer.Add(self.vc_sup_sizer, 0, wx.TOP|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(5))
+        self.vc_top_sizer.Add(vc_buttonsizer, 0, wx.ALIGN_CENTER | wx.ALL,
+            border=self._FromDIP(5))
 
         self.vc_top_sizer.Hide(self.vc_sup_sizer, recursive = True)
 
@@ -2158,19 +2192,21 @@ class MolWeightFrame(wx.Frame):
         vp_details.Bind(wx.EVT_BUTTON, self._onMore)
 
         vp_buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
-        vp_buttonsizer.Add(vp_details, 0, wx.RIGHT, 2)
-        vp_buttonsizer.Add(vp_info, 0, wx.RIGHT, 2)
+        vp_buttonsizer.Add(vp_details, 0, wx.RIGHT, border=self._FromDIP(5))
+        vp_buttonsizer.Add(vp_info, 0)
 
         mwsizer = wx.BoxSizer(wx.HORIZONTAL)
 
         VpMW = wx.TextCtrl(parent, vp_ids['calc_mw'], '',
             size = self._FromDIP((80, -1)), style = wx.TE_READONLY)
-        txt = wx.StaticText(parent, -1, 'MW :')
+        txt = wx.StaticText(parent, -1, 'MW:')
         txt2 = wx.StaticText(parent, -1,  'kDa')
 
-        mwsizer.Add(txt,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
-        mwsizer.Add(VpMW, 1, wx.ALIGN_CENTER_VERTICAL)
-        mwsizer.Add(txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        mwsizer.Add(txt,0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+        mwsizer.Add(VpMW, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        mwsizer.Add(txt2, 0, wx.ALIGN_CENTER_VERTICAL)
 
         mw_warning = RAWCustomCtrl.StaticText(parent, label=('Warning: final '
             'q point is outside\nthe extrapolation region\n(0.1 <= q <= 0.5 1/A), '
@@ -2187,7 +2223,7 @@ class MolWeightFrame(wx.Frame):
         sup_txt5 = wx.StaticText(parent, -1, 'Macromolecule Density:')
         sup_txt6 = wx.StaticText(parent, -1, 'kDa/A^3')
         sup_txt7 = wx.StaticText(parent, wx.ID_ANY, 'q cutoff:')
-        sup_txt8 = wx.StaticText(parent, wx.ID_ANY, 'q_max')
+        sup_txt8 = wx.StaticText(parent, wx.ID_ANY, 'q_max:')
         sup_txt9 = wx.StaticText(parent, wx.ID_ANY, '1/A')
 
         sup_vp = wx.TextCtrl(parent, vp_ids['sup_vp'], '',
@@ -2209,41 +2245,54 @@ class MolWeightFrame(wx.Frame):
         sup_qmax.Bind(wx.EVT_TEXT, self._updateVpmwParam)
 
         sup_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer1.Add(sup_txt1, 0, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer1.Add(sup_vp, 1, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer1.Add(sup_txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        sup_sizer1.Add(sup_txt1, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer1.Add(sup_vp, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer1.Add(sup_txt2, 0, wx.ALIGN_CENTER_VERTICAL)
 
         vpc_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        vpc_sizer.Add(sup_txt3, 0, wx.ALIGN_CENTER_VERTICAL)
-        vpc_sizer.Add(sup_vpc, 1, wx.ALIGN_CENTER_VERTICAL)
-        vpc_sizer.Add(sup_txt4, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        vpc_sizer.Add(sup_txt3, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        vpc_sizer.Add(sup_vpc, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        vpc_sizer.Add(sup_txt4, 0, wx.ALIGN_CENTER_VERTICAL)
 
         sup_sizer3 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer3.Add(sup_txt5,0, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer3.Add(sup_density,1, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer3.Add(sup_txt6,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        sup_sizer3.Add(sup_txt5, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer3.Add(sup_density, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer3.Add(sup_txt6, 0, wx.ALIGN_CENTER_VERTICAL)
 
         sup_sizer4 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer4.Add(sup_txt7,0, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer4.Add(sup_cutoff,1,wx.ALIGN_CENTER_VERTICAL)
+        sup_sizer4.Add(sup_txt7, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer4.Add(sup_cutoff, 1, wx.ALIGN_CENTER_VERTICAL)
 
         sup_sizer5 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer5.Add(sup_txt8,0, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer5.Add(sup_qmax,1, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer5.Add(sup_txt9,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        sup_sizer5.Add(sup_txt8, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer5.Add(sup_qmax, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer5.Add(sup_txt9, 0, wx.ALIGN_CENTER_VERTICAL)
 
         self.vp_sup_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.vp_sup_sizer.Add(sup_sizer4, 0, wx.BOTTOM, 5)
-        self.vp_sup_sizer.Add(sup_sizer5, 0, wx.BOTTOM, 5)
-        self.vp_sup_sizer.Add(sup_sizer3,0, wx.BOTTOM, 5)
-        self.vp_sup_sizer.Add(sup_sizer1, 0, wx.BOTTOM, 5)
+        self.vp_sup_sizer.Add(sup_sizer4, 0, wx.BOTTOM, border=self._FromDIP(5))
+        self.vp_sup_sizer.Add(sup_sizer5, 0, wx.BOTTOM, border=self._FromDIP(5))
+        self.vp_sup_sizer.Add(sup_sizer3,0, wx.BOTTOM, border=self._FromDIP(5))
+        self.vp_sup_sizer.Add(sup_sizer1, 0)
 
         self.vp_top_sizer = wx.StaticBoxSizer(vpbox, wx.VERTICAL)
-        self.vp_top_sizer.Add(mwsizer, 0, wx.BOTTOM, 5)
-        self.vp_top_sizer.Add(vpc_sizer, border=5, flag=wx.BOTTOM)
-        self.vp_top_sizer.Add(self.mw_warning_sizer, 0, wx.BOTTOM | wx.EXPAND, 5)
-        self.vp_top_sizer.Add(self.vp_sup_sizer, 0, wx.BOTTOM, 5)
-        self.vp_top_sizer.Add(vp_buttonsizer, 0, wx.ALIGN_CENTER | wx.TOP, 2)
+        self.vp_top_sizer.Add(mwsizer, 0, wx.TOP|wx.LEFT|wx.RIGHT, border=self._FromDIP(5))
+        self.vp_top_sizer.Add(vpc_sizer, border=self._FromDIP(5), flag=wx.LEFT|
+            wx.RIGHT|wx.TOP)
+        self.vp_top_sizer.Add(self.mw_warning_sizer, 0, wx.TOP|wx.LEFT|
+            wx.RIGHT|wx.EXPAND, border=self._FromDIP(5))
+        self.vp_top_sizer.Add(self.vp_sup_sizer, 0, wx.LEFT|wx.RIGHT|wx.TOP,
+            border=self._FromDIP(5))
+        self.vp_top_sizer.Add(vp_buttonsizer, 0, wx.ALIGN_CENTER | wx.ALL,
+            border=self._FromDIP(5))
 
         self.vp_top_sizer.Hide(self.vp_sup_sizer, recursive = True)
         self.vp_top_sizer.Hide(self.mw_warning_sizer, recursive = True)
@@ -2256,7 +2305,7 @@ class MolWeightFrame(wx.Frame):
         abs_ids = self.ids['abs']
 
         abs_checkbox = wx.CheckBox(parent, id=abs_ids['calib'],
-            label='Intensity on Absolute Scale', style=wx.ALIGN_RIGHT)
+            label='Intensity on Absolute Scale')
         abs_checkbox.SetValue(False)
         abs_checkbox.Bind(wx.EVT_CHECKBOX, self._onAbsCheck)
 
@@ -2268,41 +2317,45 @@ class MolWeightFrame(wx.Frame):
         abs_details.Bind(wx.EVT_BUTTON, self._onMore)
 
         abs_buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
-        abs_buttonsizer.Add(abs_details, 0, wx.RIGHT, 2)
-        abs_buttonsizer.Add(abs_info, 0, wx.LEFT, 2)
+        abs_buttonsizer.Add(abs_details, 0, wx.RIGHT, border=self._FromDIP(5))
+        abs_buttonsizer.Add(abs_info, 0)
 
         concsizer = wx.BoxSizer(wx.HORIZONTAL)
 
         conc = wx.TextCtrl(parent, abs_ids['conc'], '', size=self._FromDIP((60, -1)),
             validator=RAWCustomCtrl.CharValidator('float'))
-        conc_txt = wx.StaticText(parent, -1,  'Concentration: ')
+        conc_txt = wx.StaticText(parent, -1,  'Concentration:')
         conc_txt2 = wx.StaticText(parent, -1,  'mg/ml')
 
         conc.Bind(wx.EVT_TEXT, self._onUpdateConc)
 
-        concsizer.Add(conc_txt,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
-        concsizer.Add(conc, 1, wx.ALIGN_CENTER_VERTICAL)
-        concsizer.Add(conc_txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        concsizer.Add(conc_txt,0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+        concsizer.Add(conc, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        concsizer.Add(conc_txt2, 0,  wx.ALIGN_CENTER_VERTICAL)
 
         mwsizer = wx.BoxSizer(wx.HORIZONTAL)
 
         absMW = wx.TextCtrl(parent, abs_ids['calc_mw'], '',
             size = self._FromDIP((80, -1)), style = wx.TE_READONLY)
-        txt = wx.StaticText(parent, -1, 'MW :')
+        txt = wx.StaticText(parent, -1, 'MW:')
         txt2 = wx.StaticText(parent, -1,  'kDa')
 
-        mwsizer.Add(txt,0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 2)
-        mwsizer.Add(absMW, 1, wx.ALIGN_CENTER_VERTICAL)
-        mwsizer.Add(txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        mwsizer.Add(txt,0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+        mwsizer.Add(absMW, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        mwsizer.Add(txt2, 0, wx.ALIGN_CENTER_VERTICAL)
 
 
-        sup_txt1 = wx.StaticText(parent, -1, '# electrons per mass dry macromolecule :')
+        sup_txt1 = wx.StaticText(parent, -1, '# electrons per mass dry macromolecule:')
         sup_txt2 = wx.StaticText(parent, -1, 'e-/g')
-        sup_txt3 = wx.StaticText(parent, -1, '# electrons per volume of buffer :')
+        sup_txt3 = wx.StaticText(parent, -1, '# electrons per volume of buffer:')
         sup_txt4 = wx.StaticText(parent, -1, 'e-/cm^3')
-        sup_txt5 = wx.StaticText(parent, -1, 'Protein partial specific volume :')
+        sup_txt5 = wx.StaticText(parent, -1, 'Protein partial specific volume:')
         sup_txt6 = wx.StaticText(parent, -1, 'cm^3/g')
-        sup_txt9 = wx.StaticText(parent, -1, 'Calc. Scattering contrast per mass :')
+        sup_txt9 = wx.StaticText(parent, -1, 'Calc. Scattering contrast per mass:')
         sup_txt10 = wx.StaticText(parent, -1, 'e- cm/g')
 
         sup_pm = wx.TextCtrl(parent, abs_ids['sup_pm'], '',
@@ -2322,38 +2375,51 @@ class MolWeightFrame(wx.Frame):
         sup_pv.Bind(wx.EVT_TEXT, self._updateAbsmwParams)
 
         sup_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer1.Add(sup_txt1, 0, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer1.Add(sup_pm, 1, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer1.Add(sup_txt2, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        sup_sizer1.Add(sup_txt1, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer1.Add(sup_pm, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer1.Add(sup_txt2, 0,wx.ALIGN_CENTER_VERTICAL)
 
         sup_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer2.Add(sup_txt3, 0, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer2.Add(sup_ps, 1, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer2.Add(sup_txt4, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        sup_sizer2.Add(sup_txt3, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer2.Add(sup_ps, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer2.Add(sup_txt4, 0, wx.ALIGN_CENTER_VERTICAL)
 
         sup_sizer3 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer3.Add(sup_txt5, 0, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer3.Add(sup_pv, 1, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer3.Add(sup_txt6, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        sup_sizer3.Add(sup_txt5, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer3.Add(sup_pv, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer3.Add(sup_txt6, 0, wx.ALIGN_CENTER_VERTICAL)
 
         sup_sizer5 = wx.BoxSizer(wx.HORIZONTAL)
-        sup_sizer5.Add(sup_txt9, 0, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer5.Add(sup_sc, 1, wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer5.Add(sup_txt10, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 1)
+        sup_sizer5.Add(sup_txt9, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer5.Add(sup_sc, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+            border=self._FromDIP(5))
+        sup_sizer5.Add(sup_txt10, 0, wx.ALIGN_CENTER_VERTICAL)
 
         self.abs_sup_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.abs_sup_sizer.Add(sup_sizer1, 0, wx.BOTTOM, 5)
-        self.abs_sup_sizer.Add(sup_sizer2, 0, wx.BOTTOM, 5)
-        self.abs_sup_sizer.Add(sup_sizer3, 0, wx.BOTTOM, 5)
-        self.abs_sup_sizer.Add(sup_sizer5,0)
+        self.abs_sup_sizer.Add(sup_sizer1, 0, wx.BOTTOM, border=self._FromDIP(5))
+        self.abs_sup_sizer.Add(sup_sizer2, 0, wx.BOTTOM, border=self._FromDIP(5))
+        self.abs_sup_sizer.Add(sup_sizer3, 0, wx.BOTTOM, border=self._FromDIP(5))
+        self.abs_sup_sizer.Add(sup_sizer5, 0)
 
 
         self.abs_top_sizer = wx.StaticBoxSizer(absbox, wx.VERTICAL)
-        self.abs_top_sizer.Add(abs_checkbox, 0, wx.BOTTOM, 5)
-        self.abs_top_sizer.Add(concsizer, 0, wx.BOTTOM, 5)
-        self.abs_top_sizer.Add(mwsizer, 0, wx.BOTTOM, 5)
-        self.abs_top_sizer.Add(self.abs_sup_sizer, 0, wx.BOTTOM, 5)
-        self.abs_top_sizer.Add(abs_buttonsizer, 0, wx.ALIGN_CENTER | wx.TOP, 2)
+        self.abs_top_sizer.Add(abs_checkbox, 0, wx.TOP|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(5))
+        self.abs_top_sizer.Add(concsizer, 0, wx.LEFT|wx.RIGHT|wx.TOP,
+            border=self._FromDIP(5))
+        self.abs_top_sizer.Add(mwsizer, 0, wx.LEFT|wx.RIGHT|wx.TOP,
+            border=self._FromDIP(5))
+        self.abs_top_sizer.Add(self.abs_sup_sizer, 0, wx.LEFT|wx.RIGHT|wx.TOP,
+            border=self._FromDIP(5))
+        self.abs_top_sizer.Add(abs_buttonsizer, 0, wx.ALIGN_CENTER|wx.ALL,
+            border=self._FromDIP(5))
 
         self.abs_top_sizer.Hide(self.abs_sup_sizer, recursive = True)
 
@@ -2383,22 +2449,25 @@ class MolWeightFrame(wx.Frame):
         details_button.Bind(wx.EVT_BUTTON, self._onMore)
 
         mw_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        mw_sizer.Add(wx.StaticText(ctrl_parent, label='MW (kDa):'), border=5,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        mw_sizer.Add(wx.StaticText(ctrl_parent, label='MW (kDa):'),
+            border=self._FromDIP(5), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         mw_sizer.Add(mw, flag=wx.ALIGN_CENTER_VERTICAL)
 
         conf_sub_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        conf_sub_sizer.Add(ci_start, border=5, flag=wx.ALIGN_CENTER_VERTICAL)
-        conf_sub_sizer.Add(wx.StaticText(ctrl_parent, label='to'), border=5,
+        conf_sub_sizer.Add(ci_start, border=self._FromDIP(5),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        conf_sub_sizer.Add(wx.StaticText(ctrl_parent, label='to'),
+            border=self._FromDIP(5), flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        conf_sub_sizer.Add(ci_end, border=self._FromDIP(5),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        conf_sub_sizer.Add(ci_end, border=5, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
 
         conf_sizer = wx.BoxSizer(wx.VERTICAL)
         conf_sizer.Add(wx.StaticText(ctrl_parent, label='Conf. Interval (kDa):'),
             flag=wx.ALIGN_CENTER)
-        conf_sizer.Add(conf_sub_sizer, border=5, flag=wx.TOP)
+        conf_sizer.Add(conf_sub_sizer, border=self._FromDIP(5), flag=wx.TOP)
 
-        self.bayes_sup_sizer = wx.FlexGridSizer(cols=2, vgap=5, hgap=5)
+        self.bayes_sup_sizer = wx.FlexGridSizer(cols=2, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(5))
         self.bayes_sup_sizer.Add(wx.StaticText(ctrl_parent,
             label='MW Probability:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
@@ -2408,16 +2477,16 @@ class MolWeightFrame(wx.Frame):
         self.bayes_sup_sizer.Add(ci_prob, flag=wx.ALIGN_CENTER_VERTICAL)
 
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        button_sizer.Add(details_button, 0, wx.RIGHT, 2)
-        button_sizer.Add(info_button, 0, wx.LEFT, 2)
+        button_sizer.Add(details_button, 0, wx.RIGHT, border=self._FromDIP(2))
+        button_sizer.Add(info_button, 0, wx.LEFT, border=self._FromDIP(2))
 
-        self.bayes_top_sizer.Add(mw_sizer, border=5,
+        self.bayes_top_sizer.Add(mw_sizer, border=self._FromDIP(5),
             flag=wx.TOP|wx.LEFT|wx.RIGHT)
-        self.bayes_top_sizer.Add(conf_sizer, border=5,
+        self.bayes_top_sizer.Add(conf_sizer, border=self._FromDIP(5),
             flag=wx.TOP|wx.LEFT|wx.RIGHT)
-        self.bayes_top_sizer.Add(self.bayes_sup_sizer, border=5,
+        self.bayes_top_sizer.Add(self.bayes_sup_sizer, border=self._FromDIP(5),
             flag=wx.TOP|wx.LEFT|wx.RIGHT)
-        self.bayes_top_sizer.Add(button_sizer, border=5,
+        self.bayes_top_sizer.Add(button_sizer, border=self._FromDIP(5),
             flag=wx.ALL|wx.ALIGN_CENTER_HORIZONTAL)
 
         self.bayes_top_sizer.Hide(self.bayes_sup_sizer, recursive = True)
@@ -2444,11 +2513,12 @@ class MolWeightFrame(wx.Frame):
         details_button.Bind(wx.EVT_BUTTON, self._onMore)
 
         mw_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        mw_sizer.Add(wx.StaticText(ctrl_parent, label='MW (kDa):'), border=5,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        mw_sizer.Add(wx.StaticText(ctrl_parent, label='MW (kDa):'),
+            border=self._FromDIP(5), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         mw_sizer.Add(mw, flag=wx.ALIGN_CENTER_VERTICAL)
 
-        self.datclass_sup_sizer = wx.FlexGridSizer(cols=2, vgap=5, hgap=5)
+        self.datclass_sup_sizer = wx.FlexGridSizer(cols=2, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(5))
         self.datclass_sup_sizer.Add(wx.StaticText(ctrl_parent,
             label='DATCLASS shape:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
@@ -2458,14 +2528,14 @@ class MolWeightFrame(wx.Frame):
         self.datclass_sup_sizer.Add(dmax, flag=wx.ALIGN_CENTER_VERTICAL)
 
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        button_sizer.Add(details_button, 0, wx.RIGHT, 2)
-        button_sizer.Add(info_button, 0, wx.LEFT, 2)
+        button_sizer.Add(details_button, 0, wx.RIGHT, self._FromDIP(2))
+        button_sizer.Add(info_button, 0, wx.LEFT, self._FromDIP(2))
 
-        self.datclass_top_sizer.Add(mw_sizer, border=5,
+        self.datclass_top_sizer.Add(mw_sizer, border=self._FromDIP(5),
             flag=wx.TOP|wx.LEFT|wx.RIGHT)
-        self.datclass_top_sizer.Add(self.datclass_sup_sizer, border=5,
-            flag=wx.TOP|wx.LEFT|wx.RIGHT)
-        self.datclass_top_sizer.Add(button_sizer, border=5,
+        self.datclass_top_sizer.Add(self.datclass_sup_sizer,
+            border=self._FromDIP(5), flag=wx.TOP|wx.LEFT|wx.RIGHT)
+        self.datclass_top_sizer.Add(button_sizer, border=self._FromDIP(5),
             flag=wx.ALL|wx.ALIGN_CENTER_HORIZONTAL)
 
         self.datclass_top_sizer.Hide(self.datclass_sup_sizer, recursive = True)
@@ -2483,9 +2553,9 @@ class MolWeightFrame(wx.Frame):
         params_button.Bind(wx.EVT_BUTTON, self.onChangeParams)
 
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttonSizer.Add(params_button, 0, wx.RIGHT, 5)
-        buttonSizer.Add(savebutton, 0, wx.RIGHT, 5)
-        buttonSizer.Add(button, 0, wx.RIGHT, 5)
+        buttonSizer.Add(params_button, 0, wx.RIGHT, border=self._FromDIP(5))
+        buttonSizer.Add(savebutton, 0, wx.RIGHT, border=self._FromDIP(5))
+        buttonSizer.Add(button, 0, wx.RIGHT, border=self._FromDIP(5))
 
         return buttonSizer
 
