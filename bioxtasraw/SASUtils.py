@@ -509,18 +509,20 @@ def signal_handler(sig, frame):
 
 
 def load_DIP_bitmap(filepath, bitmap_type):
-    try:
-        content_scale = wx.GetApp().GetTopWindow().GetDPIScaleFactor()
-    except Exception:
-        content_scale = wx.GetApp().GetTopWindow().GetContentScaleFactor()
-
-    img_scale = math.ceil(content_scale)
-
-    img = None
 
     if platform.system() == 'Darwin':
-        img = wx.Image(filepath, bitmap_type)
+        bmp = wx.Bitmap(filepath, bitmap_type)
     else:
+
+        try:
+            content_scale = wx.GetApp().GetTopWindow().GetDPIScaleFactor()
+        except Exception:
+            content_scale = wx.GetApp().GetTopWindow().GetContentScaleFactor()
+
+        img_scale = math.ceil(content_scale)
+
+        img = None
+
         current_scale = img_scale
 
         while current_scale > 1:
@@ -540,7 +542,7 @@ def load_DIP_bitmap(filepath, bitmap_type):
         extra_scale = content_scale/current_scale
         img.Rescale(int(w*extra_scale), int(h*extra_scale))
 
-    bmp = wx.Bitmap(img)
+        bmp = wx.Bitmap(img)
 
     return bmp
 
