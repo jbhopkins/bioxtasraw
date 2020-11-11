@@ -60,7 +60,8 @@ class SaveAnalysisInfoDialog(wx.Dialog):
 
     def __init__(self, parent, raw_settings, item_list = None, *args, **kwargs):
 
-        wx.Dialog.__init__(self, parent, -1, 'Select variables to include in the comma separated file.',
+        wx.Dialog.__init__(self, parent, -1, ('Select variables to include in '
+            'the comma separated file.'),
              *args, style = wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
         self.SetSize(self._FromDIP((900,600)))
 
@@ -73,9 +74,10 @@ class SaveAnalysisInfoDialog(wx.Dialog):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.sizer.Add(self.panel,1, wx.ALL | wx.EXPAND, 10)
+        self.sizer.Add(self.panel, 1, wx.ALL|wx.EXPAND, border=self._FromDIP(10))
         buttonsizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
-        self.sizer.Add(buttonsizer,0, wx.BOTTOM | wx.RIGHT | wx.LEFT | wx.ALIGN_RIGHT, 10)
+        self.sizer.Add(buttonsizer, 0, wx.BOTTOM|wx.RIGHT|wx.LEFT|wx.ALIGN_RIGHT,
+            border=self._FromDIP(10))
 
         self.Bind(wx.EVT_BUTTON, self._onOk, id = wx.ID_OK)
 
@@ -136,8 +138,10 @@ class SaveAnalysisInfoPanel(wx.Panel):
         self.included_data = {}
         sizer = wx.BoxSizer()
 
-        self.include_listctrl = SaveAnalysisListCtrl(self, -1, style = wx.LC_REPORT | wx.LC_NO_HEADER)
-        self.variable_listctrl = SaveAnalysisListCtrl(self, -1, style = wx.LC_REPORT | wx.LC_NO_HEADER)
+        self.include_listctrl = SaveAnalysisListCtrl(self, -1,
+            style=wx.LC_REPORT|wx.LC_NO_HEADER)
+        self.variable_listctrl = SaveAnalysisListCtrl(self, -1,
+            style=wx.LC_REPORT|wx.LC_NO_HEADER)
 
         include_sizer = wx.BoxSizer(wx.VERTICAL)
         include_sizer.Add(wx.StaticText(self, -1, 'Include list:'), 0)
@@ -157,9 +161,10 @@ class SaveAnalysisInfoPanel(wx.Panel):
         self.button_sizer.Add(self.include_button, 0)
         self.button_sizer.Add(self.exclude_button, 0)
 
-        sizer.Add(variable_sizer, 1, wx.EXPAND | wx.ALL, 10)
-        sizer.Add(self.button_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
-        sizer.Add(include_sizer, 1, wx.EXPAND | wx.ALL, 10)
+        sizer.Add(variable_sizer, 1, wx.EXPAND | wx.ALL, border=self._FromDIP(10))
+        sizer.Add(self.button_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL,
+            border=self._FromDIP(5))
+        sizer.Add(include_sizer, 1, wx.EXPAND | wx.ALL, border=self._FromDIP(10))
 
         self.SetSizer(sizer)
 
@@ -642,9 +647,12 @@ class HdrDataDialog(wx.Dialog):
         self.data_grid.SetColLabelValue(1, 'Value')
         self.data_grid.SetMinSize(self._FromDIP((400,400)))
 
-        self.sizer.Add(filename_label, 0, wx.TOP | wx.LEFT, 10)
-        self.sizer.Add(self.data_grid, 1, wx.ALL | wx.EXPAND, 10)
-        self.sizer.Add(self.CreateButtonSizer(wx.OK | wx.CANCEL), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
+        self.sizer.Add(filename_label, 0, wx.TOP|wx.LEFT,
+            border=self._FromDIP(10))
+        self.sizer.Add(self.data_grid, 1, wx.ALL|wx.EXPAND,
+            border=self._FromDIP(10))
+        self.sizer.Add(self.CreateButtonSizer(wx.OK|wx.CANCEL), 0,
+            wx.ALIGN_RIGHT|wx.RIGHT|wx.BOTTOM, border=self._FromDIP(10))
 
         self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
         self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
@@ -818,9 +826,11 @@ class DataDialog(wx.Dialog):
 
         self.data_grid.EnableEditing(False)
 
-        self.sizer.Add(filename_label, 0, wx.TOP | wx.LEFT, 10)
-        self.sizer.Add(self.data_grid, 1, wx.ALL | wx.EXPAND, 10)
-        self.sizer.Add(self.CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
+        self.sizer.Add(filename_label, 0, wx.TOP|wx.LEFT, border=self._FromDIP(10))
+        self.sizer.Add(self.data_grid, 1, wx.ALL|wx.EXPAND,
+            border=self._FromDIP(10))
+        self.sizer.Add(self.CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT|wx.RIGHT
+            |wx.BOTTOM, border=self._FromDIP(10))
 
         # self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
         # self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
@@ -1030,9 +1040,11 @@ class SeriesDataDialog(wx.Dialog):
 
         self.data_grid.SetMinSize(self._FromDIP((600,400)))
 
-        self.sizer.Add(filename_label, 0, wx.TOP | wx.LEFT, 10)
-        self.sizer.Add(self.data_grid, 1, wx.ALL | wx.EXPAND, 10)
-        self.sizer.Add(self.CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
+        self.sizer.Add(filename_label, 0, wx.TOP|wx.LEFT, border=self._FromDIP(10))
+        self.sizer.Add(self.data_grid, 1, wx.ALL|wx.EXPAND,
+            border=self._FromDIP(10))
+        self.sizer.Add(self.CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT|wx.RIGHT
+            | wx.BOTTOM, border=self._FromDIP(10))
 
         self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
 
@@ -1118,7 +1130,7 @@ class IFTDataDialog(wx.Dialog):
             self.extrap=False
 
         self.data_len = max(len(self.iftm.i_extrap), len(self.iftm.r), len(self.iftm.i_orig))
-        filename_label = wx.StaticText(self, -1, 'Filename : ' + self.iftm.getParameter('filename'))
+        filename_label = wx.StaticText(self, -1, 'Filename: ' + self.iftm.getParameter('filename'))
 
         self.data_grid = gridlib.Grid(self)
         self.data_grid.EnableEditing(False)
@@ -1149,9 +1161,11 @@ class IFTDataDialog(wx.Dialog):
 
         self.data_grid.SetMinSize(self._FromDIP((700,400)))
 
-        self.sizer.Add(filename_label, 0, wx.TOP | wx.LEFT, 10)
-        self.sizer.Add(self.data_grid, 1, wx.ALL | wx.EXPAND, 10)
-        self.sizer.Add(self.CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
+        self.sizer.Add(filename_label, 0, wx.TOP|wx.LEFT, border=self._FromDIP(10))
+        self.sizer.Add(self.data_grid, 1, wx.ALL|wx.EXPAND,
+            border=self._FromDIP(10))
+        self.sizer.Add(self.CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT|wx.RIGHT
+            |wx.BOTTOM, border=self._FromDIP(10))
 
         self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
 
@@ -1257,22 +1271,29 @@ class HistoryDialog(wx.Dialog):
             metadata = sasm.getParameter('metadata')
 
             if norm != {} and norm is not None:
-                self.text.AppendText('Normalizations:\n%s\n\n' %(json.dumps(norm, indent = 4, sort_keys = True)))
+                self.text.AppendText('Normalizations:\n%s\n\n' %(json.dumps(norm,
+                    indent = 4, sort_keys = True)))
             if config != {} and config is not None:
-                self.text.AppendText('Configuration File:\n%s\n\n' %(json.dumps(config, indent = 4, sort_keys = True)))
+                self.text.AppendText('Configuration File:\n%s\n\n' %(json.dumps(config,
+                    indent = 4, sort_keys = True)))
             if load != {} and load is not None:
-                self.text.AppendText('Load Path:\n%s\n\n' %(json.dumps(load, indent = 4, sort_keys = True)))
+                self.text.AppendText('Load Path:\n%s\n\n' %(json.dumps(load,
+                    indent = 4, sort_keys = True)))
             if params != {} and params is not None:
-                self.text.AppendText('Calibration Parameters:\n%s\n\n' %(json.dumps(params, indent = 4, sort_keys = True)))
+                self.text.AppendText('Calibration Parameters:\n%s\n\n' %(json.dumps(params,
+                    indent = 4, sort_keys = True)))
             if metadata != {} and metadata is not None:
-                self.text.AppendText('Metadata:\n%s\n\n' %(json.dumps(metadata, indent = 4, sort_keys = True)))
+                self.text.AppendText('Metadata:\n%s\n\n' %(json.dumps(metadata,
+                    indent = 4, sort_keys = True)))
             if version != {} and version is not None:
-                self.text.AppendText('Created with RAW version:\n%s\n\n' %(json.dumps(version, indent = 4, sort_keys = True)))
+                self.text.AppendText('Created with RAW version:\n%s\n\n' %(json.dumps(version,
+                    indent = 4, sort_keys = True)))
 
 
-        self.sizer.Add(self.text, 1, wx.ALL | wx.EXPAND, 10)
+        self.sizer.Add(self.text, 1, wx.ALL | wx.EXPAND, border=self._FromDIP(10))
 
-        self.sizer.Add(self.CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 10)
+        self.sizer.Add(self.CreateButtonSizer(wx.OK), 0, wx.ALIGN_RIGHT|wx.RIGHT
+            |wx.BOTTOM, border=self._FromDIP(10))
 
         self.Bind(wx.EVT_BUTTON, self._onOk, id=wx.ID_OK)
 
@@ -1324,15 +1345,15 @@ class SyncDialog(wx.Dialog):
             label, key, id = each
             chkbox = wx.CheckBox(self, id, label, name = key)
             chkbox.Bind(wx.EVT_CHECKBOX, self._onCheckBox)
-            sync_boxsizer.Add(chkbox, 0, wx.TOP | wx.LEFT, 5)
+            sync_boxsizer.Add(chkbox, 0, wx.TOP | wx.LEFT, border=self._FromDIP(5))
 
-        sync_boxsizer.Add((5,5),0)
+        sync_boxsizer.Add(self._FromDIP((5,5)), 0)
 
         button_sizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
         self.Bind( wx.EVT_BUTTON, self._onOkClicked, id=wx.ID_OK )
 
-        top_sizer.Add(sync_boxsizer, 1, wx.EXPAND | wx.ALL, 10)
-        top_sizer.Add(button_sizer, 0, wx.ALL, 10)
+        top_sizer.Add(sync_boxsizer, 1, wx.EXPAND|wx.ALL, border=self._FromDIP(10))
+        top_sizer.Add(button_sizer, 0, wx.ALL, border=self._FromDIP(10))
 
         self.SetSizer(top_sizer)
 
@@ -1387,7 +1408,8 @@ class QuickReduceDialog(wx.Dialog):
         save_search_button = wx.BitmapButton(self, -1, folder_bmp)
         save_search_button.Bind(wx.EVT_BUTTON, self._onSearchButton)
 
-        savedir_sizer.Add(self.save_textctrl, 1, wx.RIGHT | wx.EXPAND, 2)
+        savedir_sizer.Add(self.save_textctrl, 1, wx.RIGHT | wx.EXPAND,
+            border=self._FromDIP(2))
         savedir_sizer.Add(save_search_button, 0)
 
         # format_choice = wx.Choice(self, -1, choices = ['.rad (RAW)', '.dat (ATSAS)'])
@@ -1397,13 +1419,14 @@ class QuickReduceDialog(wx.Dialog):
         self.Bind( wx.EVT_BUTTON, self._onOkClicked, id=wx.ID_OK )
 
         final_sizer = wx.BoxSizer(wx.VERTICAL)
-        final_sizer.Add(filecount_label, 0, wx.TOP | wx.LEFT | wx.RIGHT, 10)
-        final_sizer.Add(savedir_label, 0, wx.TOP | wx.LEFT | wx.RIGHT, 10)
-        final_sizer.Add(savedir_sizer, 0, wx.LEFT | wx.RIGHT, 10)
-        # final_sizer.Add(format_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
-        # final_sizer.Add(format_choice, 0, wx.LEFT | wx.RIGHT, 10)
-        # final_sizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.TOP, 10)
-        final_sizer.Add(button_sizer, 0, wx.TOP | wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL, 10)
+        final_sizer.Add(filecount_label, 0, wx.TOP|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(10))
+        final_sizer.Add(savedir_label, 0, wx.TOP|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(10))
+        final_sizer.Add(savedir_sizer, 0, wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(10))
+        final_sizer.Add(button_sizer, 0, wx.TOP|wx.BOTTOM|wx.ALIGN_CENTER_HORIZONTAL,
+            border=self._FromDIP(10))
 
         self.SetSizer(final_sizer)
 
@@ -1461,7 +1484,7 @@ class FilenameChangeDialog(wx.Dialog):
         self.cancel_button.Bind(wx.EVT_BUTTON, self._onCancelButton)
 
         button_sizer = wx.BoxSizer()
-        button_sizer.Add(self.ok_button,0, wx.RIGHT, 5)
+        button_sizer.Add(self.ok_button,0, wx.RIGHT, border=self._FromDIP(5))
         button_sizer.Add(self.cancel_button,0)
 
         label = wx.StaticText(self, -1, 'Name :')
@@ -1469,13 +1492,16 @@ class FilenameChangeDialog(wx.Dialog):
         self.ctrl.SetValue(str(filename))
 
         filename_sizer = wx.BoxSizer()
-        filename_sizer.Add(label,0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
-        filename_sizer.Add(self.ctrl, 1, wx.EXPAND | wx.RIGHT, 5)
+        filename_sizer.Add(label,0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+        filename_sizer.Add(self.ctrl, 1, wx.EXPAND|wx.RIGHT,
+            border=self._FromDIP(5))
 
         final_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        final_sizer.Add(filename_sizer, 0, wx.ALL, 15)
-        final_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
+        final_sizer.Add(filename_sizer, 0, wx.ALL, border=self._FromDIP(15))
+        final_sizer.Add(button_sizer, 0, wx.ALIGN_CENTER | wx.BOTTOM,
+            border=self._FromDIP(10))
 
         self.SetSizer(final_sizer)
         self.Fit()
@@ -1512,7 +1538,7 @@ class RebinDialog(wx.Dialog):
         top_sizer = wx.BoxSizer(wx.VERTICAL)
 
         choices = ['2','3','4','5','6','7','8','9','10']
-        text = wx.StaticText(self, -1, 'Select bin reduction factor :')
+        text = wx.StaticText(self, -1, 'Select bin reduction factor:')
         self.choice = wx.Choice(self, -1, choices = choices)
         self.choice.Select(0)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -1522,12 +1548,15 @@ class RebinDialog(wx.Dialog):
         buttonsizer = self.CreateButtonSizer(wx.OK | wx.CANCEL)
         self.Bind( wx.EVT_BUTTON, self._onOkClicked, id=wx.ID_OK )
 
-        sizer.Add(text, 1)
-        sizer.Add(self.choice, 0)
-        sizer.Add(self.log_box, 0, wx.TOP, 5)
+        sizer.Add(text, 1, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+        sizer.Add(self.choice, 0, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+        sizer.Add(self.log_box, 0, flag=wx.ALIGN_CENTER_VERTICAL)
 
-        top_sizer.Add(sizer, 1, wx.ALL, 10)
-        top_sizer.Add(buttonsizer, 1, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL)
+        top_sizer.Add(sizer, 1, wx.ALL, border=self._FromDIP(5))
+        top_sizer.Add(buttonsizer, 1, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL,
+            border=self._FromDIP(5))
 
         self.SetSizer(top_sizer)
         self.Fit()
@@ -1596,8 +1625,9 @@ class ColourChangeDialog(wx.Dialog):
 
         sizer.Add(self.colourchoice, 1)
 
-        top_sizer.Add(sizer, 0, wx.ALL, 10)
-        top_sizer.Add(buttonsizer, 0, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL, 10)
+        top_sizer.Add(sizer, 0, wx.ALL, border=self._FromDIP(10))
+        top_sizer.Add(buttonsizer, 0, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL,
+            border=self._FromDIP(10))
 
         self.SetSizer(top_sizer)
         self.Fit()
@@ -1741,7 +1771,8 @@ class LinePropertyDialog(wx.Dialog):
     def __init__(self, parent, sasm, legend_label, size=(400, 418),
         style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, *args, **kwargs):
         if sasm.line is None:
-            wx.MessageBox('Unable to change line properties.\nNo plot has been made for this item.', 'No plot')
+            wx.MessageBox(('Unable to change line properties.\nNo plot has '
+                'been made for this item.'), 'No plot')
             return
 
 
@@ -1755,7 +1786,8 @@ class LinePropertyDialog(wx.Dialog):
 
         self.linewidth_combo_choices = ['1.0', '2.0', '3.0', '4.0', '5.0']
         self.linestyle_list_choices = ['None', '-', '--', '-.', ':']
-        self.linemarker_list_choices = ['None', '+', '*', ',','.','1','2','3','4','<', '>', 'D', 'H', '^','_','d','h','o','p','s','v','x','|']
+        self.linemarker_list_choices = ['None', '+', '*', ',','.','1','2','3',
+            '4','<', '>', 'D', 'H', '^','_','d','h','o','p','s','v','x','|']
 
         self._linestyle = self.line.get_linestyle()
         self._linemarker = self.line.get_marker()
@@ -1771,18 +1803,22 @@ class LinePropertyDialog(wx.Dialog):
         mfc = self.line.get_markerfacecolor()
         if mfc != "None":
             color = conv.to_rgb(self.line.get_markerfacecolor())
-            self._marcolour = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
+            self._marcolour = wx.Colour(int(color[0]*255), int(color[1]*255),
+                int(color[2]*255))
             self.hollow_marker = False
         else:
             color = conv.to_rgb(self.line.get_markeredgecolor())
-            self._marcolour =  wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
+            self._marcolour =  wx.Colour(int(color[0]*255), int(color[1]*255),
+                int(color[2]*255))
             self.hollow_marker = True
 
         color = conv.to_rgb(self.line.get_markeredgecolor())
-        self._marlinecolour = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
+        self._marlinecolour = wx.Colour(int(color[0]*255), int(color[1]*255),
+            int(color[2]*255))
 
         color = conv.to_rgb(self.sasm.err_line[0][0].get_color())
-        self._errcolour = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
+        self._errcolour = wx.Colour(int(color[0]*255), int(color[1]*255),
+            int(color[2]*255))
 
         self._old_linestyle = self.line.get_linestyle()
         self._old_linemarker = self.line.get_marker()
@@ -1796,6 +1832,8 @@ class LinePropertyDialog(wx.Dialog):
         errstyle = self.sasm.err_line[1][0].get_linestyle()
 
         if errstyle[0][0] is None:
+            err_style = '-'
+        elif errstyle[0][1] is None:
             err_style = '-'
         elif len(errstyle[0][1]) == 4:
             err_style = '-.'
@@ -1813,7 +1851,8 @@ class LinePropertyDialog(wx.Dialog):
         self.Bind( wx.EVT_BUTTON, self._onOkButton, id=wx.ID_OK )
         self.Bind( wx.EVT_BUTTON, self._onCancelButton, id=wx.ID_CANCEL )
 
-        linesettings_sizer = wx.FlexGridSizer(cols = 5, rows = 2, vgap = 5, hgap = 10)
+        linesettings_sizer = wx.FlexGridSizer(cols=5, rows=2, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(10))
         linesettings_sizer.AddGrowableCol(0)
         linesettings_sizer.AddGrowableCol(2)
         linesettings_sizer.AddGrowableCol(4)
@@ -1830,11 +1869,15 @@ class LinePropertyDialog(wx.Dialog):
         linesettings_sizer.AddStretchSpacer(1)
         linesettings_sizer.AddStretchSpacer(1)
 
-        top_sizer.Add(self._createLegendLabelControls(), 0, wx.ALL | wx.EXPAND, 10)
-        top_sizer.Add(linesettings_sizer, 0, wx.ALL | wx.EXPAND, 10)
+        top_sizer.Add(self._createLegendLabelControls(), 0, wx.ALL | wx.EXPAND,
+            border=self._FromDIP(10))
+        top_sizer.Add(linesettings_sizer, 0, wx.ALL | wx.EXPAND,
+            border=self._FromDIP(10))
         top_sizer.AddStretchSpacer(1)
-        top_sizer.Add(wx.StaticLine(self, -1), wx.EXPAND |wx.TOP | wx.BOTTOM, 3)
-        top_sizer.Add(buttonsizer, 0, wx.CENTER | wx.BOTTOM, 10)
+        top_sizer.Add(wx.StaticLine(self, -1), wx.EXPAND |wx.TOP | wx.BOTTOM,
+            border=self._FromDIP(3))
+        top_sizer.Add(buttonsizer, 0, wx.CENTER | wx.BOTTOM,
+            border=self._FromDIP(10))
 
         self.SetSizer(top_sizer)
 
@@ -1858,7 +1901,7 @@ class LinePropertyDialog(wx.Dialog):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.legend_label_text, 1, wx.EXPAND)
 
-        box.Add(sizer, 0, wx.EXPAND | wx.ALL, 5)
+        box.Add(sizer, 0, wx.EXPAND | wx.ALL, border=self._FromDIP(5))
         return box
 
     def _createErrorBarsControls(self):
@@ -1869,7 +1912,8 @@ class LinePropertyDialog(wx.Dialog):
         err_linestyle_label = wx.StaticText(self, -1, 'Style :')
         err_colour_label = wx.StaticText(self, -1, 'Line Colour :')
 
-        self.err_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+        self.err_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+            TextLength = 60, never_negative = True)
         self.err_linewidth.SetValue(str(self._old_errlinewidth))
         self.err_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
@@ -1881,7 +1925,8 @@ class LinePropertyDialog(wx.Dialog):
         self.err_colour.SetBackgroundColour(self._errcolour)
         self.err_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-        sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+        sizer = wx.FlexGridSizer(cols=2, rows=5, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(3))
         sizer.Add(err_linestyle_label, 0)
         sizer.Add(self.err_linestyle_list, 0, wx.EXPAND)
         sizer.Add(err_linewidth_label, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -1889,7 +1934,7 @@ class LinePropertyDialog(wx.Dialog):
         sizer.Add(err_colour_label, 0)
         sizer.Add(self.err_colour, 0, wx.EXPAND)
 
-        box.Add(sizer, 0, wx.ALL, 5)
+        box.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
         return box
 
@@ -1930,28 +1975,34 @@ class LinePropertyDialog(wx.Dialog):
         mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
         mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
 
-        self.mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+        self.mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+            TextLength = 60, never_negative = True)
         self.mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
         self.mar_size.SetValue(str(self._old_marsize))
 
-        self.mar_fillcolour = wx.Panel(self, -1, name = 'MarFillColour', style = wx.RAISED_BORDER)
+        self.mar_fillcolour = wx.Panel(self, -1, name = 'MarFillColour',
+            style = wx.RAISED_BORDER)
         self.mar_fillcolour.SetBackgroundColour(self._marcolour)
         self.mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
         self.mar_fillcolour.Enable(not self.hollow_marker)
 
-        self.mar_linecolour = wx.Panel(self, -1, name = 'MarLineColour', style = wx.RAISED_BORDER)
+        self.mar_linecolour = wx.Panel(self, -1, name = 'MarLineColour',
+            style = wx.RAISED_BORDER)
         self.mar_linecolour.SetBackgroundColour(self._marlinecolour)
         self.mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-        self.mar_linemarker_list = wx.Choice(self, -1, choices = self.linemarker_list_choices)
-        self.mar_linemarker_list.Select(self.linemarker_list_choices.index(str(self._linemarker)))
+        self.mar_linemarker_list = wx.Choice(self, -1,
+            choices = self.linemarker_list_choices)
+        self.mar_linemarker_list.Select(self.linemarker_list_choices.index(
+            str(self._linemarker)))
         self.mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
         self.mar_hollow = wx.CheckBox(self, -1)
         self.mar_hollow.SetValue(self.hollow_marker)
         self.mar_hollow.Bind(wx.EVT_CHECKBOX, self._onHollowCheckBox)
 
-        sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+        sizer = wx.FlexGridSizer(cols=2, rows=5, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(3))
         sizer.Add(mar_linemarker_label, 0)
         sizer.Add(self.mar_linemarker_list, 0, wx.EXPAND)
         sizer.Add(mar_size_label, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -1964,7 +2015,7 @@ class LinePropertyDialog(wx.Dialog):
         sizer.Add(self.mar_hollow, 0, wx.EXPAND)
 
 
-        box.Add(sizer, 0, wx.ALL, 5)
+        box.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
         return box
 
@@ -1994,19 +2045,24 @@ class LinePropertyDialog(wx.Dialog):
         linestyle_label = wx.StaticText(self, -1, 'Style :')
         linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
 
-        self.linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+        self.linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+            TextLength = 60, never_negative = True)
         self.linewidth.SetValue(str(self._old_linewidth))
         self.linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
-        self.linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
-        self.linestyle_list.Select(self.linestyle_list_choices.index(str(self._linestyle)))
+        self.linestyle_list = wx.Choice(self, -1,
+            choices = self.linestyle_list_choices)
+        self.linestyle_list.Select(self.linestyle_list_choices.index(str(
+            self._linestyle)))
         self.linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-        self.line_colour = wx.Panel(self, -1, name = 'LineColour', style = wx.RAISED_BORDER)
+        self.line_colour = wx.Panel(self, -1, name = 'LineColour',
+            style = wx.RAISED_BORDER)
         self.line_colour.SetBackgroundColour(self._linecolour)
         self.line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-        sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+        sizer = wx.FlexGridSizer(cols=2, rows=5, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(3))
 
         sizer.Add(linestyle_label, 0)
         sizer.Add(self.linestyle_list, 0, wx.EXPAND)
@@ -2015,7 +2071,7 @@ class LinePropertyDialog(wx.Dialog):
         sizer.Add(linecolour_label, 0)
         sizer.Add(self.line_colour, 0, wx.EXPAND)
 
-        box.Add(sizer, 0, wx.ALL, 5)
+        box.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
         return box
 
@@ -2113,7 +2169,8 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
         self.linewidth_combo_choices = ['1.0', '2.0', '3.0', '4.0', '5.0']
         self.linestyle_list_choices = ['None', '-', '--', '-.', ':']
-        self.linemarker_list_choices = ['None', '+', '*', ',','.','1','2','3','4','<', '>', 'D', 'H', '^','_','d','h','o','p','s','v','x','|']
+        self.linemarker_list_choices = ['None', '+', '*', ',','.','1','2','3',
+            '4','<', '>', 'D', 'H', '^','_','d','h','o','p','s','v','x','|']
 
         self.r_linestyle = self.r_line.get_linestyle()
         self.r_linemarker = self.r_line.get_marker()
@@ -2224,6 +2281,8 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
         if errstyle[0][0] is None:
             r_err_style = '-'
+        elif errstyle[0][1] is None:
+            r_err_style = '-'
         elif len(errstyle[0][1]) == 4:
             r_err_style = '-.'
         else:
@@ -2240,6 +2299,8 @@ class IFTMLinePropertyDialog(wx.Dialog):
         errstyle = self.iftm.qo_err_line[1][0].get_linestyle()
 
         if errstyle[0][0] is None:
+            qo_err_style = '-'
+        elif errstyle[0][1] is None:
             qo_err_style = '-'
         elif len(errstyle[0][1]) == 4:
             qo_err_style = '-.'
@@ -2280,32 +2341,35 @@ class IFTMLinePropertyDialog(wx.Dialog):
         qfbox = wx.StaticBox(self, -1, 'Fit line settings')
 
         rboxSizer = wx.StaticBoxSizer(rbox, wx.VERTICAL)
-        rboxSizer.Add(self._createLegendLabelControls(self.r_line), 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 3)
+        rboxSizer.Add(self._createLegendLabelControls(self.r_line), 0, wx.LEFT
+            |wx.RIGHT|wx.EXPAND, self._FromDIP(3))
         rboxSizer.Add(r_linesettings_sizer, 0, wx.EXPAND)
 
         qoboxSizer = wx.StaticBoxSizer(qobox, wx.VERTICAL)
-        qoboxSizer.Add(self._createLegendLabelControls(self.qo_line), 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 3)
+        qoboxSizer.Add(self._createLegendLabelControls(self.qo_line), 0, wx.LEFT
+            |wx.RIGHT|wx.EXPAND, self._FromDIP(3))
         qoboxSizer.Add(qo_linesettings_sizer, 0, wx.EXPAND)
 
         qfboxSizer = wx.StaticBoxSizer(qfbox, wx.VERTICAL)
-        qfboxSizer.Add(self._createLegendLabelControls(self.qf_line), 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 3)
+        qfboxSizer.Add(self._createLegendLabelControls(self.qf_line), 0, wx.LEFT
+            |wx.RIGHT|wx.EXPAND, self._FromDIP(3))
         qfboxSizer.Add(qf_linesettings_sizer, 0, wx.EXPAND)
 
         side_sizer = wx.BoxSizer(wx.HORIZONTAL)
         side_sizer.Add(rboxSizer, 0, wx.EXPAND)
         side_sizer.AddStretchSpacer(1)
-        side_sizer.Add(qoboxSizer, 0, wx.EXPAND|wx.LEFT, border=10)
+        side_sizer.Add(qoboxSizer, 0, wx.EXPAND|wx.LEFT, border=self._FromDIP(10))
 
         side_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
         side_sizer2.Add(qfboxSizer, 0, wx.EXPAND)
         side_sizer2.AddStretchSpacer(1)
 
 
-        top_sizer.Add(side_sizer, 0, wx.ALL | wx.EXPAND, 5)
+        top_sizer.Add(side_sizer, 0, wx.ALL|wx.EXPAND, border=self._FromDIP(5))
         top_sizer.AddStretchSpacer(1)
-        top_sizer.Add(side_sizer2, 0, wx.ALL | wx.EXPAND, 5)
+        top_sizer.Add(side_sizer2, 0, wx.ALL|wx.EXPAND, border=self._FromDIP(5))
         top_sizer.AddStretchSpacer(1)
-        top_sizer.Add(buttonsizer, 0, wx.CENTER | wx.BOTTOM, 5)
+        top_sizer.Add(buttonsizer, 0, wx.CENTER|wx.BOTTOM, border=self._FromDIP(5))
 
         self.SetSizer(top_sizer)
 
@@ -2325,34 +2389,37 @@ class IFTMLinePropertyDialog(wx.Dialog):
             topbox = wx.StaticBox(self, -1, 'Legend Label')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            self.r_legend_label_text = wx.TextCtrl(self, -1, self.legend_label[self.r_line])
+            self.r_legend_label_text = wx.TextCtrl(self, -1,
+                self.legend_label[self.r_line])
 
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.Add(self.r_legend_label_text, 1, wx.EXPAND)
 
-            box.Add(sizer, 0, wx.EXPAND | wx.ALL, 3)
+            box.Add(sizer, 0, wx.EXPAND | wx.ALL, border=self._FromDIP(3))
 
         elif line == self.qo_line:
             topbox = wx.StaticBox(self, -1, 'Legend Label')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            self.qo_legend_label_text = wx.TextCtrl(self, -1, self.legend_label[self.qo_line])
+            self.qo_legend_label_text = wx.TextCtrl(self, -1,
+                self.legend_label[self.qo_line])
 
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.Add(self.qo_legend_label_text, 1, wx.EXPAND)
 
-            box.Add(sizer, 0, wx.EXPAND | wx.ALL, 3)
+            box.Add(sizer, 0, wx.EXPAND | wx.ALL, border=self._FromDIP(3))
 
         elif line == self.qf_line:
             topbox = wx.StaticBox(self, -1, 'Legend Label')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            self.qf_legend_label_text = wx.TextCtrl(self, -1, self.legend_label[self.qf_line])
+            self.qf_legend_label_text = wx.TextCtrl(self, -1,
+                self.legend_label[self.qf_line])
 
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.Add(self.qf_legend_label_text, 1, wx.EXPAND)
 
-            box.Add(sizer, 0, wx.EXPAND | wx.ALL, 3)
+            box.Add(sizer, 0, wx.EXPAND | wx.ALL, border=self._FromDIP(3))
 
 
         return box
@@ -2364,20 +2431,25 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
         if line == self.r_line:
 
-            err_linewidth_label = wx.StaticText(self, -1, 'Width :')
-            err_linestyle_label = wx.StaticText(self, -1, 'Style :')
-            err_colour_label = wx.StaticText(self, -1, 'Line Colour :')
+            err_linewidth_label = wx.StaticText(self, -1, 'Width:')
+            err_linestyle_label = wx.StaticText(self, -1, 'Style:')
+            err_colour_label = wx.StaticText(self, -1, 'Line Colour:')
 
-            self.r_err_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
-            self.r_err_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
+            self.r_err_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+                TextLength = 60, never_negative = True)
+            self.r_err_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN,
+                self.updateLine)
 
-            self.r_err_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
+            self.r_err_linestyle_list = wx.Choice(self, -1,
+                choices = self.linestyle_list_choices)
             self.r_err_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.r_err_colour = wx.Panel(self, -1, name = 'PrErrColour', style = wx.RAISED_BORDER)
+            self.r_err_colour = wx.Panel(self, -1, name = 'PrErrColour',
+                style = wx.RAISED_BORDER)
             self.r_err_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-            sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+            sizer = wx.FlexGridSizer(cols=2, rows=5, vgap=self._FromDIP(5),
+                hgap=self._FromDIP(3))
             sizer.Add(err_linestyle_label, 0)
             sizer.Add(self.r_err_linestyle_list, 0, wx.EXPAND)
             sizer.Add(err_linewidth_label, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -2386,24 +2458,29 @@ class IFTMLinePropertyDialog(wx.Dialog):
             sizer.Add(self.r_err_colour, 0, wx.EXPAND)
 
             self.r_err_linewidth.SetValue(str(self._old_r_errlinewidth))
-            self.r_err_linestyle_list.Select(self.linestyle_list_choices.index(str(self._old_r_errlinestyle)))
+            self.r_err_linestyle_list.Select(self.linestyle_list_choices.index(
+                str(self._old_r_errlinestyle)))
             self.r_err_colour.SetBackgroundColour(self.r_errcolour)
 
         elif line == self.qo_line:
-            err_linewidth_label = wx.StaticText(self, -1, 'Width :')
-            err_linestyle_label = wx.StaticText(self, -1, 'Style :')
-            err_colour_label = wx.StaticText(self, -1, 'Line Colour :')
+            err_linewidth_label = wx.StaticText(self, -1, 'Width:')
+            err_linestyle_label = wx.StaticText(self, -1, 'Style:')
+            err_colour_label = wx.StaticText(self, -1, 'Line Colour:')
 
-            self.qo_err_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.qo_err_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+                TextLength = 60, never_negative = True)
             self.qo_err_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
-            self.qo_err_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
+            self.qo_err_linestyle_list = wx.Choice(self, -1,
+                choices = self.linestyle_list_choices)
             self.qo_err_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.qo_err_colour = wx.Panel(self, -1, name = 'QoErrColour', style = wx.RAISED_BORDER)
+            self.qo_err_colour = wx.Panel(self, -1, name = 'QoErrColour',
+                style = wx.RAISED_BORDER)
             self.qo_err_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-            sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+            sizer = wx.FlexGridSizer(cols=2, rows=5, vgap=self._FromDIP(5),
+                hgap=self._FromDIP(3))
             sizer.Add(err_linestyle_label, 0)
             sizer.Add(self.qo_err_linestyle_list, 0, wx.EXPAND)
             sizer.Add(err_linewidth_label, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -2412,11 +2489,11 @@ class IFTMLinePropertyDialog(wx.Dialog):
             sizer.Add(self.qo_err_colour, 0, wx.EXPAND)
 
             self.qo_err_linewidth.SetValue(str(self._old_qo_errlinewidth))
-            self.qo_err_linestyle_list.Select(self.linestyle_list_choices.index(str(self._old_qo_errlinestyle)))
+            self.qo_err_linestyle_list.Select(self.linestyle_list_choices.index(
+                str(self._old_qo_errlinestyle)))
             self.qo_err_colour.SetBackgroundColour(self.qo_errcolour)
 
-
-        box.Add(sizer, 0, wx.ALL, 5)
+        box.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
         return box
 
@@ -2468,35 +2545,41 @@ class IFTMLinePropertyDialog(wx.Dialog):
             topbox = wx.StaticBox(self, -1, 'Data Point Marker')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            mar_size_label = wx.StaticText(self, -1, 'Size :')
-            self.r_mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour :')
+            mar_size_label = wx.StaticText(self, -1, 'Size:')
+            self.r_mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour:')
             self.r_mar_fillcolour_label.Enable(not self.r_hollow_marker)
-            mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
-            mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
-            mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
+            mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour:')
+            mar_linemarker_label = wx.StaticText(self, -1, 'Marker:')
+            mar_hollow_label = wx.StaticText(self, -1, 'Hollow:')
 
-            self.r_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.r_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+                TextLength = 60, never_negative = True)
             self.r_mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.r_mar_size.SetValue(str(self._old_r_marsize))
 
-            self.r_mar_fillcolour = wx.Panel(self, -1, name = 'PrMarFillColour', style = wx.RAISED_BORDER)
+            self.r_mar_fillcolour = wx.Panel(self, -1, name = 'PrMarFillColour',
+                style = wx.RAISED_BORDER)
             self.r_mar_fillcolour.SetBackgroundColour(self.r_marcolour)
             self.r_mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
             self.r_mar_fillcolour.Enable(not self.r_hollow_marker)
 
-            self.r_mar_linecolour = wx.Panel(self, -1, name = 'PrMarLineColour', style = wx.RAISED_BORDER)
+            self.r_mar_linecolour = wx.Panel(self, -1, name = 'PrMarLineColour',
+                style = wx.RAISED_BORDER)
             self.r_mar_linecolour.SetBackgroundColour(self.r_marlinecolour)
             self.r_mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-            self.r_mar_linemarker_list = wx.Choice(self, -1, choices = self.linemarker_list_choices)
-            self.r_mar_linemarker_list.Select(self.linemarker_list_choices.index(str(self.r_linemarker)))
+            self.r_mar_linemarker_list = wx.Choice(self, -1,
+                choices = self.linemarker_list_choices)
+            self.r_mar_linemarker_list.Select(self.linemarker_list_choices.index(
+                str(self.r_linemarker)))
             self.r_mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
             self.r_mar_hollow = wx.CheckBox(self, -1)
             self.r_mar_hollow.SetValue(self.r_hollow_marker)
             self.r_mar_hollow.Bind(wx.EVT_CHECKBOX, self.r_onHollowCheckBox)
 
-            sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+            sizer = wx.FlexGridSizer(cols=2, rows=5, vgap=self._FromDIP(5),
+                hgap=self._FromDIP(3))
             sizer.Add(mar_linemarker_label, 0)
             sizer.Add(self.r_mar_linemarker_list, 0, wx.EXPAND)
             sizer.Add(mar_size_label, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -2508,43 +2591,47 @@ class IFTMLinePropertyDialog(wx.Dialog):
             sizer.Add(mar_hollow_label, 0)
             sizer.Add(self.r_mar_hollow, 0, wx.EXPAND)
 
-
-            box.Add(sizer, 0, wx.ALL, 5)
+            box.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
         elif line == self.qo_line:
             topbox = wx.StaticBox(self, -1, 'Data Point Marker')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            mar_size_label = wx.StaticText(self, -1, 'Size :')
-            self.qo_mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour :')
+            mar_size_label = wx.StaticText(self, -1, 'Size:')
+            self.qo_mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour:')
             self.qo_mar_fillcolour_label.Enable(not self.qo_hollow_marker)
-            mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
-            mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
-            mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
+            mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour:')
+            mar_linemarker_label = wx.StaticText(self, -1, 'Marker:')
+            mar_hollow_label = wx.StaticText(self, -1, 'Hollow:')
 
             self.qo_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
                 TextLength = 60, never_negative = True)
             self.qo_mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.qo_mar_size.SetValue(str(self._old_qo_marsize))
 
-            self.qo_mar_fillcolour = wx.Panel(self, -1, name = 'QoMarFillColour', style = wx.RAISED_BORDER)
+            self.qo_mar_fillcolour = wx.Panel(self, -1, name = 'QoMarFillColour',
+                style = wx.RAISED_BORDER)
             self.qo_mar_fillcolour.SetBackgroundColour(self.qo_marcolour)
             self.qo_mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
             self.qo_mar_fillcolour.Enable(not self.qo_hollow_marker)
 
-            self.qo_mar_linecolour = wx.Panel(self, -1, name = 'QoMarLineColour', style = wx.RAISED_BORDER)
+            self.qo_mar_linecolour = wx.Panel(self, -1, name = 'QoMarLineColour',
+                style = wx.RAISED_BORDER)
             self.qo_mar_linecolour.SetBackgroundColour(self.qo_marlinecolour)
             self.qo_mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-            self.qo_mar_linemarker_list = wx.Choice(self, -1, choices = self.linemarker_list_choices)
-            self.qo_mar_linemarker_list.Select(self.linemarker_list_choices.index(str(self.qo_linemarker)))
+            self.qo_mar_linemarker_list = wx.Choice(self, -1,
+                choices = self.linemarker_list_choices)
+            self.qo_mar_linemarker_list.Select(self.linemarker_list_choices.index(
+                str(self.qo_linemarker)))
             self.qo_mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
             self.qo_mar_hollow = wx.CheckBox(self, -1)
             self.qo_mar_hollow.SetValue(self.qo_hollow_marker)
             self.qo_mar_hollow.Bind(wx.EVT_CHECKBOX, self.qo_onHollowCheckBox)
 
-            sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+            sizer = wx.FlexGridSizer(cols=2, rows=5, vgap=self._FromDIP(5),
+                hgap=self._FromDIP(3))
             sizer.Add(mar_linemarker_label, 0)
             sizer.Add(self.qo_mar_linemarker_list, 0, wx.EXPAND)
             sizer.Add(mar_size_label, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -2556,43 +2643,48 @@ class IFTMLinePropertyDialog(wx.Dialog):
             sizer.Add(mar_hollow_label, 0)
             sizer.Add(self.qo_mar_hollow, 0, wx.EXPAND)
 
-
-            box.Add(sizer, 0, wx.ALL, 5)
+            box.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
 
         elif line == self.qf_line:
             topbox = wx.StaticBox(self, -1, 'Data Point Marker')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            mar_size_label = wx.StaticText(self, -1, 'Size :')
-            self.qf_mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour :')
+            mar_size_label = wx.StaticText(self, -1, 'Size:')
+            self.qf_mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour:')
             self.qf_mar_fillcolour_label.Enable(not self.qf_hollow_marker)
-            mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
-            mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
-            mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
+            mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour:')
+            mar_linemarker_label = wx.StaticText(self, -1, 'Marker:')
+            mar_hollow_label = wx.StaticText(self, -1, 'Hollow:')
 
-            self.qf_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.qf_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+                TextLength = 60, never_negative = True)
             self.qf_mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.qf_mar_size.SetValue(str(self._old_qf_marsize))
 
-            self.qf_mar_fillcolour = wx.Panel(self, -1, name = 'QfMarFillColour', style = wx.RAISED_BORDER)
+            self.qf_mar_fillcolour = wx.Panel(self, -1, name = 'QfMarFillColour',
+                style = wx.RAISED_BORDER)
             self.qf_mar_fillcolour.SetBackgroundColour(self.qf_marcolour)
             self.qf_mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
             self.qf_mar_fillcolour.Enable(not self.qf_hollow_marker)
 
-            self.qf_mar_linecolour = wx.Panel(self, -1, name = 'QfMarLineColour', style = wx.RAISED_BORDER)
+            self.qf_mar_linecolour = wx.Panel(self, -1, name = 'QfMarLineColour',
+                style = wx.RAISED_BORDER)
             self.qf_mar_linecolour.SetBackgroundColour(self.qf_marlinecolour)
             self.qf_mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-            self.qf_mar_linemarker_list = wx.Choice(self, -1, choices = self.linemarker_list_choices)
-            self.qf_mar_linemarker_list.Select(self.linemarker_list_choices.index(str(self.qf_linemarker)))
+            self.qf_mar_linemarker_list = wx.Choice(self, -1,
+                choices = self.linemarker_list_choices)
+            self.qf_mar_linemarker_list.Select(self.linemarker_list_choices.index(
+                str(self.qf_linemarker)))
             self.qf_mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
             self.qf_mar_hollow = wx.CheckBox(self, -1)
             self.qf_mar_hollow.SetValue(self.qf_hollow_marker)
             self.qf_mar_hollow.Bind(wx.EVT_CHECKBOX, self.qf_onHollowCheckBox)
 
-            sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+            sizer = wx.FlexGridSizer(cols=2, rows=5, vgap=self._FromDIP(5),
+                hgap=self._FromDIP(3))
             sizer.Add(mar_linemarker_label, 0)
             sizer.Add(self.qf_mar_linemarker_list, 0, wx.EXPAND)
             sizer.Add(mar_size_label, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -2604,8 +2696,7 @@ class IFTMLinePropertyDialog(wx.Dialog):
             sizer.Add(mar_hollow_label, 0)
             sizer.Add(self.qf_mar_hollow, 0, wx.EXPAND)
 
-
-            box.Add(sizer, 0, wx.ALL, 5)
+            box.Add(sizer, 0, wx.ALL, self._FromDIP(5))
 
         return box
 
@@ -2666,23 +2757,28 @@ class IFTMLinePropertyDialog(wx.Dialog):
             topbox = wx.StaticBox(self, -1, 'Line')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            linewidth_label = wx.StaticText(self, -1, 'Width :')
-            linestyle_label = wx.StaticText(self, -1, 'Style :')
-            linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
+            linewidth_label = wx.StaticText(self, -1, 'Width:')
+            linestyle_label = wx.StaticText(self, -1, 'Style:')
+            linecolour_label = wx.StaticText(self, -1, 'Line Colour:')
 
-            self.r_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.r_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+                TextLength = 60, never_negative = True)
             self.r_linewidth.SetValue(str(self._old_r_linewidth))
             self.r_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
-            self.r_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
-            self.r_linestyle_list.Select(self.linestyle_list_choices.index(str(self.r_linestyle)))
+            self.r_linestyle_list = wx.Choice(self, -1,
+                choices = self.linestyle_list_choices)
+            self.r_linestyle_list.Select(self.linestyle_list_choices.index(
+                str(self.r_linestyle)))
             self.r_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.r_line_colour = wx.Panel(self, -1, name = 'PrLineColour', style = wx.RAISED_BORDER)
+            self.r_line_colour = wx.Panel(self, -1, name = 'PrLineColour',
+                style = wx.RAISED_BORDER)
             self.r_line_colour.SetBackgroundColour(self.r_linecolour)
             self.r_line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-            sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+            sizer = wx.FlexGridSizer(cols=2, rows=5, vgap=self._FromDIP(5),
+                hgap=self._FromDIP(3))
 
             sizer.Add(linestyle_label, 0)
             sizer.Add(self.r_linestyle_list, 0, wx.EXPAND)
@@ -2697,23 +2793,28 @@ class IFTMLinePropertyDialog(wx.Dialog):
             topbox = wx.StaticBox(self, -1, 'Line')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            linewidth_label = wx.StaticText(self, -1, 'Width :')
-            linestyle_label = wx.StaticText(self, -1, 'Style :')
-            linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
+            linewidth_label = wx.StaticText(self, -1, 'Width:')
+            linestyle_label = wx.StaticText(self, -1, 'Style:')
+            linecolour_label = wx.StaticText(self, -1, 'Line Colour:')
 
-            self.qo_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.qo_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+                TextLength = 60, never_negative = True)
             self.qo_linewidth.SetValue(str(self._old_qo_linewidth))
             self.qo_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
-            self.qo_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
-            self.qo_linestyle_list.Select(self.linestyle_list_choices.index(str(self.qo_linestyle)))
+            self.qo_linestyle_list = wx.Choice(self, -1,
+                choices = self.linestyle_list_choices)
+            self.qo_linestyle_list.Select(self.linestyle_list_choices.index(
+                str(self.qo_linestyle)))
             self.qo_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.qo_line_colour = wx.Panel(self, -1, name = 'QoLineColour', style = wx.RAISED_BORDER)
+            self.qo_line_colour = wx.Panel(self, -1, name = 'QoLineColour',
+                style = wx.RAISED_BORDER)
             self.qo_line_colour.SetBackgroundColour(self.qo_linecolour)
             self.qo_line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-            sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+            sizer = wx.FlexGridSizer(cols=2, rows=5, vgap=self._FromDIP(5),
+                hgap=self._FromDIP(3))
 
             sizer.Add(linestyle_label, 0)
             sizer.Add(self.qo_linestyle_list, 0, wx.EXPAND)
@@ -2722,29 +2823,34 @@ class IFTMLinePropertyDialog(wx.Dialog):
             sizer.Add(linecolour_label, 0)
             sizer.Add(self.qo_line_colour, 0, wx.EXPAND)
 
-            box.Add(sizer, 0, wx.ALL, 5)
+            box.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
         elif line == self.qf_line:
             topbox = wx.StaticBox(self, -1, 'Line')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            linewidth_label = wx.StaticText(self, -1, 'Width :')
-            linestyle_label = wx.StaticText(self, -1, 'Style :')
-            linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
+            linewidth_label = wx.StaticText(self, -1, 'Width:')
+            linestyle_label = wx.StaticText(self, -1, 'Style:')
+            linecolour_label = wx.StaticText(self, -1, 'Line Colour:')
 
-            self.qf_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.qf_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+                TextLength = 60, never_negative = True)
             self.qf_linewidth.SetValue(str(self._old_qf_linewidth))
             self.qf_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
-            self.qf_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
-            self.qf_linestyle_list.Select(self.linestyle_list_choices.index(str(self.qf_linestyle)))
+            self.qf_linestyle_list = wx.Choice(self, -1,
+                choices = self.linestyle_list_choices)
+            self.qf_linestyle_list.Select(self.linestyle_list_choices.index(
+                str(self.qf_linestyle)))
             self.qf_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.qf_line_colour = wx.Panel(self, -1, name = 'QfLineColour', style = wx.RAISED_BORDER)
+            self.qf_line_colour = wx.Panel(self, -1, name = 'QfLineColour',
+                style = wx.RAISED_BORDER)
             self.qf_line_colour.SetBackgroundColour(self.qf_linecolour)
             self.qf_line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-            sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+            sizer = wx.FlexGridSizer(cols=2, rows=5, vgap=self._FromDIP(5),
+                hgap=self._FromDIP(3))
 
             sizer.Add(linestyle_label, 0)
             sizer.Add(self.qf_linestyle_list, 0, wx.EXPAND)
@@ -2753,7 +2859,7 @@ class IFTMLinePropertyDialog(wx.Dialog):
             sizer.Add(linecolour_label, 0)
             sizer.Add(self.qf_line_colour, 0, wx.EXPAND)
 
-            box.Add(sizer, 0, wx.ALL, 5)
+            box.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
         return box
 
@@ -3011,7 +3117,8 @@ class SECMLinePropertyDialog(wx.Dialog):
 
         line_legend = self._createLegendLabelControls(self.line)
 
-        linesettings_sizer = wx.FlexGridSizer(cols = 5, rows = 1, vgap = 5, hgap = 10)
+        linesettings_sizer = wx.FlexGridSizer(cols=5, rows=1, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(10))
         linesettings_sizer.AddGrowableCol(0)
         linesettings_sizer.AddGrowableCol(2)
         linesettings_sizer.AddGrowableCol(4)
@@ -3022,8 +3129,9 @@ class SECMLinePropertyDialog(wx.Dialog):
         linesettings_sizer.Add(self._createLineMarkerControls(), 1, wx.EXPAND)
         linesettings_sizer.AddStretchSpacer(1)
 
-        secline_sizer.Add(line_legend, 0, wx.ALL | wx.EXPAND, 5)
-        secline_sizer.Add(linesettings_sizer, 0, wx.ALL | wx.EXPAND, 5)
+        secline_sizer.Add(line_legend, 0, wx.ALL|wx.EXPAND, border=self._FromDIP(5))
+        secline_sizer.Add(linesettings_sizer, 0, wx.ALL | wx.EXPAND,
+            border=self._FromDIP(5))
 
 
         calc_box = wx.StaticBox(self, -1, 'Calculated Line')
@@ -3031,26 +3139,30 @@ class SECMLinePropertyDialog(wx.Dialog):
 
         calc_legend = self._createLegendLabelControls(self.calc_line)
 
-        calclinesettings_sizer = wx.FlexGridSizer(cols = 5, rows = 1, vgap = 5, hgap = 10)
+        calclinesettings_sizer = wx.FlexGridSizer(cols=5, rows=1,
+            vgap=self._FromDIP(5), hgap=self._FromDIP(10))
         calclinesettings_sizer.AddGrowableCol(0)
         calclinesettings_sizer.AddGrowableCol(2)
         calclinesettings_sizer.AddGrowableCol(4)
 
         calclinesettings_sizer.AddStretchSpacer(1)
-        calclinesettings_sizer.Add(self._createLineControls(calc = True), 1, wx.EXPAND)
+        calclinesettings_sizer.Add(self._createLineControls(calc = True), 1,
+            wx.EXPAND)
         calclinesettings_sizer.AddStretchSpacer(1)
-        calclinesettings_sizer.Add(self._createLineMarkerControls(calc = True), 1, wx.EXPAND)
+        calclinesettings_sizer.Add(self._createLineMarkerControls(calc = True),
+            1, wx.EXPAND)
         calclinesettings_sizer.AddStretchSpacer(1)
 
-        calcline_sizer.Add(calc_legend, 0, wx.ALL | wx.EXPAND, 5)
-        calcline_sizer.Add(calclinesettings_sizer, 0, wx.ALL | wx.EXPAND, 5)
+        calcline_sizer.Add(calc_legend, 0, wx.ALL|wx.EXPAND, border=self._FromDIP(5))
+        calcline_sizer.Add(calclinesettings_sizer, 0, wx.ALL | wx.EXPAND,
+            border=self._FromDIP(5))
 
 
-        top_sizer.Add(secline_sizer, 0, wx.ALL | wx.EXPAND, 5)
+        top_sizer.Add(secline_sizer, 0, wx.ALL|wx.EXPAND, border=self._FromDIP(5))
         top_sizer.AddStretchSpacer(1)
-        top_sizer.Add(calcline_sizer, 0, wx.ALL | wx.EXPAND, 5)
+        top_sizer.Add(calcline_sizer, 0, wx.ALL|wx.EXPAND, border=self._FromDIP(5))
         top_sizer.AddStretchSpacer(1)
-        top_sizer.Add(buttonsizer, 0, wx.CENTER | wx.ALL, 5)
+        top_sizer.Add(buttonsizer, 0, wx.CENTER|wx.ALL, border=self._FromDIP(5))
 
         self.SetSizer(top_sizer)
 
@@ -3071,23 +3183,25 @@ class SECMLinePropertyDialog(wx.Dialog):
             topbox = wx.StaticBox(self, -1, 'Legend Label')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            self.line_legend_label_text = wx.TextCtrl(self, -1, self.legend_label[self.line])
+            self.line_legend_label_text = wx.TextCtrl(self, -1,
+                self.legend_label[self.line])
 
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.Add(self.line_legend_label_text, 1, wx.EXPAND)
 
-            box.Add(sizer, 0, wx.EXPAND | wx.ALL, 5)
+            box.Add(sizer, 0, wx.EXPAND | wx.ALL, border=self._FromDIP(5))
 
         elif line == self.calc_line:
             topbox = wx.StaticBox(self, -1, 'Legend Label')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            self.calc_legend_label_text = wx.TextCtrl(self, -1, self.legend_label[self.calc_line])
+            self.calc_legend_label_text = wx.TextCtrl(self, -1,
+                self.legend_label[self.calc_line])
 
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.Add(self.calc_legend_label_text, 1, wx.EXPAND)
 
-            box.Add(sizer, 0, wx.EXPAND | wx.ALL, 5)
+            box.Add(sizer, 0, wx.EXPAND | wx.ALL, border=self._FromDIP(5))
 
 
         return box
@@ -3097,23 +3211,28 @@ class SECMLinePropertyDialog(wx.Dialog):
         topbox = wx.StaticBox(self, -1, 'Error Bars')
         box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-        err_linewidth_label = wx.StaticText(self, -1, 'Width :')
-        err_linestyle_label = wx.StaticText(self, -1, 'Style :')
-        err_colour_label = wx.StaticText(self, -1, 'Line Colour :')
+        err_linewidth_label = wx.StaticText(self, -1, 'Width:')
+        err_linestyle_label = wx.StaticText(self, -1, 'Style:')
+        err_colour_label = wx.StaticText(self, -1, 'Line Colour:')
 
-        self.err_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+        self.err_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+            TextLength = 60, never_negative = True)
         self.err_linewidth.SetValue(str(self._old_errlinewidth))
         self.err_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
-        self.err_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
-        self.err_linestyle_list.Select(self.linestyle_list_choices.index(str(self._old_errlinestyle)))
+        self.err_linestyle_list = wx.Choice(self, -1,
+            choices=self.linestyle_list_choices)
+        self.err_linestyle_list.Select(self.linestyle_list_choices.index(
+            str(self._old_errlinestyle)))
         self.err_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-        self.err_colour = wx.Panel(self, -1, name = 'ErrColour', style = wx.RAISED_BORDER)
+        self.err_colour = wx.Panel(self, -1, name = 'ErrColour',
+            style=wx.RAISED_BORDER)
         self.err_colour.SetBackgroundColour(self._errcolour)
         self.err_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-        sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+        sizer = wx.FlexGridSizer(cols=2, rows=5, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(3))
         sizer.Add(err_linestyle_label, 0)
         sizer.Add(self.err_linestyle_list, 0, wx.EXPAND)
         sizer.Add(err_linewidth_label, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -3121,7 +3240,7 @@ class SECMLinePropertyDialog(wx.Dialog):
         sizer.Add(err_colour_label, 0)
         sizer.Add(self.err_colour, 0, wx.EXPAND)
 
-        box.Add(sizer, 0, wx.ALL, 5)
+        box.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
         return box
 
@@ -3166,37 +3285,43 @@ class SECMLinePropertyDialog(wx.Dialog):
             topbox = wx.StaticBox(self, -1, 'Data Point Marker')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            mar_size_label = wx.StaticText(self, -1, 'Size :')
-            self.mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour :')
+            mar_size_label = wx.StaticText(self, -1, 'Size:')
+            self.mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour:')
             self.mar_fillcolour_label.Enable(not self.hollow_marker)
-            mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
-            mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
-            mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
+            mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour:')
+            mar_linemarker_label = wx.StaticText(self, -1, 'Marker:')
+            mar_hollow_label = wx.StaticText(self, -1, 'Hollow:')
 
             #self.mar_size = wx.SpinCtrl(self, -1, '1')
-            self.mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+                TextLength = 60, never_negative = True)
             self.mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.mar_size.SetValue(str(self._old_marsize))
             #self.mar_size.Bind(wx.EVT_SPINCTRL, self.updateLine)
 
-            self.mar_fillcolour = wx.Panel(self, -1, name = 'MarFillColour', style = wx.RAISED_BORDER)
+            self.mar_fillcolour = wx.Panel(self, -1, name = 'MarFillColour',
+                style = wx.RAISED_BORDER)
             self.mar_fillcolour.SetBackgroundColour(self._marcolour)
             self.mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
             self.mar_fillcolour.Enable(not self.hollow_marker)
 
-            self.mar_linecolour = wx.Panel(self, -1, name = 'MarLineColour', style = wx.RAISED_BORDER)
+            self.mar_linecolour = wx.Panel(self, -1, name = 'MarLineColour',
+                style = wx.RAISED_BORDER)
             self.mar_linecolour.SetBackgroundColour(self._marlinecolour)
             self.mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-            self.mar_linemarker_list = wx.Choice(self, -1, choices = self.linemarker_list_choices)
-            self.mar_linemarker_list.Select(self.linemarker_list_choices.index(str(self._linemarker)))
+            self.mar_linemarker_list = wx.Choice(self, -1,
+                choices=self.linemarker_list_choices)
+            self.mar_linemarker_list.Select(self.linemarker_list_choices.index(
+                str(self._linemarker)))
             self.mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
             self.mar_hollow = wx.CheckBox(self, -1)
             self.mar_hollow.SetValue(self.hollow_marker)
             self.mar_hollow.Bind(wx.EVT_CHECKBOX, self._onHollowCheckBox)
 
-            sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+            sizer = wx.FlexGridSizer(cols=2, rows=5, vgap=self._FromDIP(5),
+                hgap=self._FromDIP(3))
             sizer.Add(mar_linemarker_label, 0)
             sizer.Add(self.mar_linemarker_list, 0, wx.EXPAND)
             sizer.Add(mar_size_label, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -3209,43 +3334,49 @@ class SECMLinePropertyDialog(wx.Dialog):
             sizer.Add(self.mar_hollow, 0, wx.EXPAND)
 
 
-            box.Add(sizer, 0, wx.ALL, 5)
+            box.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
         else:
             topbox = wx.StaticBox(self, -1, 'Calc Data Point Marker')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            mar_size_label = wx.StaticText(self, -1, 'Size :')
-            self.calc_mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour :')
+            mar_size_label = wx.StaticText(self, -1, 'Size:')
+            self.calc_mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour:')
             self.calc_mar_fillcolour_label.Enable(not self.hollow_marker_calc)
-            mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
-            mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
-            mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
+            mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour:')
+            mar_linemarker_label = wx.StaticText(self, -1, 'Marker:')
+            mar_hollow_label = wx.StaticText(self, -1, 'Hollow:')
 
             #self.mar_size = wx.SpinCtrl(self, -1, '1')
-            self.calc_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.calc_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+                TextLength = 60, never_negative = True)
             self.calc_mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.calc_mar_size.SetValue(str(self._old_calcmarsize))
             #self.mar_size.Bind(wx.EVT_SPINCTRL, self.updateLine)
 
-            self.calc_mar_fillcolour = wx.Panel(self, -1, name = 'CalcMarFillColour', style = wx.RAISED_BORDER)
+            self.calc_mar_fillcolour = wx.Panel(self, -1, name='CalcMarFillColour',
+                style = wx.RAISED_BORDER)
             self.calc_mar_fillcolour.SetBackgroundColour(self._calcmarcolour)
             self.calc_mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
             self.calc_mar_fillcolour.Enable(not self.hollow_marker_calc)
 
-            self.calc_mar_linecolour = wx.Panel(self, -1, name = 'CalcMarLineColour', style = wx.RAISED_BORDER)
+            self.calc_mar_linecolour = wx.Panel(self, -1, name='CalcMarLineColour',
+                style = wx.RAISED_BORDER)
             self.calc_mar_linecolour.SetBackgroundColour(self._calcmarlinecolour)
             self.calc_mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-            self.calc_mar_linemarker_list = wx.Choice(self, -1, choices = self.linemarker_list_choices)
-            self.calc_mar_linemarker_list.Select(self.linemarker_list_choices.index(str(self._calclinemarker)))
+            self.calc_mar_linemarker_list = wx.Choice(self, -1,
+                choices=self.linemarker_list_choices)
+            self.calc_mar_linemarker_list.Select(self.linemarker_list_choices.index(
+                str(self._calclinemarker)))
             self.calc_mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
             self.calc_mar_hollow = wx.CheckBox(self, -1)
             self.calc_mar_hollow.SetValue(self.hollow_marker_calc)
             self.calc_mar_hollow.Bind(wx.EVT_CHECKBOX, self._onHollowCheckBoxCalc)
 
-            sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+            sizer = wx.FlexGridSizer(cols=2, rows=5, vgap=self._FromDIP(5),
+                hgap=self._FromDIP(3))
             sizer.Add(mar_linemarker_label, 0)
             sizer.Add(self.calc_mar_linemarker_list, 0, wx.EXPAND)
             sizer.Add(mar_size_label, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -3257,8 +3388,7 @@ class SECMLinePropertyDialog(wx.Dialog):
             sizer.Add(mar_hollow_label, 0)
             sizer.Add(self.calc_mar_hollow, 0, wx.EXPAND)
 
-
-            box.Add(sizer, 0, wx.ALL, 5)
+            box.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
         return box
 
@@ -3306,19 +3436,24 @@ class SECMLinePropertyDialog(wx.Dialog):
             linestyle_label = wx.StaticText(self, -1, 'Style :')
             linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
 
-            self.linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+                TextLength = 60, never_negative = True)
             self.linewidth.SetValue(str(self._old_linewidth))
             self.linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
-            self.linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
-            self.linestyle_list.Select(self.linestyle_list_choices.index(str(self._linestyle)))
+            self.linestyle_list = wx.Choice(self, -1,
+             choices=self.linestyle_list_choices)
+            self.linestyle_list.Select(self.linestyle_list_choices.index(
+                str(self._linestyle)))
             self.linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.line_colour = wx.Panel(self, -1, name = 'LineColour', style = wx.RAISED_BORDER)
+            self.line_colour = wx.Panel(self, -1, name='LineColour',
+                style=wx.RAISED_BORDER)
             self.line_colour.SetBackgroundColour(self._linecolour)
             self.line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-            sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+            sizer = wx.FlexGridSizer(cols=2, rows=5, vgap=self._FromDIP(5),
+                hgap=self._FromDIP(3))
 
             sizer.Add(linestyle_label, 0)
             sizer.Add(self.linestyle_list, 0, wx.EXPAND)
@@ -3327,7 +3462,7 @@ class SECMLinePropertyDialog(wx.Dialog):
             sizer.Add(linecolour_label, 0)
             sizer.Add(self.line_colour, 0, wx.EXPAND)
 
-            box.Add(sizer, 0, wx.ALL, 5)
+            box.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
         else:
             topbox = wx.StaticBox(self, -1, 'Calc Line')
@@ -3337,19 +3472,24 @@ class SECMLinePropertyDialog(wx.Dialog):
             linestyle_label = wx.StaticText(self, -1, 'Style :')
             linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
 
-            self.calc_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0', TextLength = 60, never_negative = True)
+            self.calc_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+                TextLength = 60, never_negative = True)
             self.calc_linewidth.SetValue(str(self._old_calclinewidth))
             self.calc_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
-            self.calc_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
-            self.calc_linestyle_list.Select(self.linestyle_list_choices.index(str(self._calclinestyle)))
+            self.calc_linestyle_list = wx.Choice(self, -1,
+                choices=self.linestyle_list_choices)
+            self.calc_linestyle_list.Select(self.linestyle_list_choices.index(
+                str(self._calclinestyle)))
             self.calc_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.calc_line_colour = wx.Panel(self, -1, name = 'CalcLineColour', style = wx.RAISED_BORDER)
+            self.calc_line_colour = wx.Panel(self, -1, name = 'CalcLineColour',
+                style = wx.RAISED_BORDER)
             self.calc_line_colour.SetBackgroundColour(self._calclinecolour)
             self.calc_line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-            sizer = wx.FlexGridSizer(cols = 2, rows = 5, vgap = 5, hgap = 3)
+            sizer = wx.FlexGridSizer(cols=2, rows=5, vgap=self._FromDIP(5),
+                hgap=self._FromDIP(3))
 
             sizer.Add(linestyle_label, 0)
             sizer.Add(self.calc_linestyle_list, 0, wx.EXPAND)
@@ -3358,7 +3498,7 @@ class SECMLinePropertyDialog(wx.Dialog):
             sizer.Add(linecolour_label, 0)
             sizer.Add(self.calc_line_colour, 0, wx.EXPAND)
 
-            box.Add(sizer, 0, wx.ALL, 5)
+            box.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
         return box
 
@@ -3519,7 +3659,7 @@ class CustomQuestionDialog(wx.Dialog):
             self.button = wx.Button(self, id, button_label)
 
             if (button_label, id) != self.button_list[-1]:
-                button_panel.Add(self.button, 0, wx.RIGHT, 5)
+                button_panel.Add(self.button, 0, wx.RIGHT, border=self._FromDIP(5))
             else:
                 button_panel.Add(self.button, 0)
 
@@ -3582,7 +3722,7 @@ class CustomQuestionPanel(wx.lib.scrolledpanel.ScrolledPanel):
         if icon:
             cbmp = wx.ArtProvider.GetBitmap(icon,  wx.ART_MESSAGE_BOX)
             self.bitmap = wx.StaticBitmap(self, -1, cbmp)
-            vbox.Add(self.bitmap, 0,  wx.RIGHT, 15)
+            vbox.Add(self.bitmap, 0,  wx.RIGHT, border=self._FromDIP(15))
 
         vbox.Add(self.question_label, 1, wx.EXPAND)
 
@@ -3668,19 +3808,22 @@ class PlotOptionsDialog(wx.Dialog):
         legax_sizer = wx.BoxSizer(wx.HORIZONTAL)
         legax_sizer.Add(self._createLegendSettings(), 0, wx.EXPAND)
         legax_sizer.AddStretchSpacer(1)
-        legax_sizer.Add(self._createAxesSettings(), 0, wx.LEFT | wx.EXPAND, 10)
+        legax_sizer.Add(self._createAxesSettings(), 0, wx.LEFT | wx.EXPAND,
+            border=self._FromDIP(10))
 
         sizer.Add(self._createLabelSettings(), 0, wx.EXPAND)
-        sizer.Add(legax_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        sizer.Add(legax_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM,
+            border=self._FromDIP(5))
 
         buttons = self.CreateButtonSizer(wx.OK | wx.CANCEL)
         self.Bind(wx.EVT_BUTTON, self._onOk, id = wx.ID_OK)
         self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
 
-        sizer.Add(buttons, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, 5)
+        sizer.Add(buttons, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL,
+            border=self._FromDIP(5))
 
         top_sizer = wx.BoxSizer()
-        top_sizer.Add(sizer,1, wx.ALL, 10)
+        top_sizer.Add(sizer,1, wx.ALL, border=self._FromDIP(10))
 
         self.SetSizer(top_sizer)
 
@@ -3764,14 +3907,15 @@ class PlotOptionsDialog(wx.Dialog):
         box_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
         nrows = len(self.labels)+1
-        sizer = wx.FlexGridSizer(cols = 6, rows = nrows, vgap = 5, hgap = 5)
+        sizer = wx.FlexGridSizer(cols=6, rows=nrows, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(5))
 
-        sizer.Add((5,5),0)
-        sizer.Add((5,5),0)
-        sizer.Add(wx.StaticText(self, -1, 'Font'),1)
-        sizer.Add(wx.StaticText(self, -1, 'Size'),1)
-        sizer.Add(wx.StaticText(self, -1, 'Bold'),1)
-        sizer.Add(wx.StaticText(self, -1, 'Italic'),1)
+        sizer.Add(self._FromDIP((5,5)), 0)
+        sizer.Add(self._FromDIP((5,5)), 0)
+        sizer.Add(wx.StaticText(self, -1, 'Font'), 1)
+        sizer.Add(wx.StaticText(self, -1, 'Size'), 1)
+        sizer.Add(wx.StaticText(self, -1, 'Bold'), 1)
+        sizer.Add(wx.StaticText(self, -1, 'Italic'), 1)
 
         for each_label, each_name, my_ids in self.labels:
             if each_name == 'title':
@@ -3795,19 +3939,21 @@ class PlotOptionsDialog(wx.Dialog):
             if each_name == 'legtit':
                  if labtxt == 'None': labtxt = ''
 
-            txt_ctrl = wx.TextCtrl(self, my_ids['text'], labtxt, name = each_name)
+            txt_ctrl = wx.TextCtrl(self, my_ids['text'], labtxt, name=each_name)
 
-            font_ctrl = wx.Choice(self, my_ids['fontname'], choices = self.font_list ,name = each_name)
+            font_ctrl = wx.Choice(self, my_ids['fontname'], choices=self.font_list,
+                name=each_name)
             if each_name == 'legtit' and not self.is_legend:
                 font_ctrl.SetStringSelection(self._old_legend_settings['font'])
             else:
                 font_ctrl.SetStringSelection(label.get_fontname())
 
-            font_size = wx.SpinCtrl(self, my_ids['size'], str(label.get_size()), name = each_name)
+            font_size = wx.SpinCtrl(self, my_ids['size'], str(label.get_size()),
+                name=each_name)
             font_size.SetValue(int(label.get_size()))
 
-            bold = wx.CheckBox(self, my_ids['weight'], name = each_name)
-            italic = wx.CheckBox(self, my_ids['style'], name = each_name)
+            bold = wx.CheckBox(self, my_ids['weight'], name=each_name)
+            italic = wx.CheckBox(self, my_ids['style'], name=each_name)
 
             bold.Bind(wx.EVT_CHECKBOX, self._updateLabels)
             italic.Bind(wx.EVT_CHECKBOX, self._updateLabels)
@@ -3840,14 +3986,16 @@ class PlotOptionsDialog(wx.Dialog):
             sizer.Add(bold, 0)
             sizer.Add(italic, 0)
 
-        box_sizer.Add(sizer, 1, wx.ALL, 5)
+        box_sizer.Add(sizer, 1, wx.ALL, border=self._FromDIP(5))
+
         return box_sizer
 
 
     def _createAxesSettings(self):
         box = wx.StaticBox(self, -1, 'Axes')
         topbox = wx.StaticBoxSizer(box, wx.VERTICAL)
-        sizer = wx.FlexGridSizer(rows = 7, cols = 2, hgap = 5, vgap = 3)
+        sizer = wx.FlexGridSizer(rows=7, cols=2, hgap=self._FromDIP(5),
+            vgap=self._FromDIP(3))
 
         self.axes_autolimits = wx.CheckBox(self, -1)
         self.axes_autolimits.Bind(wx.EVT_CHECKBOX, self._updateAxesSettings)
@@ -3855,26 +4003,35 @@ class PlotOptionsDialog(wx.Dialog):
         val = self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)]
         self.axes_autolimits.SetValue(val)
 
-        sizer.Add(wx.StaticText(self, -1, 'Auto limits:'), 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(wx.StaticText(self, -1, 'Auto limits:'), 0,
+            wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.axes_autolimits, 0)
 
-        self.axes_fixed_limits_data = [('xmin', self.NewControlId(), self._old_xlimit[0]),
-                                           ('xmax', self.NewControlId(), self._old_xlimit[1]),
-                                           ('ymin', self.NewControlId(), self._old_ylimit[0]),
-                                           ('ymax', self.NewControlId(), self._old_ylimit[1])]
+        self.axes_fixed_limits_data = [
+            ('xmin', self.NewControlId(), self._old_xlimit[0]),
+            ('xmax', self.NewControlId(), self._old_xlimit[1]),
+            ('ymin', self.NewControlId(), self._old_ylimit[0]),
+            ('ymax', self.NewControlId(), self._old_ylimit[1])
+            ]
 
         if self.is_sec and self.sec_calc != 'None':
-            self.axes_fixed_limits_data = self.axes_fixed_limits_data + [('y2min', self.NewControlId(), self._old_y2limit[0]),
-                                           ('y2max', self.NewControlId(), self._old_y2limit[1])]
+            self.axes_fixed_limits_data = self.axes_fixed_limits_data + [('y2min',
+                self.NewControlId(), self._old_y2limit[0]),
+                ('y2max', self.NewControlId(), self._old_y2limit[1])]
 
-        limit_sizer = wx.FlexGridSizer(rows = 2, cols = 2, hgap = 5, vgap = 3)
+        limit_sizer = wx.FlexGridSizer(rows=2, cols=2, hgap=self._FromDIP(5),
+            vgap=self._FromDIP(3))
+
         for i in range(0, 2):
             id = self.axes_fixed_limits_data[i][1]
-            limit_sizer.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]),
-                size=self._FromDIP((80, -1))), 0)
+            limit_sizer.Add(wx.TextCtrl(self, id,
+                str(self.axes_fixed_limits_data[i][2]), size=self._FromDIP((80, -1))),
+                0)
             wx.FindWindowById(id, self).Bind(wx.EVT_TEXT, self._updateAxesRange)
 
-        limit_sizer2 = wx.FlexGridSizer(rows = 1, cols = 2, hgap = 5, vgap = 3)
+        limit_sizer2 = wx.FlexGridSizer(rows=1, cols=2, hgap=self._FromDIP(5),
+            vgap=self._FromDIP(3))
+
         for i in range(2, 4):
             id = self.axes_fixed_limits_data[i][1]
             limit_sizer2.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]),
@@ -3882,7 +4039,9 @@ class PlotOptionsDialog(wx.Dialog):
             wx.FindWindowById(id, self).Bind(wx.EVT_TEXT, self._updateAxesRange)
 
         if self.is_sec and self.sec_calc != 'None':
-            limit_sizer3 = wx.FlexGridSizer(rows = 1, cols = 2, hgap = 5, vgap = 3)
+            limit_sizer3 = wx.FlexGridSizer(rows=1, cols=2, hgap=self._FromDIP(5),
+                vgap=self._FromDIP(3))
+
             for i in range(4, 6):
                 id = self.axes_fixed_limits_data[i][1]
                 limit_sizer3.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]),
@@ -3891,9 +4050,10 @@ class PlotOptionsDialog(wx.Dialog):
 
         maxmin_sizer = wx.BoxSizer()
         maxmin_sizer.Add(wx.StaticText(self, -1, 'min'), 1, wx.EXPAND)
-        maxmin_sizer.Add(wx.StaticText(self, -1, 'max'), 1, wx.EXPAND | wx.LEFT, 5)
+        maxmin_sizer.Add(wx.StaticText(self, -1, 'max'), 1, wx.EXPAND | wx.LEFT,
+            border=self._FromDIP(5))
 
-        sizer.Add((5,5))
+        sizer.Add(self._FromDIP((5,5)))
         sizer.Add(maxmin_sizer, 0, wx.EXPAND)
         sizer.Add(wx.StaticText(self, -1, 'x-limits'), 0)
         sizer.Add(limit_sizer, 0)
@@ -3907,9 +4067,12 @@ class PlotOptionsDialog(wx.Dialog):
             sizer.Add(wx.StaticText(self, -1, 'y-limits'), 0)
             sizer.Add(limit_sizer2, 0)
 
-        border_sizer = wx.FlexGridSizer(rows = 2, cols = 2, hgap = 5, vgap = 3)
+        border_sizer = wx.FlexGridSizer(rows=2, cols=2, hgap=self._FromDIP(5),
+            vgap=self._FromDIP(3))
 
-        self.axes_borders = [('Left', self.NewControlId()), ('Right', self.NewControlId()), ('Top', self.NewControlId()), ('Bottom', self.NewControlId())]
+        self.axes_borders = [('Left', self.NewControlId()),
+            ('Right', self.NewControlId()), ('Top', self.NewControlId()),
+            ('Bottom', self.NewControlId())]
 
         framestyle = self.parent.plotparams['framestyle' + str(self.parent.selected_plot)]
 
@@ -3918,7 +4081,8 @@ class PlotOptionsDialog(wx.Dialog):
             framestyle = framestyle+framestyle2
 
         for each, id in self.axes_borders:
-            border_sizer.Add(wx.CheckBox(self, id, each), 0, wx.RIGHT, 5)
+            border_sizer.Add(wx.CheckBox(self, id, each), 0, wx.RIGHT,
+                border=self._FromDIP(5))
             wx.FindWindowById(id, self).Bind(wx.EVT_CHECKBOX, self._updateAxesSettings)
 
             if each == 'Left' and framestyle.find('l')>-1:
@@ -3931,9 +4095,9 @@ class PlotOptionsDialog(wx.Dialog):
                 wx.FindWindowById(id, self).SetValue(True)
 
         sizer.Add(wx.StaticText(self, -1, 'Borders:'), 0)
-        sizer.Add(border_sizer, 0, wx.TOP, 5)
+        sizer.Add(border_sizer, 0, wx.TOP, border=self._FromDIP(5))
 
-        topbox.Add(sizer, 0, wx.ALL | wx.EXPAND, 5)
+        topbox.Add(sizer, 0, wx.ALL | wx.EXPAND, border=self._FromDIP(5))
 
         self._enableLimitsCtrls(not self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)])
 
@@ -3971,14 +4135,15 @@ class PlotOptionsDialog(wx.Dialog):
                 break
 
 
-        x_tick_font_size = wx.SpinCtrl(self, -1, str(x_tick_size), name = 'xticksize')
+        x_tick_font_size = wx.SpinCtrl(self, -1, str(x_tick_size), name='xticksize')
         x_tick_font_size.SetValue(int(x_tick_size))
 
-        y_tick_font_size = wx.SpinCtrl(self, -1, str(y_tick_size), name = 'yticksize')
+        y_tick_font_size = wx.SpinCtrl(self, -1, str(y_tick_size), name='yticksize')
         y_tick_font_size.SetValue(int(y_tick_size))
 
         if self.is_sec and self.sec_calc != 'None':
-            y2_tick_font_size = wx.SpinCtrl(self, -1, str(y2_tick_size), name = 'y2ticksize')
+            y2_tick_font_size = wx.SpinCtrl(self, -1, str(y2_tick_size),
+                name='y2ticksize')
             y2_tick_font_size.SetValue(int(y2_tick_size))
 
         x_tick_font_size.Bind(wx.EVT_SPINCTRL, self._updateAxesSettings)
@@ -4007,18 +4172,20 @@ class PlotOptionsDialog(wx.Dialog):
             topbox.Add(y2_tick_sizer, 0)
 
 
-        self.old_axes_settings = {'auto_fitaxes'    : self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)],
-                                'zero_line'         : self.parent.plotparams['zero_line'+ str(self.parent.selected_plot)],
-                                'framestyle'        : self.parent.plotparams['framestyle' + str(self.parent.selected_plot)],
-                                'xrange'            : (self._old_xlimit[0], self._old_xlimit[1]),
-                                'yrange'            : (self._old_ylimit[0], self._old_ylimit[1]),
-                                'xticksize'         : x_tick_size,
-                                'yticksize'         : y_tick_size
-                                }
+        self.old_axes_settings = {
+            'auto_fitaxes'  : self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)],
+            'zero_line'     : self.parent.plotparams['zero_line'+ str(self.parent.selected_plot)],
+            'framestyle'    : self.parent.plotparams['framestyle' + str(self.parent.selected_plot)],
+            'xrange'        : (self._old_xlimit[0], self._old_xlimit[1]),
+            'yrange'        : (self._old_ylimit[0], self._old_ylimit[1]),
+            'xticksize'     : x_tick_size,
+            'yticksize'     : y_tick_size
+            }
 
         if self.is_sec and self.sec_calc != 'None':
             self.old_axes_settings['framestyle2'] = self.parent.plotparams['framestyle2']
-            self.old_axes_settings['y2range'] = (self._old_y2limit[0], self._old_y2limit[1])
+            self.old_axes_settings['y2range'] = (self._old_y2limit[0],
+                self._old_y2limit[1])
             self.old_axes_settings['y2ticksize'] = y2_tick_size
 
         return topbox
@@ -4026,12 +4193,19 @@ class PlotOptionsDialog(wx.Dialog):
 
     def _createLegendSettings(self):
 
-        self.legend_items = [('visible', 'Visible:', self.NewControlId(), self._old_legend_settings['visible'], 'bool'),
-                            ('border', 'Border:', self.NewControlId(), self._old_legend_settings['border'], 'bool'),
-                            ('shadow', 'Shadow:', self.NewControlId(), self._old_legend_settings['shadow'], 'bool'),
-                            ('alpha', 'Transparency %:', self.NewControlId(), self._old_legend_settings['alpha'], 'int'),
-                            ('fontsize', 'Font size:', self.NewControlId(), self._old_legend_settings['fontsize'], 'int'),
-                            ('font', 'Font:', self.NewControlId(), self._old_legend_settings['font'], 'choice')
+        self.legend_items = [
+            ('visible', 'Visible:', self.NewControlId(),
+                self._old_legend_settings['visible'], 'bool'),
+            ('border', 'Border:', self.NewControlId(),
+                self._old_legend_settings['border'], 'bool'),
+            ('shadow', 'Shadow:', self.NewControlId(),
+                self._old_legend_settings['shadow'], 'bool'),
+            ('alpha', 'Transparency %:', self.NewControlId(),
+                self._old_legend_settings['alpha'], 'int'),
+            ('fontsize', 'Font size:', self.NewControlId(),
+                self._old_legend_settings['fontsize'], 'int'),
+            ('font', 'Font:', self.NewControlId(),
+                self._old_legend_settings['font'], 'choice')
                             ]
 
         if self.is_sec:
@@ -4043,7 +4217,8 @@ class PlotOptionsDialog(wx.Dialog):
         box = wx.StaticBox(self, wx.ID_ANY, 'Legend')
         topbox = wx.StaticBoxSizer(box, wx.VERTICAL)
 
-        sizer = wx.FlexGridSizer(rows = len(self.legend_ids.keys()), cols = 2, hgap = 5, vgap = 3)
+        sizer = wx.FlexGridSizer(rows=len(self.legend_ids.keys()), cols=2,
+            hgap=self._FromDIP(5), vgap=self._FromDIP(3))
 
         for item in self.legend_items:
             each_key = item[0]
@@ -4078,7 +4253,7 @@ class PlotOptionsDialog(wx.Dialog):
             sizer.Add(lbl_txt, 0)
             sizer.Add(ctrl, 0)
 
-        topbox.Add(sizer, 0, wx.ALL, 5)
+        topbox.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
         return topbox
 
@@ -4498,16 +4673,16 @@ class HelpFrame(wx.Frame):
 
         btn = wx.Button(panel, -1, "Docs Home", style=wx.BU_EXACTFIT)
         self.Bind(wx.EVT_BUTTON, self.OnHomeButton, btn)
-        btnSizer.Add(btn, 0, wx.EXPAND|wx.ALL, 2)
+        btnSizer.Add(btn, 0, wx.EXPAND|wx.ALL, border=self._FromDIP(2))
 
         btn = wx.Button(panel, -1, "<--", style=wx.BU_EXACTFIT)
         self.Bind(wx.EVT_BUTTON, self.OnPrevPageButton, btn)
-        btnSizer.Add(btn, 0, wx.EXPAND|wx.ALL, 2)
+        btnSizer.Add(btn, 0, wx.EXPAND|wx.ALL, border=self._FromDIP(2))
         self.Bind(wx.EVT_UPDATE_UI, self.OnCheckCanGoBack, btn)
 
         btn = wx.Button(panel, -1, "-->", style=wx.BU_EXACTFIT)
         self.Bind(wx.EVT_BUTTON, self.OnNextPageButton, btn)
-        btnSizer.Add(btn, 0, wx.EXPAND|wx.ALL, 2)
+        btnSizer.Add(btn, 0, wx.EXPAND|wx.ALL, border=self._FromDIP(2))
         self.Bind(wx.EVT_UPDATE_UI, self.OnCheckCanGoForward, btn)
 
         sizer.Add(btnSizer, 0, wx.EXPAND)
@@ -4577,7 +4752,7 @@ class SeriesAdjustmentFrame(wx.Frame):
             flag=wx.ALIGN_CENTER_VERTICAL)
         filename_sizer.Add(wx.StaticText(panel,
             label=self.seriesm.getParameter('filename')),
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT, border=5)
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT, border=self._FromDIP(5))
 
         self.scale = RAWCustomCtrl.FloatSpinCtrl(panel, wx.ID_ANY, '1.0',
             TextLength=60, never_negative=True)
@@ -4587,7 +4762,8 @@ class SeriesAdjustmentFrame(wx.Frame):
             TextLength=60, never_negative=True)
         self.offset.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateOffset)
 
-        scale_sizer = wx.FlexGridSizer(cols=2, vgap=5, hgap=5)
+        scale_sizer = wx.FlexGridSizer(cols=2, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(5))
         scale_sizer.Add(wx.StaticText(panel, label='Scale:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         scale_sizer.Add(self.scale, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -4619,7 +4795,8 @@ class SeriesAdjustmentFrame(wx.Frame):
         self.max_q.Bind(wx.EVT_TEXT_ENTER, self.onQChange)
         self.max_q.Bind(wx.EVT_KILL_FOCUS, self.onQChange)
 
-        q_ctrl_sizer = wx.FlexGridSizer(cols=4, vgap=5, hgap=5)
+        q_ctrl_sizer = wx.FlexGridSizer(cols=4, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(5))
         q_ctrl_sizer.Add(wx.StaticText(q_box, label='q min:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_ctrl_sizer.Add(self.min_q, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -4633,7 +4810,7 @@ class SeriesAdjustmentFrame(wx.Frame):
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_ctrl_sizer.Add(self.nmax, flag=wx.ALIGN_CENTER_VERTICAL)
 
-        self.q_sizer.Add(q_ctrl_sizer, flag=wx.ALL, border=5)
+        self.q_sizer.Add(q_ctrl_sizer, flag=wx.ALL, border=self._FromDIP(5))
 
 
         self.q_sub_sizer = wx.StaticBoxSizer(wx.VERTICAL, panel, "Subtracted profiles")
@@ -4659,7 +4836,8 @@ class SeriesAdjustmentFrame(wx.Frame):
         self.max_q_sub.Bind(wx.EVT_TEXT_ENTER, self.onQChange)
         self.max_q_sub.Bind(wx.EVT_KILL_FOCUS, self.onQChange)
 
-        q_sub_ctrl_sizer = wx.FlexGridSizer(cols=4, vgap=5, hgap=5)
+        q_sub_ctrl_sizer = wx.FlexGridSizer(cols=4, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(5))
         q_sub_ctrl_sizer.Add(wx.StaticText(q_sub_box, label='q min:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_sub_ctrl_sizer.Add(self.min_q_sub, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -4673,10 +4851,11 @@ class SeriesAdjustmentFrame(wx.Frame):
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_sub_ctrl_sizer.Add(self.nmax_sub, flag=wx.ALIGN_CENTER_VERTICAL)
 
-        self.q_sub_sizer.Add(q_sub_ctrl_sizer, flag=wx.ALL, border=5)
+        self.q_sub_sizer.Add(q_sub_ctrl_sizer, flag=wx.ALL, border=self._FromDIP(5))
 
 
-        self.q_bcsub_sizer = wx.StaticBoxSizer(wx.VERTICAL, panel, "Baseline corrected profiles")
+        self.q_bcsub_sizer = wx.StaticBoxSizer(wx.VERTICAL, panel, ("Baseline "
+            "corrected profiles"))
         q_bcsub_box = self.q_bcsub_sizer.GetStaticBox()
 
         self.min_q_bcsub = wx.TextCtrl(q_bcsub_box, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
@@ -4699,7 +4878,8 @@ class SeriesAdjustmentFrame(wx.Frame):
         self.max_q_bcsub.Bind(wx.EVT_TEXT_ENTER, self.onQChange)
         self.max_q_bcsub.Bind(wx.EVT_KILL_FOCUS, self.onQChange)
 
-        q_bcsub_ctrl_sizer = wx.FlexGridSizer(cols=4, vgap=5, hgap=5)
+        q_bcsub_ctrl_sizer = wx.FlexGridSizer(cols=4, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(5))
         q_bcsub_ctrl_sizer.Add(wx.StaticText(q_bcsub_box, label='q min:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_bcsub_ctrl_sizer.Add(self.min_q_bcsub, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -4713,7 +4893,8 @@ class SeriesAdjustmentFrame(wx.Frame):
             flag=wx.ALIGN_CENTER_VERTICAL)
         q_bcsub_ctrl_sizer.Add(self.nmax_bcsub, flag=wx.ALIGN_CENTER_VERTICAL)
 
-        self.q_bcsub_sizer.Add(q_bcsub_ctrl_sizer, flag=wx.ALL, border=5)
+        self.q_bcsub_sizer.Add(q_bcsub_ctrl_sizer, flag=wx.ALL,
+            border=self._FromDIP(5))
 
 
         ok_button = wx.Button(panel, label='OK')
@@ -4723,16 +4904,18 @@ class SeriesAdjustmentFrame(wx.Frame):
         cancel_button.Bind(wx.EVT_BUTTON, self._onCancel)
 
         button_sizer=wx.BoxSizer(wx.HORIZONTAL)
-        button_sizer.Add(ok_button, flag=wx.LEFT, border=5)
+        button_sizer.Add(ok_button, flag=wx.LEFT, border=self._FromDIP(5))
         button_sizer.Add(cancel_button)
 
         self.top_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.top_sizer.Add(filename_sizer, border=5, flag=wx.TOP|wx.LEFT|wx.RIGHT)
-        self.top_sizer.Add(scale_sizer, border=5, flag=wx.ALL)
-        self.top_sizer.Add(self.q_sizer, border=5, flag=wx.ALL)
-        self.top_sizer.Add(self.q_sub_sizer, border=5, flag=wx.ALL)
-        self.top_sizer.Add(self.q_bcsub_sizer, border=5, flag=wx.ALL)
-        self.top_sizer.Add(button_sizer, border=5, flag=wx.ALL|wx.ALIGN_CENTER_HORIZONTAL)
+        self.top_sizer.Add(filename_sizer, border=self._FromDIP(5), flag=wx.TOP
+            |wx.LEFT|wx.RIGHT)
+        self.top_sizer.Add(scale_sizer, border=self._FromDIP(5), flag=wx.ALL)
+        self.top_sizer.Add(self.q_sizer, border=self._FromDIP(5), flag=wx.ALL)
+        self.top_sizer.Add(self.q_sub_sizer, border=self._FromDIP(5), flag=wx.ALL)
+        self.top_sizer.Add(self.q_bcsub_sizer, border=self._FromDIP(5), flag=wx.ALL)
+        self.top_sizer.Add(button_sizer, border=self._FromDIP(5), flag=wx.ALL
+            |wx.ALIGN_CENTER_HORIZONTAL)
 
         panel.SetSizer(self.top_sizer)
 

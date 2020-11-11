@@ -2656,7 +2656,7 @@ class MainFrame(wx.Frame):
             self.sleep_inhibit.force_off()
 
         except Exception:
-            traceback.print_exc()
+            pass
 
         finally:
             self.tbIcon.RemoveIcon()
@@ -6069,10 +6069,12 @@ class FilePanel(wx.Panel):
 
         # *************** Directory Control ***********************
         b2sizer = wx.BoxSizer(wx.VERTICAL)
-        b2sizer.Add((10,10), 0)
-        b2sizer.Add((5,5))
-        b2sizer.Add(self.dir_panel, 1, wx.EXPAND| wx.LEFT | wx.RIGHT, 10)
-        b2sizer.Add(button_sizer, 0, wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT|wx.BOTTOM, 10)
+        b2sizer.Add(self._FromDIP((10,10)), 0)
+        b2sizer.Add(self._FromDIP((5,5)))
+        b2sizer.Add(self.dir_panel, 1, wx.EXPAND| wx.LEFT | wx.RIGHT,
+            border=self._FromDIP(10))
+        b2sizer.Add(button_sizer, 0, wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(10))
 
         self.SetSizer(b2sizer)
 
@@ -6098,7 +6100,8 @@ class FilePanel(wx.Panel):
         no_of_buttons = len(self.button_data)
         no_of_rows = int(np.ceil(no_of_buttons / self.NO_OF_BUTTONS_IN_EACH_ROW))
 
-        button_sizer = wx.GridSizer( cols = self.NO_OF_BUTTONS_IN_EACH_ROW, rows = no_of_rows, hgap = 3, vgap = 3)
+        button_sizer = wx.GridSizer(cols=self.NO_OF_BUTTONS_IN_EACH_ROW,
+            rows=no_of_rows, hgap=self._FromDIP(3), vgap=self._FromDIP(3))
 
         for button_txt, bindfunc in self.button_data:
             button = wx.Button(self, -1, button_txt)
@@ -6865,7 +6868,8 @@ class DirCtrlPanel(wx.Panel):
 
         self._createDirCtrl(dirctrlpanel_sizer)            #Listbox containing filenames
 
-        dirctrlpanel_sizer.Add(self.ext_choice, 0, wx.EXPAND | wx.TOP, 2)
+        dirctrlpanel_sizer.Add(self.ext_choice, 0, wx.EXPAND | wx.TOP,
+            border=self._FromDIP(2))
 
         self.SetSizer(dirctrlpanel_sizer, wx.EXPAND)
 
@@ -6915,8 +6919,10 @@ class DirCtrlPanel(wx.Panel):
         self.dir_label.Bind(wx.EVT_KILL_FOCUS, self._onEnterOrFocusShiftInDirLabel)
         self.dir_label.Bind(wx.EVT_TEXT_ENTER, self._onEnterOrFocusShiftInDirLabel)
 
-        dir_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-opened-folder-16.png')
-        refresh_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-synchronize-16.png')
+        dir_png = os.path.join(RAWGlobals.RAWResourcesDir,
+            'icons8-opened-folder-16.png')
+        refresh_png = os.path.join(RAWGlobals.RAWResourcesDir,
+            'icons8-synchronize-16.png')
 
         dir_bitmap = SASUtils.load_DIP_bitmap(dir_png, wx.BITMAP_TYPE_PNG)
         refresh_bitmap = SASUtils.load_DIP_bitmap(refresh_png, wx.BITMAP_TYPE_PNG)
@@ -6930,15 +6936,18 @@ class DirCtrlPanel(wx.Panel):
         self.dir_button.SetToolTip(wx.ToolTip('Open Folder'))
         self.refresh_button.SetToolTip(wx.ToolTip('Refresh'))
 
-        dir_label_sizer.Add(self.dir_label, 1, wx.EXPAND | wx.RIGHT, 2)
+        dir_label_sizer.Add(self.dir_label, 1, wx.EXPAND | wx.RIGHT,
+            border=self._FromDIP(2))
         dir_label_sizer.Add(self.dir_button,0)
         dir_label_sizer.Add(self.refresh_button,0)
 
         self.file_list_box = CustomListCtrl(self, -1)
         self.file_list_box.Bind(wx.EVT_LIST_ITEM_SELECTED, self._onLeftMouseClick)
-        self.file_list_box.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self._onRightMouseClick)
+        self.file_list_box.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK,
+            self._onRightMouseClick)
 
-        dirctrlpanel_sizer.Add(dir_label_sizer, 0, wx.EXPAND | wx.BOTTOM, 2)
+        dirctrlpanel_sizer.Add(dir_label_sizer, 0, wx.EXPAND | wx.BOTTOM,
+            border=self._FromDIP(2))
         dirctrlpanel_sizer.Add(self.file_list_box, 1, wx.EXPAND)
 
         self.selected_files = []
@@ -7046,9 +7055,12 @@ class ManipulationPanel(wx.Panel):
 
         self.buttonSizer = self.createButtons()
 
-        self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.EXPAND, 5)
-        self.panelsizer.Add(self.underpanel, 1, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT, 3)
-        self.panelsizer.Add(self.buttonSizer, 0, wx.EXPAND|wx.ALL, 10)
+        self.panelsizer.Add(toolbarsizer, 0, wx.LEFT|wx.TOP|wx.RIGHT|wx.EXPAND,
+            border=self._FromDIP(5))
+        self.panelsizer.Add(self.underpanel, 1, wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(3))
+        self.panelsizer.Add(self.buttonSizer, 0, wx.EXPAND|wx.ALL,
+            border=self._FromDIP(10))
 
         self.SetSizer(self.panelsizer)
 
@@ -7146,13 +7158,13 @@ class ManipulationPanel(wx.Panel):
             collapse_all.SetToolTip(wx.ToolTip('Collapse'))
             expand_all.SetToolTip(wx.ToolTip('Expand'))
 
-        sizer.Add(show_all, 0, wx.LEFT, 5)
-        sizer.Add(hide_all, 0, wx.LEFT, 5)
-        sizer.Add((1,1),1, wx.EXPAND)
-        sizer.Add(select_all, 0, wx.LEFT, 5)
-        sizer.Add((1,1),1, wx.EXPAND)
-        sizer.Add(collapse_all, 0, wx.RIGHT, 5)
-        sizer.Add(expand_all, 0, wx.RIGHT, 3)
+        sizer.Add(show_all, 0, wx.LEFT, border=self._FromDIP(5))
+        sizer.Add(hide_all, 0, wx.LEFT, border=self._FromDIP(5))
+        sizer.Add((1,1), 1, wx.EXPAND)
+        sizer.Add(select_all, 0, wx.LEFT, border=self._FromDIP(5))
+        sizer.Add((1,1), 1, wx.EXPAND)
+        sizer.Add(collapse_all, 0, wx.RIGHT, border=self._FromDIP(5))
+        sizer.Add(expand_all, 0, wx.RIGHT, border=self._FromDIP(3))
 
         return sizer
 
@@ -7161,7 +7173,8 @@ class ManipulationPanel(wx.Panel):
         cols = 3
         rows = int(np.ceil(len(self.button_data)/cols))
 
-        sizer = wx.GridSizer(cols = cols, rows = rows, hgap = 3, vgap = 3)
+        sizer = wx.GridSizer(cols=cols, rows=rows, hgap=self._FromDIP(3),
+            vgap=self._FromDIP(3))
 
         for each in self.button_data:
             label = each[0]
@@ -7178,7 +7191,8 @@ class ManipulationPanel(wx.Panel):
 
         return sizer
 
-    def addItem(self, sasm, item_colour = 'black', item_visible = True, notsaved = False, legend_label=''):
+    def addItem(self, sasm, item_colour = 'black', item_visible = True,
+        notsaved = False, legend_label=''):
 
         self.underpanel.Freeze()
 
@@ -7863,28 +7877,38 @@ class ManipItemPanel(wx.Panel):
         self.locator_old_marker = 1
 
         panelsizer = wx.BoxSizer()
-        panelsizer.Add(self.showitem_icon, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
-        panelsizer.Add(self.item_name, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
-        panelsizer.Add(self.legend_label_text, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
+        panelsizer.Add(self.showitem_icon, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(3))
+        panelsizer.Add(self.item_name, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(3))
+        panelsizer.Add(self.legend_label_text, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(3))
         panelsizer.Add((1,1), 1, wx.EXPAND)
-        panelsizer.Add(self.expand_collapse, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 5)
-        panelsizer.Add(self.info_icon, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 5)
-        panelsizer.Add(self.target_icon, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 4)
-        panelsizer.Add(self.colour_indicator, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 5)
-        panelsizer.Add(self.bg_star, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
+        panelsizer.Add(self.expand_collapse, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+        panelsizer.Add(self.info_icon, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+        panelsizer.Add(self.target_icon, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(4))
+        panelsizer.Add(self.colour_indicator, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+        panelsizer.Add(self.bg_star, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(3))
 
 
         self.topsizer = wx.BoxSizer(wx.VERTICAL)
         self.topsizer.Add(panelsizer, 1, wx.EXPAND)
 
         #self.controlSizer = wx.BoxSizer(wx.VERTICAL)
-        self.controlSizer = wx.FlexGridSizer(cols = 4, rows = 2, vgap = 3, hgap = 7)
+        self.controlSizer = wx.FlexGridSizer(cols=4, rows=2, vgap=self._FromDIP(3),
+            hgap=self._FromDIP(7))
 
         self._createSimpleSpinCtrls(self.controlSizer)
         self._createFloatSpinCtrls(self.controlSizer)
 
-        self.topsizer.Add((5,5),0)
-        self.topsizer.Add(self.controlSizer, 0, wx.EXPAND | wx.LEFT | wx.BOTTOM, 5)
+        self.topsizer.Add(self._FromDIP((5,5)),0)
+        self.topsizer.Add(self.controlSizer, 0, wx.EXPAND|wx.LEFT|wx.BOTTOM,
+            self._FromDIP(5))
 
         self.SetSizer(self.topsizer)
 
@@ -8087,7 +8111,8 @@ class ManipItemPanel(wx.Panel):
         self.expand_collapse.Refresh()
 
         if update_top_panel:
-            self.manipulation_panel.underpanel.SetVirtualSize(self.manipulation_panel.underpanel.GetBestVirtualSize())
+            self.manipulation_panel.underpanel.SetVirtualSize(
+                self.manipulation_panel.underpanel.GetBestVirtualSize())
             self.topsizer.Layout()
             self.manipulation_panel.underpanel.Refresh()
 
@@ -8210,12 +8235,14 @@ class ManipItemPanel(wx.Panel):
                         i0 = guinier['I0']
 
                         if float(i0)>0:
-                            MW = wx.GetTextFromUser('Please enter the molecular weight of the standard in units of [kDa].')
+                            MW = wx.GetTextFromUser(('Please enter the molecular '
+                                'weight of the standard in units of [kDa].'))
 
                             try:
                                 MW = float(MW)
                             except Exception:
-                                wx.MessageBox('Invalid input!', 'ERROR', wx.OK | wx.ICON_EXCLAMATION)
+                                wx.MessageBox('Invalid input!', 'ERROR', wx.OK
+                                    |wx.ICON_EXCLAMATION)
                                 return
 
                             filename = os.path.basename(self.sasm.getParameter('filename'))
@@ -8228,16 +8255,21 @@ class ManipItemPanel(wx.Panel):
                             self.sasm.setParameter('MW', MW)
                             self.info_panel.updateInfoFromItem(self)
 
-                            wx.MessageBox('New standard parameters has been saved.', 'Saved', wx.OK | wx.ICON_INFORMATION)
+                            wx.MessageBox('New standard parameters has been saved.',
+                                'Saved', wx.OK | wx.ICON_INFORMATION)
 
                     else:
-                        wx.MessageBox('Please perform a Guinier analysis to obtain I0', 'I0 not found', wx.OK | wx.ICON_EXCLAMATION)
+                        wx.MessageBox('Please perform a Guinier analysis to obtain I0',
+                            'I0 not found', wx.OK | wx.ICON_EXCLAMATION)
                 else:
-                    wx.MessageBox('Please perform a Guinier analysis to obtain I0', 'I0 not found', wx.OK | wx.ICON_EXCLAMATION)
+                    wx.MessageBox('Please perform a Guinier analysis to obtain I0',
+                        'I0 not found', wx.OK | wx.ICON_EXCLAMATION)
             else:
-                wx.MessageBox('Please enter the concentration in the information panel.', 'Concentration not found', wx.OK | wx.ICON_EXCLAMATION)
+                wx.MessageBox('Please enter the concentration in the information panel.',
+                    'Concentration not found', wx.OK | wx.ICON_EXCLAMATION)
         else:
-            wx.MessageBox('Please enter the concentration in the information panel.', 'Concentration not found', wx.OK | wx.ICON_EXCLAMATION)  #  except Exception, e:
+            wx.MessageBox('Please enter the concentration in the information panel.',
+                'Concentration not found', wx.OK | wx.ICON_EXCLAMATION)  #  except Exception, e:
 
 
     def _initializeIcons(self):
@@ -8270,7 +8302,7 @@ class ManipItemPanel(wx.Panel):
         self.colour_indicator.updateColour(color)
 
     def _onLinePropertyButton(self, event):
-
+        print('in _onLinePropertyButton')
         try:
             legend_label = self.getLegendLabel()
             dialog = RAWCustomDialogs.LinePropertyDialog(self, self.sasm, legend_label)
@@ -8847,13 +8879,15 @@ class ManipItemPanel(wx.Panel):
                 initValue = initValue + '.0'
 
             if name == 'scale':
-                spinCtrl = RAWCustomCtrl.FloatSpinCtrl(self, id, initValue, TextLength = 100, never_negative = True)
+                spinCtrl = RAWCustomCtrl.FloatSpinCtrl(self, id, initValue,
+                    TextLength = 100, never_negative = True)
             else:
-                spinCtrl = RAWCustomCtrl.FloatSpinCtrl(self, id, initValue, TextLength = 100)
+                spinCtrl = RAWCustomCtrl.FloatSpinCtrl(self, id, initValue,
+                    TextLength = 100)
 
             spinCtrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, bindfunc)
 
-            control_sizer.Add(label, 1, wx.TOP, 3)
+            control_sizer.Add(label, 1, wx.TOP, border=self._FromDIP(3))
             control_sizer.Add(spinCtrl, 1, wx.EXPAND)
 
 
@@ -8891,7 +8925,7 @@ class ManipItemPanel(wx.Panel):
             q_ctrl.Bind(wx.EVT_TEXT_ENTER, self._onEnterInQrangeTextCtrl)
 
             spin_sizer = wx.BoxSizer()
-            spin_sizer.Add(q_ctrl, 0, wx.RIGHT, 3)
+            spin_sizer.Add(q_ctrl, 0, wx.RIGHT, border=self._FromDIP(3))
             spin_sizer.Add(spin_control, 0)
 
             control_sizer.Add(spin_label, 0)
@@ -8937,8 +8971,10 @@ class IFTPanel(wx.Panel):
         self.underpanel_sizer = wx.BoxSizer(wx.VERTICAL)
         self.underpanel.SetSizer(self.underpanel_sizer)
 
-        self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.EXPAND, 5)
-        self.panelsizer.Add(self.underpanel, 1, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT, 3)
+        self.panelsizer.Add(toolbarsizer, 0, wx.LEFT|wx.TOP|wx.RIGHT|wx.EXPAND,
+            border=self._FromDIP(5))
+        self.panelsizer.Add(self.underpanel, 1, wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(3))
 
         self.createButtons(self.panelsizer)
 
@@ -9012,24 +9048,25 @@ class IFTPanel(wx.Panel):
         hide_all.Bind(wx.EVT_BUTTON, self._onHideAllButton)
         select_all.Bind(wx.EVT_BUTTON, self._onSelectAllButton)
 
-        sizer.Add(show_all, 0, wx.LEFT, 5)
-        sizer.Add(hide_all, 0, wx.LEFT, 5)
-        sizer.Add((1,1),1, wx.EXPAND)
-        sizer.Add(select_all, 0, wx.LEFT, 5)
-        sizer.Add((1,1),1, wx.EXPAND)
+        sizer.Add(show_all, 0, wx.LEFT, self._FromDIP(5))
+        sizer.Add(hide_all, 0, wx.LEFT, self._FromDIP(5))
+        sizer.Add((1,1), 1, wx.EXPAND)
+        sizer.Add(select_all, 0, wx.LEFT, self._FromDIP(5))
+        sizer.Add((1,1), 1, wx.EXPAND)
 
         return sizer
 
 
-    def addItem(self, iftm_list, item_colour = 'black', item_visible = True, notsaved = False, legend_label=defaultdict(str)):
+    def addItem(self, iftm_list, item_colour='black', item_visible=True,
+        notsaved=False, legend_label=defaultdict(str)):
         self.underpanel.Freeze()
 
         if not isinstance(iftm_list, list):
             iftm_list = [iftm_list]
 
         for iftm in iftm_list:
-            newItem = IFTItemPanel(self.underpanel, iftm, font_colour = item_colour,
-                ift_parameters = iftm.getAllParameters(), item_visible = item_visible,
+            newItem = IFTItemPanel(self.underpanel, iftm, font_colour=item_colour,
+                ift_parameters = iftm.getAllParameters(), item_visible=item_visible,
                 modified = notsaved, legend_label=legend_label)
             self.underpanel_sizer.Add(newItem, 0, wx.GROW)
 
@@ -9329,7 +9366,7 @@ class IFTPanel(wx.Panel):
 
     def createButtons(self, panelsizer):
 
-        sizer = wx.GridSizer(cols=3, rows=int(np.ceil(len(self.buttons)/3.)), hgap=3, vgap=3)
+        sizer = wx.GridSizer(cols=3, hgap=self._FromDIP(3), vgap=self._FromDIP(3))
 
         #sizer.Add((10,10) ,1 , wx.EXPAND)
         for each in self.buttons:
@@ -9343,7 +9380,8 @@ class IFTPanel(wx.Panel):
 
                 sizer.Add(button, 1, wx.EXPAND)
 
-        panelsizer.Add(sizer, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.TOP| wx.EXPAND, 10)
+        panelsizer.Add(sizer, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.TOP| wx.EXPAND,
+            border=self._FromDIP(10))
 
     def _onKeyPress(self, evt):
         key = evt.GetKeyCode()
@@ -9353,7 +9391,7 @@ class IFTPanel(wx.Panel):
 
 
 class IFTItemPanel(wx.Panel):
-    def __init__(self, parent, iftm, font_colour = 'BLACK', legend_label = defaultdict(str),
+    def __init__(self, parent, iftm, font_colour='BLACK', legend_label=defaultdict(str),
         ift_parameters = {}, item_visible = True, modified = False):
 
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
@@ -9497,19 +9535,25 @@ class IFTItemPanel(wx.Panel):
         self.locator_old_marker = {}
 
         panelsizer = wx.BoxSizer()
-        panelsizer.Add(self.showitem_icon, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
-        panelsizer.Add(self.item_name, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
-        panelsizer.Add(self.legend_label_text, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
+        panelsizer.Add(self.showitem_icon, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(3))
+        panelsizer.Add(self.item_name, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(3))
+        panelsizer.Add(self.legend_label_text, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(3))
         panelsizer.Add((1,1), 1, wx.EXPAND)
-        panelsizer.Add(self.info_icon, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 5)
-        panelsizer.Add(self.target_icon, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 4)
-        panelsizer.Add(self.colour_indicator, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 5)
+        panelsizer.Add(self.info_icon, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+        panelsizer.Add(self.target_icon, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(4))
+        panelsizer.Add(self.colour_indicator, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
 
         self.topsizer = wx.BoxSizer(wx.VERTICAL)
         self.topsizer.Add(panelsizer, 1, wx.EXPAND)
 
 
-        self.topsizer.Add((5,5),0)
+        self.topsizer.Add(self._FromDIP((5,5)), 0)
 
         self.SetSizer(self.topsizer)
 
@@ -10124,9 +10168,12 @@ class SECPanel(wx.Panel):
 
         self.sec_control_panel = SeriesControlPanel(self)
 
-        self.panelsizer.Add(self.sec_control_panel, 0, wx.ALL|wx.EXPAND, 5)
-        self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 5)
-        self.panelsizer.Add(self.underpanel, 1, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT, 3)
+        self.panelsizer.Add(self.sec_control_panel, 0, wx.ALL|wx.EXPAND,
+            border=self._FromDIP(5))
+        self.panelsizer.Add(toolbarsizer, 0, wx.LEFT | wx.RIGHT | wx.EXPAND,
+            border=self._FromDIP(5))
+        self.panelsizer.Add(self.underpanel, 1, wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(3))
 
         self.createButtons(self.panelsizer)
 
@@ -10205,19 +10252,15 @@ class SECPanel(wx.Panel):
             hide_all.SetToolTip(wx.ToolTip('Hide'))
 
 
-        # collapse_all.Bind(wx.EVT_BUTTON, self._onCollapseAllButton)
-        # expand_all.Bind(wx.EVT_BUTTON, self._onExpandAllButton)
         show_all.Bind(wx.EVT_BUTTON, self._onShowAllButton)
         hide_all.Bind(wx.EVT_BUTTON, self._onHideAllButton)
         select_all.Bind(wx.EVT_BUTTON, self._onSelectAllButton)
 
-        sizer.Add(show_all, 0, wx.LEFT, 5)
-        sizer.Add(hide_all, 0, wx.LEFT, 5)
+        sizer.Add(show_all, 0, wx.LEFT, border=self._FromDIP(5))
+        sizer.Add(hide_all, 0, wx.LEFT, border=self._FromDIP(5))
         sizer.Add((1,1),1, wx.EXPAND)
-        sizer.Add(select_all, 0, wx.LEFT, 5)
+        sizer.Add(select_all, 0, wx.LEFT, border=self._FromDIP(5))
         sizer.Add((1,1),1, wx.EXPAND)
-        # sizer.Add(collapse_all, 0, wx.RIGHT, 5)
-        # sizer.Add(expand_all, 0, wx.RIGHT, 3)
 
         return sizer
 
@@ -10374,7 +10417,8 @@ class SECPanel(wx.Panel):
         self.underpanel.Refresh()
         self.underpanel.Thaw()
 
-    def addItem(self, secm_list, item_colour = 'black', item_visible = True, notsaved = False, legend_label=defaultdict(str)):
+    def addItem(self, secm_list, item_colour = 'black', item_visible = True,
+        notsaved = False, legend_label=defaultdict(str)):
         self.underpanel.Freeze()
 
         if not isinstance(secm_list, list):
@@ -10382,8 +10426,8 @@ class SECPanel(wx.Panel):
 
         for secm in secm_list:
 
-            newItem = SeriesItemPanel(self.underpanel, secm, font_colour = item_colour,
-                                     item_visible = item_visible, modified = notsaved,
+            newItem = SeriesItemPanel(self.underpanel, secm, font_colour=item_colour,
+                                     item_visible = item_visible, modified=notsaved,
                                      legend_label=legend_label)
 
             self.underpanel_sizer.Add(newItem, 0, wx.GROW)
@@ -10410,9 +10454,12 @@ class SECPanel(wx.Panel):
             filters = 'Comma Separated Files (*.csv)|*.csv'
 
             # dialog = wx.FileDialog( None, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = save_path)
-            fname = os.path.splitext(os.path.basename(selected_items[0].secm.getParameter('filename')))[0]+'.csv'
+            fname = os.path.splitext(os.path.basename(
+                selected_items[0].secm.getParameter('filename')))[0]+'.csv'
             msg = "Please select save directory and enter save file name"
-            dialog = wx.FileDialog( None, message = msg, style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, wildcard = filters, defaultDir = path, defaultFile = fname)
+            dialog = wx.FileDialog( None, message=msg, style=wx.FD_SAVE
+                |wx.FD_OVERWRITE_PROMPT, wildcard=filters, defaultDir=path,
+                defaultFile=fname)
 
             if dialog.ShowModal() == wx.ID_OK:
                 path = dialog.GetPath()
@@ -10426,7 +10473,8 @@ class SECPanel(wx.Panel):
             return
 
         else:
-            dirdlg = wx.DirDialog(self, "Please select save directory (multiple files will be saved):", defaultPath = path)
+            dirdlg = wx.DirDialog(self, ("Please select save directory "
+                "multiple files will be saved):"), defaultPath = path)
 
             if dirdlg.ShowModal() == wx.ID_OK:
                 path = dirdlg.GetPath()
@@ -10435,7 +10483,8 @@ class SECPanel(wx.Panel):
             save_path=[]
 
             for item in selected_items:
-                name=os.path.splitext(os.path.basename(item.secm.getParameter('filename')))[0]+'_sec_data.csv'
+                name=os.path.splitext(os.path.basename(
+                    item.secm.getParameter('filename')))[0]+'_sec_data.csv'
                 save_path.append(os.path.join(path, name))
 
 
@@ -10592,9 +10641,8 @@ class SECPanel(wx.Panel):
 
     def createButtons(self, panelsizer):
 
-        sizer = wx.GridSizer(cols=4, hgap=3, vgap=3)
+        sizer = wx.GridSizer(cols=4, hgap=self._FromDIP(3), vgap=self._FromDIP(3))
 
-        #sizer.Add((10,10) ,1 , wx.EXPAND)
         for each in self.buttons:
             if each:
 
@@ -10606,7 +10654,8 @@ class SECPanel(wx.Panel):
 
                 sizer.Add(button, 1, wx.EXPAND)
 
-        panelsizer.Add(sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.TOP | wx.EXPAND, 10)
+        panelsizer.Add(sizer, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.TOP|wx.EXPAND,
+            border=self._FromDIP(10))
 
     def setItemAsData(self, item):
 
@@ -10649,7 +10698,8 @@ class SECPanel(wx.Panel):
 
 
 class SeriesItemPanel(wx.Panel):
-    def __init__(self, parent, secm, font_colour = 'BLACK', legend_label = defaultdict(str), item_visible = True, modified = False):
+    def __init__(self, parent, secm, font_colour = 'BLACK',
+        legend_label = defaultdict(str), item_visible = True, modified = False):
 
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
 
@@ -10779,23 +10829,32 @@ class SeriesItemPanel(wx.Panel):
         self.locator_old_marker_calc = 1
 
         panelsizer = wx.BoxSizer()
-        panelsizer.Add(self.showitem_icon, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
-        panelsizer.Add(self.item_name, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
-        panelsizer.Add(self.legend_label_text, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
+        panelsizer.Add(self.showitem_icon, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(3))
+        panelsizer.Add(self.item_name, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(3))
+        panelsizer.Add(self.legend_label_text, 0, wx.LEFT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(3))
         panelsizer.Add((1,1), 1, wx.EXPAND)
-        panelsizer.Add(self.info_icon, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 5)
-        panelsizer.Add(self.target_icon, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 4)
-        panelsizer.Add(self.colour_indicator, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 5)
-        panelsizer.Add(self.bg_star, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL, 3)
+        panelsizer.Add(self.info_icon, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+        panelsizer.Add(self.target_icon, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(4))
+        panelsizer.Add(self.colour_indicator, 0, wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+        panelsizer.Add(self.bg_star, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(3))
 
 
         self.topsizer = wx.BoxSizer(wx.VERTICAL)
         self.topsizer.Add(panelsizer, 1, wx.EXPAND)
 
-        self.controlSizer = wx.FlexGridSizer(cols = 4, rows = 2, vgap = 3, hgap = 7)
+        self.controlSizer = wx.FlexGridSizer(cols=4, rows=2, vgap=self._FromDIP(3),
+            hgap=self._FromDIP(7))
 
-        self.topsizer.Add((5,5),0)
-        self.topsizer.Add(self.controlSizer, 0, wx.EXPAND | wx.LEFT | wx.BOTTOM, 5)
+        self.topsizer.Add(self._FromDIP((5,5)), 0)
+        self.topsizer.Add(self.controlSizer, 0, wx.EXPAND | wx.LEFT | wx.BOTTOM,
+            border=self._FromDIP(5))
 
         self.SetSizer(self.topsizer)
 
@@ -11365,12 +11424,17 @@ class SeriesControlPanel(wx.Panel):
         self.final_selected_frame = ""
         self.secm = None
 
-        self.controlData = (  ('Series:', parent.paramsInGui['Image Header'], self.image_prefix),
-                              ('Initial Frame # :', parent.paramsInGui['Initial Frame #'], self.initial_frame_number),
-                              ('Final Frame # :',parent.paramsInGui['Final Frame #'], self.final_frame_number),
-                              ('Initial Selected Frame :', parent.paramsInGui['Initial Selected Frame'], self.initial_selected_frame),
-                              ('Final Selected Frame :', parent.paramsInGui['Final Selected Frame'], self.final_selected_frame),
-                              )
+        self.controlData = (
+            ('Series:', parent.paramsInGui['Image Header'], self.image_prefix),
+            ('Initial Frame # :', parent.paramsInGui['Initial Frame #'],
+                self.initial_frame_number),
+            ('Final Frame # :',parent.paramsInGui['Final Frame #'],
+                self.final_frame_number),
+            ('Initial Selected Frame :', parent.paramsInGui['Initial Selected Frame'],
+                self.initial_selected_frame),
+            ('Final Selected Frame :', parent.paramsInGui['Final Selected Frame'],
+                self.final_selected_frame),
+            )
 
 
         topsizer = self.createControls()
@@ -11417,9 +11481,9 @@ class SeriesControlPanel(wx.Panel):
                 img_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
                 img_sizer.Add(labelbox, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
-                    border = 2)
+                    border = self._FromDIP(2))
                 img_sizer.Add(self.image_prefix_box, 1,
-                    flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=5)
+                    flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(5))
                 img_sizer.Add(select_button, flag=wx.ALIGN_CENTER_VERTICAL)
 
             elif type == 'iframenum':
@@ -11433,11 +11497,11 @@ class SeriesControlPanel(wx.Panel):
                 run_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
                 run_sizer.Add(labelbox, 0, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
-                    border=2)
+                    border=self._FromDIP(2))
                 run_sizer.Add(self.initial_frame_number_box, 1,
-                    flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, border=2)
+                    flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, border=self._FromDIP(2))
                 run_sizer.Add(labelbox2, 0, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
-                    border=2)
+                    border=self._FromDIP(2))
 
             elif type == 'fframenum':
                 self.final_frame_number_box = wx.TextCtrl(self, id=id,
@@ -11445,20 +11509,23 @@ class SeriesControlPanel(wx.Panel):
                     style=wx.TE_READONLY)
 
                 run_sizer.Add(self.final_frame_number_box, 1,
-                    flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, border=5)
+                    flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
+                    border=self._FromDIP(5))
 
         run_sizer.Add(update_button, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
-            border=2)
+            border=self._FromDIP(2))
         run_sizer.Add(self.online_mode_button, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
-            border=2)
+            border=self._FromDIP(2))
 
 
         load_box = wx.StaticBox(self, -1, 'Load/Online Mode')
         load_sizer = wx.StaticBoxSizer(load_box, wx.VERTICAL)
-        load_sizer.Add(img_sizer, 0, flag = wx.EXPAND|wx.ALL, border=2)
-        load_sizer.Add(run_sizer, 0, flag = wx.EXPAND|wx.ALL, border=2)
+        load_sizer.Add(img_sizer, 0, flag = wx.EXPAND|wx.ALL,
+            border=self._FromDIP(2))
+        load_sizer.Add(run_sizer, 0, flag = wx.EXPAND|wx.ALL,
+            border=self._FromDIP(2))
 
-        sizer.Add(load_sizer, 0, wx.EXPAND | wx.BOTTOM, 5)
+        sizer.Add(load_sizer, 0, wx.EXPAND | wx.BOTTOM, self._FromDIP(5))
 
 
         selected_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -11476,21 +11543,24 @@ class SeriesControlPanel(wx.Panel):
                 self.initial_selected_box = wx.TextCtrl(self, ctrl_id,
                     value=self.initial_selected_frame, size=self._FromDIP((50,-1)))
 
-                selected_sizer.Add(labelbox, border=2,
+                selected_sizer.Add(labelbox, border=self._FromDIP(2),
                     flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.LEFT)
-                selected_sizer.Add(self.initial_selected_box, border=2,
-                    flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-                selected_sizer.Add(labelbox2, border=2,
+                selected_sizer.Add(self.initial_selected_box,
+                    border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL
+                    |wx.RIGHT)
+                selected_sizer.Add(labelbox2, border=self._FromDIP(2),
                     flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
 
             elif ctrl_type == 'fsframenum':
                 self.final_selected_box = wx.TextCtrl(self, ctrl_id,
                     value=self.final_selected_frame, size=self._FromDIP((50,-1)))
-                selected_sizer.Add(self.final_selected_box, border=5,
-                    flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+                selected_sizer.Add(self.final_selected_box,
+                    border=self._FromDIP(5), flag=wx.ALIGN_CENTER_VERTICAL
+                    |wx.RIGHT)
 
         ####
-        self.data_type = wx.Choice(self, choices=['Unsubtracted', 'Subtracted', 'Baseline Corrected'])
+        self.data_type = wx.Choice(self,
+            choices=['Unsubtracted', 'Subtracted', 'Baseline Corrected'])
         self.data_type.SetSelection(0)
 
         selected_sizer.Add(self.data_type, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -11502,19 +11572,20 @@ class SeriesControlPanel(wx.Panel):
         average_plot_button = wx.Button(self, -1, 'Average')
         average_plot_button.Bind(wx.EVT_BUTTON, self._onAverageToMainPlot)
 
-        selected_button_sizer.Add(frames_plot_button, 0, border=5,
+        selected_button_sizer.Add(frames_plot_button, 0, border=self._FromDIP(5),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.LEFT)
-        selected_button_sizer.Add(average_plot_button, 0, border=5,
+        selected_button_sizer.Add(average_plot_button, 0, border=self._FromDIP(5),
             flag =wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
 
         send_box = wx.StaticBox(self, -1, 'Data to profiles plot')
         send_sizer = wx.StaticBoxSizer(send_box, wx.VERTICAL)
 
-        send_sizer.Add(selected_sizer, flag=wx.EXPAND|wx.ALL, border=2)
-        send_sizer.Add(selected_button_sizer, border=2,
-            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_CENTER_HORIZONTAL)
+        send_sizer.Add(selected_sizer, flag=wx.EXPAND|wx.ALL, border=self._FromDIP(2))
+        send_sizer.Add(selected_button_sizer, border=self._FromDIP(2),
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.ALIGN_CENTER_VERTICAL
+            |wx.ALIGN_CENTER_HORIZONTAL)
 
-        sizer.Add(send_sizer, flag=wx.EXPAND|wx.BOTTOM, border=5)
+        sizer.Add(send_sizer, flag=wx.EXPAND|wx.BOTTOM, border=self._FromDIP(5))
 
         return sizer
 
@@ -11987,7 +12058,9 @@ class MaskingPanel(scrolled.ScrolledPanel):
                              'ROI Counter mask' : 'TransparentBSMask',
                              'SAXSLAB BS mask' : 'SaxslabBSMask'}
 
-        self.CIRCLE_ID, self.RECTANGLE_ID, self.POLYGON_ID = self.NewControlId(), self.NewControlId(), self.NewControlId()
+        self.CIRCLE_ID = self.NewControlId()
+        self.RECTANGLE_ID = self.NewControlId()
+        self.POLYGON_ID = self.NewControlId()
         self.all_button_ids = [self.CIRCLE_ID, self.RECTANGLE_ID, self.POLYGON_ID]
 
         self._main_frame = wx.FindWindowByName('MainFrame')
@@ -12026,7 +12099,8 @@ class MaskingPanel(scrolled.ScrolledPanel):
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.manual_boxsizer, flag=wx.EXPAND)
         self.sizer.Add(auto_boxsizer, flag=wx.EXPAND)
-        self.sizer.Add(button_sizer, border=3, flag=wx.ALL|wx.ALIGN_CENTER)
+        self.sizer.Add(button_sizer, border=self._FromDIP(3), flag=wx.ALL
+            |wx.ALIGN_CENTER)
 
         self.SetSizer(self.sizer)
 
@@ -12043,13 +12117,17 @@ class MaskingPanel(scrolled.ScrolledPanel):
         self.rectangle_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
         self.polygon_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
 
-        draw_sizer = wx.FlexGridSizer(rows=2, cols=3, vgap=2, hgap=5)
+        draw_sizer = wx.FlexGridSizer(rows=2, cols=3, vgap=self._FromDIP(2),
+            hgap=self._FromDIP(5))
         draw_sizer.Add(self.circle_button, flag=wx.ALIGN_CENTER_HORIZONTAL)
         draw_sizer.Add(self.rectangle_button, flag=wx.ALIGN_CENTER_HORIZONTAL)
         draw_sizer.Add(self.polygon_button, flag=wx.ALIGN_CENTER_HORIZONTAL)
-        draw_sizer.Add(wx.StaticText(self, label='Circle'), flag=wx.ALIGN_CENTER_HORIZONTAL)
-        draw_sizer.Add(wx.StaticText(self, label='Rectangle'), flag=wx.ALIGN_CENTER_HORIZONTAL)
-        draw_sizer.Add(wx.StaticText(self, label='Polygon'), flag=wx.ALIGN_CENTER_HORIZONTAL)
+        draw_sizer.Add(wx.StaticText(self, label='Circle'),
+            flag=wx.ALIGN_CENTER_HORIZONTAL)
+        draw_sizer.Add(wx.StaticText(self, label='Rectangle'),
+            flag=wx.ALIGN_CENTER_HORIZONTAL)
+        draw_sizer.Add(wx.StaticText(self, label='Polygon'),
+            flag=wx.ALIGN_CENTER_HORIZONTAL)
 
         self.circ_radius = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
         self.circ_x = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
@@ -12060,26 +12138,26 @@ class MaskingPanel(scrolled.ScrolledPanel):
         circ_sub_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
         circ_sub_sizer1.Add(wx.StaticText(self, label='Circle'),
             flag=wx.ALIGN_CENTER_VERTICAL)
-        circ_sub_sizer1.Add(circ_btn2, border=15,
-            flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+        circ_sub_sizer1.Add(circ_btn2, border=self._FromDIP(15), flag=wx.LEFT
+            |wx.ALIGN_CENTER_VERTICAL)
 
         circ_sub_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        circ_sub_sizer2.Add(wx.StaticText(self, label='Radius:'), border=15,
+        circ_sub_sizer2.Add(wx.StaticText(self, label='Radius:'),
+            border=self._FromDIP(15), flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        circ_sub_sizer2.Add(self.circ_radius, border=self._FromDIP(3),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        circ_sub_sizer2.Add(self.circ_radius, border=3,
+        circ_sub_sizer2.Add(wx.StaticText(self, label='X cen.:'),
+            border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        circ_sub_sizer2.Add(self.circ_x, border=self._FromDIP(3),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        circ_sub_sizer2.Add(wx.StaticText(self, label='X cen.:'), border=3,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        circ_sub_sizer2.Add(self.circ_x, border=3,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        circ_sub_sizer2.Add(wx.StaticText(self, label='Y cen.:'), border=3,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        circ_sub_sizer2.Add(self.circ_y, border=3,
+        circ_sub_sizer2.Add(wx.StaticText(self, label='Y cen.:'),
+            border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        circ_sub_sizer2.Add(self.circ_y, border=self._FromDIP(3),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
 
         circ_sizer = wx.BoxSizer(wx.VERTICAL)
         circ_sizer.Add(circ_sub_sizer1)
-        circ_sizer.Add(circ_sub_sizer2, border=3, flag=wx.TOP)
+        circ_sizer.Add(circ_sub_sizer2, border=self._FromDIP(3), flag=wx.TOP)
 
         self.rect_width = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
         self.rect_height = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
@@ -12091,38 +12169,39 @@ class MaskingPanel(scrolled.ScrolledPanel):
         rect_sub_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
         rect_sub_sizer1.Add(wx.StaticText(self, label='Rectangle'),
             flag=wx.ALIGN_CENTER_VERTICAL)
-        rect_sub_sizer1.Add(rect_btn2, border=15,
-            flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+        rect_sub_sizer1.Add(rect_btn2, border=self._FromDIP(15), flag=wx.LEFT
+            |wx.ALIGN_CENTER_VERTICAL)
 
         rect_sub_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        rect_sub_sizer2.Add(wx.StaticText(self, label='X1:'), border=15,
+        rect_sub_sizer2.Add(wx.StaticText(self, label='X1:'),
+            border=self._FromDIP(15), flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        rect_sub_sizer2.Add(self.rect_x, border=self._FromDIP(3),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        rect_sub_sizer2.Add(self.rect_x, border=3,
+        rect_sub_sizer2.Add(wx.StaticText(self, label='Y1:'),
+            border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        rect_sub_sizer2.Add(self.rect_y, border=self._FromDIP(3),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        rect_sub_sizer2.Add(wx.StaticText(self, label='Y1:'), border=3,
+        rect_sub_sizer2.Add(wx.StaticText(self, label='W.:'),
+            border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        rect_sub_sizer2.Add(self.rect_width, border=self._FromDIP(3),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        rect_sub_sizer2.Add(self.rect_y, border=3,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        rect_sub_sizer2.Add(wx.StaticText(self, label='W.:'), border=3,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        rect_sub_sizer2.Add(self.rect_width, border=3,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        rect_sub_sizer2.Add(wx.StaticText(self, label='H.:'), border=3,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        rect_sub_sizer2.Add(self.rect_height, border=3,
+        rect_sub_sizer2.Add(wx.StaticText(self, label='H.:'),
+            border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+        rect_sub_sizer2.Add(self.rect_height, border=self._FromDIP(3),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
 
         rect_sizer = wx.BoxSizer(wx.VERTICAL)
         rect_sizer.Add(rect_sub_sizer1)
-        rect_sizer.Add(rect_sub_sizer2, border=3, flag=wx.TOP)
+        rect_sizer.Add(rect_sub_sizer2, border=self._FromDIP(3), flag=wx.TOP)
 
         man_box = wx.StaticBox(self, label='Manual')
         man_sizer = wx.StaticBoxSizer(man_box, wx.VERTICAL)
-        man_sizer.Add(draw_sizer, border=3, flag=wx.ALIGN_CENTER_HORIZONTAL|wx.BOTTOM)
-        man_sizer.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), border=10,
-            flag=wx.LEFT|wx.RIGHT|wx.EXPAND)
-        man_sizer.Add(circ_sizer, border=3, flag=wx.TOP)
-        man_sizer.Add(rect_sizer, border=3, flag=wx.TOP)
+        man_sizer.Add(draw_sizer, border=self._FromDIP(3),
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.BOTTOM)
+        man_sizer.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL),
+            border=self._FromDIP(10), flag=wx.LEFT|wx.RIGHT|wx.EXPAND)
+        man_sizer.Add(circ_sizer, border=self._FromDIP(3), flag=wx.TOP)
+        man_sizer.Add(rect_sizer, border=self._FromDIP(3), flag=wx.TOP)
 
 
         self.auto_type = wx.Choice(self, choices=['>', '<','=', '>=', '<='])
@@ -12134,27 +12213,32 @@ class MaskingPanel(scrolled.ScrolledPanel):
         pixel_sizer = wx.BoxSizer(wx.HORIZONTAL)
         pixel_sizer.Add(wx.StaticText(self, label='Mask all pixels'),
             flag=wx.ALIGN_CENTER_VERTICAL)
-        pixel_sizer.Add(self.auto_type, border=3, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
-        pixel_sizer.Add(self.auto_val, border=3, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
-        pixel_sizer.Add(auto_pixel_btn, border=15, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+        pixel_sizer.Add(self.auto_type, border=self._FromDIP(3), flag=wx.LEFT
+            |wx.ALIGN_CENTER_VERTICAL)
+        pixel_sizer.Add(self.auto_val, border=self._FromDIP(3), flag=wx.LEFT
+            |wx.ALIGN_CENTER_VERTICAL)
+        pixel_sizer.Add(auto_pixel_btn, border=self._FromDIP(15), flag=wx.LEFT
+            |wx.ALIGN_CENTER_VERTICAL)
 
         self.auto_det_type = wx.Choice(self, choices=self._getDetList(),
             size=self._FromDIP((150,-1)))
-        self.auto_det_type.SetStringSelection(self._main_frame.raw_settings.get('Detector'))
+        self.auto_det_type.SetStringSelection(
+            self._main_frame.raw_settings.get('Detector'))
         auto_det_btn = wx.Button(self, label='Create')
         auto_det_btn.Bind(wx.EVT_BUTTON, self._on_auto_det_mask)
 
         det_sizer = wx.BoxSizer(wx.HORIZONTAL)
         det_sizer.Add(wx.StaticText(self, label='Mask detector:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
-        det_sizer.Add(self.auto_det_type, proportion=1, border=3,
+        det_sizer.Add(self.auto_det_type, proportion=1, border=self._FromDIP(3),
             flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
-        det_sizer.Add(auto_det_btn, border = 15, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+        det_sizer.Add(auto_det_btn, border=self._FromDIP(15), flag=wx.LEFT
+            |wx.ALIGN_CENTER_VERTICAL)
 
         auto_box = wx.StaticBox(self, label='Automatic')
         auto_sizer = wx.StaticBoxSizer(auto_box, wx.VERTICAL)
         auto_sizer.Add(pixel_sizer)
-        auto_sizer.Add(det_sizer, border=3, flag=wx.TOP|wx.EXPAND)
+        auto_sizer.Add(det_sizer, border=self._FromDIP(3), flag=wx.TOP|wx.EXPAND)
 
 
         options = self._createMaskOptions()
@@ -12169,17 +12253,20 @@ class MaskingPanel(scrolled.ScrolledPanel):
         clear_button.Bind(wx.EVT_BUTTON, self._onClearDrawnMasks)
 
         button_sizer = wx.BoxSizer()
-        button_sizer.Add(save_button, 0, wx.RIGHT, 3)
-        button_sizer.Add(load_button, 0, wx.RIGHT, 3)
+        button_sizer.Add(save_button, 0, wx.RIGHT, border=self._FromDIP(3))
+        button_sizer.Add(load_button, 0, wx.RIGHT, border=self._FromDIP(3))
         button_sizer.Add(clear_button, 0)
 
 
         final_sizer = wx.BoxSizer(wx.VERTICAL)
 
         final_sizer.Add(man_sizer, flag=wx.EXPAND)
-        final_sizer.Add(auto_sizer, border=3, flag=wx.TOP|wx.EXPAND)
-        final_sizer.Add(options_sizer, border=3, flag=wx.TOP|wx.EXPAND)
-        final_sizer.Add(button_sizer, border=3, flag=wx.ALIGN_CENTER_HORIZONTAL|wx.TOP)
+        final_sizer.Add(auto_sizer, border=self._FromDIP(3), flag=wx.TOP
+            |wx.EXPAND)
+        final_sizer.Add(options_sizer, border=self._FromDIP(3), flag=wx.TOP
+            |wx.EXPAND)
+        final_sizer.Add(button_sizer, border=self._FromDIP(3),
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.TOP)
 
         return final_sizer
 
@@ -12212,7 +12299,8 @@ class MaskingPanel(scrolled.ScrolledPanel):
 
         sizer = wx.BoxSizer()
 
-        self.selector_choice = wx.Choice(self, -1, choices=list(self.mask_choices.keys()))
+        self.selector_choice = wx.Choice(self, -1,
+            choices=list(self.mask_choices.keys()))
         self.selector_choice.SetStringSelection('Beamstop mask')
 
         set_button = wx.Button(self, -1, 'Set', size=self._FromDIP((60,-1)))
@@ -12224,7 +12312,8 @@ class MaskingPanel(scrolled.ScrolledPanel):
         show_button = wx.Button(self, -1, 'Show', size=self._FromDIP((60,-1)))
         show_button.Bind(wx.EVT_BUTTON, self._onShowButton)
 
-        sizer.Add(self.selector_choice, 1, wx.EXPAND | wx.RIGHT, 5)
+        sizer.Add(self.selector_choice, 1, wx.EXPAND | wx.RIGHT,
+            border=self._FromDIP(5))
         sizer.Add(clear_button, 0)
         sizer.Add(set_button,0)
         sizer.Add(show_button,0)
@@ -12237,10 +12326,13 @@ class MaskingPanel(scrolled.ScrolledPanel):
         img_hdr = sasm.getParameter('imageHeader')
         img = self.image_panel.img
 
-        if img is not None and img_hdr is not None and 'bsmask_configuration' in img_hdr:
-            mask_params = SASMask.createMaskFromHdr(img, img_hdr, flipped = self._main_frame.raw_settings.get('DetectorFlipped90'))
+        if (img is not None and img_hdr is not None
+            and 'bsmask_configuration' in img_hdr):
+            mask_params = SASMask.createMaskFromHdr(img, img_hdr,
+                flipped=self._main_frame.raw_settings.get('DetectorFlipped90'))
         else:
-            wx.MessageBox('The image does not have a SAXSLAB Beamstop Mask in the header.', 'No mask available.', style = wx.ICON_EXCLAMATION)
+            wx.MessageBox(('The image does not have a SAXSLAB Beamstop Mask in '
+                'the header.'), 'No mask available.', style = wx.ICON_EXCLAMATION)
 
         #mask_params contains the mask and the individual maskshapes
 
@@ -12643,22 +12735,26 @@ class CenteringPanel(scrolled.ScrolledPanel):
         button_sizer = self._createCenteringButtonsSizer()
         info_sizer = self._createCenteringInfoSizer()
 
-        self.manual_boxsizer.Add(info_sizer, 0, wx.ALL, 5)
+        self.manual_boxsizer.Add(info_sizer, 0, wx.ALL, border=self._FromDIP(5))
         self.manual_boxsizer.Add((1,1), 1, wx.EXPAND)
-        self.manual_boxsizer.Add(button_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER| wx.RIGHT, 15)
+        self.manual_boxsizer.Add(button_sizer, 0, flag=wx.ALIGN_CENTER_VERTICAL
+            |wx.ALIGN_CENTER|wx.RIGHT, border=self._FromDIP(15))
 
         auto_box = wx.StaticBox(self, -1, 'Automatic Centering/Calibration')
         auto_boxsizer = wx.StaticBoxSizer(auto_box)
 
         auto_sizer = self._createAutoCenteringSizer()
-        auto_boxsizer.Add(auto_sizer, 1, wx.EXPAND | wx.ALL, 5)
+        auto_boxsizer.Add(auto_sizer, 1, wx.EXPAND|wx.ALL, border=self._FromDIP(5))
 
         button_sizer = self._createButtonSizer()
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.manual_boxsizer, 0, wx.EXPAND | wx.ALL, 5)
-        self.sizer.Add(auto_boxsizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
-        self.sizer.Add(button_sizer, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        self.sizer.Add(self.manual_boxsizer, 0, wx.EXPAND|wx.ALL,
+            border=self._FromDIP(5))
+        self.sizer.Add(auto_boxsizer, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
+        self.sizer.Add(button_sizer, 0, wx.ALL|wx.ALIGN_CENTER,
+            border=self._FromDIP(5))
 
         self.SetSizer(self.sizer)
 
@@ -12690,7 +12786,8 @@ class CenteringPanel(scrolled.ScrolledPanel):
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        fix_ctrl_sizer = wx.FlexGridSizer(cols = 4, hgap = 3, vgap = 3)
+        fix_ctrl_sizer = wx.FlexGridSizer(cols=4, hgap=self._FromDIP(3),
+            vgap=self._FromDIP(3))
 
         for label, newid in self._fix_list:
             chkbox = wx.CheckBox(self, newid, label)
@@ -12704,8 +12801,8 @@ class CenteringPanel(scrolled.ScrolledPanel):
         fix_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         fix_text = wx.StaticText(self, -1, 'Fix:')
-        fix_sizer.Add(fix_text, 0, wx.LEFT | wx.RIGHT, 3)
-        fix_sizer.Add(fix_ctrl_sizer, 1, wx.RIGHT, 3)
+        fix_sizer.Add(fix_text, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(3))
+        fix_sizer.Add(fix_ctrl_sizer, 1, wx.RIGHT, border=self._FromDIP(3))
 
 
         ring_text = wx.StaticText(self, -1, 'Ring #:')
@@ -12714,14 +12811,15 @@ class CenteringPanel(scrolled.ScrolledPanel):
         ring_ctrl.SetValue(0)
         ring_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onAutoRingSpinner)
 
-        ring_remove_btn = wx.Button(self, self.pyfai_autofit_ids['remove_pts'], 'Clear Last Selected Points')
+        ring_remove_btn = wx.Button(self, self.pyfai_autofit_ids['remove_pts'],
+            'Clear Last Selected Points')
         ring_remove_btn.Bind(wx.EVT_BUTTON, self._onAutoRingRemoveButton)
         ring_remove_btn.Enable(False)
 
         ring_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        ring_sizer.Add(ring_text, 0, wx.LEFT | wx.RIGHT, 3)
-        ring_sizer.Add(ring_ctrl, 0, wx.RIGHT, 3)
-        ring_sizer.Add(ring_remove_btn, 0, wx.RIGHT, 3)
+        ring_sizer.Add(ring_text, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(3))
+        ring_sizer.Add(ring_ctrl, 0, wx.RIGHT, border=self._FromDIP(3))
+        ring_sizer.Add(ring_remove_btn, 0, wx.RIGHT, border=self._FromDIP(3))
 
         det_list = self._getDetList()
 
@@ -12730,8 +12828,8 @@ class CenteringPanel(scrolled.ScrolledPanel):
         det_choice.SetStringSelection(self._main_frame.raw_settings.get('Detector'))
 
         det_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        det_sizer.Add(det_text, 0, wx.LEFT | wx.RIGHT, 3)
-        det_sizer.Add(det_choice, 0, wx.RIGHT, 3)
+        det_sizer.Add(det_text, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(3))
+        det_sizer.Add(det_choice, 0, wx.RIGHT, border=self._FromDIP(3))
 
         start_btn = wx.Button(self, self.pyfai_autofit_ids['start'], 'Start')
         start_btn.Bind(wx.EVT_BUTTON, self._onAutoCenterStartButton)
@@ -12748,21 +12846,23 @@ class CenteringPanel(scrolled.ScrolledPanel):
         help_btn.Bind(wx.EVT_BUTTON, self._onAutoCenterHelpButton)
 
         ctrl_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        ctrl_button_sizer.Add(start_btn, 0, wx.LEFT | wx.RIGHT, 3)
-        ctrl_button_sizer.Add(done_btn, 0, wx.RIGHT, 3)
-        ctrl_button_sizer.Add(cancel_btn, 0, wx.RIGHT, 3)
-        ctrl_button_sizer.Add(help_btn, 0, wx.RIGHT, 3)
+        ctrl_button_sizer.Add(start_btn, 0, wx.LEFT | wx.RIGHT,
+            border=self._FromDIP(3))
+        ctrl_button_sizer.Add(done_btn, 0, wx.RIGHT, border=self._FromDIP(3))
+        ctrl_button_sizer.Add(cancel_btn, 0, wx.RIGHT, border=self._FromDIP(3))
+        ctrl_button_sizer.Add(help_btn, 0, wx.RIGHT, border=self._FromDIP(3))
 
-        top_sizer.Add(fix_sizer, 0, wx.BOTTOM, 3)
-        top_sizer.Add(ring_sizer, 0, wx.BOTTOM, 3)
-        top_sizer.Add(det_sizer, 0, wx.BOTTOM, 3)
-        top_sizer.Add(ctrl_button_sizer, 0, wx.TOP, 3)
+        top_sizer.Add(fix_sizer, 0, wx.BOTTOM, border=self._FromDIP(3))
+        top_sizer.Add(ring_sizer, 0, wx.BOTTOM, border=self._FromDIP(3))
+        top_sizer.Add(det_sizer, 0, wx.BOTTOM, border=self._FromDIP(3))
+        top_sizer.Add(ctrl_button_sizer, 0, wx.TOP, border=self._FromDIP(3))
 
         return top_sizer
 
     def _createCenteringButtonsSizer(self):
 
-        buttonsizer = wx.FlexGridSizer(rows=3, cols=3, hgap=1, vgap=1)
+        buttonsizer = wx.FlexGridSizer(rows=3, cols=3, hgap=self._FromDIP(1),
+            vgap=self._FromDIP(1))
 
         up_button = wx.BitmapButton(self, self.ID_UP, self.up_arrow_bmp)
         down_button = wx.BitmapButton(self,self.ID_DOWN, self.down_arrow_bmp)
@@ -12824,20 +12924,27 @@ class CenteringPanel(scrolled.ScrolledPanel):
         self._step_combo = wx.ComboBox(self, -1, choices = step_list)
         self._step_combo.Select(1)
 
-        self._wavelen_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 70)
-        self._energy_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 70)
-        self._pixel_x_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 60)
-        self._pixel_y_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 60)
+        self._wavelen_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength=70)
+        self._energy_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength=70)
+        self._pixel_x_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength=60)
+        self._pixel_y_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength=60)
         self._sd_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 80)
-        self._det_tilt_text = RAWCustomCtrl.FloatSpinCtrl(self, wx.ID_ANY, TextLength = 70)
-        self._det_tilt_plane_text = RAWCustomCtrl.FloatSpinCtrl(self, wx.ID_ANY, TextLength = 70)
+        self._det_tilt_text = RAWCustomCtrl.FloatSpinCtrl(self, wx.ID_ANY,
+            TextLength = 70)
+        self._det_tilt_plane_text = RAWCustomCtrl.FloatSpinCtrl(self, wx.ID_ANY,
+            TextLength = 70)
 
         self._sd_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onSampDetDistSpin)
-        self._wavelen_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onWavelengthChange)
-        self._pixel_x_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onPixelWavelengthChange)
-        self._pixel_y_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onPixelWavelengthChange)
-        self._det_tilt_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onPixelWavelengthChange)
-        self._det_tilt_plane_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onPixelWavelengthChange)
+        self._wavelen_text.Bind(RAWCustomCtrl.EVT_MY_SPIN,
+            self._onWavelengthChange)
+        self._pixel_x_text.Bind(RAWCustomCtrl.EVT_MY_SPIN,
+            self._onPixelWavelengthChange)
+        self._pixel_y_text.Bind(RAWCustomCtrl.EVT_MY_SPIN,
+            self._onPixelWavelengthChange)
+        self._det_tilt_text.Bind(RAWCustomCtrl.EVT_MY_SPIN,
+            self._onPixelWavelengthChange)
+        self._det_tilt_plane_text.Bind(RAWCustomCtrl.EVT_MY_SPIN,
+            self._onPixelWavelengthChange)
         self._energy_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onEnergyChange)
 
         self._pattern_list = wx.Choice(self, -1, choices = pattern_list)
@@ -12876,38 +12983,40 @@ class CenteringPanel(scrolled.ScrolledPanel):
         y_sizer.Add(ylabel, 0)
         y_sizer.Add(self._y_cent_text,0)
 
-        pixelsize_unit_sizer.Add(wx.StaticText(self, label='X:'), border=3,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        pixelsize_unit_sizer.Add(self._pixel_x_text, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 3)
-        pixelsize_unit_sizer.Add(wx.StaticText(self, label='Y:'), border=3,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        pixelsize_unit_sizer.Add(self._pixel_y_text, 0, wx.ALIGN_CENTER_VERTICAL, 3)
+        pixelsize_unit_sizer.Add(wx.StaticText(self, label='X:'),
+            border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        pixelsize_unit_sizer.Add(self._pixel_x_text, 0, flag=wx.RIGHT
+            |wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(3))
+        pixelsize_unit_sizer.Add(wx.StaticText(self, label='Y:'),
+            border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        pixelsize_unit_sizer.Add(self._pixel_y_text, 0, wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(3))
 
         tilt_1_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        tilt_1_sizer.Add(wx.StaticText(self, label='Tilt:'), border=3,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        tilt_1_sizer.Add(wx.StaticText(self, label='Tilt:'),
+            border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         tilt_1_sizer.Add(self._det_tilt_text, flag=wx.ALIGN_CENTER_VERTICAL)
 
         tilt_2_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        tilt_2_sizer.Add(wx.StaticText(self, label='Tilt Plane Rot.:'), border=3,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        tilt_2_sizer.Add(wx.StaticText(self, label='Tilt Plane Rot.:'),
+            border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         tilt_2_sizer.Add(self._det_tilt_plane_text, flag=wx.ALIGN_CENTER_VERTICAL)
 
-        wave_sizer.Add(wavelen_label, 0, border=2, flag=wx.BOTTOM)
+        wave_sizer.Add(wavelen_label, 0, border=self._FromDIP(2), flag=wx.BOTTOM)
         wave_sizer.Add(self._wavelen_text, 0)
 
-        energy_sizer.Add(energy_label, 0, border=2, flag=wx.BOTTOM)
+        energy_sizer.Add(energy_label, 0, border=self._FromDIP(2), flag=wx.BOTTOM)
         energy_sizer.Add(self._energy_text, 0)
 
-        sd_sizer.Add(sd_label, 0, border=2, flag=wx.BOTTOM)
+        sd_sizer.Add(sd_label, 0, border=self._FromDIP(2), flag=wx.BOTTOM)
         sd_sizer.Add(self._sd_text, 0)
 
-        pixel_sizer.Add(pixel_label, 0, border=2, flag=wx.BOTTOM)
+        pixel_sizer.Add(pixel_label, 0, border=self._FromDIP(2), flag=wx.BOTTOM)
         pixel_sizer.Add(pixelsize_unit_sizer, 0)
 
         tilt_sizer.Add(wx.StaticText(self, label='Detector angles [deg]:'),
-            border=2, flag=wx.BOTTOM)
-        tilt_sizer.Add(tilt_1_sizer, border=2, flag=wx.BOTTOM)
+            border=self._FromDIP(2), flag=wx.BOTTOM)
+        tilt_sizer.Add(tilt_1_sizer, border=self._FromDIP(2), flag=wx.BOTTOM)
         tilt_sizer.Add(tilt_2_sizer)
 
 
@@ -12916,27 +13025,29 @@ class CenteringPanel(scrolled.ScrolledPanel):
 
 
         self.xycenter_sizer = wx.BoxSizer()
-        self.xycenter_sizer.Add(x_sizer,0, wx.RIGHT, 5)
-        self.xycenter_sizer.Add(y_sizer,0, wx.RIGHT, 5)
+        self.xycenter_sizer.Add(x_sizer,0, wx.RIGHT, border=self._FromDIP(5))
+        self.xycenter_sizer.Add(y_sizer,0, wx.RIGHT, border=self._FromDIP(5))
         self.xycenter_sizer.Add(step_sizer,0)
 
 
         energy_wl_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        energy_wl_sizer.Add(wave_sizer, 0, wx.RIGHT, 15)
+        energy_wl_sizer.Add(wave_sizer, 0, wx.RIGHT, border=self._FromDIP(15))
         energy_wl_sizer.Add(energy_sizer, 0)
 
 
         self.calib_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.calib_sizer.Add(energy_wl_sizer, 0, wx.BOTTOM, 5)
-        self.calib_sizer.Add(sd_sizer, 0, wx.BOTTOM, 5)
-        self.calib_sizer.Add(pixel_sizer, 0, wx.BOTTOM, 5)
-        self.calib_sizer.Add(tilt_sizer, border=5, flag=wx.BOTTOM)
-        self.calib_sizer.Add(pattern_sizer,0, wx.BOTTOM, 5)
+        self.calib_sizer.Add(energy_wl_sizer, 0, wx.BOTTOM,
+            border=self._FromDIP(5))
+        self.calib_sizer.Add(sd_sizer, 0, wx.BOTTOM, border=self._FromDIP(5))
+        self.calib_sizer.Add(pixel_sizer, 0, wx.BOTTOM, border=self._FromDIP(5))
+        self.calib_sizer.Add(tilt_sizer, border=self._FromDIP(5), flag=wx.BOTTOM)
+        self.calib_sizer.Add(pattern_sizer,0, wx.BOTTOM, border=self._FromDIP(5))
 
         self.final_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.final_sizer.Add(self.xycenter_sizer,0, wx.BOTTOM, 5)
+        self.final_sizer.Add(self.xycenter_sizer,0, wx.BOTTOM,
+            border=self._FromDIP(5))
         self.final_sizer.Add(self.calib_sizer,0)
 
         self.manual_widget_list.append(self._x_cent_text)
@@ -12959,7 +13070,7 @@ class CenteringPanel(scrolled.ScrolledPanel):
         ok_button = wx.Button(self, wx.ID_OK, 'OK')
         cancel_button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
 
-        sizer.Add(ok_button, 0, wx.RIGHT, 10)
+        sizer.Add(ok_button, 0, wx.RIGHT, border=self._FromDIP(10))
         sizer.Add(cancel_button, 0)
 
         ok_button.Bind(wx.EVT_BUTTON, self._onOkButton)
@@ -13422,12 +13533,12 @@ class InformationPanel(scrolled.ScrolledPanel):
         self.ifts_sizer = self._createIFTsLayout()
         self.series_sizer = self._createSeriesLayout()
 
-        self.top_sizer.Add(self.profiles_sizer, proportion=1, border=2,
+        self.top_sizer.Add(self.profiles_sizer, proportion=1,
+            border=self._FromDIP(2), flag=wx.ALL|wx.EXPAND)
+        self.top_sizer.Add(self.ifts_sizer, proportion=1, border=self._FromDIP(2),
             flag=wx.ALL|wx.EXPAND)
-        self.top_sizer.Add(self.ifts_sizer, proportion=1, border=2,
-            flag=wx.ALL|wx.EXPAND)
-        self.top_sizer.Add(self.series_sizer, proportion=1, border=2,
-            flag=wx.ALL|wx.EXPAND)
+        self.top_sizer.Add(self.series_sizer, proportion=1,
+            border=self._FromDIP(2), flag=wx.ALL|wx.EXPAND)
 
         self.top_sizer.Hide(self.ifts_sizer)
         self.top_sizer.Hide(self.series_sizer)
@@ -13440,9 +13551,10 @@ class InformationPanel(scrolled.ScrolledPanel):
         filename = wx.StaticText(self)
 
         filename_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        filename_sizer.Add(filename_label, border=2,
+        filename_sizer.Add(filename_label, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        filename_sizer.Add(filename, border=2, flag=wx.ALIGN_CENTER_VERTICAL)
+        filename_sizer.Add(filename, border=self._FromDIP(2),
+            flag=wx.ALIGN_CENTER_VERTICAL)
 
 
         guinier_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "Guinier Fit")
@@ -13470,45 +13582,47 @@ class InformationPanel(scrolled.ScrolledPanel):
             style=wx.TE_READONLY)
 
         guinier_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        guinier_main_sizer.Add(guinier_show_item, border=2,
+        guinier_main_sizer.Add(guinier_show_item, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         guinier_main_sizer.Add(wx.StaticText(guinier_box, label='Rg:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        guinier_main_sizer.Add(rg_ctrl, border=2,
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_main_sizer.Add(rg_ctrl, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         guinier_main_sizer.Add(wx.StaticText(guinier_box, label='+/-'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        guinier_main_sizer.Add(rg_err_ctrl, border=2,
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_main_sizer.Add(rg_err_ctrl, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         guinier_main_sizer.Add(wx.StaticText(guinier_box, label='I(0):'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        guinier_main_sizer.Add(i0_ctrl, border=2,
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_main_sizer.Add(i0_ctrl, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         guinier_main_sizer.Add(wx.StaticText(guinier_box, label='+/-'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        guinier_main_sizer.Add(i0_err_ctrl, border=2, flag=wx.ALIGN_CENTER_VERTICAL)
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_main_sizer.Add(i0_err_ctrl, border=self._FromDIP(2),
+            flag=wx.ALIGN_CENTER_VERTICAL)
         guinier_main_sizer.AddStretchSpacer(1)
 
         guinier_sub_sizer = wx.BoxSizer(wx.VERTICAL)
 
         guinier_sub_info_sizer = wx.BoxSizer(wx.HORIZONTAL)
         guinier_sub_info_sizer.Add(wx.StaticText(guinier_box, label='q_min*Rg:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        guinier_sub_info_sizer.Add(qrg_min, border=2,
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_sub_info_sizer.Add(qrg_min, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         guinier_sub_info_sizer.Add(wx.StaticText(guinier_box, label='q_max*Rg:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        guinier_sub_info_sizer.Add(qrg_max, border=2,
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_sub_info_sizer.Add(qrg_max, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         guinier_sub_info_sizer.Add(wx.StaticText(guinier_box, label='r^2:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        guinier_sub_info_sizer.Add(rsq, border=2,
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        guinier_sub_info_sizer.Add(rsq, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL)
 
         guinier_sub_sizer.Add(guinier_sub_info_sizer)
 
-        guinier_sizer.Add(guinier_main_sizer, border=2, flag=wx.ALL|wx.EXPAND)
-        guinier_sizer.Add(guinier_sub_sizer, border=2,
+        guinier_sizer.Add(guinier_main_sizer, border=self._FromDIP(2),
+            flag=wx.ALL|wx.EXPAND)
+        guinier_sizer.Add(guinier_sub_sizer, border=self._FromDIP(2),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
 
 
@@ -13558,7 +13672,8 @@ class InformationPanel(scrolled.ScrolledPanel):
         datclass_dmax_ctrl = wx.TextCtrl(mw_box, size=self._FromDIP((50, -1)),
             style=wx.TE_READONLY)
 
-        mw_main_sizer = wx.FlexGridSizer(cols=9, vgap=2, hgap=2)
+        mw_main_sizer = wx.FlexGridSizer(cols=9, vgap=self._FromDIP(2),
+            hgap=self._FromDIP(2))
         mw_main_sizer.Add(mw_show_item,  flag=wx.ALIGN_CENTER_VERTICAL)
         mw_main_sizer.Add(wx.StaticText(mw_box, label='Vc:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
@@ -13585,7 +13700,8 @@ class InformationPanel(scrolled.ScrolledPanel):
 
         mw_sub_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        mw_sub_info_sizer = wx.FlexGridSizer(cols=6, hgap=2, vgap=2)
+        mw_sub_info_sizer = wx.FlexGridSizer(cols=6, hgap=self._FromDIP(2),
+            vgap=self._FromDIP(2))
         mw_sub_info_sizer.Add(wx.StaticText(mw_box, label='Vc Mol. type:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         mw_sub_info_sizer.Add(vc_type_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -13626,8 +13742,10 @@ class InformationPanel(scrolled.ScrolledPanel):
 
         mw_sub_sizer.Add(mw_sub_info_sizer)
 
-        mw_sizer.Add(mw_main_sizer, border=2, flag=wx.ALL|wx.EXPAND)
-        mw_sizer.Add(mw_sub_sizer, border=2, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+        mw_sizer.Add(mw_main_sizer, border=self._FromDIP(2), flag=wx.ALL
+            |wx.EXPAND)
+        mw_sizer.Add(mw_sub_sizer, border=self._FromDIP(2), flag=wx.LEFT
+            |wx.RIGHT|wx.BOTTOM)
 
 
         gnom_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "GNOM")
@@ -13659,20 +13777,20 @@ class InformationPanel(scrolled.ScrolledPanel):
             style=wx.TE_READONLY)
 
         gnom_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        gnom_main_sizer.Add(gnom_show_item, border=2,
+        gnom_main_sizer.Add(gnom_show_item, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         gnom_main_sizer.Add(wx.StaticText(gnom_box, label='Dmax:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        gnom_main_sizer.Add(gnom_dmax_ctrl, border=2,
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        gnom_main_sizer.Add(gnom_dmax_ctrl, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         gnom_main_sizer.Add(wx.StaticText(gnom_box, label='Rg:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         gnom_main_sizer.Add(gnom_rg_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
         gnom_main_sizer.Add(wx.StaticText(gnom_box, label='+/-'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         gnom_main_sizer.Add(gnom_rg_err_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
         gnom_main_sizer.Add(wx.StaticText(gnom_box, label='I(0):'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         gnom_main_sizer.Add(gnom_i0_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
         gnom_main_sizer.Add(wx.StaticText(gnom_box, label='+/-'),
             flag=wx.ALIGN_CENTER_VERTICAL)
@@ -13681,7 +13799,8 @@ class InformationPanel(scrolled.ScrolledPanel):
 
         gnom_sub_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        gnom_sub_info_sizer = wx.FlexGridSizer(cols=6, hgap=2, vgap=2)
+        gnom_sub_info_sizer = wx.FlexGridSizer(cols=6, hgap=self._FromDIP(2),
+            vgap=self._FromDIP(2))
         gnom_sub_info_sizer.Add(wx.StaticText(gnom_box, label='T.E.:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         gnom_sub_info_sizer.Add(gnom_te_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -13697,8 +13816,10 @@ class InformationPanel(scrolled.ScrolledPanel):
 
         gnom_sub_sizer.Add(gnom_sub_info_sizer)
 
-        gnom_sizer.Add(gnom_main_sizer, border=2, flag=wx.ALL|wx.EXPAND)
-        gnom_sizer.Add(gnom_sub_sizer, border=2, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+        gnom_sizer.Add(gnom_main_sizer, border=self._FromDIP(2), flag=wx.ALL
+            |wx.EXPAND)
+        gnom_sizer.Add(gnom_sub_sizer, border=self._FromDIP(2), flag=wx.LEFT
+            |wx.RIGHT|wx.BOTTOM)
 
 
         bift_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "BIFT")
@@ -13738,29 +13859,30 @@ class InformationPanel(scrolled.ScrolledPanel):
             style=wx.TE_READONLY)
 
         bift_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        bift_main_sizer.Add(bift_show_item, border=2,
+        bift_main_sizer.Add(bift_show_item, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         bift_main_sizer.Add(wx.StaticText(bift_box, label='Dmax:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        bift_main_sizer.Add(bift_dmax_ctrl, border=2,
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        bift_main_sizer.Add(bift_dmax_ctrl, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         bift_main_sizer.Add(wx.StaticText(bift_box, label='+/-'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        bift_main_sizer.Add(bift_dmax_err_ctrl, border=2,
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        bift_main_sizer.Add(bift_dmax_err_ctrl, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         bift_main_sizer.Add(wx.StaticText(bift_box, label='Rg:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        bift_main_sizer.Add(bift_rg_ctrl, border=2,
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        bift_main_sizer.Add(bift_rg_ctrl, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         bift_main_sizer.Add(wx.StaticText(bift_box, label='+/-'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        bift_main_sizer.Add(bift_rg_err_ctrl, border=2,
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        bift_main_sizer.Add(bift_rg_err_ctrl, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         bift_main_sizer.AddStretchSpacer(1)
 
         bift_sub_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        bift_sub_info_sizer = wx.FlexGridSizer(cols=6, hgap=2, vgap=2)
+        bift_sub_info_sizer = wx.FlexGridSizer(cols=6, hgap=self._FromDIP(2),
+            vgap=self._FromDIP(2))
         bift_sub_info_sizer.Add(wx.StaticText(bift_box, label='I(0):'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         bift_sub_info_sizer.Add(bift_i0_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -13791,8 +13913,10 @@ class InformationPanel(scrolled.ScrolledPanel):
 
         bift_sub_sizer.Add(bift_sub_info_sizer)
 
-        bift_sizer.Add(bift_main_sizer, border=2, flag=wx.ALL|wx.EXPAND)
-        bift_sizer.Add(bift_sub_sizer, border=2, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+        bift_sizer.Add(bift_main_sizer, border=self._FromDIP(2), flag=wx.ALL
+            |wx.EXPAND)
+        bift_sizer.Add(bift_sub_sizer, border=self._FromDIP(2), flag=wx.LEFT
+            |wx.RIGHT|wx.BOTTOM)
 
 
         other_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, 'Other')
@@ -13804,8 +13928,8 @@ class InformationPanel(scrolled.ScrolledPanel):
 
         conc_sizer = wx.BoxSizer(wx.HORIZONTAL)
         conc_sizer.Add(wx.StaticText(other_box, label='Concentration:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        conc_sizer.Add(self.concentration, border=2,
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        conc_sizer.Add(self.concentration, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         conc_sizer.Add(wx.StaticText(other_box, label='mg/ml'),
             flag=wx.ALIGN_CENTER_VERTICAL)
@@ -13815,8 +13939,8 @@ class InformationPanel(scrolled.ScrolledPanel):
         self.header_choice.Bind(wx.EVT_CHOICE, self._onHeaderBrowserChoice)
 
         header_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        header_sizer.Add(self.header_choice, border=2, proportion=1,
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        header_sizer.Add(self.header_choice, border=self._FromDIP(2),
+            proportion=1, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         header_sizer.Add(self.header_txt, proportion=2,
             flag=wx.ALIGN_CENTER_VERTICAL)
 
@@ -13825,14 +13949,15 @@ class InformationPanel(scrolled.ScrolledPanel):
 
         note_sizer = wx.BoxSizer(wx.HORIZONTAL)
         note_sizer.Add(wx.StaticText(other_box, label='Notes:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         note_sizer.Add(self.notes, proportion=1, flag=wx.ALIGN_CENTER_VERTICAL)
 
 
-        other_sizer.Add(header_sizer, border=2, flag=wx.ALL|wx.EXPAND)
-        other_sizer.Add(conc_sizer, border=2,
+        other_sizer.Add(header_sizer, border=self._FromDIP(2), flag=wx.ALL
+            |wx.EXPAND)
+        other_sizer.Add(conc_sizer, border=self._FromDIP(2),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
-        other_sizer.Add(note_sizer, border=2,
+        other_sizer.Add(note_sizer, border=self._FromDIP(2),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
 
 
@@ -13895,22 +14020,26 @@ class InformationPanel(scrolled.ScrolledPanel):
         self.sasm_info['Notes'] = (self.notes, 'text', 0)
 
 
-        self.shown_items[guinier_show_item] = [False, guinier_sizer, guinier_sub_sizer, 'profile']
+        self.shown_items[guinier_show_item] = [False, guinier_sizer,
+            guinier_sub_sizer, 'profile']
         self.shown_items[mw_show_item] = [False, mw_sizer, mw_sub_sizer, 'profile']
-        self.shown_items[gnom_show_item] = [False, gnom_sizer, gnom_sub_sizer, 'profile']
-        self.shown_items[bift_show_item] = [False, bift_sizer, bift_sub_sizer, 'profile']
+        self.shown_items[gnom_show_item] = [False, gnom_sizer, gnom_sub_sizer,
+            'profile']
+        self.shown_items[bift_show_item] = [False, bift_sizer, bift_sub_sizer,
+            'profile']
 
         profiles_info_sizer = wx.BoxSizer(wx.VERTICAL)
-        profiles_info_sizer.Add(filename_sizer, border=1, flag=wx.ALL)
-        profiles_info_sizer.Add(guinier_sizer, border=1,
+        profiles_info_sizer.Add(filename_sizer, border=self._FromDIP(1),
+            flag=wx.ALL)
+        profiles_info_sizer.Add(guinier_sizer, border=self._FromDIP(1),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
-        profiles_info_sizer.Add(mw_sizer, border=1,
+        profiles_info_sizer.Add(mw_sizer, border=self._FromDIP(1),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
-        profiles_info_sizer.Add(gnom_sizer, border=1,
+        profiles_info_sizer.Add(gnom_sizer, border=self._FromDIP(1),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
-        profiles_info_sizer.Add(bift_sizer, border=1,
+        profiles_info_sizer.Add(bift_sizer, border=self._FromDIP(1),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
-        profiles_info_sizer.Add(other_sizer, border=1,
+        profiles_info_sizer.Add(other_sizer, border=self._FromDIP(1),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
 
         return profiles_info_sizer
@@ -13921,9 +14050,10 @@ class InformationPanel(scrolled.ScrolledPanel):
         filename = wx.StaticText(self)
 
         filename_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        filename_sizer.Add(filename_label, border=2,
+        filename_sizer.Add(filename_label, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        filename_sizer.Add(filename, border=2, flag=wx.ALIGN_CENTER_VERTICAL)
+        filename_sizer.Add(filename, border=self._FromDIP(2),
+            flag=wx.ALIGN_CENTER_VERTICAL)
 
 
         ift_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "IFT")
@@ -13970,20 +14100,20 @@ class InformationPanel(scrolled.ScrolledPanel):
         ift_interp = wx.TextCtrl(ift_box, style=wx.TE_READONLY)
 
         ift_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        ift_main_sizer.Add(ift_show_item, border=2,
+        ift_main_sizer.Add(ift_show_item, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         ift_main_sizer.Add(wx.StaticText(ift_box, label='Dmax:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        ift_main_sizer.Add(ift_dmax_ctrl, border=2,
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        ift_main_sizer.Add(ift_dmax_ctrl, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         ift_main_sizer.Add(wx.StaticText(ift_box, label='Rg:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         ift_main_sizer.Add(ift_rg_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
         ift_main_sizer.Add(wx.StaticText(ift_box, label='+/-'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         ift_main_sizer.Add(ift_rg_err_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
         ift_main_sizer.Add(wx.StaticText(ift_box, label='I(0):'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         ift_main_sizer.Add(ift_i0_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
         ift_main_sizer.Add(wx.StaticText(ift_box, label='+/-'),
             flag=wx.ALIGN_CENTER_VERTICAL)
@@ -14029,16 +14159,19 @@ class InformationPanel(scrolled.ScrolledPanel):
 
         ift_interp_sizer = wx.BoxSizer(wx.HORIZONTAL)
         ift_interp_sizer.Add(wx.StaticText(ift_box, label='Interp. (G):'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        ift_interp_sizer.Add(ift_interp, border=2, proportion=1,
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        ift_interp_sizer.Add(ift_interp, border=self._FromDIP(2), proportion=1,
             flag=wx.ALIGN_CENTER_VERTICAL)
 
         ift_sub_sizer.Add(ift_sub_info_sizer)
-        ift_sub_sizer.Add(ift_interp_sizer, border=2, flag=wx.TOP|wx.EXPAND)
+        ift_sub_sizer.Add(ift_interp_sizer, border=self._FromDIP(2), flag=wx.TOP
+            |wx.EXPAND)
 
 
-        ift_sizer.Add(ift_main_sizer, border=2, flag=wx.ALL|wx.EXPAND)
-        ift_sizer.Add(ift_sub_sizer, border=2, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+        ift_sizer.Add(ift_main_sizer, border=self._FromDIP(2), flag=wx.ALL
+            |wx.EXPAND)
+        ift_sizer.Add(ift_sub_sizer, border=self._FromDIP(2), flag=wx.LEFT
+            |wx.RIGHT|wx.BOTTOM)
 
 
         ambi_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, 'Ambimeter')
@@ -14057,16 +14190,17 @@ class InformationPanel(scrolled.ScrolledPanel):
             style=wx.TE_READONLY)
 
         ambi_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        ambi_main_sizer.Add(ambi_show_item, border=2,
+        ambi_main_sizer.Add(ambi_show_item, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         ambi_main_sizer.Add(wx.StaticText(ambi_box, label='Interp.:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         ambi_main_sizer.Add(ambi_interp_ctrl, proportion=1,
             flag=wx.ALIGN_CENTER_VERTICAL)
 
         ambi_sub_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        ambi_sub_info_sizer = wx.FlexGridSizer(cols=6, hgap=2, vgap=2)
+        ambi_sub_info_sizer = wx.FlexGridSizer(cols=6, hgap=self._FromDIP(2),
+            vgap=self._FromDIP(2))
         ambi_sub_info_sizer.Add(wx.StaticText(ambi_box, label='Score:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         ambi_sub_info_sizer.Add(ambi_score_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -14076,8 +14210,10 @@ class InformationPanel(scrolled.ScrolledPanel):
 
         ambi_sub_sizer.Add(ambi_sub_info_sizer)
 
-        ambi_sizer.Add(ambi_main_sizer, border=2, flag=wx.ALL|wx.EXPAND)
-        ambi_sizer.Add(ambi_sub_sizer, border=2, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+        ambi_sizer.Add(ambi_main_sizer, border=self._FromDIP(2), flag=wx.ALL
+            |wx.EXPAND)
+        ambi_sizer.Add(ambi_sub_sizer, border=self._FromDIP(2), flag=wx.LEFT
+            |wx.RIGHT|wx.BOTTOM)
 
 
         self.iftm_info['Filename'] = (filename, 'static_text', 0)
@@ -14109,10 +14245,10 @@ class InformationPanel(scrolled.ScrolledPanel):
         self.shown_items[ambi_show_item] = [False, ambi_sizer, ambi_sub_sizer, 'ift']
 
         ifts_info_sizer = wx.BoxSizer(wx.VERTICAL)
-        ifts_info_sizer.Add(filename_sizer, border=1, flag=wx.ALL)
-        ifts_info_sizer.Add(ift_sizer, border=1,
+        ifts_info_sizer.Add(filename_sizer, border=self._FromDIP(1), flag=wx.ALL)
+        ifts_info_sizer.Add(ift_sizer, border=self._FromDIP(1),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
-        ifts_info_sizer.Add(ambi_sizer, border=1,
+        ifts_info_sizer.Add(ambi_sizer, border=self._FromDIP(1),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
 
         return ifts_info_sizer
@@ -14122,9 +14258,10 @@ class InformationPanel(scrolled.ScrolledPanel):
         filename = wx.StaticText(self)
 
         filename_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        filename_sizer.Add(filename_label, border=2,
+        filename_sizer.Add(filename_label, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
-        filename_sizer.Add(filename, border=2, flag=wx.ALIGN_CENTER_VERTICAL)
+        filename_sizer.Add(filename, border=self._FromDIP(2),
+            flag=wx.ALIGN_CENTER_VERTICAL)
 
 
         info_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, 'Series Info')
@@ -14139,7 +14276,8 @@ class InformationPanel(scrolled.ScrolledPanel):
         series_avg_win = wx.TextCtrl(info_box, size=self._FromDIP((50, -1)),
             style=wx.TE_READONLY)
 
-        info_grid_sizer = wx.FlexGridSizer(cols=7, vgap=2, hgap=2)
+        info_grid_sizer = wx.FlexGridSizer(cols=7, vgap=self._FromDIP(2),
+            hgap=self._FromDIP(2))
         info_grid_sizer.Add(wx.StaticText(info_box, label='Series type:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         info_grid_sizer.Add(series_type, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -14156,7 +14294,8 @@ class InformationPanel(scrolled.ScrolledPanel):
 
         info_grid_sizer.AddGrowableCol(6)
 
-        info_sizer.Add(info_grid_sizer, border=2, flag=wx.ALL|wx.EXPAND)
+        info_sizer.Add(info_grid_sizer, border=self._FromDIP(2), flag=wx.ALL
+            |wx.EXPAND)
 
 
         buffer_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, 'Buffer')
@@ -14171,15 +14310,15 @@ class InformationPanel(scrolled.ScrolledPanel):
         buffer_ranges = wx.TextCtrl(buffer_box, style=wx.TE_READONLY)
 
         buffer_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        buffer_main_sizer.Add(buffer_show_item, border=2,
+        buffer_main_sizer.Add(buffer_show_item, border=self._FromDIP(2),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         buffer_main_sizer.Add(wx.StaticText(buffer_box, label='Buffer range:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         buffer_main_sizer.Add(buffer_ranges, proportion=1,
             flag=wx.ALIGN_CENTER_VERTICAL)
 
-        buffer_already_subtracted = wx.TextCtrl(buffer_box, size=self._FromDIP((50, -1)),
-                    style=wx.TE_READONLY)
+        buffer_already_subtracted = wx.TextCtrl(buffer_box,
+            size=self._FromDIP((50, -1)), style=wx.TE_READONLY)
 
         buffer_sub_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -14191,8 +14330,9 @@ class InformationPanel(scrolled.ScrolledPanel):
 
         buffer_sub_sizer.Add(buffer_sub_info_sizer)
 
-        buffer_sizer.Add(buffer_main_sizer, border=2, flag=wx.ALL|wx.EXPAND)
-        buffer_sizer.Add(buffer_sub_sizer, border=2,
+        buffer_sizer.Add(buffer_main_sizer, border=self._FromDIP(2), flag=wx.ALL
+            |wx.EXPAND)
+        buffer_sizer.Add(buffer_sub_sizer, border=self._FromDIP(2),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
 
 
@@ -14206,7 +14346,8 @@ class InformationPanel(scrolled.ScrolledPanel):
         baseline_end = wx.TextCtrl(baseline_box, size=self._FromDIP((70, -1)),
             style=wx.TE_READONLY)
 
-        baseline_info_sizer = wx.FlexGridSizer(cols=7, hgap=2, vgap=2)
+        baseline_info_sizer = wx.FlexGridSizer(cols=7, hgap=self._FromDIP(2),
+            vgap=self._FromDIP(2))
         baseline_info_sizer.Add(wx.StaticText(baseline_box, label='Type:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         baseline_info_sizer.Add(baseline_type, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -14220,7 +14361,7 @@ class InformationPanel(scrolled.ScrolledPanel):
 
         baseline_info_sizer.AddGrowableCol(6)
 
-        baseline_sizer.Add(baseline_info_sizer, border=2,
+        baseline_sizer.Add(baseline_info_sizer, border=self._FromDIP(2),
             flag=wx.ALL|wx.EXPAND)
 
 
@@ -14231,11 +14372,11 @@ class InformationPanel(scrolled.ScrolledPanel):
 
         sample_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         sample_main_sizer.Add(wx.StaticText(sample_box, label='Sample range:'),
-            border=2, flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         sample_main_sizer.Add(sample_ranges, proportion=1,
             flag=wx.ALIGN_CENTER_VERTICAL)
 
-        sample_sizer.Add(sample_main_sizer, border=2,
+        sample_sizer.Add(sample_main_sizer, border=self._FromDIP(2),
             flag=wx.ALL|wx.EXPAND)
 
 
@@ -14259,14 +14400,15 @@ class InformationPanel(scrolled.ScrolledPanel):
         self.shown_items[buffer_show_item] = [False, buffer_sizer, buffer_sub_sizer, 'series']
 
         series_info_sizer = wx.BoxSizer(wx.VERTICAL)
-        series_info_sizer.Add(filename_sizer, border=1, flag=wx.ALL)
-        series_info_sizer.Add(info_sizer, border=1,
+        series_info_sizer.Add(filename_sizer, border=self._FromDIP(1),
+            flag=wx.ALL)
+        series_info_sizer.Add(info_sizer, border=self._FromDIP(1),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
-        series_info_sizer.Add(buffer_sizer, border=1,
+        series_info_sizer.Add(buffer_sizer, border=self._FromDIP(1),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
-        series_info_sizer.Add(baseline_sizer, border=1,
+        series_info_sizer.Add(baseline_sizer, border=self._FromDIP(1),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
-        series_info_sizer.Add(sample_sizer, border=1,
+        series_info_sizer.Add(sample_sizer, border=self._FromDIP(1),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
 
         return series_info_sizer
@@ -14587,7 +14729,6 @@ class InformationPanel(scrolled.ScrolledPanel):
                 ctrl.SetItems([])
 
         except Exception:
-            traceback.print_exc()
             pass
 
     def textRound(self, value, round_to):
@@ -14689,14 +14830,18 @@ class WelcomeDialog(wx.Dialog):
         all_text = [text1, text2, text3, text4, text7, text8, text9]
 
         final_sizer = wx.BoxSizer(wx.VERTICAL)
-        final_sizer.Add(raw_icon, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 10)
-        final_sizer.Add(headline, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 15)
+        final_sizer.Add(raw_icon, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL,
+            border=self._FromDIP(10))
+        final_sizer.Add(headline, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL,
+            border=self._FromDIP(15))
 
         for each in all_text:
             txt = wx.StaticText(self.panel, wx.ID_ANY, each)
-            final_sizer.Add(txt, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.LEFT | wx.RIGHT, 15)
+            final_sizer.Add(txt, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.LEFT | wx.RIGHT,
+                border=self._FromDIP(15))
 
-        final_sizer.Add(self.ok_button, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
+        final_sizer.Add(self.ok_button, 0, wx.ALIGN_CENTER | wx.BOTTOM,
+            border=self._FromDIP(10))
 
         self.panel.SetSizer(final_sizer)
 
@@ -14727,7 +14872,8 @@ class WelcomeDialog(wx.Dialog):
         self.EndModal(wx.ID_OK)
 
     def _onKeyDown(self, event):
-        if event.GetKeyCode() == wx.WXK_RETURN or event.GetKeyCode() == wx.WXK_NUMPAD_ENTER:
+        if (event.GetKeyCode() == wx.WXK_RETURN
+            or event.GetKeyCode() == wx.WXK_NUMPAD_ENTER):
             self._onOKButton(-1)
         else:
             event.Skip()
@@ -14751,13 +14897,19 @@ class MyApp(wx.App):
             os.mkdir(RAWGlobals.RAWWorkDir)
 
         if RAWGlobals.frozen:
-            RAWGlobals.RAWResourcesDir = os.path.join(standard_paths.GetResourcesDir(), 'resources')
-            RAWGlobals.RAWDefinitionsDir = os.path.join(standard_paths.GetResourcesDir(), 'definitions')
-            RAWGlobals.RAWDocsDir = os.path.join(standard_paths.GetResourcesDir(), 'docs')
+            RAWGlobals.RAWResourcesDir = os.path.join(standard_paths.GetResourcesDir(),
+                'resources')
+            RAWGlobals.RAWDefinitionsDir = os.path.join(standard_paths.GetResourcesDir(),
+                'definitions')
+            RAWGlobals.RAWDocsDir = os.path.join(standard_paths.GetResourcesDir(),
+                'docs')
         else:
-            RAWGlobals.RAWResourcesDir = os.path.join(raw_path, 'bioxtasraw', 'resources')
-            RAWGlobals.RAWDefinitionsDir = os.path.join(raw_path, 'bioxtasraw', 'definitions')
-            RAWGlobals.RAWDocsDir = os.path.join(raw_path, 'docs', 'build', 'html')
+            RAWGlobals.RAWResourcesDir = os.path.join(raw_path, 'bioxtasraw',
+                'resources')
+            RAWGlobals.RAWDefinitionsDir = os.path.join(raw_path, 'bioxtasraw',
+                'definitions')
+            RAWGlobals.RAWDocsDir = os.path.join(raw_path, 'docs', 'build',
+                'html')
 
         MySplash = MySplashScreen()
         MySplash.Show()
@@ -14793,7 +14945,8 @@ class MyApp(wx.App):
                 else:
                     parent = None
 
-                wx.CallAfter(wx.lib.dialogs.scrolledMessageDialog, parent, msg, "Unexpected Error")
+                wx.CallAfter(wx.lib.dialogs.scrolledMessageDialog, parent, msg,
+                    "Unexpected Error")
         else:
             sys.stderr.write(msg)
 

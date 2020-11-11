@@ -287,7 +287,7 @@ class FloatSpinCtrl(wx.Panel):
 
         sizer = wx.BoxSizer()
 
-        sizer.Add(self.Scale, 0, wx.RIGHT, 1)
+        sizer.Add(self.Scale, 0, wx.RIGHT, border=self._FromDIP(1))
         sizer.Add(self.ScalerButton, 0)
 
         self.oldValue = 0
@@ -464,7 +464,7 @@ class FloatSpinCtrlList(wx.Panel):
 
         sizer = wx.BoxSizer()
 
-        sizer.Add(self.Scale, 0, wx.RIGHT, 1)
+        sizer.Add(self.Scale, 0, wx.RIGHT, border=self._FromDIP(1))
         sizer.Add(self.ScalerButton, 0)
 
         self.SetSizer(sizer)
@@ -611,7 +611,7 @@ class IntSpinCtrl(wx.Panel):
 
         sizer = wx.BoxSizer()
 
-        sizer.Add(self.Scale, 0, wx.RIGHT, 1)
+        sizer.Add(self.Scale, 0, wx.RIGHT, self._FromDIP(1))
         sizer.Add(self.ScalerButton, 0)
 
         self.oldValue = 0
@@ -834,11 +834,13 @@ class ItemList(wx.Panel):
 
         panel_sizer = wx.BoxSizer(wx.VERTICAL)
         if toolbar_sizer is not None:
-            panel_sizer.Add(toolbar_sizer, border=5, flag=wx.LEFT|wx.RIGHT|wx.EXPAND)
-        panel_sizer.Add(self.list_panel, proportion=1, border=3,
+            panel_sizer.Add(toolbar_sizer, border=self._FromDIP(5), flag=wx.LEFT
+                |wx.RIGHT|wx.EXPAND)
+        panel_sizer.Add(self.list_panel, proportion=1, border=self._FromDIP(3),
             flag=wx.TOP|wx.LEFT|wx.RIGHT|wx.EXPAND)
         if button_sizer is not None:
-            panel_sizer.Add(button_sizer, border=10, flag=wx.EXPAND|wx.ALL)
+            panel_sizer.Add(button_sizer, border=self._FromDIP(10),
+                flag=wx.EXPAND|wx.ALL)
 
         self.SetSizer(panel_sizer)
 
