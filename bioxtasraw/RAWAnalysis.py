@@ -1599,7 +1599,7 @@ class MolWeightFrame(wx.Frame):
         if not self.has_atsas:
             size = (min(500, client_display.Width), min(550, client_display.Height))
         else:
-            size = (min(720, client_display.Width), min(550, client_display.Height))
+            size = (min(725, client_display.Width), min(550, client_display.Height))
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
