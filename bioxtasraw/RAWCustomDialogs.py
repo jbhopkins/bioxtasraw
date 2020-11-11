@@ -3470,8 +3470,10 @@ class CustomQuestionDialog(wx.Dialog):
         button_panel = self._createButtonPanel()
         question_panel = CustomQuestionPanel(self, question_text, icon)
 
-        self.main_sizer.Add(question_panel, 1, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 15)
-        self.main_sizer.Add(button_panel, 0, wx.ALL | wx.ALIGN_CENTER, 10)
+        self.main_sizer.Add(question_panel, 1, wx.LEFT | wx.RIGHT | wx.TOP
+            |wx.EXPAND, border=self._FromDIP(15))
+        self.main_sizer.Add(button_panel, 0, wx.ALL | wx.ALIGN_CENTER,
+            border=self._FromDIP(10))
 
         self.SetSizer(self.main_sizer)
 
@@ -3481,26 +3483,26 @@ class CustomQuestionDialog(wx.Dialog):
         qp_size = question_panel.question_label.GetBestSize()
         icn_size = question_panel.bitmap.GetBestSize()
 
-        total_width = qp_size[0]+icn_size[0]+55
-        total_height = qp_size[1]+bp_size[1]+75
+        total_width = qp_size[0]+icn_size[0]+self._FromDIP(55)
+        total_height = qp_size[1]+bp_size[1]+self._FromDIP(75)
 
         self.SetMaxSize(self._FromDIP((800,600)))
 
         panel_size = self.GetBestSize()
 
-        best_width = min(800, max(total_width, panel_size[0]))
-        best_height = min(600, max(total_height, panel_size[1]))
+        best_width = min(self._FromDIP(800), max(total_width, panel_size[0]))
+        best_height = min(self._FromDIP(600), max(total_height, panel_size[1]))
 
-        if best_width == 800 and best_height<600:
-            best_height = min(600, best_height+20)
-        if best_height == 600 and best_width < 800:
-            best_width = min(800, best_width+20)
+        if best_width == self._FromDIP(800) and best_height<self._FromDIP(600):
+            best_height = min(self._FromDIP(600), best_height+self._FromDIP(20))
+        if best_height == self._FromDIP(600) and best_width < self._FromDIP(800):
+            best_width = min(self._FromDIP(800), best_width+self._FromDIP(20))
 
         client_display = wx.GetClientDisplayRect()
         best_width = min(best_width, client_display.Width)
         best_height = min(best_height, client_display.Height)
 
-        self.SetSize(self._FromDIP((best_width, best_height)))
+        self.SetSize((best_width, best_height))
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
