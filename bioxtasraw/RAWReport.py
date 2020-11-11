@@ -2803,29 +2803,29 @@ class ReportFrame(wx.Frame):
 
         profile_sizer = wx.BoxSizer(wx.VERTICAL)
         profile_sizer.Add(wx.StaticText(inc_box, label='Profiles:'), flag=wx.ALL,
-            border=5)
+            border=self._FromDIP(5))
         profile_sizer.Add(self.profile_list, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
-            border=5, proportion=1)
+            border=self._FromDIP(5), proportion=1)
 
         ift_sizer = wx.BoxSizer(wx.VERTICAL)
         ift_sizer.Add(wx.StaticText(inc_box, label='IFTs:'), flag=wx.ALL,
-            border=5)
+            border=self._FromDIP(5))
         ift_sizer.Add(self.ift_list, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
-            border=5, proportion=1)
+            border=self._FromDIP(5), proportion=1)
 
         series_sizer = wx.BoxSizer(wx.VERTICAL)
         series_sizer.Add(wx.StaticText(inc_box, label='Series:'), flag=wx.ALL,
-            border=5)
+            border=self._FromDIP(5))
         series_sizer.Add(self.series_list, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
-            border=5, proportion=1)
+            border=self._FromDIP(5), proportion=1)
 
         selector_sizer = wx.StaticBoxSizer(inc_box, wx.HORIZONTAL)
-        selector_sizer.Add(profile_sizer, flag=wx.ALL|wx.EXPAND, border=5,
-            proportion=1)
-        selector_sizer.Add(ift_sizer, flag=wx.TOP|wx.BOTTOM|wx.RIGHT|wx.EXPAND, border=5,
-            proportion=1)
-        selector_sizer.Add(series_sizer, flag=wx.TOP|wx.BOTTOM|wx.RIGHT|wx.EXPAND, border=5,
-            proportion=1)
+        selector_sizer.Add(profile_sizer, flag=wx.ALL|wx.EXPAND,
+            border=self._FromDIP(5), proportion=1)
+        selector_sizer.Add(ift_sizer, flag=wx.TOP|wx.BOTTOM|wx.RIGHT|wx.EXPAND,
+            border=self._FromDIP(5), proportion=1)
+        selector_sizer.Add(series_sizer, flag=wx.TOP|wx.BOTTOM|wx.RIGHT|wx.EXPAND,
+            border=self._FromDIP(5), proportion=1)
 
 
         ctrl_box = wx.StaticBox(panel, label='Controls')
@@ -2836,12 +2836,13 @@ class ReportFrame(wx.Frame):
         make_report.Bind(wx.EVT_BUTTON, self._on_make_report)
 
         ctrl_sizer = wx.StaticBoxSizer(ctrl_box, wx.HORIZONTAL)
-        ctrl_sizer.Add(wx.StaticText(ctrl_box, label='Report type:'), border=5,
-            flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL)
-        ctrl_sizer.Add(self.report_type, border=5, flag=wx.TOP|wx.BOTTOM|wx.RIGHT
+        ctrl_sizer.Add(wx.StaticText(ctrl_box, label='Report type:'),
+            border=self._FromDIP(5), flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL)
+        ctrl_sizer.Add(self.report_type, border=self._FromDIP(5), flag=wx.TOP
+            |wx.BOTTOM|wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        ctrl_sizer.AddSpacer(self._FromDIP(15))
+        ctrl_sizer.Add(make_report, border=self._FromDIP(5), flag=wx.ALL
             |wx.ALIGN_CENTER_VERTICAL)
-        ctrl_sizer.AddSpacer(15)
-        ctrl_sizer.Add(make_report, border=5, flag=wx.ALL|wx.ALIGN_CENTER_VERTICAL)
         ctrl_sizer.AddStretchSpacer(1)
 
 
@@ -2849,10 +2850,12 @@ class ReportFrame(wx.Frame):
         close_btn.Bind(wx.EVT_BUTTON, self._onCloseButton)
 
         panel_sizer = wx.BoxSizer(wx.VERTICAL)
-        panel_sizer.Add(selector_sizer, flag=wx.ALL|wx.EXPAND, border=5,
-            proportion=1)
-        panel_sizer.Add(ctrl_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND, border=5)
-        panel_sizer.Add(close_btn, flag=wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, border=5)
+        panel_sizer.Add(selector_sizer, flag=wx.ALL|wx.EXPAND,
+            border=self._FromDIP(5), proportion=1)
+        panel_sizer.Add(ctrl_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(5))
+        panel_sizer.Add(close_btn, flag=wx.ALL|wx.ALIGN_CENTER_HORIZONTAL,
+            border=self._FromDIP(5))
 
         panel.SetSizer(panel_sizer)
 

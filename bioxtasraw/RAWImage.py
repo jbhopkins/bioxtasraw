@@ -1414,8 +1414,9 @@ class HdrInfoDialog(wx.Dialog):
         button = wx.Button(self, wx.ID_CLOSE, 'Close')
         button.Bind(wx.EVT_BUTTON, self.onClose)
 
-        final_sizer.Add(sizer, 1, wx.EXPAND | wx.ALL, 5)
-        final_sizer.Add(button,0, wx.BOTTOM | wx.ALIGN_RIGHT | wx.RIGHT, 5)
+        final_sizer.Add(sizer, 1, wx.EXPAND | wx.ALL, border=self._FromDIP(5))
+        final_sizer.Add(button,0, wx.BOTTOM | wx.ALIGN_RIGHT | wx.RIGHT,
+            border=self._FromDIP(5))
 
         self.SetSizer(final_sizer)
 
@@ -1499,18 +1500,23 @@ class ImageSettingsDialog(wx.Dialog):
         colormapsizer = self.createColormapSelector()
 
         sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-        sizer.Add(slidersizer, 1, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        sizer.Add(slidersizer, 1, wx.EXPAND | wx.TOP | wx.BOTTOM,
+            border=self._FromDIP(5))
 
         self.okButton = wx.Button(self, -1, 'OK')
         self.okButton.Bind(wx.EVT_BUTTON, self.OnOk)
 
         finalSizer = wx.BoxSizer(wx.VERTICAL)
-        finalSizer.Add(sizer, 0, wx.EXPAND, wx.TOP | wx.LEFT | wx.RIGHT, 5)
-        finalSizer.Add(scalesizer,0, wx.EXPAND, wx.LEFT | wx.RIGHT, 5)
-        finalSizer.Add(colormapsizer,0, wx.EXPAND, wx.LEFT | wx.RIGHT, 5)
-        finalSizer.Add(self.okButton, 0, wx.CENTER | wx.TOP, 10)
+        finalSizer.Add(sizer, 0, wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT,
+            border=self._FromDIP(5))
+        finalSizer.Add(scalesizer,0, wx.EXPAND | wx.LEFT | wx.RIGHT,
+            border=self._FromDIP(5))
+        finalSizer.Add(colormapsizer,0, wx.EXPAND | wx.LEFT | wx.RIGHT,
+            border=self._FromDIP(5))
+        finalSizer.Add(self.okButton, 0, wx.CENTER | wx.TOP,
+            border=self._FromDIP(10))
 
-        finalfinal_sizer.Add(finalSizer, 0, wx.ALL, 10)
+        finalfinal_sizer.Add(finalSizer, 0, wx.ALL, border=self._FromDIP(10))
 
         self.SetSizer(finalfinal_sizer)
         self.Fit()
@@ -1550,12 +1556,13 @@ class ImageSettingsDialog(wx.Dialog):
                           matplotlib.cm.jet,
                           matplotlib.cm.nipy_spectral]
 
-        rb = wx.RadioBox(self, label="Colormaps", choices=self.colorRadioList, style=wx.RA_SPECIFY_COLS)
+        rb = wx.RadioBox(self, label="Colormaps", choices=self.colorRadioList,
+            style=wx.RA_SPECIFY_COLS)
         rb.Bind(wx.EVT_RADIOBOX, self.onColorMapsRadioBox)
 
         rb.SetSelection(self.colormaps.index(self.parent.plot_parameters['ColorMap']))
 
-        sizer.Add(rb,1,wx.EXPAND)
+        sizer.Add(rb, 1, wx.EXPAND)
 
         return sizer
 
@@ -1586,7 +1593,8 @@ class ImageSettingsDialog(wx.Dialog):
         sizer = wx.BoxSizer()
 
         radioList = ['Linear', 'Logarithmic']
-        rb = wx.RadioBox(self, label="Image scaling", choices=radioList, style=wx.RA_SPECIFY_COLS)
+        rb = wx.RadioBox(self, label="Image scaling", choices=radioList,
+            style=wx.RA_SPECIFY_COLS)
         rb.Bind(wx.EVT_RADIOBOX, self.onRadioBox)
 
         if self.parent.plot_parameters['ImgScale'] == 'linear':
@@ -1594,7 +1602,7 @@ class ImageSettingsDialog(wx.Dialog):
         else:
             rb.SetSelection(1)
 
-        sizer.Add(rb,1,wx.EXPAND)
+        sizer.Add(rb, 1, wx.EXPAND)
 
         return sizer
 
@@ -1703,17 +1711,18 @@ class ImageSettingsDialog(wx.Dialog):
 
             hslider = wx.BoxSizer(wx.HORIZONTAL)
 
-            hslider.Add(label, 0, wx.EXPAND | wx.TOP, 3)
-            hslider.Add(val, 0, wx.EXPAND)
-            hslider.Add(slider, 1, wx.EXPAND)
+            hslider.Add(label, 0, wx.EXPAND | wx.RIGHT, border=self._FromDIP(5))
+            hslider.Add(val, 0, wx.EXPAND|wx.RIGHT)
+            hslider.Add(slider, 1, wx.EXPAND|wx.RIGHT)
 
-            finalSizer.Add(hslider, 0, wx.EXPAND)
+            finalSizer.Add(hslider, 0, wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT,
+                border=self._FromDIP(5))
 
         chkbox = wx.CheckBox(self, -1, 'Lock values')
         chkbox.Bind(wx.EVT_CHECKBOX, self.onLockValues)
         chkbox.SetValue(self.parent.plot_parameters['ClimLocked'])
 
-        finalSizer.Add(chkbox, 0, wx.EXPAND | wx.TOP, 3)
+        finalSizer.Add(chkbox, 0, wx.EXPAND | wx.ALL, border=self._FromDIP(5))
 
         return finalSizer
 
