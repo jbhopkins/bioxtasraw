@@ -13688,7 +13688,7 @@ class InformationPanel(scrolled.ScrolledPanel):
             flag=wx.ALIGN_CENTER_VERTICAL)
         mw_main_sizer.Add(std_mw_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
         # mw_main_sizer.AddSpacer(1)
-        mw_main_sizer.AddSpacer(1)
+        mw_main_sizer.AddSpacer(self._FromDPI(1))
         mw_main_sizer.Add(wx.StaticText(mw_box, label='Bayes:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         mw_main_sizer.Add(bayes_mw_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
