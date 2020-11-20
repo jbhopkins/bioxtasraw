@@ -32,7 +32,6 @@ from io import open
 import copy
 import traceback
 import os
-
 import numpy as np
 import scipy.interpolate as interp
 
@@ -43,6 +42,7 @@ if raw_path not in os.sys.path:
 import bioxtasraw.SASExceptions as SASExceptions
 import bioxtasraw.SASM as SASM
 import bioxtasraw.sascalc_exts as sascalc_exts
+
 
 def subtract(sasm1, sasm2, forced = False, full = False):
     ''' Subtract one SASM object from another and propagate errors '''
@@ -803,7 +803,6 @@ def get_shared_values(dict_list):
 
     return shared_params
 
-
 def cormap_pval(data1, data2):
     """Calculate the probability for a couple of dataset to be equivalent
 
@@ -842,20 +841,20 @@ def contiguous_regions(data):
     a 1D array where each value represents a change in the condition."""
 
     if np.all(data==0):
-        idx = np.array([])
+        idx = np.array([0])
     elif np.all(data>0) or np.all(data<0):
         idx = np.array([0, data.size])
     else:
         condition = data>0
         # Find the indicies of changes in "condition"
-        d = np.ediff1d(condition.astype(int))
+        d = np.ediff1d(condition.astype(np.int_))
         idx, = d.nonzero()
         idx = idx+1
 
         if np.any(data==0):
             condition2 = data<0
             # Find the indicies of changes in "condition"
-            d2 = np.ediff1d(condition2.astype(int))
+            d2 = np.ediff1d(condition2.astype(np.int_))
             idx2, = d2.nonzero()
             idx2 = idx2+1
             #Combines the two conditions into a sorted array, no need to remove duplicates

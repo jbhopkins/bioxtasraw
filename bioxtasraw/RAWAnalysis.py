@@ -4389,11 +4389,11 @@ class GNOMControlPanel(wx.Panel):
         self.cut_qrg.Bind(wx.EVT_CHECKBOX, self.onCutQRg)
 
         ctrl2_sizer.Add(wx.StaticText(self, -1, 'Dmax: '), 0, wx.RIGHT
-            |wx.ALIGN_CENTER_VERTICAL, self._FromDIP(5))
+            |wx.ALIGN_CENTER_VERTICAL, self._FromDIP(2))
         ctrl2_sizer.Add(self.dmaxSpin, 1, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL,
             self._FromDIP(5))
         ctrl2_sizer.Add(wx.StaticText(self, label='Alpha (0=auto):'),
-            border=self._FromDIP(5), flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
+            border=self._FromDIP(2), flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
         ctrl2_sizer.Add(self.alpha_ctrl, border=self._FromDIP(5), proportion=1,
             flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
 

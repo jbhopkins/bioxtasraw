@@ -128,6 +128,9 @@ def calcRg(q, i, err, transform=True, error_weight=True):
         x = np.square(q)
         y = np.log(i)
         yerr = np.absolute(err/i) #I know it looks odd, but it's correct for a natural log
+        x = x[np.where(np.isfinite(y))]
+        yerr = yerr[np.where(np.isfinite(y))]
+        y = y[np.where(np.isfinite(y))]
     else:
         x = q
         y = i
@@ -372,7 +375,8 @@ def autoRg(sasm, single_fit=False, error_weight=True):
     err = err[qmin:qmax]
 
     try:
-        rg, rger, i0, i0er, idx_min, idx_max = autoRg_inner(q, i, err, qmin, single_fit, error_weight)
+        rg, rger, i0, i0er, idx_min, idx_max = autoRg_inner(q, i, err, qmin,
+            single_fit, error_weight)
     except Exception: #Catches unexpected numba errors, I hope
         traceback.print_exc()
         rg = -1
@@ -382,10 +386,70 @@ def autoRg(sasm, single_fit=False, error_weight=True):
         idx_min = -1
         idx_max = -1
 
+    if rg == -1:
+        #If we don't find a fit, relax the criteria
+        try:
+            rg, rger, i0, i0er, idx_min, idx_max = autoRg_inner(q, i, err, qmin,
+                single_fit, error_weight, quality_thresh=0.5, min_window=5)
+        except Exception: #Catches unexpected numba errors, I hope
+            traceback.print_exc()
+            rg = -1
+            rger = -1
+            i0 = -1
+            i0er = -1
+            idx_min = -1
+            idx_max = -1
+
+    if rg == -1:
+        #If we don't find a fit, relax the criteria
+        try:
+            rg, rger, i0, i0er, idx_min, idx_max = autoRg_inner(q, i, err, qmin,
+                single_fit, error_weight, data_range_scale=100)
+        except Exception: #Catches unexpected numba errors, I hope
+            traceback.print_exc()
+            rg = -1
+            rger = -1
+            i0 = -1
+            i0er = -1
+            idx_min = -1
+            idx_max = -1
+
+    if rg == -1:
+        #If we don't find a fit, relax the criteria
+        try:
+            rg, rger, i0, i0er, idx_min, idx_max = autoRg_inner(q, i, err, qmin,
+                single_fit, error_weight, min_qrg=1.2, max_qrg=1.5,
+                quality_thresh=0.3, data_range_scale=100)
+        except Exception: #Catches unexpected numba errors, I hope
+            traceback.print_exc()
+            rg = -1
+            rger = -1
+            i0 = -1
+            i0er = -1
+            idx_min = -1
+            idx_max = -1
+
+    if rg == -1:
+        #If we don't find a fit, relax the criteria
+        try:
+            rg, rger, i0, i0er, idx_min, idx_max = autoRg_inner(q, i, err, qmin,
+                single_fit, error_weight, min_window=5, min_qrg=1.2, max_qrg=1.5,
+                quality_thresh=0.3, data_range_scale=100)
+        except Exception: #Catches unexpected numba errors, I hope
+            traceback.print_exc()
+            rg = -1
+            rger = -1
+            i0 = -1
+            i0er = -1
+            idx_min = -1
+            idx_max = -1
+
     return rg, rger, i0, i0er, idx_min, idx_max
 
 @jit(nopython=True, cache=True, parallel=False)
-def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
+def autoRg_inner(q, i, err, qmin, single_fit, error_weight, min_window=10,
+    min_qrg=1.0, max_qrg=1.35, quality_thresh=0.6, data_range_scale=None,
+    corr_coefht=2., win_length_weight=1.0):
     #Pick the start of the RG fitting range. Note that in autorg, this is done
     #by looking for strong deviations at low q from aggregation or structure factor
     #or instrumental scattering, and ignoring those. This function isn't that advanced
@@ -395,19 +459,51 @@ def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
     # with declaring lists ahead of time, and making sure lists didn't have multiple
     # object types in them. It makes the code a bit more messy than the original
     # version, but numba provides a significant speedup.
-    data_start = 0
+
+    # Have to pick the right Starting range to avoid various weirdnesses in the data
+    data_start = (i>0).argmax()
+
+    if len(i) > 20:
+        while i[data_start] < np.mean(i[-1*int(len(i)/20):]) and data_start<len(i):
+            data_start = (i[data_start+1:]>0).argmax() + data_start+1
+
+        while i[data_start] > np.mean(i[data_start:data_start+20])*10:
+            data_start = (i[data_start+1:]>0).argmax()+data_start+1
+
+    # Turns out to be pretty important to pick a good initial q range for the search
+    # This is just kind of determined by what looks reasonable
+    if data_range_scale is None:
+        total_int_range = np.abs(np.mean(i[data_start:data_start+20])/np.mean(i[-20:]))
+        if total_int_range < 20:
+            data_range_scale = 2.5
+
+        elif total_int_range < 100:
+            data_range_scale = 5
+
+        elif total_int_range < 1000:
+            data_range_scale = 10
+
+        else:
+            data_range_scale = 100
 
     #Following the atsas package, the end point of our search space is the q value
     #where the intensity has droped by an order of magnitude from the initial value.
-    data_end = np.abs(i-i[data_start]/10.).argmin()
+    data_end = np.abs(i[i>0]-i[data_start]/data_range_scale).argmin()
+
+    i_val = i[i>0][data_end]
+    data_end = np.argwhere(i==i_val)[0][0]
+
 
     #This makes sure we're not getting some weird fluke at the end of the scattering profile.
-    if data_end > len(q)/2.:
+    if data_end > len(i)/2.:
         found = False
-        idx = 0
+        if len(i) > data_start+20 and data_start+20<len(i)/2.:
+            idx = data_start+20
+        else:
+            idx = data_start
         while not found:
             idx = idx +1
-            if i[idx]<i[0]/10.:
+            if i[idx]<i[data_start]/data_range_scale:
                 found = True
             elif idx == len(q) -1:
                 found = True
@@ -419,7 +515,7 @@ def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
     iler = np.absolute(err/i)
 
     #Pick a minimum fitting window size. 10 is consistent with atsas autorg.
-    min_window = 10
+    min_window = min_window
 
     max_window = data_end-data_start
 
@@ -429,7 +525,7 @@ def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
     #It is very time consuming to search every possible window size and every possible starting point.
     #Here we define a subset to search.
     tot_points = max_window
-    window_step = tot_points//10
+    window_step = min(tot_points//10, 20)
     data_step = tot_points//50
 
     if window_step == 0:
@@ -465,6 +561,7 @@ def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
     rsqr_list = [0. for k in range(num_fits)]
     chi_sqr_list = [0. for k in range(num_fits)]
     reduced_chi_sqr_list = [0. for k in range(num_fits)]
+    corr_coef_list = [0. for k in range(num_fits)]
 
     success = np.zeros(num_fits)
 
@@ -486,18 +583,22 @@ def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
 
             RG, I0, RGer, I0er, a, b = calcRg(x, y, yerr, transform=False, error_weight=error_weight)
 
-            if RG>0.1 and q[start]*RG<1 and q[start+w-1]*RG<1.35 and RGer/RG <= 1:
+            if RG>0.1 and q[start]*RG<min_qrg and q[start+w-1]*RG<max_qrg and RGer/RG <= 1:
+                residual = il[start:start+w]-linear_func(qs[start:start+w], a, b)
 
-                r_sqr = 1 - np.square(il[start:start+w]-linear_func(qs[start:start+w], a, b)).sum()/np.square(il[start:start+w]-il[start:start+w].mean()).sum()
+                r_sqr = 1 - np.square(residual).sum()/np.square(il[start:start+w]-il[start:start+w].mean()).sum()
 
                 if r_sqr > .15:
-                    chi_sqr = np.square((il[start:start+w]-linear_func(qs[start:start+w], a, b))/iler[start:start+w]).sum()
+                    chi_sqr = np.square((residual)/iler[start:start+w]).sum()
 
                     #All of my reduced chi_squared values are too small, so I suspect something isn't right with that.
                     #Values less than one tend to indicate either a wrong degree of freedom, or a serious overestimate
                     #of the error bars for the system.
                     dof = w - 2.
                     reduced_chi_sqr = chi_sqr/dof
+
+                    #Ideally this would be a pvalue, but I'd have to invest in a lot of intrastructure to actually calculate that in a jitted function
+                    corr_coef = 1- spearmanr(residual, qs[start:start+w])
 
                     start_list[current_fit] = start
                     w_list[current_fit] = w
@@ -512,43 +613,40 @@ def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
                     rsqr_list[current_fit] = r_sqr
                     chi_sqr_list[current_fit] = chi_sqr
                     reduced_chi_sqr_list[current_fit] = reduced_chi_sqr
+                    corr_coef_list[current_fit] = corr_coef
 
-                    # fit_list[current_fit] = [start, w, q[start], q[start+w-1], RG, RGer, I0, I0er, q[start]*RG, q[start+w-1]*RG, r_sqr, chi_sqr, reduced_chi_sqr]
                     success[current_fit] = 1
 
             current_fit = current_fit + 1
-    #Extreme cases: may need to relax the parameters.
-    if np.sum(success) == 0:
-        #Stuff goes here
-        pass
 
     if np.sum(success) > 0:
 
         fit_array = np.array([[start_list[k], w_list[k], q_start_list[k],
             q_end_list[k], rg_list[k], rger_list[k], i0_list[k], i0er_list[k],
             qrg_start_list[k], qrg_end_list[k], rsqr_list[k], chi_sqr_list[k],
-            reduced_chi_sqr_list[k]] for k in range(num_fits) if success[k]==1])
+            reduced_chi_sqr_list[k], corr_coef_list[k]] for k in range(num_fits) if success[k]==1])
 
         #Now we evaluate the quality of the fits based both on fitting data and on other criteria.
 
-        #Choice of weights is pretty arbitrary. This set seems to yield results similar to the atsas autorg
-        #for the few things I've tested.
+        # Choice of weights is pretty arbitrary, but has been tested against
+        # all the data in the SASBDB (as of 11/2020)
         qmaxrg_weight = 1
         qminrg_weight = 1
         rg_frac_err_weight = 1
         i0_frac_err_weight = 1
         r_sqr_weight = 4
         reduced_chi_sqr_weight = 0
-        window_size_weight = 4
+        window_size_weight = win_length_weight
+        corr_coef_weight = corr_coefht
 
-        weights = np.array([qmaxrg_weight, qminrg_weight, rg_frac_err_weight, i0_frac_err_weight, r_sqr_weight,
-                            reduced_chi_sqr_weight, window_size_weight])
+        weights = np.array([qmaxrg_weight, qminrg_weight, rg_frac_err_weight,
+            i0_frac_err_weight, r_sqr_weight, reduced_chi_sqr_weight,
+            window_size_weight, corr_coef_weight])
 
         quality = np.zeros(len(fit_array))
 
-        max_window_real = float(window_list[-1])
+        max_window_real = float(max(w_list))
 
-        # all_scores = [np.array([]) for k in range(len(fit_array))]
 
         #This iterates through all the fits, and calculates a score. The score is out of 1, 1 being the best, 0 being the worst.
         indices =list(range(len(fit_array)))
@@ -563,9 +661,11 @@ def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
             r_sqr_score = fit_array[k,10]
             reduced_chi_sqr_score = 1/fit_array[k,12] #Not right
             window_size_score = fit_array[k,1]/max_window_real
+            corr_coef_score = fit_array[k,13]
 
-            scores = np.array([qmaxrg_score, qminrg_score, rg_frac_err_score, i0_frac_err_score, r_sqr_score,
-                               reduced_chi_sqr_score, window_size_score])
+            scores = np.array([qmaxrg_score, qminrg_score, rg_frac_err_score,
+                i0_frac_err_score, r_sqr_score, reduced_chi_sqr_score,
+                window_size_score, corr_coef_score])
 
             total_score = (weights*scores).sum()/weights.sum()
 
@@ -573,25 +673,186 @@ def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
 
             # all_scores[k] = scores
 
-
         #I have picked an aribtrary threshold here. Not sure if 0.6 is a good quality cutoff or not.
-        if quality.max() > 0.6:
+        if quality.max() > quality_thresh:
             if not single_fit:
                 idx = quality.argmax()
-                rg = fit_array[:,4][quality>quality[idx]-.1].mean()
                 rger = fit_array[:,5][quality>quality[idx]-.1].std()
-                i0 = fit_array[:,6][quality>quality[idx]-.1].mean()
                 i0er = fit_array[:,7][quality>quality[idx]-.1].std()
                 idx_min = int(fit_array[idx,0])
                 idx_max = int(fit_array[idx,0]+fit_array[idx,1]-1)
             else:
                 idx = quality.argmax()
-                rg = fit_array[idx,4]
-                rger = fit_array[idx,5]
-                i0 = fit_array[idx,6]
-                i0er = fit_array[idx,7]
                 idx_min = int(fit_array[idx,0])
                 idx_max = int(fit_array[idx,0]+fit_array[idx,1]-1)
+
+
+            # Now refine the range a bit
+            max_quality = quality.max()
+            qual = max_quality
+
+            idx_max_ref = idx_max
+
+            if max_qrg == 1.35:
+                max_qrg_ref = 1.3
+            else:
+                max_qrg_ref = max_qrg
+
+            if q[idx_max]*RG<1.0:
+                quality_scale = 0.9
+                r_thresh = 0.1
+            else:
+                quality_scale = 0.97
+                r_thresh = 0.15
+
+            # Refine upper end of range
+            while qual > quality_scale*max_quality and idx_max_ref < len(q):
+
+                idx_max_ref = idx_max_ref +1
+                x = qs[idx_min:idx_max_ref+1]
+                y = il[idx_min:idx_max_ref+1]
+                yerr = iler[idx_min:idx_max_ref+1]
+
+                #Remove NaN and Inf values:
+                x = x[np.where(np.isfinite(y))]
+                yerr = yerr[np.where(np.isfinite(y))]
+                y = y[np.where(np.isfinite(y))]
+
+
+                RG, I0, RGer, I0er, a, b = calcRg(x, y, yerr, transform=False,
+                    error_weight=error_weight)
+
+                if RG>0.1 and q[idx_min]*RG<min_qrg and q[idx_max_ref]*RG<max_qrg_ref and RGer/RG <= 1:
+                    residual = il[idx_min:idx_max_ref+1]- linear_func(qs[idx_min:idx_max_ref+1], a, b)
+
+                    r_sqr = (1 - np.square(residual).sum()/np.square(il[idx_min:idx_max_ref+1]-il[idx_min:idx_max_ref+1].mean()).sum())
+
+                    if r_sqr > r_thresh:
+                        chi_sqr = np.square(residual/iler[idx_min:idx_max_ref+1]).sum()
+
+                        #All of my reduced chi_squared values are too small, so I suspect something isn't right with that.
+                        #Values less than one tend to indicate either a wrong degree of freedom, or a serious overestimate
+                        #of the error bars for the system.
+                        dof = w - 2.
+                        reduced_chi_sqr = chi_sqr/dof
+
+                        corr_coef = 1- spearmanr(residual, qs[idx_min:idx_max_ref+1])
+
+                        qmaxrg_score = 1-abs((q[idx_max_ref]*RG-1.3)/1.3)
+                        qminrg_score = 1-q[idx_min]*RG
+                        rg_frac_err_score = 1-RGer/RG
+                        i0_frac_err_score = 1 - I0er/I0
+                        r_sqr_score = r_sqr
+                        reduced_chi_sqr_score = 1/reduced_chi_sqr #Not right
+                        window_size_score = fit_array[k,1]/max_window_real
+                        corr_coef_score = corr_coef
+
+                        scores = np.array([qmaxrg_score, qminrg_score,
+                            rg_frac_err_score, i0_frac_err_score, r_sqr_score,
+                            reduced_chi_sqr_score, window_size_score,
+                            corr_coef_score])
+
+
+                        qual = (weights*scores).sum()/weights.sum()
+
+                        if q[idx_max]*RG<1.0:
+                            quality_scale = 0.9
+                            r_thresh = 0.1
+                        else:
+                            quality_scale = 0.97
+                            r_thresh = 0.15
+
+                    else:
+                        qual = -1
+
+                else:
+                    qual = -1
+
+                max_quality = max(max_quality, qual)
+
+            idx_max = idx_max_ref -1
+
+            # Refine lower end of range
+            idx_min_ref = idx_min
+            qual = max_quality
+
+            while qual > 0.97*max_quality and idx_min_ref > 0:
+
+                idx_min_ref = idx_min_ref -1
+                x = qs[idx_min_ref:idx_max+1]
+                y = il[idx_min_ref:idx_max+1]
+                yerr = iler[idx_min_ref:idx_max+1]
+
+                #Remove NaN and Inf values:
+                x = x[np.where(np.isfinite(y))]
+                yerr = yerr[np.where(np.isfinite(y))]
+                y = y[np.where(np.isfinite(y))]
+
+
+                RG, I0, RGer, I0er, a, b = calcRg(x, y, yerr, transform=False,
+                    error_weight=error_weight)
+
+                if RG>0.1 and q[idx_min_ref]*RG<min_qrg and q[idx_max]*RG<max_qrg_ref and RGer/RG <= 1:
+
+                    residual = il[idx_min_ref:idx_max+1]- linear_func(qs[idx_min_ref:idx_max+1], a, b)
+
+                    r_sqr = (1 - np.square(residual).sum()/np.square(il[idx_min_ref:idx_max+1]-il[idx_min_ref:idx_max+1].mean()).sum())
+
+                    if r_sqr > .15:
+                        chi_sqr = (np.square((residual)/iler[idx_min_ref:idx_max+1]).sum())
+
+                        #All of my reduced chi_squared values are too small, so I suspect something isn't right with that.
+                        #Values less than one tend to indicate either a wrong degree of freedom, or a serious overestimate
+                        #of the error bars for the system.
+                        dof = w - 2.
+                        reduced_chi_sqr = chi_sqr/dof
+
+                        corr_coef = 1- spearmanr(residual, qs[idx_min_ref:idx_max+1])
+
+                        qmaxrg_score = 1-abs((q[idx_max]*RG-1.3)/1.3)
+                        qminrg_score = 1-q[idx_min_ref]*RG
+                        rg_frac_err_score = 1-RGer/RG
+                        i0_frac_err_score = 1 - I0er/I0
+                        r_sqr_score = r_sqr
+                        reduced_chi_sqr_score = 1/reduced_chi_sqr #Not right
+                        window_size_score = fit_array[k,1]/max_window_real
+                        corr_coef_score = corr_coef
+
+                        scores = np.array([qmaxrg_score, qminrg_score,
+                            rg_frac_err_score, i0_frac_err_score, r_sqr_score,
+                            reduced_chi_sqr_score, window_size_score,
+                            corr_coef_score])
+
+                        qual = (weights*scores).sum()/weights.sum()
+                    else:
+                        qual = -1
+
+                else:
+                    qual = -1
+
+                max_quality = max(max_quality, qual)
+
+            if idx_min_ref == 0 and qual != -1:
+                idx_min = idx_min_ref
+            else:
+                idx_min = idx_min_ref +1
+
+            # Recalculate Guinier values with the new min and max idx
+            x = qs[idx_min:idx_max+1]
+            y = il[idx_min:idx_max+1]
+            yerr = iler[idx_min:idx_max+1]
+
+            #Remove NaN and Inf values:
+            x = x[np.where(np.isfinite(y))]
+            yerr = yerr[np.where(np.isfinite(y))]
+            y = y[np.where(np.isfinite(y))]
+
+            rg, i0, Rger, I0er, a, b = calcRg(x, y, yerr, transform=False,
+                error_weight=error_weight)
+
+            if single_fit:
+                rger = Rger
+                i0er = I0er
 
         else:
             rg = -1
@@ -608,18 +869,35 @@ def autoRg_inner(q, i, err, qmin, single_fit, error_weight):
         i0er = -1
         idx_min = -1
         idx_max = -1
-        # quality = []
-        # all_scores = []
 
     idx_min = idx_min + qmin
     idx_max = idx_max + qmin
 
-    #We could add another function here, if not good quality fits are found, either reiterate through the
-    #the data and refit with looser criteria, or accept lower scores, possibly with larger error bars.
-
     #returns Rg, Rg error, I0, I0 error, the index of the first q point of the fit and the index of the last q point of the fit
     return rg, rger, i0, i0er, idx_min, idx_max
 
+@jit(nopython=True, cache=True)
+def rankdata(array):
+    temp = array.argsort()
+    ranks = np.empty_like(temp)
+    ranks[temp] = np.arange(len(array))
+
+    return ranks
+
+@jit(nopython=True, cache=True)
+def spearmanr(array1, array2):
+    rank1 = rankdata(array1)
+    rank2 = rankdata(array2)
+
+    n = rank1.size
+
+    dsq = (rank1-rank2)**2
+
+    rho = 1. - (6*dsq.sum())/(n*(n**2-1))
+
+    # t = rho*np.sqrt((n-2)/(1-rho**2)) #Calcuates t value for student t test
+
+    return rho
 
 
 def calcVcMW(sasm, rg, i0, qmax, a_prot, b_prot, a_rna, b_rna, protein=True,
@@ -2031,7 +2309,8 @@ def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
                     return False, {}
 
                 #use autorg to find the Rg and I0
-                rg[index], rger[index], i0[index], i0er[index], idx_min, idx_max = autoRg(current_sasm, error_weight=error_weight)
+                (rg[index], rger[index], i0[index], i0er[index], idx_min,
+                    idx_max) = autoRg(current_sasm, error_weight=error_weight)
 
                 #Now use the rambo tainer 2013 method to calculate molecular weight
                 if rg[index] > 0:
@@ -2575,7 +2854,8 @@ def validateBuffer(sasms, frame_idx, intensity, sim_test, sim_cor, sim_thresh,
 
 def run_similarity_test(ref_sasm, sasm_list, sim_test, sim_cor, sim_thresh):
     if sim_test == 'CorMap':
-        pvals, corrected_pvals, failed_comparisons = SASProc.run_cormap_ref(sasm_list, ref_sasm, sim_cor)
+        pvals, corrected_pvals, failed_comparisons = SASProc.run_cormap_ref(sasm_list,
+            ref_sasm, sim_cor)
 
     if np.any(pvals<sim_thresh):
         similar = False

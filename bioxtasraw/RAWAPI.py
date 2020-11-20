@@ -1039,58 +1039,72 @@ def auto_guinier(profile, error_weight=True, single_fit=True, settings=None):
     rg_auto, rger_auto, i0_auto, i0er_auto, idx_min, idx_max = SASCalc.autoRg(profile,
         single_fit, error_weight)
 
-    q = profile.getQ()
-    i = profile.getI()
-    err = profile.getErr()
+    if rg_auto != -1:
+        q = profile.getQ()
+        i = profile.getI()
+        err = profile.getErr()
 
-    rg_fit, i0_fit, rger_fit, i0er_fit, a, b = SASCalc.calcRg(q[idx_min:idx_max+1],
-        i[idx_min:idx_max+1], err[idx_min:idx_max+1], transform=True,
-        error_weight=error_weight)
+        rg_fit, i0_fit, rger_fit, i0er_fit, a, b = SASCalc.calcRg(q[idx_min:idx_max+1],
+            i[idx_min:idx_max+1], err[idx_min:idx_max+1], transform=True,
+            error_weight=error_weight)
 
-    if single_fit:
-        rg = float(rg_fit)
-        i0 = float(i0_fit)
+        if single_fit:
+            rg = float(rg_fit)
+            i0 = float(i0_fit)
+        else:
+            rg = float(rg_auto)
+            i0 = float(i0_auto)
+
+        rg_err = max(float(rger_fit), float(rger_auto))
+        i0_err = max(float(i0er_fit), float(i0er_auto))
+
+        qmin = q[idx_min]
+        qmax = q[idx_max]
+        qRg_min = qmin*rg
+        qRg_max = qmax*rg
+
+        #Get fit r squared:
+        x = np.square(q[idx_min:idx_max+1])
+        y = np.log(i[idx_min:idx_max+1])
+        y_fit = SASCalc.linear_func(x, a, b)
+        error = y - y_fit
+        r_sqr = 1 - np.square(error).sum()/np.square(y-y.mean()).sum()
+
+        info_dict = {}
+        info_dict['Rg'] = rg
+        info_dict['I0'] = i0
+        info_dict['nStart'] = idx_min
+        info_dict['nEnd'] = idx_max
+        info_dict['qStart'] = qmin
+        info_dict['qEnd'] = qmax
+        info_dict['qRg_min'] = qRg_min
+        info_dict['qRg_max'] = qRg_max
+        info_dict['Rg_fit_err'] = rger_fit
+        info_dict['I0_fit_err'] = i0er_fit
+        info_dict['Rg_est_err'] = -1
+        info_dict['I0_est_err'] = -1
+        info_dict['Rg_autorg_err'] = rger_auto
+        info_dict['I0_autorg_err'] = i0er_auto
+        info_dict['Rg_err'] = rg_err
+        info_dict['I0_err'] = i0_err
+        info_dict['rsq'] = r_sqr
+
+        analysis_dict = profile.getParameter('analysis')
+        analysis_dict['guinier'] = info_dict
+        profile.setParameter('analysis', analysis_dict)
+
     else:
-        rg = float(rg_auto)
-        i0 = float(i0_auto)
-
-    rg_err = max(float(rger_fit), float(rger_auto))
-    i0_err = max(float(i0er_fit), float(i0er_auto))
-
-    qmin = q[idx_min]
-    qmax = q[idx_max]
-    qRg_min = qmin*rg
-    qRg_max = qmax*rg
-
-    #Get fit r squared:
-    x = np.square(q[idx_min:idx_max+1])
-    y = np.log(i[idx_min:idx_max+1])
-    y_fit = SASCalc.linear_func(x, a, b)
-    error = y - y_fit
-    r_sqr = 1 - np.square(error).sum()/np.square(y-y.mean()).sum()
-
-    info_dict = {}
-    info_dict['Rg'] = rg
-    info_dict['I0'] = i0
-    info_dict['nStart'] = idx_min
-    info_dict['nEnd'] = idx_max
-    info_dict['qStart'] = qmin
-    info_dict['qEnd'] = qmax
-    info_dict['qRg_min'] = qRg_min
-    info_dict['qRg_max'] = qRg_max
-    info_dict['Rg_fit_err'] = rger_fit
-    info_dict['I0_fit_err'] = i0er_fit
-    info_dict['Rg_est_err'] = -1
-    info_dict['I0_est_err'] = -1
-    info_dict['Rg_autorg_err'] = rger_auto
-    info_dict['I0_autorg_err'] = i0er_auto
-    info_dict['Rg_err'] = rg_err
-    info_dict['I0_err'] = i0_err
-    info_dict['rsq'] = r_sqr
-
-    analysis_dict = profile.getParameter('analysis')
-    analysis_dict['guinier'] = info_dict
-    profile.setParameter('analysis', analysis_dict)
+        rg = -1.
+        i0 = -1.
+        rg_err = -1.
+        i0_err = -1.
+        qmin = -1.
+        qmax = -1.
+        qRg_min = -1.
+        qRg_max = -1.
+        idx_min = -1
+        idx_max = -1
+        r_sqr = -1.
 
     return (rg, i0, rg_err, i0_err, qmin, qmax, qRg_min, qRg_max, idx_min, idx_max, r_sqr)
 
