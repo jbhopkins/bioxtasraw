@@ -2343,7 +2343,9 @@ def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
             ift_name = filename
 
         ift_name = os.path.splitext(ift_name)[0] + '.out'
-        ift.setParameter('filename', ift_name)
+
+        if ift is not None:
+            ift.setParameter('filename', ift_name)
 
     if ift is not None:
         dmax = float(ift.getParameter('dmax'))
@@ -4121,6 +4123,7 @@ def efa(series, ranges, profile_type='sub', framei=None, framef=None,
         else:
             framef = len(series)-1
 
+    ranges = copy.deepcopy(ranges)
     for efa_range in ranges:
         efa_range[0] = efa_range[0] - framei
         efa_range[1] = efa_range[1] - framei

@@ -13038,13 +13038,6 @@ class EFAFrame(wx.Frame):
         # self.SendSizeEvent()
         # self.panel.Layout()
 
-    def _FromDIP(self, size):
-        # This is a hack to provide easy back compatibility with wxpython < 4.1
-        try:
-            return self.FromDIP(size)
-        except Exception:
-            return size
-
     def _onNextButton(self, evt):
 
         if self.current_panel == 1:
@@ -13957,7 +13950,6 @@ class EFAControlPanel2(wx.Panel):
             self.bsizer.Add(blabel, 0)
             self.bsizer.Add(bcontrol, 0)
 
-
         self.forward_sizer.Add(self.fsizer, 0, wx.TOP, border=self._FromDIP(3))
         self.backward_sizer.Add(self.bsizer, 0, wx.TOP, border=self._FromDIP(3))
 
@@ -14085,9 +14077,8 @@ class EFAControlPanel2(wx.Panel):
         if not self.initialized:
             analysis_dict = self.secm.getParameter('analysis')
             nvals = self.panel1_results['input']
-
             if 'efa' in analysis_dict:
-                if nvals == (analysis_dict['efa']['nsvs']
+                if (nvals == analysis_dict['efa']['nsvs']
                     and self.panel1_results['fstart'] == analysis_dict['efa']['fstart']
                     and self.panel1_results['fend'] == analysis_dict['efa']['fend']
                     and self.panel1_results['profile'] == analysis_dict['efa']['profile']):
@@ -14865,7 +14856,8 @@ class EFAControlPanel3(wx.Panel):
         ranges = []
 
         for my_ids in self.range_ids:
-            ranges.append([wx.FindWindowById(my_ids[0], self).GetValue(), wx.FindWindowById(my_ids[1], self).GetValue()])
+            ranges.append([wx.FindWindowById(my_ids[0], self).GetValue(),
+                wx.FindWindowById(my_ids[1], self).GetValue()])
 
         ranges = np.array(ranges, dtype = int)
 

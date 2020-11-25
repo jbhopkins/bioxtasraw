@@ -35,6 +35,7 @@ from collections import OrderedDict, defaultdict
 import tempfile
 import os
 import sys
+import copy
 
 import numpy as np
 from reportlab.lib.pagesizes import letter
@@ -2878,19 +2879,19 @@ class ReportFrame(wx.Frame):
 
         for i in range(tot):
             if self.profile_list.IsItemChecked(i):
-                profiles.append(self.all_profiles[i])
+                profiles.append(copy.deepcopy(self.all_profiles[i]))
 
         tot = self.ift_list.GetItemCount()
 
         for i in range(tot):
             if self.ift_list.IsItemChecked(i):
-                ifts.append(self.all_ifts[i])
+                ifts.append(copy.deepcopy(self.all_ifts[i]))
 
         tot = self.series_list.GetItemCount()
 
         for i in range(tot):
             if self.series_list.IsItemChecked(i):
-                series.append(self.all_series[i])
+                series.append(copy.deepcopy(self.all_series[i]))
 
         if len(profiles) == 0 and len(ifts) == 0 and len(series) == 0:
             msg = 'No items are selected for the report.'
