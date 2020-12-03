@@ -157,7 +157,7 @@ Create an electron density reconstruction
 
     for i in range(5):
         (rho, chi_sq, rg, support_vol, side, q_fit, I_fit, I_extrap,
-            err_extrap) = raw.denss(gi_datgnom_ift, 'gi',
+            err_extrap) = raw.denss(gi_datgnom_ift, 'gi_{:02d}'.format(i+1),
             './api_results/gi_denss', mode='Fast')
 
         rhos.append(rho)

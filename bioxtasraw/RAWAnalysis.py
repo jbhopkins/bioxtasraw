@@ -7290,7 +7290,7 @@ class DammifResultsPanel(wx.Panel):
 
             model_data[i] = item_data
 
-        if self.topsizer.IsShown(self.clust_sizer):
+        if self.topsizer.IsShown(self.ambi_sizer):
             ambi_cats = wx.FindWindowById(self.ids['ambiCats']).GetValue()
             ambi_score = wx.FindWindowById(self.ids['ambiScore']).GetValue()
             ambi_eval = wx.FindWindowById(self.ids['ambiEval']).GetValue()
@@ -9584,12 +9584,14 @@ class DenssResultsPanel(wx.Panel):
         electrons = wx.FindWindowById(self.run_panel.ids['electrons']).GetValue()
         average = wx.FindWindowById(self.run_panel.ids['average']).IsChecked()
         symmetry = wx.FindWindowById(self.run_panel.ids['sym_on']).IsChecked()
+        refined = wx.FindWindowById(self.run_panel.ids['refine']).IsChecked()
 
         setup_data = [('Input file:', input_file), ('Output prefix:', output_prefix),
                     ('Output directory:', output_directory), ('Mode:', mode),
                     ('Total number of reconstructions:', tot_recons),
                     ('Number of electrons in molecule:', electrons),
                     ('Averaged:', average),
+                    ('Refined:', refined),
                     ('Symmetry applied:', symmetry)
                     ]
 
@@ -9599,7 +9601,6 @@ class DenssResultsPanel(wx.Panel):
 
             setup_data.append(('N-fold rotational symmetry:', sym_val))
             setup_data.append(('Symmetry axis:', sym_axis))
-
 
         filename = output_prefix + '_denss_results.csv'
         save_path = os.path.join(output_directory, filename)

@@ -1635,6 +1635,10 @@ def loadOutFile(filename):
     #In case it returns NaN for either value, and they don't get picked up in the regular expression
     q_rg=None         #Reciprocal space Rg
     q_i0=None         #Reciprocal space I0
+    rg = None
+    rger = None
+    i0 = None
+    i0er = None
 
     #Set some defaults in case the .out file isn't perfect. I've encountered
     #at least one case where no DISCRIP is returned, which messes up loading in
@@ -4066,6 +4070,8 @@ def saveDammixData(filename, ambi_data, nsd_data, res_data, clust_num, clist_dat
 
     pdf.close()
 
+    return save_string
+
 
 def saveDenssData(filename, ambi_data, res_data, model_plots, setup_data,
     rsc_data, model_data):
@@ -4110,6 +4116,8 @@ def saveDenssData(filename, ambi_data, res_data, model_plots, setup_data,
             fig.subplots_adjust(top=0.95)
 
     pdf.close()
+
+    return save_string
 
 
 def saveDensityMrc(filename, rho, side):

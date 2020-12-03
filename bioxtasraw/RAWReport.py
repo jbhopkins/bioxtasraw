@@ -855,7 +855,7 @@ def parse_dammif_file(filename):
             num = int(line.split(':')[-1].strip())
         elif 'Used DAMAVER' in line:
             damaver = bool(line.split(':')[-1].strip())
-        elif 'Reinfed with DAMMIN' in line:
+        elif 'Refined with DAMMIN' in line:
             refined = bool(line.split(':')[-1].strip())
         elif 'Used DAMCLUST' in line:
             damclust = bool(line.split(':')[-1].strip())

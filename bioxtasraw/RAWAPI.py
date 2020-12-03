@@ -2389,7 +2389,7 @@ def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
 
 def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alpha=0,
     atsas_dir=None, use_rg_from='guinier', use_guinier_start=True,
-    cut_8rg=False, write_profile=True, datadir=None, filename=None,
+    cut_dam=False, write_profile=True, datadir=None, filename=None,
     save_ift=False, savename=None, settings=None, dmin_zero=True, npts=0,
     angular_scale=1, system=0, form_factor='', radius56=-1, rmin=-1, fwhm=-1,
     ah=-1, lh=-1, aw=-1, lw=-1, spot=''):
@@ -2418,7 +2418,7 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
         to be used in the IFT. Defaults to the last point in the q vector.
         If write_profile is false and no profile is provided then this cannot
         be set, and datgnom will truncate to 8/Rg automatically. Overrides
-        cut_8rg.
+        cut_dam.
     dmax_zero: bool, optional
         If True, force P(r) function to zero at Dmax.
     alpha: bool, optional
@@ -2435,9 +2435,10 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
         If set to True, and no idx_min is provided, if a Guinier fit has
         been done for the input profile, the start point of the Guinier fit is
         used as the start point for the IFT. Ignored if there is no input profile.
-    cut_8rg: bool, optional
+    cut_dam: bool, optional
         If set to True and no idx_max is provided, then the profile is
-        automatically truncated at q=8/Rg.
+        automatically truncated at q=8/Rg or 0.3 1/A, whichever is smaller.
+        This is useful for bead models
     write_profile: bool, optional
         If True, the input profile is written to file. If False, then the
         input profile is ignored, and the profile specified by datadir and
@@ -2584,9 +2585,10 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
         if idx_max is not None:
             save_profile.setQrange((idx_min, idx_max+1))
         else:
-            if cut_8rg:
+            if cut_dam:
                 q = save_profile.getQ()
-                idx_max = np.argmin(np.abs(q-(8/rg)))
+                max_q = min(8/rg, 0.3)
+                idx_max = np.argmin(np.abs(q-max_q))
             else:
                 _, idx_max = save_profile.getQrange()
 
@@ -2684,14 +2686,46 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
 
     # Save results
     if ift is not None:
-        dmax = float(ift.getParameter('dmax'))
-        rg = float(ift.getParameter('rg'))
-        rg_err = float(ift.getParameter('rger'))
-        i0 = float(ift.getParameter('i0'))
-        i0_err = float(ift.getParameter('i0er'))
-        chi_sq = float(ift.getParameter('chisq'))
-        alpha = float(ift.getParameter('alpha'))
-        total_est = float(ift.getParameter('TE'))
+        try:
+            dmax = float(ift.getParameter('dmax'))
+        except Exception:
+            dmax = -1
+
+        try:
+            rg = float(ift.getParameter('rg'))
+        except Exception:
+            rg = -1
+
+        try:
+            rg_err = float(ift.getParameter('rger'))
+        except Exception:
+            rg_err = -1
+
+        try:
+            i0 = float(ift.getParameter('i0'))
+        except Exception:
+            i0 = -1
+
+        try:
+            i0_err = float(ift.getParameter('i0er'))
+        except Exception:
+            i0_err = -1
+
+        try:
+            chi_sq = float(ift.getParameter('chisq'))
+        except Exception:
+            chi_sq = -1
+
+        try:
+            alpha = float(ift.getParameter('alpha'))
+        except Exception:
+            alpha = -1
+
+        try:
+            total_est = float(ift.getParameter('TE'))
+        except Exception:
+            total_est = -1
+
         quality = ift.getParameter('quality')
 
         if profile is not None:
@@ -3634,6 +3668,15 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     err_extrap: :class:`numpy.array`
         The experimental uncertainty, including any extrapolation, used in the
         reconstruction.
+    all_chi_sq: :class:`numpy.array`
+        The value of chi squared at all iterations of the DENSS algorithm.
+        Useful to check convergence.
+    all_rg: :class:`numpy.array`
+        The value of rg at all iterations of the DENSS algorithm. Useful to
+        check convergence.
+    all_support_vol: :class:`numpy.array`
+        The value of support volume at all iterations of the DENSS algorithm.
+        Useful to check convergence.
     """
 
     datadir = os.path.abspath(os.path.expanduser(datadir))
@@ -3750,13 +3793,13 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
         initial_model, gui=False)
 
     last_index = max(np.where(rg !=0)[0])
-    rg = rg[:last_index+1]
-    support_vol = support_vol[:last_index+1]
+    all_rg = rg[:last_index+1]
+    all_support_vol = support_vol[:last_index+1]
     #Weird DENSS thing where last index of chi is 1 less than of Rg
-    chi_sq = chi_sq[:last_index]
+    all_chi_sq = chi_sq[:last_index]
 
-    return (rho, chi_sq[-1], rg[-1], support_vol[-1], side, q_fit, I_fit,
-        I_extrap, err_extrap)
+    return (rho, all_chi_sq[-1], all_rg[-1], all_support_vol[-1], side, q_fit,
+        I_fit, I_extrap, err_extrap, all_chi_sq, all_rg, all_support_vol)
 
 def denss_average(densities, side, prefix, datadir, n_proc=1):
     """

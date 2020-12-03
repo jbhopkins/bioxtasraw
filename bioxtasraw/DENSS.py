@@ -1399,6 +1399,8 @@ def runDenss(q, I, sigq, D, prefix, path, denss_settings, avg_model=None,
             wx_queue.put_nowait(['error', int(my_num)-1, error])
             abort_event.set()
 
+        data = []
+
     my_fh.close()
 
     if gui:
