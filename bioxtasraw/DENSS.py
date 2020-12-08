@@ -837,6 +837,10 @@ def select_best_enantiomers(rhos, refrho=None, cores=1, avg_queue=None,
             results = [align(refrho, enan, abort_event=abort_event) for
                 enan in enans]
 
+        if abort_event is not None:
+            if abort_event.is_set():
+                return None, None
+
         #now select the best enantiomer and set it as the new rhos[i]
         enans = np.array([results[k][0] for k in range(len(results))])
         enans_scores = np.array([results[k][1] for k in range(len(results))])

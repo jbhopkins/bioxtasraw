@@ -38,6 +38,7 @@ import copy
 import tempfile
 import traceback
 import copy
+import threading
 
 import numpy as np
 
@@ -360,8 +361,8 @@ def load_images(filename_list, settings):
         if img is None:
             raise SASExceptions.WrongImageFormat('not a valid file!')
 
-        img_list.append(img[0])
-        imghdr_list.append(imghdr[0])
+        img_list.extend(img)
+        imghdr_list.extend(imghdr)
 
     return img_list, imghdr_list
 
@@ -433,7 +434,7 @@ def load_counter_values(filename_list, settings, new_filename_list=[]):
         if new_filename_list[j] == '':
             new_filename = os.path.split(filename)[1]
         else:
-            new_filename = os.path.abspath(os.path.expanduser(new_filename))
+            new_filename = os.path.split(new_filename_list[j])[1]
 
         counters = SASFileIO.loadHeader(filename, new_filename, hdr_fmt)
 
@@ -2931,7 +2932,7 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
     constant='', max_bead_count=-1, dam_radius=-1, harmonics=-1, prop_to_fit=-1,
     curve_weight='e', max_steps=-1, max_iters=-1, max_success=-1,
     min_success=-1, T_factor=-1, rg_penalty=-1, center_penalty=-1,
-    loose_penalty=-1):
+    loose_penalty=-1, abort_event=threading.Event()):
     """
     Creates a bead model (dummy atom) reconstruction using DAMMIF from the ATSAS
     package. Requires a separate installation of the ATSAS package. Function
@@ -3019,6 +3020,9 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
         Center penalty weight. Default is the DAMMIF default.
     loose_penalty: float, optional
         Looseness penalty weight. Default is the DAMMIF default.
+    abort_event: :class:`threading.Event`, optional
+        A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
+        event is set it will abort the dammin run.
 
     Returns
     -------
@@ -3099,6 +3103,10 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
 
     if proc is not None:
         while proc.poll() is None:
+            if abort_event.is_set():
+                proc.terminate()
+                break
+
             if proc.stdout is not None:
                 proc.stdout.read(1)
 
@@ -3108,18 +3116,25 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
         except Exception:
             pass
 
-    dam_name = os.path.join(datadir, prefix+'-1.pdb')
-    fir_name = os.path.join(datadir, prefix+'.fir')
+    if not abort_event.is_set():
+        dam_name = os.path.join(datadir, prefix+'-1.pdb')
+        fir_name = os.path.join(datadir, prefix+'.fir')
 
-    _, _, model_data = SASFileIO.loadPDBFile(dam_name)
+        _, _, model_data = SASFileIO.loadPDBFile(dam_name)
 
-    sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
-    chi_sq = float(sasm.getParameter('counters')['Chi_squared'])
+        sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
+        chi_sq = float(sasm.getParameter('counters')['Chi_squared'])
 
-    rg = float(model_data['rg'])
-    dmax = float(model_data['dmax'])
-    excluded_volume=float(model_data['excluded_volume'])
-    mw = float(model_data['mw'])
+        rg = float(model_data['rg'])
+        dmax = float(model_data['dmax'])
+        excluded_volume=float(model_data['excluded_volume'])
+        mw = float(model_data['mw'])
+    else:
+        chi_sq = -1
+        rg = -1
+        dmax = -1
+        mw = -1
+        excluded_volume = -1
 
     return chi_sq, rg, dmax, mw, excluded_volume
 
@@ -3129,7 +3144,8 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
     settings=None, unit='Unknown', constant=0, dam_radius=-1, harmonics=-1,
     prop_to_fit=-1, curve_weight='1', max_steps=-1, max_iters=-1, max_success=-1,
     min_success=-1, T_factor=-1, loose_penalty=-1, knots=20, sphere_diam=-1,
-    coord_sphere=-1, disconnect_penalty=-1, periph_penalty=1):
+    coord_sphere=-1, disconnect_penalty=-1, periph_penalty=1,
+    abort_event=threading.Event()):
     """
     Creates a bead model (dummy atom) reconstruction using DAMMIN from the ATSAS
     package. Requires a separate installation of the ATSAS package. Function
@@ -3211,6 +3227,9 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
         Disconnectivity penalty weight. Default is DAMMIN default.
     periph_penalty: float, optional
         Peripheral penalty weight. Default is DAMMIN default.
+    abort_event: :class:`threading.Event`, optional
+        A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
+        event is set it will abort the dammif run.
 
     Returns
     -------
@@ -3291,6 +3310,10 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
 
     if proc is not None:
         while proc.poll() is None:
+            if abort_event.is_set():
+                proc.terminate()
+                break
+
             if proc.stdout is not None:
                 proc.stdout.read(1)
 
@@ -3303,19 +3326,27 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
     dam_name = os.path.join(datadir, prefix+'-1.pdb')
     fir_name = os.path.join(datadir, prefix+'.fir')
 
-    _, _, model_data = SASFileIO.loadPDBFile(dam_name)
+    if not abort_event.is_set():
+        _, _, model_data = SASFileIO.loadPDBFile(dam_name)
 
-    sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
-    chi_sq = float(sasm.getParameter('counters')['Chi_squared'])
+        sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
+        chi_sq = float(sasm.getParameter('counters')['Chi_squared'])
 
-    rg = float(model_data['rg'])
-    dmax = float(model_data['dmax'])
-    excluded_volume=float(model_data['excluded_volume'])
-    mw = float(model_data['mw'])
+        rg = float(model_data['rg'])
+        dmax = float(model_data['dmax'])
+        excluded_volume=float(model_data['excluded_volume'])
+        mw = float(model_data['mw'])
+    else:
+        chi_sq = -1
+        rg = -1
+        dmax = -1
+        mw = -1
+        excluded_volume = -1
 
     return chi_sq, rg, dmax, mw, excluded_volume
 
-def damaver(files, prefix, datadir, symmetry='P1', atsas_dir=None):
+def damaver(files, prefix, datadir, symmetry='P1', atsas_dir=None,
+    abort_event=threading.Event()):
     """
     Runs DAMAVER from the ATSAS package on a set of files. Requires a
     separate installation of the ATSAS package. Function blocks until
@@ -3338,6 +3369,9 @@ def damaver(files, prefix, datadir, symmetry='P1', atsas_dir=None):
     atsas_dir: str, optional
         The directory of the atsas programs (the bin directory). If not provided,
         the API uses the auto-detected directory.
+    abort_event: :class:`threading.Event`, optional
+        A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
+        event is set it will abort the damaver run.
 
     Returns
     -------
@@ -3370,6 +3404,10 @@ def damaver(files, prefix, datadir, symmetry='P1', atsas_dir=None):
 
     if proc is not None:
         while proc.poll() is None:
+            if abort_event.is_set():
+                proc.terminate()
+                break
+
             if proc.stdout is not None:
                 proc.stdout.read(1)
 
@@ -3391,19 +3429,29 @@ def damaver(files, prefix, datadir, symmetry='P1', atsas_dir=None):
         if os.path.isfile(item[0]):
             os.rename(item[0], item[1])
 
-    (mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err,
-        res_unit) = SASFileIO.loadDamselLogFile(damsel_path)
+    if not abort_event.is_set():
+        (mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err,
+            res_unit) = SASFileIO.loadDamselLogFile(damsel_path)
 
-    mean_nsd = float(mean_nsd)
-    stdev_nsd = float(stdev_nsd)
-    res = float(res)
-    res_err = float(res_err)
+        mean_nsd = float(mean_nsd)
+        stdev_nsd = float(stdev_nsd)
+        res = float(res)
+        res_err = float(res_err)
 
-    model_data, rep_model = SASFileIO.loadDamsupLogFile(damsup_path)
+        model_data, rep_model = SASFileIO.loadDamsupLogFile(damsup_path)
+    else:
+        mean_nsd = -1
+        stdev_nsd = -1
+        rep_model = ''
+        result_dict = {}
+        res = -1
+        res_err = -1
+        res_unit = ''
 
     return mean_nsd, stdev_nsd, rep_model, result_dict, res, res_err, res_unit
 
-def damclust(files, prefix, datadir, symmetry='P1', atsas_dir=None):
+def damclust(files, prefix, datadir, symmetry='P1', atsas_dir=None,
+    abort_event=threading.Event()):
     """
     Runs DAMCLUST from the ATSAS package on a set of files. Requires a
     separate installation of the ATSAS package. Function blocks until
@@ -3426,6 +3474,9 @@ def damclust(files, prefix, datadir, symmetry='P1', atsas_dir=None):
     atsas_dir: str, optional
         The directory of the atsas programs (the bin directory). If not provided,
         the API uses the auto-detected directory.
+    abort_event: :class:`threading.Event`, optional
+        A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
+        event is set it will abort the damclust run.
 
     Returns
     -------
@@ -3451,9 +3502,12 @@ def damclust(files, prefix, datadir, symmetry='P1', atsas_dir=None):
 
     if proc is not None:
         while proc.poll() is None:
+            if abort_event.is_set():
+                proc.terminate()
+                break
+
             if proc.stdout is not None:
                 proc.stdout.read(1)
-
 
     damclust_log = os.path.join(datadir, prefix+'_damclust.log')
     new_files = [(os.path.join(datadir, 'damclust.log'), damclust_log)]
@@ -3462,13 +3516,17 @@ def damclust(files, prefix, datadir, symmetry='P1', atsas_dir=None):
         if os.path.isfile(item[0]):
             os.rename(item[0], item[1])
 
-    cluster_list, distance_list = SASFileIO.loadDamclustLogFile(damclust_log)
+    if not abort_event.is_set():
+        cluster_list, distance_list = SASFileIO.loadDamclustLogFile(damclust_log)
+    else:
+        cluster_list = []
+        distance_list = []
 
     return cluster_list, distance_list
 
 def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
         enantiomorphs='YES', proximity='NSD', symmetry='P1', fraction='1.0',
-        atsas_dir=None):
+        atsas_dir=None, abort_event=threading.Event()):
     """
     Aligns the target to the reference file using SUPCOMB from the ATSAS
     package. Require a separate installation of ATSAS. Both files must be
@@ -3507,6 +3565,9 @@ def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
     atsas_dir: str, optional
         The directory of the atsas programs (the bin directory). If not provided,
         the API uses the auto-detected directory.
+    abort_event: :class:`threading.Event`, optional
+        A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
+        event is set it will abort the supcomb run.
     """
 
     if atsas_dir is None:
@@ -3525,6 +3586,10 @@ def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
 
     if proc is not None:
         while proc.poll() is None:
+            if abort_event.is_set():
+                proc.terminate()
+                break
+
             if proc.stdout is not None:
                 proc.stdout.read(1)
 
@@ -3539,7 +3604,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     sw_sigma_thresh=0.2, sw_iter=20, sw_min_step=5000, connected=True,
     connectivity_step=[7500], chi_end_frac=0.001, cut_output=False,
     write_xplor=False, min_density=None, max_density=None, flatten_low=False,
-    sym_step=[3000, 5000, 7000, 9000], seed=None):
+    sym_step=[3000, 5000, 7000, 9000], seed=None, abort_event=threading.Event()):
     """
     Generates an electron density reconstruction using DENSS. Function blocks
     until DENSS finishes. Can be used to refine an existing model.
@@ -3645,6 +3710,9 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     seed: int, optional
         The random seed to be used for the DENSS reconstruction. If None
         (default) than a new seed is generated.
+    abort_event: :class:`threading.Event`, optional
+        A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
+        event is set it will abort the denss run.
 
     Returns
     -------
@@ -3788,20 +3856,34 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
         denss_settings['voxel'] = D*denss_settings['oversample']/64.
         denss_settings['positivity'] = False
 
-    (qdata, I_extrap, err_extrap, q_fit, I_fit, chi_sq, rg, support_vol, rho,
-        side) = DENSS.runDenss(q, I, sigq, D, prefix, datadir, denss_settings,
-        initial_model, gui=False)
+    denss_data = DENSS.runDenss(q, I, sigq, D, prefix, datadir, denss_settings,
+        initial_model, gui=False, abort_event=abort_event)
 
-    last_index = max(np.where(rg !=0)[0])
-    all_rg = rg[:last_index+1]
-    all_support_vol = support_vol[:last_index+1]
-    #Weird DENSS thing where last index of chi is 1 less than of Rg
-    all_chi_sq = chi_sq[:last_index]
+    if not abort_event.is_set():
+        (qdata, I_extrap, err_extrap, q_fit, I_fit, chi_sq, rg, support_vol, rho,
+        side) = denss_data
+
+        last_index = max(np.where(rg !=0)[0])
+        all_rg = rg[:last_index+1]
+        all_support_vol = support_vol[:last_index+1]
+        #Weird DENSS thing where last index of chi is 1 less than of Rg
+        all_chi_sq = chi_sq[:last_index]
+    else:
+        rho = -1
+        all_chi_sq = [-1]
+        all_rg = [-1]
+        all_support_vol = [-1]
+        side = -1
+        q_fit = -1
+        I_fit = -1
+        I_extrap = -1
+        err_extrap = -1
 
     return (rho, all_chi_sq[-1], all_rg[-1], all_support_vol[-1], side, q_fit,
         I_fit, I_extrap, err_extrap, all_chi_sq, all_rg, all_support_vol)
 
-def denss_average(densities, side, prefix, datadir, n_proc=1):
+def denss_average(densities, side, prefix, datadir, n_proc=1,
+    abort_event=threading.Event()):
     """
     Averages multiple electron densities to produce a single average density.
     Uses the averaging procedure from the DENSS package. Function blocks until
@@ -3821,6 +3903,9 @@ def denss_average(densities, side, prefix, datadir, n_proc=1):
     n_proc: int
         The number of processors to use. This could be up to as many cores
         as your computer has.
+    abort_event: :class:`threading.Event`, optional
+        A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
+        event is set it will abort the denss average run.
 
     Returns
     -------
@@ -3836,9 +3921,9 @@ def denss_average(densities, side, prefix, datadir, n_proc=1):
     res: float
         The estimated model resolution in Angstrom from the Fourier shell
         correlation.
-    scores: list
-        A list of the correlation scores. Each entry in the list is the score
-        for the corresponding entry in the input densities list.
+    scores: :class:`numpy.array`
+        An array of the correlation scores. Each entry in the array is the
+        score for the corresponding entry in the input densities array.
     fsc: :class:`numpy.array`
         The average Fourier shell correlation between each model and a
         average reference model. This is used to estimate the resolution.
@@ -3855,12 +3940,22 @@ def denss_average(densities, side, prefix, datadir, n_proc=1):
         densities = np.array(densities)
 
     allrhos, scores = DENSS.run_enantiomers(densities, n_proc,
-        single_proc=single_proc, gui=False)
+        single_proc=single_proc, abort_event=abort_event, gui=False)
 
-    refrho = DENSS.binary_average(allrhos, n_proc, single_proc=single_proc)
+    if abort_event.is_set():
+        return np.array([-1]), -1, -1, -1, -1, np.array([-1]), np.array([-1])
+
+    refrho = DENSS.binary_average(allrhos, n_proc, single_proc=single_proc,
+        abort_event=abort_event)
+
+    if abort_event.is_set():
+        return np.array([-1]), -1, -1, -1, -1, np.array([-1]), np.array([-1])
 
     aligned, scores = DENSS.align_multiple(refrho, allrhos, n_proc,
-        single_proc=single_proc)
+        single_proc=single_proc, abort_event=abort_event)
+
+    if abort_event.is_set():
+        return np.array([-1]), -1, -1, -1, -1, np.array([-1]), np.array([-1])
 
     #filter rhos with scores below the mean - 2*standard deviation.
     mean_cor = np.mean(scores)
@@ -3900,7 +3995,7 @@ def denss_average(densities, side, prefix, datadir, n_proc=1):
 
 def denss_align(density, side, ref_file, ref_datadir='.',  prefix='',
     save_datadir='.', save=True, center=True, resolution=15.0, enantiomer=True,
-    n_proc=1):
+    n_proc=1, abort_event=threading.Event()):
     """
     Aligns each input electron density against a reference model. The
     reference model can either be a PDB model (.pdb) or electron density (.mrc).
@@ -3940,6 +4035,9 @@ def denss_align(density, side, ref_file, ref_datadir='.',  prefix='',
     n_proc: int, optional
         The number of processors to use. This could be up to as many cores
         as your computer has.
+    abort_event: :class:`threading.Event`, optional
+        A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
+        event is set it will abort the denss average run.
 
     Returns
     -------
@@ -3964,7 +4062,11 @@ def denss_align(density, side, ref_file, ref_datadir='.',  prefix='',
 
     aligned_rhos, scores = DENSS.run_align(rho_list, side_list, ref_name,
         center=center, resolution=resolution, enantiomer=enantiomer,
-        cores=n_proc, single_proc=single_proc, gui=False)
+        cores=n_proc, single_proc=single_proc, gui=False,
+        abort_event=abort_event)
+
+    if abort_event.is_set():
+        return np.array([-1]), -1
 
     aligned_density = aligned_rhos[0]
     score = scores[0]

@@ -1000,7 +1000,6 @@ def loadAllHeaders(filename, image_type, header_type, raw_settings):
 def loadHeader(filename, new_filename, header_type):
     ''' returns header information based on the *image* filename
      and the type of headerfile     '''
-
     if header_type != 'None':
         try:
             if new_filename != os.path.split(filename)[1]:
