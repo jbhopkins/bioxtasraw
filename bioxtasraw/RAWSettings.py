@@ -59,6 +59,13 @@ def get_id():
 
     return my_id
 
+pickle_fix_exclude_keys = ['CurrentCfg', 'csvIncludeData',
+            'CompatibleFormats', 'NormAbsCarbonSamEmptySASM', 'Masks',
+            'MaskDimension', 'NormFlatfieldImage', 'DarkCorrImage',
+            'ImageHdrList', 'FileHdrList', 'HeaderBindList']
+
+pickle_exclude_keys = ['AzimuthalIntegrator']
+
 class RawGuiSettings(object):
     """
     Essentially just a fancy wrapper for a big dictionary. It contains pretty
@@ -74,7 +81,6 @@ class RawGuiSettings(object):
             A dictionary with RAW settings. If not provided, then the default
             values of the settings are used.
         """
-
         self._params = settings
 
         if settings is None:
@@ -415,6 +421,31 @@ class RawGuiSettings(object):
                 for fname, defs in fdefs.items():
                     self._params['fileDefinitions'][0][ftype][fname] = defs
 
+    # __getstate__ and __setstate__ modified from python documentation
+    def __getstate__(self):
+        # Copy the object's state from self.__dict__ which contains
+        # all our instance attributes. Always use the dict.copy()
+        # method to avoid modifying the original state.
+        state = self.__dict__.copy()
+        # Remove the unpicklable entries.
+
+        for key in pickle_exclude_keys:
+            del state['_params'][key]
+
+        if RAWGlobals.has_wx:
+            for key in state['_params']:
+                if key not in pickle_fix_exclude_keys:
+                    state['_params'][key][1] = state['_params'][key][1].GetId()
+
+        return state
+
+    def __setstate__(self, state):
+        if RAWGlobals.has_wx:
+            for key in state['_params']:
+                if key not in pickle_fix_exclude_keys:
+                    state['_params'][key][1] = wx.WindowIDRef(state['_params'][key][1])
+        self.__dict__.update(state)
+
     def get(self, key):
         """
         Gets the setting value for the input key.
@@ -583,7 +614,7 @@ def fixBackwardsCompatibility(raw_settings, loaded_param):
         raw_settings.set('DetectorPixelSizeX', loaded_param['DetectorPixelSize'])
         raw_settings.set('DetectorPixelSizeY', loaded_param['DetectorPixelSize'])
 
-    if 'HeaderbindList' in loaded_param and 'DetectorPixelSize' in loaded_param['HeaderBindList']:
+    if 'HeaderBindList' in loaded_param and 'DetectorPixelSize' in loaded_param['HeaderBindList']:
         header_bind_list = raw_settings.get('HeaderBindList')
         header_bind_list['Detector X Pixel Size'] = loaded_param['HeaderBindList']['DetectorPixelSize']
         header_bind_list['Detector Y Pixel Size'] = loaded_param['HeaderBindList']['DetectorPixelSize']

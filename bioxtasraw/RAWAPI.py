@@ -315,7 +315,7 @@ def load_series(filename_list, settings=None):
                 'profiles or images, so a series dataset could not be generated.')
             raise SASExceptions.UnrecognizedDataFormat(msg)
         else:
-            secm = SECM.SECM(filename_list, sasm_list, range(sasm_list), {},
+            secm = SECM.SECM(filename_list, sasm_list, range(len(sasm_list)), {},
                 settings)
 
             series_list = [secm]
@@ -669,6 +669,10 @@ def save_series(series, fname=None, datadir='.'):
     if fname is not None:
         series = copy.deepcopy(series)
         series.setParameter('filename', fname)
+    else:
+        fname = series.getParameter('filename')
+
+    fname = '{}.hdf5'.format(os.path.splitext(fname)[0])
 
     datadir = os.path.abspath(os.path.expanduser(datadir))
     savepath = os.path.join(datadir, fname)
@@ -5355,7 +5359,6 @@ def find_baseline_range(series, baseline_type='Integral', profile_type='sub',
         if profile_type == 'unsub':
             sub_profiles = series._sasm_list
         elif profile_type == 'sub':
-            print('using subtracted profiles')
             sub_profiles = series.subtracted_sasm_list
         elif profile_type == 'baseline':
             sub_profiles = series.baseline_subtracted_sasm_list

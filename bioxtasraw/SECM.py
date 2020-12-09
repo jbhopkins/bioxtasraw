@@ -140,7 +140,11 @@ class SECM(object):
         self._sasm_list = sasm_list
         self.frame_list = np.array(frame_list, dtype=int)
         self._parameters = parameters
-        self._settings = settings
+
+        if isinstance(settings, str):
+            self.hdr_format = settings
+        else:
+            self.hdr_format = settings.get('ImageHdrFormat')
 
         # Make an entry for analysis parameters i.e. Rg, I(0) etc:
         if 'analysis' not in self._parameters:
@@ -191,7 +195,6 @@ class SECM(object):
         self.qrange_I = np.zeros_like(self.mean_i)
 
         self.time=[]
-        self.hdr_format = settings.get('ImageHdrFormat')
 
         self._calcTime(self._sasm_list)
 
@@ -245,6 +248,21 @@ class SECM(object):
         self.calc_has_data = False
         self.is_visible = True
 
+        self.my_semaphore = threading.Semaphore()
+
+
+    # __getstate__ and __setstate__ modified from python documentation
+    def __getstate__(self):
+        # Copy the object's state from self.__dict__ which contains
+        # all our instance attributes. Always use the dict.copy()
+        # method to avoid modifying the original state.
+        state = self.__dict__.copy()
+        # Remove the unpicklable entries.
+        del state['my_semaphore']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
         self.my_semaphore = threading.Semaphore()
 
 
@@ -888,7 +906,7 @@ class SECM(object):
         ''' return a copy of the object '''
 
         copy_secm = SECM(copy.deepcopy(self._file_list), copy.deepcopy(self._sasm_list),
-            copy.deepcopy(self.frame_list), copy.deepcopy(self._parameters), self._settings)
+            copy.deepcopy(self.frame_list), copy.deepcopy(self._parameters), copy.deepcopy(self.hdr_format))
 
         copy_secm.qref = copy.deepcopy(self.qref)
         copy_secm.I_of_q = copy.deepcopy(self.I_of_q)
