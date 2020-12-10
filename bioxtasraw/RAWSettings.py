@@ -443,7 +443,16 @@ class RawGuiSettings(object):
         if RAWGlobals.has_wx:
             for key in state['_params']:
                 if key not in pickle_fix_exclude_keys:
-                    state['_params'][key][1] = wx.WindowIDRef(state['_params'][key][1])
+                    # This could be an issue. But as long as I only pass settings
+                    # to other processes in the API it should be okay. Something
+                    # to watch out for.
+                    # state['_params'][key][1] = wx.WindowIDRef(state['_params'][key][1])
+                     state['_params'][key][1] = state['_params'][key][1]
+
+            for key in pickle_exclude_keys:
+                #this is a hack, and only works for this specific case
+                state['_params'][key] = [None]
+
         self.__dict__.update(state)
 
     def get(self, key):
