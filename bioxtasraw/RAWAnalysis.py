@@ -4471,7 +4471,7 @@ class GNOMControlPanel(wx.Panel):
         gnom_analysis = sasm.getParameter('analysis')['GNOM']
 
         try:
-            dmax = gnom_analysis['Dmax']
+            dmax = int(round(float(gnom_analysis['Dmax'])))
         except Exception:
             dmax = -1
 

@@ -2643,6 +2643,16 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
     else:
         settings = __default_settings
 
+        if dmin_zero:
+            dmin_zero = 'Y'
+        else:
+            dmin_zero = 'N'
+
+        if dmax_zero:
+            dmax_zero = 'Y'
+        else:
+            dmax_zero = 'N'
+
         gnom_settings = {
             'expert'        : settings.get('gnomExpertFile'),
             'rmin_zero'     : dmin_zero,
@@ -2662,7 +2672,6 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
             'spot'          : spot,
             'expt'          : settings.get('gnomExpt')
             }
-
 
     # Run the IFT
     ift = SASCalc.runGnom(filename, savename, dmax, gnom_settings, datadir,
@@ -2734,17 +2743,21 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
         quality = ift.getParameter('quality')
 
         if profile is not None:
+
+            if round(float(dmax)) == dmax:
+                dmax = int(dmax)
+
             results_dict = {}
             results_dict['Dmax'] = str(dmax)
-            results_dict['Total_Estimate'] = str(total_est)
-            results_dict['Real_Space_Rg'] = str(rg)
-            results_dict['Real_Space_Rg_Err'] = str(rg_err)
-            results_dict['Real_Space_I0'] = str(i0)
-            results_dict['Real_Space_I0_Err'] = str(i0_err)
-            results_dict['GNOM_ChiSquared'] = str(chi_sq)
-            results_dict['Alpha'] = str(alpha)
+            results_dict['Total_Estimate'] = total_est
+            results_dict['Real_Space_Rg'] = rg
+            results_dict['Real_Space_Rg_Err'] = rg_err
+            results_dict['Real_Space_I0'] = i0
+            results_dict['Real_Space_I0_Err'] = i0_err
+            results_dict['GNOM_ChiSquared'] = chi_sq
+            results_dict['Alpha'] = alpha
             results_dict['qStart'] = save_profile.getQ()[0]
-            results_dict['qEnd'] = save_profile.getQ()[0]
+            results_dict['qEnd'] = save_profile.getQ()[-1]
             results_dict['GNOM_Quality_Assessment'] = quality
             analysis_dict['GNOM'] = results_dict
             profile.setParameter('analysis', analysis_dict)
