@@ -5,7 +5,7 @@ OS X and macOS install from source instructions
 #.  Install Miniconda python distribution
 
     *   Download the free miniconda python 3.x, e.g. 3.8, installer from:
-        `https://docs.conda.io/en/latest/miniconda.htmll <https://docs.conda.io/en/latest/miniconda.htmll>`_
+        `https://docs.conda.io/en/latest/miniconda.html <https://docs.conda.io/en/latest/miniconda.html>`_
 
         *   Make sure you get the python 3.x version!
 

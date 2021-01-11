@@ -8652,7 +8652,8 @@ class ManipItemPanel(wx.Panel):
 
         else:
             msg = 'You must select at least 2 scattering profiles to run EFA.'
-            dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
+            dlg = wx.MessageDialog(self, msg, "Not enough files selected",
+                style = wx.ICON_INFORMATION | wx.OK)
             dlg.ShowModal()
             dlg.Destroy()
 
@@ -8675,7 +8676,8 @@ class ManipItemPanel(wx.Panel):
 
         else:
             msg = 'You must select at least 2 scattering profiles to run SVD.'
-            dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
+            dlg = wx.MessageDialog(self, msg, "Not enough files selected",
+                style = wx.ICON_INFORMATION | wx.OK)
             dlg.ShowModal()
             dlg.Destroy()
 
@@ -8683,7 +8685,8 @@ class ManipItemPanel(wx.Panel):
 
         key = evt.GetKeyCode()
 
-        if ((key == wx.WXK_DELETE) or (key == wx.WXK_BACK and evt.CmdDown())) and self._selected == True:
+        if (((key == wx.WXK_DELETE) or (key == wx.WXK_BACK and evt.CmdDown()))
+            and self._selected == True):
             self.removeSelf()
 
         elif key == 83: #S
