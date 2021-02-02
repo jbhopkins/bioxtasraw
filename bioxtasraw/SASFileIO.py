@@ -1009,7 +1009,7 @@ def loadHeader(filename, new_filename, header_type):
         except IOError as io:
             raise SASExceptions.HeaderLoadError(str(io).replace("u'",''))
         except Exception as e:
-            print(e)
+            # print(e)
             raise SASExceptions.HeaderLoadError('Header file for : ' + str(filename) + ' could not be read or contains incorrectly formatted data. ')
     else:
         hdr = {}
