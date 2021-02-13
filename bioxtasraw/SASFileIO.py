@@ -40,6 +40,7 @@ import collections
 import datetime
 from xml.dom import minidom
 import ast
+import logging
 
 import numpy as np
 import fabio
@@ -60,6 +61,8 @@ import bioxtasraw.SECM as SECM
 import bioxtasraw.SASCalib as SASCalib
 import bioxtasraw.SASUtils as SASUtils
 
+if __name__ != '__main__':
+    logger = logging.getLogger('raw')
 
 ############################
 #--- ## Load image files: ##
@@ -2997,6 +3000,7 @@ def saveMeasurement(sasm, save_path, raw_settings, filetype = '.dat'):
     ''' Saves a Measurement Object to a .rad file.
         Returns the filename of the saved file '''
 
+    logger.debug('in save measurement')
     if not isinstance(sasm, list):
         sasm = [sasm]
 
@@ -3018,6 +3022,7 @@ def saveMeasurement(sasm, save_path, raw_settings, filetype = '.dat'):
         elif filetype == '.out':
             writeOutFile(each_sasm, os.path.join(save_path, filename + filetype))
         else:
+            logger.debug('Writing dat file')
             try:
                 writeRadFile(each_sasm, os.path.join(save_path, filename + filetype), header_on_top)
             except TypeError as e:
@@ -3027,7 +3032,7 @@ def saveMeasurement(sasm, save_path, raw_settings, filetype = '.dat'):
                 writeRadFile(each_sasm, os.path.join(save_path, filename + filetype), header_on_top, False)
 
                 raise SASExceptions.HeaderSaveError(e)
-
+    logger.debug('done saving measurement')
 
 def saveSECItem(save_path, secm_dict):
 
@@ -4219,6 +4224,7 @@ def loadWorkspace(load_path):
     return sasm_dict
 
 def writeHeader(d, f2, ignore_list = []):
+    logger.debug('writing header')
     f2.write('### HEADER:\n#\n#')
 
     ignore_list.append('fit_sasm')
@@ -4234,6 +4240,7 @@ def writeHeader(d, f2, ignore_list = []):
     f2.write(header)
 
     f2.write('\n\n')
+    logger.debug('header written')
 
 def formatHeader(d):
     d = translateHeader(d)
@@ -4284,12 +4291,13 @@ sasbdb_back_trans = {value : key for (key, value) in sasbdb_trans.items()}
 
 def writeRadFile(m, filename, header_on_top = True, use_header = True):
     ''' Writes an ASCII file from a measurement object, using the RAD format '''
-
+    logger.debug('in writeRadFile')
     if use_header:
         d = m.getAllParameters()
     else:
         d = {}
 
+    logger.debug('opening file')
     with open(filename, 'w') as f:
 
         if header_on_top == True:
@@ -4297,10 +4305,12 @@ def writeRadFile(m, filename, header_on_top = True, use_header = True):
 
         q_min, q_max = m.getQrange()
 
+        logger.debug('writing top lines')
         f.write('### DATA:\n#\n')
         f.write('# %d\n' % len(m.i[q_min:q_max]))
         f.write('#{:^13}  {:^14}  {:^14}\n'.format('Q', 'I(Q)', 'Error'))
 
+        logger.debug('writing data')
         for idx in range(q_min, q_max):
             line = ('%.8E  %.8E  %.8E\n') % ( m.q[idx], m.i[idx], m.err[idx])
             f.write(line)
@@ -4309,6 +4319,7 @@ def writeRadFile(m, filename, header_on_top = True, use_header = True):
         if header_on_top == False:
             f.write('\n')
             writeHeader(d, f)
+    logger.debug('done writing file')
 
 def writeIftFile(m, filename, use_header = True):
     ''' Writes an ASCII file from an IFT measurement object created by BIFT'''

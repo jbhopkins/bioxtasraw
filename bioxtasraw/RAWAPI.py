@@ -39,6 +39,7 @@ import tempfile
 import traceback
 import copy
 import threading
+import logging
 
 import numpy as np
 
@@ -68,6 +69,9 @@ __default_settings.set('ATSASDir', atsas_dir)
 RAWGlobals.RAWResourcesDir = os.path.join(raw_path, 'bioxtasraw', 'resources')
 RAWGlobals.RAWDefinitionsDir = os.path.join(raw_path, 'bioxtasraw', 'definitions')
 RAWGlobals.RAWDocsDir = os.path.join(raw_path, 'docs', 'build', 'html')
+
+if __name__ != '__main__':
+    logger = logging.getLogger('raw')
 
 def load_settings(file, settings=None):
     """
@@ -610,15 +614,21 @@ def save_profile(profile, fname=None, datadir='.', settings=None):
         The RAW settings to be used when saving, which contain settings for
         how to write the output .dat file.
     """
+    logger.debug('In save profile')
     if settings is None:
         settings = __default_settings
 
+    logger.debug('setting filename if necessary')
     if fname is not None:
         profile = copy.deepcopy(profile)
         profile.setParameter('filename', fname)
 
+    logger.debug('setting path')
     savepath = os.path.abspath(os.path.expanduser(datadir))
+    logger.debug('saving')
     SASFileIO.saveMeasurement(profile, savepath, settings)
+    logger.debug('done saving profile')
+
 
 def save_ift(ift, fname=None, datadir='.'):
     """
