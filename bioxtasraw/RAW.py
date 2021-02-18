@@ -194,6 +194,7 @@ class MainFrame(wx.Frame):
             'rundenssalign'         : self.NewControlId(),
             'runsvd'                : self.NewControlId(),
             'runefa'                : self.NewControlId(),
+            'runregals'             : self.NewControlId(),
             'showhistory'           : self.NewControlId(),
             'weightedAverage'       : self.NewControlId(),
             'similarityTest'        : self.NewControlId(),
@@ -217,6 +218,7 @@ class MainFrame(wx.Frame):
         self.supcomb_frames = []
         self.svd_frames = []
         self.efa_frames = []
+        self.regals_frames = []
         self.sim_frames = []
         self.kratky_frames = []
         self.denss_frames = []
@@ -1002,6 +1004,40 @@ class MainFrame(wx.Frame):
 
             self.efa_frames.append(efaframe)
 
+    def showREGALSFrame(self, secm, manip_item):
+
+        remove = []
+        proceed = True
+
+        for regals_frame in self.regals_frames:
+            if regals_frame:
+                if regals_frame.orig_secm == secm:
+                    msg = ('There is already an EFA window open for this dataset.'
+                        'Do you want to open another?')
+                    answer = wx.MessageBox(msg, 'Open duplicate EFA window?',
+                        style=wx.YES_NO)
+
+                    if answer == wx.NO:
+                        proceed = False
+                        regals_frame.Raise()
+                        regals_frame.RequestUserAttention()
+
+                    break
+
+            else:
+                remove.append(regals_frame)
+
+        if remove:
+            for regals_frame in remove:
+                self.regals_frames.remove(regals_frame)
+
+        if proceed:
+            regals_frame = RAWAnalysis.REGALSFrame(self, secm, manip_item)
+            regals_frame.SetIcon(self.GetIcon())
+            regals_frame.Show(True)
+
+            self.regals_frames.append(regals_frame)
+
     def showSimilarityFrame(self, sasm_list):
         if not sasm_list or len(sasm_list) == 1:
             msg = 'You must select at least 2 items to test similarity.'
@@ -1448,6 +1484,7 @@ class MainFrame(wx.Frame):
                 ('&LC Series Analysis', self.MenuIDs['lcanalysis'], self._onToolsMenu, 'normal'),
                 ('&SVD', self.MenuIDs['runsvd'], self._onToolsMenu, 'normal'),
                 ('&EFA', self.MenuIDs['runefa'], self._onToolsMenu, 'normal'),
+                ('&REGALS', self.MenuIDs['runregals'], self._onToolsMenu, 'normal'),
                 ('&Similarity Test', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
                 ('&Normalized Kratky Plots', self.MenuIDs['normalizedKratky'], self._onToolsMenu, 'normal'),
                 (None, None, None, 'separator'),
@@ -1898,6 +1935,81 @@ class MainFrame(wx.Frame):
                 return
 
             self.showEFAFrame(secm, manip_item)
+
+
+        elif id == self.MenuIDs['runregals']:
+            secpage = wx.FindWindowByName('SECPanel')
+            manippage = wx.FindWindowByName('ManipulationPanel')
+            iftpage = wx.FindWindowByName('IFTPanel')
+            filepage = wx.FindWindowByName('FilePanel')
+
+            current_page = self.control_notebook.GetSelection()
+            page = self.control_notebook.GetPage(current_page)
+
+            if page == manippage:
+                selected_items = manippage.getSelectedItems()
+
+                if len(selected_items) > 1:
+                    selected_sasms = [item.sasm for item in selected_items]
+
+                    selected_filenames = [sasm.getParameter('filename') for sasm in selected_sasms]
+
+                    frame_list = list(range(len(selected_sasms)))
+
+                    secm = SECM.SECM(selected_filenames, selected_sasms,
+                        frame_list, {}, self.raw_settings)
+
+                    manip_item = None
+
+                else:
+                    msg = 'You must select at least 2 scattering profiles to run REGALS.'
+                    dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
+                    dlg.ShowModal()
+                    dlg.Destroy()
+
+                    return
+
+            elif page == iftpage:
+                selected_items = iftpage.getSelectedItems()
+
+                if len(selected_items) > 1:
+
+                    selected_iftms = [item.iftm for item in selected_items]
+
+                    selected_sasms = [SASM.SASM(iftm.p, iftm.r, iftm.err, iftm.getAllParameters()) for iftm in selected_iftms]
+
+                    selected_filenames = [sasm.getParameter('filename') for sasm in selected_sasms]
+
+                    frame_list = list(range(len(selected_sasms)))
+
+                    secm = SECM.SECM(selected_filenames, selected_sasms,
+                        frame_list, {}, self.raw_settings)
+
+                    manip_item = None
+
+                else:
+                    msg = 'You must select at least 2 P(r) functions to run REGALS.'
+                    dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
+                    dlg.ShowModal()
+                    dlg.Destroy()
+
+                    return
+
+            elif page == secpage:
+                selected_items = secpage.getSelectedItems()
+
+                if len(selected_items) > 0:
+                    secm = selected_items[0].getSECM()
+                    manip_item = selected_items[0]
+                else:
+                    wx.MessageBox("Please select a series curve from the list on the series page.", "No series curve selected")
+                    return
+
+            elif page == filepage:
+                wx.MessageBox('The selected operation cannot be performed from the file tab.', 'Select Different Tab', style = wx.ICON_INFORMATION)
+                return
+
+            self.showREGALSFrame(secm, manip_item)
 
         elif id == self.MenuIDs['lcanalysis']:
             secpage = wx.FindWindowByName('SECPanel')
@@ -8347,6 +8459,7 @@ class ManipItemPanel(wx.Panel):
         other_an_menu = wx.Menu()
         other_an_menu.Append(34, 'SVD')
         other_an_menu.Append(35, 'EFA')
+        other_an_menu.Append(42, 'REGALS')
 
         menu.Append(4, 'Subtract')
         menu.Append(6, 'Average' )
@@ -8602,6 +8715,9 @@ class ManipItemPanel(wx.Panel):
 
             Mainframe.showReportFrame(profiles=selected_sasms)
 
+        elif evt.GetId() == 42:
+            #Run EFA on the selected profiles
+            self._runREGALS()
 
 
     def _saveAllAnalysisInfo(self):
@@ -8651,7 +8767,7 @@ class ManipItemPanel(wx.Panel):
             Mainframe.showSVDFrame(secm, None)
 
         else:
-            msg = 'You must select at least 2 scattering profiles to run EFA.'
+            msg = 'You must select at least 2 scattering profiles to run SVD.'
             dlg = wx.MessageDialog(self, msg, "Not enough files selected",
                 style = wx.ICON_INFORMATION | wx.OK)
             dlg.ShowModal()
@@ -8675,7 +8791,31 @@ class ManipItemPanel(wx.Panel):
             Mainframe.showEFAFrame(secm, None)
 
         else:
-            msg = 'You must select at least 2 scattering profiles to run SVD.'
+            msg = 'You must select at least 2 scattering profiles to run EFA.'
+            dlg = wx.MessageDialog(self, msg, "Not enough files selected",
+                style = wx.ICON_INFORMATION | wx.OK)
+            dlg.ShowModal()
+            dlg.Destroy()
+
+    def _runREGALS(self):
+        Mainframe = wx.FindWindowByName('MainFrame')
+
+        selected_items = self.manipulation_panel.getSelectedItems()
+
+        if len(selected_items) > 1:
+            selected_sasms = [item.sasm for item in selected_items]
+
+            selected_filenames = [sasm.getParameter('filename') for sasm in selected_sasms]
+
+            frame_list = list(range(len(selected_sasms)))
+
+            secm = SECM.SECM(selected_filenames, selected_sasms, frame_list, {},
+                Mainframe.raw_settings)
+
+            Mainframe.showREGALSFrame(secm, None)
+
+        else:
+            msg = 'You must select at least 2 scattering profiles to run REGALS.'
             dlg = wx.MessageDialog(self, msg, "Not enough files selected",
                 style = wx.ICON_INFORMATION | wx.OK)
             dlg.ShowModal()
@@ -11169,6 +11309,7 @@ class SeriesItemPanel(wx.Panel):
         menu.Append(10, 'LC Series analysis')
         menu.Append(7, 'SVD')
         menu.Append(8, 'EFA')
+        menu.Append(15, 'REGALS')
         menu.Append(9, 'Similarity Test')
         menu.AppendSeparator()
 
@@ -11230,6 +11371,13 @@ class SeriesItemPanel(wx.Panel):
 
             secm = selectedSECMList[0].getSECM()
             Mainframe.showEFAFrame(secm, selectedSECMList[0])
+
+        elif evt.GetId() == 15:
+            Mainframe = wx.FindWindowByName('MainFrame')
+            selectedSECMList = self.sec_panel.getSelectedItems()
+
+            secm = selectedSECMList[0].getSECM()
+            Mainframe.showREGALSFrame(secm, selectedSECMList[0])
 
         elif evt.GetId() == 9:
             #Similarity testing

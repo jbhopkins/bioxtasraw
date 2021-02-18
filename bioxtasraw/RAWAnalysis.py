@@ -45,6 +45,11 @@ import shutil
 
 import numpy as np
 import wx
+import wx.lib.agw.flatnotebook as flatNB
+from wx.lib.agw import ultimatelistctrl as ULC
+import wx.lib.scrolledpanel as scrolled
+from scipy import integrate
+import scipy.stats as stats
 import matplotlib
 
 matplotlib.rcParams['backend'] = 'WxAgg'
@@ -54,12 +59,6 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.figure import Figure
 import matplotlib.colors as mplcol
 from mpl_toolkits.mplot3d import Axes3D
-
-import wx.lib.agw.flatnotebook as flatNB
-from wx.lib.agw import ultimatelistctrl as ULC
-
-from scipy import integrate
-import scipy.stats as stats
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -78,6 +77,7 @@ import bioxtasraw.BIFT as BIFT
 import bioxtasraw.DENSS as DENSS
 import bioxtasraw.SECM as SECM
 import bioxtasraw.SASUtils as SASUtils
+import bioxtasraw.REGALS as REGALS
 
 class UVConcentrationDialog(wx.Dialog):
     def __init__(self, parent, title, selected_sasms, bg_sasm):
@@ -635,29 +635,6 @@ class GuinierPlotPanel(wx.Panel):
             self.ax_redraw()
         else:
             self.redrawLines()
-
-    def _vals_close(self, val1, val2, cl_range=0.05):
-        min_range = 1-cl_range
-
-        if val1 == val2:
-            close = True
-
-        elif val1 == 0 or val2 == 0:
-            close = False
-
-        elif (val1 < val2 and val1>0) or (val1 > val2 and val1 < 0):
-            if val1/val2 > min_range:
-                close = True
-            else:
-                close = False
-
-        else:
-            if val2/val1 > min_range:
-                close = True
-            else:
-                close = False
-
-        return close
 
     def _onMouseButtonReleaseEvent(self, event):
         ''' Find out where the mouse button was released
@@ -4089,29 +4066,6 @@ class IFTPlotPanel(wx.Panel):
             self.ax_redraw()
         else:
             self.redrawLines()
-
-    def _vals_close(self, val1, val2, cl_range=0.05):
-        min_range = 1-cl_range
-
-        if val1 == val2:
-            close = True
-
-        elif val1 == 0 or val2 == 0:
-            close = False
-
-        elif (val1 < val2 and val1>0) or (val1 > val2 and val1 < 0):
-            if val1/val2 > min_range:
-                close = True
-            else:
-                close = False
-
-        else:
-            if val2/val1 > min_range:
-                close = True
-            else:
-                close = False
-
-        return close
 
     def clearDataPlot(self):
         if self.ift is not None:
@@ -11847,39 +11801,17 @@ class SVDFrame(wx.Frame):
     def __init__(self, parent, title, secm, manip_item):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(800, client_display.Width), min(680, client_display.Height))
+        size = size = (min(950, client_display.Width), min(750, client_display.Height))
 
         self.secm = secm
+        self.manip_item = manip_item
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
-        panel = wx.Panel(self)
-        splitter1 = wx.SplitterWindow(panel)
-
-        copy_secm = copy.copy(secm)
-
-        self.plotPanel = SVDResultsPlotPanel(splitter1, wx.ID_ANY)
-        self.controlPanel = SVDControlPanel(splitter1, wx.ID_ANY, copy_secm, manip_item)
-
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(290))
-
-        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter1.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
-        else:
-            splitter1.SetMinimumPaneSize(self._FromDIP(50))
-
-        splitter1.Layout()
-
-        panel_sizer = wx.BoxSizer()
-        panel_sizer.Add(splitter1, 1, flag=wx.EXPAND)
-        panel.SetSizer(panel_sizer)
-
-        top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
-        self.SetSizer(top_sizer)
+        self._Layout()
 
         SASUtils.set_best_size(self)
 
@@ -11893,10 +11825,98 @@ class SVDFrame(wx.Frame):
         except Exception:
             return size
 
+    def _Layout(self):
+        panel = wx.Panel(self)
+        splitter1 = wx.SplitterWindow(panel)
+
+        copy_secm = copy.copy(self.secm)
+
+        self.plotPanel = SVDResultsPlotPanel(splitter1, wx.ID_ANY)
+        self.controlPanel = SVDControlPanel(splitter1, wx.ID_ANY, copy_secm,
+            self.manip_item, self, 'SVD')
+
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(325))
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            splitter1.SetMinimumPaneSize(self._FromDIP(325))    #Back compatability with older wxpython versions
+        else:
+            splitter1.SetMinimumPaneSize(self._FromDIP(50))
+
+        if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
+            self.splitter1.Fit()
+            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+                size = self.GetSize()
+                size[1] = size[1] + self._FromDIP(20)
+                self.SetSize(self._FromDIP(size))
+
+        splitter1.Layout()
+
+        button = wx.Button(panel, wx.ID_CANCEL, 'Cancel')
+        button.Bind(wx.EVT_BUTTON, self._onCancelButton)
+
+        savebutton = wx.Button(panel, wx.ID_OK, 'OK')
+        savebutton.Bind(wx.EVT_BUTTON, self._onOkButton)
+
+        buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonSizer.Add(savebutton, 1, wx.RIGHT, border=self._FromDIP(5))
+        buttonSizer.Add(button, 1)
+
+        panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        panel_sizer.Add(splitter1, 1, flag=wx.EXPAND)
+        panel_sizer.Add(buttonSizer, flag=wx.TOP|wx.BOTTOM|wx.LEFT,
+            border=self._FromDIP(3))
+        panel.SetSizer(panel_sizer)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
+
     def OnClose(self):
 
         self.Destroy()
 
+    def _onCancelButton(self, evt):
+        self.OnClose()
+
+    def _onOkButton(self, evt):
+        svd_dict = {}
+        for key in self.controlPanel.control_ids:
+            window = (wx.FindWindowById(self.controlPanel.control_ids[key],
+                self.controlPanel))
+
+            if window is not None:
+                if key != 'profile':
+                    svd_dict[key] = window.GetValue()
+                else:
+                    svd_dict[key] = window.GetStringSelection()
+
+
+        analysis_dict = self.secm.getParameter('analysis')
+
+        if 'svd' in analysis_dict:
+            old_svd_dict = analysis_dict['svd']
+        else:
+            old_svd_dict = {}
+
+        if old_svd_dict == svd_dict:
+            modified = False
+        else:
+            modified = True
+
+        analysis_dict['svd'] = svd_dict
+
+        self.secm.setParameter('analysis', analysis_dict)
+
+        if self.manip_item is not None:
+            if modified:
+                self.manip_item.markAsModified()
+
+        self.OnClose()
+
+    def plotSVD(self, svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor,
+        svd_start,  svd_end):
+        self.plotPanel.plotSVD( svd_U, svd_s, svd_V, svd_U_autocor,
+            svd_V_autocor, svd_start,  svd_end)
 
 
 class SVDResultsPlotPanel(wx.Panel):
@@ -12055,29 +12075,6 @@ class SVDResultsPlotPanel(wx.Panel):
         else:
             self.redrawLines()
 
-    def _vals_close(self, val1, val2, cl_range=0.05):
-        min_range = 1-cl_range
-
-        if val1 == val2:
-            close = True
-
-        elif val1 == 0 or val2 == 0:
-            close = False
-
-        elif (val1 < val2 and val1>0) or (val1 > val2 and val1 < 0):
-            if val1/val2 > min_range:
-                close = True
-            else:
-                close = False
-
-        else:
-            if val2/val1 > min_range:
-                close = True
-            else:
-                close = False
-
-        return close
-
 
 class SVDSECPlotPanel(wx.Panel):
 
@@ -12228,40 +12225,18 @@ class SVDSECPlotPanel(wx.Panel):
         else:
             self.redrawLines()
 
-    def _vals_close(self, val1, val2, cl_range=0.05):
-        min_range = 1-cl_range
-
-        if val1 == val2:
-            close = True
-
-        elif val1 == 0 or val2 == 0:
-            close = False
-
-        elif (val1 < val2 and val1>0) or (val1 > val2 and val1 < 0):
-            if val1/val2 > min_range:
-                close = True
-            else:
-                close = False
-
-        else:
-            if val2/val1 > min_range:
-                close = True
-            else:
-                close = False
-
-        return close
-
 
 class SVDControlPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id, secm, manip_item):
+    def __init__(self, parent, panel_id, secm, manip_item, top_frame, ctrl_type):
 
         wx.Panel.__init__(self, parent, panel_id,
             style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.parent = parent
 
-        self.svd_frame = parent.GetParent().GetParent()
+        self.top_frame = top_frame
+        self.ctrl_type = ctrl_type
 
         self.secm = secm
 
@@ -12275,10 +12250,10 @@ class SVDControlPanel(wx.Panel):
                             'fend'      : self.NewControlId(),
                             'svd_start' : self.NewControlId(),
                             'svd_end'   : self.NewControlId(),
+                            'input'     : self.NewControlId(),
                             'norm_data' : self.NewControlId()}
 
         self.field_ids = {'fname'     : self.NewControlId()}
-
 
         self.button_ids = {'save_svd'   : self.NewControlId(),
                             'save_all'  : self.NewControlId()}
@@ -12294,6 +12269,27 @@ class SVDControlPanel(wx.Panel):
         self.SetSizer(control_sizer)
 
         self.initValues()
+
+        self.results = {
+            'profile'        : '',
+            'fstart'        : 0,
+            'fend'          : 0,
+            'svd_start'     : 0,
+            'svd_end'       : 0,
+            'input'         : 0,
+            'int'           : [],
+            'err'           : [],
+            'svd_u'         : [],
+            'svd_s'         : [],
+            'svd_v'         : [],
+            'svd_int_norm'  : [],
+            'secm_choice'   : 'sub',
+            'sub_secm'      : None,
+            'bl_secm'       : None,
+            'ydata_type'    : 'Total',
+            'filename'      : '',
+            'q'             : [],
+            }
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -12326,17 +12322,24 @@ class SVDControlPanel(wx.Panel):
             choices.append('Subtracted')
         if self.secm.baseline_subtracted_sasm_list:
             choices.append('Baseline Corrected')
-        label = wx.StaticText(self, -1, 'Use :')
+        label = wx.StaticText(self, -1, 'Use:')
         profile_type = wx.Choice(self, self.control_ids['profile'], choices = choices)
-        profile_type.SetStringSelection('Unsubtracted')
         profile_type.Bind(wx.EVT_CHOICE, self._onProfileChoice)
+
+        if self.ctrl_type == 'EFA':
+            if 'Subtracted' in choices:
+                profile_type.SetStringSelection('Subtracted')
+            else:
+                profile_type.SetStringSelection('Unsubtracted')
+        else:
+            profile_type.SetStringSelection('Unsubtracted')
 
         profile_sizer = wx.BoxSizer(wx.HORIZONTAL)
         profile_sizer.Add(label, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(3))
         profile_sizer.Add(profile_type, 1, wx.RIGHT, border=self._FromDIP(3))
 
         #control what the range of curves you're using is.
-        label1 = wx.StaticText(self, -1, 'Use Frames :')
+        label1 = wx.StaticText(self, -1, 'Use Frames:')
         label2 = wx.StaticText(self, -1, 'to')
         start_frame = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['fstart'],
             size=self._FromDIP((60,-1)))
@@ -12352,13 +12355,15 @@ class SVDControlPanel(wx.Panel):
         frame_sizer.Add(label2, 0, wx.RIGHT, border=self._FromDIP(3))
         frame_sizer.Add(end_frame, 0, wx.RIGHT, border=self._FromDIP(3))
 
-        norm_data = wx.CheckBox(self, self.control_ids['norm_data'], 'Normalize by uncertainty')
-        norm_data.SetValue(True)
-        norm_data.Bind(wx.EVT_CHECKBOX, self._onNormChoice)
 
+        if self.ctrl_type == 'SVD':
+            norm_data = wx.CheckBox(self, self.control_ids['norm_data'],
+                'Normalize by uncertainty')
+            norm_data.SetValue(True)
+            norm_data.Bind(wx.EVT_CHECKBOX, self._onNormChoice)
 
         #plot the sec data
-        self.sec_plot = SVDSECPlotPanel(self, wx.ID_ANY, svd=True)
+        self.sec_plot = SVDSECPlotPanel(self, wx.ID_ANY)
 
 
         #SVD control sizer
@@ -12366,8 +12371,9 @@ class SVDControlPanel(wx.Panel):
             border=self._FromDIP(3))
         control_sizer.Add(frame_sizer, 0, wx.TOP | wx.EXPAND,
             border=self._FromDIP(8))
-        control_sizer.Add(norm_data, 0, wx.TOP | wx.EXPAND,
-            border=self._FromDIP(8))
+        if self.ctrl_type == 'SVD':
+            control_sizer.Add(norm_data, 0, wx.TOP | wx.EXPAND,
+                border=self._FromDIP(8))
         control_sizer.Add(self.sec_plot, 0, wx.TOP | wx.EXPAND,
             border=self._FromDIP(8))
 
@@ -12379,7 +12385,7 @@ class SVDControlPanel(wx.Panel):
         results_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
         #Control plotted SVD range
-        label1 = wx.StaticText(self, -1, 'Plot indexes :')
+        label1 = wx.StaticText(self, -1, 'Plot indexes:')
         label2 = wx.StaticText(self, -1, 'to')
         start_svd = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['svd_start'],
             size=self._FromDIP((60,-1)))
@@ -12396,45 +12402,55 @@ class SVDControlPanel(wx.Panel):
         svdrange_sizer.Add(end_svd, 0, wx.RIGHT, border=self._FromDIP(3))
 
 
-        #Save SVD info
-        save_svd_auto = wx.Button(self, self.button_ids['save_svd'], 'Save Plotted Values')
-        save_svd_auto.Bind(wx.EVT_BUTTON, self._onSaveButton)
+        if self.ctrl_type == 'SVD':
+            #Save SVD info
+            save_svd_auto = wx.Button(self, self.button_ids['save_svd'], 'Save Plotted Values')
+            save_svd_auto.Bind(wx.EVT_BUTTON, self._onSaveButton)
 
-        save_svd_all = wx.Button(self, self.button_ids['save_all'], 'Save All')
-        save_svd_all.Bind(wx.EVT_BUTTON, self._onSaveButton)
+            save_svd_all = wx.Button(self, self.button_ids['save_all'], 'Save All')
+            save_svd_all.Bind(wx.EVT_BUTTON, self._onSaveButton)
 
-        svd_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        svd_button_sizer.Add(save_svd_auto, 1, wx.LEFT | wx.RIGHT,
-            border=self._FromDIP(3))
-        svd_button_sizer.Add(save_svd_all, 1, wx.RIGHT, border=self._FromDIP(3))
+            svd_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            svd_button_sizer.Add(save_svd_auto, 1, wx.LEFT | wx.RIGHT,
+                border=self._FromDIP(3))
+            svd_button_sizer.Add(save_svd_all, 1, wx.RIGHT, border=self._FromDIP(3))
 
 
         results_sizer.Add(svdrange_sizer, 0,  wx.TOP | wx.EXPAND,
             border=self._FromDIP(3))
-        results_sizer.Add(svd_button_sizer,0, wx.TOP | wx.EXPAND,
-            border=self._FromDIP(3))
+
+        if self.ctrl_type == 'SVD':
+            results_sizer.Add(svd_button_sizer,0, wx.TOP | wx.EXPAND,
+                border=self._FromDIP(3))
+
+        if self.ctrl_type == 'EFA' or self.ctrl_type == 'REGALS':
+            #Input number of significant values to use for EFA or REGALS
+            box = wx.StaticBox(self, -1, 'User Input')
+            input_sizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
+
+            label1 = wx.StaticText(self, -1, '# Significant SVs :')
+            user_input = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['input'],
+                size=self._FromDIP((60,-1)))
 
 
-        button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
-        button.Bind(wx.EVT_BUTTON, self._onCancelButton)
-
-        savebutton = wx.Button(self, wx.ID_OK, 'OK')
-        savebutton.Bind(wx.EVT_BUTTON, self._onOkButton)
-
-        buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttonSizer.Add(savebutton, 1, wx.RIGHT, border=self._FromDIP(5))
-        buttonSizer.Add(button, 1)
+            input_sizer.Add(label1, 0, wx.LEFT | wx.TOP | wx.BOTTOM,
+                border=self._FromDIP(3))
+            input_sizer.Add(user_input, 0, wx.ALL, border=self._FromDIP(3))
+            input_sizer.AddStretchSpacer(1)
 
 
         top_sizer.Add(filesizer, 0, wx.EXPAND | wx.TOP, border=self._FromDIP(3))
         top_sizer.Add(control_sizer, 0, wx.EXPAND | wx.TOP, border=self._FromDIP(3))
-        top_sizer.Add(results_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM,
-            border=self._FromDIP(3))
+        top_sizer.Add(results_sizer, 0, wx.EXPAND | wx.TOP, border=self._FromDIP(3))
+
+        if self.ctrl_type == 'EFA' or self.ctrl_type == 'REGALS':
+            top_sizer.Add(input_sizer, 0, wx.TOP | wx.BOTTOM | wx.EXPAND,
+                border=self._FromDIP(3))
+
         top_sizer.AddStretchSpacer(1)
-        top_sizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.ALL,
-            border=self._FromDIP(5))
 
         return top_sizer
+
 
     def initValues(self):
 
@@ -12443,24 +12459,56 @@ class SVDControlPanel(wx.Panel):
         filename_window = wx.FindWindowById(self.field_ids['fname'], self)
         filename_window.SetValue(filename)
 
+        framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
+        framef_window = wx.FindWindowById(self.control_ids['fend'], self)
+
+        svd_start_window =wx.FindWindowById(self.control_ids['svd_start'], self)
+        svd_end_window =wx.FindWindowById(self.control_ids['svd_end'], self)
+
+        if self.ctrl_type == 'EFA' or self.ctrl_type == 'REGALS':
+            user_input_window = wx.FindWindowById(self.control_ids['input'], self)
+
+
+        framei = self.secm.frame_list[0]
+        framef = self.secm.frame_list[-1]
+
+        framei_window.SetRange((framei, framef))
+        framef_window.SetRange((framei, framef))
+
+        svd_start_window.SetRange((0, framef-framei-1))
+        svd_end_window.SetRange((1, framef-framei))
+
+        svd_start_window.SetValue(0)
+        svd_end_window.SetValue(min(framef-framei, 10))
+
+        if self.ctrl_type == 'EFA' or self.ctrl_type == 'REGALS':
+            user_input_window.SetValue(0)
+            user_input_window.SetRange((0, framef-framei))
+
         analysis_dict = self.secm.getParameter('analysis')
 
-        if 'svd' not in analysis_dict:
+        if self.ctrl_type == 'SVD':
+            if 'svd' in analysis_dict:
+                analysis = analysis_dict['svd']
+            else:
+                analysis = None
 
-            framei = self.secm.frame_list[0]
-            framef = self.secm.frame_list[-1]
+        if self.ctrl_type == 'EFA':
+            if 'efa' in analysis_dict:
+                analysis = analysis_dict['efa']
+            else:
+                analysis = None
 
+        if self.ctrl_type == 'REGALS':
+            if 'regals' in analysis_dict:
+                analysis = analysis_dict['regals']
+            else:
+                analysis = None
 
-            framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
-            framef_window = wx.FindWindowById(self.control_ids['fend'], self)
-
-            if len(self.secm.subtracted_sasm_list)>0:
-                if not np.all(self.secm.use_subtracted_sasm):
-                    frame_start = max(np.where(self.secm.use_subtracted_sasm)[0][0]-100, framei)
-                    frame_end = min(np.where(self.secm.use_subtracted_sasm)[0][-1]+100, framef)
-                else:
-                    frame_start = framei
-                    frame_end = framef
+        if analysis is None:
+            if len(self.secm.subtracted_sasm_list)>0 and len(np.where(self.secm.use_subtracted_sasm)[0]) > 0:
+                frame_start = max(np.where(self.secm.use_subtracted_sasm)[0][0]-100, framei)
+                frame_end = min(np.where(self.secm.use_subtracted_sasm)[0][-1]+100, framef)
 
             else:
                 frame_start = framei
@@ -12469,40 +12517,14 @@ class SVDControlPanel(wx.Panel):
             framei_window.SetValue(frame_start)
             framef_window.SetValue(frame_end)
 
-            framei_window.SetRange((framei, framef))
-            framef_window.SetRange((framei, framef))
-
-
-            svd_start_window =wx.FindWindowById(self.control_ids['svd_start'], self)
-            svd_end_window =wx.FindWindowById(self.control_ids['svd_end'], self)
-
-            svd_start_window.SetValue(0)
-            svd_end_window.SetValue(min(framef-framei,10))
-
-            svd_start_window.SetRange((0, framef-framei-1))
-            svd_end_window.SetRange((1, framef-framei))
-
         else:
-            framei = self.secm.frame_list[0]
-            framef = self.secm.frame_list[-1]
-
-            framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
-            framef_window = wx.FindWindowById(self.control_ids['fend'], self)
-
-            svd_start_window =wx.FindWindowById(self.control_ids['svd_start'], self)
-            svd_end_window =wx.FindWindowById(self.control_ids['svd_end'], self)
-
-            framei_window.SetRange((framei, framef))
-            framef_window.SetRange((framei, framef))
-
-            svd_start_window.SetRange((0, framef-framei-1))
-            svd_end_window.SetRange((1, framef-framei))
-
-            for key in analysis_dict['svd']:
-                if key != 'profile':
-                    wx.FindWindowById(self.control_ids[key], self).SetValue(analysis_dict['svd'][key])
-                else:
-                    wx.FindWindowById(self.control_ids[key], self).SetStringSelection(analysis_dict['svd'][key])
+            for key in analysis:
+                if key == 'profile':
+                    wx.FindWindowById(self.control_ids[key], self).SetStringSelection(analysis[key])
+                elif key == 'nsvs':
+                    wx.FindWindowById(self.control_ids['input'], self).SetValue(analysis[key])
+                elif key in self.control_ids:
+                     wx.FindWindowById(self.control_ids[key], self).SetValue(analysis[key])
 
 
         #make a subtracted profile SECM
@@ -12527,9 +12549,6 @@ class SVDControlPanel(wx.Panel):
                 self.secm.baseline_subtracted_sasm_list, [],
                 self.secm.getAllParameters(), self.raw_settings)
 
-            profile_window = wx.FindWindowById(self.control_ids['profile'], self)
-            profile_window.SetStringSelection('Unsubtracted')
-
         if self.manip_item is not None:
             sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
 
@@ -12539,6 +12558,7 @@ class SVDControlPanel(wx.Panel):
                 q=float(sec_plot_panel.plotparams['secm_plot_q'])
                 self.subtracted_secm.I(q)
                 self.bl_subtracted_secm.I(q)
+
             elif self.ydata_type == 'q_range':
                 qrange = sec_plot_panel.plotparams['secm_plot_qrange']
                 self.subtracted_secm.calc_qrange_I(qrange)
@@ -12546,7 +12566,16 @@ class SVDControlPanel(wx.Panel):
 
         self.updateSECPlot()
 
-        wx.CallAfter(self.runSVD)
+        self.runSVD()
+
+        if self.ctrl_type == 'EFA' or self.ctrl_type == 'REGALS':
+            if self.svd_U is not None:
+                #Attempts to figure out the significant number of singular values
+                if user_input_window.GetValue() == 0:
+                    svals = SASCalc.findSignificantSingularValues(self.svd_s,
+                        self.svd_U_autocor, self.svd_V_autocor)
+
+                    user_input_window.SetValue(svals)
 
 
     #This function is called when the profiles used are changed between subtracted and unsubtracted.
@@ -12556,9 +12585,9 @@ class SVDControlPanel(wx.Panel):
 
     #This function is called when the start and end frame range spin controls are modified
     def _onChangeFrame(self, evt):
-        id = evt.GetId()
+        my_id = evt.GetId()
 
-        spin = wx.FindWindowById(id, self)
+        spin = wx.FindWindowById(my_id, self)
 
         new_val = spin.GetValue()
 
@@ -12569,14 +12598,14 @@ class SVDControlPanel(wx.Panel):
         svd_end_window =wx.FindWindowById(self.control_ids['svd_end'], self)
 
         #Make sure the boundaries don't cross:
-        if id == self.control_ids['fstart']:
+        if my_id == self.control_ids['fstart']:
             max_val = fend_window.GetValue()
 
             if new_val > max_val-1:
                 new_val = max_val - 1
                 spin.SetValue(new_val)
 
-        elif id == self.control_ids['fend']:
+        elif my_id == self.control_ids['fend']:
             min_val = fstart_window.GetValue()
 
             if new_val < min_val+1:
@@ -12595,15 +12624,12 @@ class SVDControlPanel(wx.Panel):
 
         wx.CallAfter(self.updateSECPlot)
 
-        wx.CallAfter(self.runSVD)
-
-    def _onNormChoice(self, evt):
-        wx.CallAfter(self.runSVD)
+        self.runSVD()
 
     def _onChangeSVD(self, evt):
-        id = evt.GetId()
+        my_id = evt.GetId()
 
-        spin = wx.FindWindowById(id, self)
+        spin = wx.FindWindowById(my_id, self)
 
         new_val = spin.GetValue()
 
@@ -12614,7 +12640,7 @@ class SVDControlPanel(wx.Panel):
         svd_end_window = wx.FindWindowById(self.control_ids['svd_end'], self)
 
         #Make sure the boundaries don't cross:
-        if id == self.control_ids['svd_start']:
+        if my_id == self.control_ids['svd_start']:
             max_val = svd_end_window.GetValue()
 
             tot = fend_window.GetValue()-fstart_window.GetValue()
@@ -12627,7 +12653,7 @@ class SVDControlPanel(wx.Panel):
                 new_val = max_val - 1
                 spin.SetValue(new_val)
 
-        elif id == self.control_ids['svd_end']:
+        elif my_id == self.control_ids['svd_end']:
             min_val = svd_start_window.GetValue()
 
             tot = fend_window.GetValue()-fstart_window.GetValue()
@@ -12642,11 +12668,8 @@ class SVDControlPanel(wx.Panel):
 
         wx.CallAfter(self.updateSVDPlot)
 
-
-    def onSaveInfo(self, evt):
-
-        self.svd_frame.OnClose()
-
+    def _onNormChoice(self, evt):
+        wx.CallAfter(self.runSVD)
 
     def runSVD(self):
         profile_window = wx.FindWindowById(self.control_ids['profile'], self)
@@ -12657,7 +12680,10 @@ class SVDControlPanel(wx.Panel):
         framei = framei_window.GetValue()
         framef = framef_window.GetValue()
 
-        norm_data = wx.FindWindowById(self.control_ids['norm_data']).GetValue()
+        if self.ctrl_type == 'SVD':
+            err_norm - wx.FindWindowById(self.control_ids['norm_data'], self).GetValue()
+        else:
+            err_norm = True
 
         if profile_window.GetStringSelection() == 'Unsubtracted':
             secm = self.secm
@@ -12673,38 +12699,21 @@ class SVDControlPanel(wx.Panel):
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
             sasm_list = []
 
-        i = np.array([sasm.getI() for sasm in sasm_list])
-        err = np.array([sasm.getErr() for sasm in sasm_list])
+        (self.svd_U, self.svd_s, self.svd_V, self.svd_U_autocor,
+            self.svd_V_autocor, self.i, self.err, self.svd_a,
+            success) = SASCalc.SVDOnSASMs(sasm_list, err_norm)
 
-        self.i = i.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
-        self.err = err.T
-
-        if norm_data:
-            err_mean = np.mean(self.err, axis = 1)
-            if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
-                self.err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), self.err.shape)
+        if not success:
+            if self.ctrl_type == 'EFA' or self.ctrl_type == 'SVD':
+                msg = ('Initial SVD failed, so {} analysis cannot '
+                    'continue.'.format(self.ctrl_type))
             else:
-                self.err_avg = np.array([err_mean for k in range(self.i.shape[1])]).T
+                msg = ('SVD failed.')
 
-            self.svd_a = self.i/self.err_avg
+            wx.CallAfter(wx.MessageBox, msg, 'SVD Failed.', style = wx.ICON_ERROR | wx.OK)
+
         else:
-            self.svd_a = self.i
-
-        if not np.all(np.isfinite(self.svd_a)):
-            wx.CallAfter(wx.MessageBox, 'Initial SVD matrix contained nans or infinities. SVD could not be carried out', 'SVD Failed', style = wx.ICON_ERROR | wx.OK)
-            return
-
-        try:
-            self.svd_U, self.svd_s, svd_Vt = np.linalg.svd(self.svd_a, full_matrices = True)
-        except Exception:
-            wx.CallAfter(wx.MessageBox, 'Initial SVD did not converge.', 'SVD Failed', style = wx.ICON_ERROR | wx.OK)
-            return
-
-        self.svd_V = svd_Vt.T
-        self.svd_U_autocor = np.abs(np.array([np.correlate(self.svd_U[:,k], self.svd_U[:,k], mode = 'full')[-self.svd_U.shape[0]+1] for k in range(self.svd_U.shape[1])]))
-        self.svd_V_autocor = np.abs(np.array([np.correlate(self.svd_V[:,k], self.svd_V[:,k], mode = 'full')[-self.svd_V.shape[0]+1] for k in range(self.svd_V.shape[1])]))
-
-        wx.CallAfter(self.updateSVDPlot)
+            wx.CallAfter(self.updateSVDPlot)
 
     def updateSECPlot(self):
         framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
@@ -12724,13 +12733,22 @@ class SVDControlPanel(wx.Panel):
 
     def updateSVDPlot(self):
 
-        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'], self)
-        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'], self)
+        if self.svd_s is not None and not np.any(np.isnan(self.svd_s)):
+            svd_start_window = wx.FindWindowById(self.control_ids['svd_start'], self)
+            svd_end_window = wx.FindWindowById(self.control_ids['svd_end'], self)
 
-        svd_start = svd_start_window.GetValue()
-        svd_end = svd_end_window.GetValue()
+            svd_start = svd_start_window.GetValue()
+            svd_end = svd_end_window.GetValue()
 
-        self.svd_frame.plotPanel.plotSVD(self.svd_U, self.svd_s, self.svd_V, self.svd_U_autocor, self.svd_V_autocor, svd_start, svd_end)
+            self.top_frame.plotSVD(self.svd_U, self.svd_s, self.svd_V,
+                self.svd_U_autocor, self.svd_V_autocor, svd_start, svd_end)
+
+
+    def getSignificant(self):
+        return wx.FindWindowById(self.control_ids['input'], self).GetValue()
+
+    def setSignificant(self, nvals):
+        wx.FindWindowById(self.control_ids['input'], self).SetValue(nvals)
 
     def _onSaveButton(self, evt):
         if evt.GetId() == self.button_ids['save_svd']:
@@ -12749,7 +12767,9 @@ class SVDControlPanel(wx.Panel):
 
         filename = name + '_sv.csv'
 
-        dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = path, defaultFile = filename)
+        dialog = wx.FileDialog(self, message=("Please select save directory "
+            "and enter save file name"), style=wx.FD_SAVE, defaultDir=path,
+            defaultFile=filename)
 
         if dialog.ShowModal() == wx.ID_OK:
             save_path = dialog.GetPath()
@@ -12767,7 +12787,9 @@ class SVDControlPanel(wx.Panel):
         svd_start = svd_start_window.GetValue()
         svd_end = svd_end_window.GetValue()
 
-        data = np.column_stack((self.svd_s[svd_start:svd_end+1], self.svd_U_autocor[svd_start:svd_end+1], self.svd_V_autocor[svd_start:svd_end+1]))
+        data = np.column_stack((self.svd_s[svd_start:svd_end+1],
+            self.svd_U_autocor[svd_start:svd_end+1],
+            self.svd_V_autocor[svd_start:svd_end+1]))
 
         header = 'Singular_values,U_Autocorrelation,V_Autocorrelation'
 
@@ -12787,7 +12809,9 @@ class SVDControlPanel(wx.Panel):
 
         filename = name + '_svd_all.csv'
 
-        dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = path, defaultFile = filename)
+        dialog = wx.FileDialog(self, message=("Please select save directory "
+            "and enter save file name"), style=wx.FD_SAVE, defaultDir=path,
+            defaultFile=filename)
 
         if dialog.ShowModal() == wx.ID_OK:
             save_path = dialog.GetPath()
@@ -12805,7 +12829,9 @@ class SVDControlPanel(wx.Panel):
         svd_start = svd_start_window.GetValue()
         svd_end = svd_end_window.GetValue()
 
-        svd_data = np.column_stack((self.svd_s[svd_start:svd_end+1], self.svd_U_autocor[svd_start:svd_end+1], self.svd_V_autocor[svd_start:svd_end+1]))
+        svd_data = np.column_stack((self.svd_s[svd_start:svd_end+1],
+            self.svd_U_autocor[svd_start:svd_end+1],
+            self.svd_V_autocor[svd_start:svd_end+1]))
 
         u_data = self.svd_U[:,svd_start:svd_end+1]
         v_data = self.svd_V[:,svd_start:svd_end+1]
@@ -12815,41 +12841,73 @@ class SVDControlPanel(wx.Panel):
         RAWGlobals.save_in_progress = False
         self.main_frame.setStatus('', 0)
 
+    def getResults(self):
+        for key in self.results:
+            if key in self.control_ids:
+                window = wx.FindWindowById(self.control_ids[key], self)
 
-    def _onCancelButton(self, evt):
-        self.svd_frame.OnClose()
+                if key != 'profile':
+                    value = window.GetValue()
 
+                else:
+                    value = window.GetStringSelection()
 
-    def _onOkButton(self, evt):
-        svd_dict = {}
-        for key in self.control_ids:
-            if key != 'profile':
-                svd_dict[key] = wx.FindWindowById(self.control_ids[key], self).GetValue()
-            else:
-                svd_dict[key] = wx.FindWindowById(self.control_ids[key], self).GetStringSelection()
+            elif key == 'int':
+                value = self.i
 
+            elif key == 'err':
+                value = self.err
 
-        analysis_dict = self.secm.getParameter('analysis')
+            elif key == 'svd_u':
+                value = self.svd_U
 
-        if 'svd' in analysis_dict:
-            old_svd_dict = analysis_dict['svd']
-        else:
-            old_svd_dict = {}
+            elif key == 'svd_s':
+                value = self.svd_s
 
-        if old_svd_dict == svd_dict:
-            modified = False
-        else:
-            modified = True
+            elif key == 'svd_v':
+                value = self.svd_V
 
-        analysis_dict['svd'] = svd_dict
+            elif key == 'svd_int_norm':
+                value = self.svd_a
 
-        self.secm.setParameter('analysis', analysis_dict)
+            elif key =='secm_choice':
+                profile_window = wx.FindWindowById(self.control_ids['profile'], self)
+                profile_type = profile_window.GetStringSelection()
 
-        if self.manip_item is not None:
-            if modified:
-                self.manip_item.markAsModified()
+                if profile_type == 'Unsubtracted':
+                    value = 'usub'
+                elif profile_type == 'Subtracted':
+                    value = 'sub'
+                elif profile_type == 'Basline Corrected':
+                    value = 'bl'
 
-        self.svd_frame.OnClose()
+            elif key == 'sub_secm':
+                value = self.subtracted_secm
+
+            elif key == 'bl_secm':
+                value = self.bl_subtracted_secm
+
+            elif key == 'ydata_type':
+                value = self.ydata_type
+
+            elif key == 'filename':
+                filename_window = wx.FindWindowById(self.field_ids['fname'], self)
+                value = filename_window.GetValue()
+
+            elif key == 'q':
+                profile_window = wx.FindWindowById(self.control_ids['profile'], self)
+                profile_type = profile_window.GetStringSelection()
+
+                if profile_type == 'Unsubtracted':
+                    value = self.secm.getSASM().getQ()
+                elif profile_type == 'Subtracted':
+                    value = self.subtracted_secm.getSASM().getQ()
+                elif profile_type == 'Baseline Corrected':
+                    value = self.bl_subtracted_secm.getSASM().getQ()
+
+            self.results[key] = value
+
+        return self.results
 
 
 
@@ -12867,7 +12925,7 @@ class EFAFrame(wx.Frame):
 
         self.orig_secm = secm
 
-        self.secm = copy.copy(secm)
+        self.secm = copy.deepcopy(secm)
         self.manip_item = manip_item
 
         self.panel = wx.Panel(self, wx.ID_ANY, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
@@ -12875,41 +12933,6 @@ class EFAFrame(wx.Frame):
         self.splitter_ids = {1  : self.NewControlId(),
                             2   : self.NewControlId(),
                             3   : self.NewControlId()}
-
-
-        self.panel1_results = {'profile'        : '',
-                                'fstart'        : 0,
-                                'fend'          : 0,
-                                'svd_start'     : 0,
-                                'svd_end'       : 0,
-                                'input'         : 0,
-                                'int'           : [],
-                                'err'           : [],
-                                'svd_u'         : [],
-                                'svd_s'         : [],
-                                'svd_v'         : [],
-                                'svd_int_norm'  : [],
-                                'secm_choice'   : 'sub',
-                                'sub_secm'      : None,
-                                'bl_secm'       : None,
-                                'ydata_type'    : 'Total',
-                                'filename'      : '',
-                                'q'             : []}
-
-        self.panel2_results = {'start_points'   : [],
-                                'end_points'    : [],
-                                'points'        : [],
-                                'forward_efa'   : [],
-                                'backward_efa'  : []}
-
-        self.panel3_results = {'options'    : {},
-                                'steps'     : 0,
-                                'iterations': 0,
-                                'converged' : False,
-                                'ranges'    : [],
-                                'profiles'  : [],
-                                'conc'      : [],
-                                'chisq'     : []}
 
         self.old_svd_input = -1
 
@@ -12938,8 +12961,9 @@ class EFAFrame(wx.Frame):
         #Creating the first EFA analysis panel
         self.splitter1 = wx.SplitterWindow(parent, self.splitter_ids[1])
 
-        self.plotPanel1 = SVDResultsPlotPanel(self.splitter1, -1)
-        self.controlPanel1 = EFAControlPanel1(self.splitter1, -1, self.secm, self.manip_item)
+        self.plotPanel1 = SVDResultsPlotPanel(self.splitter1, wx.ID_ANY)
+        self.controlPanel1 = SVDControlPanel(self.splitter1, wx.ID_ANY,
+            self.secm, self.manip_item, self, 'EFA')
 
         self.splitter1.SplitVertically(self.controlPanel1, self.plotPanel1, self._FromDIP(325))
 
@@ -12959,7 +12983,8 @@ class EFAFrame(wx.Frame):
         self.splitter2 = wx.SplitterWindow(parent, self.splitter_ids[2])
 
         self.plotPanel2 = EFAResultsPlotPanel2(self.splitter2, -1)
-        self.controlPanel2 = EFAControlPanel2(self.splitter2, -1, self.secm, self.manip_item)
+        self.controlPanel2 = EFAControlPanel2(self.splitter2, -1, self.secm,
+            self.manip_item, self)
 
         self.splitter2.SplitVertically(self.controlPanel2, self.plotPanel2, self._FromDIP(300))
 
@@ -13206,7 +13231,7 @@ class EFAFrame(wx.Frame):
 
 
         if self.manip_item is not None:
-            analysis_dict = self.secm.getParameter('analysis')
+            analysis_dict = self.orig_secm.getParameter('analysis')
 
             efa_dict = {}
 
@@ -13221,6 +13246,8 @@ class EFAFrame(wx.Frame):
 
             analysis_dict['efa'] = efa_dict
 
+            self.manip_item.markAsModified()
+
         self.OnClose()
 
     def _onInfoButton(self, evt):
@@ -13232,627 +13259,41 @@ class EFAFrame(wx.Frame):
             '(20), 6506-6516.')
         wx.MessageBox(str(msg), "How to cite EFA", style = wx.ICON_INFORMATION | wx.OK)
 
+    def plotSVD(self, svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor,
+        svd_start,  svd_end):
+        self.plotPanel1.plotSVD( svd_U, svd_s, svd_V, svd_U_autocor,
+            svd_V_autocor, svd_start,  svd_end)
+
+    def refreshEFAPlot(self):
+        self.plotPanel2.refresh()
+
+    def plotEFA(self, forward_data, backward_data):
+        self.plotPanel2.plotEFA(forward_data, backward_data)
+
     def getPanel1Values(self):
-        for key in self.panel1_results:
-            if key in self.controlPanel1.control_ids:
-                window = wx.FindWindowById(self.controlPanel1.control_ids[key], self.controlPanel1)
-
-                if key != 'profile':
-                    value = window.GetValue()
-
-                else:
-                    value = window.GetStringSelection()
-
-            elif key == 'int':
-                value = self.controlPanel1.i
-
-            elif key == 'err':
-                value = self.controlPanel1.err
-
-            elif key == 'svd_u':
-                value = self.controlPanel1.svd_U
-
-            elif key == 'svd_s':
-                value = self.controlPanel1.svd_s
-
-            elif key == 'svd_v':
-                value = self.controlPanel1.svd_V
-
-            elif key == 'svd_int_norm':
-                value = self.controlPanel1.svd_a
-
-            elif key =='secm_choice':
-                profile_window = wx.FindWindowById(self.controlPanel1.control_ids['profile'], self.controlPanel1)
-                profile_type = profile_window.GetStringSelection()
-
-                if profile_type == 'Unsubtracted':
-                    value = 'usub'
-                elif profile_type == 'Subtracted':
-                    value = 'sub'
-                elif profile_type == 'Basline Corrected':
-                    value = 'bl'
-
-            elif key == 'sub_secm':
-                value = self.controlPanel1.subtracted_secm
-
-            elif key == 'bl_secm':
-                value = self.controlPanel1.bl_subtracted_secm
-
-            elif key == 'ydata_type':
-                value = self.controlPanel1.ydata_type
-
-            elif key == 'filename':
-                filename_window = wx.FindWindowById(self.controlPanel1.field_ids['fname'], self.controlPanel1)
-                value = filename_window.GetValue()
-
-            elif key == 'q':
-                profile_window = wx.FindWindowById(self.controlPanel1.control_ids['profile'], self.controlPanel1)
-                profile_type = profile_window.GetStringSelection()
-
-                if profile_type == 'Unsubtracted':
-                    value = self.secm.getSASM().getQ()
-                elif profile_type == 'Subtracted':
-                    value = self.controlPanel1.subtracted_secm.getSASM().getQ()
-                elif profile_type == 'Baseline Corrected':
-                    value = self.controlPanel1.bl_subtracted_secm.getSASM().getQ()
-
-            self.panel1_results[key] = value
+        self.panel1_results = self.controlPanel1.getResults()
 
     def getPanel2Values(self):
-        window = self.controlPanel2
-
-        forward_points = [wx.FindWindowById(my_id, window).GetValue() for my_id in window.forward_ids]
-        self.panel2_results['forward_points'] = copy.copy(forward_points)
-
-        backward_points = [wx.FindWindowById(my_id, window).GetValue() for my_id in window.backward_ids]
-        self.panel2_results['backward_points'] = copy.copy(backward_points)
-
-        forward_points.sort()
-        backward_points.sort()
-
-        points = np.column_stack((forward_points,backward_points))
-
-        self.panel2_results['points'] = points
-
-        self.panel2_results['forward_efa'] = window.efa_forward
-        self.panel2_results['backward_efa'] = window.efa_backward
-
+        self.panel2_results = self.controlPanel2.getResults()
 
     def getPanel3Values(self):
-        window = self.controlPanel3
 
-        self.panel3_results['steps'] = window.conv_data['steps']
-        self.panel3_results['iterations'] = window.conv_data['iterations']
-        self.panel3_results['options'] = window.conv_data['options']
-        self.panel3_results['steps'] = window.conv_data['steps']
-
-        self.panel3_results['converged'] = window.converged
-
-        if self.panel3_results['converged']:
-            self.panel3_results['ranges'] = window._getRanges()
-            self.panel3_results['profiles'] = window.sasms
-            self.panel3_results['conc'] = window.rotation_data['C']
-            self.panel3_results['chisq'] = window.rotation_data['chisq']
+        self.panel3_results = self.controlPanel3.getResults()
 
     def OnClose(self):
 
         self.Destroy()
 
-class EFAControlPanel1(wx.Panel):
-
-    def __init__(self, parent, panel_id, secm, manip_item):
-
-        wx.Panel.__init__(self, parent, panel_id,
-            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
-
-        self.parent = parent
-
-        self.efa_frame = parent.GetParent().GetParent()
-
-        self.secm = secm
-
-        self.manip_item = manip_item
-        self.main_frame = wx.FindWindowByName('MainFrame')
-
-        self.raw_settings = self.main_frame.raw_settings
-
-        self.control_ids = {'profile'   : self.NewControlId(),
-                            'fstart'    : self.NewControlId(),
-                            'fend'      : self.NewControlId(),
-                            'svd_start' : self.NewControlId(),
-                            'svd_end'   : self.NewControlId(),
-                            'input'     : self.NewControlId()}
-
-        self.field_ids = {'fname'     : self.NewControlId()}
-
-        self.ydata_type = 'total'
-
-        self.svd_U = None
-        self.svd_s = None
-        self.svd_V = None
-
-        control_sizer = self._createLayout()
-
-        self.SetSizer(control_sizer)
-
-        self.initValues()
-
-    def _FromDIP(self, size):
-        # This is a hack to provide easy back compatibility with wxpython < 4.1
-        try:
-            return self.FromDIP(size)
-        except Exception:
-            return size
-
-    def _createLayout(self):
-
-        top_sizer =wx.BoxSizer(wx.VERTICAL)
-
-        #filename sizer
-        box = wx.StaticBox(self, -1, 'Filename')
-        filesizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
-
-        filenameTxtCtrl = wx.TextCtrl(self, self.field_ids['fname'], '',
-            style = wx.TE_READONLY)
-
-        filesizer.Add(filenameTxtCtrl, 1, wx.ALL, border=self._FromDIP(3))
-
-
-        #svd controls
-        box = wx.StaticBox(self, -1, 'Controls')
-        control_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-
-        #control if you're using unsubtracted or subtracted curves
-        choices = ['Unsubtracted']
-        if self.secm.subtracted_sasm_list:
-            choices.append('Subtracted')
-        if self.secm.baseline_subtracted_sasm_list:
-            choices.append('Baseline Corrected')
-        label = wx.StaticText(self, -1, 'Use :')
-        profile_type = wx.Choice(self, self.control_ids['profile'], choices = choices)
-        profile_type.Bind(wx.EVT_CHOICE, self._onProfileChoice)
-        if 'Subtracted' in choices:
-            profile_type.SetStringSelection('Subtracted')
-        else:
-            profile_type.SetStringSelection('Unsubtracted')
-
-        profile_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        profile_sizer.Add(label, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(3))
-        profile_sizer.Add(profile_type, 1, wx.RIGHT, border=self._FromDIP(3))
-
-        #control what the range of curves you're using is.
-        label1 = wx.StaticText(self, -1, 'Use Frames :')
-        label2 = wx.StaticText(self, -1, 'to')
-        start_frame = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['fstart'],
-            size=self._FromDIP((60,-1)))
-        end_frame = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['fend'],
-            size=self._FromDIP((60,-1)))
-
-        start_frame.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeFrame)
-        end_frame.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeFrame)
-
-        frame_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        frame_sizer.Add(label1, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(3))
-        frame_sizer.Add(start_frame, 0, wx.RIGHT, border=self._FromDIP(3))
-        frame_sizer.Add(label2, 0, wx.RIGHT, border=self._FromDIP(3))
-        frame_sizer.Add(end_frame, 0, wx.RIGHT, border=self._FromDIP(3))
-
-
-        #plot the sec data
-        self.sec_plot = SVDSECPlotPanel(self, wx.ID_ANY)
-
-
-        #SVD control sizer
-        control_sizer.Add(profile_sizer, 0,  wx.TOP | wx.EXPAND,
-            border=self._FromDIP(3))
-        control_sizer.Add(frame_sizer, 0, wx.TOP | wx.EXPAND,
-            border=self._FromDIP(8))
-        control_sizer.Add(self.sec_plot, 0, wx.TOP | wx.EXPAND,
-            border=self._FromDIP(8))
-
-        if self.manip_item is None:
-            control_sizer.Hide(profile_sizer, recursive = True)
-
-        #svd results
-        box = wx.StaticBox(self, -1, 'Results')
-        results_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-
-        #Control plotted SVD range
-        label1 = wx.StaticText(self, -1, 'Plot indexes :')
-        label2 = wx.StaticText(self, -1, 'to')
-        start_svd = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['svd_start'],
-            size=self._FromDIP((60,-1)))
-        end_svd = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['svd_end'],
-            size=self._FromDIP((60,-1)))
-
-        start_svd.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeSVD)
-        end_svd.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeSVD)
-
-        svdrange_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        svdrange_sizer.Add(label1, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(3))
-        svdrange_sizer.Add(start_svd, 0, wx.RIGHT, border=self._FromDIP(3))
-        svdrange_sizer.Add(label2, 0, wx.RIGHT, border=self._FromDIP(3))
-        svdrange_sizer.Add(end_svd, 0, wx.RIGHT, border=self._FromDIP(3))
-
-        results_sizer.Add(svdrange_sizer, 0,  wx.TOP | wx.EXPAND,
-            border=self._FromDIP(3))
-
-
-        #Input number of significant values to use for EFA
-        box = wx.StaticBox(self, -1, 'User Input')
-        input_sizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
-
-        label1 = wx.StaticText(self, -1, '# Significant SVs :')
-        user_input = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['input'],
-            size=self._FromDIP((60,-1)))
-
-
-        input_sizer.Add(label1, 0, wx.LEFT | wx.TOP | wx.BOTTOM,
-            border=self._FromDIP(3))
-        input_sizer.Add(user_input, 0, wx.ALL, border=self._FromDIP(3))
-        input_sizer.AddStretchSpacer(1)
-
-
-        top_sizer.Add(filesizer, 0, wx.EXPAND | wx.TOP, border=self._FromDIP(3))
-        top_sizer.Add(control_sizer, 0, wx.EXPAND | wx.TOP, border=self._FromDIP(3))
-        top_sizer.Add(results_sizer, 0, wx.EXPAND | wx.TOP, border=self._FromDIP(3))
-        top_sizer.Add(input_sizer, 0, wx.TOP | wx.BOTTOM | wx.EXPAND,
-            border=self._FromDIP(3))
-        top_sizer.AddStretchSpacer(1)
-
-        return top_sizer
-
-
-    def initValues(self):
-
-        filename = self.secm.getParameter('filename')
-
-        filename_window = wx.FindWindowById(self.field_ids['fname'], self)
-        filename_window.SetValue(filename)
-
-        analysis_dict = self.secm.getParameter('analysis')
-
-        framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
-        framef_window = wx.FindWindowById(self.control_ids['fend'], self)
-
-        svd_start_window =wx.FindWindowById(self.control_ids['svd_start'], self)
-        svd_end_window =wx.FindWindowById(self.control_ids['svd_end'], self)
-
-        user_input_window = wx.FindWindowById(self.control_ids['input'], self)
-
-
-        framei = self.secm.frame_list[0]
-        framef = self.secm.frame_list[-1]
-
-        framei_window.SetRange((framei, framef))
-        framef_window.SetRange((framei, framef))
-
-        svd_start_window.SetRange((0, framef-framei-1))
-        svd_end_window.SetRange((1, framef-framei))
-
-        user_input_window.SetValue(0)
-        user_input_window.SetRange((0, framef-framei))
-
-        if 'efa' not in analysis_dict:
-            if len(self.secm.subtracted_sasm_list)>0 and len(np.where(self.secm.use_subtracted_sasm)[0]) > 0:
-                frame_start = max(np.where(self.secm.use_subtracted_sasm)[0][0]-100, framei)
-                frame_end = min(np.where(self.secm.use_subtracted_sasm)[0][-1]+100, framef)
-
-            else:
-                frame_start = framei
-                frame_end = framef
-
-            framei_window.SetValue(frame_start)
-            framef_window.SetValue(frame_end)
-
-            svd_start_window.SetValue(0)
-            svd_end_window.SetValue(min(framef-framei,10))
-
-        else:
-            for key in analysis_dict['efa']:
-                if key == 'profile':
-                    wx.FindWindowById(self.control_ids[key], self).SetStringSelection(analysis_dict['efa'][key])
-                elif key == 'nsvs':
-                    wx.FindWindowById(self.control_ids['input'], self).SetValue(analysis_dict['efa'][key])
-                elif key in self.control_ids:
-                     wx.FindWindowById(self.control_ids[key], self).SetValue(analysis_dict['efa'][key])
-
-            svd_start_window.SetValue(0)
-            svd_end_window.SetValue(min(framef-framei,10))
-
-
-        #make a subtracted profile SECM
-        if len(self.secm.subtracted_sasm_list)>0:
-            self.subtracted_secm = SECM.SECM(self.secm._file_list,
-                self.secm.subtracted_sasm_list, self.secm.frame_list,
-                self.secm.getAllParameters(), self.raw_settings)
-        else:
-            self.subtracted_secm = SECM.SECM(self.secm._file_list,
-                self.secm.subtracted_sasm_list, [],
-                self.secm.getAllParameters(), self.raw_settings)
-
-            profile_window = wx.FindWindowById(self.control_ids['profile'], self)
-            profile_window.SetStringSelection('Unsubtracted')
-
-        if self.secm.baseline_subtracted_sasm_list:
-            self.bl_subtracted_secm = SECM.SECM(self.secm._file_list,
-                self.secm.baseline_subtracted_sasm_list, self.secm.frame_list,
-                self.secm.getAllParameters(), self.raw_settings)
-        else:
-            self.bl_subtracted_secm = SECM.SECM(self.secm._file_list,
-                self.secm.baseline_subtracted_sasm_list, [],
-                self.secm.getAllParameters(), self.raw_settings)
-
-        if self.manip_item is not None:
-            sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
-
-            self.ydata_type = sec_plot_panel.plotparams['y_axis_display']
-
-            if self.ydata_type == 'q_val':
-                q=float(sec_plot_panel.plotparams['secm_plot_q'])
-                self.subtracted_secm.I(q)
-                self.bl_subtracted_secm.I(q)
-            elif self.ydata_type == 'q_range':
-                qrange = sec_plot_panel.plotparams['secm_plot_qrange']
-                self.subtracted_secm.calc_qrange_I(qrange)
-                self.bl_subtracted_secm.calc_qrange_I(qrange)
-
-        self.updateSECPlot()
-
-        self.runSVD()
-
-        if self.svd_U is not None:
-            #Attempts to figure out the significant number of singular values
-            if user_input_window.GetValue() == 0:
-                point1 = 0
-                point2 = 0
-                point3 = 0
-
-                i = 0
-                ratio_found = False
-
-                while i < self.svd_s.shape[0]-1 and not ratio_found:
-                    ratio = self.svd_s/self.svd_s[i]
-
-                    if ratio[i+1] > 0.75:
-                        point1 = i
-                        ratio_found = True
-
-                    i = i +1
-
-                if not ratio_found:
-                    point1 = self.svd_s.shape[0]
-
-                u_points = np.where(self.svd_U_autocor > 0.6)[0]
-                index_list = []
-
-                if len(u_points) > 0:
-
-                    for i in range(1,len(u_points)):
-                        if u_points[i-1] +1 == u_points[i]:
-                            index_list.append(i)
-
-                    point2 = len(index_list)
-
-                    if point2 == 0:
-                        if u_points[0] == 0:
-                            point2 =1
-                    else:
-                        point2 = point2 + 1
-
-
-                v_points = np.where(self.svd_V_autocor > 0.6)[0]
-                index_list = []
-
-                if len(v_points) > 0:
-
-                    for i in range(1,len(v_points)):
-                        if v_points[i-1] +1 == v_points[i]:
-                            index_list.append(i)
-
-                    point3 = len(index_list)
-
-                    if point3 == 0:
-                        if v_points[0] == 0:
-                            point3 =1
-                    else:
-                        point3 = point3 + 1
-
-                plist = [point1, point2, point3]
-
-                mode, count = stats.mode(plist)
-
-                mode = mode[0]
-                count = count[0]
-
-                if count > 1:
-                    user_input_window.SetValue(mode)
-
-                elif np.mean(plist) > np.std(plist):
-                    user_input_window.SetValue(int(np.mean(plist)))
-
-
-    #This function is called when the profiles used are changed between subtracted and unsubtracted.
-    def _onProfileChoice(self, evt):
-        wx.CallAfter(self.updateSECPlot)
-        self.runSVD()
-
-    #This function is called when the start and end frame range spin controls are modified
-    def _onChangeFrame(self, evt):
-        id = evt.GetId()
-
-        spin = wx.FindWindowById(id, self)
-
-        new_val = spin.GetValue()
-
-        fstart_window = wx.FindWindowById(self.control_ids['fstart'], self)
-        fend_window = wx.FindWindowById(self.control_ids['fend'], self)
-
-        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'], self)
-        svd_end_window =wx.FindWindowById(self.control_ids['svd_end'], self)
-
-        #Make sure the boundaries don't cross:
-        if id == self.control_ids['fstart']:
-            max_val = fend_window.GetValue()
-
-            if new_val > max_val-1:
-                new_val = max_val - 1
-                spin.SetValue(new_val)
-
-        elif id == self.control_ids['fend']:
-            min_val = fstart_window.GetValue()
-
-            if new_val < min_val+1:
-                new_val = min_val + 1
-                spin.SetValue(new_val)
-
-        svd_min = svd_start_window.GetValue()
-        svd_max = svd_end_window.GetValue()
-        tot = fend_window.GetValue()-fstart_window.GetValue()
-
-        if svd_max > tot:
-            svd_end_window.SetValue(tot)
-
-        if svd_min > tot:
-            svd_start_window.SetValue(tot-1)
-
-        wx.CallAfter(self.updateSECPlot)
-
-        self.runSVD()
-
-    def _onChangeSVD(self, evt):
-        id = evt.GetId()
-
-        spin = wx.FindWindowById(id, self)
-
-        new_val = spin.GetValue()
-
-        fstart_window = wx.FindWindowById(self.control_ids['fstart'], self)
-        fend_window = wx.FindWindowById(self.control_ids['fend'], self)
-
-        svd_start_window = wx.FindWindowById(self.control_ids['svd_start'], self)
-        svd_end_window = wx.FindWindowById(self.control_ids['svd_end'], self)
-
-        #Make sure the boundaries don't cross:
-        if id == self.control_ids['svd_start']:
-            max_val = svd_end_window.GetValue()
-
-            tot = fend_window.GetValue()-fstart_window.GetValue()
-
-            if new_val > tot - 1:
-                new_val = tot - 1
-                spin.SetValue(new_val)
-
-            elif new_val > max_val-1:
-                new_val = max_val - 1
-                spin.SetValue(new_val)
-
-        elif id == self.control_ids['svd_end']:
-            min_val = svd_start_window.GetValue()
-
-            tot = fend_window.GetValue()-fstart_window.GetValue()
-
-            if new_val > tot:
-                new_val = tot
-                spin.SetValue(new_val)
-
-            elif new_val < min_val+1:
-                new_val = min_val + 1
-                spin.SetValue(new_val)
-
-        wx.CallAfter(self.updateSVDPlot)
-
-    def runSVD(self):
-        profile_window = wx.FindWindowById(self.control_ids['profile'], self)
-
-        framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
-        framef_window = wx.FindWindowById(self.control_ids['fend'], self)
-
-        framei = framei_window.GetValue()
-        framef = framef_window.GetValue()
-
-        if profile_window.GetStringSelection() == 'Unsubtracted':
-            secm = self.secm
-        elif profile_window.GetStringSelection() == 'Subtracted':
-            secm = self.subtracted_secm
-        elif profile_window.GetStringSelection() == 'Baseline Corrected':
-            secm = self.bl_subtracted_secm
-
-        try:
-            sasm_list = secm.getSASMList(framei, framef)
-        except SASExceptions.DataNotCompatible as e:
-            msg = e.parameter
-            wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
-            sasm_list = []
-
-        i = np.array([sasm.getI() for sasm in sasm_list])
-        err = np.array([sasm.getErr() for sasm in sasm_list])
-
-        self.i = i.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
-        self.err = err.T
-
-        err_mean = np.mean(self.err, axis = 1)
-        if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
-            self.err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), self.err.shape)
-        else:
-            self.err_avg = np.array([err_mean for k in range(self.i.shape[1])]).T
-
-        self.svd_a = self.i/self.err_avg
-
-        if not np.all(np.isfinite(self.svd_a)):
-            wx.CallAfter(wx.MessageBox, 'Initial SVD matrix contained nans or infinities. SVD could not be carried out', 'SVD Failed', style = wx.ICON_ERROR | wx.OK)
-            return
-
-        try:
-            self.svd_U, self.svd_s, svd_Vt = np.linalg.svd(self.svd_a, full_matrices = True)
-        except Exception:
-            traceback.print_exc()
-            wx.CallAfter(wx.MessageBox, 'Initial SVD did not converge, so EFA cannot proceed.', 'SVD Failed', style = wx.ICON_ERROR | wx.OK)
-            return
-
-        self.svd_V = svd_Vt.T
-        self.svd_U_autocor = np.abs(np.array([np.correlate(self.svd_U[:,k], self.svd_U[:,k], mode = 'full')[-self.svd_U.shape[0]+1] for k in range(self.svd_U.shape[1])]))
-        self.svd_V_autocor = np.abs(np.array([np.correlate(self.svd_V[:,k], self.svd_V[:,k], mode = 'full')[-self.svd_V.shape[0]+1] for k in range(self.svd_V.shape[1])]))
-
-        wx.CallAfter(self.updateSVDPlot)
-
-    def updateSECPlot(self):
-        framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
-        framef_window = wx.FindWindowById(self.control_ids['fend'], self)
-
-        framei = framei_window.GetValue()
-        framef = framef_window.GetValue()
-
-        profile_window = wx.FindWindowById(self.control_ids['profile'], self)
-
-        if profile_window.GetStringSelection() == 'Unsubtracted':
-            self.sec_plot.plotSECM(self.secm, framei, framef, self.ydata_type)
-        elif profile_window.GetStringSelection() == 'Subtracted':
-            self.sec_plot.plotSECM(self.subtracted_secm, framei, framef, self.ydata_type)
-        elif profile_window.GetStringSelection() == 'Baseline Corrected':
-            self.sec_plot.plotSECM(self.bl_subtracted_secm, framei, framef, self.ydata_type)
-
-    def updateSVDPlot(self):
-
-        if self.svd_s is not None and not np.any(np.isnan(self.svd_s)):
-            svd_start_window = wx.FindWindowById(self.control_ids['svd_start'], self)
-            svd_end_window = wx.FindWindowById(self.control_ids['svd_end'], self)
-
-            svd_start = svd_start_window.GetValue()
-            svd_end = svd_end_window.GetValue()
-
-            self.efa_frame.plotPanel1.plotSVD(self.svd_U, self.svd_s, self.svd_V, self.svd_U_autocor, self.svd_V_autocor, svd_start, svd_end)
-
 
 class EFAControlPanel2(wx.Panel):
 
-    def __init__(self, parent, panel_id, secm, manip_item):
+    def __init__(self, parent, panel_id, secm, manip_item, efa_frame):
 
         wx.Panel.__init__(self, parent, panel_id, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.parent = parent
 
-        self.efa_frame = parent.GetParent().GetParent()
+        self.efa_frame = efa_frame
 
         self.secm = secm
 
@@ -13866,6 +13307,14 @@ class EFAControlPanel2(wx.Panel):
         control_sizer = self._createLayout()
 
         self.SetSizer(control_sizer)
+
+        self.results = {
+            'start_points'   : [],
+            'end_points'    : [],
+            'points'        : [],
+            'forward_efa'   : [],
+            'backward_efa'  : [],
+            }
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -13958,15 +13407,19 @@ class EFAControlPanel2(wx.Panel):
         self.backward_sizer.Layout()
         self.top_efa.Layout()
         self.Layout()
+        self.efa_frame.Layout()
+        self.efa_frame.SendSizeEvent()
 
-        self.busy_dialog = wx.BusyInfo('Running EFA', self.efa_frame)
+        self.busy_dialog = wx.BusyInfo('Please wait, calculating . . . ',
+            self.efa_frame)
+        wx.Yield()
 
         efa_thread = threading.Thread(target=self._runEFA,
             args=(self.panel1_results['svd_int_norm'],))
         efa_thread.daemon = True
-        efa_thread.start()
+        wx.CallLater(100, efa_thread.start)
 
-    def reinitialize(self, svd_results, efa):
+    def reinitialize(self, svd_results, efa, new_ranges=None):
         self.panel1_results = copy.copy(svd_results)
 
         nvals = svd_results['input']
@@ -14034,17 +13487,22 @@ class EFAControlPanel2(wx.Panel):
         self.Layout()
 
         if efa:
-            self.busy_dialog = wx.BusyInfo('Running EFA', self.efa_frame)
+            self.busy_dialog = wx.BusyInfo('Please wait, calculating . . . ', self.efa_frame)
+            wx.Yield()
 
             efa_thread = threading.Thread(target=self._runEFA,
                 args=(self.panel1_results['svd_int_norm'],))
             efa_thread.daemon = True
-            efa_thread.start()
+            wx.CallLater(100, efa_thread.start)
+
+        elif new_ranges is None:
+            self._findEFAPoints()
+            self.efa_frame.refreshEFAPlot()
+            wx.CallAfter(self.updateEFAPlot)
 
         else:
-            self._findEFAPoints()
-            self.efa_frame.plotPanel2.refresh()
-            wx.CallAfter(self.updateEFAPlot)
+            self.efa_frame.refreshEFAPlot()
+            self.setSVs(new_ranges)
 
     def _onForwardControl(self, evt):
         self.updateEFAPlot()
@@ -14064,9 +13522,8 @@ class EFAControlPanel2(wx.Panel):
         wx.CallAfter(self.updateEFAPlot)
 
     def _runEFA(self, A):
-        wx.GetApp().Yield()
         f_slist = SASCalc.runEFA(A)
-        wx.GetApp().Yield()
+        wx.Yield()
         b_slist = SASCalc.runEFA(A, False)
 
         wx.CallAfter(self._processEFAResults, f_slist, b_slist)
@@ -14082,7 +13539,8 @@ class EFAControlPanel2(wx.Panel):
                 if (nvals == analysis_dict['efa']['nsvs']
                     and self.panel1_results['fstart'] == analysis_dict['efa']['fstart']
                     and self.panel1_results['fend'] == analysis_dict['efa']['fend']
-                    and self.panel1_results['profile'] == analysis_dict['efa']['profile']):
+                    and self.panel1_results['profile'] == analysis_dict['efa']['profile']
+                    and nvals == len(analysis_dict['efa']['ranges'])):
                     points = np.array(analysis_dict['efa']['ranges'])
 
                     forward_sv = points[:,0]
@@ -14104,7 +13562,7 @@ class EFAControlPanel2(wx.Panel):
         del self.busy_dialog
         self.busy_dialog = None
 
-        self.efa_frame.plotPanel2.refresh()
+        self.efa_frame.refreshEFAPlot()
 
         wx.CallAfter(self.updateEFAPlot)
 
@@ -14189,7 +13647,27 @@ class EFAControlPanel2(wx.Panel):
                         'index' : np.arange(len(self.efa_backward[0]))+self.panel1_results['fstart'],
                         'points': backward_points}
 
-        self.efa_frame.plotPanel2.plotEFA(forward_data, backward_data)
+        self.efa_frame.plotEFA(forward_data, backward_data)
+
+    def getResults(self):
+
+        forward_points = [wx.FindWindowById(my_id, self).GetValue() for my_id in self.forward_ids]
+        self.results['forward_points'] = copy.copy(forward_points)
+
+        backward_points = [wx.FindWindowById(my_id, self).GetValue() for my_id in self.backward_ids]
+        self.results['backward_points'] = copy.copy(backward_points)
+
+        forward_points.sort()
+        backward_points.sort()
+
+        points = np.column_stack((forward_points,backward_points))
+
+        self.results['points'] = points
+
+        self.results['forward_efa'] = self.efa_forward
+        self.results['backward_efa'] = self.efa_backward
+
+        return self.results
 
 
 class EFAResultsPlotPanel2(wx.Panel):
@@ -14447,6 +13925,17 @@ class EFAControlPanel3(wx.Panel):
         control_sizer = self._createLayout()
 
         self.SetSizer(control_sizer)
+
+        self.results = {
+            'options'    : {},
+            'steps'     : 0,
+            'iterations': 0,
+            'converged' : False,
+            'ranges'    : [],
+            'profiles'  : [],
+            'conc'      : [],
+            'chisq'     : [],
+            }
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -14941,6 +14430,23 @@ class EFAControlPanel3(wx.Panel):
         self.efa_frame.plotPanel3.refresh()
         self.efa_frame.plotPanel3.canvas.draw()
 
+    def getResults(self):
+
+        self.results['steps'] = self.conv_data['steps']
+        self.results['iterations'] = self.conv_data['iterations']
+        self.results['options'] = self.conv_data['options']
+        self.results['steps'] = self.conv_data['steps']
+
+        self.results['converged'] = self.converged
+
+        if self.results['converged']:
+            self.results['ranges'] = self._getRanges()
+            self.results['profiles'] = self.sasms
+            self.results['conc'] = self.rotation_data['C']
+            self.results['chisq'] = self.rotation_data['chisq']
+
+        return self.results
+
 
 class EFAResultsPlotPanel3(wx.Panel):
 
@@ -14961,35 +14467,50 @@ class EFAResultsPlotPanel3(wx.Panel):
         self.a_lines = []
         self.b_lines = []
         self.c_lines = []
+        self.d_lines = []
 
-        subplotLabels = [('Scattering Profiles', 'q ($\AA^{-1}$)', 'I', 0.1), ('Mean Error Weighted $\chi^2$', 'Index', '$\chi^2$', 0.1), ('Concentration', 'Index', 'Arb.', 0.1)]
+        subplotLabels = [('Scattering Profiles', 'q ($\AA^{-1}$)', 'I', 0.1),
+            ('P(r)', 'r ($\AA$)', '', 0.1),
+            ('Mean Error Weighted $\chi^2$', 'Index', '$\chi^2$', 0.1),
+            ('Concentration', 'Index', 'Arb.', 0.1)]
 
         self.fig.subplots_adjust(hspace = 0.26)
 
         self.subplots = {}
 
-        subplot = self.fig.add_subplot(2, 2, (1,2), title = subplotLabels[0][0], label = subplotLabels[0][0])
-        subplot.set_xlabel(subplotLabels[0][1])
-        subplot.set_ylabel(subplotLabels[0][2])
-        self.subplots[subplotLabels[0][0]] = subplot
+        # subplot = self.fig.add_subplot(2, 2, 1, title=subplotLabels[0][0],
+        #     label=subplotLabels[0][0])
+        # subplot.set_xlabel(subplotLabels[0][1])
+        # subplot.set_ylabel(subplotLabels[0][2])
+        # self.subplots[subplotLabels[0][0]] = subplot
 
-        subplot = self.fig.add_subplot(2, 2, 3, title = subplotLabels[1][0], label = subplotLabels[1][0])
-        subplot.set_xlabel(subplotLabels[1][1])
-        subplot.set_ylabel(subplotLabels[1][2])
-        self.subplots[subplotLabels[1][0]] = subplot
+        # subplot = self.fig.add_subplot(2, 2, 2, title=subplotLabels[1][0],
+        #     label=subplotLabels[1][0])
+        # subplot.set_xlabel(subplotLabels[1][1])
+        # subplot.set_ylabel(subplotLabels[1][2])
+        # self.subplots[subplotLabels[1][0]] = subplot
 
-        subplot = self.fig.add_subplot(2, 2, 4, title = subplotLabels[2][0], label = subplotLabels[2][0])
-        subplot.set_xlabel(subplotLabels[2][1])
-        subplot.set_ylabel(subplotLabels[2][2])
-        self.subplots[subplotLabels[2][0]] = subplot
+        # subplot = self.fig.add_subplot(2, 2, 3, title=subplotLabels[2][0],
+        #     label=subplotLabels[2][0])
+        # subplot.set_xlabel(subplotLabels[2][1])
+        # subplot.set_ylabel(subplotLabels[2][2])
+        # self.subplots[subplotLabels[2][0]] = subplot
 
-        # for i in range(0, len(subplotLabels)):
-        #     subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
-        #     subplot.set_xlabel(subplotLabels[i][1])
-        #     subplot.set_ylabel(subplotLabels[i][2])
-        #     self.subplots[subplotLabels[i][0]] = subplot
+        # subplot = self.fig.add_subplot(2, 2, 4, title=subplotLabels[2][0],
+        #     label=subplotLabels[2][0])
+        # subplot.set_xlabel(subplotLabels[2][1])
+        # subplot.set_ylabel(subplotLabels[2][2])
+        # self.subplots[subplotLabels[2][0]] = subplot
 
-        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26, wspace = 0.26)
+        for i in range(0, len(subplotLabels)):
+            subplot = self.fig.add_subplot((len(subplotLabels)+1)//2,2,i+1,
+                title = subplotLabels[i][0], label = subplotLabels[i][0])
+            subplot.set_xlabel(subplotLabels[i][1])
+            subplot.set_ylabel(subplotLabels[i][2])
+            self.subplots[subplotLabels[i][0]] = subplot
+
+        self.fig.subplots_adjust(left=0.12, bottom=0.07, right=0.93, top=0.93,
+            hspace=0.26, wspace=0.26)
         self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
@@ -15007,18 +14528,23 @@ class EFAResultsPlotPanel3(wx.Panel):
         # Connect the callback for the draw_event so that window resizing works:
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
+        self.show_pr = False
+        self.update_layout()
+
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
 
         a = self.subplots['Scattering Profiles']
         b = self.subplots['Mean Error Weighted $\chi^2$']
         c = self.subplots['Concentration']
+        d = self.subplots['P(r)']
 
         self.canvas.mpl_disconnect(self.cid)
         self.canvas.draw()
         self.a_background = self.canvas.copy_from_bbox(a.bbox)
         self.b_background = self.canvas.copy_from_bbox(b.bbox)
         self.c_background = self.canvas.copy_from_bbox(c.bbox)
+        self.d_background = self.canvas.copy_from_bbox(d.bbox)
         self.redrawLines()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
@@ -15026,10 +14552,12 @@ class EFAResultsPlotPanel3(wx.Panel):
         a = self.subplots['Scattering Profiles']
         b = self.subplots['Mean Error Weighted $\chi^2$']
         c = self.subplots['Concentration']
+        d = self.subplots['P(r)']
 
         self.a_lines = []
         self.b_lines = []
         self.c_lines = []
+        self.d_lines = []
 
         while len(a.lines) != 0:
             a.lines.pop(0)
@@ -15040,19 +14568,81 @@ class EFAResultsPlotPanel3(wx.Panel):
         while len(c.lines) != 0:
             c.lines.pop(0)
 
-        if (int(matplotlib.__version__.split('.')[0]) ==1 and int(matplotlib.__version__.split('.')[1]) >=5) or int(matplotlib.__version__.split('.')[0]) > 1:
+        while len(d.lines) != 0:
+            d.lines.pop(0)
+
+        if ((int(matplotlib.__version__.split('.')[0])==1
+            and int(matplotlib.__version__.split('.')[1]) >=5)
+            or int(matplotlib.__version__.split('.')[0]) > 1):
             a.set_prop_cycle(None)
             b.set_prop_cycle(None)
             c.set_prop_cycle(None)
+            d.set_prop_cycle(None)
         else:
             a.set_color_cycle(None)
             b.set_color_cycle(None)
             c.set_color_cycle(None)
+            d.set_color_cycle(None)
 
-    def plotEFA(self, profile_data, rmsd_data, conc_data):
-        self.updateDataPlot(profile_data, rmsd_data, conc_data)
+    def update_layout(self):
 
-    def updateDataPlot(self, profile_data, rmsd_data, conc_data):
+        a = self.subplots['Scattering Profiles']
+        b = self.subplots['Mean Error Weighted $\chi^2$']
+        c = self.subplots['Concentration']
+        d = self.subplots['P(r)']
+
+        gs = matplotlib.gridspec.GridSpec(2, 2)
+
+        if self.show_pr:
+            a.set_subplotspec(gs[0,0])
+            a.update_params()
+            a.set_position(a.figbox)
+            b.set_subplotspec(gs[1,0])
+            b.update_params()
+            b.set_position(b.figbox)
+            c.set_subplotspec(gs[1,1,])
+            c.update_params()
+            c.set_position(c.figbox)
+            d.set_subplotspec(gs[0,1])
+            d.update_params()
+            d.set_position(d.figbox)
+
+            d.set_visible(True)
+
+        else:
+            a.set_subplotspec(gs[0,:])
+            a.update_params()
+            a.set_position(a.figbox)
+            b.set_subplotspec(gs[1,0])
+            b.update_params()
+            b.set_position(b.figbox)
+            c.set_subplotspec(gs[1,1,])
+            c.update_params()
+            c.set_position(c.figbox)
+
+            d.set_visible(False)
+
+        self.ax_redraw()
+
+
+    def plotEFA(self, profile_data, rmsd_data, conc_data, ift_data=[]):
+        if (len(profile_data) != len(self.a_lines)
+            or len(ift_data) != len(self.d_lines)):
+            self.refresh()
+
+        if len(ift_data) > 0:
+            if not self.show_pr:
+                self.show_pr = True
+                self.update_layout()
+
+        else:
+            if self.show_pr:
+                self.show_pr = False
+                self.update_layout()
+
+        self.updateDataPlot(profile_data, rmsd_data, conc_data, ift_data)
+
+    def updateDataPlot(self, profile_data, rmsd_data, conc_data, ift_data):
         #Save for resizing:
         self.orig_profile_data = profile_data
         self.orig_rmsd_data = rmsd_data
@@ -15061,12 +14651,14 @@ class EFAResultsPlotPanel3(wx.Panel):
         a = self.subplots['Scattering Profiles']
         b = self.subplots['Mean Error Weighted $\chi^2$']
         c = self.subplots['Concentration']
+        d = self.subplots['P(r)']
 
 
         if len(self.a_lines) == 0:
 
             for j in range(len(profile_data)):
-                line, = a.semilogy(profile_data[j].getQ(), profile_data[j].getI(), label = 'Range %i' %(j), animated = True)
+                line, = a.semilogy(profile_data[j].getQ(), profile_data[j].getI(),
+                    label = 'Range %i' %(j), animated = True)
                 self.a_lines.append(line)
 
             line, = b.plot(rmsd_data[1], rmsd_data[0], animated = True)
@@ -15077,6 +14669,11 @@ class EFAResultsPlotPanel3(wx.Panel):
                 line, = c.plot(conc_data[1], conc_data[0][:,j], animated = True)
                 self.c_lines.append(line)
 
+            for j in range(len(ift_data)):
+                line, = d.plot(ift_data[j].r, ift_data[j].p/ift_data[j].getParameter('i0'),
+                    animated=True)
+                self.d_lines.append(line)
+
             a.legend(fontsize = 12)
 
             self.canvas.mpl_disconnect(self.cid)
@@ -15085,6 +14682,7 @@ class EFAResultsPlotPanel3(wx.Panel):
             self.a_background = self.canvas.copy_from_bbox(a.bbox)
             self.b_background = self.canvas.copy_from_bbox(b.bbox)
             self.c_background = self.canvas.copy_from_bbox(c.bbox)
+            self.d_background = self.canvas.copy_from_bbox(d.bbox)
 
         else:
             for j in range(len(self.a_lines)):
@@ -15101,12 +14699,18 @@ class EFAResultsPlotPanel3(wx.Panel):
                 line.set_xdata(conc_data[1])
                 line.set_ydata(conc_data[0][:,j])
 
+            for j in range(len(self.d_lines)):
+                line = self.d_lines[j]
+                line.set_xdata(ift_data[j].r)
+                line.set_ydata(ift_data[j].p/ift_data[j].getParameter('i0'))
+
         self.autoscale_plot()
 
     def redrawLines(self):
         a = self.subplots['Scattering Profiles']
         b = self.subplots['Mean Error Weighted $\chi^2$']
         c = self.subplots['Concentration']
+        d = self.subplots['P(r)']
 
         self.canvas.restore_region(self.a_background)
 
@@ -15123,15 +14727,26 @@ class EFAResultsPlotPanel3(wx.Panel):
         for line in self.c_lines:
             c.draw_artist(line)
 
+        if self.show_pr:
+            self.canvas.restore_region(self.d_background)
+
+            for line in self.d_lines:
+                d.draw_artist(line)
+
         self.canvas.blit(a.bbox)
         self.canvas.blit(b.bbox)
         self.canvas.blit(c.bbox)
+
+        if self.show_pr:
+            self.canvas.blit(d.bbox)
 
     def autoscale_plot(self):
         redraw = False
 
         plot_list = [self.subplots['Scattering Profiles'],
-            self.subplots['Mean Error Weighted $\chi^2$'], self.subplots['Concentration']]
+            self.subplots['Mean Error Weighted $\chi^2$'],
+            self.subplots['Concentration'],
+            self.subplots['P(r)']]
 
         for plot in plot_list:
             plot.set_autoscale_on(True)
@@ -15152,29 +14767,6 @@ class EFAResultsPlotPanel3(wx.Panel):
             self.ax_redraw()
         else:
             self.redrawLines()
-
-    def _vals_close(self, val1, val2, cl_range=0.05):
-        min_range = 1-cl_range
-
-        if val1 == val2:
-            close = True
-
-        elif val1 == 0 or val2 == 0:
-            close = False
-
-        elif (val1 < val2 and val1>0) or (val1 > val2 and val1 < 0):
-            if val1/val2 > min_range:
-                close = True
-            else:
-                close = False
-
-        else:
-            if val2/val1 > min_range:
-                close = True
-            else:
-                close = False
-
-        return close
 
 
 class EFARangePlotPanel(wx.Panel):
@@ -15263,7 +14855,9 @@ class EFARangePlotPanel(wx.Panel):
         while len(a.lines) != 0:
             a.lines.pop(0)
 
-        if (int(matplotlib.__version__.split('.')[0]) ==1 and int(matplotlib.__version__.split('.')[1]) >=5) or int(matplotlib.__version__.split('.')[0]) > 1:
+        if ((int(matplotlib.__version__.split('.')[0]) ==1
+                    and int(matplotlib.__version__.split('.')[1]) >=5)
+                or int(matplotlib.__version__.split('.')[0]) > 1):
             a.set_prop_cycle(None)
         else:
             a.set_color_cycle(None)
@@ -15280,6 +14874,9 @@ class EFARangePlotPanel(wx.Panel):
         else:
             intensity = secm.total_i
 
+        if len(ranges) != len(self.range_lines):
+            self.refresh()
+
         self.updateDataPlot(frame_list, intensity, framei, framef, ranges)
 
     def updateDataPlot(self, frame_list, intensity, framei, framef, ranges):
@@ -15294,7 +14891,8 @@ class EFARangePlotPanel(wx.Panel):
 
         if self.cut_line is None:
 
-            self.cut_line, = a.plot(frame_list[framei:framef+1], intensity[framei:framef+1], 'k.-', animated = True)
+            self.cut_line, = a.plot(frame_list[framei:framef+1],
+                intensity[framei:framef+1], 'k.-', animated = True)
 
             if ((int(matplotlib.__version__.split('.')[0]) ==1 and
                 int(matplotlib.__version__.split('.')[1]) >=5) or
@@ -15389,28 +14987,1351 @@ class EFARangePlotPanel(wx.Panel):
         else:
             self.redrawLines()
 
-    def _vals_close(self, val1, val2, cl_range=0.05):
-        min_range = 1-cl_range
 
-        if val1 == val2:
-            close = True
+class REGALSFrame(wx.Frame):
 
-        elif val1 == 0 or val2 == 0:
-            close = False
+    def __init__(self, parent, secm, manip_item):
 
-        elif (val1 < val2 and val1>0) or (val1 > val2 and val1 < 0):
-            if val1/val2 > min_range:
-                close = True
-            else:
-                close = False
+        wx.Frame.__init__(self, parent, wx.ID_ANY, "REGALS")
+
+        client_display = wx.GetClientDisplayRect()
+        size = (min(1500, client_display.Width), min(875, client_display.Height))
+        self.SetSize(self._FromDIP(size))
+
+        self.orig_secm = secm
+        self.secm = copy.copy(secm)
+        self.manip_item = manip_item
+
+        self.current_panel = 0
+        self.bi = None
+
+        self._layout()
+
+        self.panel_results = [None for panel in self.panels]
+
+        SASUtils.set_best_size(self)
+
+        self.CenterOnParent()
+        self.Raise()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _layout(self):
+
+        parent = wx.Panel(self)
+
+        # Create the individual panels
+        self.svd_panel = REGALSSVDPanel(parent, self.secm, self.manip_item)
+        self.efa_panel = REGALSEFAPanel(parent, self.secm, self.manip_item)
+        self.run_panel = REGALSRunPanel(parent, self.secm, self)
+
+        self.panels = [self.svd_panel, self.efa_panel, self.run_panel]
+
+        #Creating the fixed buttons
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.next_button = wx.Button(parent, -1, 'Next')
+        self.next_button.Bind(wx.EVT_BUTTON, self._on_next_button)
+
+        self.back_button = wx.Button(parent, -1, 'Back')
+        self.back_button.Bind(wx.EVT_BUTTON, self._on_back_button)
+        self.back_button.Disable()
+
+        self.cancel_button = wx.Button(parent, -1, 'Cancel')
+        self.cancel_button.Bind(wx.EVT_BUTTON, self._on_cancel_button)
+
+        self.done_button = wx.Button(parent, -1, 'Done')
+        self.done_button.Bind(wx.EVT_BUTTON, self._on_done_button)
+        self.done_button.Disable()
+
+        info_button = wx.Button(parent, -1, 'How To Cite')
+        info_button.Bind(wx.EVT_BUTTON, self._on_info_button)
+
+        button_sizer.Add(self.cancel_button, 0 , wx.LEFT, border=self._FromDIP(3))
+        button_sizer.Add(self.done_button, 0, wx.LEFT, border=self._FromDIP(3))
+        button_sizer.Add(info_button, 0, wx.LEFT, border=self._FromDIP(3))
+        button_sizer.AddStretchSpacer(1)
+        button_sizer.Add(self.back_button, 0, wx.RIGHT, border=self._FromDIP(3))
+        button_sizer.Add(self.next_button, 0, wx.RIGHT, border=self._FromDIP(3))
+
+
+        self.top_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.top_sizer.Add(self.svd_panel, proportion=1, flag=wx.EXPAND)
+        self.top_sizer.Add(self.efa_panel, proportion=1, flag=wx.EXPAND)
+        self.top_sizer.Add(self.run_panel, proportion=1, flag=wx.EXPAND)
+        self.top_sizer.Add(wx.StaticLine(parent, wx.ID_ANY, style=wx.LI_HORIZONTAL),
+            flag=wx.EXPAND|wx.TOP|wx.BOTTOM, border=self._FromDIP(5))
+        self.top_sizer.Add(button_sizer, flag=wx.TOP|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(3))
+
+        self.top_sizer.Hide(self.efa_panel, recursive=True)
+        self.top_sizer.Hide(self.run_panel, recursive=True)
+
+        parent.SetSizer(self.top_sizer)
+
+        frame_sizer = wx.BoxSizer(wx.VERTICAL)
+        frame_sizer.Add(parent, flag=wx.EXPAND, proportion=1)
+
+        self.SetSizer(frame_sizer)
+        self.Layout()
+
+    def _on_next_button(self, evt):
+        self.panel_results[self.current_panel] = self.panels[self.current_panel].get_panel_results()
+
+        self.top_sizer.Hide(self.panels[self.current_panel], recursive=True)
+        self.top_sizer.Show(self.panels[self.current_panel+1], recursive=True)
+
+        self.panels[self.current_panel+1].initialize(self.panel_results)
+
+        self.current_panel += 1
+
+        if self.current_panel == len(self.panels) -1:
+            self.next_button.Disable()
+            self.done_button.Enable()
+
+        if self.current_panel == 1:
+            self.back_button.Enable()
+
+        self.SendSizeEvent()
+
+    def _on_back_button(self, evt):
+        self.panel_results[self.current_panel] = self.panels[self.current_panel].get_panel_results()
+
+        self.top_sizer.Hide(self.panels[self.current_panel], recursive=True)
+        self.top_sizer.Show(self.panels[self.current_panel-1], recursive=True)
+
+        self.panels[self.current_panel-1].update(self.panel_results)
+
+        self.current_panel -= 1
+
+        if self.current_panel == 0:
+            self.back_button.Disable()
+
+        if self.current_panel == len(self.panels) - 2:
+            self.next_button.Enable()
+            self.done_button.Disable()
+
+        self.SendSizeEvent()
+
+    def _on_cancel_button(self, evt):
+         self.OnClose()
+
+    def _on_done_button(self, evt):
+        self.panel_results[-1] = self.run_panel.get_panel_results()
+
+        profiles = self.panel_results[-1]['profiles']
+
+        RAWGlobals.mainworker_cmd_queue.put(['to_plot_sasm', [profiles, 'black', None, True, 2]])
+
+        if self.manip_item is not None:
+            analysis_dict = self.secm.getParameter('analysis')
+
+            regals_dict = {}
+
+            # regals_dict['fstart'] = self.panel1_results['fstart']
+            # regals_dict['fend'] = self.panel1_results['fend']
+            # regals_dict['profile'] = self.panel1_results['profile']
+            # regals_dict['nsvs'] = self.panel1_results['input']
+            # regals_dict['ranges'] = self.panel3_results['ranges']
+            # regals_dict['iter_limit'] = self.panel3_results['options']['niter']
+            # regals_dict['tolerance'] = self.panel3_results['options']['tol']
+            # regals_dict['method'] = self.panel3_results['options']['method']
+
+            analysis_dict['regals'] = regals_dict
+
+            #### Neeeds work!
+
+        self.OnClose()
+
+    def _on_info_button(self, evt):
+        pass
+
+    def show_busy_dialog(self, show, msg=''):
+        if show:
+            if msg == '':
+                msg = 'Please wait, calculating . . .'
+            self.bi = wx.BusyInfo(msg, self)
+        else:
+            try:
+                del self.bi
+                self.bi = None
+            except Exception:
+                pass
+
+    def OnClose(self):
+        self.Destroy()
+
+class REGALSSVDPanel(wx.Panel):
+    def __init__(self, parent, secm, manip_item):
+        wx.Panel.__init__(self, parent, wx.ID_ANY)
+
+        self.secm = secm
+        self.manip_item = manip_item
+
+        self._layout()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _layout(self):
+        self.splitter = wx.SplitterWindow(self)
+
+        self.plotPanel = SVDResultsPlotPanel(self.splitter, wx.ID_ANY)
+        self.controlPanel = SVDControlPanel(self.splitter, wx.ID_ANY,
+            self.secm, self.manip_item, self, 'REGALS')
+
+        self.splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(325))
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            self.splitter.SetMinimumPaneSize(self._FromDIP(325))    #Back compatability with older wxpython versions
+        else:
+            self.splitter.SetMinimumPaneSize(self._FromDIP(50))
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.splitter, proportion=1, flag=wx.EXPAND)
+
+        self.SetSizer(top_sizer)
+
+
+    def plotSVD(self, svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor,
+        svd_start,  svd_end):
+        self.plotPanel.plotSVD( svd_U, svd_s, svd_V, svd_U_autocor,
+            svd_V_autocor, svd_start,  svd_end)
+
+    def get_panel_results(self):
+        return self.controlPanel.getResults()
+
+    def update(self, all_previous_results):
+        efa_results = all_previous_results[1]
+
+        nvals = efa_results['points'].shape[0]
+
+        if nvals != self.controlPanel.getSignificant():
+            self.controlPanel.setSignificant(nvals)
+
+class REGALSEFAPanel(wx.Panel):
+    def __init__(self, parent, secm, manip_item):
+        wx.Panel.__init__(self, parent, wx.ID_ANY)
+
+        self.secm = secm
+        self.manip_item = manip_item
+
+        self._layout()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _layout(self):
+        self.splitter = wx.SplitterWindow(self)
+
+        self.plotPanel = EFAResultsPlotPanel2(self.splitter, wx.ID_ANY)
+        self.controlPanel = EFAControlPanel2(self.splitter, wx.ID_ANY,
+            self.secm, self.manip_item, self)
+
+        self.splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(300))
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            self.splitter.SetMinimumPaneSize(self._FromDIP(300))    #Back compatability with older wxpython versions
+        else:
+            self.splitter.SetMinimumPaneSize(self._FromDIP(50))
+
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.splitter, proportion=1, flag=wx.EXPAND)
+
+        self.SetSizer(top_sizer)
+
+    def get_panel_results(self):
+        return self.controlPanel.getResults()
+
+    def initialize(self, all_previous_results):
+        previous_results = all_previous_results[0]
+
+        if not self.controlPanel.initialized:
+            self.controlPanel.initialize(previous_results)
+
+        elif (previous_results['fstart'] != self.controlPanel.panel1_results['fstart']
+            or previous_results['fend'] != self.controlPanel.panel1_results['fend']
+            or previous_results['profile'] != self.controlPanel.panel1_results['profile']):
+            self.controlPanel.reinitialize(previous_results, efa = True)
+
+        elif  previous_results['input'] != self.controlPanel.panel1_results['input']:
+            self.controlPanel.reinitialize(previous_results, efa = False)
+
+        self.Layout()
+
+    def update(self, all_previous_results):
+        regals_results = all_previous_results[-1]
+        new_ranges = regals_results['ranges']
+
+        if len(new_ranges) == self.controlPanel.panel1_results['input']:
+            self.controlPanel.setSVs(new_ranges)
 
         else:
-            if val2/val1 > min_range:
-                close = True
-            else:
-                close = False
+            svd_results = copy.deepcopy(all_previous_results[0])
+            svd_results['input'] = len(new_ranges)
+            self.controlPanel.reinitialize(svd_results, False, new_ranges)
 
-        return close
+    def refreshEFAPlot(self):
+        self.plotPanel.refresh()
+
+    def plotEFA(self, forward_data, backward_data):
+        self.plotPanel.plotEFA(forward_data, backward_data)
+
+class REGALSRunPanel(wx.Panel):
+    def __init__(self, parent, secm, regals_frame):
+        wx.Panel.__init__(self, parent, wx.ID_ANY)
+
+        self.comp_panels = []
+
+        self.secm = secm
+
+        self.regals_thread = None
+        self.regals_results = None
+
+        self.regals_frame = regals_frame
+
+        self.regals_abort_event = threading.Event()
+
+        self._layout()
+
+        self.Layout()
+
+        prof_settings = {
+            'type': 'simple',
+            'lambda': 0.0,
+            'Nw': 50,
+            'dmax': 100,
+            'is_zero_at_r0': True,
+            'is_zero_at_dmax': True,
+            }
+
+        conc_settings = {
+            'type': 'smooth',
+            'lambda': 1.0,
+            'xmin': 0,
+            'xmax': 10,
+            'xrange': [0, 10],
+            'Nw': 50,
+            'is_zero_at_xmin': True,
+            'is_zero_at_xmax': True,
+        }
+
+        self._defaul_component_settings = (prof_settings, conc_settings)
+
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _layout(self):
+        parent = self
+
+        self.controls = REGALSControls(parent, self.on_component_change,
+            self.run_regals, self.abort_regals)
+
+        self.comp_grid = REGALSComponentGrid(parent, self.on_range_change,
+            self.on_update_regals, self.regals_frame)
+
+        self.results = REGALSResults(parent)
+
+        sub_sizer = wx.BoxSizer(wx.VERTICAL)
+        sub_sizer.Add(self.controls, flag=wx.EXPAND)
+        sub_sizer.Add(self.comp_grid, proportion=1,
+            flag=wx.EXPAND|wx.TOP, border=self._FromDIP(5))
+
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        top_sizer.Add(sub_sizer, flag=wx.EXPAND|wx.ALL, border=self._FromDIP(5))
+        top_sizer.Add(self.results, flag=wx.EXPAND|wx.TOP|wx.BOTTOM|wx.RIGHT,
+            border=self._FromDIP(5), proportion=1)
+
+        self.SetSizer(top_sizer)
+
+    def on_component_change(self, num_comps):
+        self.controls.set_component_number(num_comps)
+        self.comp_grid.set_component_number(num_comps,
+            self._defaul_component_settings)
+        self.on_range_change()
+        self.SendSizeEvent()
+
+    def run_regals(self):
+        print('running regals')
+
+        if self.svd_results['secm_choice'] == 'usub':
+            regals_secm = self.secm
+        elif self.svd_results['secm_choice'] == 'sub':
+            regals_secm = self.svd_results['sub_secm']
+        elif self.svd_results['secm_choice'] == 'bl':
+            regals_secm = self.svd_results['bl_secm']
+
+        start = self.svd_results['fstart']
+        end = self.svd_results['fend']
+
+        ref_q = regals_secm.getSASMList(start, end)[0].getQ()
+
+        valid = self.validate_regals(regals_secm, start, end, ref_q)
+
+        if valid:
+            self.regals_frame.show_busy_dialog(True)
+
+            self.regals_abort_event.clear()
+
+            ctrl_settings = self.controls.get_settings()
+            comp_settings = self.comp_grid.get_component_settings()
+
+            seed_previous = ctrl_settings.pop('seed_previous')
+            ctrl_settings['callback'] = self.on_regals_finished_callback
+            ctrl_settings['abort_event'] = self.regals_abort_event
+
+            intensity = self.svd_results['int']
+            sigma = self.svd_results['err']
+
+            x = np.arange(start, end+1)
+
+            num_good = 2*len(comp_settings)
+
+            if (seed_previous and self.regals_results is not None and
+                len(self.regals_results['mixture'].u_profile) == len(comp_settings)):
+                mixture, components = SASCalc.create_regals_mixture(comp_settings,
+                    ref_q, x, num_good, sigma, seed_previous,
+                    self.regals_results['mixture'])
+
+            else:
+                mixture, components = SASCalc.create_regals_mixture(comp_settings,
+                    ref_q, x, num_good, sigma)
+
+            wx.CallAfter(self.set_lambdas, mixture.lambda_concentration,
+                mixture.lambda_profile)
+
+            self.regals_thread = threading.Thread(target=SASCalc.run_regals,
+                args=(mixture, intensity, sigma),
+                kwargs=ctrl_settings)
+            self.regals_thread.daemon = True
+            self.regals_thread.start()
+
+        else:
+            self.abort_regals()
+
+    def abort_regals(self):
+        self.regals_abort_event.set()
+
+        self.controls.on_regals_finished()
+        self.regals_frame.show_busy_dialog(False)
+
+    def validate_regals(self, regals_secm, start, end, ref_q):
+
+        try:
+            q_valid = all([np.all(ref_q == sasm.getQ() for sasm in regals_secm.getSASMList(start, end))])
+        except Exception:
+            q_valid = False
+
+        range_valid = True
+
+        regals_ranges = self.comp_grid.get_component_ranges()
+        regals_ranges = [np.array(rr) for rr in regals_ranges]
+
+        for i in range(len(regals_ranges)):
+            for j in range(i+1, len(regals_ranges)):
+                if np.all(regals_ranges[i] == regals_ranges[j]):
+                    range_valid = False
+
+
+        valid = q_valid and range_valid
+
+        err_msg = ''
+        if not q_valid:
+            err_msg = err_msg+ ('- All q vectors must match to use REGALS. '
+                'One or more q vectors in the dataset does not match the '
+                'others.\n')
+
+        if not range_valid:
+            err_msg = err_msg+ ('- Concentration ranges must be unique. Two or '
+                'more concentration ranges are identical.\n')
+
+        if not valid:
+            msg = ('The following errors must be fixed before REGALS can '
+                'be run:\n')
+            msg = msg + err_msg
+            dlg = wx.MessageDialog(self, msg, 'Invalid input/settings',
+                style=wx.ICON_ERROR|wx.OK)
+            dlg.ShowModal()
+            dlg.Destroy()
+
+        return valid
+
+    def set_lambdas(self, conc_lambdas, prof_lambdas):
+        self.comp_grid.set_lambdas(conc_lambdas, prof_lambdas)
+
+    def on_update_regals(self):
+        self.controls.set_regals_update()
+
+    def on_range_change(self):
+        new_ranges = self.comp_grid.get_component_ranges()
+        self.controls.update_ranges(new_ranges, self.svd_results, self.secm)
+
+    def initialize(self, all_previous_results):
+        self.svd_results = all_previous_results[0]
+        self.efa_results = all_previous_results[1]
+
+        nvals = self.efa_results['points'].shape[0]
+
+        self.on_component_change(nvals)
+        self.update_ranges(self.efa_results['points'])
+        self.controls.clear_regals_update()
+
+        start = self.svd_results['fstart']
+        end = self.svd_results['fend']
+
+        self._defaul_component_settings[1]['xmin'] = start
+        self._defaul_component_settings[1]['xmax'] = end
+        self._defaul_component_settings[1]['xrange'] = [start, end]
+
+        self.controls.do_regals()
+
+    def update_ranges(self, new_ranges):
+        start = self.svd_results['fstart']
+        end = self.svd_results['fend']
+        self.comp_grid.update_component_ranges(new_ranges, start, end)
+        self.controls.update_ranges(new_ranges, self.svd_results, self.secm)
+
+    def on_regals_finished_callback(self, *args, **kwargs):
+         wx.CallAfter(self.on_regals_finished, *args, **kwargs)
+
+    def on_regals_finished(self, *args, **kwargs):
+        mixture, params, resid = args
+
+        self.regals_results = {
+            'mixture'   : mixture,
+            'params'    : params,
+            'resid'     : resid,
+            'chisq'     : np.mean(resid ** 2, 0),
+            }
+
+        if self.svd_results['secm_choice'] == 'usub':
+            regals_secm = self.secm
+        elif self.svd_results['secm_choice'] == 'sub':
+            regals_secm = self.svd_results['sub_secm']
+        elif self.svd_results['secm_choice'] == 'bl':
+            regals_secm = self.svd_results['bl_secm']
+
+        start = self.svd_results['fstart']
+        end = self.svd_results['fend']
+
+        intensity = self.svd_results['int']
+        sigma = self.svd_results['err']
+
+        ref_q = regals_secm.getSASMList(start, end)[0].getQ()
+
+        self.sasms = SASCalc.make_regals_sasms(mixture, ref_q, intensity, sigma,
+            self.secm, start, end)
+
+        self.ifts = SASCalc.make_regals_ifts(mixture, ref_q, intensity, sigma,
+            self.secm, start, end)
+
+        self.controls.on_regals_finished()
+
+        self.update_results()
+
+        self.regals_frame.show_busy_dialog(False)
+
+    def update_results(self):
+        framei = self.svd_results['fstart']
+        framef = self.svd_results['fend']
+
+        concentrations = self.regals_results['mixture'].concentrations
+
+        rmsd_data = [self.regals_results['chisq'], list(range(framei, framef+1))]
+
+        conc_data = [concentrations, list(range(framei, framef+1))]
+
+        total_iter = self.regals_results['params']['total_iter']
+        aver_chisq = self.regals_results['params']['x2']
+
+
+        self.results.update_results(self.sasms, rmsd_data, conc_data, total_iter,
+            aver_chisq, self.ifts)
+
+    def get_panel_results(self):
+        results = {
+            'profiles': self.sasms,
+            'ifts': self.ifts,
+            'regals_results': self.regals_results,
+            'ranges':   self.comp_grid.get_component_ranges()
+            }
+
+        return results
+
+class REGALSControls(wx.Panel):
+
+    def __init__(self, parent, component_callback=None, regals_callback=None,
+        abort_regals_callback=None):
+        wx.Panel.__init__(self, parent, wx.ID_ANY)
+
+        self.component_callback = component_callback
+        self.regals_callback = regals_callback
+        self.abort_regals_callback = abort_regals_callback
+
+        self._layout()
+
+        self._initialize()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _initialize(self):
+        self.conv_type.SetStringSelection('Chi^2')
+        self.max_iter.SetValue(1000)
+        self.min_iter.SetValue(25)
+        self.tol.SetValue('0.0001')
+
+        self.seed_previous.SetValue(True)
+
+        self.abort_regals.Disable()
+
+        self._on_conv_type(None)
+
+    def _layout(self):
+
+        top_sizer = wx.StaticBoxSizer(wx.HORIZONTAL, self, 'Controls')
+        top_box = top_sizer.GetStaticBox()
+
+
+        general_sizer = wx.StaticBoxSizer(wx.VERTICAL, top_box, 'General')
+        general_box = general_sizer.GetStaticBox()
+
+        self.component_num_ctrl = RAWCustomCtrl.IntSpinCtrl(general_box, wx.ID_ANY,
+            min=1, size=self._FromDIP((60,-1)))
+        self.seed_previous = wx.CheckBox(general_box, label='Start with previous results')
+        self.run_regals = wx.Button(general_box, label='Run REGALS')
+        self.abort_regals = wx.Button(general_box, label='Abort REGALS')
+
+        self.component_num_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_component_change)
+        self.seed_previous.Bind(wx.EVT_CHECKBOX, self._on_seed_previous)
+        self.run_regals.Bind(wx.EVT_BUTTON, self._on_run_regals)
+        self.abort_regals.Bind(wx.EVT_BUTTON, self._on_abort_regals)
+
+
+        self.general_ctrls_sizer = wx.GridBagSizer(vgap=self._FromDIP(5),
+            hgap=self._FromDIP(5))
+        self.general_ctrls_sizer.Add(wx.StaticText(general_box,
+            label='# of components:'), (0,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        self.general_ctrls_sizer.Add(self.component_num_ctrl, (0,1),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        self.general_ctrls_sizer.Add(self.seed_previous, (1, 0), (1, 2),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+
+        start_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        start_sizer.Add(self.run_regals)
+        start_sizer.Add(self.abort_regals, border=self._FromDIP(5), flag=wx.LEFT)
+
+        general_sizer.Add(self.general_ctrls_sizer, border=self._FromDIP(5),
+            proportion=1, flag=wx.EXPAND|wx.ALL)
+        general_sizer.Add(start_sizer, border=self._FromDIP(5),
+            flag=wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM)
+
+
+        conv_sizer = wx.StaticBoxSizer(wx.VERTICAL, top_box, 'Convergence')
+        conv_box = conv_sizer.GetStaticBox()
+
+        self.conv_type = wx.Choice(conv_box, choices=['Iterations', 'Chi^2'])
+        self.conv_type.Bind(wx.EVT_CHOICE, self._on_conv_type)
+
+        self.max_iter_label = wx.StaticText(conv_box, label='Max. iterations:')
+        self.min_iter_label = wx.StaticText(conv_box, label='Min. iterations:')
+        self.max_iter = RAWCustomCtrl.IntSpinCtrl(conv_box, wx.ID_ANY,
+            min=1, size=self._FromDIP((60,-1)))
+        self.min_iter = RAWCustomCtrl.IntSpinCtrl(conv_box, wx.ID_ANY,
+            min=1, size=self._FromDIP((60,-1)))
+
+        self.max_iter.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_iter_change)
+        self.min_iter.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_iter_change)
+
+        self.tol_label = wx.StaticText(conv_box, label='Tolerance:')
+        self.tol = wx.TextCtrl(conv_box, size=self._FromDIP((60, -1)))
+        self.tol.Bind(wx.EVT_TEXT, self._on_update_regals)
+
+        self.conv_grid_sizer = wx.FlexGridSizer(cols=2, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(5))
+        self.conv_grid_sizer.Add(wx.StaticText(conv_box, label='Conv. critera:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        self.conv_grid_sizer.Add(self.conv_type, flag=wx.ALIGN_CENTER_VERTICAL)
+        self.conv_grid_sizer.Add(self.max_iter_label, flag=wx.ALIGN_CENTER_VERTICAL)
+        self.conv_grid_sizer.Add(self.max_iter, flag=wx.ALIGN_CENTER_VERTICAL)
+        self.conv_grid_sizer.Add(self.min_iter_label,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+        self.conv_grid_sizer.Add(self.min_iter,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+        self.conv_grid_sizer.Add(self.tol_label,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+        self.conv_grid_sizer.Add(self.tol,
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+
+        conv_sizer.Add(self.conv_grid_sizer, border=self._FromDIP(5),
+            flag=wx.EXPAND|wx.ALL, proportion=1)
+
+
+        self.range_plot = EFARangePlotPanel(top_box, wx.ID_ANY)
+
+        sub_sizer = wx.BoxSizer(wx.VERTICAL)
+        sub_sizer.Add(general_sizer, border=self._FromDIP(5), flag=wx.EXPAND|wx.ALL)
+        sub_sizer.Add(conv_sizer, border=self._FromDIP(5),
+            flag=wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM)
+
+        top_sizer.Add(sub_sizer, border=self._FromDIP(5), flag=wx.EXPAND|wx.ALL)
+        top_sizer.Add(self.range_plot, border=self._FromDIP(5),
+            flag=wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, proportion=1)
+
+        self.SetSizer(top_sizer)
+
+    def _on_component_change(self, evt):
+        num_comps = self.component_num_ctrl.GetValue()
+
+        if self.component_callback is not None:
+            self.component_callback(num_comps)
+
+        self.set_regals_update()
+
+    def _on_seed_previous(self, evt):
+        self.set_regals_update()
+
+    def _on_conv_type(self, evt):
+        self.set_regals_update()
+
+        if self.conv_type.GetStringSelection() == 'Iterations':
+            self.conv_grid_sizer.Hide(self.min_iter_label)
+            self.conv_grid_sizer.Hide(self.min_iter)
+            self.conv_grid_sizer.Hide(self.tol_label)
+            self.conv_grid_sizer.Hide(self.tol)
+        else:
+            self.conv_grid_sizer.Show(self.min_iter_label)
+            self.conv_grid_sizer.Show(self.min_iter)
+            self.conv_grid_sizer.Show(self.tol_label)
+            self.conv_grid_sizer.Show(self.tol)
+
+        self.Layout()
+
+    def _on_iter_change(self, evt):
+        self.set_regals_update()
+
+        if evt.GetEventObject == self.max_iter:
+            cmin, cmax = self.min_iter.GetRange()
+            self.min_iter.SetRange((cmin, self.max_iter.GetValue()-1))
+        elif evt.GetEventObject == self.min_iter:
+            cmin, cmax = self.max_iter.GetRange()
+            self.max_iter.SetRange((self.min_iter.GetValue()+1, cmax))
+
+    def set_regals_update(self):
+        self.run_regals.SetBackgroundColour('yellow')
+        self.run_regals.Refresh()
+
+    def clear_regals_update(self):
+        self.run_regals.SetBackgroundColour(wx.NullColour)
+        self.run_regals.Refresh()
+
+    def _on_run_regals(self, evt):
+        if self.regals_callback is not None:
+            self.do_regals()
+
+    def _on_abort_regals(self, evt):
+        if self.abort_regals_callback is not None:
+            self.abort_regals.Disable()
+            self.run_regals.Enable()
+            wx.CallAfter(self.abort_regals_callback)
+
+    def do_regals(self):
+        self.clear_regals_update()
+        self.abort_regals.Enable()
+        self.run_regals.Disable()
+        wx.CallAfter(self.regals_callback)
+
+    def on_regals_finished(self):
+        self.abort_regals.Disable()
+        self.run_regals.Enable()
+
+    def get_settings(self):
+        settings = {
+            'seed_previous' : self.seed_previous.GetValue(),
+            'conv_type'     : self.conv_type.GetStringSelection(),
+            'max_iter'      : self.max_iter.GetValue(),
+            'min_iter'      : self.min_iter.GetValue(),
+            'tol'           : float(self.tol.GetValue()),
+            }
+
+        return settings
+
+    def _on_update_regals(self, evt):
+        self.set_regals_update()
+
+    def update_ranges(self, new_ranges, svd_results, secm):
+        ydata_type = svd_results['ydata_type']
+
+        if svd_results['secm_choice'] == 'usub':
+            plot_secm = secm
+        elif svd_results['secm_choice'] == 'sub':
+            plot_secm = svd_results['sub_secm']
+        elif svd_results['secm_choice'] == 'bl':
+            plot_secm = svd_results['bl_secm']
+
+        framei = svd_results['fstart']
+        framef = svd_results['fend']
+
+        self.range_plot.plotRange(plot_secm, framei, framef, ydata_type, new_ranges)
+
+    def set_component_number(self, num_comps):
+        self.component_num_ctrl.SetValue(num_comps)
+
+
+
+class REGALSComponentGrid(scrolled.ScrolledPanel):
+
+    def __init__(self, parent, range_callback, update_callback, regals_frame,
+        *args, **kwargs):
+        scrolled.ScrolledPanel.__init__(self, parent, *args, **kwargs)
+
+        self.SetMinSize((800, 425))
+
+        self.component_panels = []
+        self.range_callback = range_callback
+        self.update_callback = update_callback
+        self.regals_frame = regals_frame
+
+        self._layout()
+
+        self.SetupScrolling()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _layout(self):
+        self.grid_sizer =wx.FlexGridSizer(cols = 3,vgap=self._FromDIP(5),
+            hgap=self._FromDIP(5))
+
+        top_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, 'Components')
+        self.top_box = top_sizer.GetStaticBox()
+
+        top_sizer.Add(self.grid_sizer, border=self._FromDIP(5), flag=wx.ALL)
+
+        self.SetSizer(top_sizer)
+
+    def set_component_number(self, num_comps, comp_settings=None):
+        if num_comps < len(self.component_panels):
+            while num_comps < len(self.component_panels):
+                self.remove_component()
+
+        elif num_comps > len(self.component_panels):
+            while num_comps > len(self.component_panels):
+                self.add_component(comp_settings)
+
+    def add_component(self, component_settings):
+
+        new_comp = REGALSComponent(self.top_box, self.range_callback,
+            self.update_callback, self.regals_frame, len(self.component_panels))
+        new_comp.set_settings(component_settings)
+
+        self.component_panels.append(new_comp)
+        self.grid_sizer.Add(new_comp)
+        self.Layout()
+
+    def remove_component(self, component=-1):
+        if (len(self.component_panels) > 0 and (component == -1
+            or component<len(self.component_panels))):
+            comp = self.component_panels.pop(component)
+            self.grid_sizer.Detach(comp)
+            comp.Destroy()
+            self.Layout()
+
+    def get_component_settings(self):
+        comp_settings = [comp.get_settings() for comp in self.component_panels]
+        return comp_settings
+
+    def get_component_ranges(self):
+        comp_ranges = np.array([comp.get_range() for comp in self.component_panels])
+        return comp_ranges
+
+    def update_component_ranges(self, new_ranges, cmin=None, cmax=None):
+        for i, new_range in enumerate(new_ranges):
+            self.component_panels[i].set_range(new_range, cmin, cmax)
+
+    def set_lambdas(self, conc_lambdas, prof_lambdas):
+        for j, component in enumerate(self.component_panels):
+            component.set_lambdas(conc_lambdas[j], prof_lambdas[j])
+
+class REGALSComponent(wx.Panel):
+
+    def __init__(self, parent, range_callback, update_callback, regals_frame,
+        comp_num=0, init_settings=None):
+        wx.Panel.__init__(self, parent, wx.ID_ANY)
+
+        self.range_callback = range_callback
+        self.update_callback = update_callback
+        self.comp_num = comp_num
+        self.regals_frame = regals_frame
+
+        self._layout()
+
+        self._initialize(init_settings)
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _initialize(self, init_settings):
+        if init_settings is None:
+            self.prof_comp_ctrl.SetStringSelection('simple')
+            self.prof_auto_regularizer_ctrl.SetValue(True)
+            self.prof_regularizer_ctrl.SetValue('0')
+            self.prof_nw_ctrl.SetValue(50)
+            self.dmax_ctrl.SetValue(100)
+            self.zero_at_rmin_ctrl.SetValue(True)
+            self.zero_at_dmax_ctrl.SetValue(True)
+
+            self.conc_comp_ctrl.SetStringSelection('smooth')
+            self.conc_auto_regularizer_ctrl.SetValue(True)
+            self.conc_regularizer_ctrl.SetValue('0')
+            self.conc_nw_ctrl.SetValue(50)
+            self.zero_at_xmin_ctrl.SetValue(True)
+            self.zero_at_xmax_ctrl.SetValue(True)
+
+            self.conc_start.SetValue(0)
+            self.conc_end.SetValue(1)
+            self.conc_start.SetRange((0, 0))
+            self.conc_end.SetRange((1, 1))
+
+        else:
+            self.set_settings(init_settings)
+
+        self._on_auto_prof_lambda(None)
+        self._on_auto_conc_lambda(None)
+
+    def _layout(self):
+        top_sizer = wx.StaticBoxSizer(wx.VERTICAL, self,
+            'Component {}'.format(self.comp_num))
+        top_box = top_sizer.GetStaticBox()
+
+        self.prof_sizer = wx.StaticBoxSizer(wx.VERTICAL, top_box, 'Profile')
+        prof_box = self.prof_sizer.GetStaticBox()
+
+        self.prof_comp_ctrl = wx.Choice(prof_box,
+            choices=list(REGALS.profile_class._regularizer_classes.keys()))
+
+        self.prof_comp_ctrl.Bind(wx.EVT_CHOICE, self._on_prof_comp_change)
+
+        self.prof_auto_regularizer_ctrl = wx.CheckBox(prof_box, label='Auto lambda')
+        self.prof_auto_regularizer_ctrl.Bind(wx.EVT_CHECKBOX, self._on_auto_prof_lambda)
+
+        self.prof_regularizer_ctrl = wx.TextCtrl(prof_box,
+            size=self._FromDIP((80, -1)),
+            validator=RAWCustomCtrl.CharValidator('float'))
+
+        self.prof_regularizer_ctrl.Bind(wx.EVT_TEXT, self._on_update_regals)
+
+        self.prof_nw_ctrl = RAWCustomCtrl.IntSpinCtrl(prof_box, wx.ID_ANY,
+            min=2, size=self._FromDIP((60,-1)))
+        self.prof_nw_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_regals)
+
+        self.dmax_ctrl = RAWCustomCtrl.IntSpinCtrl(prof_box,
+            wx.ID_ANY, min=1, size=self._FromDIP((60,-1)))
+
+        self.dmax_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_regals)
+
+        self.zero_at_rmin_ctrl = wx.CheckBox(prof_box, label='Zero at Rmin')
+        self.zero_at_dmax_ctrl = wx.CheckBox(prof_box, label='Zero at Dmax')
+
+        self.zero_at_rmin_ctrl.Bind(wx.EVT_CHECKBOX, self._on_update_regals)
+        self.zero_at_dmax_ctrl.Bind(wx.EVT_CHECKBOX, self._on_update_regals)
+
+        prof_comp_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        prof_comp_sizer.Add(wx.StaticText(prof_box, label='Regularizer:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        prof_comp_sizer.Add(self.prof_comp_ctrl, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+
+        prof_reg_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        prof_reg_sizer.Add(wx.StaticText(prof_box, label='Lambda:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        prof_reg_sizer.Add(self.prof_regularizer_ctrl, proportion=1,
+            flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(5))
+
+        self.prof_nw_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.prof_nw_sizer.Add(wx.StaticText(prof_box, label='Grid Points:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        self.prof_nw_sizer.Add(self.prof_nw_ctrl, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+
+        self.dmax_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.dmax_sizer.Add(wx.StaticText(prof_box, label='Dmax:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        self.dmax_sizer.Add(self.dmax_ctrl, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+
+        self.pr_min_max_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.pr_min_max_sizer.Add(self.zero_at_rmin_ctrl)
+        self.pr_min_max_sizer.Add(self.zero_at_dmax_ctrl, flag=wx.TOP, border=self._FromDIP(5))
+
+        self.prof_sizer.Add(prof_comp_sizer, flag=wx.ALL, border=self._FromDIP(5))
+        self.prof_sizer.Add(self.prof_auto_regularizer_ctrl,
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM, border=self._FromDIP(5))
+        self.prof_sizer.Add(prof_reg_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(5))
+        self.prof_sizer.Add(self.prof_nw_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
+        self.prof_sizer.Add(self.dmax_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
+        self.prof_sizer.Add(self.pr_min_max_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
+
+
+        self.conc_sizer = wx.StaticBoxSizer(wx.VERTICAL, top_box, 'Concentration')
+        conc_box = self.conc_sizer.GetStaticBox()
+
+        self.conc_comp_ctrl = wx.Choice(conc_box,
+            choices=list(REGALS.concentration_class._regularizer_classes.keys()))
+        self.conc_comp_ctrl.SetStringSelection('smooth')
+
+        self.conc_comp_ctrl.Bind(wx.EVT_CHOICE, self._on_conc_comp_change)
+
+        self.conc_auto_regularizer_ctrl = wx.CheckBox(conc_box, label='Auto lambda')
+        self.conc_auto_regularizer_ctrl.Bind(wx.EVT_CHECKBOX, self._on_auto_conc_lambda)
+
+        self.conc_regularizer_ctrl = wx.TextCtrl(conc_box,
+            size=self._FromDIP((80, -1)),
+            validator=RAWCustomCtrl.CharValidator('float'))
+
+        self.conc_regularizer_ctrl.Bind(wx.EVT_TEXT, self._on_update_regals)
+
+        ######
+        # Need to figure out how to set the max values here
+        self.conc_start = RAWCustomCtrl.IntSpinCtrl(conc_box, wx.ID_ANY, min=0)
+        self.conc_end = RAWCustomCtrl.IntSpinCtrl(conc_box, wx.ID_ANY, min=0)
+
+        self.conc_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_range)
+        self.conc_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_range)
+
+        self.conc_nw_ctrl = RAWCustomCtrl.IntSpinCtrl(conc_box, wx.ID_ANY,
+            min=2, size=self._FromDIP((60,-1)))
+        self.conc_nw_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_regals)
+
+        self.zero_at_xmin_ctrl = wx.CheckBox(conc_box, label='Zero at Xmin')
+        self.zero_at_xmax_ctrl = wx.CheckBox(conc_box, label='Zero at Xmax')
+
+        self.zero_at_xmin_ctrl.Bind(wx.EVT_CHECKBOX, self._on_update_regals)
+        self.zero_at_xmax_ctrl.Bind(wx.EVT_CHECKBOX, self._on_update_regals)
+
+        conc_comp_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        conc_comp_sizer.Add(wx.StaticText(conc_box, label='Regularizer:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        conc_comp_sizer.Add(self.conc_comp_ctrl, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+
+        conc_reg_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        conc_reg_sizer.Add(wx.StaticText(conc_box, label='Lambda:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        conc_reg_sizer.Add(self.conc_regularizer_ctrl, proportion=1,
+            flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(5))
+
+        conc_range_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        conc_range_sizer.Add(wx.StaticText(conc_box, label='Range:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        conc_range_sizer.Add(self.conc_start, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT,
+            border=self._FromDIP(5))
+        conc_range_sizer.Add(wx.StaticText(conc_box, label='to'),
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT, border=self._FromDIP(5))
+        conc_range_sizer.Add(self.conc_end, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT,
+            border=self._FromDIP(5))
+
+        self.conc_nw_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.conc_nw_sizer.Add(wx.StaticText(conc_box, label='Grid Points:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        self.conc_nw_sizer.Add(self.conc_nw_ctrl, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+
+        self.conc_zero_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.conc_zero_sizer.Add(self.zero_at_xmin_ctrl)
+        self.conc_zero_sizer.Add(self.zero_at_xmax_ctrl, flag=wx.TOP,
+            border=self._FromDIP(5))
+
+        self.conc_sizer.Add(conc_comp_sizer, flag=wx.ALL, border=self._FromDIP(5))
+        self.conc_sizer.Add(self.conc_auto_regularizer_ctrl,
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM, border=self._FromDIP(5))
+        self.conc_sizer.Add(conc_reg_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(5))
+        self.conc_sizer.Add(conc_range_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
+        self.conc_sizer.Add(self.conc_nw_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
+        self.conc_sizer.Add(self.conc_zero_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
+
+
+
+        top_sizer.Add(self.prof_sizer, flag=wx.EXPAND)
+        top_sizer.Add(self.conc_sizer, flag=wx.EXPAND)
+
+        self.SetSizer(top_sizer)
+
+        self._on_prof_comp_change(None)
+        self._on_conc_comp_change(None)
+
+    def _on_prof_comp_change(self, evt):
+
+        if self.prof_comp_ctrl.GetStringSelection() == 'simple':
+            self.prof_sizer.Hide(self.prof_nw_sizer, recursive=True)
+            self.prof_sizer.Hide(self.dmax_sizer, recursive=True)
+            self.prof_sizer.Hide(self.pr_min_max_sizer, recursive=True)
+
+        elif self.prof_comp_ctrl.GetStringSelection() == 'smooth':
+            self.prof_sizer.Show(self.prof_nw_sizer, recursive=True)
+            self.prof_sizer.Hide(self.dmax_sizer, recursive=True)
+            self.prof_sizer.Hide(self.pr_min_max_sizer, recursive=True)
+
+        elif self.prof_comp_ctrl.GetStringSelection() == 'realspace':
+            self.prof_sizer.Show(self.prof_nw_sizer, recursive=True)
+            self.prof_sizer.Show(self.dmax_sizer, recursive=True)
+            self.prof_sizer.Show(self.pr_min_max_sizer, recursive=True)
+
+        self.Layout()
+        self.regals_frame.Layout()
+
+        self._update_regals()
+
+    def _on_conc_comp_change(self, evt):
+
+        if self.conc_comp_ctrl.GetStringSelection() == 'simple':
+            self.conc_sizer.Hide(self.conc_nw_sizer, recursive=True)
+            self.conc_sizer.Hide(self.conc_zero_sizer, recursive=True)
+
+        elif self.conc_comp_ctrl.GetStringSelection() == 'smooth':
+            self.conc_sizer.Show(self.conc_nw_sizer, recursive=True)
+            self.conc_sizer.Show(self.conc_zero_sizer, recursive=True)
+
+        self.Layout()
+        self.regals_frame.Layout()
+
+        self._update_regals()
+
+    def get_settings(self):
+
+        prof_settings = self._get_prof_settings()
+        conc_settings = self._get_conc_settings()
+
+        return prof_settings, conc_settings
+
+    def _get_prof_settings(self):
+        prof_settings = {
+            'type'          : self.prof_comp_ctrl.GetStringSelection(),
+            'lambda'        : self.prof_regularizer_ctrl.GetValue(),
+            'auto_lambda'   : self.prof_auto_regularizer_ctrl.GetValue(),
+        }
+
+        if prof_settings['type'] == 'simple':
+            prof_settings['kwargs'] = {}
+
+        elif prof_settings['type'] == 'smooth':
+            prof_settings['kwargs'] = {
+                'Nw'    : self.prof_nw_ctrl.GetValue(),
+                }
+
+        elif prof_settings['type'] == 'realspace':
+            prof_settings['kwargs'] = {
+                'dmax'              : self.dmax_ctrl.GetValue(),
+                'Nw'                : self.prof_nw_ctrl.GetValue(),
+                'is_zero_at_r0'     : self.zero_at_rmin_ctrl.GetValue(),
+                'is_zero_at_dmax'   : self.zero_at_dmax_ctrl.GetValue(),
+                }
+
+        return prof_settings
+
+    def _get_conc_settings(self):
+        conc_settings = {
+            'type'          : self.conc_comp_ctrl.GetStringSelection(),
+            'lambda'        : self.conc_regularizer_ctrl.GetValue(),
+            'auto_lambda'   : self.conc_auto_regularizer_ctrl.GetValue(),
+            'kwargs'    : {
+                'xmin'  : self.conc_start.GetValue(),
+                'xmax'  : self.conc_end.GetValue(),
+                }
+
+            }
+
+        if conc_settings['type'] == 'smooth':
+            conc_settings['kwargs']['Nw'] = self.conc_nw_ctrl.GetValue()
+            conc_settings['kwargs']['is_zero_at_xmin'] = self.zero_at_xmin_ctrl.GetValue()
+            conc_settings['kwargs']['is_zero_at_xmax'] = self.zero_at_xmax_ctrl.GetValue()
+
+        return conc_settings
+
+    def set_settings(self, settings):
+        if settings is not None:
+            prof_settings, conc_settings = settings
+
+            self.prof_comp_ctrl.SetStringSelection(prof_settings['type'])
+
+            if prof_settings['lambda'] is not None:
+                self.prof_regularizer_ctrl.ChangeValue(str(prof_settings['lambda']))
+
+            if prof_settings['type'] == 'smooth':
+                self.prof_nw_ctrl.SetValue(prof_settings['Nw'])
+
+            elif prof_settings['type'] == 'realspace':
+                self.prof_nw_ctrl.SetValue(prof_settings['Nw'])
+                self.dmax_ctrl.SetValue(prof_settings['dmax'])
+                self.zero_at_rmin_ctrl.SetValue(prof_settings['is_zero_at_r0'])
+                self.zero_at_dmax_ctrl.SetValue(prof_settings['is_zero_at_dmax'])
+
+
+            self.conc_comp_ctrl.SetStringSelection(conc_settings['type'])
+
+            if conc_settings['lambda'] is not None:
+                self.conc_regularizer_ctrl.ChangeValue(str(conc_settings['lambda']))
+
+            self.conc_start.SetRange((conc_settings['xrange'][0], conc_settings['xmax']-1))
+            self.conc_end.SetRange((conc_settings['xmin']+1, conc_settings['xrange'][1]))
+
+            self.conc_start.SetValue(conc_settings['xmin'])
+            self.conc_end.SetValue(conc_settings['xmax'])
+
+            if conc_settings['type'] == 'smooth':
+                self.conc_nw_ctrl.SetValue(conc_settings['Nw'])
+                self.zero_at_xmin_ctrl.SetValue(conc_settings['is_zero_at_xmin'])
+                self.zero_at_xmax_ctrl.SetValue(conc_settings['is_zero_at_xmax'])
+
+        self._on_prof_comp_change(None)
+        self._on_conc_comp_change(None)
+
+    def _on_auto_prof_lambda(self, evt):
+        if self.prof_auto_regularizer_ctrl.GetValue():
+            self.prof_regularizer_ctrl.Disable()
+        else:
+            self.prof_regularizer_ctrl.Enable()
+
+        self._update_regals()
+
+    def _on_auto_conc_lambda(self, evt):
+        if self.conc_auto_regularizer_ctrl.GetValue():
+            self.conc_regularizer_ctrl.Disable()
+        else:
+            self.conc_regularizer_ctrl.Enable()
+
+        self._update_regals()
+
+    def _on_update_regals(self, evt):
+        self._update_regals()
+
+    def _update_regals(self):
+        self.update_callback()
+
+    def _on_update_range(self, evt):
+        self.range_callback()
+        self._update_regals()
+
+        if evt.GetEventObject() == self.conc_end:
+            cmin, cmax = self.conc_start.GetRange()
+            self.conc_start.SetRange((cmin, self.conc_end.GetValue()-1))
+        elif evt.GetEventObject() == self.conc_start:
+            cmin, cmax = self.conc_end.GetRange()
+            self.conc_end.SetRange((self.conc_start.GetValue()+1, cmax))
+
+    def get_range(self):
+        return (self.conc_start.GetValue(), self.conc_end.GetValue())
+
+    def set_range(self, new_range, cmin=None, cmax=None):
+        if cmin is None:
+            cmin, _ = self.conc_start.GetRange()
+        if cmax is None:
+            _, cmax = self.conc_end.GetRange()
+
+        self.conc_start.SetRange((cmin, new_range[1]-1))
+        self.conc_end.SetRange((new_range[0]+1, cmax))
+
+        self.conc_start.SetValue(new_range[0])
+        self.conc_end.SetValue(new_range[1])
+
+    def set_lambdas(self, conc_lambda, prof_lambda):
+        if not np.isfinite(conc_lambda):
+            conc_lambda = 0
+
+        if not np.isfinite(prof_lambda):
+            prof_lambda = 0
+
+        if self.conc_auto_regularizer_ctrl.GetValue():
+            self.conc_regularizer_ctrl.ChangeValue('{:.1e}'.format(conc_lambda))
+
+        if self.prof_auto_regularizer_ctrl.GetValue():
+            self.prof_regularizer_ctrl.ChangeValue('{:.1e}'.format(prof_lambda))
+
+class REGALSResults(wx.Panel):
+
+    def __init__(self, parent, *args, **kwargs):
+        wx.Panel.__init__(self, parent, *args, **kwargs)
+
+        self.SetMinSize((600, 400))
+        self._layout()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _layout(self):
+
+        results_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, label='Results')
+        results_box = results_sizer.GetStaticBox()
+
+        self.chisq = wx.StaticText(results_box, size=self._FromDIP((60, -1)))
+        self.iters = wx.StaticText(results_box, size=self._FromDIP((60, -1)))
+
+        sub_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sub_sizer.Add(wx.StaticText(results_box, label='Iterations:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        sub_sizer.Add(self.iters, flag=wx.LEFT|wx.ALIGN_CENTRE_VERTICAL,
+            border=self._FromDIP(5))
+        sub_sizer.Add(wx.StaticText(results_box, label='Average Chi^2:'),
+            flag=wx.LEFT|wx.ALIGN_CENTRE_VERTICAL, border=self._FromDIP(10))
+        sub_sizer.Add(self.chisq)
+
+        self.results_plot = EFAResultsPlotPanel3(results_box, wx.ID_ANY)
+
+        results_sizer.Add(sub_sizer, flag=wx.ALL, border=self._FromDIP(5))
+        results_sizer.Add(self.results_plot, proportion=1, flag=wx.EXPAND|
+            wx.LEFT|wx.RIGHT|wx.BOTTOM, border=self._FromDIP(5))
+
+        self.SetSizer(results_sizer)
+
+    def update_results(self, sasms, rmsd_data, conc_data, total_iter,
+        aver_chisq, ifts):
+        self.iters.SetLabel('{}'.format(total_iter))
+        self.chisq.SetLabel('{}'.format(round(aver_chisq,3)))
+
+        self.results_plot.plotEFA(sasms, rmsd_data, conc_data, ifts)
 
 
 class SimilarityFrame(wx.Frame):
@@ -15995,29 +16916,6 @@ class NormKratkyPlotPanel(wx.Panel):
             self.ax_redraw()
         else:
             self.redrawLines()
-
-    def _vals_close(self, val1, val2, cl_range=0.05):
-        min_range = 1-cl_range
-
-        if val1 == val2:
-            close = True
-
-        elif val1 == 0 or val2 == 0:
-            close = False
-
-        elif (val1 < val2 and val1>0) or (val1 > val2 and val1 < 0):
-            if val1/val2 > min_range:
-                close = True
-            else:
-                close = False
-
-        else:
-            if val2/val1 > min_range:
-                close = True
-            else:
-                close = False
-
-        return close
 
     def redrawLines(self):
 

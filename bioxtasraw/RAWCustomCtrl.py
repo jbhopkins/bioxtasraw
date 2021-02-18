@@ -79,6 +79,10 @@ class CharValidator(wx.Validator):
             #print key
             if self.flag == 'int' and key not in string.digits:
                 return
+            elif self.flag == 'int_neg' and key not in string.digits+'-':
+                return
+            elif self.flag == 'int_te' and key not in string.digits+'-\n\r':
+                return
             elif self.flag == 'float' and key not in string.digits+'.':
                 return
             elif self.flag == 'fname' and key not in self.fname_chars:
@@ -275,10 +279,12 @@ class FloatSpinCtrl(wx.Panel):
 
         if platform.system() != 'Windows':
             self.Scale = wx.TextCtrl(self, -1, initValue,
-                size=self._FromDIP((TextLength,-1)), style=wx.TE_PROCESS_ENTER)
+                size=self._FromDIP((TextLength,-1)), style=wx.TE_PROCESS_ENTER,
+                validator=CharValidator('float_te'))
         else:
             self.Scale = wx.TextCtrl(self, -1, initValue,
-                size=self._FromDIP((TextLength,22)), style=wx.TE_PROCESS_ENTER)
+                size=self._FromDIP((TextLength,22)), style=wx.TE_PROCESS_ENTER,
+                validator=CharValidator('float_te'))
 
         self.Scale.Bind(wx.EVT_KILL_FOCUS, self.OnFocusChange)
         self.Scale.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
@@ -287,7 +293,7 @@ class FloatSpinCtrl(wx.Panel):
 
         sizer = wx.BoxSizer()
 
-        sizer.Add(self.Scale, 0, wx.RIGHT, border=self._FromDIP(1))
+        sizer.Add(self.Scale, 1, wx.RIGHT, border=self._FromDIP(1))
         sizer.Add(self.ScalerButton, 0)
 
         self.oldValue = 0
@@ -601,17 +607,19 @@ class IntSpinCtrl(wx.Panel):
 
         if platform.system() != 'Windows':
             self.Scale = wx.TextCtrl(self, -1, str(min),
-                size=self._FromDIP((TextLength,-1)), style=wx.TE_PROCESS_ENTER)
+                size=self._FromDIP((TextLength,-1)), style=wx.TE_PROCESS_ENTER,
+                validator=CharValidator('int_te'))
         else:
             self.Scale = wx.TextCtrl(self, -1, str(min),
-                size=self._FromDIP((TextLength,22)), style=wx.TE_PROCESS_ENTER)
+                size=self._FromDIP((TextLength,22)), style=wx.TE_PROCESS_ENTER,
+                validator=CharValidator('int_te'))
 
         self.Scale.Bind(wx.EVT_KILL_FOCUS, self.OnScaleChange)
         self.Scale.Bind(wx.EVT_TEXT_ENTER, self.OnScaleChange)
 
         sizer = wx.BoxSizer()
 
-        sizer.Add(self.Scale, 0, wx.RIGHT, self._FromDIP(1))
+        sizer.Add(self.Scale, 1, wx.RIGHT, self._FromDIP(1))
         sizer.Add(self.ScalerButton, 0)
 
         self.oldValue = 0

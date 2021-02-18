@@ -880,7 +880,7 @@ class IFTM(object):
         parameters = copy.deepcopy(self._parameters, memo)
 
         new_iftm = IFTM(p, r, err, i_orig, q_orig, err_orig, i_fit, parameters,
-        i_extrap, q_extrap)
+            i_extrap, q_extrap)
 
         return new_iftm
 

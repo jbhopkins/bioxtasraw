@@ -63,6 +63,7 @@ import bioxtasraw.SASExceptions as SASExceptions
 import bioxtasraw.RAWSettings as RAWSettings
 import bioxtasraw.SASProc as SASProc
 import bioxtasraw.SASM as SASM
+import bioxtasraw.REGALS as REGALS
 
 
 #Define the rg fit function
@@ -2871,6 +2872,28 @@ def significantSingularValues(sasms):
     Returns both SVD results and number of significant singular values.
     """
 
+    (svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, i, err, svd_a,
+        continue_svd_analysis) = SVDOnSASMs(sasms)
+
+    if continue_svd_analysis:
+        svals = findSignificantSingularValues(svd_s, svd_U_autocor, svd_V_autocor)
+
+        if svals <= 0:
+            svals = 1 #Assume algorithm failure and set to 1 to continue other validation steps
+
+        svd_results = {'svals'  : svals,
+            'U'             : svd_U,
+            'V'             : svd_V,
+            'u_autocor'     : svd_U_autocor,
+            'v_autocor'     : svd_V_autocor,
+            }
+
+    else:
+        svd_results = {'svals': 1} #Default to let other analysis continue in validation steps
+
+    return svd_results
+
+def SVDOnSASMs(sasms, err_norm=True):
     i = np.array([sasm.getI() for sasm in sasms])
     err = np.array([sasm.getErr() for sasm in sasms])
 
@@ -2883,16 +2906,19 @@ def significantSingularValues(sasms):
     else:
         err_avg = np.array([err_mean for k in range(i.shape[1])]).T
 
-    svd_a = i/err_avg
+    if err_norm:
+        svd_a = i/err_avg
+    else:
+        svd_a = i
 
     if np.all(np.isfinite(svd_a)):
         try:
             svd_U, svd_s, svd_Vt = np.linalg.svd(svd_a, full_matrices = True)
-            continue_svd_analysis = True
+            success = True
         except Exception:
-            continue_svd_analysis = False
+            success = False
 
-        if continue_svd_analysis:
+        if success:
             svd_V = svd_Vt.T
             svd_U_autocor = np.abs(np.array([np.correlate(svd_U[:,k],
                 svd_U[:,k], mode = 'full')[-svd_U.shape[0]+1] for k in range(svd_U.shape[1])]))
@@ -2910,10 +2936,12 @@ def significantSingularValues(sasms):
         svd_V = []
         svd_U_autocor = []
         svd_V_autocor = []
-        continue_svd_analysis = False
+        success = False
 
-    if continue_svd_analysis:
-        #Attempts to figure out the significant number of singular values
+    return svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, i, err, svd_a, success
+
+def findSignificantSingularValues(svd_s, svd_U_autocor, svd_V_autocor):
+     #Attempts to figure out the significant number of singular values
         point1 = 0
         point2 = 0
         point3 = 0
@@ -2981,22 +3009,10 @@ def significantSingularValues(sasms):
             svals = int(round(np.mean(plist)))
 
         else:
-            svals = 1
+            svals = 0
 
-        if svals <= 0:
-            svals = 1 #Assume algorithm failure and set to 1 to continue other validation steps
+        return svals
 
-        svd_results = {'svals'  : svals,
-            'U'             : svd_U,
-            'V'             : svd_V,
-            'u_autocor'     : svd_U_autocor,
-            'v_autocor'     : svd_V_autocor,
-            }
-
-    else:
-        svd_results = {'svals': 1} #Default to let other analysis continue in validation steps
-
-    return svd_results
 
 def findBufferRange(buffer_sasms, intensity, avg_window, sim_test, sim_cor,
     sim_thresh):
@@ -3836,3 +3852,413 @@ def processBaseline(unsub_sasms, sub_sasms, r1, r2, bl_type, min_iter, max_iter,
 
     return (bl_sasms, use_subtracted_sasms, bl_corr, fit_results, sub_mean_i,
         sub_total_i, bl_sub_mean_i, bl_sub_total_i)
+
+
+###############################################################################
+# REGALS stuff
+
+def run_regals(M, intensity, sigma, min_iter=20, max_iter=1000, tol=0.001,
+    conv_type='Chi^2', callback=None, abort_event=None):
+    R = REGALS.regals(intensity, sigma)
+
+    chis = np.empty(max_iter)
+    niter = 0
+
+    while True:
+
+        if abort_event is not None:
+            if abort_event.is_set():
+                break
+
+        M, params, resid = R.step(M)
+        chis[niter] = params['x2']
+
+        if (niter +1) % 1 == 0 or niter == 0:
+            print('Iteration: {}, chi^2: {}'.format(niter+1, params['x2']))
+
+        if niter >= min_iter and conv_type=='Chi^2':
+            if np.std(chis[niter-min_iter:niter+1]) < tol*np.median(chis[niter-min_iter:niter+1]):
+                break
+
+        if niter == max_iter-1:
+            break
+
+        niter += 1
+
+    # print('Iteration: {}, chi^2: {}'.format(niter+1, params['x2']))
+
+    params['total_iter'] = niter+1
+
+    if callback is not None:
+        if abort_event is not None:
+            if not abort_event.is_set():
+                callback(M, params, resid)
+        else:
+            callback(M, params, resid)
+
+    return M, params, resid
+
+def create_regals_mixture(component_settings, q, x, num_good, sigma,
+    seed_previous=False, prev_mixture=None):
+    """
+    Creates regals components, puts them into a mixture, and estimates/assigns
+    lambda values as appropriate.
+    """
+    components = []
+
+    prev_u_profile = None
+    prev_u_conc = None
+
+    if seed_previous and prev_mixture is not None:
+        if len(prev_mixture.u_profile) == len(component_settings):
+            if all(map(np.all, map(np.isfinite, prev_mixture.u_profile))):
+                prev_u_profile = prev_mixture.u_profile
+
+            if all(map(np.all, map(np.isfinite, prev_mixture.u_concentration))):
+                prev_u_conc = prev_mixture.u_concentration
+
+    for j, settings in enumerate(component_settings):
+        prof_settings = settings[0]
+        conc_settings = settings[1]
+
+        conc = REGALS.concentration_class(conc_settings['type'], x,
+            **conc_settings['kwargs'])
+        prof = REGALS.profile_class(prof_settings['type'], q,
+            **prof_settings['kwargs'])
+
+        component = REGALS.component(conc, prof)
+
+        components.append(component)
+
+        if prev_u_profile is not None and prev_u_conc is not None:
+            fixed_prev_u = match_regals_component_u(prof,
+                prev_mixture.components[j].profile, prev_u_profile[j])
+            prev_u_profile[j] = fixed_prev_u
+
+            fixed_prev_u = match_regals_component_u(conc,
+                prev_mixture.components[j].concentration, prev_u_conc[j])
+            prev_u_conc[j] = fixed_prev_u
+
+    if prev_u_profile is not None and prev_u_conc is not None:
+        mixture = REGALS.mixture(components, u_concentration=prev_u_conc,
+            u_profile=prev_u_profile)
+    else:
+        mixture = REGALS.mixture(components)
+
+    conc_lambda_est_input = np.empty(len(components))
+    prof_lambda_est_input = np.empty(len(components))
+
+    conc_lambdas = np.empty(len(components))
+    prof_lambdas = np.empty(len(components))
+
+    for j, settings in enumerate(component_settings):
+        prof_settings = settings[0]
+        conc_settings = settings[1]
+
+        if conc_settings['auto_lambda']:
+            if conc_settings['type'] == 'simple':
+                est = np.inf
+            else:
+                est = num_good
+
+        else:
+            est = np.inf
+
+        conc_lambda_est_input[j] = est
+
+        if prof_settings['auto_lambda']:
+            if prof_settings['type'] == 'simple':
+                est = np.inf
+            else:
+                est = num_good
+
+        else:
+            est = np.inf
+
+        prof_lambda_est_input[j] = est
+
+
+    conc_lambda_est = mixture.estimate_concentration_lambda(sigma,
+        conc_lambda_est_input)
+
+    prof_lambda_est = mixture.estimate_profile_lambda(sigma,
+        prof_lambda_est_input)
+
+    for j, settings in enumerate(component_settings):
+        prof_settings = settings[0]
+        conc_settings = settings[1]
+
+        if conc_settings['auto_lambda']:
+            c_lambda = float(np.format_float_scientific(conc_lambda_est[j], 0))
+        else:
+            c_lambda = conc_settings['lambda']
+
+        conc_lambdas[j] = c_lambda
+
+        if prof_settings['auto_lambda']:
+            p_lambda = float(np.format_float_scientific(prof_lambda_est[j], 0))
+        else:
+            p_lambda = prof_settings['lambda']
+
+        prof_lambdas[j] = p_lambda
+
+    mixture.lambda_concentration = conc_lambdas
+    mixture.lambda_profile = prof_lambdas
+
+    return mixture, components
+
+def match_regals_component_u(new_comp, old_comp, old_u):
+    new_u0 = new_comp.u0
+    fixed_u = np.empty_like(new_u0)
+
+    if isinstance(new_comp, REGALS.concentration_class):
+
+        if ((new_comp.reg_type == 'smooth' and old_comp.reg_type == 'smooth')
+            and (old_comp._regularizer.Nw == new_comp._regularizer.Nw)):
+
+            if ((new_comp._regularizer.is_zero_at_xmin == old_comp._regularizer.is_zero_at_xmin)
+                and (new_comp._regularizer.is_zero_at_xmax == old_comp._regularizer.is_zero_at_xmax)):
+                # Both end points are the same
+                fixed_u = old_u
+
+            elif new_comp._regularizer.is_zero_at_xmin == old_comp._regularizer.is_zero_at_xmin:
+                # Only the max endpoint is different
+                if new_comp._regularizer.is_zero_at_xmax and not old_comp._regularizer.is_zero_at_xmax:
+                    fixed_u = old_u[:-1]
+
+                elif not new_comp._regularizer.is_zero_at_xmax and old_comp._regularizer.is_zero_at_xmax:
+                    fixed_u[:-1] = old_u
+                    fixed_u[-1] = new_u0[-1]
+
+            elif new_comp._regularizer.is_zero_at_xmax == old_comp._regularizer.is_zero_at_xmax:
+                # Only the min endpoint is different
+                if new_comp._regularizer.is_zero_at_xmin and not old_comp._regularizer.is_zero_at_xmin:
+                    fixed_u = old_u[1:]
+
+                elif not new_comp._regularizer.is_zero_at_xmin and old_comp._regularizer.is_zero_at_xmin:
+                    fixed_u[1:] = old_u
+                    fixed_u[0] = new_u0[0]
+
+            else:
+                # Both end points are different
+                if new_comp._regularizer.is_zero_at_xmax and not old_comp._regularizer.is_zero_at_xmax:
+                    if new_comp._regularizer.is_zero_at_xmin and not old_comp._regularizer.is_zero_at_xmin:
+                        fixed_u = old_u[1:-1]
+
+                    elif not new_comp._regularizer.is_zero_at_xmin and old_comp._regularizer.is_zero_at_xmin:
+                        fixed_u[1:] = old_u[:-1]
+                        fixed_u[0] = new_u0[0]
+
+                elif not new_comp._regularizer.is_zero_at_xmax and old_comp._regularizer.is_zero_at_xmax:
+                    if new_comp._regularizer.is_zero_at_xmin and not old_comp._regularizer.is_zero_at_xmin:
+                        fixed_u[:-1] = old_u[1:]
+                        fixed_u[-1] = new_u0[-1]
+
+                    elif not new_comp._regularizer.is_zero_at_xmin and old_comp._regularizer.is_zero_at_xmin:
+                        fixed_u[1:-1] = old_u
+                        fixed_u[-1] = new_u0[-1]
+                        fixed_u[0] = new_u0[0]
+
+        elif ((new_comp.reg_type == 'simple' and old_comp.reg_type == 'simple')
+            and len(new_u0) == len(old_u)):
+            fixed_u = old_u
+
+        else:
+            fixed_u = new_u0
+
+    else:
+        if ((new_comp.reg_type == 'realspace' and old_comp.reg_type == 'realspace')
+            and (old_comp._regularizer.Nw == new_comp._regularizer.Nw)):
+            if ((new_comp._regularizer.is_zero_at_r0 == old_comp._regularizer.is_zero_at_r0)
+                and (new_comp._regularizer.is_zero_at_dmax == old_comp._regularizer.is_zero_at_dmax)):
+                # Both end points are the same
+                fixed_u = old_u
+
+            elif new_comp._regularizer.is_zero_at_r0 == old_comp._regularizer.is_zero_at_r0:
+                # Only the max endpoint is different
+                if new_comp._regularizer.is_zero_at_dmax and not old_comp._regularizer.is_zero_at_dmax:
+                    fixed_u = old_u[:-1]
+
+                elif not new_comp._regularizer.is_zero_at_dmax and old_comp._regularizer.is_zero_at_dmax:
+                    fixed_u[:-1] = old_u
+                    fixed_u[-1] = new_u0[-1]
+
+            elif new_comp._regularizer.is_zero_at_dmax == old_comp._regularizer.is_zero_at_dmax:
+                # Only the min endpoint is different
+                if new_comp._regularizer.is_zero_at_r0 and not old_comp._regularizer.is_zero_at_r0:
+                    fixed_u = old_u[1:]
+
+                elif not new_comp._regularizer.is_zero_at_r0 and old_comp._regularizer.is_zero_at_r0:
+                    fixed_u[1:] = old_u
+                    fixed_u[0] = new_u0[0]
+
+            else:
+                # Both end points are different
+                if new_comp._regularizer.is_zero_at_dmax and not old_comp._regularizer.is_zero_at_dmax:
+                    if new_comp._regularizer.is_zero_at_r0 and not old_comp._regularizer.is_zero_at_r0:
+                        fixed_u = old_u[1:-1]
+
+                    elif not new_comp._regularizer.is_zero_at_r0 and old_comp._regularizer.is_zero_at_r0:
+                        fixed_u[1:] = old_u[:-1]
+                        fixed_u[0] = new_u0[0]
+
+                elif not new_comp._regularizer.is_zero_at_dmax and old_comp._regularizer.is_zero_at_dmax:
+                    if new_comp._regularizer.is_zero_at_r0 and not old_comp._regularizer.is_zero_at_r0:
+                        fixed_u[:-1] = old_u[1:]
+                        fixed_u[-1] = new_u0[-1]
+
+                    elif not new_comp._regularizer.is_zero_at_r0 and old_comp._regularizer.is_zero_at_r0:
+                        fixed_u[1:-1] = old_u
+                        fixed_u[-1] = new_u0[-1]
+                        fixed_u[0] = new_u0[0]
+
+        elif ((new_comp.reg_type == 'simple' or new_comp.reg_type == 'smooth')
+            and (old_comp.reg_type == 'simple' or old_comp.reg_type == 'smooth')
+            and len(new_u0) == len(old_u)):
+            fixed_u = old_u
+
+        else:
+            fixed_u = new_u0
+
+    return fixed_u
+
+
+def make_regals_sasms(mixture, q, intensity, sigma, secm, start, end):
+
+    old_filename = secm.getParameter('filename').split('.')
+
+    new_sasms = []
+
+    if len(old_filename) > 1:
+        old_filename = '.'.join(old_filename[:-1])
+    else:
+        old_filename = old_filename[0]
+
+    for j in range(mixture.Nc):
+        calc_intensity, calc_err = mixture.extract_profile(intensity, sigma, j)
+
+        sasm = SASM.SASM(calc_intensity, q, calc_err, {})
+
+        sasm.setParameter('filename', '{}_{}'.format(old_filename, j))
+
+        history_dict = {}
+
+        history_dict['input_filename'] = secm.getParameter('filename')
+        history_dict['start_index'] = str(start)
+        history_dict['end_index'] = str(end)
+        history_dict['component_number'] = str(j)
+
+        prof_comp = mixture.components[j].profile
+        conc_comp = mixture.components[j].concentration
+
+        history_dict['profile'] = {}
+        history_dict['profile']['regularizer'] = prof_comp.reg_type
+
+        if prof_comp.reg_type != 'simple':
+            history_dict['profile']['nw'] = prof_comp._regularizer.Nw
+
+        if prof_comp.reg_type == 'realspace':
+            history_dict['profile']['dmax'] = prof_comp._regularizer.dmax
+            history_dict['profile']['is_zero_at_r0'] = prof_comp._regularizer.is_zero_at_r0
+            history_dict['profile']['is_zero_at_dmax'] = prof_comp._regularizer.is_zero_at_dmax
+
+        history_dict['concentration'] = {}
+        history_dict['concentration']['regularizer'] = conc_comp.reg_type
+
+        if conc_comp.reg_type != 'simple':
+            history_dict['concentration']['nw'] = conc_comp._regularizer.Nw
+            history_dict['concentration']['component_range'] = ('[{}, '
+                '{}]'.format(conc_comp._regularizer.xmin, conc_comp._regularizer.xmax))
+            history_dict['concentration']['is_zero_at_xmin'] = conc_comp._regularizer.is_zero_at_xmin
+            history_dict['concentration']['is_zero_at_xmax'] = conc_comp._regularizer.is_zero_at_xmax
+
+        history = sasm.getParameter('history')
+        history['REGALS'] = history_dict
+
+        new_sasms.append(sasm)
+
+    return new_sasms
+
+def make_regals_ifts(mixture, q, intensity, sigma, secm, start, end):
+    old_filename = secm.getParameter('filename').split('.')
+
+    new_ifts = []
+
+    if len(old_filename) > 1:
+        old_filename = '.'.join(old_filename[:-1])
+    else:
+        old_filename = old_filename[0]
+
+    for j in range(mixture.Nc):
+
+        prof_comp = mixture.components[j].profile
+        conc_comp = mixture.components[j].concentration
+
+        if prof_comp.reg_type == 'realspace':
+            r = prof_comp.w
+            pr = mixture.u_profile[j]
+
+            if prof_comp._regularizer.is_zero_at_r0:
+                pr = np.concatenate(([0], pr))
+
+            if prof_comp._regularizer.is_zero_at_dmax:
+                pr = np.concatenate((pr, [0]))
+
+            area = np.trapz(pr, r)
+            area2 = np.trapz(np.array(pr)*np.array(r)**2, r)
+
+            rg = np.sqrt(abs(area2/(2.*area)))
+            i0 = area*4*np.pi
+
+            calc_intensity, calc_err = mixture.extract_profile(intensity, sigma, j)
+
+
+            history_dict = {}
+
+            history_dict['input_filename'] = secm.getParameter('filename')
+            history_dict['start_index'] = str(start)
+            history_dict['end_index'] = str(end)
+            history_dict['component_number'] = str(j)
+
+            prof_comp = mixture.components[j].profile
+            conc_comp = mixture.components[j].concentration
+
+            history_dict['profile'] = {}
+            history_dict['profile']['regularizer'] = prof_comp.reg_type
+
+            if prof_comp.reg_type != 'simple':
+                history_dict['profile']['nw'] = prof_comp._regularizer.Nw
+
+            if prof_comp.reg_type == 'realspace':
+                history_dict['profile']['dmax'] = prof_comp._regularizer.dmax
+                history_dict['profile']['is_zero_at_r0'] = prof_comp._regularizer.is_zero_at_r0
+                history_dict['profile']['is_zero_at_dmax'] = prof_comp._regularizer.is_zero_at_dmax
+
+            history_dict['concentration'] = {}
+            history_dict['concentration']['regularizer'] = conc_comp.reg_type
+
+            if conc_comp.reg_type != 'simple':
+                history_dict['concentration']['nw'] = conc_comp._regularizer.Nw
+                history_dict['concentration']['component_range'] = ('[{}, '
+                    '{}]'.format(conc_comp._regularizer.xmin, conc_comp._regularizer.xmax))
+                history_dict['concentration']['is_zero_at_xmin'] = conc_comp._regularizer.is_zero_at_xmin
+                history_dict['concentration']['is_zero_at_xmax'] = conc_comp._regularizer.is_zero_at_xmax
+
+
+            results = {
+                'dmax'      : prof_comp._regularizer.dmax,
+                'rg'        : rg,
+                'i0'        : i0,
+                'qmin'      : q[0],
+                'qmax'      : q[-1],
+                'algorithm' : 'REGALS',
+                'filename'  : old_filename,
+                'REGALS'    : history_dict,
+                }
+
+            ift = SASM.IFTM(pr, r, -1*np.ones_like(pr), calc_intensity, q,
+                calc_err, calc_intensity, results, calc_intensity, q)
+
+            new_ifts.append(ift)
+
+    return new_ifts
