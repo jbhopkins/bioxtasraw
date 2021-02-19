@@ -4017,6 +4017,211 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
         fsave.write(save_string)
 
 
+def saveREGALSData(filename, panel_results):
+    svd_results = panel_results[0]
+    efa_results = panel_results[1]
+    regals_results = panel_results[-1]['regals_results']
+
+    framei = svd_results['fstart']
+    framef = svd_results['fend']
+
+    nvals = len(panel_results[-1]['profiles'])
+
+    qvals = svd_results['q']
+
+    header_string = ''
+
+    header_string = header_string + '# Series data name: %s\n' %(svd_results['filename'])
+    header_string = header_string + '# Started at series frame: %s\n' %(str(framei))
+    header_string = header_string + '# Ended at series frame: %s\n' %(str(framef))
+    header_string = header_string + '# Used: %s\n' %(svd_results['profile'])
+    header_string = header_string + '# Number of significant singular values: %s\n' %(str(nvals))
+    header_string = header_string + '# Component Ranges:\n'
+    for i in range(len(regals_results['settings']['ranges'])):
+        header_string = header_string + '#\tRange %i: %i to %i\n' %(i,
+            regals_results['settings']['ranges'][i][0],
+            regals_results['settings']['ranges'][i][1])
+
+    header_string = header_string + '# Rotation setings: Convergence criteria: %s\n' %(regals_results['settings']['ctrl_settings']['conv_type'])
+    if regals_results['settings']['ctrl_settings']['conv_type'] != 'Iterations':
+        header_string = header_string + '# Rotation setings: Maximum iterations: %s\n' %(regals_results['settings']['ctrl_settings']['max_iter'])
+        header_string = header_string + '# Rotation setings: Minimum iterations: %s\n' %(regals_results['settings']['ctrl_settings']['min_iter'])
+        header_string = header_string + '# Rotation setings: Convergence tolerance: %s\n' %(regals_results['settings']['ctrl_settings']['tol'])
+
+    else:
+        header_string = header_string + '# Rotation setings: Iterations: %s\n' %(regals_results['settings']['ctrl_settings']['max_iter'])
+
+    header_string = header_string + '# Rotation setings: Start with previous results: %s\n' %(regals_results['settings']['ctrl_settings']['seed_previous'])
+
+    header_string = header_string + '# Rotation results: Iterations: %s\n' %(regals_results['params']['total_iter'])
+    header_string = header_string + '# Rotation results: Average Chi^2: %s\n' %(regals_results['params']['x2'])
+    header_string = header_string + '\n'
+
+    comp_str = '# Components\n'
+
+    components = regals_results['settings']['comp_settings']
+
+    for i, comp in enumerate(components):
+        prof_settings = comp[0]
+        conc_settings = comp[1]
+
+        comp_str = comp_str + ('# Component {}: Profile Regularizer: {}'
+            '\n'.format(i, prof_settings['type']))
+        comp_str = comp_str + ('# Component {}: Profile Lambda: {}'
+            '\n'.format(i, prof_settings['lambda']))
+        comp_str = comp_str + ('# Component {}: Profile Automatically '
+            'determine lambda: {}\n'.format(i, prof_settings['auto_lambda']))
+
+        if prof_settings['type'] != 'simple':
+            comp_str = comp_str + ('# Component {}: Profile Grid points: {}'
+                '\n'.format(i, prof_settings['kwargs']['Nw']))
+
+        if prof_settings['type'] == 'realspace':
+            comp_str = comp_str + ('# Component {}: Profile Dmax: {}'
+                '\n'.format(i, prof_settings['kwargs']['dmax']))
+            comp_str = comp_str + ('# Component {}: Profile is zero at r0: {}'
+                '\n'.format(i, prof_settings['kwargs']['is_zero_at_r0']))
+            comp_str = comp_str + ('# Component {}: Profile is zero at Dmax: {}'
+                '\n'.format(i, prof_settings['kwargs']['is_zero_at_dmax']))
+
+        comp_str = comp_str + ('# Component {}: Concentration Regularizer: {}'
+            '\n'.format(i, conc_settings['type']))
+        comp_str = comp_str + ('# Component {}: Concentration Lambda: {}'
+            '\n'.format(i, conc_settings['lambda']))
+        comp_str = comp_str + ('# Component {}: Concentration Automatically '
+            'determine lambda: {}\n'.format(i, conc_settings['auto_lambda']))
+        comp_str = comp_str + ('# Component {}: Concentration Range: {} '
+            'to {}\n'.format(i, conc_settings['kwargs']['xmin'],
+                conc_settings['kwargs']['xmax']))
+
+        if conc_settings['type'] == 'smooth':
+            comp_str = comp_str + ('# Component {}: Concentration Grid '
+                'points: {}\n'.format(i, conc_settings['kwargs']['Nw']))
+            comp_str = comp_str + ('# Component {}: Concentration is zero '
+                'at x min: {}\n'.format(i, conc_settings['kwargs']['is_zero_at_xmin']))
+            comp_str = comp_str + ('# Component {}: Concentration is zero '
+                'at x max: {}\n'.format(i, conc_settings['kwargs']['is_zero_at_xmax']))
+
+    comp_str = comp_str+'\n'
+
+    body_string = ''
+    body_string = body_string+'# Concentration Matrix Results\n'
+    body_string = body_string+'# X,'+','.join(['Value_%i' %i for i in range(nvals)])+'\n'
+
+    conc = regals_results['mixture'].concentrations
+
+    conc_output = np.column_stack((regals_results['x'], conc))
+
+    for line in conc_output:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
+
+    body_string = body_string+'# Rotation Chi^2\n'
+    body_string = body_string+'# X,Chi^2\n'
+
+    chisq = regals_results['chisq']
+
+    chisq_output = np.column_stack((regals_results['x'], chisq))
+
+    for line in chisq_output:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
+    for j, comp in enumerate(components):
+        prof_settings = comp[0]
+
+        if prof_settings['type'] == 'realspace':
+            prof_comp = regals_results['mixture'].components[j].profile
+            r = prof_comp.w
+            pr = regals_results['mixture'].u_profile[j]
+
+            if prof_comp._regularizer.is_zero_at_r0:
+                pr = np.concatenate(([0], pr))
+
+            if prof_comp._regularizer.is_zero_at_dmax:
+                pr = np.concatenate((pr, [0]))
+
+            body_string = body_string+'# Component {} P(r)\n'.format(j)
+            body_string = body_string+'# r,P(r)\n'
+
+            pr_output = np.column_stack((r, pr))
+
+            for line in pr_output:
+                body_string = body_string+','.join(map(str, line)) + '\n'
+
+            body_string = body_string + '\n'
+
+    body_string = body_string + '# Forward EFA Results\n'
+    body_string = body_string + '# X,'+','.join(['Value_%i' %i for i in range(nvals+1)])+'\n'
+
+    fefa = efa_results['forward_efa'].T[:,:nvals+1]
+    fefa_output = np.column_stack((regals_results['x'], fefa))
+
+    for line in fefa_output:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
+
+    body_string = body_string + '# Backward EFA Results\n'
+    body_string = body_string + '# X,'+','.join(['Value_%i' %i for i in range(nvals)])+'\n'
+
+    befa = efa_results['backward_efa'][:, ::-1].T[:,:nvals+1]
+    befa_output = np.column_stack((regals_results['x'], befa))
+
+    for line in befa_output:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
+
+    body_string = body_string + '# Singular Value Results\n\n'
+    body_string = body_string + '# Singular Values\n'
+    body_string = body_string + '# X,Value\n'
+
+    svs = svd_results['svd_s']
+
+    svs_output = np.column_stack((list(range(len(svs))),svs))
+
+    for line in svs_output:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
+
+    body_string = body_string + '# Left Singular Vectors (U)\n'
+    body_string = body_string + '# Q,'+','.join(['Column_%i' %i for i in range(nvals)])+'\n'
+
+    svd_u = svd_results['svd_u'].T[:,:nvals]
+    svd_u_output = np.column_stack((qvals, svd_u))
+
+    for line in svd_u_output:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
+
+    body_string = body_string + '# Right Singular Vectors (V)\n'
+    body_string = body_string + '# X,'+','.join(['Column_%i' %i for i in range(nvals)])+'\n'
+
+    svd_v = svd_results['svd_v'][:,:nvals]
+    svd_v_output = np.column_stack((regals_results['x'], svd_v))
+
+    for line in svd_v_output:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
+    save_string = header_string + comp_str + body_string
+
+
+    with open(filename, 'w') as fsave:
+        fsave.write(save_string)
+
+
 def saveDammixData(filename, ambi_data, nsd_data, res_data, clust_num, clist_data,
                 dlist_data, model_data, setup_data, model_plots):
 

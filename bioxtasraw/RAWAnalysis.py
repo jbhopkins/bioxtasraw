@@ -14998,6 +14998,8 @@ class REGALSFrame(wx.Frame):
         size = (min(1500, client_display.Width), min(875, client_display.Height))
         self.SetSize(self._FromDIP(size))
 
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
         self.orig_secm = secm
         self.secm = copy.copy(secm)
         self.manip_item = manip_item
@@ -15119,37 +15121,82 @@ class REGALSFrame(wx.Frame):
         self.SendSizeEvent()
 
     def _on_cancel_button(self, evt):
-         self.OnClose()
+        if self.panels[-1].regals_running:
+            msg = ('REGALS is currently running, are you sure you want to '
+                'close the window and abort REGALS?')
+            dlg = wx.MessageDialog(self, msg, 'REGALS Running',
+                style=wx.ICON_INFORMATION|wx.YES_NO)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+
+            if result == wx.ID_YES:
+                close = True
+                self.panels[-1].abort_regals()
+
+            else:
+                close = False
+
+        else:
+            close = True
+
+        if close:
+            self.OnClose()
 
     def _on_done_button(self, evt):
-        self.panel_results[-1] = self.run_panel.get_panel_results()
 
-        profiles = self.panel_results[-1]['profiles']
+        if self.panels[-1].regals_running:
+            msg = ('REGALS is currently running, are you sure you want to '
+                'close the window and abort REGALS?')
+            dlg = wx.MessageDialog(self, msg, 'REGALS Running',
+                style=wx.ICON_INFORMATION|wx.YES_NO)
+            result = dlg.ShowModal()
+            dlg.Destroy()
 
-        RAWGlobals.mainworker_cmd_queue.put(['to_plot_sasm', [profiles, 'black', None, True, 2]])
+            if result == wx.ID_YES:
+                close = True
+                self.panels[-1].abort_regals()
 
-        if self.manip_item is not None:
-            analysis_dict = self.secm.getParameter('analysis')
+            else:
+                close = False
 
-            regals_dict = {}
+        else:
+            close = True
 
-            # regals_dict['fstart'] = self.panel1_results['fstart']
-            # regals_dict['fend'] = self.panel1_results['fend']
-            # regals_dict['profile'] = self.panel1_results['profile']
-            # regals_dict['nsvs'] = self.panel1_results['input']
-            # regals_dict['ranges'] = self.panel3_results['ranges']
-            # regals_dict['iter_limit'] = self.panel3_results['options']['niter']
-            # regals_dict['tolerance'] = self.panel3_results['options']['tol']
-            # regals_dict['method'] = self.panel3_results['options']['method']
+        if close:
+            self.panel_results[-1] = self.run_panel.get_panel_results()
+            profiles = self.panel_results[-1]['profiles']
 
-            analysis_dict['regals'] = regals_dict
+            if profiles is not None:
+                regals_results = self.panel_results[-1]['regals_results']
 
-            #### Neeeds work!
+                RAWGlobals.mainworker_cmd_queue.put(['to_plot_sasm', [profiles, 'black', None, True, 2]])
 
-        self.OnClose()
+                if self.manip_item is not None:
+                    analysis_dict = self.secm.getParameter('analysis')
+
+                    regals_dict = {}
+
+                    regals_dict['fstart'] = self.panel_results[0]['fstart']
+                    regals_dict['fend'] = self.panel_results[0]['fend']
+                    regals_dict['profile'] = self.panel_results[0]['profile']
+                    regals_dict['nsvs'] = len(profiles)
+                    regals_dict['ranges'] = regals_results['settings']['ranges']
+                    regals_dict['component_settings'] = regals_results['settings']['comp_settings']
+                    regals_dict['run_settings'] = regals_results['settings']['ctrl_settings']
+
+                    analysis_dict['regals'] = regals_dict
+
+                    self.manip_item.markAsModified()
+
+            self.OnClose()
 
     def _on_info_button(self, evt):
-        pass
+        msg = ('If you use REGALS in your work, in addition to citing '
+            'the RAW paper please cite:\n'
+            'Steve P. Meisburger, Da Xu, and Nozomi Ando. IUCrJ 2021 8 '
+            '(2). DOI: 10.1107/S2052252521000555')
+        wx.MessageBox(str(msg), "How to cite REGALS",
+            style=wx.ICON_INFORMATION|wx.OK)
 
     def show_busy_dialog(self, show, msg=''):
         if show:
@@ -15162,6 +15209,48 @@ class REGALSFrame(wx.Frame):
                 self.bi = None
             except Exception:
                 pass
+
+    def save_data(self):
+        self.panel_results[-1] = self.run_panel.get_panel_results()
+
+        profiles = self.panel_results[-1]['profiles']
+
+        if profiles is not None:
+            dirctrl = wx.FindWindowByName('DirCtrlPanel')
+            path = str(dirctrl.getDirLabel())
+
+            filename = self.panel_results[0]['filename']
+
+            name, ext = os.path.splitext(filename)
+
+            filename = name + '_regals.csv'
+
+            dialog = wx.FileDialog(self, message=("Please select save "
+                "directory and enter save file name"), style=wx.FD_SAVE,
+                defaultDir=path, defaultFile=filename)
+
+            if dialog.ShowModal() == wx.ID_OK:
+                save_path = dialog.GetPath()
+                name, ext = os.path.splitext(save_path)
+                save_path = name+'.csv'
+            else:
+                return
+
+            RAWGlobals.save_in_progress = True
+            self.main_frame.setStatus('Saving REGALS data', 0)
+
+            SASFileIO.saveREGALSData(save_path, self.panel_results)
+
+            RAWGlobals.save_in_progress = False
+            self.main_frame.setStatus('', 0)
+
+        else:
+            msg = ("REGALS hasn't been run yet, so there are no results "
+                "to save. Run REGALS then save the results.")
+            dlg = wx.MessageDialog(self, msg, 'No REGALS Results',
+                style=wx.ICON_ERROR|wx.OK)
+            dlg.ShowModal()
+            dlg.Destroy()
 
     def OnClose(self):
         self.Destroy()
@@ -15301,6 +15390,10 @@ class REGALSRunPanel(wx.Panel):
 
         self.regals_thread = None
         self.regals_results = None
+        self.sasms = None
+        self.ifts = None
+
+        self.regals_running = False
 
         self.regals_frame = regals_frame
 
@@ -15349,7 +15442,7 @@ class REGALSRunPanel(wx.Panel):
         self.comp_grid = REGALSComponentGrid(parent, self.on_range_change,
             self.on_update_regals, self.regals_frame)
 
-        self.results = REGALSResults(parent)
+        self.results = REGALSResults(parent, self.regals_frame)
 
         sub_sizer = wx.BoxSizer(wx.VERTICAL)
         sub_sizer.Add(self.controls, flag=wx.EXPAND)
@@ -15385,39 +15478,55 @@ class REGALSRunPanel(wx.Panel):
 
         ref_q = regals_secm.getSASMList(start, end)[0].getQ()
 
-        valid = self.validate_regals(regals_secm, start, end, ref_q)
+        ctrl_settings = self.controls.get_settings()
+        comp_settings = self.comp_grid.get_component_settings()
+        comp_ranges = self.comp_grid.get_component_ranges()
+
+        self.regals_running = True
+        self.regals_frame.show_busy_dialog(True)
+
+        self.regals_abort_event.clear()
+
+        self.regals_settings = {
+            'ctrl_settings': copy.deepcopy(ctrl_settings),
+            'comp_settings': copy.deepcopy(comp_settings),
+            'ranges': comp_ranges
+            }
+
+        seed_previous = ctrl_settings.pop('seed_previous')
+        ctrl_settings['callback'] = self.on_regals_finished_callback
+        ctrl_settings['abort_event'] = self.regals_abort_event
+
+        intensity = self.svd_results['int']
+        sigma = self.svd_results['err']
+
+        x = np.arange(start, end+1)
+
+        num_good = 2*len(comp_settings)
+
+        if (seed_previous and self.regals_results is not None and
+            len(self.regals_results['mixture'].u_profile) == len(comp_settings)):
+            mixture, components = SASCalc.create_regals_mixture(comp_settings,
+                ref_q, x, num_good, sigma, seed_previous,
+                self.regals_results['mixture'])
+
+        else:
+            mixture, components = SASCalc.create_regals_mixture(comp_settings,
+                ref_q, x, num_good, sigma)
+
+        self.set_lambdas(mixture.lambda_concentration, mixture.lambda_profile)
+
+        for j, comp in enumerate(self.regals_settings['comp_settings']):
+            prof = comp[0]
+            conc = comp[1]
+
+            prof['lambda'] = mixture.lambda_profile[j]
+            conc['lambda'] = mixture.lambda_concentration[j]
+
+        valid = self.validate_regals(regals_secm, start, end, ref_q,
+            ctrl_settings, self.regals_settings['comp_settings'], comp_ranges)
 
         if valid:
-            self.regals_frame.show_busy_dialog(True)
-
-            self.regals_abort_event.clear()
-
-            ctrl_settings = self.controls.get_settings()
-            comp_settings = self.comp_grid.get_component_settings()
-
-            seed_previous = ctrl_settings.pop('seed_previous')
-            ctrl_settings['callback'] = self.on_regals_finished_callback
-            ctrl_settings['abort_event'] = self.regals_abort_event
-
-            intensity = self.svd_results['int']
-            sigma = self.svd_results['err']
-
-            x = np.arange(start, end+1)
-
-            num_good = 2*len(comp_settings)
-
-            if (seed_previous and self.regals_results is not None and
-                len(self.regals_results['mixture'].u_profile) == len(comp_settings)):
-                mixture, components = SASCalc.create_regals_mixture(comp_settings,
-                    ref_q, x, num_good, sigma, seed_previous,
-                    self.regals_results['mixture'])
-
-            else:
-                mixture, components = SASCalc.create_regals_mixture(comp_settings,
-                    ref_q, x, num_good, sigma)
-
-            wx.CallAfter(self.set_lambdas, mixture.lambda_concentration,
-                mixture.lambda_profile)
 
             self.regals_thread = threading.Thread(target=SASCalc.run_regals,
                 args=(mixture, intensity, sigma),
@@ -15433,8 +15542,10 @@ class REGALSRunPanel(wx.Panel):
 
         self.controls.on_regals_finished()
         self.regals_frame.show_busy_dialog(False)
+        self.regals_running = False
 
-    def validate_regals(self, regals_secm, start, end, ref_q):
+    def validate_regals(self, regals_secm, start, end, ref_q, ctrl_settings,
+        comp_settings, regals_ranges):
 
         try:
             q_valid = all([np.all(ref_q == sasm.getQ() for sasm in regals_secm.getSASMList(start, end))])
@@ -15443,7 +15554,6 @@ class REGALSRunPanel(wx.Panel):
 
         range_valid = True
 
-        regals_ranges = self.comp_grid.get_component_ranges()
         regals_ranges = [np.array(rr) for rr in regals_ranges]
 
         for i in range(len(regals_ranges)):
@@ -15451,8 +15561,32 @@ class REGALSRunPanel(wx.Panel):
                 if np.all(regals_ranges[i] == regals_ranges[j]):
                     range_valid = False
 
+        valid_settings = True
 
-        valid = q_valid and range_valid
+        settings_msg = ''
+
+        for i, comp in enumerate(comp_settings):
+            conc_comp = comp[1]
+
+            if conc_comp['type'] != 'simple':
+                if conc_comp['lambda'] == 0:
+                    nw = conc_comp['kwargs']['Nw']
+                    xmin = conc_comp['kwargs']['xmin']
+                    xmax = conc_comp['kwargs']['xmax']
+
+                    if nw >= xmax - xmin:
+                        valid_settings = False
+
+                        msg = ('- Component {} grid points ({}) are more '
+                            'than the number of measurements in the defined '
+                            'range ({} to {}) and lambda is 0. Either set '
+                            'lambda to a non-zero value, reduce the number '
+                            'of grid points, or expand the concentration '
+                            'range.\n'.format(i, nw, xmin, xmax))
+                        settings_msg = settings_msg + msg
+
+
+        valid = q_valid and range_valid and valid_settings
 
         err_msg = ''
         if not q_valid:
@@ -15464,6 +15598,9 @@ class REGALSRunPanel(wx.Panel):
             err_msg = err_msg+ ('- Concentration ranges must be unique. Two or '
                 'more concentration ranges are identical.\n')
 
+        if not valid_settings:
+            err_msg = err_msg + settings_msg
+
         if not valid:
             msg = ('The following errors must be fixed before REGALS can '
                 'be run:\n')
@@ -15472,6 +15609,54 @@ class REGALSRunPanel(wx.Panel):
                 style=wx.ICON_ERROR|wx.OK)
             dlg.ShowModal()
             dlg.Destroy()
+
+
+        if valid:
+            warn_settings = False
+
+            warn_settings_msg = ''
+
+            for i, comp in enumerate(comp_settings):
+                prof_comp = comp[0]
+                conc_comp = comp[1]
+
+                if prof_comp['type'] == 'simple':
+                    if prof_comp['lambda'] != 0:
+                        warn_settings = True
+
+                        msg = ('- Component {} concentration has a simple '
+                            'regularizer but a non-zero lambda. This is '
+                            'not recommended.\n'.format(i))
+                        warn_settings_msg = warn_settings_msg + msg
+
+                if conc_comp['type'] == 'simple':
+                    if conc_comp['lambda'] != 0:
+                        warn_settings = True
+
+                        msg = ('- Component {} concentration has a simple '
+                            'regularizer but a non-zero lambda. This is '
+                            'not recommended.\n'.format(i))
+                        warn_settings_msg = warn_settings_msg + msg
+
+
+            warning = warn_settings
+
+            if warning:
+                msg = ('The following warnings were found for your REGALS '
+                    'settings.\n')
+
+                if warn_settings:
+                    msg = msg + warn_settings_msg
+
+                msg = msg + ('Do you want to run REGALS?')
+
+                dlg = wx.MessageDialog(self, msg, 'REGALS Warnings',
+                    style=wx.ICON_WARNING|wx.YES_NO)
+                result = dlg.ShowModal()
+                dlg.Destroy()
+
+                if result == wx.ID_NO:
+                    valid = False
 
         return valid
 
@@ -15521,6 +15706,8 @@ class REGALSRunPanel(wx.Panel):
             'params'    : params,
             'resid'     : resid,
             'chisq'     : np.mean(resid ** 2, 0),
+            'settings'  : self.regals_settings,
+            'x'         : mixture.components[0].concentration._regularizer.x,
             }
 
         if self.svd_results['secm_choice'] == 'usub':
@@ -15549,16 +15736,15 @@ class REGALSRunPanel(wx.Panel):
         self.update_results()
 
         self.regals_frame.show_busy_dialog(False)
+        self.regals_running = False
 
     def update_results(self):
-        framei = self.svd_results['fstart']
-        framef = self.svd_results['fend']
 
         concentrations = self.regals_results['mixture'].concentrations
 
-        rmsd_data = [self.regals_results['chisq'], list(range(framei, framef+1))]
+        rmsd_data = [self.regals_results['chisq'], self.regals_results['x']]
 
-        conc_data = [concentrations, list(range(framei, framef+1))]
+        conc_data = [concentrations, self.regals_results['x']]
 
         total_iter = self.regals_results['params']['total_iter']
         aver_chisq = self.regals_results['params']['x2']
@@ -15572,7 +15758,6 @@ class REGALSRunPanel(wx.Panel):
             'profiles': self.sasms,
             'ifts': self.ifts,
             'regals_results': self.regals_results,
-            'ranges':   self.comp_grid.get_component_ranges()
             }
 
         return results
@@ -16288,8 +16473,10 @@ class REGALSComponent(wx.Panel):
 
 class REGALSResults(wx.Panel):
 
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, regals_frame, *args, **kwargs):
         wx.Panel.__init__(self, parent, *args, **kwargs)
+
+        self.regals_frame = regals_frame
 
         self.SetMinSize((600, 400))
         self._layout()
@@ -16309,6 +16496,9 @@ class REGALSResults(wx.Panel):
         self.chisq = wx.StaticText(results_box, size=self._FromDIP((60, -1)))
         self.iters = wx.StaticText(results_box, size=self._FromDIP((60, -1)))
 
+        save_regals_data = wx.Button(results_box, label='Save REGALS data (not profiles)')
+        save_regals_data.Bind(wx.EVT_BUTTON, self._on_save_data)
+
         sub_sizer = wx.BoxSizer(wx.HORIZONTAL)
         sub_sizer.Add(wx.StaticText(results_box, label='Iterations:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
@@ -16316,13 +16506,15 @@ class REGALSResults(wx.Panel):
             border=self._FromDIP(5))
         sub_sizer.Add(wx.StaticText(results_box, label='Average Chi^2:'),
             flag=wx.LEFT|wx.ALIGN_CENTRE_VERTICAL, border=self._FromDIP(10))
-        sub_sizer.Add(self.chisq)
+        sub_sizer.Add(self.chisq, flag=wx.ALIGN_CENTRE_VERTICAL)
+        sub_sizer.AddStretchSpacer(1)
+        sub_sizer.Add(save_regals_data, border=self._FromDIP(5), flag=wx.LEFT)
 
         self.results_plot = EFAResultsPlotPanel3(results_box, wx.ID_ANY)
 
-        results_sizer.Add(sub_sizer, flag=wx.ALL, border=self._FromDIP(5))
         results_sizer.Add(self.results_plot, proportion=1, flag=wx.EXPAND|
             wx.LEFT|wx.RIGHT|wx.BOTTOM, border=self._FromDIP(5))
+        results_sizer.Add(sub_sizer, flag=wx.ALL|wx.EXPAND, border=self._FromDIP(5))
 
         self.SetSizer(results_sizer)
 
@@ -16332,6 +16524,9 @@ class REGALSResults(wx.Panel):
         self.chisq.SetLabel('{}'.format(round(aver_chisq,3)))
 
         self.results_plot.plotEFA(sasms, rmsd_data, conc_data, ifts)
+
+    def _on_save_data(self, evt):
+        self.regals_frame.save_data()
 
 
 class SimilarityFrame(wx.Frame):
