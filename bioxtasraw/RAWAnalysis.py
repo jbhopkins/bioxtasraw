@@ -12146,7 +12146,7 @@ class SVDSECPlotPanel(wx.Panel):
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def plotSECM(self, secm, framei, framef, ydata_type):
-        frame_list = secm.frame_list
+        frame_list = secm.plot_frame_list
 
         if ydata_type == 'q_val':
             intensity = secm.I_of_q
@@ -12469,8 +12469,8 @@ class SVDControlPanel(wx.Panel):
             user_input_window = wx.FindWindowById(self.control_ids['input'], self)
 
 
-        framei = self.secm.frame_list[0]
-        framef = self.secm.frame_list[-1]
+        framei = self.secm.plot_frame_list[0]
+        framef = self.secm.plot_frame_list[-1]
 
         framei_window.SetRange((framei, framef))
         framef_window.SetRange((framei, framef))
@@ -12530,7 +12530,7 @@ class SVDControlPanel(wx.Panel):
         #make a subtracted profile SECM
         if len(self.secm.subtracted_sasm_list)>0:
             self.subtracted_secm = SECM.SECM(self.secm._file_list,
-                self.secm.subtracted_sasm_list, self.secm.frame_list,
+                self.secm.subtracted_sasm_list, self.secm.plot_frame_list,
                 self.secm.getAllParameters(), self.raw_settings)
         else:
             self.subtracted_secm = SECM.SECM(self.secm._file_list,
@@ -12542,7 +12542,7 @@ class SVDControlPanel(wx.Panel):
 
         if self.secm.baseline_subtracted_sasm_list:
             self.bl_subtracted_secm = SECM.SECM(self.secm._file_list,
-                self.secm.baseline_subtracted_sasm_list, self.secm.frame_list,
+                self.secm.baseline_subtracted_sasm_list, self.secm.plot_frame_list,
                 self.secm.getAllParameters(), self.raw_settings)
         else:
             self.bl_subtracted_secm = SECM.SECM(self.secm._file_list,
@@ -12681,7 +12681,7 @@ class SVDControlPanel(wx.Panel):
         framef = framef_window.GetValue()
 
         if self.ctrl_type == 'SVD':
-            err_norm - wx.FindWindowById(self.control_ids['norm_data'], self).GetValue()
+            err_norm = wx.FindWindowById(self.control_ids['norm_data'], self).GetValue()
         else:
             err_norm = True
 
@@ -14863,7 +14863,7 @@ class EFARangePlotPanel(wx.Panel):
             a.set_color_cycle(None)
 
     def plotRange(self, secm, framei, framef, ydata_type, ranges):
-        frame_list = secm.frame_list
+        frame_list = secm.plot_frame_list
 
         if ydata_type == 'q_val':
             intensity = secm.I_of_q
@@ -15364,7 +15364,7 @@ class REGALSEFAPanel(wx.Panel):
 
     def update(self, all_previous_results):
         regals_results = all_previous_results[-1]
-        new_ranges = regals_results['ranges']
+        new_ranges = regals_results['regals_results']['settings']['ranges']
 
         if len(new_ranges) == self.controlPanel.panel1_results['input']:
             self.controlPanel.setSVs(new_ranges)
@@ -15502,7 +15502,9 @@ class REGALSRunPanel(wx.Panel):
 
         x = np.arange(start, end+1)
 
-        num_good = 2*len(comp_settings)
+        num_good = 10
+
+        print(comp_settings)
 
         if (seed_previous and self.regals_results is not None and
             len(self.regals_results['mixture'].u_profile) == len(comp_settings)):

@@ -2888,7 +2888,7 @@ def loadIntFile(filename):
     for each_line in all_lines:
         split_line = each_line.split()
 
-        if len(split_line) == 5:
+        if len(split_line) == 5 or len(split_line) == 7:
             q.append(float(split_line[0]))
             i.append(float(split_line[1]))
 

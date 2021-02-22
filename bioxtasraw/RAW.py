@@ -8414,7 +8414,6 @@ class ManipItemPanel(wx.Panel):
         self.colour_indicator.updateColour(color)
 
     def _onLinePropertyButton(self, event):
-        print('in _onLinePropertyButton')
         try:
             legend_label = self.getLegendLabel()
             dialog = RAWCustomDialogs.LinePropertyDialog(self, self.sasm, legend_label)
