@@ -31,6 +31,7 @@ from builtins import object, range, map, zip
 from io import open
 import six
 from six.moves import cPickle as pickle
+import traceback
 
 import copy
 import os
@@ -837,17 +838,18 @@ def writeSettings(filename, settings):
 
             f.write(settings_str)
         return True
-    except Exception as e:
-        print(e)
+    except Exception:
+        traceback.print_exc()
         return False
 
 def readSettings(filename):
 
     try:
-        with open(filename, 'r') as f:
+        with open(filename, 'r', encoding='utf-8') as f:
             settings = f.read()
         settings = dict(json.loads(settings))
     except Exception as e:
+        traceback.print_exc()
         try:
             with open(filename, 'rb') as f:
                 if six.PY3:
@@ -857,6 +859,7 @@ def readSettings(filename):
                     pickle_obj.find_global = SASUtils.find_global
                 settings = pickle_obj.load()
         except Exception as e:
+            traceback.print_exc()
             print('Error type: %s, error: %s' %(type(e).__name__, e))
             return None
 
