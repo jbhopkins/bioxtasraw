@@ -12326,7 +12326,7 @@ class SVDControlPanel(wx.Panel):
         profile_type = wx.Choice(self, self.control_ids['profile'], choices = choices)
         profile_type.Bind(wx.EVT_CHOICE, self._onProfileChoice)
 
-        if self.ctrl_type == 'EFA':
+        if self.ctrl_type == 'EFA' or self.ctrl_type == 'REGALS':
             if 'Subtracted' in choices:
                 profile_type.SetStringSelection('Subtracted')
             else:
@@ -12984,7 +12984,7 @@ class EFAFrame(wx.Frame):
 
         self.plotPanel2 = EFAResultsPlotPanel2(self.splitter2, -1)
         self.controlPanel2 = EFAControlPanel2(self.splitter2, -1, self.secm,
-            self.manip_item, self)
+            self.manip_item, self, 'EFA')
 
         self.splitter2.SplitVertically(self.controlPanel2, self.plotPanel2, self._FromDIP(300))
 
@@ -13287,7 +13287,7 @@ class EFAFrame(wx.Frame):
 
 class EFAControlPanel2(wx.Panel):
 
-    def __init__(self, parent, panel_id, secm, manip_item, efa_frame):
+    def __init__(self, parent, panel_id, secm, manip_item, efa_frame, ctrl_type):
 
         wx.Panel.__init__(self, parent, panel_id, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
@@ -13299,6 +13299,8 @@ class EFAControlPanel2(wx.Panel):
 
         self.manip_item = manip_item
         self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.ctrl_type = ctrl_type
 
         self.raw_settings = self.main_frame.raw_settings
 
@@ -13332,27 +13334,42 @@ class EFAControlPanel2(wx.Panel):
 
 
         #svd controls
-        box = wx.StaticBox(self.top_efa, -1, 'User Input')
-        control_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        self.top_box = wx.StaticBox(self.top_efa, -1, 'User Input')
+        control_sizer = wx.StaticBoxSizer(self.top_box, wx.VERTICAL)
 
         self.forward_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        label = wx.StaticText(self.top_efa, -1, 'Forward ')
+        label = wx.StaticText(self.top_box, -1, 'Forward:')
 
         self.forward_sizer.Add(label, 0)
 
 
         self.backward_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        label = wx.StaticText(self.top_efa, -1, 'Backward :')
+        label = wx.StaticText(self.top_box, -1, 'Backward:')
 
         self.backward_sizer.Add(label, 0)
 
 
-        control_sizer.Add(self.forward_sizer, 0, wx.EXPAND | wx.TOP,
+        control_sizer.Add(self.forward_sizer, 0, wx.EXPAND|wx.TOP|wx.BOTTOM,
             border=self._FromDIP(3))
-        control_sizer.Add(self.backward_sizer, 0, wx.EXPAND | wx.TOP,
+        control_sizer.Add(self.backward_sizer, 0, wx.EXPAND|wx.TOP|wx.BOTTOM,
             border=self._FromDIP(3))
+
+        if self.ctrl_type == 'REGALS':
+            self.bkg_components = RAWCustomCtrl.IntSpinCtrl(self.top_box,
+                size=self._FromDIP((60, -1)))
+            self.bkg_components.SetRange((0, 10))
+            self.bkg_components.SetValue(0)
+
+            bkg_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            bkg_sizer.Add(wx.StaticText(self.top_box, label='# of background components:'),
+                border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
+            bkg_sizer.Add(self.bkg_components, border=self._FromDIP(5),
+                flag=wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
+
+            control_sizer.Add(bkg_sizer, border=self._FromDIP(20),
+                flag=wx.TOP)
 
         self.top_efa.SetSizer(control_sizer)
 
@@ -13367,6 +13384,17 @@ class EFAControlPanel2(wx.Panel):
 
         nvals = svd_results['input']
 
+        if self.ctrl_type == 'REGALS':
+            self.bkg_components.SetRange((0, nvals))
+
+            series_analysis_dict = self.secm.getParameter('analysis')
+
+            if 'regals' in series_analysis_dict and self.ctrl_type == 'REGALS':
+                analysis_dict = series_analysis_dict['regals']
+
+                if 'background_components' in analysis_dict:
+                    self.bkg_components.SetValue(analysis_dict['background_components'])
+
         self.forward_ids = [self.NewControlId() for i in range(nvals)]
         self.backward_ids = [self.NewControlId() for i in range(nvals)]
 
@@ -13380,8 +13408,8 @@ class EFAControlPanel2(wx.Panel):
 
         for i in range(nvals):
 
-            flabel = wx.StaticText(self.top_efa, -1, 'Value %i start :' %(i))
-            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.forward_ids[i],
+            flabel = wx.StaticText(self.top_box, -1, 'Value %i start :' %(i))
+            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_box, self.forward_ids[i],
                 size=self._FromDIP((60, -1)))
             fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onForwardControl)
             fcontrol.SetValue(start)
@@ -13390,8 +13418,8 @@ class EFAControlPanel2(wx.Panel):
             self.fsizer.Add(flabel, 0)
             self.fsizer.Add(fcontrol, 0)
 
-            blabel = wx.StaticText(self.top_efa, -1, 'Value %i start :' %(i))
-            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.backward_ids[i],
+            blabel = wx.StaticText(self.top_box, -1, 'Value %i start :' %(i))
+            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_box, self.backward_ids[i],
                 size=self._FromDIP((60, -1)))
             bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onBackwardControl)
             bcontrol.SetValue(start)
@@ -13400,8 +13428,10 @@ class EFAControlPanel2(wx.Panel):
             self.bsizer.Add(blabel, 0)
             self.bsizer.Add(bcontrol, 0)
 
-        self.forward_sizer.Add(self.fsizer, 0, wx.TOP, border=self._FromDIP(3))
-        self.backward_sizer.Add(self.bsizer, 0, wx.TOP, border=self._FromDIP(3))
+        self.forward_sizer.Add(self.fsizer, 0, wx.TOP|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(3))
+        self.backward_sizer.Add(self.bsizer, 0, wx.TOP|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(3))
 
         self.forward_sizer.Layout()
         self.backward_sizer.Layout()
@@ -13423,6 +13453,9 @@ class EFAControlPanel2(wx.Panel):
         self.panel1_results = copy.copy(svd_results)
 
         nvals = svd_results['input']
+
+        if self.ctrl_type == 'REGALS':
+            self.bkg_components.SetRange((0, nvals))
 
         self.forward_ids = [self.NewControlId() for i in range(nvals)]
         self.backward_ids = [self.NewControlId() for i in range(nvals)]
@@ -13457,8 +13490,8 @@ class EFAControlPanel2(wx.Panel):
 
         for i in range(nvals):
 
-            flabel = wx.StaticText(self.top_efa, -1, 'Value %i start :' %(i))
-            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.forward_ids[i],
+            flabel = wx.StaticText(self.top_box, -1, 'Value %i start :' %(i))
+            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_box, self.forward_ids[i],
                 size=self._FromDIP((60, -1)))
             fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onForwardControl)
             fcontrol.SetValue(start)
@@ -13467,8 +13500,8 @@ class EFAControlPanel2(wx.Panel):
             self.fsizer.Add(flabel, 0)
             self.fsizer.Add(fcontrol, 0)
 
-            blabel = wx.StaticText(self.top_efa, -1, 'Value %i end :' %(i))
-            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_efa, self.backward_ids[i],
+            blabel = wx.StaticText(self.top_box, -1, 'Value %i end :' %(i))
+            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_box, self.backward_ids[i],
                 size=self._FromDIP((60, -1)))
             bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onBackwardControl)
             bcontrol.SetValue(start)
@@ -13478,8 +13511,10 @@ class EFAControlPanel2(wx.Panel):
             self.bsizer.Add(bcontrol, 0)
 
 
-        self.forward_sizer.Add(self.fsizer, 0, wx.TOP, border=self._FromDIP(3))
-        self.backward_sizer.Add(self.bsizer, 0, wx.TOP, border=self._FromDIP(3))
+        self.forward_sizer.Add(self.fsizer, 0, wx.TOP|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(3))
+        self.backward_sizer.Add(self.bsizer, 0, wx.TOP|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(3))
 
         self.forward_sizer.Layout()
         self.backward_sizer.Layout()
@@ -13501,6 +13536,16 @@ class EFAControlPanel2(wx.Panel):
             wx.CallAfter(self.updateEFAPlot)
 
         else:
+            if self.ctrl_type == 'REGALS':
+                forward_sv = new_ranges[:,0]
+                backward_sv = new_ranges[:,1]
+
+                bkg_comp = self.bkg_components.GetValue()
+
+                backward_sv = np.roll(backward_sv, -1*bkg_comp)
+
+                new_ranges = np.column_stack((forward_sv, backward_sv))
+
             self.efa_frame.refreshEFAPlot()
             self.setSVs(new_ranges)
 
@@ -13533,18 +13578,32 @@ class EFAControlPanel2(wx.Panel):
         self.efa_backward = b_slist
 
         if not self.initialized:
-            analysis_dict = self.secm.getParameter('analysis')
+            series_analysis_dict = self.secm.getParameter('analysis')
             nvals = self.panel1_results['input']
-            if 'efa' in analysis_dict:
-                if (nvals == analysis_dict['efa']['nsvs']
-                    and self.panel1_results['fstart'] == analysis_dict['efa']['fstart']
-                    and self.panel1_results['fend'] == analysis_dict['efa']['fend']
-                    and self.panel1_results['profile'] == analysis_dict['efa']['profile']
-                    and nvals == len(analysis_dict['efa']['ranges'])):
-                    points = np.array(analysis_dict['efa']['ranges'])
+
+            if 'efa' in series_analysis_dict and self.ctrl_type == 'EFA':
+                analysis_dict = series_analysis_dict['efa']
+            elif 'regals' in series_analysis_dict and self.ctrl_type == 'REGALS':
+                analysis_dict = series_analysis_dict['regals']
+            else:
+                analysis_dict = None
+
+
+            if analysis_dict is not None:
+                if (nvals == analysis_dict['nsvs']
+                    and self.panel1_results['fstart'] == analysis_dict['fstart']
+                    and self.panel1_results['fend'] == analysis_dict['fend']
+                    and self.panel1_results['profile'] == analysis_dict['profile']
+                    and nvals == len(analysis_dict['ranges'])):
+                    points = np.array(analysis_dict['ranges'])
 
                     forward_sv = points[:,0]
                     backward_sv = points[:,1]
+
+                    if self.ctrl_type == 'REGALS':
+                        bkg_comp = self.bkg_components.GetValue()
+                        backward_sv = np.roll(backward_sv, -1*bkg_comp)
+                        points = np.column_stack((forward_sv, backward_sv))
 
                     if np.all(np.sort(forward_sv) == forward_sv) and np.all(np.sort(backward_sv) == backward_sv):
                         self.setSVs(points)
@@ -13660,6 +13719,15 @@ class EFAControlPanel2(wx.Panel):
         forward_points.sort()
         backward_points.sort()
 
+        if self.ctrl_type == 'REGALS':
+            # Unlike elution compoments, background components are assumed to be first in last out
+            n_bkg = self.bkg_components.GetValue()
+
+            for i in range(n_bkg):
+                backward_points.insert(0, backward_points.pop())
+
+            self.results['bkg_components'] = n_bkg
+
         points = np.column_stack((forward_points,backward_points))
 
         self.results['points'] = points
@@ -13692,19 +13760,22 @@ class EFAResultsPlotPanel2(wx.Panel):
         self.f_markers = []
         self.b_markers = []
 
-        subplotLabels = [('Forward EFA', 'Index', 'Singular Value', 0.1), ('Backward EFA', 'Index', 'Singular Value', 0.1)]
+        subplotLabels = [('Forward EFA', 'Index', 'Singular Value', 0.1),
+            ('Backward EFA', 'Index', 'Singular Value', 0.1)]
 
         self.fig.subplots_adjust(hspace = 0.26)
 
         self.subplots = {}
 
         for i in range(0, len(subplotLabels)):
-            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1, title = subplotLabels[i][0], label = subplotLabels[i][0])
+            subplot = self.fig.add_subplot(len(subplotLabels),1,i+1,
+                title = subplotLabels[i][0], label = subplotLabels[i][0])
             subplot.set_xlabel(subplotLabels[i][1])
             subplot.set_ylabel(subplotLabels[i][2])
             self.subplots[subplotLabels[i][0]] = subplot
 
-        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
+        self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93,
+            top = 0.93, hspace = 0.26)
         self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
@@ -13751,7 +13822,9 @@ class EFAResultsPlotPanel2(wx.Panel):
         while len(b.lines) != 0:
             b.lines.pop(0)
 
-        if (int(matplotlib.__version__.split('.')[0]) ==1 and int(matplotlib.__version__.split('.')[1]) >=5) or int(matplotlib.__version__.split('.')[0]) > 1:
+        if ((int(matplotlib.__version__.split('.')[0]) ==1
+            and int(matplotlib.__version__.split('.')[1]) >=5)
+            or int(matplotlib.__version__.split('.')[0]) > 1):
             a.set_prop_cycle(None)
             b.set_prop_cycle(None)
         else:
@@ -14232,8 +14305,6 @@ class EFAControlPanel3(wx.Panel):
         wx.CallAfter(self.runRotation)
 
     def _onRangeControl(self, evt):
-
-        myId = evt.GetId()
         wx.CallAfter(self.updateRangePlot)
         wx.CallAfter(self.runRotation)
 
@@ -14477,30 +14548,6 @@ class EFAResultsPlotPanel3(wx.Panel):
         self.fig.subplots_adjust(hspace = 0.26)
 
         self.subplots = {}
-
-        # subplot = self.fig.add_subplot(2, 2, 1, title=subplotLabels[0][0],
-        #     label=subplotLabels[0][0])
-        # subplot.set_xlabel(subplotLabels[0][1])
-        # subplot.set_ylabel(subplotLabels[0][2])
-        # self.subplots[subplotLabels[0][0]] = subplot
-
-        # subplot = self.fig.add_subplot(2, 2, 2, title=subplotLabels[1][0],
-        #     label=subplotLabels[1][0])
-        # subplot.set_xlabel(subplotLabels[1][1])
-        # subplot.set_ylabel(subplotLabels[1][2])
-        # self.subplots[subplotLabels[1][0]] = subplot
-
-        # subplot = self.fig.add_subplot(2, 2, 3, title=subplotLabels[2][0],
-        #     label=subplotLabels[2][0])
-        # subplot.set_xlabel(subplotLabels[2][1])
-        # subplot.set_ylabel(subplotLabels[2][2])
-        # self.subplots[subplotLabels[2][0]] = subplot
-
-        # subplot = self.fig.add_subplot(2, 2, 4, title=subplotLabels[2][0],
-        #     label=subplotLabels[2][0])
-        # subplot.set_xlabel(subplotLabels[2][1])
-        # subplot.set_ylabel(subplotLabels[2][2])
-        # self.subplots[subplotLabels[2][0]] = subplot
 
         for i in range(0, len(subplotLabels)):
             subplot = self.fig.add_subplot((len(subplotLabels)+1)//2,2,i+1,
@@ -15183,6 +15230,7 @@ class REGALSFrame(wx.Frame):
                     regals_dict['ranges'] = regals_results['settings']['ranges']
                     regals_dict['component_settings'] = regals_results['settings']['comp_settings']
                     regals_dict['run_settings'] = regals_results['settings']['ctrl_settings']
+                    regals_dict['background_components'] = self.panel_results[-2]['bkg_components']
 
                     analysis_dict['regals'] = regals_dict
 
@@ -15328,7 +15376,7 @@ class REGALSEFAPanel(wx.Panel):
 
         self.plotPanel = EFAResultsPlotPanel2(self.splitter, wx.ID_ANY)
         self.controlPanel = EFAControlPanel2(self.splitter, wx.ID_ANY,
-            self.secm, self.manip_item, self)
+            self.secm, self.manip_item, self, 'REGALS')
 
         self.splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(300))
 
@@ -15367,7 +15415,17 @@ class REGALSEFAPanel(wx.Panel):
         new_ranges = regals_results['regals_results']['settings']['ranges']
 
         if len(new_ranges) == self.controlPanel.panel1_results['input']:
-            self.controlPanel.setSVs(new_ranges)
+            points = np.array(new_ranges)
+
+            forward_sv = points[:,0]
+            backward_sv = points[:,1]
+
+            bkg_comp = all_previous_results[-2]['bkg_components']
+
+            backward_sv = np.roll(backward_sv, -1*bkg_comp)
+            points = np.column_stack((forward_sv, backward_sv))
+
+            self.controlPanel.setSVs(points)
 
         else:
             svd_results = copy.deepcopy(all_previous_results[0])
@@ -15406,24 +15464,30 @@ class REGALSRunPanel(wx.Panel):
         prof_settings = {
             'type': 'simple',
             'lambda': 0.0,
-            'Nw': 50,
-            'dmax': 100,
-            'is_zero_at_r0': True,
-            'is_zero_at_dmax': True,
+            'auto_lambda': True,
+            'kwargs': {
+                'Nw': 50,
+                'dmax': 100,
+                'is_zero_at_r0': True,
+                'is_zero_at_dmax': True,
+                }
             }
 
         conc_settings = {
             'type': 'smooth',
             'lambda': 1.0,
-            'xmin': 0,
-            'xmax': 10,
+            'auto_lambda': True,
             'xrange': [0, 10],
-            'Nw': 50,
-            'is_zero_at_xmin': True,
-            'is_zero_at_xmax': True,
+            'kwargs' : {
+                'Nw': 50,
+                'is_zero_at_xmin': True,
+                'is_zero_at_xmax': True,
+                'xmin': 0,
+                'xmax': 10,
+                }
         }
 
-        self._defaul_component_settings = (prof_settings, conc_settings)
+        self._default_component_settings = (prof_settings, conc_settings)
 
 
     def _FromDIP(self, size):
@@ -15459,7 +15523,7 @@ class REGALSRunPanel(wx.Panel):
     def on_component_change(self, num_comps):
         self.controls.set_component_number(num_comps)
         self.comp_grid.set_component_number(num_comps,
-            self._defaul_component_settings)
+            self._default_component_settings)
         self.on_range_change()
         self.SendSizeEvent()
 
@@ -15479,7 +15543,7 @@ class REGALSRunPanel(wx.Panel):
         ref_q = regals_secm.getSASMList(start, end)[0].getQ()
 
         ctrl_settings = self.controls.get_settings()
-        comp_settings = self.comp_grid.get_component_settings()
+        comp_settings = self.comp_grid.get_all_component_settings()
         comp_ranges = self.comp_grid.get_component_ranges()
 
         self.regals_running = True
@@ -15674,20 +15738,67 @@ class REGALSRunPanel(wx.Panel):
 
     def initialize(self, all_previous_results):
         self.svd_results = all_previous_results[0]
-        self.efa_results = all_previous_results[1]
+        self.efa_results = all_previous_results[-2]
 
         nvals = self.efa_results['points'].shape[0]
-
-        self.on_component_change(nvals)
-        self.update_ranges(self.efa_results['points'])
-        self.controls.clear_regals_update()
 
         start = self.svd_results['fstart']
         end = self.svd_results['fend']
 
-        self._defaul_component_settings[1]['xmin'] = start
-        self._defaul_component_settings[1]['xmax'] = end
-        self._defaul_component_settings[1]['xrange'] = [start, end]
+        self._default_component_settings[1]['kwargs']['xmin'] = start
+        self._default_component_settings[1]['kwargs']['xmax'] = end
+        self._default_component_settings[1]['xrange'] = [start, end]
+
+        self.on_component_change(nvals)
+
+        analysis_dict = self.secm.getParameter('analysis')
+
+        if 'regals' in analysis_dict:
+            comp_settings = analysis_dict['regals']['component_settings']
+            ctrl_settings = analysis_dict['regals']['run_settings']
+
+            if nvals == len(comp_settings):
+
+                self.comp_grid.set_all_component_settings(comp_settings)
+
+            self.update_ranges(self.efa_results['points'])
+
+            self.controls.set_settings(ctrl_settings)
+
+        else:
+            self.update_ranges(self.efa_results['points'])
+
+            comp_settings = self.comp_grid.get_all_component_settings()
+
+            # for j in range(self.efa_results['bkg_components']):
+            #     settings = copy.deepcopy(self._default_component_settings)
+            #     cur_settings = self.comp_grid.get_component_settings(j)
+
+            #     for k, sub_settings in enumerate(settings):
+            #         for key, value in cur_settings[k].items():
+            #             if isinstance(value, dict):
+            #                 sub_settings[key].update(value)
+            #             else:
+            #                 sub_settings[key] = value
+
+            #     if settings[1]['kwargs']['xmin'] == start:
+            #         settings[1]['kwargs']['is_zero_at_xmin'] = False
+
+            #     if settings[1]['kwargs']['xmax'] == end:
+            #         settings[1]['kwargs']['is_zero_at_xmax'] = False
+
+            #     self.comp_grid.set_component_settings(settings, j)
+
+            for settings in comp_settings:
+                if settings[1]['kwargs']['xmin'] == start:
+                    settings[1]['kwargs']['is_zero_at_xmin'] = False
+
+                if settings[1]['kwargs']['xmax'] == end:
+                    settings[1]['kwargs']['is_zero_at_xmax'] = False
+
+            self.comp_grid.set_all_component_settings(comp_settings)
+
+        self.controls.clear_regals_update()
 
         self.controls.do_regals()
 
@@ -15987,6 +16098,13 @@ class REGALSControls(wx.Panel):
     def set_component_number(self, num_comps):
         self.component_num_ctrl.SetValue(num_comps)
 
+    def set_settings(self, settings):
+        self.seed_previous.SetValue(settings['seed_previous'])
+        self.conv_type.SetStringSelection(settings['conv_type'])
+        self.max_iter.SetValue(int(settings['max_iter']))
+        self.min_iter.SetValue(int(settings['min_iter']))
+        self.tol.SetValue(str(settings['tol']))
+
 
 
 class REGALSComponentGrid(scrolled.ScrolledPanel):
@@ -16051,9 +16169,12 @@ class REGALSComponentGrid(scrolled.ScrolledPanel):
             comp.Destroy()
             self.Layout()
 
-    def get_component_settings(self):
+    def get_all_component_settings(self):
         comp_settings = [comp.get_settings() for comp in self.component_panels]
         return comp_settings
+
+    def get_component_settings(self, comp_num):
+        return self.component_panels[comp_num].get_settings()
 
     def get_component_ranges(self):
         comp_ranges = np.array([comp.get_range() for comp in self.component_panels])
@@ -16066,6 +16187,13 @@ class REGALSComponentGrid(scrolled.ScrolledPanel):
     def set_lambdas(self, conc_lambdas, prof_lambdas):
         for j, component in enumerate(self.component_panels):
             component.set_lambdas(conc_lambdas[j], prof_lambdas[j])
+
+    def set_all_component_settings(self, settings):
+        for j, comp_settings in enumerate(settings):
+            self.component_panels[j].set_settings(comp_settings)
+
+    def set_component_settings(self, settings, comp_num):
+        self.component_panels[comp_num].set_settings(settings)
 
 class REGALSComponent(wx.Panel):
 
@@ -16363,8 +16491,8 @@ class REGALSComponent(wx.Panel):
             'kwargs'    : {
                 'xmin'  : self.conc_start.GetValue(),
                 'xmax'  : self.conc_end.GetValue(),
-                }
-
+                },
+            'xrange'    : [self.conc_start.GetRange()[0], self.conc_end.GetRange()[1]],
             }
 
         if conc_settings['type'] == 'smooth':
@@ -16381,36 +16509,41 @@ class REGALSComponent(wx.Panel):
             self.prof_comp_ctrl.SetStringSelection(prof_settings['type'])
 
             if prof_settings['lambda'] is not None:
-                self.prof_regularizer_ctrl.ChangeValue(str(prof_settings['lambda']))
+                self.prof_regularizer_ctrl.ChangeValue('{:.1e}'.format(float(prof_settings['lambda'])))
+                self.prof_auto_regularizer_ctrl.SetValue(prof_settings['auto_lambda'])
 
             if prof_settings['type'] == 'smooth':
-                self.prof_nw_ctrl.SetValue(prof_settings['Nw'])
+                self.prof_nw_ctrl.SetValue(int(prof_settings['kwargs']['Nw']))
 
             elif prof_settings['type'] == 'realspace':
-                self.prof_nw_ctrl.SetValue(prof_settings['Nw'])
-                self.dmax_ctrl.SetValue(prof_settings['dmax'])
-                self.zero_at_rmin_ctrl.SetValue(prof_settings['is_zero_at_r0'])
-                self.zero_at_dmax_ctrl.SetValue(prof_settings['is_zero_at_dmax'])
+                self.prof_nw_ctrl.SetValue(int(prof_settings['kwargs']['Nw']))
+                self.dmax_ctrl.SetValue(int(prof_settings['kwargs']['dmax']))
+                self.zero_at_rmin_ctrl.SetValue(prof_settings['kwargs']['is_zero_at_r0'])
+                self.zero_at_dmax_ctrl.SetValue(prof_settings['kwargs']['is_zero_at_dmax'])
 
 
             self.conc_comp_ctrl.SetStringSelection(conc_settings['type'])
 
             if conc_settings['lambda'] is not None:
-                self.conc_regularizer_ctrl.ChangeValue(str(conc_settings['lambda']))
+                self.conc_regularizer_ctrl.ChangeValue('{:.1e}'.format(float(conc_settings['lambda'])))
+                self.conc_auto_regularizer_ctrl.SetValue(conc_settings['auto_lambda'])
 
-            self.conc_start.SetRange((conc_settings['xrange'][0], conc_settings['xmax']-1))
-            self.conc_end.SetRange((conc_settings['xmin']+1, conc_settings['xrange'][1]))
+            self.conc_start.SetRange((int(conc_settings['xrange'][0]), int(conc_settings['kwargs']['xmax']-1)))
+            self.conc_end.SetRange((int(conc_settings['kwargs']['xmin'])+1, int(conc_settings['xrange'][1])))
 
-            self.conc_start.SetValue(conc_settings['xmin'])
-            self.conc_end.SetValue(conc_settings['xmax'])
+            self.conc_start.SetValue(int(conc_settings['kwargs']['xmin']))
+            self.conc_end.SetValue(int(conc_settings['kwargs']['xmax']))
 
             if conc_settings['type'] == 'smooth':
-                self.conc_nw_ctrl.SetValue(conc_settings['Nw'])
-                self.zero_at_xmin_ctrl.SetValue(conc_settings['is_zero_at_xmin'])
-                self.zero_at_xmax_ctrl.SetValue(conc_settings['is_zero_at_xmax'])
+                self.conc_nw_ctrl.SetValue(int(conc_settings['kwargs']['Nw']))
+                self.zero_at_xmin_ctrl.SetValue(conc_settings['kwargs']['is_zero_at_xmin'])
+                self.zero_at_xmax_ctrl.SetValue(conc_settings['kwargs']['is_zero_at_xmax'])
 
         self._on_prof_comp_change(None)
         self._on_conc_comp_change(None)
+
+        self._on_auto_prof_lambda(None)
+        self._on_auto_conc_lambda(None)
 
     def _on_auto_prof_lambda(self, evt):
         if self.prof_auto_regularizer_ctrl.GetValue():
