@@ -565,3 +565,9 @@ def set_best_size(window):
         best_size.SetHeight(current_size.GetHeight())
 
     window.SetSize(best_size)
+
+
+def find_closest(val, array):
+    argmin = np.argmin(np.absolute(array-val))
+
+    return array[argmin], argmin

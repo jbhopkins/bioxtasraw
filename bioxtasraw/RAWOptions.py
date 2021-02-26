@@ -350,7 +350,8 @@ class CalibrationOptionsPanel(scrolled.ScrolledPanel):
             ctrl_id = item[1]
 
             txt = wx.StaticText(parent, label=each_text)
-            ctrl = RAWCustomCtrl.IntSpinCtrl(parent, ctrl_id, TextLength=60, min=0)
+            ctrl = RAWCustomCtrl.IntSpinCtrl(parent, ctrl_id, TextLength=60,
+                min_val=0)
 
             ctrl_sizer.Add(txt, flag=wx.ALIGN_CENTER_VERTICAL)
             ctrl_sizer.Add(ctrl, flag=wx.ALIGN_CENTER_VERTICAL)

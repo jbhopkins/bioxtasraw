@@ -91,6 +91,8 @@ class CharValidator(wx.Validator):
                 return
             elif self.flag == 'float_neg' and key not in string.digits+'.-':
                 return
+            elif self.flag == 'float_sci_neg' and key not in string.digits+'.-eE':
+                return
         event.Skip()
 
 
@@ -257,7 +259,9 @@ EVT_MY_SPIN = wx.PyEventBinder(myEVT_MY_SPIN, 1)
 
 class FloatSpinCtrl(wx.Panel):
 
-    def __init__(self, parent, id, initValue = None, button_style = wx.SP_VERTICAL, TextLength = 40, never_negative = False,  **kwargs):
+    def __init__(self, parent, id, initValue=None, min_val=None, max_val=None,
+        button_style = wx.SP_VERTICAL, TextLength=40, never_negative=False,
+        **kwargs):
 
         wx.Panel.__init__(self, parent, id, **kwargs)
 
@@ -276,6 +280,9 @@ class FloatSpinCtrl(wx.Panel):
         self.ScalerButton.Bind(wx.EVT_SPIN_UP, self.OnSpinUpScale)
         self.ScalerButton.Bind(wx.EVT_SPIN_DOWN, self.OnSpinDownScale)
         self.ScalerButton.SetRange(-99999, 99999)   #Needed for proper function of button on Linux
+
+        self.max = max_val
+        self.min = min_val
 
         if platform.system() != 'Windows':
             self.Scale = wx.TextCtrl(self, -1, initValue,
@@ -339,6 +346,13 @@ class FloatSpinCtrl(wx.Panel):
         val = self.Scale.GetValue()
         val = val.replace(',', '.')
 
+        if self.max is not None:
+            if float(val) > self.max:
+                self.Scale.SetValue(str(self.max ))
+        if self.min is not None:
+            if float(val) < self.min:
+                self.Scale.SetValue(str(self.min))
+
         try:
             self.num_of_digits = len(val.split('.')[1])
 
@@ -356,14 +370,15 @@ class FloatSpinCtrl(wx.Panel):
         self.OnScaleChange(None)
 
         val = self.Scale.GetValue()
-        val = val.replace(',', '.')
+        val = float(val.replace(',', '.'))
 
         # Reset spinbutton counter. Fixes bug on MAC
         if self.ScalerButton.GetValue() > 90000:
             self.ScalerButton.SetValue(0)
 
         try:
-            newval = float(val) + (1./self.ScaleDivider)
+            newval = self.find_new_val_up(val)
+
         except ValueError:
             self.CastFloatSpinEvent()
             return
@@ -376,6 +391,45 @@ class FloatSpinCtrl(wx.Panel):
         self.Scale.SetValue(newval_str)
         self.CastFloatSpinEvent()
 
+    def find_new_val_up(self, val):
+
+        if val > self.max:
+            newval = self.max
+
+        elif val == self.max:
+            newval = val
+
+        else:
+            newval = val + (1./self.ScaleDivider)
+
+            if self.max is not None and newval > self.max:
+                self.num_of_digits = self.num_of_digits + 1
+                self.ScaleDivider = math.pow(10, self.num_of_digits)
+
+                newval = self.find_new_val_up(val)
+
+        return newval
+
+
+    def find_new_val_down(self, val):
+        if val < self.min:
+            newval = self.min
+
+        elif val == self.min:
+            newval = val
+
+        else:
+            newval = val - (1./self.ScaleDivider)
+
+            if self.min is not None and newval < self.min:
+                self.num_of_digits = self.num_of_digits + 1
+                self.ScaleDivider = math.pow(10, self.num_of_digits)
+
+                newval = self.find_new_val_down(val)
+
+        return newval
+
+
     def _showInvalidNumberError(self):
         wx.CallAfter(wx.MessageBox, 'The entered value is invalid. Please remove non-numeric characters.', 'Invalid Value Error', style = wx.ICON_ERROR)
 
@@ -384,20 +438,14 @@ class FloatSpinCtrl(wx.Panel):
         self.OnScaleChange(None)
 
         val = self.Scale.GetValue()
-        val = val.replace(',', '.')
+        val = float(val.replace(',', '.'))
 
         # Reset spinbutton counter. Fixes bug on MAC
         if self.ScalerButton.GetValue() < -90000:
             self.ScalerButton.SetValue(0)
 
         try:
-            newval = float(val) - (1./self.ScaleDivider)
-
-            if newval == 0.0 and self._never_negative == True:
-                self.num_of_digits = self.num_of_digits + 1
-                self.ScaleDivider = math.pow(10, self.num_of_digits)
-
-                newval = float(val) - (1./self.ScaleDivider)
+            newval = self.find_new_val_down(val)
 
         except ValueError:
             self.CastFloatSpinEvent()
@@ -416,7 +464,14 @@ class FloatSpinCtrl(wx.Panel):
         return value
 
     def SetValue(self, value):
-        self.Scale.SetValue(value)
+        self.Scale.SetValue(str(value))
+
+    def SetRange(self, minmax):
+        self.max = float(minmax[1])
+        self.min = float(minmax[0])
+
+    def GetRange(self):
+        return (self.min, self.max)
 
 
 class FloatSpinCtrlList(wx.Panel):
@@ -588,7 +643,7 @@ class FloatSpinCtrlList(wx.Panel):
 
 class IntSpinCtrl(wx.Panel):
 
-    def __init__(self, parent, id=wx.ID_ANY, min = None, max = None, TextLength = 40, **kwargs):
+    def __init__(self, parent, id=wx.ID_ANY, min_val = None, max_val = None, TextLength = 40, **kwargs):
 
         wx.Panel.__init__(self, parent, id, **kwargs)
 
@@ -602,8 +657,8 @@ class IntSpinCtrl(wx.Panel):
         self.ScalerButton.Bind(wx.EVT_SPIN_UP, self.OnSpinUpScale)
         self.ScalerButton.Bind(wx.EVT_SPIN_DOWN, self.OnSpinDownScale)
         self.ScalerButton.SetRange(-99999, 99999)
-        self.max = max
-        self.min = min
+        self.max = max_val
+        self.min = min_val
 
         if platform.system() != 'Windows':
             self.Scale = wx.TextCtrl(self, -1, str(min),
@@ -677,7 +732,7 @@ class IntSpinCtrl(wx.Panel):
             else:
                 return
 
-        newval = int(val) + 1
+        newval = int(float(val)) + 1
 
         # Reset spinbutton counter. Fixes bug on MAC
         if self.ScalerButton.GetValue() > 90000:
@@ -712,7 +767,7 @@ class IntSpinCtrl(wx.Panel):
             else:
                 return
 
-        newval = int(val) - 1
+        newval = int(float(val)) - 1
 
         # Reset spinbutton counter. Fixes bug on MAC
         if self.ScalerButton.GetValue() < -90000:
@@ -742,8 +797,8 @@ class IntSpinCtrl(wx.Panel):
         self.Scale.SetValue(str(value))
 
     def SetRange(self, minmax):
-        self.max = minmax[1]
-        self.min = minmax[0]
+        self.max = int(float(minmax[1]))
+        self.min = int(float(minmax[0]))
 
     def GetRange(self):
         return (self.min, self.max)

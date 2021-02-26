@@ -48,6 +48,7 @@ import wx
 import wx.lib.agw.flatnotebook as flatNB
 from wx.lib.agw import ultimatelistctrl as ULC
 import wx.lib.scrolledpanel as scrolled
+import wx.grid
 from scipy import integrate
 import scipy.stats as stats
 import matplotlib
@@ -737,7 +738,9 @@ class GuinierPlotPanel(wx.Panel):
                 save_path = dialog.GetPath()
                 name, ext = os.path.splitext(save_path)
                 save_path = name + '.csv'
+                dialog.Destroy()
             else:
+                dialog.Destroy()
                 return
 
             RAWGlobals.save_in_progress = True
@@ -4302,9 +4305,9 @@ class GNOMControlPanel(wx.Panel):
         sizer.Add(wx.StaticText(self,-1,'n_max'),1)
 
         self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qstart'],
-            size = self._FromDIP((60,-1)), min =0)
+            size = self._FromDIP((60,-1)), min_val=0)
         self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['qend'],
-            size = self._FromDIP((60,-1)), min = 0)
+            size = self._FromDIP((60,-1)), min_val=0)
 
         self.startSpin.SetValue(0)
         self.endSpin.SetValue(0)
@@ -4329,7 +4332,7 @@ class GNOMControlPanel(wx.Panel):
         ctrl2_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.dmaxSpin = RAWCustomCtrl.IntSpinCtrl(self, self.spinctrlIDs['dmax'],
-            size = self._FromDIP((60,-1)), min = 1)
+            size = self._FromDIP((60,-1)), min_val = 1)
         self.dmaxSpin.SetValue(0)
         self.dmaxSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.dmaxSpin.Bind(wx.EVT_TEXT, self.onDmaxText)
@@ -5846,6 +5849,8 @@ class DammifRunPanel(wx.Panel):
         if dirdlg.ShowModal() == wx.ID_OK:
             new_path = dirdlg.GetPath()
             wx.FindWindowById(self.ids['save'], self).SetValue(new_path)
+
+        dirdlg.Destroy()
 
     def _selectAlignFile(self, evt):
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
@@ -8235,6 +8240,8 @@ class DenssRunPanel(wx.Panel):
             new_path = dirdlg.GetPath()
             wx.FindWindowById(self.ids['save'], self).SetValue(new_path)
 
+        dirdlg.Destroy()
+
     def _selectAlignFile(self, evt):
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
         load_path = dirctrl_panel.getDirLabel()
@@ -10031,6 +10038,7 @@ class DenssAlignFrame(wx.Frame):
             dialog = wx.MessageDialog(self, msg, 'Error in DENSS Alignment parameters')
             dialog.ShowModal()
             settings = None
+            dialog.Destroy()
 
         return settings
 
@@ -10090,6 +10098,8 @@ class DenssAlignFrame(wx.Frame):
             if result == wx.ID_NO:
                 run_denss = False
 
+            dialog.Destroy()
+
         name, ext = os.path.splitext(self.target_file_name)
         outname = '{}_aligned{}'.format(name, ext)
 
@@ -10104,6 +10114,8 @@ class DenssAlignFrame(wx.Frame):
 
             if result == wx.ID_NO:
                 run_denss = False
+
+            dialog.Destroy()
 
         if run_denss:
             self.start_button.Disable()
@@ -10543,9 +10555,9 @@ class BIFTControlPanel(wx.Panel):
         sizer.Add(wx.StaticText(self,-1,'n_max'),1)
 
         self.startSpin = RAWCustomCtrl.IntSpinCtrl(self, size=self._FromDIP((60,-1)),
-            min=0)
+            min_val=0)
         self.endSpin = RAWCustomCtrl.IntSpinCtrl(self, size=self._FromDIP((60,-1)),
-            min=0)
+            min_val=0)
 
         self.startSpin.SetValue(0)
         self.endSpin.SetValue(0)
@@ -11602,6 +11614,7 @@ class SupcombFrame(wx.Frame):
             dialog = wx.MessageDialog(self, msg, 'Error in SUPCOMB parameters')
             dialog.ShowModal()
             settings = None
+            dialog.Destroy()
 
         return settings
 
@@ -11651,6 +11664,8 @@ class SupcombFrame(wx.Frame):
 
             if result == wx.ID_NO:
                 run_supcomb = False
+
+            dialog.Destroy()
 
         if run_supcomb:
             self.start_button.Disable()
@@ -12102,7 +12117,7 @@ class SVDSECPlotPanel(wx.Panel):
 
         self.secm = None
 
-        subplotLabels = [('SECPlot', 'Frame #', 'Intensity', .1)]
+        subplotLabels = [('SECPlot', 'Index', 'Intensity', .1)]
 
         self.fig.subplots_adjust(hspace = 0.26)
 
@@ -12775,7 +12790,9 @@ class SVDControlPanel(wx.Panel):
             save_path = dialog.GetPath()
             name, ext = os.path.splitext(save_path)
             save_path = name + '.csv'
+            dialog.Destroy()
         else:
+            dialog.Destroy()
             return
 
         RAWGlobals.save_in_progress = True
@@ -12817,7 +12834,9 @@ class SVDControlPanel(wx.Panel):
             save_path = dialog.GetPath()
             name, ext = os.path.splitext(save_path)
             save_path = name + '.csv'
+            dialog.Destroy()
         else:
+            dialog.Destroy()
             return
 
         RAWGlobals.save_in_progress = True
@@ -13595,7 +13614,11 @@ class EFAControlPanel2(wx.Panel):
                     and self.panel1_results['fend'] == analysis_dict['fend']
                     and self.panel1_results['profile'] == analysis_dict['profile']
                     and nvals == len(analysis_dict['ranges'])):
-                    points = np.array(analysis_dict['ranges'])
+
+                    if self.ctrl_type == 'REGALS':
+                        points = np.array(analysis_dict['frame_ranges'])
+                    else:
+                        points = np.array(analysis_dict['ranges'])
 
                     forward_sv = points[:,0]
                     backward_sv = points[:,1]
@@ -14328,7 +14351,9 @@ class EFAControlPanel3(wx.Panel):
             save_path = dialog.GetPath()
             name, ext = os.path.splitext(save_path)
             save_path = name+'.csv'
+            dialog.Destroy()
         else:
+            dialog.Destroy()
             return
 
         RAWGlobals.save_in_progress = True
@@ -14842,7 +14867,7 @@ class EFARangePlotPanel(wx.Panel):
         self.range_arrows = []
         self.range_lines = []
 
-        subplotLabels = [('SECPlot', 'Frame #', 'Intensity', .1)]
+        subplotLabels = [('SECPlot', 'Index', 'Intensity', .1)]
 
         self.fig.subplots_adjust(hspace = 0.26)
 
@@ -14909,7 +14934,7 @@ class EFARangePlotPanel(wx.Panel):
         else:
             a.set_color_cycle(None)
 
-    def plotRange(self, secm, framei, framef, ydata_type, ranges):
+    def plotRange(self, secm, framei, framef, ydata_type, ranges, xvals=None):
         frame_list = secm.plot_frame_list
 
         if ydata_type == 'q_val':
@@ -14924,9 +14949,10 @@ class EFARangePlotPanel(wx.Panel):
         if len(ranges) != len(self.range_lines):
             self.refresh()
 
-        self.updateDataPlot(frame_list, intensity, framei, framef, ranges)
+        self.updateDataPlot(frame_list, intensity, framei, framef, ranges, xvals)
 
-    def updateDataPlot(self, frame_list, intensity, framei, framef, ranges):
+    def updateDataPlot(self, frame_list, intensity, framei, framef, ranges,
+        xvals=None):
         #Save for resizing:
         self.orig_frame_list = frame_list
         self.orig_intensity = intensity
@@ -14936,10 +14962,13 @@ class EFARangePlotPanel(wx.Panel):
 
         a = self.subplots['SECPlot']
 
+        if xvals is None:
+            xvals = frame_list[framei:framef+1]
+
         if self.cut_line is None:
 
-            self.cut_line, = a.plot(frame_list[framei:framef+1],
-                intensity[framei:framef+1], 'k.-', animated = True)
+            self.cut_line, = a.plot(xvals, intensity[framei:framef+1], 'k.-',
+                animated = True)
 
             if ((int(matplotlib.__version__.split('.')[0]) ==1 and
                 int(matplotlib.__version__.split('.')[1]) >=5) or
@@ -14977,7 +15006,7 @@ class EFARangePlotPanel(wx.Panel):
 
         else:
             self.cut_line.set_ydata(intensity[framei:framef+1])
-            self.cut_line.set_xdata(frame_list[framei:framef+1])
+            self.cut_line.set_xdata(xvals)
 
             for i in range(ranges.shape[0]):
                 arr = self.range_arrows[i]
@@ -15228,9 +15257,15 @@ class REGALSFrame(wx.Frame):
                     regals_dict['profile'] = self.panel_results[0]['profile']
                     regals_dict['nsvs'] = len(profiles)
                     regals_dict['ranges'] = regals_results['settings']['ranges']
+                    regals_dict['frame_ranges'] = regals_results['settings']['frame_ranges']
                     regals_dict['component_settings'] = regals_results['settings']['comp_settings']
                     regals_dict['run_settings'] = regals_results['settings']['ctrl_settings']
                     regals_dict['background_components'] = self.panel_results[-2]['bkg_components']
+
+                    if not np.array_equal(self.panel_results[-1]['x_calibration']['x'],
+                        np.arange(self.panel_results[0]['fstart'],
+                            self.panel_results[0]['fend'])):
+                        regals_dict['x_calibration'] = self.panel_results[-1]['x_calibration']
 
                     analysis_dict['regals'] = regals_dict
 
@@ -15281,7 +15316,9 @@ class REGALSFrame(wx.Frame):
                 save_path = dialog.GetPath()
                 name, ext = os.path.splitext(save_path)
                 save_path = name+'.csv'
+                dialog.Destroy()
             else:
+                dialog.Destroy()
                 return
 
             RAWGlobals.save_in_progress = True
@@ -15412,25 +15449,27 @@ class REGALSEFAPanel(wx.Panel):
 
     def update(self, all_previous_results):
         regals_results = all_previous_results[-1]
-        new_ranges = regals_results['regals_results']['settings']['ranges']
 
-        if len(new_ranges) == self.controlPanel.panel1_results['input']:
-            points = np.array(new_ranges)
+        if regals_results is not None and regals_results['regals_results'] is not None:
+            new_ranges = regals_results['regals_results']['settings']['frame_ranges']
 
-            forward_sv = points[:,0]
-            backward_sv = points[:,1]
+            if len(new_ranges) == self.controlPanel.panel1_results['input']:
+                points = np.array(new_ranges)
 
-            bkg_comp = all_previous_results[-2]['bkg_components']
+                forward_sv = points[:,0]
+                backward_sv = points[:,1]
 
-            backward_sv = np.roll(backward_sv, -1*bkg_comp)
-            points = np.column_stack((forward_sv, backward_sv))
+                bkg_comp = all_previous_results[-2]['bkg_components']
 
-            self.controlPanel.setSVs(points)
+                backward_sv = np.roll(backward_sv, -1*bkg_comp)
+                points = np.column_stack((forward_sv, backward_sv))
 
-        else:
-            svd_results = copy.deepcopy(all_previous_results[0])
-            svd_results['input'] = len(new_ranges)
-            self.controlPanel.reinitialize(svd_results, False, new_ranges)
+                self.controlPanel.setSVs(points)
+
+            else:
+                svd_results = copy.deepcopy(all_previous_results[0])
+                svd_results['input'] = len(new_ranges)
+                self.controlPanel.reinitialize(svd_results, False, new_ranges)
 
     def refreshEFAPlot(self):
         self.plotPanel.refresh()
@@ -15446,6 +15485,8 @@ class REGALSRunPanel(wx.Panel):
 
         self.secm = secm
 
+        self.regals_x = None
+
         self.regals_thread = None
         self.regals_results = None
         self.sasms = None
@@ -15457,7 +15498,7 @@ class REGALSRunPanel(wx.Panel):
 
         self.regals_abort_event = threading.Event()
 
-        self._layout()
+        self._create_layout()
 
         self.Layout()
 
@@ -15484,7 +15525,9 @@ class REGALSRunPanel(wx.Panel):
                 'is_zero_at_xmax': True,
                 'xmin': 0,
                 'xmax': 10,
-                }
+                },
+            'frame_xmin': 0,
+            'frame_xmax': 10,
         }
 
         self._default_component_settings = (prof_settings, conc_settings)
@@ -15497,11 +15540,12 @@ class REGALSRunPanel(wx.Panel):
         except Exception:
             return size
 
-    def _layout(self):
+    def _create_layout(self):
         parent = self
 
-        self.controls = REGALSControls(parent, self.on_component_change,
-            self.run_regals, self.abort_regals)
+        self.controls = REGALSControls(parent, self.regals_frame, self.secm,
+            self.on_component_change, self.run_regals, self.abort_regals,
+            self.change_x)
 
         self.comp_grid = REGALSComponentGrid(parent, self.on_range_change,
             self.on_update_regals, self.regals_frame)
@@ -15545,6 +15589,7 @@ class REGALSRunPanel(wx.Panel):
         ctrl_settings = self.controls.get_settings()
         comp_settings = self.comp_grid.get_all_component_settings()
         comp_ranges = self.comp_grid.get_component_ranges()
+        comp_frame_ranges = self.comp_grid.get_component_frame_ranges()
 
         self.regals_running = True
         self.regals_frame.show_busy_dialog(True)
@@ -15554,7 +15599,8 @@ class REGALSRunPanel(wx.Panel):
         self.regals_settings = {
             'ctrl_settings': copy.deepcopy(ctrl_settings),
             'comp_settings': copy.deepcopy(comp_settings),
-            'ranges': comp_ranges
+            'ranges': comp_ranges,
+            'frame_ranges': comp_frame_ranges,
             }
 
         seed_previous = ctrl_settings.pop('seed_previous')
@@ -15564,21 +15610,17 @@ class REGALSRunPanel(wx.Panel):
         intensity = self.svd_results['int']
         sigma = self.svd_results['err']
 
-        x = np.arange(start, end+1)
-
         num_good = 10
-
-        print(comp_settings)
 
         if (seed_previous and self.regals_results is not None and
             len(self.regals_results['mixture'].u_profile) == len(comp_settings)):
             mixture, components = SASCalc.create_regals_mixture(comp_settings,
-                ref_q, x, num_good, sigma, seed_previous,
+                ref_q, self.regals_x['x'], num_good, sigma, seed_previous,
                 self.regals_results['mixture'])
 
         else:
             mixture, components = SASCalc.create_regals_mixture(comp_settings,
-                ref_q, x, num_good, sigma)
+                ref_q, self.regals_x['x'], num_good, sigma)
 
         self.set_lambdas(mixture.lambda_concentration, mixture.lambda_profile)
 
@@ -15640,7 +15682,10 @@ class REGALSRunPanel(wx.Panel):
                     xmin = conc_comp['kwargs']['xmin']
                     xmax = conc_comp['kwargs']['xmax']
 
-                    if nw >= xmax - xmin:
+                    frame_xmin = conc_comp['frame_xmin']
+                    frame_xmax = conc_comp['frame_xmax']
+
+                    if nw >= frame_xmax - frame_xmin:
                         valid_settings = False
 
                         msg = ('- Component {} grid points ({}) are more '
@@ -15745,9 +15790,16 @@ class REGALSRunPanel(wx.Panel):
         start = self.svd_results['fstart']
         end = self.svd_results['fend']
 
+        self.regals_x = {'x': np.arange(start, end+1),
+            'x_base': np.arange(start, end+1),
+            'x_choice': 'X',
+            }
+
         self._default_component_settings[1]['kwargs']['xmin'] = start
         self._default_component_settings[1]['kwargs']['xmax'] = end
         self._default_component_settings[1]['xrange'] = [start, end]
+        self._default_component_settings[1]['frame_xmin'] = start
+        self._default_component_settings[1]['frame_xmax'] = end
 
         self.on_component_change(nvals)
 
@@ -15761,52 +15813,49 @@ class REGALSRunPanel(wx.Panel):
 
                 self.comp_grid.set_all_component_settings(comp_settings)
 
-            self.update_ranges(self.efa_results['points'])
+            self.update_ranges_from_frames(self.efa_results['points'])
 
             self.controls.set_settings(ctrl_settings)
 
+            if 'x_calibration' in analysis_dict['regals']:
+                xdata = analysis_dict['regals']['x_calibration']
+
+                if len(xdata['x']) == len(self.regals_x['x']):
+                    self.change_x(np.array(xdata['x']),
+                        np.array(xdata['x_base']), xdata['x_choice'])
+
         else:
-            self.update_ranges(self.efa_results['points'])
+            self.update_ranges_from_frames(self.efa_results['points'])
 
             comp_settings = self.comp_grid.get_all_component_settings()
 
-            # for j in range(self.efa_results['bkg_components']):
-            #     settings = copy.deepcopy(self._default_component_settings)
-            #     cur_settings = self.comp_grid.get_component_settings(j)
-
-            #     for k, sub_settings in enumerate(settings):
-            #         for key, value in cur_settings[k].items():
-            #             if isinstance(value, dict):
-            #                 sub_settings[key].update(value)
-            #             else:
-            #                 sub_settings[key] = value
-
-            #     if settings[1]['kwargs']['xmin'] == start:
-            #         settings[1]['kwargs']['is_zero_at_xmin'] = False
-
-            #     if settings[1]['kwargs']['xmax'] == end:
-            #         settings[1]['kwargs']['is_zero_at_xmax'] = False
-
-            #     self.comp_grid.set_component_settings(settings, j)
-
             for settings in comp_settings:
-                if settings[1]['kwargs']['xmin'] == start:
+                if settings[1]['frame_xmin'] == start:
                     settings[1]['kwargs']['is_zero_at_xmin'] = False
 
-                if settings[1]['kwargs']['xmax'] == end:
+                if settings[1]['frame_xmax'] == end:
                     settings[1]['kwargs']['is_zero_at_xmax'] = False
 
             self.comp_grid.set_all_component_settings(comp_settings)
+
+            if all_previous_results[-1] is not None:
+                xdata = all_previous_results[-1]['x_calibration']
+
+                if len(xdata['x']) == len(self.regals_x['x']):
+                    self.change_x(xdata['x'], xdata['x_base'], xdata['x_choice'])
 
         self.controls.clear_regals_update()
 
         self.controls.do_regals()
 
-    def update_ranges(self, new_ranges):
+    def update_ranges_from_frames(self, new_frame_ranges):
         start = self.svd_results['fstart']
         end = self.svd_results['fend']
-        self.comp_grid.update_component_ranges(new_ranges, start, end)
+        self.comp_grid.update_component_frame_ranges(new_frame_ranges, start, end)
+
+        new_ranges = self.comp_grid.get_component_ranges()
         self.controls.update_ranges(new_ranges, self.svd_results, self.secm)
+
 
     def on_regals_finished_callback(self, *args, **kwargs):
          wx.CallAfter(self.on_regals_finished, *args, **kwargs)
@@ -15866,24 +15915,49 @@ class REGALSRunPanel(wx.Panel):
         self.results.update_results(self.sasms, rmsd_data, conc_data, total_iter,
             aver_chisq, self.ifts)
 
+    def change_x(self, x, x_base, x_choice):
+        self.regals_x = {'x': x,
+            'x_base': x_base,
+            'x_choice': x_choice,
+            }
+
+        old_ranges = self.comp_grid.get_component_frame_ranges()
+        self.comp_grid.update_component_frame_ranges(old_ranges)
+
+        start = self.svd_results['fstart']
+        end = self.svd_results['fend']
+
+        if np.array_equal(x, np.arange(start, end+1)):
+            self.comp_grid.show_all_float_ranges(False)
+        else:
+            self.comp_grid.show_all_float_ranges(True)
+
+        new_ranges = self.comp_grid.get_component_ranges()
+        self.controls.update_ranges(new_ranges, self.svd_results, self.secm)
+
     def get_panel_results(self):
         results = {
             'profiles': self.sasms,
             'ifts': self.ifts,
             'regals_results': self.regals_results,
+            'x_calibration' : self.regals_x
             }
 
         return results
 
 class REGALSControls(wx.Panel):
 
-    def __init__(self, parent, component_callback=None, regals_callback=None,
-        abort_regals_callback=None):
+    def __init__(self, parent, regals_frame, secm, component_callback=None,
+        regals_callback=None, abort_regals_callback=None, x_callback=None):
         wx.Panel.__init__(self, parent, wx.ID_ANY)
+
+        self.regals_frame = regals_frame
+        self.secm = secm
 
         self.component_callback = component_callback
         self.regals_callback = regals_callback
         self.abort_regals_callback = abort_regals_callback
+        self.x_callback = x_callback
 
         self._layout()
 
@@ -15918,15 +15992,17 @@ class REGALSControls(wx.Panel):
         general_box = general_sizer.GetStaticBox()
 
         self.component_num_ctrl = RAWCustomCtrl.IntSpinCtrl(general_box, wx.ID_ANY,
-            min=1, size=self._FromDIP((60,-1)))
+            min_val=1, size=self._FromDIP((60,-1)))
         self.seed_previous = wx.CheckBox(general_box, label='Start with previous results')
         self.run_regals = wx.Button(general_box, label='Run REGALS')
         self.abort_regals = wx.Button(general_box, label='Abort REGALS')
+        self.calibrate_x = wx.Button(general_box, label='Calibrate X axis')
 
         self.component_num_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_component_change)
         self.seed_previous.Bind(wx.EVT_CHECKBOX, self._on_seed_previous)
         self.run_regals.Bind(wx.EVT_BUTTON, self._on_run_regals)
         self.abort_regals.Bind(wx.EVT_BUTTON, self._on_abort_regals)
+        self.calibrate_x.Bind(wx.EVT_BUTTON, self._on_calibrate_x)
 
 
         self.general_ctrls_sizer = wx.GridBagSizer(vgap=self._FromDIP(5),
@@ -15936,6 +16012,8 @@ class REGALSControls(wx.Panel):
         self.general_ctrls_sizer.Add(self.component_num_ctrl, (0,1),
             flag=wx.ALIGN_CENTER_VERTICAL)
         self.general_ctrls_sizer.Add(self.seed_previous, (1, 0), (1, 2),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        self.general_ctrls_sizer.Add(self.calibrate_x, (2, 0), (1, 2),
             flag=wx.ALIGN_CENTER_VERTICAL)
 
         start_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -15957,9 +16035,9 @@ class REGALSControls(wx.Panel):
         self.max_iter_label = wx.StaticText(conv_box, label='Max. iterations:')
         self.min_iter_label = wx.StaticText(conv_box, label='Min. iterations:')
         self.max_iter = RAWCustomCtrl.IntSpinCtrl(conv_box, wx.ID_ANY,
-            min=1, size=self._FromDIP((60,-1)))
+            min_val=1, size=self._FromDIP((60,-1)))
         self.min_iter = RAWCustomCtrl.IntSpinCtrl(conv_box, wx.ID_ANY,
-            min=1, size=self._FromDIP((60,-1)))
+            min_val=1, size=self._FromDIP((60,-1)))
 
         self.max_iter.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_iter_change)
         self.min_iter.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_iter_change)
@@ -16038,6 +16116,23 @@ class REGALSControls(wx.Panel):
             cmin, cmax = self.max_iter.GetRange()
             self.max_iter.SetRange((self.min_iter.GetValue()+1, cmax))
 
+    def _on_calibrate_x(self, evt):
+        start = self.regals_frame.run_panel.svd_results['fstart']
+        end = self.regals_frame.run_panel.svd_results['fend']
+
+        cal_dialog = REGALSXCalibration(self.regals_frame, self.secm,
+            self.regals_frame, start, end)
+
+        ret = cal_dialog.ShowModal()
+
+        if ret == wx.ID_OK:
+            x, x_base, x_choice = cal_dialog.get_X_val()
+
+            if self.x_callback is not None:
+                wx.CallAfter(self.x_callback, x, x_base, x_choice)
+
+        cal_dialog.Destroy()
+
     def set_regals_update(self):
         self.run_regals.SetBackgroundColour('yellow')
         self.run_regals.Refresh()
@@ -16093,7 +16188,8 @@ class REGALSControls(wx.Panel):
         framei = svd_results['fstart']
         framef = svd_results['fend']
 
-        self.range_plot.plotRange(plot_secm, framei, framef, ydata_type, new_ranges)
+        self.range_plot.plotRange(plot_secm, framei, framef, ydata_type,
+            new_ranges, self.regals_frame.run_panel.regals_x['x'])
 
     def set_component_number(self, num_comps):
         self.component_num_ctrl.SetValue(num_comps)
@@ -16180,9 +16276,17 @@ class REGALSComponentGrid(scrolled.ScrolledPanel):
         comp_ranges = np.array([comp.get_range() for comp in self.component_panels])
         return comp_ranges
 
-    def update_component_ranges(self, new_ranges, cmin=None, cmax=None):
+    # def update_component_ranges(self, new_ranges, cmin=None, cmax=None):
+    #     for i, new_range in enumerate(new_ranges):
+    #         self.component_panels[i].set_range(new_range, cmin, cmax)
+
+    def update_component_frame_ranges(self, new_ranges, cmin=None, cmax=None):
         for i, new_range in enumerate(new_ranges):
-            self.component_panels[i].set_range(new_range, cmin, cmax)
+            self.component_panels[i].set_frame_range(new_range, cmin, cmax)
+
+    def get_component_frame_ranges(self):
+        comp_ranges = np.array([comp.get_frame_range() for comp in self.component_panels])
+        return comp_ranges
 
     def set_lambdas(self, conc_lambdas, prof_lambdas):
         for j, component in enumerate(self.component_panels):
@@ -16194,6 +16298,10 @@ class REGALSComponentGrid(scrolled.ScrolledPanel):
 
     def set_component_settings(self, settings, comp_num):
         self.component_panels[comp_num].set_settings(settings)
+
+    def show_all_float_ranges(self, show):
+        for comp in self.component_panels:
+            comp.show_float_range(show)
 
 class REGALSComponent(wx.Panel):
 
@@ -16239,6 +16347,11 @@ class REGALSComponent(wx.Panel):
             self.conc_start.SetRange((0, 0))
             self.conc_end.SetRange((1, 1))
 
+            self.float_conc_start.SetValue(0)
+            self.float_conc_end.SetValue(1)
+            self.float_conc_start.SetRange((0, 0))
+            self.float_conc_end.SetRange((1, 1))
+
         else:
             self.set_settings(init_settings)
 
@@ -16263,16 +16376,16 @@ class REGALSComponent(wx.Panel):
 
         self.prof_regularizer_ctrl = wx.TextCtrl(prof_box,
             size=self._FromDIP((80, -1)),
-            validator=RAWCustomCtrl.CharValidator('float'))
+            validator=RAWCustomCtrl.CharValidator('float_sci_neg'))
 
         self.prof_regularizer_ctrl.Bind(wx.EVT_TEXT, self._on_update_regals)
 
         self.prof_nw_ctrl = RAWCustomCtrl.IntSpinCtrl(prof_box, wx.ID_ANY,
-            min=2, size=self._FromDIP((60,-1)))
+            min_val=2, size=self._FromDIP((60,-1)))
         self.prof_nw_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_regals)
 
         self.dmax_ctrl = RAWCustomCtrl.IntSpinCtrl(prof_box,
-            wx.ID_ANY, min=1, size=self._FromDIP((60,-1)))
+            wx.ID_ANY, min_val=1, size=self._FromDIP((60,-1)))
 
         self.dmax_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_regals)
 
@@ -16337,20 +16450,24 @@ class REGALSComponent(wx.Panel):
 
         self.conc_regularizer_ctrl = wx.TextCtrl(conc_box,
             size=self._FromDIP((80, -1)),
-            validator=RAWCustomCtrl.CharValidator('float'))
+            validator=RAWCustomCtrl.CharValidator('float_sci_neg'))
 
         self.conc_regularizer_ctrl.Bind(wx.EVT_TEXT, self._on_update_regals)
 
-        ######
-        # Need to figure out how to set the max values here
-        self.conc_start = RAWCustomCtrl.IntSpinCtrl(conc_box, wx.ID_ANY, min=0)
-        self.conc_end = RAWCustomCtrl.IntSpinCtrl(conc_box, wx.ID_ANY, min=0)
+        self.conc_start = RAWCustomCtrl.IntSpinCtrl(conc_box, wx.ID_ANY)
+        self.conc_end = RAWCustomCtrl.IntSpinCtrl(conc_box, wx.ID_ANY)
 
         self.conc_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_range)
         self.conc_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_range)
 
+        self.float_conc_start = RAWCustomCtrl.FloatSpinCtrl(conc_box, wx.ID_ANY)
+        self.float_conc_end = RAWCustomCtrl.FloatSpinCtrl(conc_box, wx.ID_ANY)
+
+        self.float_conc_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_float_range)
+        self.float_conc_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_float_range)
+
         self.conc_nw_ctrl = RAWCustomCtrl.IntSpinCtrl(conc_box, wx.ID_ANY,
-            min=2, size=self._FromDIP((60,-1)))
+            min_val=2, size=self._FromDIP((60,-1)))
         self.conc_nw_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_regals)
 
         self.zero_at_xmin_ctrl = wx.CheckBox(conc_box, label='Zero at Xmin')
@@ -16371,14 +16488,24 @@ class REGALSComponent(wx.Panel):
         conc_reg_sizer.Add(self.conc_regularizer_ctrl, proportion=1,
             flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(5))
 
-        conc_range_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        conc_range_sizer.Add(wx.StaticText(conc_box, label='Range:'),
+        self.conc_range_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.conc_range_sizer.Add(wx.StaticText(conc_box, label='Range:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
-        conc_range_sizer.Add(self.conc_start, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT,
+        self.conc_range_sizer.Add(self.conc_start, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT,
             border=self._FromDIP(5))
-        conc_range_sizer.Add(wx.StaticText(conc_box, label='to'),
+        self.conc_range_sizer.Add(wx.StaticText(conc_box, label='to'),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT, border=self._FromDIP(5))
-        conc_range_sizer.Add(self.conc_end, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT,
+        self.conc_range_sizer.Add(self.conc_end, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT,
+            border=self._FromDIP(5))
+
+        self.float_conc_range_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.float_conc_range_sizer.Add(wx.StaticText(conc_box, label='Range:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        self.float_conc_range_sizer.Add(self.float_conc_start, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT,
+            border=self._FromDIP(5))
+        self.float_conc_range_sizer.Add(wx.StaticText(conc_box, label='to'),
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT, border=self._FromDIP(5))
+        self.float_conc_range_sizer.Add(self.float_conc_end, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT,
             border=self._FromDIP(5))
 
         self.conc_nw_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -16397,7 +16524,9 @@ class REGALSComponent(wx.Panel):
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM, border=self._FromDIP(5))
         self.conc_sizer.Add(conc_reg_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
             border=self._FromDIP(5))
-        self.conc_sizer.Add(conc_range_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
+        self.conc_sizer.Add(self.conc_range_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
+        self.conc_sizer.Add(self.float_conc_range_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
             border=self._FromDIP(5))
         self.conc_sizer.Add(self.conc_nw_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
             border=self._FromDIP(5))
@@ -16413,6 +16542,7 @@ class REGALSComponent(wx.Panel):
 
         self._on_prof_comp_change(None)
         self._on_conc_comp_change(None)
+        self.show_float_range(False)
 
     def _on_prof_comp_change(self, evt):
 
@@ -16484,15 +16614,32 @@ class REGALSComponent(wx.Panel):
         return prof_settings
 
     def _get_conc_settings(self):
+        xmin = float(self.float_conc_start.GetValue())
+        xmax = float(self.float_conc_end.GetValue())
+
+        regals_x = self.regals_frame.run_panel.regals_x
+
+        min_val, min_arg = SASUtils.find_closest(xmin, regals_x['x'])
+
+        if np.isclose(xmin, regals_x['x'][min_arg]):
+            xmin = regals_x['x'][min_arg]
+
+        max_val, max_arg = SASUtils.find_closest(xmax, regals_x['x'])
+
+        if np.isclose(xmax, regals_x['x'][max_arg]):
+            xmax = regals_x['x'][max_arg]
+
         conc_settings = {
             'type'          : self.conc_comp_ctrl.GetStringSelection(),
             'lambda'        : self.conc_regularizer_ctrl.GetValue(),
             'auto_lambda'   : self.conc_auto_regularizer_ctrl.GetValue(),
             'kwargs'    : {
-                'xmin'  : self.conc_start.GetValue(),
-                'xmax'  : self.conc_end.GetValue(),
+                'xmin'  : xmin,
+                'xmax'  : xmax,
                 },
             'xrange'    : [self.conc_start.GetRange()[0], self.conc_end.GetRange()[1]],
+            'frame_xmin': self.conc_start.GetValue(),
+            'frame_xmax': self.conc_end.GetValue(),
             }
 
         if conc_settings['type'] == 'smooth':
@@ -16528,11 +16675,8 @@ class REGALSComponent(wx.Panel):
                 self.conc_regularizer_ctrl.ChangeValue('{:.1e}'.format(float(conc_settings['lambda'])))
                 self.conc_auto_regularizer_ctrl.SetValue(conc_settings['auto_lambda'])
 
-            self.conc_start.SetRange((int(conc_settings['xrange'][0]), int(conc_settings['kwargs']['xmax']-1)))
-            self.conc_end.SetRange((int(conc_settings['kwargs']['xmin'])+1, int(conc_settings['xrange'][1])))
-
-            self.conc_start.SetValue(int(conc_settings['kwargs']['xmin']))
-            self.conc_end.SetValue(int(conc_settings['kwargs']['xmax']))
+            self.set_frame_range((conc_settings['frame_xmin'], conc_settings['frame_xmax']),
+                conc_settings['xrange'][0], conc_settings['xrange'][1])
 
             if conc_settings['type'] == 'smooth':
                 self.conc_nw_ctrl.SetValue(int(conc_settings['kwargs']['Nw']))
@@ -16567,21 +16711,89 @@ class REGALSComponent(wx.Panel):
     def _update_regals(self):
         self.update_callback()
 
-    def _on_update_range(self, evt):
+    def _on_update_float_range(self, evt):
+        regals_x = self.regals_frame.run_panel.regals_x
+
+        start = self.regals_frame.run_panel.svd_results['fstart']
+
+        if evt.GetEventObject() == self.float_conc_end:
+            cmin, cmax = self.float_conc_start.GetRange()
+            self.float_conc_start.SetRange((cmin, float(self.float_conc_end.GetValue())))
+
+            val = self.float_conc_end.GetValue()
+
+            min_val, min_arg = SASUtils.find_closest(float(val), regals_x['x'])
+
+            min_arg = min_arg + start
+
+            if min_arg == self.conc_start.GetValue():
+                min_arg = min_arg + 1
+
+            self.conc_end.SetValue(min_arg)
+
+            cmin, cmax = self.conc_start.GetRange()
+            cmax = min_arg-1
+
+            self.conc_start.SetRange((cmin, cmax))
+
+
+        elif evt.GetEventObject() == self.float_conc_start:
+            cmin, cmax = self.float_conc_end.GetRange()
+            self.float_conc_end.SetRange((float(self.float_conc_start.GetValue()), cmax))
+
+            val = self.float_conc_start.GetValue()
+
+            min_val, min_arg = SASUtils.find_closest(float(val), regals_x['x'])
+
+            min_arg = min_arg + start
+
+            if min_arg == self.conc_end.GetValue():
+                min_arg = min_arg - 1
+
+            self.conc_start.SetValue(min_arg)
+
+            cmin, cmax = self.conc_end.GetRange()
+            cmin = min_arg+1
+
+            self.conc_end.SetRange((cmin, cmax))
+
         self.range_callback()
         self._update_regals()
 
+    def _on_update_range(self, evt):
+        regals_x = self.regals_frame.run_panel.regals_x
+        start = self.regals_frame.run_panel.svd_results['fstart']
+
         if evt.GetEventObject() == self.conc_end:
             cmin, cmax = self.conc_start.GetRange()
-            self.conc_start.SetRange((cmin, self.conc_end.GetValue()-1))
+            cmax = self.conc_end.GetValue()-1
+            self.conc_start.SetRange((cmin, cmax))
+
+            self.float_conc_end.SetValue(regals_x['x'][int(self.conc_end.GetValue())-start])
+            self.float_conc_start.SetRange((regals_x['x'][cmin-start], regals_x['x'][cmax+1-start]))
+
         elif evt.GetEventObject() == self.conc_start:
             cmin, cmax = self.conc_end.GetRange()
-            self.conc_end.SetRange((self.conc_start.GetValue()+1, cmax))
+            cmin = self.conc_start.GetValue()+1
+            self.conc_end.SetRange((cmin, cmax))
+
+            self.float_conc_start.SetValue(regals_x['x'][int(self.conc_start.GetValue())-start])
+            self.float_conc_end.SetRange((regals_x['x'][cmin-1-start], regals_x['x'][cmax-start]))
+
+        self.range_callback()
+        self._update_regals()
 
     def get_range(self):
-        return (self.conc_start.GetValue(), self.conc_end.GetValue())
+        return (float(self.float_conc_start.GetValue()),
+            float(self.float_conc_end.GetValue()))
 
-    def set_range(self, new_range, cmin=None, cmax=None):
+    def get_frame_range(self):
+        return (int(self.conc_start.GetValue()), int(self.conc_end.GetValue()))
+
+    def set_frame_range(self, new_range, cmin=None, cmax=None):
+
+        start = self.regals_frame.run_panel.svd_results['fstart']
+
         if cmin is None:
             cmin, _ = self.conc_start.GetRange()
         if cmax is None:
@@ -16592,6 +16804,16 @@ class REGALSComponent(wx.Panel):
 
         self.conc_start.SetValue(new_range[0])
         self.conc_end.SetValue(new_range[1])
+
+        regals_x = self.regals_frame.run_panel.regals_x
+
+        self.float_conc_start.SetRange((regals_x['x'][cmin-start],
+            regals_x['x'][new_range[1]-start]))
+        self.float_conc_end.SetRange((regals_x['x'][new_range[0]-start],
+            regals_x['x'][cmax-start]))
+
+        self.float_conc_start.SetValue(regals_x['x'][new_range[0]-start])
+        self.float_conc_end.SetValue(regals_x['x'][new_range[1]-start])
 
     def set_lambdas(self, conc_lambda, prof_lambda):
         if not np.isfinite(conc_lambda):
@@ -16606,6 +16828,18 @@ class REGALSComponent(wx.Panel):
         if self.prof_auto_regularizer_ctrl.GetValue():
             self.prof_regularizer_ctrl.ChangeValue('{:.1e}'.format(prof_lambda))
 
+    def show_float_range(self, show):
+        if show:
+            self.conc_sizer.Show(self.float_conc_range_sizer, recursive=True)
+            self.conc_sizer.Hide(self.conc_range_sizer, recursive=True)
+
+        else:
+            self.conc_sizer.Hide(self.float_conc_range_sizer, recursive=True)
+            self.conc_sizer.Show(self.conc_range_sizer, recursive=True)
+
+        self.Layout()
+        self.regals_frame.Layout()
+
 class REGALSResults(wx.Panel):
 
     def __init__(self, parent, regals_frame, *args, **kwargs):
@@ -16614,7 +16848,7 @@ class REGALSResults(wx.Panel):
         self.regals_frame = regals_frame
 
         self.SetMinSize((600, 400))
-        self._layout()
+        self._create_layout()
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -16623,7 +16857,7 @@ class REGALSResults(wx.Panel):
         except Exception:
             return size
 
-    def _layout(self):
+    def _create_layout(self):
 
         results_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, label='Results')
         results_box = results_sizer.GetStaticBox()
@@ -16662,6 +16896,188 @@ class REGALSResults(wx.Panel):
 
     def _on_save_data(self, evt):
         self.regals_frame.save_data()
+
+class REGALSXCalibration(wx.Dialog):
+
+    def __init__(self, parent, series, regals_frame, start, end, *args, **kwargs):
+        wx.Dialog.__init__(self, parent, wx.ID_ANY, 'REGALS X Data Calibration', *args,
+            style = wx.RESIZE_BORDER|wx.CAPTION, **kwargs)
+
+        self.series = series
+        self.regals_frame = regals_frame
+        self.start = start
+        self.end = end
+
+        self._create_layout()
+
+        self._initialize()
+
+        self.Fit()
+        SASUtils.set_best_size(self)
+        self.CenterOnParent()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _create_layout(self):
+        parent = self
+
+        self.use_x = wx.Choice(parent, choices=['X', 'Log10(X)', 'Ln(X)'])
+
+        load_x = wx.Button(parent, label='Load X values from file')
+        load_x.Bind(wx.EVT_BUTTON, self._on_load_x)
+
+        reset_x = wx.Button(parent, label='Reset X values to default')
+        reset_x.Bind(wx.EVT_BUTTON, self._on_reset_x)
+
+        use_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        use_sizer.Add(wx.StaticText(self, label='Use for X axis:'))
+        use_sizer.Add(self.use_x, flag=wx.LEFT, border=self._FromDIP(5))
+        use_sizer.Add(load_x, flag=wx.LEFT, border=self._FromDIP(30))
+        use_sizer.Add(reset_x, flag=wx.LEFT, border=self._FromDIP(30))
+
+
+
+        self.data_grid = wx.grid.Grid(parent)
+        self.data_grid.CreateGrid(len(self.series.plot_frame_list[self.start:self.end+1]), 5)
+        self.data_grid.SetColLabelValue(0, 'File Name')
+        self.data_grid.SetColLabelValue(1, 'Frame Number')
+        self.data_grid.SetColLabelValue(2, 'X')
+        self.data_grid.SetColLabelValue(3, 'Log10(X)')
+        self.data_grid.SetColLabelValue(4, 'Ln(X)')
+
+        self.data_grid.Bind(wx.grid.EVT_GRID_CELL_CHANGED, self._on_cell_changed)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(use_sizer, flag=wx.ALL, border=self._FromDIP(5))
+        top_sizer.Add(self.data_grid, proportion=1, border=self._FromDIP(5),
+            flag=wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM)
+        top_sizer.Add(self.CreateButtonSizer(wx.OK|wx.CANCEL), flag=wx.ALL,
+            border=self._FromDIP(5))
+
+        self.Bind(wx.EVT_BUTTON, self._onOK, id=wx.ID_OK)
+        self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
+
+        self.SetSizer(top_sizer)
+
+    def _initialize(self):
+
+        regals_x = self.regals_frame.run_panel.regals_x
+
+        self.use_x.SetStringSelection(regals_x['x_choice'])
+
+        for j in range(len(self.series.plot_frame_list[self.start:self.end+1])):
+            self.data_grid.SetCellValue(j, 0, os.path.split(self.series._file_list[j+self.start])[1])
+            self.data_grid.SetCellValue(j, 1, '{}'.format(self.series.plot_frame_list[j+self.start]))
+            self._set_x_val(regals_x['x_base'][j], j)
+
+            self.data_grid.SetReadOnly(j, 0)
+            self.data_grid.SetReadOnly(j, 1)
+            self.data_grid.SetReadOnly(j, 3)
+            self.data_grid.SetReadOnly(j, 4)
+
+        self.data_grid.AutoSizeColumns()
+        self.data_grid.SetColSize(2, max(60, self.data_grid.GetColSize(2)))
+
+    def _on_cell_changed(self, evt):
+        row = evt.GetRow()
+
+        try:
+            val = float(self.data_grid.GetCellValue(row, 2).strip())
+            self._set_x_val(val, row, False)
+            self.data_grid.SetCellValue(row, 3, '{}'.format(np.log10(val)))
+            self.data_grid.SetCellValue(row, 4, '{}'.format(np.log(val)))
+        except Exception:
+            msg = ('X values must be numeric.')
+            dlg = wx.MessageDialog(self, msg, "Invalid X Value",
+                style=wx.ICON_ERROR|wx.OK)
+            dlg.ShowModal()
+            dlg.Destroy()
+
+    def _set_x_val(self, val, row, set_x=True):
+        if set_x:
+            self.data_grid.SetCellValue(row, 2, '{}'.format(val))
+
+        self.data_grid.SetCellValue(row, 3, '{}'.format(np.log10(val)))
+        self.data_grid.SetCellValue(row, 4, '{}'.format(np.log(val)))
+
+    def get_X_val(self):
+        x_choice = self.use_x.GetStringSelection()
+
+        if x_choice == 'X':
+            col = 2
+        elif x_choice == 'Log10(X)':
+            col = 3
+        elif x_choice == 'Ln(X)':
+            col = 4
+
+        try:
+            x = np.array([float(self.data_grid.GetCellValue(j, col)) for j in range(self.data_grid.GetNumberRows())])
+            x_base = np.array([float(self.data_grid.GetCellValue(j, 2)) for j in range(self.data_grid.GetNumberRows())])
+        except Exception:
+            x = None
+            x_base = None
+
+        return x, x_base, x_choice
+
+    def _on_load_x(self, evt):
+        dirctrl = wx.FindWindowByName('DirCtrlPanel')
+        path = str(dirctrl.getDirLabel())
+
+        dialog = wx.FileDialog(self, message="Please select file with X values",
+            style=wx.FD_OPEN, defaultDir=path)
+
+        if dialog.ShowModal() == wx.ID_OK:
+            load_path = dialog.GetPath()
+        else:
+            load_path = None
+
+        dialog.Destroy()
+
+        if load_path is not None:
+            loaded_x = np.loadtxt(load_path)
+
+            for j, val in enumerate(loaded_x):
+                self._set_x_val(val, j)
+
+    def _on_reset_x(self, evt):
+        new_x = np.arange(self.start, self.end+1)
+
+        for j, val in enumerate(new_x):
+            self._set_x_val(val, j)
+
+    def _onOK(self, evt):
+        x, x_base, x_choice = self.get_X_val()
+
+        if x is None or x_base is None:
+            valid = False
+        elif not np.all(np.isfinite(x)) or not np.all(np.isfinite(x_base)):
+            valid = False
+        else:
+            valid = True
+
+        if not valid:
+            msg = ('All X values must be finite numbers.')
+            dlg = wx.MessageDialog(self, msg, "Invalid X Value",
+                style=wx.ICON_ERROR|wx.OK)
+            dlg.ShowModal()
+            dlg.Destroy()
+
+        else:
+            if self.IsModal():
+                self.EndModal(wx.ID_OK)
+            else:
+                self.Close()
+
+    def _onCancel(self, evt):
+        if self.IsModal():
+            self.EndModal(wx.ID_CANCEL)
+        else:
+            self.Close()
 
 
 class SimilarityFrame(wx.Frame):
@@ -16934,7 +17350,9 @@ class SimilarityFrame(wx.Frame):
             save_path = dialog.GetPath()
             name, ext = os.path.splitext(save_path)
             save_path = name + '.csv'
+            dialog.Destroy()
         else:
+            dialog.Destroy()
             return
 
         RAWGlobals.save_in_progress = True
@@ -17412,7 +17830,9 @@ class NormKratkyPlotPanel(wx.Panel):
                 save_path = dialog.GetPath()
                 name, ext = os.path.splitext(save_path)
                 save_path = name + '.csv'
+                dialog.Destroy()
             else:
+                dialog.Destroy()
                 return
 
             RAWGlobals.save_in_progress = True
@@ -18863,17 +19283,17 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             r2_2 = frames[-11]
 
         self.bl_r1_start = RAWCustomCtrl.IntSpinCtrl(baseline_win,
-            wx.ID_ANY, min=r1_0, max=r1_1, size=self._FromDIP((60,-1)))
+            wx.ID_ANY, min_val=r1_0, max_val=r1_1, size=self._FromDIP((60,-1)))
         self.bl_r1_end = RAWCustomCtrl.IntSpinCtrl(baseline_win,
-            wx.ID_ANY, min=r1_0, max=frames[-1], size=self._FromDIP((60,-1)))
+            wx.ID_ANY, min_val=r1_0, max_val=frames[-1], size=self._FromDIP((60,-1)))
         self.bl_r1_end.SetValue(r1_1)
         self.bl_r1_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
         self.bl_r1_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
 
         self.bl_r2_start = RAWCustomCtrl.IntSpinCtrl(baseline_win,
-            wx.ID_ANY, min=r2_0, max=frames[-1], size=self._FromDIP((60,-1)))
+            wx.ID_ANY, min_val=r2_0, max_val=frames[-1], size=self._FromDIP((60,-1)))
         self.bl_r2_end = RAWCustomCtrl.IntSpinCtrl(baseline_win,
-            wx.ID_ANY, min=r2_2, max=frames[-1], size=self._FromDIP((60,-1)))
+            wx.ID_ANY, min_val=r2_2, max_val=frames[-1], size=self._FromDIP((60,-1)))
         self.bl_r2_start.SetValue(r2_2)
         self.bl_r2_end.SetValue(frames[-1])
         self.bl_r2_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
@@ -21188,9 +21608,9 @@ class SeriesRangeItem(RAWCustomCtrl.ListItem):
         frames = self.series_panel.secm.getFrames()
 
         self.start_ctrl = RAWCustomCtrl.IntSpinCtrl(self, wx.ID_ANY,
-            min=frames[0], max=frames[-1], size=self._FromDIP((60,-1)))
+            min_val=frames[0], max_val=frames[-1], size=self._FromDIP((60,-1)))
         self.end_ctrl = RAWCustomCtrl.IntSpinCtrl(self, wx.ID_ANY,
-            min=frames[0], max=frames[-1], size=self._FromDIP((60,-1)))
+            min_val=frames[0], max_val=frames[-1], size=self._FromDIP((60,-1)))
 
         self.start_ctrl.SetValue(frames[0])
         self.end_ctrl.SetValue(frames[-1])

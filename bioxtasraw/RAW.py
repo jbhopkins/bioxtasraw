@@ -9052,8 +9052,8 @@ class ManipItemPanel(wx.Panel):
                 spin_label.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
                 spin_label.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
-            spin_control = RAWCustomCtrl.IntSpinCtrl(self, spin_id, min = nlow,
-                max = nhigh, TextLength = 43)
+            spin_control = RAWCustomCtrl.IntSpinCtrl(self, spin_id, min_val=nlow,
+                max_val=nhigh, TextLength=43)
 
             if spin_name == 'nlow':
                 spin_control.SetValue(nlow)
@@ -12957,7 +12957,7 @@ class CenteringPanel(scrolled.ScrolledPanel):
 
         ring_text = wx.StaticText(self, -1, 'Ring #:')
         ring_ctrl = RAWCustomCtrl.IntSpinCtrl(self, self.pyfai_autofit_ids['ring'],
-            min = 0, max = 100, TextLength = 43)
+            min_val=0, max_val=100, TextLength=43)
         ring_ctrl.SetValue(0)
         ring_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onAutoRingSpinner)
 
