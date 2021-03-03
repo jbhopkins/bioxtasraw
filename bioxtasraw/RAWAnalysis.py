@@ -12411,10 +12411,14 @@ class SVDControlPanel(wx.Panel):
         end_svd.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeSVD)
 
         svdrange_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        svdrange_sizer.Add(label1, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(3))
-        svdrange_sizer.Add(start_svd, 0, wx.RIGHT, border=self._FromDIP(3))
-        svdrange_sizer.Add(label2, 0, wx.RIGHT, border=self._FromDIP(3))
-        svdrange_sizer.Add(end_svd, 0, wx.RIGHT, border=self._FromDIP(3))
+        svdrange_sizer.Add(label1, 0, wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(3))
+        svdrange_sizer.Add(start_svd, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(3))
+        svdrange_sizer.Add(label2, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(3))
+        svdrange_sizer.Add(end_svd, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(3))
 
 
         if self.ctrl_type == 'SVD':
@@ -12443,14 +12447,15 @@ class SVDControlPanel(wx.Panel):
             box = wx.StaticBox(self, -1, 'User Input')
             input_sizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
 
-            label1 = wx.StaticText(self, -1, '# Significant SVs :')
+            label1 = wx.StaticText(self, -1, '# Significant SVs:')
             user_input = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['input'],
                 size=self._FromDIP((60,-1)))
 
 
-            input_sizer.Add(label1, 0, wx.LEFT | wx.TOP | wx.BOTTOM,
+            input_sizer.Add(label1, 0, wx.LEFT|wx.TOP|wx.BOTTOM
+                |wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(3))
+            input_sizer.Add(user_input, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL,
                 border=self._FromDIP(3))
-            input_sizer.Add(user_input, 0, wx.ALL, border=self._FromDIP(3))
             input_sizer.AddStretchSpacer(1)
 
 
@@ -12719,7 +12724,7 @@ class SVDControlPanel(wx.Panel):
             success) = SASCalc.SVDOnSASMs(sasm_list, err_norm)
 
         if not success:
-            if self.ctrl_type == 'EFA' or self.ctrl_type == 'SVD':
+            if self.ctrl_type == 'EFA' or self.ctrl_type == 'REGALS':
                 msg = ('Initial SVD failed, so {} analysis cannot '
                     'continue.'.format(self.ctrl_type))
             else:
@@ -13387,8 +13392,12 @@ class EFAControlPanel2(wx.Panel):
             bkg_sizer.Add(self.bkg_components, border=self._FromDIP(5),
                 flag=wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
 
+            bkg_button = wx.Button(self.top_box, label='Find background components')
+            bkg_button.Bind(wx.EVT_BUTTON, self._on_find_regals_bkg)
+
             control_sizer.Add(bkg_sizer, border=self._FromDIP(20),
                 flag=wx.TOP)
+            control_sizer.Add(bkg_button, border=self._FromDIP(5), flag=wx.TOP)
 
         self.top_efa.SetSizer(control_sizer)
 
@@ -13412,7 +13421,8 @@ class EFAControlPanel2(wx.Panel):
                 analysis_dict = series_analysis_dict['regals']
 
                 if 'background_components' in analysis_dict:
-                    self.bkg_components.SetValue(analysis_dict['background_components'])
+                    if analysis_dict['background_components'] <= nvals:
+                        self.bkg_components.SetValue(analysis_dict['background_components'])
 
         self.forward_ids = [self.NewControlId() for i in range(nvals)]
         self.backward_ids = [self.NewControlId() for i in range(nvals)]
@@ -13612,7 +13622,7 @@ class EFAControlPanel2(wx.Panel):
                 if (nvals == analysis_dict['nsvs']
                     and self.panel1_results['fstart'] == analysis_dict['fstart']
                     and self.panel1_results['fend'] == analysis_dict['fend']
-                    and self.panel1_results['profile'] == analysis_dict['profile']
+                    and self.panel1_results['secm_choice'] == analysis_dict['secm_choice']
                     and nvals == len(analysis_dict['ranges'])):
 
                     if self.ctrl_type == 'REGALS':
@@ -13759,6 +13769,36 @@ class EFAControlPanel2(wx.Panel):
         self.results['backward_efa'] = self.efa_backward
 
         return self.results
+
+    def _on_find_regals_bkg(self, evt):
+        wx.CallAfter(self._find_regals_bkg)
+
+    def _find_regals_bkg(self):
+        start = self.panel1_results['fstart']
+        end = self.panel1_results['fend']
+        secm_choice = self.panel1_results['secm_choice']
+
+        print(secm_choice)
+        if secm_choice == 'usub':
+            series = self.secm
+        elif secm_choice == 'sub':
+            series = self.panel1_results['sub_secm']
+        elif secm_choice == 'bl':
+            series = self.panel1_results['bl_secm']
+
+        svd_a = self.panel1_results['svd_int_norm']
+
+        bkg_dialog = REGALSBackground(self.efa_frame, start, end, series,
+            secm_choice, self.panel1_results['input'], int(self.bkg_components.GetValue()))
+
+        ret = bkg_dialog.ShowModal()
+
+        if ret == wx.ID_OK:
+            bkg_comps = bkg_dialog.get_bkg_comps()
+
+            self.bkg_components.SetValue(bkg_comps)
+
+        bkg_dialog.Destroy()
 
 
 class EFAResultsPlotPanel2(wx.Panel):
@@ -14185,7 +14225,7 @@ class EFAControlPanel3(wx.Panel):
             efa_dict = analysis_dict['efa']
             if (efa_dict['fstart'] == self.panel1_results['fstart']
                 and efa_dict['fend'] == self.panel1_results['fend']
-                and efa_dict['profile'] == self.panel1_results['profile']
+                and efa_dict['secm_choice'] == self.panel1_results['secm_choice']
                 and efa_dict['nsvs'] == self.panel1_results['input']
                 and np.all(efa_dict['ranges'] == self._getRanges())):
 
@@ -17080,6 +17120,457 @@ class REGALSXCalibration(wx.Dialog):
             self.Close()
 
 
+class REGALSBackground(wx.Dialog):
+
+    def __init__(self, parent, start, end, series, plot_type, max_comps, bkg_comps,
+        *args, **kwargs):
+        wx.Dialog.__init__(self, parent, wx.ID_ANY, 'REGALS Background Components', *args,
+            style = wx.RESIZE_BORDER|wx.CAPTION, **kwargs)
+
+        self.series = series
+        self.start = start
+        self.end = end
+        self.plot_type = plot_type
+
+        if self.plot_type == 'usub':
+            self.plot_type = 'unsub'
+        elif self.plot_type == 'bl':
+            self.plot_type = 'baseline'
+
+        self.svd_results = {}
+
+        self._create_layout()
+
+        self._initialize(max_comps, bkg_comps)
+
+        self.Fit()
+        SASUtils.set_best_size(self)
+        self.CenterOnParent()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _create_layout(self):
+        parent = self
+
+        ctrl_sizer = wx.StaticBoxSizer(wx.VERTICAL, parent, label='Controls')
+        ctrl_box = ctrl_sizer.GetStaticBox()
+
+        self.series_plot = SeriesPlotPanel(ctrl_box, self.plot_type, 'REGALS')
+
+
+        self.bkg_region_list = SeriesRangeItemList(self, 'buffer', ctrl_box,
+            list_type='REGALS')
+        self.bkg_region_list.SetMinSize(self._FromDIP((-1,115)))
+
+
+        buffer_add_btn = wx.Button(ctrl_box, label='Add region')
+        buffer_add_btn.Bind(wx.EVT_BUTTON, self._onSeriesAdd)
+
+        buffer_remove_btn = wx.Button(ctrl_box, label='Remove region')
+        buffer_remove_btn.Bind(wx.EVT_BUTTON, self._onSeriesRemove)
+
+        buf_btn_sizer = wx.BoxSizer(wx.VERTICAL)
+        buf_btn_sizer.Add(buffer_add_btn, flag=wx.BOTTOM, border=self._FromDIP(5))
+        buf_btn_sizer.Add(buffer_remove_btn)
+
+        buffer_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buffer_sizer.Add(self.bkg_region_list, proportion=1, flag=wx.EXPAND|wx.RIGHT,
+            border=self._FromDIP(5))
+        buffer_sizer.Add(buf_btn_sizer, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+
+
+        self.start_svd = RAWCustomCtrl.IntSpinCtrl(ctrl_box, size=self._FromDIP((60,-1)))
+        self.end_svd = RAWCustomCtrl.IntSpinCtrl(ctrl_box, size=self._FromDIP((60,-1)))
+
+        self.start_svd.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeSVD)
+        self.end_svd.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeSVD)
+
+        plotted_svs_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        plotted_svs_sizer.Add(wx.StaticText(ctrl_box, label='Plot indexes:'),
+            flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(5))
+        plotted_svs_sizer.Add(self.start_svd,
+            flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(5))
+        plotted_svs_sizer.Add(wx.StaticText(ctrl_box, label='to'),
+            flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(5))
+        plotted_svs_sizer.Add(self.end_svd, flag=wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+
+
+        self.num_svs = RAWCustomCtrl.IntSpinCtrl(ctrl_box, size=self._FromDIP((60,-1)))
+
+        num_svs_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        num_svs_sizer.Add(wx.StaticText(ctrl_box, label='# Significant SVs:'),
+            flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(5))
+        num_svs_sizer.Add(self.num_svs, flag=wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+
+
+        ctrl_sizer.Add(self.series_plot, proportion=1, flag=wx.EXPAND|wx.ALL,
+            border=self._FromDIP(5))
+        ctrl_sizer.Add(buffer_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(5))
+        ctrl_sizer.Add(plotted_svs_sizer, flag=wx.ALL, border=self._FromDIP(5))
+        ctrl_sizer.Add(num_svs_sizer, flag=wx.ALL, border=self._FromDIP(5))
+
+
+        plot_sizer = wx.StaticBoxSizer(wx.VERTICAL, parent, label='Results')
+        plot_box = plot_sizer.GetStaticBox()
+
+        self.svd_plot = REGALSBackgroundSVDPlot(plot_box)
+
+        plot_sizer.Add(self.svd_plot, proportion=1, flag=wx.EXPAND|wx.ALL,
+            border=self._FromDIP(5))
+
+        sub_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sub_sizer.Add(ctrl_sizer, flag=wx.ALL|wx.EXPAND, proportion=1,
+            border=self._FromDIP(5))
+        sub_sizer.Add(plot_sizer, flag=wx.TOP|wx.BOTTOM|wx.RIGHT|wx.EXPAND,
+            proportion=1, border=self._FromDIP(5))
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(sub_sizer, flag=wx.TOP|wx.LEFT|wx.RIGHT|wx.EXPAND,
+            proportion=1, border=self._FromDIP(5))
+        top_sizer.Add(self.CreateButtonSizer(wx.OK|wx.CANCEL), flag=wx.ALL,
+            border=self._FromDIP(5))
+
+        self.Bind(wx.EVT_BUTTON, self._onOK, id=wx.ID_OK)
+        self.Bind(wx.EVT_BUTTON, self._onCancel, id=wx.ID_CANCEL)
+
+        self.SetSizer(top_sizer)
+
+    def _initialize(self, max_comps, bkg_comps):
+        frames = self.series.getFrames()
+        intensity = self.series.getIntI()
+
+        frames = frames[self.start:self.end+1]
+        intensity = intensity[self.start:self.end+1]
+
+        self.update_plot_data(frames, intensity, 'intensity', 'left')
+        if self.plot_type != 'unsub':
+            self.update_plot_label('', 'right')
+
+        self.start_svd.SetValue(0)
+        self.end_svd.SetValue(10)
+
+        self.start_svd.SetRange((0, 9))
+        self.end_svd.SetRange((1,len(frames)))
+
+        self.num_svs.SetValue(bkg_comps)
+        self.num_svs.SetRange((0, max_comps))
+
+    def update_plot_data(self, xdata, ydata, label, axis):
+        self.series_plot.plot_data(xdata, ydata, label, axis)
+
+    def update_plot_range(self, start, end, index):
+        self.series_plot.plot_range(start, end, index)
+
+        self.do_svd(start, end, index)
+
+    def update_plot_label(self, label, axis):
+        self.series_plot.plot_label(label, axis)
+
+    def remove_plot_range(self, index):
+        self.series_plot.remove_range(index)
+
+        self.svd_plot.remove_data(index)
+
+    def remove_plot_data(self, index):
+        self.series_plot.remove_data(index)
+
+    def pick_plot_range(self, start_item, end_item, index):
+        self.series_plot.pick_range(start_item, end_item, index)
+
+    def show_plot_range(self, index, show):
+        self.series_plot.show_range(index, show)
+
+    def _onSeriesAdd(self, evt):
+        """Called when the Add control buttion is used."""
+        index, start, end = self._addSeriesRange(self.bkg_region_list)
+        self.update_plot_range(start, end, index)
+
+    def _addSeriesRange(self, parent_list):
+        range_item = parent_list.create_items()
+
+        start, end = range_item.get_range()
+        index = range_item.GetId()
+
+        self.Layout()
+        self.SendSizeEvent()
+
+        return index, start, end
+
+    def _onSeriesRemove(self, evt):
+        """Called by the Remove control button, removes a control."""
+        selected = self.bkg_region_list.get_selected_items()
+
+        while len(selected) > 0:
+            item = selected[0]
+            idx = item.GetId()
+
+            self.remove_plot_range(idx)
+
+            if len(selected) > 1:
+                self.bkg_region_list.remove_item(item, resize=False)
+            else:
+                self.bkg_region_list.remove_item(item, resize=True)
+
+            del self.svd_results[idx]
+
+        self.Layout()
+        self.SendSizeEvent()
+
+    def onSeriesPick(self, event):
+        event_object = event.GetEventObject()
+        event_item = event_object.GetParent()
+
+        index = event_item.GetId()
+
+        start_item = event_item.start_ctrl
+        end_item = event_item.end_ctrl
+
+        wx.CallAfter(self.pick_plot_range, start_item, end_item, index)
+
+    def setPickRange(self, index, pick_range, plot_type):
+        pick_range.sort()
+
+        item = wx.FindWindowById(index)
+
+        current_start_range = item.start_ctrl.GetRange()
+        current_end_range = item.end_ctrl.GetRange()
+
+        new_start = max(pick_range[0], current_start_range[0])
+        new_end = min(pick_range[1], current_end_range[1])
+
+        item.start_ctrl.SetValue(new_start)
+        item.end_ctrl.SetValue(new_end)
+
+        item.start_ctrl.SetRange((current_start_range[0], new_end))
+
+        current_end_range = item.end_ctrl.GetRange()
+        item.end_ctrl.SetRange((new_start, current_end_range[1]))
+
+        self.update_plot_range(new_start, new_end, index)
+
+    def updateSeriesRange(self, event):
+        event_object = event.GetEventObject()
+        event_item = event_object.GetParent()
+        value = event_object.GetValue()
+
+        start, end = event_item.get_range()
+        index = event_item.GetId()
+
+        if event_object is event_item.start_ctrl:
+            current_range = event_item.end_ctrl.GetRange()
+            event_item.end_ctrl.SetRange((value, current_range[-1]))
+        else:
+            current_range = event_item.start_ctrl.GetRange()
+            event_item.start_ctrl.SetRange((current_range[0], value))
+
+        self.update_plot_range(start, end, index)
+
+    def _onChangeSVD(self, evt):
+        for index in self.svd_results:
+            self.plot_svd_results(index)
+
+        start_svd = int(self.start_svd.GetValue())
+        end_svd = int(self.end_svd.GetValue())
+
+        start_range = self.start_svd.GetRange()
+        end_range = self.end_svd.GetRange()
+
+        self.start_svd.SetRange((start_range[0], end_svd-1))
+        self.end_svd.SetRange((start_svd+1, end_range[1]))
+
+    def do_svd(self, start, end, index):
+        sasm_list = self.series.getSASMList(start, end)
+
+        (svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, i, err, svd_a,
+            success) = SASCalc.SVDOnSASMs(sasm_list, True)
+
+        if index not in self.svd_results:
+            self.svd_results[index] = {}
+
+        self.svd_results[index]['svd_U_autocor'] = svd_U_autocor
+        self.svd_results[index]['svd_V_autocor'] = svd_V_autocor
+        self.svd_results[index]['svd_s'] = svd_s
+
+        self.plot_svd_results(index)
+
+    def plot_svd_results(self, index):
+        svd_U_autocor = self.svd_results[index]['svd_U_autocor']
+        svd_V_autocor = self.svd_results[index]['svd_V_autocor']
+        svd_s = self.svd_results[index]['svd_s']
+
+        xdata = np.arange(len(svd_s))
+
+        svd_start = int(self.start_svd.GetValue())
+        svd_end = int(self.end_svd.GetValue())
+
+        plt_end = min(svd_end, len(svd_s)-1)
+        self.svd_plot.plot_data(xdata[svd_start:plt_end+1],
+            svd_s[svd_start:plt_end+1], index, 'sv')
+        self.svd_plot.plot_data(xdata[svd_start:plt_end+1],
+            svd_U_autocor[svd_start:plt_end+1], index, 'left_ac')
+        self.svd_plot.plot_data(xdata[svd_start:plt_end+1],
+            svd_V_autocor[svd_start:plt_end+1], index, 'right_ac')
+
+    def get_bkg_comps(self):
+        return int(self.num_svs.GetValue())
+
+    def _onOK(self, evt):
+        if self.IsModal():
+            self.EndModal(wx.ID_OK)
+        else:
+            self.Close()
+
+    def _onCancel(self, evt):
+        if self.IsModal():
+            self.EndModal(wx.ID_CANCEL)
+        else:
+            self.Close()
+
+class REGALSBackgroundSVDPlot(wx.Panel):
+
+    def __init__(self, parent):
+
+        wx.Panel.__init__(self, parent)
+
+
+        self.sv_plot_lines = {}
+        self.left_ac_plot_lines = {}
+        self.right_ac_plot_lines = {}
+
+        self.create_layout()
+
+        self.fig.tight_layout()
+
+        # Connect the callback for the draw_event so that window resizing works:
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def create_layout(self):
+        self.fig = Figure((5,4), 75)
+
+        self.sv_subplot = self.fig.add_subplot(2,1,1, title='Singular Values')
+        self.sv_subplot.set_xlabel('Value')
+        self.sv_subplot.set_ylabel('Index')
+
+        self.ac_subplot = self.fig.add_subplot(2,1,2, title='AutoCorrelation')
+        self.ac_subplot.set_xlabel('Absolute Value')
+        self.ac_subplot.set_ylabel('Index')
+
+
+        self.fig.set_facecolor('white')
+
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+        self.canvas.SetBackgroundColour('white')
+
+        self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
+        self.toolbar.Realize()
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.EXPAND)
+        sizer.Add(self.toolbar, 0, wx.EXPAND)
+
+        self.SetSizer(sizer)
+
+    def plot_data(self, xdata, ydata, label, axis, color=None):
+        #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
+        self.canvas.mpl_disconnect(self.cid)
+
+        if axis == 'sv':
+            try:
+                line = self.sv_plot_lines[label]
+            except Exception:
+                line = None
+
+        elif axis == 'left_ac':
+            try:
+                line = self.left_ac_plot_lines[label]
+            except Exception:
+                line = None
+
+        else:
+            try:
+                line = self.right_ac_plot_lines[label]
+            except Exception:
+                line = None
+
+        if color is None:
+            if axis == 'sv':
+                color = next(self.sv_subplot._get_lines.prop_cycler)['color']
+            else:
+                color = next(self.ac_subplot._get_lines.prop_cycler)['color']
+
+        if line is None:
+            if axis == 'sv':
+                line, = self.sv_subplot.plot(xdata, ydata, '.-', color=color)
+                self.sv_plot_lines[label] = line
+
+            elif axis == 'left_ac':
+                line, = self.ac_subplot.plot(xdata, ydata, '.-', color=color)
+                self.left_ac_plot_lines[label] = line
+
+            else:
+                line, = self.ac_subplot.plot(xdata, ydata, '.--', color=color)
+                self.right_ac_plot_lines[label] = line
+        else:
+            line.set_xdata(xdata)
+            line.set_ydata(ydata)
+
+        self.updatePlot()
+
+        #Reconnect draw_event
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def remove_data(self, index):
+        if index in self.sv_plot_lines:
+            line = self.sv_plot_lines[index]
+            line.remove()
+
+            del self.sv_plot_lines[index]
+
+        if index in self.left_ac_plot_lines:
+            line = self.left_ac_plot_lines[index]
+            line.remove()
+
+            del self.left_ac_plot_lines[index]
+
+        if index in self.right_ac_plot_lines:
+            line = self.right_ac_plot_lines[index]
+            line.remove()
+
+            del self.right_ac_plot_lines[index]
+
+        self.ax_redraw()
+
+    def ax_redraw(self, widget=None):
+        ''' Redraw plots on window resize event '''
+        self.canvas.mpl_disconnect(self.cid)
+        self.canvas.draw()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def autoscale_plot(self):
+        self.sv_subplot.set_autoscale_on(True)
+
+        self.sv_subplot.relim()
+        self.sv_subplot.autoscale_view()
+
+        self.ac_subplot.set_autoscale_on(True)
+
+        self.ac_subplot.relim()
+        self.ac_subplot.autoscale_view()
+
+        self.ax_redraw()
+
+    def updatePlot(self):
+        self.autoscale_plot()
+
 class SimilarityFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm_list):
@@ -18229,11 +18720,16 @@ class LCSeriesFrame(wx.Frame):
 
 class SeriesPlotPanel(wx.Panel):
 
-    def __init__(self, parent, plot_type):
+    def __init__(self, parent, plot_type, ctrl_type='LC'):
 
         wx.Panel.__init__(self, parent)
 
-        self.series_frame = parent.GetParent().series_frame
+        self.ctrl_type = ctrl_type
+
+        if self.ctrl_type == 'LC':
+            self.series_frame = parent.GetParent().series_frame
+        elif self.ctrl_type == 'REGALS':
+            self.series_frame = parent.GetParent()
 
         self.all_plot_types = {'unsub'  : {'left': 'Total Intensity', 'right' : '',
                         'title': 'Unsubtracted Series', 'bottom': 'Frame #'},
@@ -18257,6 +18753,9 @@ class SeriesPlotPanel(wx.Panel):
         self.ryaxis = None
 
         self.create_layout()
+
+        if self.ctrl_type == 'REGALS':
+            self.fig.tight_layout()
 
         # Connect the callback for the draw_event so that window resizing works:
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
@@ -18521,7 +19020,11 @@ class SeriesPlotPanel(wx.Panel):
                 self.range_line.remove()
                 del self.range_line
 
-                control_page = self.series_frame.controlPanel
+                if self.ctrl_type == 'LC':
+                    control_page = self.series_frame.controlPanel
+                elif self.ctrl_type == 'REGALS':
+                    control_page = self.series_frame
+
                 control_page.setPickRange(self.range_index, [self.start_range, self.end_range],
                     self.plot_type)
 
@@ -21558,9 +22061,10 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
 class SeriesRangeItemList(RAWCustomCtrl.ItemList):
 
-    def __init__(self, series_panel, item_type, *args, **kwargs):
+    def __init__(self, series_panel, item_type, *args, list_type='LC', **kwargs):
         self.series_panel = series_panel
         self.item_type = item_type
+        self.list_type = list_type
 
         RAWCustomCtrl.ItemList.__init__(self, *args, **kwargs)
 
@@ -21584,16 +22088,17 @@ class SeriesRangeItemList(RAWCustomCtrl.ItemList):
 
     def create_items(self):
         item = SeriesRangeItem(self.series_panel, self.item_type, self,
-            self.list_panel, id=self.NewControlId())
+            self.list_panel, list_type=self.list_type, id=self.NewControlId())
         self.add_items([item])
 
         return item
 
 class SeriesRangeItem(RAWCustomCtrl.ListItem):
 
-    def __init__(self, series_panel, item_type, *args, **kwargs):
+    def __init__(self, series_panel, item_type, *args, list_type='LC', **kwargs):
         self.series_panel = series_panel
         self.item_type = item_type
+        self.list_type = list_type
 
         RAWCustomCtrl.ListItem.__init__(self, *args, **kwargs)
 
@@ -21605,7 +22110,10 @@ class SeriesRangeItem(RAWCustomCtrl.ListItem):
             return size
 
     def _create_layout(self):
-        frames = self.series_panel.secm.getFrames()
+        if self.list_type == 'LC':
+            frames = self.series_panel.secm.getFrames()
+        elif self.list_type == 'REGALS':
+            frames = np.arange(self.series_panel.start, self.series_panel.end+1)
 
         self.start_ctrl = RAWCustomCtrl.IntSpinCtrl(self, wx.ID_ANY,
             min_val=frames[0], max_val=frames[-1], size=self._FromDIP((60,-1)))
