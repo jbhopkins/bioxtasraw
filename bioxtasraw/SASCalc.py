@@ -305,10 +305,15 @@ def calcVpMW(q, i, err, rg, i0, rg_qmin, vp_density, qmax):
         #Calculate the Porod Volume
         pVolume = porodVolume(q, i, err, rg, i0, interp = True, rg_qmin=rg_qmin)
 
-        #Correct for the length of the q vector
-        pv_cor=(A+B*pVolume)
+        if pVolume == -1:
+            mw = -1
+            pv_cor = -1
 
-        mw = pv_cor*vp_density
+        else:
+            #Correct for the length of the q vector
+            pv_cor=(A+B*pVolume)
+
+            mw = pv_cor*vp_density
 
     else:
         mw = -1
@@ -333,6 +338,7 @@ def porodInvariant(q, i,start=0,stop=-1):
     return integrate.trapz(i[start:stop]*np.square(q[start:stop]),q[start:stop])
 
 def porodVolume(q, i, err, rg, i0, start = 0, stop = -1, interp = True, rg_qmin=0):
+
     if interp and q[0] != 0:
         def f(x):
             return i0*np.exp((-1./3.)*np.square(rg)*np.square(x))
@@ -348,17 +354,23 @@ def porodVolume(q, i, err, rg, i0, start = 0, stop = -1, interp = True, rg_qmin=
             i = i[idx_min:]
             err = err[idx_min:]
 
-        q_interp = np.arange(0,q[0],q[1]-q[0])
-        i_interp = f(q_interp)
-        err_interp = np.sqrt(i_interp)
+        if len(q) != 1:
 
-        q = np.concatenate((q_interp, q))
-        i = np.concatenate((i_interp, i))
-        err = np.concatenate((err_interp, err))
+            q_interp = np.arange(0,q[0],q[1]-q[0])
+            i_interp = f(q_interp)
+            err_interp = np.sqrt(i_interp)
 
-    pInvar = porodInvariant(q, i, start, stop)
+            q = np.concatenate((q_interp, q))
+            i = np.concatenate((i_interp, i))
+            err = np.concatenate((err_interp, err))
 
-    pVolume = 2*np.pi**2*i0/pInvar
+    if len(q) != 1:
+        pInvar = porodInvariant(q, i, start, stop)
+
+        pVolume = 2*np.pi**2*i0/pInvar
+
+    else:
+        pVolume = -1
 
     return pVolume
 
@@ -366,14 +378,11 @@ def autoRg(sasm, single_fit=False, error_weight=True):
     #This function automatically calculates the radius of gyration and scattering intensity at zero angle
     #from a given scattering profile. It roughly follows the method used by the autorg function in the atsas package
 
-    q = sasm.q
-    i = sasm.i
-    err = sasm.err
-    qmin, qmax = sasm.getQrange()
+    q = sasm.getQ()
+    i = sasm.getI()
+    err = sasm.getErr()
 
-    q = q[qmin:qmax]
-    i = i[qmin:qmax]
-    err = err[qmin:qmax]
+    qmin = 0
 
     try:
         rg, rger, i0, i0er, idx_min, idx_max = autoRg_inner(q, i, err, qmin,
@@ -2284,7 +2293,7 @@ def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
 
                     vpmw[a], vp[a], vpcor[a] = calcVpMW(current_sasm.getQ(),
                         current_sasm.getI(), current_sasm.getErr(), rg[a], i0[a],
-                        current_sasm.q[idx_min], vp_density, vpqmax)
+                        current_sasm.getQ()[idx_min], vp_density, vpqmax)
                 else:
                     vcmw[a], vcmwer[a] = -1, -1
                     vpmw[a], vp[a], vpcor[a] = -1, -1, -1
@@ -2327,7 +2336,7 @@ def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
 
                     vpmw[index], vp[index], vpcor[index] = calcVpMW(current_sasm.getQ(),
                         current_sasm.getI(), current_sasm.getErr(), rg[index], i0[index],
-                        current_sasm.q[idx_min], vp_density, vpqmax)
+                        current_sasm.getQ()[idx_min], vp_density, vpqmax)
                 else:
                     vcmw[index], vcmwer[index] = -1, -1
                     vpmw[index], vp[index], vpcor[index] = -1, -1, -1
