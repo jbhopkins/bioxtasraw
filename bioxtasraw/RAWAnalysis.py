@@ -856,6 +856,8 @@ class GuinierControlPanel(wx.Panel):
 
         self.setFilename(os.path.basename(ExpObj.getParameter('filename')))
 
+        self.bi = None
+
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
         try:
@@ -1186,14 +1188,34 @@ class GuinierControlPanel(wx.Panel):
     def onCloseButton(self, evt):
         self.guinier_frame.OnClose()
 
+    def showBusy(self, show=True):
+        if show:
+            self.bi = wx.BusyInfo('Finding Rg, please wait.', self.guinier_frame)
+        else:
+            try:
+                del self.bi
+                self.bi = None
+            except Exception:
+                pass
+
     def onAutoRg(self, evt):
         self.runAutoRg()
 
     def runAutoRg(self):
+
+        self.showBusy(True)
+        thread = threading.Thread(target=self._do_autorg)
+        thread.daemon = True
+        thread.start()
+
+    def _do_autorg(self):
         error_weight = self.raw_settings.get('errorWeight')
         rg, rger, i0, i0er, idx_min, idx_max = SASCalc.autoRg(self.ExpObj,
             error_weight=error_weight)
 
+        wx.CallAfter(self._finish_autorg, rg, rger, i0, i0er, idx_min, idx_max)
+
+    def _finish_autorg(self, rg, rger, i0, i0er, idx_min, idx_max):
         spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
         spinend = wx.FindWindowById(self.spinctrlIDs['qend'], self)
 
@@ -1201,8 +1223,10 @@ class GuinierControlPanel(wx.Panel):
         old_end = spinend.GetValue()
 
         if rg == -1:
-            msg = 'Auto Rg determination could not find a suitable interval to calculate Rg.'
-            wx.CallAfter(wx.MessageBox, str(msg), "Auto Rg Failed", style = wx.ICON_ERROR | wx.OK)
+            dlg = wx.MessageDialog(self, str(msg), "Auto Rg Failed",
+                style = wx.ICON_ERROR | wx.OK)
+            dlg.ShowModal()
+            dlg.Destroy()
 
             self.updatePlot()
 
@@ -1232,26 +1256,34 @@ class GuinierControlPanel(wx.Panel):
                 self.updatePlot(is_autorg=True)
 
             except IndexError:
-                spinstart.SetValue(old_start)
-                spinend.SetValue(old_end)
 
-                txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
-                txt.SetValue(str(round(self.ExpObj.q[int(old_start)],5)))
+                try:
+                    spinstart.SetValue(old_start)
+                    spinend.SetValue(old_end)
 
-                txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
-                txt.SetValue(str(round(self.ExpObj.q[int(old_end)],5)))
+                    txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
+                    txt.SetValue(str(round(self.ExpObj.q[int(old_start)],5)))
 
-                txt = wx.FindWindowById(self.error_data['autorg_rg'], self)
-                txt.SetValue('')
+                    txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
+                    txt.SetValue(str(round(self.ExpObj.q[int(old_end)],5)))
 
-                txt = wx.FindWindowById(self.error_data['autorg_i0'], self)
-                txt.SetValue('')
+                    txt = wx.FindWindowById(self.error_data['autorg_rg'], self)
+                    txt.SetValue('')
 
-                msg = ('Auto Rg determination did not produce a useable result. '
-                    'Please report this to the developers.')
-                wx.MessageBox(str(msg), "Auto Rg Failed", style = wx.ICON_ERROR | wx.OK)
+                    txt = wx.FindWindowById(self.error_data['autorg_i0'], self)
+                    txt.SetValue('')
 
-                self.updatePlot()
+                    self.updatePlot()
+
+                except Exception:
+                    # Most likely window has been closed before AutoRg finished
+                    pass
+
+            except Exception:
+                # Most likely window has been closed before AutoRg finished
+                pass
+
+        self.showBusy(False)
 
     def setCurrentExpObj(self, ExpObj):
 
@@ -1551,6 +1583,7 @@ class GuinierFrame(wx.Frame):
             return size
 
     def OnClose(self):
+        self.controlPanel.showBusy(False)
         self.Destroy()
 
 
@@ -4341,7 +4374,7 @@ class GNOMControlPanel(wx.Panel):
             size=self._FromDIP((40,-1)), style=wx.TE_PROCESS_ENTER)
         self.alpha_ctrl.Bind(wx.EVT_TEXT_ENTER, self.onAlpha)
 
-        self.cut_qrg = wx.CheckBox(self, label='Cut to q_max=8/Rg (dammif/n)')
+        self.cut_qrg = wx.CheckBox(self, label='Truncate for dammif/n')
         self.cut_qrg.SetValue(self.raw_settings.get('gnomCut8Rg'))
         self.cut_qrg.Bind(wx.EVT_CHECKBOX, self.onCutQRg)
 
@@ -4675,8 +4708,6 @@ class GNOMControlPanel(wx.Panel):
         guinier_rg = wx.FindWindowById(self.infodata['guinierRg'][1], self)
         gnom_rg = wx.FindWindowById(self.infodata['gnomRg'][1], self)
 
-        findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
-
         try:
             rg = float(guinier_rg.GetValue())
         except Exception:
@@ -4688,17 +4719,20 @@ class GNOMControlPanel(wx.Panel):
             except Exception:
                 rg = 0
 
-        if rg > 0:
-            if is_checked:
-                q_max = 8./rg
-                self.previous_qmax = float(wx.FindWindowById(self.staticTxtIDs['qend'], self).GetValue())
-            else:
-                q_max = self.previous_qmax
+        if is_checked:
+            self.previous_qmax = float(wx.FindWindowById(self.staticTxtIDs['qend'], self).GetValue())
 
-            self.setQVal(q_max, 'qend')
+            if rg > 0:
+                q_max = 8./rg
+                q_max = min(0.3, q_max)
+
+            else:
+                q_max = 0.3
 
         else:
-            self.cut_qrg.SetValue(False)
+            q_max = self.previous_qmax
+
+        self.setQVal(q_max, 'qend')
 
     def onEnterInQlimits(self, evt):
 
