@@ -13292,6 +13292,7 @@ class EFAFrame(wx.Frame):
             efa_dict['iter_limit'] = self.panel3_results['options']['niter']
             efa_dict['tolerance'] = self.panel3_results['options']['tol']
             efa_dict['method'] = self.panel3_results['options']['method']
+            efa_dict['force_positive'] = self.panel3_results['force_positive']
 
             analysis_dict['efa'] = efa_dict
 
@@ -14108,7 +14109,7 @@ class EFAControlPanel3(wx.Panel):
         self.SetSizer(control_sizer)
 
         self.results = {
-            'options'    : {},
+            'options'   : {},
             'steps'     : 0,
             'iterations': 0,
             'converged' : False,
@@ -14116,6 +14117,7 @@ class EFAControlPanel3(wx.Panel):
             'profiles'  : [],
             'conc'      : [],
             'chisq'     : [],
+            'force_positive'    : [],
             }
 
     def _FromDIP(self, size):
@@ -14290,6 +14292,12 @@ class EFAControlPanel3(wx.Panel):
                                 window.SetStringSelection(str(efa_dict[key]))
                             except Exception as e:
                                 print(e)
+
+                if 'force_positive' in efa_dict:
+                    force_positive = efa_dict['force_positive']
+                    for i in range(len(self.range_ids)):
+                        window = wx.FindWindowById(self.range_ids[i][2], self)
+                        window.SetValue(force_positive[i])
 
         if nvals == 1:
             window = wx.FindWindowById(self.control_ids['method'], self)
@@ -14527,8 +14535,10 @@ class EFAControlPanel3(wx.Panel):
         ranges = []
 
         for my_ids in self.range_ids:
-            ranges.append([wx.FindWindowById(my_ids[0], self).GetValue(),
-                wx.FindWindowById(my_ids[1], self).GetValue()])
+            r = [wx.FindWindowById(my_ids[0], self).GetValue(),
+                wx.FindWindowById(my_ids[1], self).GetValue()]
+            r.sort()
+            ranges.append(r)
 
         ranges = np.array(ranges, dtype = int)
 
@@ -14617,6 +14627,13 @@ class EFAControlPanel3(wx.Panel):
         self.results['iterations'] = self.conv_data['iterations']
         self.results['options'] = self.conv_data['options']
         self.results['steps'] = self.conv_data['steps']
+
+        force_positive = []
+        for i in range(len(self.range_ids)):
+            window = wx.FindWindowById(self.range_ids[i][2], self)
+            force_positive.append(window.GetValue())
+
+        self.results['force_positive'] = force_positive
 
         self.results['converged'] = self.converged
 
@@ -15363,7 +15380,7 @@ class REGALSFrame(wx.Frame):
         msg = ('If you use REGALS in your work, in addition to citing '
             'the RAW paper please cite:\n'
             'Steve P. Meisburger, Da Xu, and Nozomi Ando. IUCrJ 2021 8 '
-            '(2). DOI: 10.1107/S2052252521000555')
+            '(2), 225-237. DOI: 10.1107/S2052252521000555')
         wx.MessageBox(str(msg), "How to cite REGALS",
             style=wx.ICON_INFORMATION|wx.OK)
 
