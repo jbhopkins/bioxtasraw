@@ -38,6 +38,7 @@ import sys
 import copy
 
 import numpy as np
+import scipy.signal
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
@@ -1013,6 +1014,8 @@ class overview_plot(object):
 
         lines = []
 
+        ax.axhline(0, 0, 1, linewidth=1.0, color='k')
+
         for series in self.series:
             x_data = series.frames
 
@@ -1178,14 +1181,21 @@ class overview_plot(object):
         ax.axvline(np.sqrt(3), 0, 1, linestyle = 'dashed', color='0.6')
         ax.axhline(3/np.e, 0, 1, linestyle = 'dashed', color='0.6')
 
+        tail_norm_i_max = 0
+
         for profile in self.profiles:
             i0 = profile.guinier_data.I0
             rg = profile.guinier_data.Rg
 
             qRg = profile.q*rg
+            norm_i = qRg**2*profile.i/i0
 
-            ax.plot(qRg, qRg**2*profile.i/i0, markersize=1,
+            ax.plot(qRg, norm_i, markersize=1,
                 label=profile.filename)
+
+            if len(norm_i) > 51:
+                smoothed_data = scipy.signal.savgol_filter(norm_i, 51, 5)
+                tail_norm_i_max = max(tail_norm_i_max, smoothed_data.max())
 
         ax.axhline(0, color='k')
 
@@ -1195,8 +1205,10 @@ class overview_plot(object):
         ax.set_xlabel(r'q$R_g$')
         ax.set_ylabel(r'(q$R_g$)$^2$I(q)/I(0)')
 
+        top_lim = max(3, tail_norm_i_max*1.1)
+
         ymin, ymax = ax.get_ylim()
-        ax.set_ylim(max(-0.1, ymin), min(3, ymax))
+        ax.set_ylim(max(-0.1, ymin), min(top_lim, ymax))
 
         ax.text(-.15,1.0, label, transform = ax.transAxes, fontweight='bold',
             size='large')

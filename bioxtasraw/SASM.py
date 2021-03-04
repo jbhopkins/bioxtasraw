@@ -300,6 +300,23 @@ class SASM(object):
         self._q_scale_factor = q_scale_factor
         self._update()
 
+    def scaleRelativeQ(self, relscale):
+        """
+        Applies a relative scale to the profile q. If the scale factor
+        is currently 1, then this is the same as :func:`scale`. Otherwise,
+        this scales relative to the current scale factor. For example, suppose
+        the scale factor is currently 2. If a relative scale of 2 is provided,
+        the resulting scale factor if 4.
+
+        Parameters
+        ----------
+        relscale: float
+            The relative scale factor to be applied to the the profile
+            intensity and uncertainty.
+        """
+        self._q_scale_factor = self._q_scale_factor * relscale
+        self._update()
+
     def reset(self):
         """
         Removes scale and offset values from the intensity, uncertainty, and q.

@@ -1667,7 +1667,7 @@ class MainFrame(wx.Frame):
             for item in selected_items:
                 sasm = item.sasm
 
-                sasm.scaleQ(10.0)
+                sasm.scaleRelativeQ(10.0)
                 item._updateQTextCtrl()
                 item.markAsModified()
                 altered.append(sasm)
@@ -1687,7 +1687,7 @@ class MainFrame(wx.Frame):
             for item in selected_items:
                 sasm = item.sasm
 
-                sasm.scaleQ(0.1)
+                sasm.scaleRelativeQ(0.1)
                 item._updateQTextCtrl()
                 item.markAsModified()
                 altered.append(sasm)
@@ -8570,14 +8570,14 @@ class ManipItemPanel(wx.Panel):
 
         elif evt.GetId() == 15:
             #A to s
-            self.sasm.scaleQ(10.0)
+            self.sasm.scaleRelativeQ(10.0)
             self._updateQTextCtrl()
             self.markAsModified()
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])
 
         elif evt.GetId() == 16:
             #s to A
-            self.sasm.scaleQ(0.1)
+            self.sasm.scaleRelativeQ(0.1)
             self._updateQTextCtrl()
             self.markAsModified()
             wx.CallAfter(self.sasm.plot_panel.updatePlotAfterManipulation, [self.sasm])

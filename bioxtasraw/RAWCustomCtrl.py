@@ -657,8 +657,8 @@ class IntSpinCtrl(wx.Panel):
         self.ScalerButton.Bind(wx.EVT_SPIN_UP, self.OnSpinUpScale)
         self.ScalerButton.Bind(wx.EVT_SPIN_DOWN, self.OnSpinDownScale)
         self.ScalerButton.SetRange(-99999, 99999)
-        self.max = max_val
-        self.min = min_val
+        self.max_val = max_val
+        self.min_val = min_val
 
         if platform.system() != 'Windows':
             self.Scale = wx.TextCtrl(self, -1, str(min),
@@ -705,12 +705,12 @@ class IntSpinCtrl(wx.Panel):
         except ValueError:
             return
 
-        if self.max is not None:
-            if float(val) > self.max:
-                self.Scale.SetValue(str(self.max))
-        if self.min is not None:
-            if float(val) < self.min:
-                self.Scale.SetValue(str(self.min))
+        if self.max_val is not None:
+            if float(val) > self.max_val:
+                self.Scale.SetValue(str(self.max_val))
+        if self.min_val is not None:
+            if float(val) < self.min_val:
+                self.Scale.SetValue(str(self.min_val))
 
         #if val != self.oldValue:
         self.oldValue = val
@@ -725,10 +725,10 @@ class IntSpinCtrl(wx.Panel):
         try:
             float(val)
         except ValueError:
-            if self.min is not None:
-                val = self.min -1
-            elif self.max is not None:
-                val = self.max -1
+            if self.min_val is not None:
+                val = self.min_val -1
+            elif self.max_val is not None:
+                val = self.max_val -1
             else:
                 return
 
@@ -738,11 +738,11 @@ class IntSpinCtrl(wx.Panel):
         if self.ScalerButton.GetValue() > 90000:
             self.ScalerButton.SetValue(0)
 
-        #print self.min, self.max, val, self.ScalerButton.GetMax(), self.ScalerButton.GetValue()
+        #print self.min_val, self.max_val, val, self.ScalerButton.GetMax(), self.ScalerButton.GetValue()
 
-        if self.max is not None:
-            if newval > self.max:
-                self.Scale.SetValue(str(self.max))
+        if self.max_val is not None:
+            if newval > self.max_val:
+                self.Scale.SetValue(str(self.max_val))
             else:
                 self.Scale.SetValue(str(newval))
         else:
@@ -760,10 +760,10 @@ class IntSpinCtrl(wx.Panel):
         try:
             float(val)
         except ValueError:
-            if self.max is not None:
-                val = self.max +1
-            elif self.min is not None:
-                val = self.min +1
+            if self.max_val is not None:
+                val = self.max_val +1
+            elif self.min_val is not None:
+                val = self.min_val +1
             else:
                 return
 
@@ -773,9 +773,9 @@ class IntSpinCtrl(wx.Panel):
         if self.ScalerButton.GetValue() < -90000:
             self.ScalerButton.SetValue(0)
 
-        if self.min is not None:
-            if newval < self.min:
-                self.Scale.SetValue(str(self.min))
+        if self.min_val is not None:
+            if newval < self.min_val:
+                self.Scale.SetValue(str(self.min_val))
             else:
                 self.Scale.SetValue(str(newval))
         else:
@@ -797,11 +797,11 @@ class IntSpinCtrl(wx.Panel):
         self.Scale.SetValue(str(value))
 
     def SetRange(self, minmax):
-        self.max = int(float(minmax[1]))
-        self.min = int(float(minmax[0]))
+        self.max_val = int(float(minmax[1]))
+        self.min_val = int(float(minmax[0]))
 
     def GetRange(self):
-        return (self.min, self.max)
+        return (self.min_val, self.max_val)
 
 class RawPanelFileDropTarget(wx.FileDropTarget):
     """"""

@@ -19866,15 +19866,16 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
         if len(frames) < 22:
             r1_1 = frames[len(frames)//2]
-            r2_2 = frames[min(len(frames)//2+1, len(frames)-1)]
+            r2_1 = frames[min(len(frames)//2+1, len(frames)-1)]
         else:
             r1_1 = frames[10]
-            r2_2 = frames[-11]
+            r2_1 = frames[-11]
 
         self.bl_r1_start = RAWCustomCtrl.IntSpinCtrl(baseline_win,
             wx.ID_ANY, min_val=r1_0, max_val=r1_1, size=self._FromDIP((60,-1)))
         self.bl_r1_end = RAWCustomCtrl.IntSpinCtrl(baseline_win,
             wx.ID_ANY, min_val=r1_0, max_val=frames[-1], size=self._FromDIP((60,-1)))
+        self.bl_r1_start.SetValue(r1_0)
         self.bl_r1_end.SetValue(r1_1)
         self.bl_r1_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
         self.bl_r1_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
@@ -19882,8 +19883,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.bl_r2_start = RAWCustomCtrl.IntSpinCtrl(baseline_win,
             wx.ID_ANY, min_val=r2_0, max_val=frames[-1], size=self._FromDIP((60,-1)))
         self.bl_r2_end = RAWCustomCtrl.IntSpinCtrl(baseline_win,
-            wx.ID_ANY, min_val=r2_2, max_val=frames[-1], size=self._FromDIP((60,-1)))
-        self.bl_r2_start.SetValue(r2_2)
+            wx.ID_ANY, min_val=r2_1, max_val=frames[-1], size=self._FromDIP((60,-1)))
+        self.bl_r2_start.SetValue(r2_1)
         self.bl_r2_end.SetValue(frames[-1])
         self.bl_r2_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
         self.bl_r2_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
