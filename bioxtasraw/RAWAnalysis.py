@@ -12445,18 +12445,39 @@ class SVDControlPanel(wx.Panel):
         if self.ctrl_type == 'EFA' or self.ctrl_type == 'REGALS':
             #Input number of significant values to use for EFA or REGALS
             box = wx.StaticBox(self, -1, 'User Input')
-            input_sizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
+            input_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+
+            sub_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
             label1 = wx.StaticText(self, -1, '# Significant SVs:')
             user_input = RAWCustomCtrl.IntSpinCtrl(self, self.control_ids['input'],
                 size=self._FromDIP((60,-1)))
 
 
-            input_sizer.Add(label1, 0, wx.LEFT|wx.TOP|wx.BOTTOM
+            sub_sizer.Add(label1, 0, wx.LEFT|wx.TOP|wx.BOTTOM
                 |wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(3))
-            input_sizer.Add(user_input, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL,
+            sub_sizer.Add(user_input, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL,
                 border=self._FromDIP(3))
-            input_sizer.AddStretchSpacer(1)
+            sub_sizer.AddStretchSpacer(1)
+
+            input_sizer.Add(sub_sizer, flag=wx.EXPAND)
+
+
+            if self.ctrl_type == 'REGALS':
+                sub_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+
+                self.regals_exp_type = wx.Choice(self, choices=['IEC/SEC-SAXS', 'Titration', 'TR-SAXS', 'Other'])
+                self.regals_exp_type.SetSelection(0)
+
+                sub_sizer2.Add(wx.StaticText(self, label='Experiment type:'), 0,
+                    wx.LEFT|wx.TOP|wx.BOTTOM|wx.ALIGN_CENTER_VERTICAL,
+                    border=self._FromDIP(3))
+                sub_sizer2.Add(self.regals_exp_type, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL,
+                    border=self._FromDIP(3))
+                sub_sizer2.AddStretchSpacer(1)
+
+                input_sizer.Add(sub_sizer2, flag=wx.TOP|wx.EXPAND,
+                    border=self._FromDIP(3))
 
 
         top_sizer.Add(filesizer, 0, wx.EXPAND | wx.TOP, border=self._FromDIP(3))
@@ -12545,7 +12566,8 @@ class SVDControlPanel(wx.Panel):
                     wx.FindWindowById(self.control_ids['input'], self).SetValue(analysis[key])
                 elif key in self.control_ids:
                      wx.FindWindowById(self.control_ids[key], self).SetValue(analysis[key])
-
+                elif key == 'exp_type':
+                    self.regals_exp_type.SetStringSelection(analysis[key])
 
         #make a subtracted profile SECM
         if len(self.secm.subtracted_sasm_list)>0:
@@ -12930,6 +12952,9 @@ class SVDControlPanel(wx.Panel):
                     value = self.bl_subtracted_secm.getSASM().getQ()
 
             self.results[key] = value
+
+        if self.ctrl_type == 'REGALS':
+            self.results['exp_type'] = self.regals_exp_type.GetStringSelection()
 
         return self.results
 
@@ -13619,10 +13644,11 @@ class EFAControlPanel2(wx.Panel):
 
 
             if analysis_dict is not None:
+
                 if (nvals == analysis_dict['nsvs']
                     and self.panel1_results['fstart'] == analysis_dict['fstart']
                     and self.panel1_results['fend'] == analysis_dict['fend']
-                    and self.panel1_results['secm_choice'] == analysis_dict['secm_choice']
+                    and self.panel1_results['profile'] == analysis_dict['profile']
                     and nvals == len(analysis_dict['ranges'])):
 
                     if self.ctrl_type == 'REGALS':
@@ -13638,7 +13664,16 @@ class EFAControlPanel2(wx.Panel):
                         backward_sv = np.roll(backward_sv, -1*bkg_comp)
                         points = np.column_stack((forward_sv, backward_sv))
 
+                        if int(self.bkg_components.GetValue()) == 0:
+
+                            if ('exp_type' in self.panel1_results and
+                                self.panel1_results['exp_type'] == 'IEC/SEC-SAXS'):
+                                print('here2')
+                                wx.CallAfter(self._find_regals_bkg)
+
                     if np.all(np.sort(forward_sv) == forward_sv) and np.all(np.sort(backward_sv) == backward_sv):
+                        self.setSVs(points)
+                    elif self.ctrl_type == 'REGALS':
                         self.setSVs(points)
                     else:
                         self._findEFAPoints()
@@ -13648,6 +13683,13 @@ class EFAControlPanel2(wx.Panel):
                 self._findEFAPoints()
 
             self.initialized = True
+
+            if self.ctrl_type == 'REGALS':
+                if int(self.bkg_components.GetValue()) == 0:
+                    if ('exp_type' in self.panel1_results and
+                        self.panel1_results['exp_type'] == 'IEC/SEC-SAXS'):
+                        wx.CallAfter(self._find_regals_bkg)
+
         else:
             self._findEFAPoints()
 
@@ -13749,8 +13791,12 @@ class EFAControlPanel2(wx.Panel):
         backward_points = [wx.FindWindowById(my_id, self).GetValue() for my_id in self.backward_ids]
         self.results['backward_points'] = copy.copy(backward_points)
 
-        forward_points.sort()
-        backward_points.sort()
+        if self.ctrl_type == 'EFA':
+            forward_points.sort()
+            backward_points.sort()
+        else:
+            backward_points = backward_points[::-1]
+
 
         if self.ctrl_type == 'REGALS':
             # Unlike elution compoments, background components are assumed to be first in last out
@@ -13778,7 +13824,6 @@ class EFAControlPanel2(wx.Panel):
         end = self.panel1_results['fend']
         secm_choice = self.panel1_results['secm_choice']
 
-        print(secm_choice)
         if secm_choice == 'usub':
             series = self.secm
         elif secm_choice == 'sub':
@@ -14225,7 +14270,7 @@ class EFAControlPanel3(wx.Panel):
             efa_dict = analysis_dict['efa']
             if (efa_dict['fstart'] == self.panel1_results['fstart']
                 and efa_dict['fend'] == self.panel1_results['fend']
-                and efa_dict['secm_choice'] == self.panel1_results['secm_choice']
+                and efa_dict['profile'] == self.panel1_results['profile']
                 and efa_dict['nsvs'] == self.panel1_results['input']
                 and np.all(efa_dict['ranges'] == self._getRanges())):
 
@@ -15301,10 +15346,11 @@ class REGALSFrame(wx.Frame):
                     regals_dict['component_settings'] = regals_results['settings']['comp_settings']
                     regals_dict['run_settings'] = regals_results['settings']['ctrl_settings']
                     regals_dict['background_components'] = self.panel_results[-2]['bkg_components']
+                    regals_dict['exp_type'] = self.panel_results[0]['exp_type']
 
                     if not np.array_equal(self.panel_results[-1]['x_calibration']['x'],
                         np.arange(self.panel_results[0]['fstart'],
-                            self.panel_results[0]['fend'])):
+                            self.panel_results[0]['fend']+1)):
                         regals_dict['x_calibration'] = self.panel_results[-1]['x_calibration']
 
                     analysis_dict['regals'] = regals_dict
@@ -15707,7 +15753,16 @@ class REGALSRunPanel(wx.Panel):
         for i in range(len(regals_ranges)):
             for j in range(i+1, len(regals_ranges)):
                 if np.all(regals_ranges[i] == regals_ranges[j]):
-                    range_valid = False
+                    s1 = comp_settings[i]
+                    s2 = comp_settings[j]
+
+                    print(s1)
+                    print(s2)
+                    print(s1==s2)
+                    print(s1[0] == s2[0])
+                    print(s1[1] == s2[1])
+
+                    range_valid = not s1 == s2
 
         valid_settings = True
 
@@ -15746,8 +15801,8 @@ class REGALSRunPanel(wx.Panel):
                 'others.\n')
 
         if not range_valid:
-            err_msg = err_msg+ ('- Concentration ranges must be unique. Two or '
-                'more concentration ranges are identical.\n')
+            err_msg = err_msg+ ('- Components must be unique. Two or '
+                'more components are identical.\n')
 
         if not valid_settings:
             err_msg = err_msg + settings_msg
@@ -15840,6 +15895,12 @@ class REGALSRunPanel(wx.Panel):
         self._default_component_settings[1]['xrange'] = [start, end]
         self._default_component_settings[1]['frame_xmin'] = start
         self._default_component_settings[1]['frame_xmax'] = end
+
+        if 'exp_type' in self.svd_results:
+            if (self.svd_results['exp_type'] == 'Titration'
+                or self.svd_results['exp_type'] == 'TR-SAXS'):
+                self._default_component_settings[0]['type'] = 'realspace'
+                self._default_component_settings[0]['kwargs']['Nw'] = 101
 
         self.on_component_change(nvals)
 
@@ -17139,6 +17200,8 @@ class REGALSBackground(wx.Dialog):
 
         self.svd_results = {}
 
+        self.prop_cycle = matplotlib.rcParams['axes.prop_cycle']()
+
         self._create_layout()
 
         self._initialize(max_comps, bkg_comps)
@@ -17165,7 +17228,7 @@ class REGALSBackground(wx.Dialog):
 
         self.bkg_region_list = SeriesRangeItemList(self, 'buffer', ctrl_box,
             list_type='REGALS')
-        self.bkg_region_list.SetMinSize(self._FromDIP((-1,115)))
+        self.bkg_region_list.SetMinSize(self._FromDIP((-1,130)))
 
 
         buffer_add_btn = wx.Button(ctrl_box, label='Add region')
@@ -17267,8 +17330,8 @@ class REGALSBackground(wx.Dialog):
     def update_plot_data(self, xdata, ydata, label, axis):
         self.series_plot.plot_data(xdata, ydata, label, axis)
 
-    def update_plot_range(self, start, end, index):
-        self.series_plot.plot_range(start, end, index)
+    def update_plot_range(self, start, end, index, color):
+        self.series_plot.plot_range(start, end, index, color)
 
         self.do_svd(start, end, index)
 
@@ -17291,8 +17354,8 @@ class REGALSBackground(wx.Dialog):
 
     def _onSeriesAdd(self, evt):
         """Called when the Add control buttion is used."""
-        index, start, end = self._addSeriesRange(self.bkg_region_list)
-        self.update_plot_range(start, end, index)
+        index, start, end, color = self._addSeriesRange(self.bkg_region_list)
+        self.update_plot_range(start, end, index, color)
 
     def _addSeriesRange(self, parent_list):
         range_item = parent_list.create_items()
@@ -17300,10 +17363,12 @@ class REGALSBackground(wx.Dialog):
         start, end = range_item.get_range()
         index = range_item.GetId()
 
+        range_item.color = next(self.prop_cycle)['color']
+
         self.Layout()
         self.SendSizeEvent()
 
-        return index, start, end
+        return index, start, end, range_item.color
 
     def _onSeriesRemove(self, evt):
         """Called by the Remove control button, removes a control."""
@@ -17355,7 +17420,7 @@ class REGALSBackground(wx.Dialog):
         current_end_range = item.end_ctrl.GetRange()
         item.end_ctrl.SetRange((new_start, current_end_range[1]))
 
-        self.update_plot_range(new_start, new_end, index)
+        self.update_plot_range(new_start, new_end, index, item.color)
 
     def updateSeriesRange(self, event):
         event_object = event.GetEventObject()
@@ -17372,7 +17437,7 @@ class REGALSBackground(wx.Dialog):
             current_range = event_item.start_ctrl.GetRange()
             event_item.start_ctrl.SetRange((current_range[0], value))
 
-        self.update_plot_range(start, end, index)
+        self.update_plot_range(start, end, index, event_item.color)
 
     def _onChangeSVD(self, evt):
         for index in self.svd_results:
@@ -17412,13 +17477,15 @@ class REGALSBackground(wx.Dialog):
         svd_start = int(self.start_svd.GetValue())
         svd_end = int(self.end_svd.GetValue())
 
+        item = wx.FindWindowById(index)
+
         plt_end = min(svd_end, len(svd_s)-1)
         self.svd_plot.plot_data(xdata[svd_start:plt_end+1],
-            svd_s[svd_start:plt_end+1], index, 'sv')
+            svd_s[svd_start:plt_end+1], index, 'sv', item.color)
         self.svd_plot.plot_data(xdata[svd_start:plt_end+1],
-            svd_U_autocor[svd_start:plt_end+1], index, 'left_ac')
+            svd_U_autocor[svd_start:plt_end+1], index, 'left_ac', item.color)
         self.svd_plot.plot_data(xdata[svd_start:plt_end+1],
-            svd_V_autocor[svd_start:plt_end+1], index, 'right_ac')
+            svd_V_autocor[svd_start:plt_end+1], index, 'right_ac', item.color)
 
     def get_bkg_comps(self):
         return int(self.num_svs.GetValue())
@@ -18838,7 +18905,7 @@ class SeriesPlotPanel(wx.Panel):
         #Reconnect draw_event
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
-    def plot_range(self, start, end, index):
+    def plot_range(self, start, end, index, color=None):
 
         if index in self.plot_ranges:
             line = self.plot_ranges[index]
@@ -18847,10 +18914,12 @@ class SeriesPlotPanel(wx.Panel):
 
         if line is None:
             self.canvas.mpl_disconnect(self.cid)
-            if isinstance(index, str) and index.startswith('bl'):
-                color = '#17becf'
-            else:
-                color = '#2ca02c'
+            if color is None:
+                if isinstance(index, str) and index.startswith('bl'):
+                    color = '#17becf'
+                else:
+                    color = '#2ca02c'
+
             if start<end:
                 line = self.subplot.axvspan(start, end, animated=True, facecolor=color,
                     alpha=0.5)

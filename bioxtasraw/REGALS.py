@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from copy import deepcopy
-
 import numpy as np
 from scipy import sparse as sp
 from scipy.linalg import eig
@@ -62,10 +61,10 @@ class regals:
 
     def run(self, mix, stop_fun = None, update_fun = None):
 
-        if stop_fun is not None:
+        if stop_fun is None:
             stop_fun = lambda num_iter, params: [num_iter >= 10, 'max_iter']
 
-        if update_fun is not None:
+        if update_fun is None:
             update_fun = lambda num_iter, new_mix, params, resid: True
 
         num_iter = 0
@@ -239,9 +238,6 @@ class mixture:
 
     @property
     def concentrations(self):
-        # for comp, upk in zip(self.components, self.u_concentration):
-        #     print(comp.concentration.A.shape)
-        #     print(upk[:,np.newaxis].shape)
         return np.hstack(tuple(comp.concentration.A @ upk[:,np.newaxis] for comp, upk in zip(self.components, self.u_concentration)))
 
     @property
@@ -361,8 +357,10 @@ class concentration_smooth:
     @property
     def F(self):
         ix = np.searchsorted(self.w,self.x,side='right')
+        ix_l = np.searchsorted(self.w,self.x,side='left')
+        is_in_concentration = np.logical_or(np.logical_and(ix > 0, ix < self.Nw),ix != ix_l)
         ix = ix - 1
-        is_in_concentration = np.logical_and(ix > -1, ix < self.Nw - 1)
+        ix[ix == self.Nw - 1] = self.Nw - 2 # if equal to last bin edge, assign to last bin
         v = np.arange(self.Nx)
         ix = ix[is_in_concentration]
         v = v[is_in_concentration]
