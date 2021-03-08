@@ -60,6 +60,7 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.figure import Figure
 import matplotlib.colors as mplcol
 from mpl_toolkits.mplot3d import Axes3D
+from  matplotlib.colors import colorConverter as cc
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -8062,7 +8063,7 @@ class DenssRunPanel(wx.Panel):
             self.logbook.AddPage(text_ctrl, str(i))
             self.thread_nums.put_nowait(str(i))
 
-        if nruns > 1 and average:
+        if nruns > 3 and average:
             average_names = [prefix+'_average.log', prefix+'_average.mrc',
                 prefix+'_chis_by_step.fit', prefix+'_fsc.dat', prefix+'_map.fit',
                 prefix+'_rg_by_step.fit', prefix+'_supportV_by_step.fit']
@@ -8326,6 +8327,8 @@ class DenssRunPanel(wx.Panel):
 
         sym = wx.FindWindowById(self.ids['sym_on'], self)
 
+        dmax = float(self.iftm.getParameter('dmax'))
+
         if not sym.GetValue():
             self.denss_settings['ncs'] = 0
 
@@ -8354,36 +8357,50 @@ class DenssRunPanel(wx.Panel):
             self.denss_settings['cutOutput'] = temp_settings.get('denssCutOut')
             self.denss_settings['writeXplor'] = temp_settings.get('denssWriteXplor')
             self.denss_settings['recenterMode'] = temp_settings.get('denssRecenterMode')
-            self.denss_settings['minDensity'] = temp_settings.get('denssMinDensity')
-            self.denss_settings['maxDensity'] = temp_settings.get('denssMaxDensity')
-            self.denss_settings['flattenLowDensity'] = temp_settings.get('denssFlattenLowDensity')
+            # self.denss_settings['minDensity'] = temp_settings.get('denssMinDensity')
+            # self.denss_settings['maxDensity'] = temp_settings.get('denssMaxDensity')
+            # self.denss_settings['flattenLowDensity'] = temp_settings.get('denssFlattenLowDensity')
             self.denss_settings['ncsSteps'] = temp_settings.get('denssNCSSteps')
+            self.denss_settings['denssGPU'] = temp_settings.get('denssGPU')
+
+        shrinkwrap_sigma_start_in_A = (3.0 * dmax / 64.0) * 3.0
+        shrinkwrap_sigma_end_in_A = (3.0 * dmax / 64.0) * 1.5
+        shrinkwrap_threshold_fraction = 0.2
 
         if self.denss_settings['mode'] == 'Fast':
             self.denss_settings['swMinStep'] = 1000
             self.denss_settings['conSteps'] = '[2000]'
             self.denss_settings['recenterStep'] = '%s' %(list(range(501,2502,500)))
             self.denss_settings['steps'] = None
-            D = float(self.iftm.getParameter('dmax'))
-            self.denss_settings['voxel'] = D*self.denss_settings['oversample']/32.
+
+            self.denss_settings['voxel'] = dmax*self.denss_settings['oversample']/32.
 
         elif self.denss_settings['mode'] == 'Slow':
-            self.denss_settings['swMinStep'] = 5000
-            self.denss_settings['conSteps'] = '[6000]'
+            self.denss_settings['swMinStep'] = 1000
+            self.denss_settings['conSteps'] = '[2000]'
             self.denss_settings['recenterStep'] = '%s' %(list(range(501,8002,500)))
             self.denss_settings['steps'] = None
-            D = float(self.iftm.getParameter('dmax'))
-            self.denss_settings['voxel'] = D*self.denss_settings['oversample']/64.
+            self.denss_settings['voxel'] = dmax*self.denss_settings['oversample']/64.
 
         elif self.denss_settings['mode'] == 'Membrane':
             self.denss_settings['swMinStep'] = 0
             self.denss_settings['swThresFrac'] = 0.1
-            self.denss_settings['conSteps'] = '[300]'
+            self.denss_settings['conSteps'] = '[300, 500, 1000]'
             self.denss_settings['recenterStep'] = '%s' %(list(range(501,8002,500)))
             self.denss_settings['steps'] = None
-            D = float(self.iftm.getParameter('dmax'))
-            self.denss_settings['voxel'] = D*self.denss_settings['oversample']/64.
+            self.denss_settings['voxel'] = dmax*self.denss_settings['oversample']/64.
             self.denss_settings['positivity'] = False
+
+            shrinkwrap_start_end_in_A *= 2.0
+            shrinkwrap_sigma_end_in_A *= 2.0
+
+        if self.denss_settings['swSigmaStart'] == 'None':
+            shrinkwrap_sigma_start_in_vox = shrinkwrap_sigma_start_in_A / self.denss_settings['voxel']
+            self.denss_settings['swSigmaStart'] = shrinkwrap_sigma_start_in_vox
+
+        if self.denss_settings['swSigmaEnd'] == 'None':
+            shrinkwrap_sigma_end_in_vox = shrinkwrap_sigma_end_in_A / self.denss_settings['voxel']
+            self.denss_settings['swSigmaEnd'] = shrinkwrap_sigma_end_in_vox
 
     def get_multi_output(self, out_queue, den_window, stop_event, nmsg=100):
         num_msg = 0
@@ -8538,6 +8555,7 @@ class DenssRunPanel(wx.Panel):
         sides = np.array([denss_outputs[i][9] for i in np.arange(nruns)])
 
         wx.CallAfter(averWindow.AppendText, 'Filtering enantiomers\n')
+
         allrhos, scores = DENSS.run_enantiomers(allrhos, procs, nruns,
             avg_q, self.my_lock, self.wx_queue, self.abort_event,
             self.single_proc)
@@ -8547,6 +8565,7 @@ class DenssRunPanel(wx.Panel):
             return
 
         wx.CallAfter(averWindow.AppendText, 'Generating alignment reference\n')
+
         refrho = DENSS.binary_average(allrhos, procs, self.abort_event,
             self.single_proc)
 
@@ -8557,6 +8576,7 @@ class DenssRunPanel(wx.Panel):
             return
 
         wx.CallAfter(averWindow.AppendText, 'Aligning and averaging models\n')
+
         aligned, scores = DENSS.align_multiple(refrho, allrhos, procs,
             self.abort_event, self.single_proc)
 
@@ -8590,7 +8610,7 @@ class DenssRunPanel(wx.Panel):
         wx.CallAfter(averWindow.AppendText, "Standard deviation of scores: %.3f\n" % std)
         wx.CallAfter(averWindow.AppendText,'Total number of input maps for alignment: %i\n' % allrhos.shape[0])
         wx.CallAfter(averWindow.AppendText,'Number of aligned maps accepted: %i\n' % aligned.shape[0])
-        wx.CallAfter(averWindow.AppendText,'Correlation score between average and reference: %.3f\n' % (1./DENSS.rho_overlap_score(average_rho, refrho)))
+        wx.CallAfter(averWindow.AppendText,'Correlation score between average and reference: %.3f\n' % (-DENSS.rho_overlap_score(average_rho, refrho)))
         DENSS.write_mrc(average_rho, sides[0], os.path.join(path, prefix+'_average.mrc'))
 
         """
@@ -8598,7 +8618,7 @@ class DenssRunPanel(wx.Panel):
         avg_rho1 = np.mean(aligned[::2],axis=0)
         avg_rho2 = np.mean(aligned[1::2],axis=0)
         fsc = DENSS.calc_fsc(avg_rho1,avg_rho2,sides[0])
-        np.savetxt(os.path.join(path, prefix+'_fsc.dat'),fsc,delimiter=" ",fmt="%.5e",header="qbins, FSC")
+        np.savetxt(output+'_fsc.dat',fsc,delimiter=" ",fmt="%.5e",header="qbins, FSC")
         """
         #rather than compare two halves, average all fsc's to the reference
         fscs = []
@@ -8606,13 +8626,13 @@ class DenssRunPanel(wx.Panel):
             fscs.append(DENSS.calc_fsc(aligned[calc_map],refrho,sides[0]))
         fscs = np.array(fscs)
         fsc = np.mean(fscs,axis=0)
-        np.savetxt(os.path.join(path, prefix+'_fsc.dat'), fsc, delimiter=" ",
-            fmt="%.5e".encode('ascii'), header="1/resolution, FSC")
         x = np.linspace(fsc[0,0],fsc[-1,0],100)
         y = np.interp(x, fsc[:,0], fsc[:,1])
         resi = np.argmin(y>=0.5)
         resx = np.interp(0.5,[y[resi+1],y[resi]],[x[resi+1],x[resi]])
         resn = round(float(1./resx),1)
+        np.savetxt(os.path.join(path, prefix+'_fsc.dat'),fsc,delimiter=" ",
+            fmt="%.5e",header="1/resolution, FSC; Resolution=%.1f A" % resn)
 
         res_str = "Resolution: %.1f " % resn + 'Angstrom\n'
         wx.CallAfter(averWindow.AppendText, res_str)
@@ -8630,9 +8650,10 @@ class DenssRunPanel(wx.Panel):
         self.threads_finished[-1] = True
         stop_event.set()
 
-        self.average_results = {'mean': mean, 'std': std,'res': resn, 'scores': scores,
-            'fsc': fsc, 'total': allrhos.shape[0], 'inc': aligned.shape[0],
-            'thresh': threshold, 'model': average_rho, 'side': sides[0]}
+        self.average_results = {'mean': mean, 'std': std,'res': resn,
+            'scores': scores, 'fsc': fsc, 'total': allrhos.shape[0],
+            'inc': aligned.shape[0], 'thresh': threshold, 'model': average_rho,
+            'side': sides[0], 'fscs': fscs}
 
         if self.abort_event.is_set():
             return
@@ -9099,13 +9120,14 @@ class DenssRunPanel(wx.Panel):
             'writeXplor'        : self.raw_settings.get('denssWriteXplor'),
             'mode'              : self.raw_settings.get('denssMode'),
             'recenterMode'      : self.raw_settings.get('denssRecenterMode'),
-            'minDensity'        : self.raw_settings.get('denssMinDensity'),
-            'maxDensity'        : self.raw_settings.get('denssMaxDensity'),
-            'flattenLowDensity' : self.raw_settings.get('denssFlattenLowDensity'),
+            # 'minDensity'        : self.raw_settings.get('denssMinDensity'),
+            # 'maxDensity'        : self.raw_settings.get('denssMaxDensity'),
+            # 'flattenLowDensity' : self.raw_settings.get('denssFlattenLowDensity'),
             'ncs'               : self.raw_settings.get('denssNCS'),
             'ncsSteps'          : self.raw_settings.get('denssNCSSteps'),
             'ncsAxis'           : self.raw_settings.get('denssNCSAxis'),
             'refine'            : self.raw_settings.get('denssRefine'),
+            'denssGPU'          : self.raw_settings.get('denssGPU'),
             }
 
 
@@ -9484,7 +9506,7 @@ class DenssResultsPanel(wx.Panel):
         self.topsizer.Hide(self.res_sizer, recursive=True)
         self.topsizer.Hide(self.rscor_sizer, recursive=True)
 
-        if settings['runs'] > 1 and settings['average']:
+        if settings['runs'] >= 4 and settings['average']:
             self.getResolution(average_results['res'])
             self.getAverage(average_results)
 
@@ -9762,25 +9784,34 @@ class DenssPlotPanel(wx.Panel):
         gs = matplotlib.gridspec.GridSpec(2, 1, height_ratios=[3,1])
 
         ax0 = fig.add_subplot(gs[0])
-        ax0.plot(q[q<=qdata[-1]], I[q<=qdata[-1]], 'k-', label='Smoothed Exp. Data')
-        ax0.plot(qdata, Idata, 'bo',alpha=0.5,label='Interpolated Data')
-        ax0.plot(qbinsc, Imean,'r.',label='Scattering from Density')
+        ax0.errorbar(self.iftm.q_orig, self.iftm.i_orig, fmt='k.',
+            yerr=self.iftm.err_orig, mec='none', mew=0, ms=3, alpha=0.3,
+            capsize=0, elinewidth=0.1, ecolor=cc.to_rgba('0',alpha=0.5),
+            label='Exp. Data')
+        ax0.plot(q, I, 'k--',alpha=0.7, lw=1, label='Smoothed Exp. Data')
+        ax0.plot(qdata[qdata<=q[-1]], Idata[qdata<=q[-1]], 'bo',alpha=0.5,label='Interpolated')
+        ax0.plot(qbinsc[qdata<=q[-1]], Imean[qdata<=q[-1]],'r.',label='DENSS Map')
         handles,labels = ax0.get_legend_handles_labels()
-        handles = [handles[2], handles[0], handles[1]]
-        labels = [labels[2], labels[0], labels[1]]
-        ymin = np.min(np.hstack((I,Idata,Imean)))
-        ymax = np.max(np.hstack((I,Idata,Imean)))
+        handles = [handles[3], handles[0], handles[1],handles[2]]
+        labels = [labels[3], labels[0], labels[1], labels[2]]
+        xmax = np.min([self.iftm.q_orig.max(),q.max(),qdata.max()])*1.1
+        ymin = np.min([np.min(I[q<=xmax]),np.min(Idata[qdata<=xmax]),np.min(Imean[qdata<=xmax])])
+        ymax = np.max([np.max(I[q<=xmax]),np.max(Idata[qdata<=xmax]),np.max(Imean[qdata<=xmax])])
+        ax0.set_xlim([-xmax*.05,xmax])
         ax0.set_ylim([0.5*ymin,1.5*ymax])
         ax0.legend(handles,labels, fontsize='small')
         ax0.semilogy()
         ax0.set_ylabel('I(q)', fontsize='small')
         ax0.tick_params(labelbottom=False, labelsize='x-small')
 
+        residuals = np.log10(Imean[np.in1d(qbinsc,qdata)])-np.log10(Idata)
         ax1 = fig.add_subplot(gs[1])
         ax1.axhline(0, color='k', linewidth=1.0)
-        ax1.plot(qdata, np.log10(Imean[qbinsc==qdata])-np.log10(Idata), 'ro-')
+        ax1.plot(qdata[qdata<=q[-1]], residuals[qdata<=q[-1]], 'ro-')
         ylim = ax1.get_ylim()
         ymax = np.max(np.abs(ylim))
+        n = int(.9*len(residuals[qdata<=q[-1]]))
+        ymax = np.max(np.abs(residuals[qdata<=q[-1]][:-n]))
         ax1.set_ylim([-ymax,ymax])
         ax1.yaxis.major.locator.set_params(nbins=5)
         xlim = ax0.get_xlim()
@@ -9861,12 +9892,25 @@ class DenssAveragePlotPanel(wx.Panel):
 
         res = self.avg_results['fsc'][:, 0]
         fsc = self.avg_results['fsc'][:, 1]
+        full_fsc = self.avg_results['fsc']
+        fscs = self.avg_results['fscs']
+        resn = self.avg_results['res']
+
+        x = np.linspace(full_fsc[0,0],full_fsc[-1,0],100)
+        y = np.interp(x, full_fsc[:,0], full_fsc[:,1])
+        resi = np.argmin(y>=0.5)
+        resx = np.interp(0.5,[y[resi+1],y[resi]],[x[resi+1],x[resi]])
 
         ax0 = fig.add_subplot(111)
+        ax0.axhline(0.5, color='k', linestyle='--')
+        for i in range(fscs.shape[0]):
+            ax0.plot(fscs[i,:,0],fscs[i,:,1],'k--',alpha=0.1)
         ax0.plot(res, fsc, 'bo-')
+        ax0.plot([resx],[0.5],'ro',label='Resolution = '+str(resn)+r'$\mathrm{\AA}$')
         ax0.set_xlabel('Resolution ($\\AA^{-1}$)', fontsize='small')
         ax0.set_ylabel('Fourier Shell Correlation', fontsize='small')
         ax0.tick_params(labelsize='x-small')
+        ax0.legend(fontsize='small')
 
         canvas.SetBackgroundColour('white')
         fig.subplots_adjust(left = 0.1, bottom = 0.12, right = 0.95, top = 0.95)

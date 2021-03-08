@@ -27,7 +27,7 @@ Much of the code is from the DENSS source code, released here:
     https://github.com/tdgrant1/denss
 That code was released under GPL V3. The original author is Thomas Grant.
 
-This code matches that as of 4/3/20, commit 8e4b950, version 1.5.0
+This code matches that as of 43/8/21, commit cce26a7, version 1.6.3
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
@@ -52,33 +52,89 @@ import numpy as np
 from scipy import optimize, ndimage, spatial
 import scipy.interpolate as interpolate
 
+try:
+    import cupy as cp
+    CUPY_LOADED = True
+except ImportError:
+    CUPY_LOADED = False
+
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
     os.sys.path.append(raw_path)
 
+def myfftn(x, DENSS_GPU=False):
+    if DENSS_GPU:
+        return cp.fft.fftn(x)
+    else:
+        return np.fft.fftn(x)
+
+def myabs(x, DENSS_GPU=False):
+    if DENSS_GPU:
+        return cp.abs(x)
+    else:
+        return np.abs(x)
+
+def mybinmean(x,bins, DENSS_GPU=False):
+    if DENSS_GPU:
+        xsum = cp.bincount(bins.ravel(), x.ravel())
+        xcount = cp.bincount(bins.ravel())
+        return xsum/xcount
+    else:
+        xsum = np.bincount(bins.ravel(), x.ravel())
+        xcount = np.bincount(bins.ravel())
+        return xsum/xcount
+
+def myones(x, DENSS_GPU=False):
+    if DENSS_GPU:
+        return cp.ones(x)
+    else:
+        return np.ones(x)
+
+def myzeros(x, DENSS_GPU=False):
+    if DENSS_GPU:
+        return cp.zeros(x)
+    else:
+        return np.zeros(x)
+
+def mysqrt(x, DENSS_GPU=False):
+    if DENSS_GPU:
+        return cp.sqrt(x)
+    else:
+        return np.sqrt(x)
+
+def mysum(x, DENSS_GPU=False):
+    if DENSS_GPU:
+        return cp.sum(x)
+    else:
+        return np.sum(x)
+
+def myifftn(x, DENSS_GPU=False):
+    if DENSS_GPU:
+        return cp.fft.ifftn(x)
+    else:
+        return np.fft.ifftn(x)
+
+def myzeros_like(x, DENSS_GPU=False):
+    if DENSS_GPU:
+        return cp.zeros_like(x)
+    else:
+        return np.zeros_like(x)
+
+def mystd(x, DENSS_GPU=False):
+    if DENSS_GPU:
+        return cp.std(x)
+    else:
+        return np.std(x)
+
+def mymean(x, DENSS_GPU=False):
+    if DENSS_GPU:
+        return cp.mean(x)
+    else:
+        return np.mean(x)
+
 def chi2(exp, calc, sig):
     """Return the chi2 discrepancy between experimental and calculated data"""
     return np.sum(np.square(exp - calc) / np.square(sig))
-
-def center_rho(rho, centering="com", return_shift=False):
-    """Move electron density map so its center of mass aligns with the center of the grid
-
-    centering - which part of the density to center on. By default, center on the
-                center of mass ("com"). Can also center on maximum density value ("max").
-    """
-    ne_rho= np.sum((rho))
-    if centering == "max":
-        rhocom = np.unravel_index(rho.argmax(), rho.shape)
-    else:
-        rhocom = np.array(ndimage.measurements.center_of_mass(rho))
-    gridcenter = np.array(rho.shape)/2.
-    shift = gridcenter-rhocom
-    rho = ndimage.interpolation.shift(rho,shift,order=3,mode='wrap')
-    rho = rho*ne_rho/np.sum(rho)
-    if return_shift:
-        return rho, shift
-    else:
-        return rho
 
 def rho2rg(rho,side=None,r=None,support=None,dx=None):
     """Calculate radius of gyration from an electron density map."""
@@ -100,876 +156,6 @@ def rho2rg(rho,side=None,r=None,support=None,dx=None):
     rg2 = rg2 - np.linalg.norm(rhocom)**2
     rg = np.sign(rg2)*np.abs(rg2)**0.5
     return rg
-
-def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False,
-    limit_dmax_steps=[500], recenter=True, recenter_steps=None,
-    recenter_mode="com", positivity=True, extrapolate=True, output="map",
-    steps=None, seed=None,  minimum_density=None,  maximum_density=None,
-    flatten_low_density=True, rho_start=None, shrinkwrap=True,
-    shrinkwrap_sigma_start=3, shrinkwrap_sigma_end=1.5,
-    shrinkwrap_sigma_decay=0.99, shrinkwrap_threshold_fraction=0.2,
-    shrinkwrap_iter=20, shrinkwrap_minstep=100, chi_end_fraction=0.01,
-    write_xplor_format=False, write_freq=100, enforce_connectivity=True,
-    enforce_connectivity_steps=[500], cutout=True, quiet=False, ncs=0,
-    ncs_steps=[500],ncs_axis=1, abort_event=None, my_logger=logging.getLogger(),
-    path='.', gui=False):
-    """Calculate electron density from scattering data."""
-    if abort_event is not None:
-        if abort_event.is_set():
-            my_logger.info('Aborted!')
-            return []
-
-    fprefix = os.path.join(path, output)
-
-    D = dmax
-
-    my_logger.info('q range of input data: %3.3f < q < %3.3f', q.min(), q.max())
-    my_logger.info('Maximum dimension: %3.3f', D)
-    my_logger.info('Sampling ratio: %3.3f', oversampling)
-    my_logger.info('Requested real space voxel size: %3.3f', voxel)
-    my_logger.info('Number of electrons: %3.3f', ne)
-    my_logger.info('Limit Dmax: %s', limit_dmax)
-    my_logger.info('Limit Dmax Steps: %s', limit_dmax_steps)
-    my_logger.info('Recenter: %s', recenter)
-    my_logger.info('Recenter Steps: %s', recenter_steps)
-    my_logger.info('Recenter Mode: %s', recenter_mode)
-    my_logger.info('NCS: %s', ncs)
-    my_logger.info('NCS Steps: %s', ncs_steps)
-    my_logger.info('NCS Axis: %s', ncs_axis)
-    my_logger.info('Positivity: %s', positivity)
-    my_logger.info('Minimum Density: %s', minimum_density)
-    my_logger.info('Maximum Density: %s', maximum_density)
-    my_logger.info('Extrapolate high q: %s', extrapolate)
-    my_logger.info('Shrinkwrap: %s', shrinkwrap)
-    my_logger.info('Shrinkwrap sigma start: %s', shrinkwrap_sigma_start)
-    my_logger.info('Shrinkwrap sigma end: %s', shrinkwrap_sigma_end)
-    my_logger.info('Shrinkwrap sigma decay: %s', shrinkwrap_sigma_decay)
-    my_logger.info('Shrinkwrap threshold fraction: %s', shrinkwrap_threshold_fraction)
-    my_logger.info('Shrinkwrap iterations: %s', shrinkwrap_iter)
-    my_logger.info('Shrinkwrap starting step: %s', shrinkwrap_minstep)
-    my_logger.info('Enforce connectivity: %s', enforce_connectivity)
-    my_logger.info('Enforce connectivity steps: %s', enforce_connectivity_steps)
-    my_logger.info('Chi2 end fraction: %3.3e', chi_end_fraction)
-
-    #Initialize variables
-
-    side = oversampling*D
-    halfside = side/2
-
-    n = int(side/voxel)
-    #want n to be even for speed/memory optimization with the FFT, ideally a power of 2, but wont enforce that
-    if n%2==1:
-        n += 1
-    #store n for later use if needed
-    nbox = n
-
-    dx = side/n
-    dV = dx**3
-    V = side**3
-    x_ = np.linspace(-halfside,halfside,n)
-    x,y,z = np.meshgrid(x_,x_,x_,indexing='ij')
-    r = np.sqrt(x**2 + y**2 + z**2)
-
-    df = 1/side
-    qx_ = np.fft.fftfreq(x_.size)*n*df*2*np.pi
-    qx, qy, qz = np.meshgrid(qx_,qx_,qx_,indexing='ij')
-    qr = np.sqrt(qx**2+qy**2+qz**2)
-    qmax = np.max(qr)
-    qstep = np.min(qr[qr>0])
-    nbins = int(qmax/qstep)
-    qbins = np.linspace(0,nbins*qstep,nbins+1)
-
-    #create modified qbins and put qbins in center of bin rather than at left edge of bin.
-    qbinsc = np.copy(qbins)
-    qbinsc[1:] += qstep/2.
-
-    #create an array labeling each voxel according to which qbin it belongs
-    qbin_labels = np.searchsorted(qbins,qr,"right")
-    qbin_labels -= 1
-
-    #allow for any range of q data
-    qdata = qbinsc[np.where( (qbinsc>=q.min()) & (qbinsc<=q.max()) )]
-    Idata = np.interp(qdata,q,I)
-    if extrapolate:
-        qextend = qbinsc[qbinsc>=qdata.max()]
-        Iextend = qextend**-4
-        Iextend = Iextend/Iextend[0] * Idata[-1]
-        qdata = np.concatenate((qdata,qextend[1:]))
-        Idata = np.concatenate((Idata,Iextend[1:]))
-
-    #create list of qbin indices just in region of data for later F scaling
-    qbin_args = np.in1d(qbinsc,qdata,assume_unique=True)
-    sigqdata = np.interp(qdata,q,sigq)
-
-    scale_factor = ne**2 / Idata[0]
-    Idata *= scale_factor
-    sigqdata *= scale_factor
-    I *= scale_factor
-    sigq *= scale_factor
-
-    if steps == 'None' or steps is None or np.int(steps) < 1:
-        stepsarr = np.concatenate((enforce_connectivity_steps,[shrinkwrap_minstep]))
-        maxec = np.max(stepsarr)
-        steps = int(shrinkwrap_iter * (np.log(shrinkwrap_sigma_end/shrinkwrap_sigma_start)/np.log(shrinkwrap_sigma_decay)) + maxec)
-        #add enough steps for convergence after shrinkwrap is finished
-        #something like 7000 seems reasonable, likely will finish before that on its own
-        #then just make a round number when using defaults
-        steps += 7621
-    else:
-        steps = np.int(steps)
-
-    Imean = np.zeros((steps+1,len(qbins)))
-    chi = np.zeros((steps+1))
-    rg = np.zeros((steps+1))
-    supportV = np.zeros((steps+1))
-    support = np.ones(x.shape,dtype=bool)
-
-    if seed is None:
-        #Have to reset the random seed to get a random in different from other processes
-        prng = np.random.RandomState()
-        seed = prng.randint(2**31-1)
-    else:
-        seed = int(seed)
-
-    prng = np.random.RandomState(seed)
-
-    if rho_start is not None:
-        rho = rho_start
-    else:
-        rho = prng.random_sample(size=x.shape) #- 0.5
-
-    sigma = shrinkwrap_sigma_start
-    #convert density values to absolute number of electrons
-    #since FFT and rho given in electrons, not density, until converted at the end
-    rho_min = minimum_density
-    rho_max = maximum_density
-    if rho_min is not None:
-        rho_min *= dV
-        #print rho_min
-    if rho_max is not None:
-        rho_max *= dV
-        #print rho_max
-
-    my_logger.info('Maximum number of steps: %i', steps)
-    my_logger.info('Grid size (voxels): %i x %i x %i', n, n, n)
-    my_logger.info('Real space box width (angstroms): %3.3f', side)
-    my_logger.info('Real space box range (angstroms): %3.3f < x < %3.3f', x_.min(), x_.max())
-    my_logger.info('Real space box volume (angstroms^3): %3.3f', V)
-    my_logger.info('Real space voxel size (angstroms): %3.3f', dx)
-    my_logger.info('Real space voxel volume (angstroms^3): %3.3f', dV)
-    my_logger.info('Reciprocal space box width (angstroms^(-1)): %3.3f', qx_.max()-qx_.min())
-    my_logger.info('Reciprocal space box range (angstroms^(-1)): %3.3f < qx < %3.3f', qx_.min(), qx_.max())
-    my_logger.info('Maximum q vector (diagonal) (angstroms^(-1)): %3.3f', qr.max())
-    my_logger.info('Number of q shells: %i', nbins)
-    my_logger.info('Width of q shells (angstroms^(-1)): %3.3f', qstep)
-    my_logger.info('Random seed: %i', seed)
-    if not quiet:
-        if gui:
-            my_logger.info("\n Step     Chi2     Rg    Support Volume")
-            my_logger.info(" ----- --------- ------- --------------")
-        else:
-            print("\n Step     Chi2     Rg    Support Volume")
-            print(" ----- --------- ------- --------------")
-
-    for j in range(steps):
-        if abort_event is not None:
-            if abort_event.is_set():
-                my_logger.info('Aborted!')
-                return []
-
-        F = np.fft.fftn(rho)
-
-        #APPLY RECIPROCAL SPACE RESTRAINTS
-        #calculate spherical average of intensities from 3D Fs
-        I3D = np.abs(F)**2
-        Imean[j] = ndimage.mean(I3D, labels=qbin_labels, index=np.arange(0,qbin_labels.max()+1))
-        """
-        if j==0:
-            np.savetxt(fprefix+'_step0_saxs.dat',np.vstack((qbinsc,Imean[j],Imean[j]*.05)).T,delimiter=" ",fmt="%.5e")
-            write_mrc(rho,side,fprefix+"_step"+str(j)+".mrc")
-        """
-
-        #scale Fs to match data
-        factors = np.ones((len(qbins)))
-        factors[qbin_args] = np.sqrt(Idata/Imean[j,qbin_args])
-        F *= factors[qbin_labels]
-        try:
-            interp = interpolate.interp1d(qbinsc, Imean[j], kind='cubic',fill_value="extrapolate")
-            I4chi = interp(q)
-            chi[j] = np.sum(((I4chi-I)/sigq)**2)/len(q)
-        except:
-            chi[j] = np.sum(((Imean[j,qbin_args]-Idata)/sigqdata)**2)/qbin_args.size
-        #APPLY REAL SPACE RESTRAINTS
-        rhoprime = np.fft.ifftn(F,rho.shape)
-        rhoprime = rhoprime.real
-        if j%write_freq == 0:
-            if write_xplor_format:
-                write_xplor(rhoprime/dV, side, fprefix+"_current.xplor")
-            write_mrc(rhoprime/dV, side, fprefix+"_current.mrc")
-        rg[j] = rho2rg(rhoprime,r=r,support=support,dx=dx)
-        newrho = np.zeros_like(rho)
-
-        #Error Reduction
-        newrho[support] = rhoprime[support]
-        newrho[~support] = 0.0
-
-        #enforce positivity by making all negative density points zero.
-        if positivity:
-            netmp = np.sum(newrho)
-            newrho[newrho<0] = 0.0
-            if np.sum(newrho) != 0:
-                newrho *= netmp / np.sum(newrho)
-
-        if flatten_low_density:
-            newrho[np.abs(newrho)<0.01*dV] = 0
-
-        #allow further bounds on density, rather than just positivity
-        if rho_min is not None:
-            netmp = np.sum(newrho)
-            newrho[newrho<rho_min] = rho_min
-            if np.sum(newrho) != 0:
-                newrho *= netmp / np.sum(newrho)
-
-        if rho_max is not None:
-            netmp = np.sum(newrho)
-            newrho[newrho>rho_max] = rho_max
-            if np.sum(newrho) != 0:
-                newrho *= netmp / np.sum(newrho)
-
-        #apply non-crystallographic symmetry averaging
-        if ncs != 0 and j in ncs_steps:
-            newrho = align2xyz(newrho)
-
-        if ncs != 0 and j in [stepi+1 for stepi in ncs_steps]:
-            degrees = 360./ncs
-            if ncs_axis == 1: axes=(1,2)
-            if ncs_axis == 2: axes=(0,2)
-            if ncs_axis == 3: axes=(0,1)
-            newrhosym = np.zeros_like(newrho)
-            for nrot in range(0,ncs+1):
-                newrhosym += ndimage.rotate(newrho,degrees*nrot,axes=axes,reshape=False)
-            newrho = newrhosym/ncs
-
-        #update support using shrinkwrap method
-        if recenter and j in recenter_steps:
-            if recenter_mode == "max":
-                rhocom = np.unravel_index(newrho.argmax(), newrho.shape)
-            else:
-                rhocom = np.array(ndimage.measurements.center_of_mass(newrho))
-            gridcenter = np.array(rho.shape)/2.
-            shift = gridcenter-rhocom
-            shift = shift.astype(int)
-            newrho = np.roll(np.roll(np.roll(newrho, shift[0], axis=0), shift[1], axis=1), shift[2], axis=2)
-            support = np.roll(np.roll(np.roll(support, shift[0], axis=0), shift[1], axis=1), shift[2], axis=2)
-
-        if shrinkwrap and j >= shrinkwrap_minstep and j%shrinkwrap_iter==1:
-            if recenter_mode == "max":
-                rhocom = np.unravel_index(newrho.argmax(), newrho.shape)
-            else:
-                rhocom = np.array(ndimage.measurements.center_of_mass(newrho))
-
-            gridcenter = np.array(rho.shape)/2.
-            shift = gridcenter-rhocom
-            shift = shift.astype(int)
-            newrho = np.roll(np.roll(np.roll(newrho, shift[0], axis=0), shift[1], axis=1), shift[2], axis=2)
-
-            if j>500:
-                tmp = np.abs(newrho)
-            else:
-                tmp = newrho
-
-            rho_blurred = ndimage.filters.gaussian_filter(tmp,sigma=sigma,mode='wrap')
-            support = np.zeros(rho.shape,dtype=bool)
-            support[rho_blurred >= shrinkwrap_threshold_fraction*rho_blurred.max()] = True
-
-            if sigma > shrinkwrap_sigma_end:
-                sigma = shrinkwrap_sigma_decay*sigma
-
-        if enforce_connectivity and j in enforce_connectivity_steps:
-            if recenter_mode == "max":
-                rhocom = np.unravel_index(newrho.argmax(), newrho.shape)
-            else:
-                rhocom = np.array(ndimage.measurements.center_of_mass(newrho))
-
-            gridcenter = np.array(rho.shape)/2.
-            shift = gridcenter-rhocom
-            shift = shift.astype(int)
-            newrho = np.roll(np.roll(np.roll(newrho, shift[0], axis=0), shift[1], axis=1), shift[2], axis=2)
-
-            #first run shrinkwrap to define the features
-            tmp = np.abs(newrho)
-            rho_blurred = ndimage.filters.gaussian_filter(tmp,sigma=sigma,mode='wrap')
-            support = np.zeros(rho.shape,dtype=bool)
-            support[rho_blurred >= shrinkwrap_threshold_fraction*rho_blurred.max()] = True
-
-            #label the support into separate segments based on a 3x3x3 grid
-            struct = ndimage.generate_binary_structure(3, 3)
-            labeled_support, num_features = ndimage.label(support, structure=struct)
-            sums = np.zeros((num_features))
-            if not quiet:
-                if not gui:
-                    print(num_features)
-
-            #find the feature with the greatest number of electrons
-            for feature in range(num_features+1):
-                sums[feature-1] = np.sum(newrho[labeled_support==feature])
-            big_feature = np.argmax(sums)+1
-
-            #remove features from the support that are not the primary feature
-            support[labeled_support != big_feature] = False
-            newrho[~support] = 0
-
-            #reset the support to be the entire grid again
-            support = np.ones(rho.shape,dtype=bool)
-
-        if limit_dmax and j in limit_dmax_steps:
-            #support[r>0.6*D] = False
-            #if np.sum(support) <= 0:
-            #    support = np.ones(rho.shape,dtype=bool)
-            #gradually (smooth like a gaussian maybe) decrease density from center
-            #set width of gradual decrease window to be +20 percent of dmax
-            #the equation of that line works out to be (where rho goes from 1 down to 0):
-            #rho = -1/(0.2*D)*r + 6
-            newrho[(r>D)&(r<1.2*D)] *= (-1.0/(0.2*D)*r[(r>D)&(r<1.2*D)] + 6)
-            newrho[r>=1.2*D] = 0
-
-        supportV[j] = np.sum(support)*dV
-
-        if not quiet:
-            if gui:
-                my_logger.info("% 5i % 4.2e % 3.2f       % 5i          ", j, chi[j], rg[j], supportV[j])
-            else:
-                sys.stdout.write("\r% 5i % 4.2e % 3.2f       % 5i          " % (j, chi[j], rg[j], supportV[j]))
-                sys.stdout.flush()
-
-        if j > 101 + shrinkwrap_minstep and np.std(chi[j-100:j]) < chi_end_fraction * np.median(chi[j-100:j]):
-            break
-
-        rho = newrho
-
-    F = np.fft.fftn(rho)
-    #calculate spherical average intensity from 3D Fs
-    Imean[j+1] = ndimage.mean(np.abs(F)**2, labels=qbin_labels, index=np.arange(0,qbin_labels.max()+1))
-    #chi[j+1] = np.sum(((Imean[j+1,qbin_args]-Idata)/sigqdata)**2)/qbin_args.size
-
-    #scale Fs to match data
-    factors = np.ones((len(qbins)))
-    factors[qbin_args] = np.sqrt(Idata/Imean[j+1,qbin_args])
-    F *= factors[qbin_labels]
-    rho = np.fft.ifftn(F,rho.shape)
-    rho = rho.real
-
-    #negative images yield the same scattering, so flip the image
-    #to have more positive than negative values if necessary
-    #to make sure averaging is done properly
-    #whether theres actually more positive than negative values
-    #is ambiguous, but this ensures all maps are at least likely
-    #the same designation when averaging
-    if np.sum(np.abs(rho[rho<0])) > np.sum(rho[rho>0]):
-        rho *= -1
-
-    #scale total number of electrons
-    if ne is not None:
-        rho *= ne / np.sum(rho)
-
-    rg[j+1] = rho2rg(rho=rho,r=r,support=support,dx=dx)
-    supportV[j+1] = supportV[j]
-
-    #change rho to be the electron density in e-/angstroms^3, rather than number of electrons,
-    #which is what the FFT assumes
-    rho /= dV
-
-    if cutout:
-        #here were going to cut rho out of the large real space box
-        #to the voxels that contain the particle
-        #use D to estimate particle size
-        #assume the particle is in the center of the box
-        #calculate how many voxels needed to contain particle of size D
-        #use bigger than D to make sure we don't crop actual particle in case its larger than expected
-        #lets clip it to a maximum of 2*D to be safe
-        nD = int(2*D/dx)+1
-        #make sure final box will still have even samples
-        if nD%2==1:
-            nD += 1
-
-        nmin = nbox//2 - nD//2
-        nmax = nbox//2 + nD//2 + 2
-        #create new rho array containing only the particle
-        newrho = rho[nmin:nmax,nmin:nmax,nmin:nmax]
-        rho = newrho
-        #do the same for the support
-        newsupport = support[nmin:nmax,nmin:nmax,nmin:nmax]
-        support = newsupport
-        #update side to new size of box
-        side = dx * (nmax-nmin)
-
-    if write_xplor_format:
-        write_xplor(rho,side,fprefix+".xplor")
-        write_xplor(np.ones_like(rho)*support, side, fprefix+"_support.xplor")
-
-    write_mrc(rho,side,fprefix+".mrc")
-    write_mrc(np.ones_like(rho)*support,side, fprefix+"_support.mrc")
-
-    #Write some more output files
-    fit = np.zeros(( len(qbinsc),5 ))
-    fit[:len(qdata),0] = qdata
-    fit[:len(Idata),1] = Idata
-    fit[:len(sigqdata),2] = sigqdata
-    fit[:len(qbinsc),3] = qbinsc
-    fit[:len(Imean[j+1]),4] = Imean[j+1]
-    np.savetxt(fprefix+'_map.fit', fit, delimiter=' ', fmt='%.5e'.encode('ascii'),
-        header='q(data),I(data),error(data),q(density),I(density)')
-
-    np.savetxt(fprefix+'_stats_by_step.dat',np.vstack((chi, rg, supportV)).T,
-        delimiter=" ", fmt="%.5e".encode('ascii'), header='Chi2 Rg SupportVolume')
-
-    my_logger.info('FINISHED DENSITY REFINEMENT')
-    my_logger.info('Number of steps: %i', j)
-    my_logger.info('Final Chi2: %.3e', chi[j])
-    my_logger.info('Final Rg: %3.3f', rg[j+1])
-    my_logger.info('Final Support Volume: %3.3f', supportV[j+1])
-    # my_logger.info('END')
-
-    #return original unscaled values of Idata (and therefore Imean) for comparison with real data
-    Idata /= scale_factor
-    sigqdata /= scale_factor
-    Imean /= scale_factor
-    I /= scale_factor
-    sigq /= scale_factor
-
-    return qdata, Idata, sigqdata, qbinsc, Imean[j], chi, rg, supportV, rho, side
-
-def euler_grid_search(refrho, movrho, topn=1, abort_event=None):
-    """Simple grid search on uniformly sampled sphere to optimize alignment.
-        Return the topn candidate maps (default=1, i.e. the best candidate)."""
-    #taken from https://stackoverflow.com/a/44164075/2836338
-
-    num_pts = 18 #~20 degrees between points
-    indices = np.arange(0, num_pts, dtype=float) + 0.5
-    phi = np.arccos(1 - 2*indices/num_pts)
-    theta = np.pi * (1 + 5**0.5) * indices
-    scores = np.zeros((len(phi),len(theta)))
-    for p in range(len(phi)):
-        for t in range(len(theta)):
-            scores[p,t] = 1/minimize_rho_score(T=[phi[p],theta[t],0,0,0,0],refrho=np.abs(refrho),movrho=np.abs(movrho))
-
-            if abort_event is not None:
-                if abort_event.is_set():
-                    return None, None
-
-    #best_pt = np.unravel_index(scores.argmin(), scores.shape)
-    best_pt = largest_indices(scores, topn)
-    best_scores = scores[best_pt]
-    movrhos = np.zeros((topn,movrho.shape[0],movrho.shape[1],movrho.shape[2]))
-
-    for i in range(topn):
-        movrhos[i] = transform_rho(movrho, T=[phi[best_pt[0][i]],theta[best_pt[1][i]],0,0,0,0])
-
-        if abort_event is not None:
-            if abort_event.is_set():
-                return movrhos, best_scores
-
-    return movrhos, best_scores
-
-def largest_indices(a, n):
-    """Returns the n largest indices from a numpy array."""
-    flat = a.flatten()
-    indices = np.argpartition(flat, -n)[-n:]
-    indices = indices[np.argsort(-flat[indices])]
-    return np.unravel_index(indices, a.shape)
-
-def coarse_then_fine_alignment(refrho, movrho, topn=1,
-    abort_event=None):
-    """Course alignment followed by fine alignment.
-        Select the topn candidates from the grid search
-        and minimize each, selecting the best fine alignment.
-        """
-    movrhos, scores = euler_grid_search(refrho, movrho, topn=topn,
-        abort_event=abort_event)
-
-    if abort_event is not None:
-        if abort_event.is_set():
-            return None, None
-
-    for i in range(movrhos.shape[0]):
-        movrhos[i], scores[i] = minimize_rho(refrho, movrhos[i])
-
-        if abort_event is not None:
-            if abort_event.is_set():
-                return None, None
-
-    best_i = np.argmax(scores)
-    movrho = movrhos[best_i]
-    score = scores[best_i]
-    return movrho, score
-
-def minimize_rho(refrho, movrho, T = np.zeros(6)):
-    """Optimize superposition of electron density maps. Move movrho to refrho."""
-    bounds = np.zeros(12).reshape(6,2)
-    bounds[:3,0] = -20*np.pi
-    bounds[:3,1] = 20*np.pi
-    bounds[3:,0] = -5
-    bounds[3:,1] = 5
-    save_movrho = np.copy(movrho)
-    save_refrho = np.copy(refrho)
-    result = optimize.fmin_l_bfgs_b(minimize_rho_score, T, factr= 0.1,
-        maxiter=100, maxfun=200, epsilon=0.05,
-        args=(np.abs(refrho),np.abs(movrho)), approx_grad=True)
-    Topt = result[0]
-    newrho = transform_rho(save_movrho, Topt)
-    finalscore = 1/rho_overlap_score(save_refrho,newrho)
-    return newrho, finalscore
-
-def minimize_rho_score(T, refrho, movrho):
-    """Scoring function for superposition of electron density maps.
-
-        refrho - fixed, reference rho
-        movrho - moving rho
-        T - 6-element list containing alpha, beta, gamma, Tx, Ty, Tz in that order
-        to move movrho by.
-        """
-    newrho = transform_rho(movrho, T)
-    score = rho_overlap_score(refrho,newrho)
-    return score
-
-def rho_overlap_score(rho1,rho2):
-    """Scoring function for superposition of electron density maps."""
-    n=2*np.sum(np.abs(rho1*rho2))
-    d=(2*np.sum(rho1**2)**0.5*np.sum(rho2**2)**0.5)
-    score = n/d
-    #1/score for least squares minimization, i.e. want to minimize, not maximize score
-    return 1/score
-
-def transform_rho(rho, T, order=1):
-    """ Rotate and translate electron density map by T vector.
-
-        T = [alpha, beta, gamma, x, y, z], angles in radians
-        order = interpolation order (0-5)
-    """
-    ne_rho= np.sum((rho))
-    R = euler2matrix(T[0],T[1],T[2])
-    c_in = np.array(ndimage.measurements.center_of_mass(rho))
-    c_out = np.array(rho.shape)/2.
-    offset = c_in-c_out.dot(R)
-    rho = ndimage.interpolation.affine_transform(rho,R.T, order=order,
-        offset=offset, output=np.float64, mode='wrap')
-    rho = ndimage.interpolation.shift(rho,T[3:], order=order, mode='wrap',
-        output=np.float64)
-    rho *= ne_rho/np.sum(rho)
-    return rho
-
-def euler2matrix(alpha=0.0,beta=0.0,gamma=0.0):
-    """Convert Euler angles alpha, beta, gamma to a standard rotation matrix.
-
-        alpha - yaw, counterclockwise rotation about z-axis, upper-left quadrant
-        beta - pitch, counterclockwise rotation about y-axis, four-corners
-        gamma - roll, counterclockwise rotation about x-axis, lower-right quadrant
-        all angles given in radians
-
-        """
-    R = []
-    cosa = np.cos(alpha)
-    sina = np.sin(alpha)
-    cosb = np.cos(beta)
-    sinb = np.sin(beta)
-    cosg = np.cos(gamma)
-    sing = np.sin(gamma)
-    R.append(np.array(
-        [[cosa, -sina, 0],
-        [sina, cosa, 0],
-        [0, 0, 1]]))
-    R.append(np.array(
-        [[cosb, 0, sinb],
-        [0, 1, 0],
-        [-sinb, 0, cosb]]))
-    R.append(np.array(
-        [[1, 0, 0],
-        [0, cosg, -sing],
-        [0, sing, cosg]]))
-    return reduce(np.dot,R[::-1])
-
-def inertia_tensor(rho,side):
-    """Calculate the moment of inertia tensor for the given electron density map."""
-    halfside = side/2.
-    n = rho.shape[0]
-    x_ = np.linspace(-halfside,halfside,n)
-    x,y,z = np.meshgrid(x_,x_,x_,indexing='ij')
-    Ixx = np.sum((y**2 + z**2)*rho)
-    Iyy = np.sum((x**2 + z**2)*rho)
-    Izz = np.sum((x**2 + y**2)*rho)
-    Ixy = -np.sum(x*y*rho)
-    Iyz = -np.sum(y*z*rho)
-    Ixz = -np.sum(x*z*rho)
-    I = np.array([[Ixx, Ixy, Ixz],
-                  [Ixy, Iyy, Iyz],
-                  [Ixz, Iyz, Izz]])
-    return I
-
-def principal_axes(I):
-    """Calculate the principal inertia axes and order them Ia < Ib < Ic."""
-    w,v = np.linalg.eigh(I)
-    return w,v
-
-def align2xyz(rho, return_transform=False):
-    """ Align rho such that principal axes align with XYZ axes."""
-    side = 1.0
-    ne_rho = np.sum(rho)
-    #shift refrho to the center
-    rhocom = np.array(ndimage.measurements.center_of_mass(rho))
-    gridcenter = np.array(rho.shape)/2.
-    shift = gridcenter-rhocom
-    rho = ndimage.interpolation.shift(rho,shift,order=3,mode='wrap')
-    #calculate, save and perform rotation of refrho to xyz for later
-    I = inertia_tensor(rho, side)
-    w,v = principal_axes(I)
-    R = v.T
-    refR = np.copy(R)
-    refshift = np.copy(shift)
-    #apparently need to run this a few times to get good alignment
-    #maybe due to interpolation artifacts?
-    for i in range(3):
-        I = inertia_tensor(rho, side)
-        w,v = np.linalg.eigh(I) #principal axes
-        R = v.T #rotation matrix
-        c_in = np.array(ndimage.measurements.center_of_mass(rho))
-        c_out = np.array(rho.shape)/2.
-        offset=c_in-c_out.dot(R)
-        rho = ndimage.interpolation.affine_transform(rho, R.T, order=3,
-            offset=offset, mode='wrap')
-    rho *= ne_rho/np.sum(rho)
-    if return_transform:
-        return rho, refR, refshift
-    else:
-        return rho
-
-def generate_enantiomers(rho):
-    """ Generate all enantiomers of given density map.
-        Output maps are flipped over x,y,z,xy,yz,zx, and xyz, respectively.
-        Assumes rho is prealigned to xyz.
-        """
-    rho_xflip = rho[::-1,:,:]
-    """
-    rho_yflip = rho[:,::-1,:]
-    rho_zflip = rho[:,:,::-1]
-    rho_xyflip = rho_xflip[:,::-1,:]
-    rho_yzflip = rho_yflip[:,:,::-1]
-    rho_zxflip = rho_zflip[::-1,:,:]
-    rho_xyzflip = rho_xyflip[:,:,::-1]
-    enans = np.array([rho,rho_xflip,rho_yflip,rho_zflip,
-                      rho_xyflip,rho_yzflip,rho_zxflip,
-                      rho_xyzflip])
-    """
-    enans = np.array([rho,rho_xflip])
-    return enans
-
-def align(refrho, movrho, abort_event=None):
-    """ Align second electron density map to the first."""
-    if abort_event is not None:
-        if abort_event.is_set():
-            return None, None
-
-    ne_rho = np.sum((movrho))
-    #movrho, score = minimize_rho(refrho, movrho)
-    movrho, score = coarse_then_fine_alignment(refrho, movrho, topn=5,
-        abort_event=abort_event)
-
-    if movrho is not None:
-        movrho *= ne_rho/np.sum(movrho)
-
-    return movrho, score
-
-def select_best_enantiomers(rhos, refrho=None, cores=1, avg_queue=None,
-    abort_event=None, single_proc=False):
-    """ Select the best enantiomer from each map in the set (or a single map).
-        refrho should not be binary averaged from the original
-        denss maps, since that would likely lose handedness.
-        By default, refrho will be set to the first map."""
-    if rhos.ndim == 3:
-        rhos = rhos[np.newaxis,...]
-    #can't have nested parallel jobs, so run enantiomer selection
-    #in parallel, but run each map in a loop
-    if refrho is None:
-        refrho = rhos[0]
-    xyz_refrho, refR, refshift = align2xyz(refrho, return_transform=True)
-    scores = np.zeros(rhos.shape[0])
-    for i in range(rhos.shape[0]):
-        if abort_event is not None:
-            if abort_event.is_set():
-                return None, None
-        if avg_queue is not None:
-            avg_queue.put_nowait('Selecting enantiomer for model {}\n'.format(i+1))
-        #align rho to xyz and generate the enantiomers, then shift/rotate each enan
-        #by inverse of refrho, then perform minimization around the original refrho location,
-        #and select the best enantiomer from that set,
-        #rather than doing the minimization around the xyz_refrho location
-        #and then shifting the final best enan back.
-        #this way the final rotation is defined by the optimized score, not
-        #by the inverse refrho xyz alignment, which appears to suffer from
-        #interpolation artifacts
-        xyz_rho = align2xyz(rhos[i])
-        enans = generate_enantiomers(xyz_rho)
-        #now rotate rho by the inverse of the refrho rotation for each enantiomer
-        R = np.linalg.inv(refR)
-        c_in = np.array(ndimage.measurements.center_of_mass(rhos[i]))
-        c_out = np.array(rhos[i].shape)/2.
-        offset = c_in-c_out.dot(R)
-        for j in range(len(enans)):
-            enans[j] = ndimage.interpolation.affine_transform(enans[j],R.T,order=3,offset=offset,mode='wrap')
-            enans[j] = ndimage.interpolation.shift(enans[j],-refshift,order=3,mode='wrap')
-        #now minimize each enan around the original refrho location
-
-        if not single_proc:
-            pool = multiprocessing.Pool(cores)
-            try:
-                mapfunc = partial(align, refrho)
-                results = pool.map(mapfunc, enans)
-                pool.close()
-                pool.join()
-            except KeyboardInterrupt:
-                pool.terminate()
-                pool.close()
-                raise
-            except Exception:
-                pool.close()
-                raise
-
-        else:
-            results = [align(refrho, enan, abort_event=abort_event) for
-                enan in enans]
-
-        if abort_event is not None:
-            if abort_event.is_set():
-                return None, None
-
-        #now select the best enantiomer and set it as the new rhos[i]
-        enans = np.array([results[k][0] for k in range(len(results))])
-        enans_scores = np.array([results[k][1] for k in range(len(results))])
-
-        best_i = np.argmax(enans_scores)
-        rhos[i], scores[i] = enans[best_i], enans_scores[best_i]
-        if avg_queue is not None:
-            avg_queue.put_nowait('Best enantiomer for model {} has score {}\n'.format(i+1, round(scores[i],3)))
-
-    return rhos, scores
-
-def align_multiple(refrho, rhos, cores=1, abort_event=None, single_proc=False):
-    """ Align multiple (or a single) maps to the reference."""
-    if rhos.ndim == 3:
-        rhos = rhos[np.newaxis,...]
-    #first, center all the rhos, then shift them to where refrho is
-    cen_refrho, refshift = center_rho(refrho, return_shift=True)
-    for i in range(rhos.shape[0]):
-        rhos[i] = center_rho(rhos[i])
-        ne_rho = np.sum(rhos[i])
-        #now shift each rho back to where refrho was originally
-        rhos[i] = ndimage.interpolation.shift(rhos[i],-refshift,order=3,mode='wrap')
-        rhos[i] *= ne_rho/np.sum(rhos[i])
-
-    if abort_event is not None:
-        if abort_event.is_set():
-            return None, None
-
-    if not single_proc:
-        pool = multiprocessing.Pool(cores)
-        try:
-            mapfunc = partial(align, refrho)
-            results = pool.map(mapfunc, rhos)
-            pool.close()
-            pool.join()
-        except KeyboardInterrupt:
-            pool.terminate()
-            pool.close()
-            raise
-        except Exception:
-            pool.close()
-            raise
-
-    else:
-        results = [align(refrho, rho, abort_event=abort_event) for rho in rhos]
-
-    rhos = np.array([results[i][0] for i in range(len(results))])
-    scores = np.array([results[i][1] for i in range(len(results))])
-
-    return rhos, scores
-
-def average_two(rho1, rho2, abort_event=None):
-    """ Align two electron density maps and return the average."""
-    rho2, score = align(rho1, rho2, abort_event=abort_event)
-    average_rho = (rho1+rho2)/2
-    return average_rho
-
-def multi_average_two(niter, **kwargs):
-    """ Wrapper script for averaging two maps for multiprocessing."""
-    kwargs['rho1']=kwargs['rho1'][niter]
-    kwargs['rho2']=kwargs['rho2'][niter]
-    time.sleep(1)
-    return average_two(**kwargs)
-
-def average_pairs(rhos, cores=1, abort_event=None, single_proc=False):
-    """ Average pairs of electron density maps, second half to first half."""
-    #create even/odd pairs, odds are the references
-    rho_args = {'rho1':rhos[::2], 'rho2':rhos[1::2], 'abort_event': abort_event}
-
-    if not single_proc:
-        pool = multiprocessing.Pool(cores)
-        try:
-            mapfunc = partial(multi_average_two, **rho_args)
-            average_rhos = pool.map(mapfunc, list(range(rhos.shape[0]//2)))
-            pool.close()
-            pool.join()
-        except KeyboardInterrupt:
-            pool.terminate()
-            pool.close()
-            raise
-        except Exception:
-            pool.close()
-            raise
-
-    else:
-        average_rhos = [multi_average_two(niter, **rho_args) for niter in
-            range(rhos.shape[0]//2)]
-
-    return np.array(average_rhos)
-
-def binary_average(rhos, cores=1, abort_event=None, single_proc=False):
-    """ Generate a reference electron density map using binary averaging."""
-    twos = 2**np.arange(20)
-    nmaps = np.max(twos[twos<=rhos.shape[0]])
-    levels = int(np.log2(nmaps))-1
-    rhos = rhos[:nmaps]
-    for level in range(levels):
-         rhos = average_pairs(rhos, cores, abort_event=abort_event,
-            single_proc=single_proc)
-    refrho = center_rho(rhos[0])
-    return refrho
-
-def calc_fsc(rho1, rho2, side):
-    """ Calculate the Fourier Shell Correlation between two electron density maps."""
-    df = 1.0/side
-    n = rho1.shape[0]
-    qx_ = np.fft.fftfreq(n)*n*df
-    qx, qy, qz = np.meshgrid(qx_,qx_,qx_,indexing='ij')
-    qx_max = qx.max()
-    qr = np.sqrt(qx**2+qy**2+qz**2)
-    qmax = np.max(qr)
-    qstep = np.min(qr[qr>0])
-    nbins = int(qmax/qstep)
-    qbins = np.linspace(0,nbins*qstep,nbins+1)
-    #create an array labeling each voxel according to which qbin it belongs
-    qbin_labels = np.searchsorted(qbins, qr, "right")
-    qbin_labels -= 1
-    F1 = np.fft.fftn(rho1)
-    F2 = np.fft.fftn(rho2)
-    numerator = ndimage.sum(np.real(F1*np.conj(F2)), labels=qbin_labels,
-        index=np.arange(0,qbin_labels.max()+1))
-    term1 = ndimage.sum(np.abs(F1)**2, labels=qbin_labels,
-        index=np.arange(0,qbin_labels.max()+1))
-    term2 = ndimage.sum(np.abs(F2)**2, labels=qbin_labels,
-        index=np.arange(0,qbin_labels.max()+1))
-    denominator = (term1*term2)**0.5
-    FSC = numerator/denominator
-    qidx = np.where(qbins<qx_max)
-    return  np.vstack((qbins[qidx],FSC[qidx])).T
 
 def write_mrc(rho,side,filename="map.mrc"):
     """Write an MRC formatted electron density map.
@@ -1073,6 +259,1080 @@ def write_xplor(rho,side,filename="map.xplor"):
         f.write("    -9999\n")
         f.write("  %.4E  %.4E" % (np.average(rho), np.std(rho)))
 
+def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False,
+    limit_dmax_steps=[500], recenter=True, recenter_steps=None,
+    recenter_mode="com", positivity=True, extrapolate=True, output="map",
+    steps=None, seed=None,
+    flatten_low_density=True, rho_start=None, add_noise=None, shrinkwrap=True,
+    shrinkwrap_old_method=False,shrinkwrap_sigma_start=3, shrinkwrap_sigma_end=1.5,
+    shrinkwrap_sigma_decay=0.99, shrinkwrap_threshold_fraction=0.2,
+    shrinkwrap_iter=20, shrinkwrap_minstep=100, chi_end_fraction=0.01,
+    write_xplor_format=False, write_freq=100, enforce_connectivity=True,
+    enforce_connectivity_steps=[500], cutout=True, quiet=False, ncs=0,
+    ncs_steps=[500],ncs_axis=1, abort_event=None, my_logger=logging.getLogger(),
+    path='.', gui=False, DENSS_GPU=False):
+    """Calculate electron density from scattering data."""
+    if abort_event is not None:
+        if abort_event.is_set():
+            my_logger.info('Aborted!')
+            return []
+
+    if DENSS_GPU and CUPY_LOADED:
+        DENSS_GPU = True
+    elif DENSS_GPU:
+        if gui:
+            my_logger.info("GPU option set, but CuPy failed to load")
+        else:
+            print("GPU option set, but CuPy failed to load")
+        DENSS_GPU = False
+
+    fprefix = os.path.join(path, output)
+
+    D = dmax
+
+    #Initialize variables
+
+    side = oversampling*D
+    halfside = side/2
+
+    n = int(side/voxel)
+    #want n to be even for speed/memory optimization with the FFT, ideally a power of 2, but wont enforce that
+    if n%2==1:
+        n += 1
+    #store n for later use if needed
+    nbox = n
+
+    dx = side/n
+    dV = dx**3
+    V = side**3
+    x_ = np.linspace(-halfside,halfside,n)
+    x,y,z = np.meshgrid(x_,x_,x_,indexing='ij')
+    r = np.sqrt(x**2 + y**2 + z**2)
+
+    df = 1/side
+    qx_ = np.fft.fftfreq(x_.size)*n*df*2*np.pi
+    qx, qy, qz = np.meshgrid(qx_,qx_,qx_,indexing='ij')
+    qr = np.sqrt(qx**2+qy**2+qz**2)
+    qmax = np.max(qr)
+    qstep = np.min(qr[qr>0]) - 1e-8 #subtract a tiny bit to deal with floating point error
+    nbins = int(qmax/qstep)
+    qbins = np.linspace(0,nbins*qstep,nbins+1)
+
+    #create modified qbins and put qbins in center of bin rather than at left edge of bin.
+    qbinsc = np.copy(qbins)
+    qbinsc[1:] += qstep/2.
+
+    #create an array labeling each voxel according to which qbin it belongs
+    qbin_labels = np.searchsorted(qbins,qr,"right")
+    qbin_labels -= 1
+
+    #allow for any range of q data
+    qdata = qbinsc[np.where( (qbinsc>=q.min()) & (qbinsc<=q.max()) )]
+    Idata = np.interp(qdata,q,I)
+
+    if extrapolate:
+        qextend = qbinsc[qbinsc>=qdata.max()]
+        Iextend = qextend**-4
+        Iextend = Iextend/Iextend[0] * Idata[-1]
+        qdata = np.concatenate((qdata,qextend[1:]))
+        Idata = np.concatenate((Idata,Iextend[1:]))
+
+    #create list of qbin indices just in region of data for later F scaling
+    qbin_args = np.in1d(qbinsc,qdata,assume_unique=True)
+    qba = np.copy(qbin_args) #just for brevity when using it later
+    sigqdata = np.interp(qdata,q,sigq)
+
+    scale_factor = ne**2 / Idata[0]
+    Idata *= scale_factor
+    sigqdata *= scale_factor
+    I *= scale_factor
+    sigq *= scale_factor
+
+    if steps == 'None' or steps is None or np.int(steps) < 1:
+        stepsarr = np.concatenate((enforce_connectivity_steps,[shrinkwrap_minstep]))
+        maxec = np.max(stepsarr)
+        steps = int(shrinkwrap_iter * (np.log(shrinkwrap_sigma_end/shrinkwrap_sigma_start)/np.log(shrinkwrap_sigma_decay)) + maxec)
+        #add enough steps for convergence after shrinkwrap is finished
+        #something like 7000 seems reasonable, likely will finish before that on its own
+        #then just make a round number when using defaults
+        steps += 7621
+    else:
+        steps = np.int(steps)
+
+    Imean = np.zeros((steps+1,len(qbins)))
+    chi = np.zeros((steps+1))
+    rg = np.zeros((steps+1))
+    supportV = np.zeros((steps+1))
+    support = np.ones(x.shape,dtype=bool)
+
+    if seed is None:
+        #Have to reset the random seed to get a random in different from other processes
+        prng = np.random.RandomState()
+        seed = prng.randint(2**31-1)
+    else:
+        seed = int(seed)
+
+    prng = np.random.RandomState(seed)
+
+    if rho_start is not None:
+        rho = rho_start
+        if add_noise is not None:
+            rho += prng.random_sample(size=x.shape)*add_noise
+    else:
+        rho = prng.random_sample(size=x.shape) #- 0.5
+
+    sigma = shrinkwrap_sigma_start
+
+    #calculate the starting shrinkwrap volume as the volume of a sphere
+    #of radius Dmax, i.e. much larger than the particle size
+    swbyvol = True
+    swV = V/2.0
+    Vsphere_Dover2 = 4./3 * np.pi * (D/2.)**3
+    swVend = Vsphere_Dover2
+    swV_decay = 0.9
+    first_time_swdensity = True
+    threshold = shrinkwrap_threshold_fraction
+    #erode will make take five outer edge pixels of the support, like a shell,
+    #and will make sure no negative density is in that region
+    #this is to counter an artifact that occurs when allowing for negative density
+    #as the negative density often appears immediately next to positive density
+    #at the edges of the object. This ensures (i.e. biases) only real negative density
+    #in the interior of the object (i.e. more than five pixels from the support boundary)
+    #thus we only need this on when in membrane mode, i.e. when positivity=False
+    if shrinkwrap_old_method or positivity:
+        erode = False
+    else:
+        erode = True
+        erosion_width = 5
+
+    my_logger.info('q range of input data: %3.3f < q < %3.3f', q.min(), q.max())
+    my_logger.info('Maximum dimension: %3.3f', D)
+    my_logger.info('Sampling ratio: %3.3f', oversampling)
+    my_logger.info('Requested real space voxel size: %3.3f', voxel)
+    my_logger.info('Number of electrons: %3.3f', ne)
+    my_logger.info('Limit Dmax: %s', limit_dmax)
+    my_logger.info('Limit Dmax Steps: %s', limit_dmax_steps)
+    my_logger.info('Recenter: %s', recenter)
+    my_logger.info('Recenter Steps: %s', recenter_steps)
+    my_logger.info('Recenter Mode: %s', recenter_mode)
+    my_logger.info('NCS: %s', ncs)
+    my_logger.info('NCS Steps: %s', ncs_steps)
+    my_logger.info('NCS Axis: %s', ncs_axis)
+    my_logger.info('Positivity: %s', positivity)
+    my_logger.info('Extrapolate high q: %s', extrapolate)
+    my_logger.info('Shrinkwrap: %s', shrinkwrap)
+    my_logger.info('Shrinkwrap Old Method: %s', shrinkwrap_old_method)
+    my_logger.info('Shrinkwrap sigma start (angstroms): %s', shrinkwrap_sigma_start*dx)
+    my_logger.info('Shrinkwrap sigma end (angstroms): %s', shrinkwrap_sigma_end*dx)
+    my_logger.info('Shrinkwrap sigma start (voxels): %s', shrinkwrap_sigma_start)
+    my_logger.info('Shrinkwrap sigma end (voxels): %s', shrinkwrap_sigma_end)
+    my_logger.info('Shrinkwrap sigma decay: %s', shrinkwrap_sigma_decay)
+    my_logger.info('Shrinkwrap threshold fraction: %s', shrinkwrap_threshold_fraction)
+    my_logger.info('Shrinkwrap iterations: %s', shrinkwrap_iter)
+    my_logger.info('Shrinkwrap starting step: %s', shrinkwrap_minstep)
+    my_logger.info('Enforce connectivity: %s', enforce_connectivity)
+    my_logger.info('Enforce connectivity steps: %s', enforce_connectivity_steps)
+    my_logger.info('Chi2 end fraction: %3.3e', chi_end_fraction)
+    my_logger.info('Maximum number of steps: %i', steps)
+    my_logger.info('Grid size (voxels): %i x %i x %i', n, n, n)
+    my_logger.info('Real space box width (angstroms): %3.3f', side)
+    my_logger.info('Real space box range (angstroms): %3.3f < x < %3.3f', x_.min(), x_.max())
+    my_logger.info('Real space box volume (angstroms^3): %3.3f', V)
+    my_logger.info('Real space voxel size (angstroms): %3.3f', dx)
+    my_logger.info('Real space voxel volume (angstroms^3): %3.3f', dV)
+    my_logger.info('Reciprocal space box width (angstroms^(-1)): %3.3f', qx_.max()-qx_.min())
+    my_logger.info('Reciprocal space box range (angstroms^(-1)): %3.3f < qx < %3.3f', qx_.min(), qx_.max())
+    my_logger.info('Maximum q vector (diagonal) (angstroms^(-1)): %3.3f', qr.max())
+    my_logger.info('Number of q shells: %i', nbins)
+    my_logger.info('Width of q shells (angstroms^(-1)): %3.3f', qstep)
+    my_logger.info('Random seed: %i', seed)
+
+    if not quiet:
+        if gui:
+            my_logger.info("\n Step     Chi2     Rg    Support Volume")
+            my_logger.info(" ----- --------- ------- --------------")
+        else:
+            print("\n Step     Chi2     Rg    Support Volume")
+            print(" ----- --------- ------- --------------")
+
+    if DENSS_GPU:
+        rho = cp.array(rho)
+        qbin_labels = cp.array(qbin_labels)
+        qbins = cp.array(qbins)
+        Idata = cp.array(Idata)
+        qbin_args = cp.array(qbin_args)
+        sigqdata = cp.array(sigqdata)
+        support = cp.array(support)
+        chi = cp.array(chi)
+        supportV = cp.array(supportV)
+        Imean = cp.array(Imean)
+
+    for j in range(steps):
+        if abort_event is not None:
+            if abort_event.is_set():
+                my_logger.info('Aborted!')
+                return []
+
+        F = myfftn(rho, DENSS_GPU=DENSS_GPU)
+
+        #sometimes, when using denss.refine.py with non-random starting rho,
+        #the resulting Fs result in zeros in some locations and the algorithm to break
+        #here just make those values to be 1e-16 to be non-zero
+        F[np.abs(F)==0] = 1e-16
+
+        #APPLY RECIPROCAL SPACE RESTRAINTS
+        #calculate spherical average of intensities from 3D Fs
+        I3D = myabs(F, DENSS_GPU=DENSS_GPU)**2
+        Imean = mybinmean(I3D, qbin_labels, DENSS_GPU=DENSS_GPU)
+
+        #scale Fs to match data
+        #factors = myones((len(qbins)))
+        factors = mysqrt(Idata/Imean, DENSS_GPU=DENSS_GPU)
+        F *= factors[qbin_labels]
+
+        chi[j] = mysum(((Imean[qba]-Idata[qba])/sigqdata[qba])**2, DENSS_GPU=DENSS_GPU)/Idata[qba].size
+        #APPLY REAL SPACE RESTRAINTS
+        rhoprime = myifftn(F, DENSS_GPU=DENSS_GPU)
+        rhoprime = rhoprime.real
+
+        if not DENSS_GPU and j%write_freq == 0:
+            if write_xplor_format:
+                write_xplor(rhoprime/dV, side, fprefix+"_current.xplor")
+            write_mrc(rhoprime/dV, side, fprefix+"_current.mrc")
+
+        if DENSS_GPU:
+            #havent yet updated rho2rg to work with cupy
+            try:
+                rg[j] = rg[j-1]
+                #also, for now, at least we can calculate rg
+                #when running shrinkwrap, since we have
+                #to move to the cpu for numpy anyways there.
+            except:
+                rg[j] = 1.0
+        else:
+            rg[j] = rho2rg(rhoprime,r=r,support=support,dx=dx)
+
+        newrho = myzeros(rho.shape, DENSS_GPU=DENSS_GPU)
+
+        #Error Reduction
+        newrho[support] = rhoprime[support]
+        newrho[~support] = 0.0
+
+        #enforce positivity by making all negative density points zero.
+        if positivity:
+            netmp = mysum(newrho, DENSS_GPU=DENSS_GPU)
+            newrho[newrho<0] = 0.0
+            if mysum(newrho, DENSS_GPU=DENSS_GPU) != 0:
+                newrho *= netmp / mysum(newrho, DENSS_GPU=DENSS_GPU)
+
+        #apply non-crystallographic symmetry averaging
+        if ncs != 0 and j in ncs_steps:
+            if DENSS_GPU:
+                newrho = cp.asnumpy(newrho)
+            newrho = align2xyz(newrho)
+            if DENSS_GPU:
+                newrho = cp.array(newrho)
+
+        if ncs != 0 and j in [stepi+1 for stepi in ncs_steps]:
+            if DENSS_GPU:
+                newrho = cp.asnumpy(newrho)
+            degrees = 360./ncs
+            if ncs_axis == 1: axes=(1,2)
+            if ncs_axis == 2: axes=(0,2)
+            if ncs_axis == 3: axes=(0,1)
+            newrhosym = newrho*0.0
+            for nrot in range(1,ncs+1):
+                newrhosym += ndimage.rotate(newrho,degrees*nrot,axes=axes,reshape=False)
+            newrho = newrhosym/ncs
+            if DENSS_GPU:
+                newrho = cp.array(newrho)
+
+        if recenter and j in recenter_steps:
+            if DENSS_GPU:
+                newrho = cp.asnumpy(newrho)
+                support = cp.asnumpy(support)
+
+            #cannot run center_rho_roll() function since we want to also recenter the support
+            #perhaps we should fix this in the future to clean it up
+            if recenter_mode == "max":
+                rhocom = np.unravel_index(newrho.argmax(), newrho.shape)
+            else:
+                rhocom = np.array(ndimage.measurements.center_of_mass(newrho))
+            gridcenter = np.array(newrho.shape)/2.
+            shift = gridcenter-rhocom
+            shift = shift.astype(int)
+            newrho = np.roll(np.roll(np.roll(newrho, shift[0], axis=0), shift[1], axis=1), shift[2], axis=2)
+            support = np.roll(np.roll(np.roll(support, shift[0], axis=0), shift[1], axis=1), shift[2], axis=2)
+
+            if DENSS_GPU:
+                newrho = cp.array(newrho)
+                support = cp.array(support)
+
+        #update support using shrinkwrap method
+        if shrinkwrap and j >= shrinkwrap_minstep and j%shrinkwrap_iter==1:
+            if DENSS_GPU:
+                newrho = cp.asnumpy(newrho)
+                if j > shrinkwrap_minstep+1:
+                    support = cp.asnumpy(support)
+                    rg[j] = rho2rg(newrho,r=r,support=support,dx=dx)
+
+            if shrinkwrap_old_method:
+                #run the old method
+                if j>500:
+                    absv = True
+                else:
+                    absv = False
+                newrho, support = shrinkwrap_by_density_value(newrho,absv=absv,sigma=sigma,threshold=threshold,recenter=recenter,recenter_mode=recenter_mode)
+            else:
+                swN = int(swV/dV)
+                #end this stage of shrinkwrap when the volume is less than a sphere of radius D/2
+                if swbyvol and swV > swVend:
+                    newrho, support, threshold = shrinkwrap_by_volume(newrho,absv=True,sigma=sigma,N=swN,recenter=recenter,recenter_mode=recenter_mode)
+                    swV *= swV_decay
+                else:
+                    threshold = shrinkwrap_threshold_fraction
+                    if first_time_swdensity:
+                        if not quiet:
+                            if gui:
+                                my_logger.info("switched to shrinkwrap by density threshold = %.4f" %threshold)
+                            else:
+                                print("\nswitched to shrinkwrap by density threshold = %.4f" %threshold)
+                        first_time_swdensity = False
+                    newrho, support = shrinkwrap_by_density_value(newrho,absv=True,sigma=sigma,threshold=threshold,recenter=recenter,recenter_mode=recenter_mode)
+
+            if sigma > shrinkwrap_sigma_end:
+                sigma = shrinkwrap_sigma_decay*sigma
+
+            if DENSS_GPU:
+                newrho = cp.array(newrho)
+                support = cp.array(support)
+
+        #run erode when shrinkwrap is run
+        if erode and j > shrinkwrap_minstep and j%shrinkwrap_iter==1:
+            if DENSS_GPU:
+                newrho = cp.asnumpy(newrho)
+                support = cp.asnumpy(support)
+
+            #eroded is the region of the support _not_ including the boundary pixels
+            #so it is the entire interior. erode_region is _just_ the boundary pixels
+            eroded = ndimage.binary_erosion(support,np.ones((erosion_width,erosion_width,erosion_width)))
+            #get just boundary voxels, i.e. where support=True and eroded=False
+            erode_region = np.logical_and(support,~eroded)
+            #set all negative density in boundary pixels to zero.
+            newrho[(newrho<0)&(erode_region)] = 0
+
+            if DENSS_GPU:
+                newrho = cp.array(newrho)
+                support = cp.array(support)
+
+        if enforce_connectivity and j in enforce_connectivity_steps:
+            if DENSS_GPU:
+                newrho = cp.asnumpy(newrho)
+
+            #first run shrinkwrap to define the features
+            if shrinkwrap_old_method:
+                #run the old method
+                absv = True
+                newrho, support = shrinkwrap_by_density_value(newrho,absv=absv,sigma=sigma,threshold=threshold,recenter=recenter,recenter_mode=recenter_mode)
+            else:
+                #end this stage of shrinkwrap when the volume is less than a sphere of radius D/2
+                swN = int(swV/dV)
+                if swbyvol and swV>swVend:
+                    newrho, support, threshold = shrinkwrap_by_volume(newrho,absv=True,sigma=sigma,N=swN,recenter=recenter,recenter_mode=recenter_mode)
+                else:
+                    newrho, support = shrinkwrap_by_density_value(newrho,absv=True,sigma=sigma,threshold=threshold,recenter=recenter,recenter_mode=recenter_mode)
+
+            #label the support into separate segments based on a 3x3x3 grid
+            struct = ndimage.generate_binary_structure(3, 3)
+            labeled_support, num_features = ndimage.label(support, structure=struct)
+            sums = np.zeros((num_features))
+            if not quiet:
+                if not gui:
+                    print(num_features)
+
+            #find the feature with the greatest number of electrons
+            for feature in range(num_features+1):
+                sums[feature-1] = np.sum(newrho[labeled_support==feature])
+            big_feature = np.argmax(sums)+1
+
+            #remove features from the support that are not the primary feature
+            support[labeled_support != big_feature] = False
+            newrho[~support] = 0
+
+            #reset the support to be the entire grid again
+            #support = np.ones(newrho.shape,dtype=bool)
+
+            if DENSS_GPU:
+                newrho = cp.array(newrho)
+                support = cp.array(support)
+
+        supportV[j] = mysum(support, DENSS_GPU=DENSS_GPU)*dV
+
+        if not quiet:
+            if gui:
+                my_logger.info("% 5i % 4.2e % 3.2f       % 5i          ", j, chi[j], rg[j], supportV[j])
+            else:
+                sys.stdout.write("\r% 5i % 4.2e % 3.2f       % 5i          " % (j, chi[j], rg[j], supportV[j]))
+                sys.stdout.flush()
+
+        #occasionally report progress in logger
+        if j%500==0 and not gui:
+            my_logger.info('Step % 5i: % 4.2e % 3.2f       % 5i          ', j, chi[j], rg[j], supportV[j])
+
+        if j > 101 + shrinkwrap_minstep and mystd(chi[j-100:j], DENSS_GPU=DENSS_GPU) < chi_end_fraction * mymean(chi[j-100:j], DENSS_GPU=DENSS_GPU):
+            break
+
+        rho = newrho
+
+    #convert back to numpy outside of for loop
+    if DENSS_GPU:
+        rho = cp.asnumpy(rho)
+        qbin_labels = cp.asnumpy(qbin_labels)
+        qbin_args = cp.asnumpy(qbin_args)
+        sigqdata = cp.asnumpy(sigqdata)
+        Imean = cp.asnumpy(Imean)
+        chi = cp.asnumpy(chi)
+        qbins = cp.asnumpy(qbins)
+        Idata = cp.asnumpy(Idata)
+        support = cp.asnumpy(support)
+        supportV = cp.asnumpy(supportV)
+        Idata = cp.asnumpy(Idata)
+
+
+    F = np.fft.fftn(rho)
+    #calculate spherical average intensity from 3D Fs
+    Imean = ndimage.mean(np.abs(F)**2, labels=qbin_labels, index=np.arange(0,qbin_labels.max()+1))
+    #chi[j+1] = np.sum(((Imean[j+1,qbin_args]-Idata)/sigqdata)**2)/qbin_args.size
+
+    #scale Fs to match data
+    #factors = np.ones((len(qbins)))
+    factors = np.sqrt(Idata/Imean)
+    F *= factors[qbin_labels]
+    rho = np.fft.ifftn(F,rho.shape)
+    rho = rho.real
+
+    #negative images yield the same scattering, so flip the image
+    #to have more positive than negative values if necessary
+    #to make sure averaging is done properly
+    #whether theres actually more positive than negative values
+    #is ambiguous, but this ensures all maps are at least likely
+    #the same designation when averaging
+    if np.sum(np.abs(rho[rho<0])) > np.sum(rho[rho>0]):
+        rho *= -1
+
+    #scale total number of electrons
+    if ne is not None:
+        rho *= ne / np.sum(rho)
+
+    rg[j+1] = rho2rg(rho=rho,r=r,support=support,dx=dx)
+    supportV[j+1] = supportV[j]
+
+    #change rho to be the electron density in e-/angstroms^3, rather than number of electrons,
+    #which is what the FFT assumes
+    rho /= dV
+    my_logger.info('FINISHED DENSITY REFINEMENT')
+
+
+    if cutout:
+        #here were going to cut rho out of the large real space box
+        #to the voxels that contain the particle
+        #use D to estimate particle size
+        #assume the particle is in the center of the box
+        #calculate how many voxels needed to contain particle of size D
+        #use bigger than D to make sure we don't crop actual particle in case its larger than expected
+        #lets clip it to a maximum of 2*D to be safe
+        nD = int(2*D/dx)+1
+        #make sure final box will still have even samples
+        if nD%2==1:
+            nD += 1
+
+        nmin = nbox//2 - nD//2
+        nmax = nbox//2 + nD//2 + 2
+        #create new rho array containing only the particle
+        newrho = rho[nmin:nmax,nmin:nmax,nmin:nmax]
+        rho = newrho
+        #do the same for the support
+        newsupport = support[nmin:nmax,nmin:nmax,nmin:nmax]
+        support = newsupport
+        #update side to new size of box
+        side = dx * (nmax-nmin)
+
+    if write_xplor_format:
+        write_xplor(rho,side,fprefix+".xplor")
+        write_xplor(np.ones_like(rho)*support, side, fprefix+"_support.xplor")
+
+    write_mrc(rho,side,fprefix+".mrc")
+    write_mrc(np.ones_like(rho)*support,side, fprefix+"_support.mrc")
+
+    #Write some more output files
+    fit = np.zeros(( len(qbinsc),4 ))
+    fit[:len(qdata),0] = qdata
+    fit[:len(Idata),1] = Idata
+    fit[:len(sigqdata),2] = sigqdata
+    fit[:len(Imean),3] = Imean
+    np.savetxt(fprefix+'_map.fit', fit, delimiter=' ', fmt='%.5e'.encode('ascii'),
+        header='q(data),I(data),error(data),I(density)')
+
+    np.savetxt(fprefix+'_stats_by_step.dat',np.vstack((chi, rg, supportV)).T,
+        delimiter=" ", fmt="%.5e".encode('ascii'), header='Chi2 Rg SupportVolume')
+
+    my_logger.info('Number of steps: %i', j)
+    my_logger.info('Final Chi2: %.3e', chi[j])
+    my_logger.info('Final Rg: %3.3f', rg[j+1])
+    my_logger.info('Final Support Volume: %3.3f', supportV[j+1])
+    # my_logger.info('END')
+
+    #return original unscaled values of Idata (and therefore Imean) for comparison with real data
+    Idata /= scale_factor
+    sigqdata /= scale_factor
+    Imean /= scale_factor
+    I /= scale_factor
+    sigq /= scale_factor
+
+    return qdata, Idata, sigqdata, qbinsc, Imean, chi, rg, supportV, rho, side
+
+def shrinkwrap_by_density_value(rho,absv=True,sigma=3.0,threshold=0.2,recenter=True,recenter_mode="com"):
+    """Create support using shrinkwrap method based on threshold as fraction of maximum density
+
+    rho - electron density; numpy array
+    absv - boolean, whether or not to take the absolute value of the density
+    sigma - sigma, in pixels, for gaussian filter
+    threshold - fraction of maximum gaussian filtered density (0 to 1)
+    recenter - boolean, whether or not to recenter the density prior to calculating support
+    recenter_mode - either com (center of mass) or max (maximum density value)
+    """
+    if recenter:
+        rho = center_rho_roll(rho, recenter_mode)
+
+    if absv:
+        tmp = np.abs(rho)
+    else:
+        tmp = rho
+    rho_blurred = ndimage.filters.gaussian_filter(tmp,sigma=sigma,mode='wrap')
+
+    support = np.zeros(rho.shape,dtype=bool)
+    support[rho_blurred >= threshold*rho_blurred.max()] = True
+
+    return rho, support
+
+def shrinkwrap_by_volume(rho,N,absv=True,sigma=3.0,recenter=True,recenter_mode="com"):
+    """Create support using shrinkwrap method based on threshold as fraction of maximum density
+
+    rho - electron density; numpy array
+    absv - boolean, whether or not to take the absolute value of the density
+    sigma - sigma, in pixels, for gaussian filter
+    N - set the threshold such that N voxels are in the support (must precalculate this based on volume)
+    recenter - boolean, whether or not to recenter the density prior to calculating support
+    recenter_mode - either com (center of mass) or max (maximum density value)
+    """
+    if recenter:
+        rho = center_rho_roll(rho, recenter_mode)
+
+    if absv:
+        tmp = np.abs(rho)
+    else:
+        tmp = rho
+    rho_blurred = ndimage.filters.gaussian_filter(tmp,sigma=sigma,mode='wrap')
+
+    #grab the N largest values of the array
+    idx = largest_indices(rho_blurred, N)
+    support = np.zeros(rho.shape,dtype=bool)
+    #support[rho_blurred >= threshold] = True
+    support[idx] = True
+    #now, calculate the threshold that would correspond to the by_density_value method
+    threshold = np.min(rho_blurred[idx])/rho_blurred.max()
+
+    return rho, support, threshold
+
+def center_rho(rho, centering="com", return_shift=False):
+    """Move electron density map so its center of mass aligns with the center of the grid
+
+    centering - which part of the density to center on. By default, center on the
+                center of mass ("com"). Can also center on maximum density value ("max").
+    """
+    ne_rho= np.sum((rho))
+    if centering == "max":
+        rhocom = np.unravel_index(rho.argmax(), rho.shape)
+    else:
+        rhocom = np.array(ndimage.measurements.center_of_mass(rho))
+    gridcenter = np.array(rho.shape)/2.
+    shift = gridcenter-rhocom
+    rho = ndimage.interpolation.shift(rho,shift,order=3,mode='wrap')
+    rho = rho*ne_rho/np.sum(rho)
+    if return_shift:
+        return rho, shift
+    else:
+        return rho
+
+def center_rho_roll(rho, recenter_mode="com", return_shift=False):
+    """Move electron density map so its center of mass aligns with the center of the grid
+
+    rho - electron density array
+    recenter_mode - a string either com (center of mass) or max (maximum density)
+    """
+    if recenter_mode == "max":
+        rhocom = np.unravel_index(rho.argmax(), rho.shape)
+    else:
+        rhocom = np.array(ndimage.measurements.center_of_mass(rho))
+    gridcenter = np.array(rho.shape)/2.
+    shift = gridcenter-rhocom
+    shift = shift.astype(int)
+    rho = np.roll(np.roll(np.roll(rho, shift[0], axis=0), shift[1], axis=1), shift[2], axis=2)
+    if return_shift:
+        return rho, shift
+    else:
+        return rho
+def euler_grid_search(refrho, movrho, topn=1, abort_event=None):
+    """Simple grid search on uniformly sampled sphere to optimize alignment.
+        Return the topn candidate maps (default=1, i.e. the best candidate)."""
+    #taken from https://stackoverflow.com/a/44164075/2836338
+
+    num_pts = 18 #~20 degrees between points
+    indices = np.arange(0, num_pts, dtype=float) + 0.5
+    phi = np.arccos(1 - 2*indices/num_pts)
+    theta = np.pi * (1 + 5**0.5) * indices
+    scores = np.zeros((len(phi),len(theta)))
+    for p in range(len(phi)):
+        for t in range(len(theta)):
+            #scores[p,t] = -minimize_rho_score(T=[phi[p],theta[t],0,0,0,0],refrho=np.abs(refrho),movrho=np.abs(movrho))
+            scores[p,t] = -minimize_rho_score(T=[phi[p],theta[t],0,0,0,0],refrho=refrho,movrho=movrho)
+
+            if abort_event is not None:
+                if abort_event.is_set():
+                    return None, None
+
+    #best_pt = np.unravel_index(scores.argmin(), scores.shape)
+    best_pt = largest_indices(scores, topn)
+    best_scores = scores[best_pt]
+    movrhos = np.zeros((topn,movrho.shape[0],movrho.shape[1],movrho.shape[2]))
+
+    for i in range(topn):
+        movrhos[i] = transform_rho(movrho, T=[phi[best_pt[0][i]],theta[best_pt[1][i]],0,0,0,0])
+
+        if abort_event is not None:
+            if abort_event.is_set():
+                return movrhos, best_scores
+
+    return movrhos, best_scores
+
+def largest_indices(a, n):
+    """Returns the n largest indices from a numpy array."""
+    flat = a.flatten()
+    indices = np.argpartition(flat, -n)[-n:]
+    indices = indices[np.argsort(-flat[indices])]
+    return np.unravel_index(indices, a.shape)
+
+def coarse_then_fine_alignment(refrho, movrho, coarse=True, topn=1,
+    abort_event=None):
+    """Course alignment followed by fine alignment.
+        Select the topn candidates from the grid search
+        and minimize each, selecting the best fine alignment.
+        """
+    if coarse:
+        movrhos, scores = euler_grid_search(refrho, movrho, topn=topn,
+            abort_event=abort_event)
+    else:
+        movrhos = movrho[np.newaxis,...]
+
+    if abort_event is not None:
+        if abort_event.is_set():
+            return None, None
+
+    for i in range(movrhos.shape[0]):
+        movrhos[i], scores[i] = minimize_rho(refrho, movrhos[i])
+
+        if abort_event is not None:
+            if abort_event.is_set():
+                return None, None
+
+    best_i = np.argmax(scores)
+    movrho = movrhos[best_i]
+    score = scores[best_i]
+    return movrho, score
+
+def minimize_rho(refrho, movrho, T = np.zeros(6)):
+    """Optimize superposition of electron density maps. Move movrho to refrho."""
+    bounds = np.zeros(12).reshape(6,2)
+    bounds[:3,0] = -20*np.pi
+    bounds[:3,1] = 20*np.pi
+    bounds[3:,0] = -5
+    bounds[3:,1] = 5
+    save_movrho = np.copy(movrho)
+    save_refrho = np.copy(refrho)
+    result = optimize.fmin_l_bfgs_b(minimize_rho_score, T, factr= 0.1,
+        maxiter=100, maxfun=200, epsilon=0.05,
+        #args=(np.abs(refrho),np.abs(movrho)), approx_grad=True)
+        args=(refrho,movrho), approx_grad=True)
+    Topt = result[0]
+    newrho = transform_rho(save_movrho, Topt)
+    finalscore = -rho_overlap_score(save_refrho,newrho)
+    return newrho, finalscore
+
+def minimize_rho_score(T, refrho, movrho):
+    """Scoring function for superposition of electron density maps.
+
+        refrho - fixed, reference rho
+        movrho - moving rho
+        T - 6-element list containing alpha, beta, gamma, Tx, Ty, Tz in that order
+        to move movrho by.
+        """
+    newrho = transform_rho(movrho, T)
+    score = rho_overlap_score(refrho,newrho)
+    return score
+
+def rho_overlap_score(rho1,rho2, threshold=None):
+    """Scoring function for superposition of electron density maps."""
+    if threshold is None:
+        n=2*np.sum(np.abs(rho1*rho2))
+        d=(2*np.sum(rho1**2)**0.5*np.sum(rho2**2)**0.5)
+    else:
+        #if there's a threshold, base it on only one map, then use
+        #those indices for both maps to ensure the same pixels are compared
+        idx = np.where(np.abs(rho1)>threshold*np.abs(rho1).max())
+        n=2*np.sum(np.abs(rho1[idx]*rho2[idx]))
+        d=(2*np.sum(rho1[idx]**2)**0.5*np.sum(rho2[idx]**2)**0.5)
+    score = n/d
+    #-score for least squares minimization, i.e. want to minimize, not maximize score
+    return -score
+
+def transform_rho(rho, T, order=1):
+    """ Rotate and translate electron density map by T vector.
+
+        T = [alpha, beta, gamma, x, y, z], angles in radians
+        order = interpolation order (0-5)
+    """
+    ne_rho= np.sum((rho))
+    R = euler2matrix(T[0],T[1],T[2])
+    c_in = np.array(ndimage.measurements.center_of_mass(rho))
+    c_out = np.array(rho.shape)/2.
+    offset = c_in-c_out.dot(R)
+    offset += T[3:]
+    rho = ndimage.interpolation.affine_transform(rho,R.T, order=order,
+        offset=offset, output=np.float64, mode='wrap')
+    rho *= ne_rho/np.sum(rho)
+    return rho
+
+def euler2matrix(alpha=0.0,beta=0.0,gamma=0.0):
+    """Convert Euler angles alpha, beta, gamma to a standard rotation matrix.
+
+        alpha - yaw, counterclockwise rotation about z-axis, upper-left quadrant
+        beta - pitch, counterclockwise rotation about y-axis, four-corners
+        gamma - roll, counterclockwise rotation about x-axis, lower-right quadrant
+        all angles given in radians
+
+        """
+    R = []
+    cosa = np.cos(alpha)
+    sina = np.sin(alpha)
+    cosb = np.cos(beta)
+    sinb = np.sin(beta)
+    cosg = np.cos(gamma)
+    sing = np.sin(gamma)
+    R.append(np.array(
+        [[cosa, -sina, 0],
+        [sina, cosa, 0],
+        [0, 0, 1]]))
+    R.append(np.array(
+        [[cosb, 0, sinb],
+        [0, 1, 0],
+        [-sinb, 0, cosb]]))
+    R.append(np.array(
+        [[1, 0, 0],
+        [0, cosg, -sing],
+        [0, sing, cosg]]))
+    return reduce(np.dot,R[::-1])
+
+def inertia_tensor(rho,side):
+    """Calculate the moment of inertia tensor for the given electron density map."""
+    halfside = side/2.
+    n = rho.shape[0]
+    x_ = np.linspace(-halfside,halfside,n)
+    x,y,z = np.meshgrid(x_,x_,x_,indexing='ij')
+    Ixx = np.sum((y**2 + z**2)*rho)
+    Iyy = np.sum((x**2 + z**2)*rho)
+    Izz = np.sum((x**2 + y**2)*rho)
+    Ixy = -np.sum(x*y*rho)
+    Iyz = -np.sum(y*z*rho)
+    Ixz = -np.sum(x*z*rho)
+    I = np.array([[Ixx, Ixy, Ixz],
+                  [Ixy, Iyy, Iyz],
+                  [Ixz, Iyz, Izz]])
+    return I
+
+def principal_axes(I):
+    """Calculate the principal inertia axes and order them Ia < Ib < Ic."""
+    w,v = np.linalg.eigh(I)
+    return w,v
+
+def principal_axis_alignment(refrho,movrho):
+    """ Align movrho principal axes to refrho."""
+    side = 1.0
+    ne_movrho = np.sum((movrho))
+    #first center refrho and movrho, save refrho shift
+    rhocom = np.array(ndimage.measurements.center_of_mass(refrho))
+    gridcenter = np.array(refrho.shape)/2.
+    shift = gridcenter-rhocom
+    refrho = ndimage.interpolation.shift(refrho,shift,order=3,mode='wrap')
+    #calculate, save and perform rotation of refrho to xyz for later
+    refI = inertia_tensor(refrho, side)
+    refw,refv = principal_axes(refI)
+    refR = refv.T
+    refrho = align2xyz(refrho)
+    #align movrho to xyz too
+    #check for best enantiomer, eigh is ambiguous in sign
+    movrho = align2xyz(movrho)
+    enans = generate_enantiomers(movrho)
+    scores = np.zeros(enans.shape[0])
+    for i in range(enans.shape[0]):
+        scores[i] = -rho_overlap_score(refrho,enans[i])
+    movrho = enans[np.argmax(scores)]
+    #now rotate movrho by the inverse of the refrho rotation
+    R = np.linalg.inv(refR)
+    c_in = np.array(ndimage.measurements.center_of_mass(movrho))
+    c_out = np.array(movrho.shape)/2.
+    offset=c_in-c_out.dot(R)
+    movrho = ndimage.interpolation.affine_transform(movrho,R.T,order=3,offset=offset,mode='wrap')
+    #now shift it back to where refrho was originally
+    movrho = ndimage.interpolation.shift(movrho,-shift,order=3,mode='wrap')
+    movrho *= ne_movrho/np.sum(movrho)
+    return movrho
+
+def align2xyz(rho, return_transform=False):
+    """ Align rho such that principal axes align with XYZ axes."""
+    side = 1.0
+    ne_rho = np.sum(rho)
+    #shift refrho to the center
+    rhocom = np.array(ndimage.measurements.center_of_mass(rho))
+    gridcenter = np.array(rho.shape)/2.
+    shift = gridcenter-rhocom
+    rho = ndimage.interpolation.shift(rho,shift,order=3,mode='wrap')
+    #calculate, save and perform rotation of refrho to xyz for later
+    I = inertia_tensor(rho, side)
+    w,v = principal_axes(I)
+    R = v.T
+    refR = np.copy(R)
+    refshift = np.copy(shift)
+    #apparently need to run this a few times to get good alignment
+    #maybe due to interpolation artifacts?
+    for i in range(3):
+        I = inertia_tensor(rho, side)
+        w,v = np.linalg.eigh(I) #principal axes
+        R = v.T #rotation matrix
+        c_in = np.array(ndimage.measurements.center_of_mass(rho))
+        c_out = np.array(rho.shape)/2.
+        offset=c_in-c_out.dot(R)
+        rho = ndimage.interpolation.affine_transform(rho, R.T, order=3,
+            offset=offset, mode='wrap')
+    rho *= ne_rho/np.sum(rho)
+    if return_transform:
+        return rho, refR, refshift
+    else:
+        return rho
+
+def generate_enantiomers(rho):
+    """ Generate all enantiomers of given density map.
+        Output maps are original, and flipped over z.
+        """
+    rho_zflip = rho[:,:,::-1]
+    enans = np.array([rho,rho_zflip])
+    return enans
+
+def align(refrho, movrho, coarse=True, abort_event=None):
+    """ Align second electron density map to the first."""
+    if abort_event is not None:
+        if abort_event.is_set():
+            return None, None
+
+    ne_rho = np.sum((movrho))
+    #movrho, score = minimize_rho(refrho, movrho)
+    movrho, score = coarse_then_fine_alignment(refrho=refrho, movrho=movrho, coarse=coarse, topn=5,
+        abort_event=abort_event)
+
+    if movrho is not None:
+        movrho *= ne_rho/np.sum(movrho)
+
+    return movrho, score
+
+def select_best_enantiomer(refrho, rho, abort_event=None):
+    """ Generate, align and select the enantiomer that best fits the reference map."""
+    #translate refrho to center in case not already centered
+    #just use roll to approximate translation to avoid interpolation, since
+    #fine adjustments and interpolation will happen during alignment step
+    c_refrho = center_rho_roll(refrho)
+    #center rho in case it is not centered. use roll to get approximate location
+    #and avoid interpolation
+    c_rho = center_rho_roll(rho)
+    #generate an array of the enantiomers
+    enans = generate_enantiomers(c_rho)
+    #allow for abort
+    if abort_event is not None:
+        if abort_event.is_set():
+            return None, None
+
+    #align each enantiomer and store the aligned maps and scores in results list
+    results = [align(c_refrho, enan, abort_event=abort_event) for enan in enans]
+
+    #now select the best enantiomer
+    #rather than return the aligned and therefore interpolated enantiomer,
+    #instead just return the original enantiomer, flipped from the original map
+    #then no interpolation has taken place. So just dont overwrite enans essentially.
+    #enans = np.array([results[k][0] for k in range(len(results))])
+    enans_scores = np.array([results[k][1] for k in range(len(results))])
+    best_i = np.argmax(enans_scores)
+    best_enan, best_score = enans[best_i], enans_scores[best_i]
+    return best_enan, best_score
+
+def select_best_enantiomers(rhos, refrho=None, cores=1, avg_queue=None,
+    abort_event=None, single_proc=False):
+    """ Select the best enantiomer from each map in the set (or a single map).
+        refrho should not be binary averaged from the original
+        denss maps, since that would likely lose handedness.
+        By default, refrho will be set to the first map."""
+    if rhos.ndim == 3:
+        rhos = rhos[np.newaxis,...]
+    if refrho is None:
+        refrho = rhos[0]
+
+    #in parallel, select the best enantiomer for each rho
+    if not single_proc:
+        pool = multiprocessing.Pool(cores)
+        try:
+            mapfunc = partial(select_best_enantiomer, refrho)
+            results = pool.map(mapfunc, rhos)
+            pool.close()
+            pool.join()
+        except KeyboardInterrupt:
+            pool.terminate()
+            pool.close()
+            raise
+
+    else:
+        results = [select_best_enantiomer(refrho=refrho, rho=rho, abort_event=abort_event) for rho in rhos]
+
+    best_enans = np.array([results[k][0] for k in range(len(results))])
+    best_scores = np.array([results[k][1] for k in range(len(results))])
+
+    return best_enans, best_scores
+
+def align_multiple(refrho, rhos, cores=1, abort_event=None, single_proc=False):
+    """ Align multiple (or a single) maps to the reference."""
+    if rhos.ndim == 3:
+        rhos = rhos[np.newaxis,...]
+    #first, center all the rhos, then shift them to where refrho is
+    cen_refrho, refshift = center_rho_roll(refrho, return_shift=True)
+    shift = -refshift
+    for i in range(rhos.shape[0]):
+        rhos[i] = center_rho_roll(rhos[i])
+        ne_rho = np.sum(rhos[i])
+        #now shift each rho back to where refrho was originally
+        #rhos[i] = ndimage.interpolation.shift(rhos[i],-refshift,order=3,mode='wrap')
+        rhos[i] = np.roll(np.roll(np.roll(rhos[i], shift[0], axis=0), shift[1], axis=1), shift[2], axis=2)
+        rhos[i] *= ne_rho/np.sum(rhos[i])
+
+    if abort_event is not None:
+        if abort_event.is_set():
+            return None, None
+
+    if not single_proc:
+        pool = multiprocessing.Pool(cores)
+        try:
+            mapfunc = partial(align, refrho)
+            results = pool.map(mapfunc, rhos)
+            pool.close()
+            pool.join()
+        except KeyboardInterrupt:
+            pool.terminate()
+            pool.close()
+            raise
+    else:
+        results = [align(refrho, rho, abort_event=abort_event) for rho in rhos]
+
+    rhos = np.array([results[i][0] for i in range(len(results))])
+    scores = np.array([results[i][1] for i in range(len(results))])
+
+    return rhos, scores
+
+def average_two(rho1, rho2, abort_event=None):
+    """ Align two electron density maps and return the average."""
+    rho2, score = align(rho1, rho2, abort_event=abort_event)
+    average_rho = (rho1+rho2)/2
+    return average_rho
+
+def multi_average_two(niter, **kwargs):
+    """ Wrapper script for averaging two maps for multiprocessing."""
+    #kwargs['rho1']=kwargs['rho1'][niter]
+    #kwargs['rho2']=kwargs['rho2'][niter]
+    time.sleep(1)
+    return average_two(kwargs['rho1'][niter],kwargs['rho2'][niter],abort_event=kwargs['abort_event'])
+
+def average_pairs(rhos, cores=1, abort_event=None, single_proc=False):
+    """ Average pairs of electron density maps, second half to first half."""
+    #create even/odd pairs, odds are the references
+    rho_args = {'rho1':rhos[::2], 'rho2':rhos[1::2], 'abort_event': abort_event}
+
+    if not single_proc:
+        pool = multiprocessing.Pool(cores)
+        try:
+            mapfunc = partial(multi_average_two, **rho_args)
+            average_rhos = pool.map(mapfunc, list(range(rhos.shape[0]//2)))
+            pool.close()
+            pool.join()
+        except KeyboardInterrupt:
+            pool.terminate()
+            pool.close()
+            raise
+        except Exception:
+            pool.close()
+            raise
+
+    else:
+        average_rhos = [multi_average_two(niter, **rho_args) for niter in
+            range(rhos.shape[0]//2)]
+
+    return np.array(average_rhos)
+
+def binary_average(rhos, cores=1, abort_event=None, single_proc=False):
+    """ Generate a reference electron density map using binary averaging."""
+    twos = 2**np.arange(20)
+    nmaps = np.max(twos[twos<=rhos.shape[0]])
+    #eight maps should be enough for the reference
+    nmaps = np.max([nmaps,8])
+    levels = int(np.log2(nmaps))-1
+    rhos = rhos[:nmaps]
+    for level in range(levels):
+        rhos = average_pairs(rhos, cores, abort_event=abort_event,
+            single_proc=single_proc)
+    refrho = center_rho_roll(rhos[0])
+    return refrho
+
+def calc_fsc(rho1, rho2, side):
+    """ Calculate the Fourier Shell Correlation between two electron density maps."""
+    df = 1.0/side
+    n = rho1.shape[0]
+    qx_ = np.fft.fftfreq(n)*n*df
+    qx, qy, qz = np.meshgrid(qx_,qx_,qx_,indexing='ij')
+    qx_max = qx.max()
+    qr = np.sqrt(qx**2+qy**2+qz**2)
+    qmax = np.max(qr)
+    qstep = np.min(qr[qr>0])
+    nbins = int(qmax/qstep)
+    qbins = np.linspace(0,nbins*qstep,nbins+1)
+    #create an array labeling each voxel according to which qbin it belongs
+    qbin_labels = np.searchsorted(qbins, qr, "right")
+    qbin_labels -= 1
+    F1 = np.fft.fftn(rho1)
+    F2 = np.fft.fftn(rho2)
+    numerator = ndimage.sum(np.real(F1*np.conj(F2)), labels=qbin_labels,
+        index=np.arange(0,qbin_labels.max()+1))
+    term1 = ndimage.sum(np.abs(F1)**2, labels=qbin_labels,
+        index=np.arange(0,qbin_labels.max()+1))
+    term2 = ndimage.sum(np.abs(F2)**2, labels=qbin_labels,
+        index=np.arange(0,qbin_labels.max()+1))
+    denominator = (term1*term2)**0.5
+    FSC = numerator/denominator
+    qidx = np.where(qbins<qx_max)
+    return  np.vstack((qbins[qidx],FSC[qidx])).T
+
 electrons = {'H': 1,'HE': 2,'He': 2,'LI': 3,'Li': 3,'BE': 4,'Be': 4,'B': 5,
     'C': 6,'N': 7,'O': 8,'F': 9,'NE': 10,'Ne': 10,'NA': 11,'Na': 11,'MG': 12,
     'Mg': 12,'AL': 13,'Al': 13,'SI': 14,'Si': 14,'P': 15,'S': 16,'CL': 17,
@@ -1101,14 +1361,17 @@ electrons = {'H': 1,'HE': 2,'He': 2,'LI': 3,'Li': 3,'BE': 4,'Be': 4,'B': 5,
     'Sg': 106,'BH': 107,'Bh': 107,'HS': 108,'Hs': 108,'MT': 109,'Mt': 109}
 
 
+
 class PDB(object):
     """Load pdb file."""
-    def __init__(self, filename):
+    def __init__(self, filename, ignore_waters=False):
         self.natoms = 0
         with open(filename) as f:
             for line in f:
                 if line[0:4] != "ATOM" and line[0:4] != "HETA":
                     continue # skip other lines
+                if ignore_waters and ((line[17:20]=="HOH") or (line[17:20]=="TIP")):
+                    continue
                 self.natoms += 1
         self.atomnum = np.zeros((self.natoms),dtype=int)
         self.atomname = np.zeros((self.natoms),dtype=np.dtype((np.str,3)))
@@ -1125,13 +1388,29 @@ class PDB(object):
         with open(filename) as f:
             atom = 0
             for line in f:
+                if line[0:6] == "CRYST1":
+                    cryst = line.split()
+                    self.cella = float(cryst[1])
+                    self.cellb = float(cryst[2])
+                    self.cellc = float(cryst[3])
+                    self.cellalpha = float(cryst[4])
+                    self.cellbeta = float(cryst[5])
+                    self.cellgamma = float(cryst[6])
                 if line[0:4] != "ATOM" and line[0:4] != "HETA":
                     continue # skip other lines
-                self.atomnum[atom] = int(line[6:11])
-                self.atomname[atom] = line[13:16]
+                try:
+                    self.atomnum[atom] = int(line[6:11])
+                except ValueError as e:
+                    self.atomnum[atom] = int(line[6:11],36)
+                if ignore_waters and ((line[17:20]=="HOH") or (line[17:20]=="TIP")):
+                    continue
+                self.atomname[atom] = line[12:16].split()[0]
                 self.atomalt[atom] = line[16]
                 self.resname[atom] = line[17:20]
-                self.resnum[atom] = int(line[22:26])
+                try:
+                    self.resnum[atom] = int(line[22:26])
+                except ValueError as e:
+                    self.resnum[atom] = int(line[22:26],36)
                 self.chain[atom] = line[21]
                 self.coords[atom, 0] = float(line[30:38])
                 self.coords[atom, 1] = float(line[38:46])
@@ -1144,18 +1423,72 @@ class PDB(object):
                     atomtype1 = atomtype[1].lower()
                     atomtype = atomtype0 + atomtype1
                 self.atomtype[atom] = atomtype
-                self.charge[atom] = line[78:80]
+                self.charge[atom] = line[78:80].strip('\n')
                 self.nelectrons[atom] = electrons.get(self.atomtype[atom].upper(),6)
                 atom += 1
+
+    def remove_waters(self):
+        idx = np.where((self.resname=="HOH") | (self.resname=="TIP"))
+        self.remove_atoms_from_object(idx)
+
+    def remove_by_atomtype(self, atomtype):
+        idx = np.where((self.atomtype==atomtype))
+        self.remove_atoms_from_object(idx)
+
+    def remove_by_atomname(self, atomname):
+        idx = np.where((self.atomname==atomname))
+        self.remove_atoms_from_object(idx)
+
+    def remove_by_atomnum(self, atomnum):
+        idx = np.where((self.atomnum==atomnum))
+        self.remove_atoms_from_object(idx)
+
+    def remove_by_resname(self, resname):
+        idx = np.where((self.resname==resname))
+        self.remove_atoms_from_object(idx)
+
+    def remove_by_resnum(self, resnum):
+        idx = np.where((self.resnum==resnum))
+        self.remove_atoms_from_object(idx)
+
+    def remove_by_chain(self, chain):
+        idx = np.where((self.chain==chain))
+        self.remove_atoms_from_object(idx)
+
+    def remove_atoms_from_object(self, idx):
+        mask = np.ones(self.natoms, dtype=bool)
+        mask[idx] = False
+        self.atomnum = self.atomnum[mask]
+        self.atomname = self.atomname[mask]
+        self.atomalt = self.atomalt[mask]
+        self.resname = self.resname[mask]
+        self.resnum = self.resnum[mask]
+        self.chain = self.chain[mask]
+        self.coords = self.coords[mask]
+        self.occupancy = self.occupancy[mask]
+        self.b = self.b[mask]
+        self.atomtype = self.atomtype[mask]
+        self.charge = self.charge[mask]
+        self.nelectrons = self.nelectrons[mask]
+        self.natoms = len(self.atomnum)
 
     def write(self, filename):
         """Write PDB file format using pdb object as input."""
         records = []
+        anum,rc = (np.unique(self.atomnum,return_counts=True))
+        if np.any(rc>1):
+            #in case default atom numbers are repeated, just renumber them
+            self_numbering=True
+        else:
+            self_numbering=False
         for i in range(self.natoms):
-            atomnum = '%5i' % self.atomnum[i]
+            if self_numbering:
+                atomnum = '%5i' % ((i+1)%99999)
+            else:
+                atomnum = '%5i' % (self.atomnum[i]%99999)
             atomname = '%3s' % self.atomname[i]
             atomalt = '%1s' % self.atomalt[i]
-            resnum = '%4i' % self.resnum[i]
+            resnum = '%4i' % (self.resnum[i]%9999)
             resname = '%3s' % self.resname[i]
             chain = '%1s' % self.chain[i]
             x = '%8.3f' % self.coords[i,0]
@@ -1166,7 +1499,7 @@ class PDB(object):
             atomtype = '%2s' % self.atomtype[i]
             charge = '%2s' % self.charge[i]
             records.append(['ATOM  ' + atomnum + '  ' + atomname + ' ' + resname + ' ' + chain + resnum + '    ' + x + y + z + o + b + '          ' + atomtype + charge])
-        np.savetxt(filename, records, fmt = '%80s'.encode('ascii'))
+        np.savetxt(filename, records, fmt='%80s'.encode('ascii'))
 
 def pdb2map_fastgauss(pdb,x,y,z,sigma,r=20.0):
     """Simple isotropic gaussian sum at coordinate locations.
@@ -1321,7 +1654,7 @@ def runDenss(q, I, sigq, D, prefix, path, denss_settings, avg_model=None,
             'positivity'        : denss_settings['positivity'],
             'extrapolate'       : denss_settings['extrapolate'],
             'output'            : den_prefix,
-            'flatten_low_density': denss_settings['flattenLowDensity'],
+            # 'flatten_low_density': denss_settings['flattenLowDensity'],
             'shrinkwrap'        : denss_settings['shrinkwrap'],
             'shrinkwrap_sigma_start' : float(denss_settings['swSigmaStart']),
             'shrinkwrap_sigma_end' : float(denss_settings['swSigmaEnd']),
@@ -1340,6 +1673,7 @@ def runDenss(q, I, sigq, D, prefix, path, denss_settings, avg_model=None,
             'my_logger'         : my_logger,
             'path'              : path,
             'gui'               : True, #Prevents printing to the console
+            'DENSS_GPU'         : denss_settings['denssGPU'], #Needs CuPy
         }
 
         if denss_settings['electrons'] != '':
@@ -1361,15 +1695,15 @@ def runDenss(q, I, sigq, D, prefix, path, denss_settings, avg_model=None,
         except Exception:
             denss_args['steps'] = None
 
-        if denss_settings['minDensity'] == 'None':
-            denss_args['minimum_density'] = None
-        else:
-            denss_args['minimum_density'] = float(denss_settings['minDensity'])
+        # if denss_settings['minDensity'] == 'None':
+        #     denss_args['minimum_density'] = None
+        # else:
+        #     denss_args['minimum_density'] = float(denss_settings['minDensity'])
 
-        if denss_settings['maxDensity'] == 'None':
-            denss_args['maximum_density'] = None
-        else:
-            denss_args['maximum_density'] = float(denss_settings['maxDensity'])
+        # if denss_settings['maxDensity'] == 'None':
+        #     denss_args['maximum_density'] = None
+        # else:
+        #     denss_args['maximum_density'] = float(denss_settings['maxDensity'])
 
         if avg_model is not None:
             denss_args['rho_start'] = avg_model
@@ -1450,7 +1784,8 @@ def run_enantiomers(rhos, cores, num=0, avg_q=None, my_lock=None, wx_queue=None,
     return best_enans, scores
 
 def run_align(rhos, sides, ref_file, avg_q=None, abort_event=None, center=True,
-    resolution=15.0, enantiomer=True, cores=1, single_proc=False, gui=True):
+    resolution=15.0, enantiomer=True, cores=1, single_proc=False, gui=True,
+    ignore_waters=True):
     #based on denss.align.py
 
     if gui:
@@ -1459,22 +1794,23 @@ def run_align(rhos, sides, ref_file, avg_q=None, abort_event=None, center=True,
     if os.path.splitext(ref_file)[1] == '.pdb':
         refbasename, refext = os.path.splitext(ref_file)
         refoutput = refbasename+"_centered.pdb"
-
-        voxel = (sides[0]/rhos[0].shape[0])
-        halfside = sides[0]/2
-        n = int(sides[0]/voxel)
+        refside = sides[0]
+        voxel = (refside/rhos[0].shape)[0]
+        halfside = refside/2
+        n = int(refside/voxel)
+        dx = refside/n
         x_ = np.linspace(-halfside,halfside,n)
         x,y,z = np.meshgrid(x_,x_,x_,indexing='ij')
-
+        xyz = np.column_stack((x.ravel(),y.ravel(),z.ravel()))
         pdb = PDB(ref_file)
         if center:
             pdb.coords -= pdb.coords.mean(axis=0)
             pdb.write(filename=refoutput)
         #use the new fastgauss function
-        #refrho = saxs.pdb2map_gauss(pdb,xyz=xyz,sigma=args.resolution)
-        refrho = pdb2map_fastgauss(pdb,x=x,y=y,z=z,sigma=resolution,r=resolution*2)
+        #refrho = pdb2map_gauss(pdb,xyz=xyz,sigma=args.resolution)
+        refrho = pdb2map_fastgauss(pdb,x=x,y=y,z=z,sigma=resolution,r=resolution*2,ignore_waters=ignore_waters)
         refrho = refrho*np.sum(rhos[0])/np.sum(refrho)
-        # saxs.write_mrc(refrho,side,filename=refbasename+'_pdb.mrc')
+        # write_mrc(refrho,side,filename=refbasename+'_pdb.mrc')
 
     elif os.path.splitext(ref_file)[1] == '.mrc':
         refrho, refside = read_mrc(ref_file)
