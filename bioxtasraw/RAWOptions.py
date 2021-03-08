@@ -4659,9 +4659,8 @@ class DenssPanel(scrolled.ScrolledPanel):
             'denssRecenterStep', 'denssPositivity', 'denssShrinkwrap',
             'denssShrinkwrapMinStep', 'denssConnected', 'denssConnectivitySteps',
             'denssWriteXplor', 'denssCutOut', 'denssRecenterMode',
-            'denssMinDensity', 'denssMaxDensity', 'denssAverage',
-            'denssReconstruct', 'denssFlattenLowDensity', 'denssRefine',
-            'denssNCS', 'denssNCSAxis', 'denssNCSSteps',
+            'denssAverage', 'denssReconstruct', 'denssRefine',
+            'denssNCS', 'denssNCSAxis', 'denssNCSSteps', 'denssGPU',
             ]
 
         modeChoices = ['Fast', 'Slow', 'Membrane', 'Custom']
@@ -4690,12 +4689,14 @@ class DenssPanel(scrolled.ScrolledPanel):
             raw_settings.getId('denssChiEndFrac'), 'float'),
             ('Recenter mode (center of mass - com; maximum density - max):',
                 raw_settings.getId('denssRecenterMode'), 'choice', recenterChoices),
-            ('Minimum density (e-/angstrom^3, must also set number of electrons):',
-                raw_settings.getId('denssMinDensity'), 'text'),
-            ('Maximum density (e-/angstrom^3, must also set number of electrons):',
-                raw_settings.getId('denssMaxDensity'), 'text'),
-            ('Set density values near zero (0.01 e-/A^3) to zero:',
-                raw_settings.getId('denssFlattenLowDensity'), 'bool'),
+            # ('Minimum density (e-/angstrom^3, must also set number of electrons):',
+            #     raw_settings.getId('denssMinDensity'), 'text'),
+            # ('Maximum density (e-/angstrom^3, must also set number of electrons):',
+            #     raw_settings.getId('denssMaxDensity'), 'text'),
+            # ('Set density values near zero (0.01 e-/A^3) to zero:',
+            #     raw_settings.getId('denssFlattenLowDensity'), 'bool'),
+            ('Use GPU computing (requires CuPy)', raw_settings.getId('denssGPU'),
+                'bool')
 
             )
 
