@@ -3630,8 +3630,8 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     sw_sigma_start=3.0, sw_sigma_end=1.5, sw_sigma_decay=0.99,
     sw_sigma_thresh=0.2, sw_iter=20, sw_min_step=5000, connected=True,
     connectivity_step=[7500], chi_end_frac=0.001, cut_output=False,
-    write_xplor=False, min_density=None, max_density=None, flatten_low=False,
-    sym_step=[3000, 5000, 7000, 9000], seed=None, abort_event=threading.Event()):
+    write_xplor=False, sym_step=[3000, 5000, 7000, 9000], seed=None,
+    abort_event=threading.Event(), gpu=False):
     """
     Generates an electron density reconstruction using DENSS. Function blocks
     until DENSS finishes. Can be used to refine an existing model.
@@ -3722,15 +3722,6 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     write_xplor:  bool, optional
         Whether to write the output density as xplor files and mrc files, or
         just mrc files. Default is False.
-    min_density: float, optional
-        The minimum density value in e-/Angstrom^3. Must also set n_electrons
-        for this to be meaningful. Default is None.
-    max_density: float, optional
-        The maximum density value in e-/Angstrom^3. Must also set n_electrons
-        for this to be meaningful. Default is None.
-    flatten_low: bool, optional
-        Whether to flatten low density values (like solvent flattening). Must
-        also set n_electrons for this to be useful. Default is False.
     sym_step: list, optional
         A list of integers specifying the steps at which the symmetry
         constraint should be applied.
@@ -3740,6 +3731,8 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     abort_event: :class:`threading.Event`, optional
         A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
         event is set it will abort the denss run.
+    gpu: bool, optional
+        Whether to use GPU computing for DENSS. CuPy must be installed.
 
     Returns
     -------
@@ -3802,13 +3795,14 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
             'writeXplor'        : settings.get('denssWriteXplor'),
             'mode'              : mode,
             'recenterMode'      : settings.get('denssRecenterMode'),
-            'minDensity'        : settings.get('denssMinDensity'),
-            'maxDensity'        : settings.get('denssMaxDensity'),
-            'flattenLowDensity' : settings.get('denssFlattenLowDensity'),
+            # 'minDensity'        : settings.get('denssMinDensity'),
+            # 'maxDensity'        : settings.get('denssMaxDensity'),
+            # 'flattenLowDensity' : settings.get('denssFlattenLowDensity'),
             'ncs'               : symmetry,
             'ncsSteps'          : settings.get('denssNCSSteps'),
             'ncsAxis'           : sym_axis,
             'seed'              : seed,
+            'denssGPU'          : settings.get('denssGPU')
             }
 
     else:
@@ -3837,13 +3831,14 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
             'writeXplor'        : write_xplor,
             'mode'              : mode,
             'recenterMode'      : recenter_mode,
-            'minDensity'        : str(min_density),
-            'maxDensity'        : str(max_density),
-            'flattenLowDensity' : flatten_low,
+            # 'minDensity'        : str(min_density),
+            # 'maxDensity'        : str(max_density),
+            # 'flattenLowDensity' : flatten_low,
             'ncs'               : symmetry,
             'ncsSteps'          : str(sym_step),
             'ncsAxis'           : sym_axis,
             'seed'              : seed,
+            'denssGPU'          : gpu,
             }
 
     q = ift.q_extrap
@@ -3860,6 +3855,10 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
 
     D = ift.getParameter('dmax')
 
+    shrinkwrap_sigma_start_in_A = (3.0 * D / 64.0) * 3.0
+    shrinkwrap_sigma_end_in_A = (3.0 * D / 64.0) * 1.5
+    shrinkwrap_threshold_fraction = 0.2
+
     if denss_settings['mode'] == 'Fast':
         denss_settings['swMinStep'] = 1000
         denss_settings['conSteps'] = '[2000]'
@@ -3868,8 +3867,8 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
         denss_settings['voxel'] = D*denss_settings['oversample']/32.
 
     elif denss_settings['mode'] == 'Slow':
-        denss_settings['swMinStep'] = 5000
-        denss_settings['conSteps'] = '[6000]'
+        denss_settings['swMinStep'] = 1000
+        denss_settings['conSteps'] = '[2000]'
         denss_settings['recenterStep'] = '%s' %(list(range(501,8002,500)))
         denss_settings['steps'] = None
         denss_settings['voxel'] = D*denss_settings['oversample']/64.
@@ -3877,11 +3876,22 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     elif denss_settings['mode'] == 'Membrane':
         denss_settings['swMinStep'] = 0
         denss_settings['swThresFrac'] = 0.1
-        denss_settings['conSteps'] = '[300]'
+        denss_settings['conSteps'] = '[300, 500, 1000]'
         denss_settings['recenterStep'] = '%s' %(list(range(501,8002,500)))
         denss_settings['steps'] = None
         denss_settings['voxel'] = D*denss_settings['oversample']/64.
         denss_settings['positivity'] = False
+
+        shrinkwrap_sigma_start_in_A *= 2.0
+        shrinkwrap_sigma_end_in_A *= 2.0
+
+    if denss_settings['swSigmaStart'] == 'None':
+        shrinkwrap_sigma_start_in_vox = shrinkwrap_sigma_start_in_A / denss_settings['voxel']
+        denss_settings['swSigmaStart'] = shrinkwrap_sigma_start_in_vox
+
+    if denss_settings['swSigmaEnd'] == 'None':
+        shrinkwrap_sigma_end_in_vox = shrinkwrap_sigma_end_in_A / denss_settings['voxel']
+        denss_settings['swSigmaEnd'] = shrinkwrap_sigma_end_in_vox
 
     denss_data = DENSS.runDenss(q, I, sigq, D, prefix, datadir, denss_settings,
         initial_model, gui=False, abort_event=abort_event)
@@ -3914,7 +3924,7 @@ def denss_average(densities, side, prefix, datadir, n_proc=1,
     """
     Averages multiple electron densities to produce a single average density.
     Uses the averaging procedure from the DENSS package. Function blocks until
-    the average is complete.
+    the average is complete. There must be at least four densities to average.
 
     Parameters
     ----------
@@ -4000,13 +4010,13 @@ def denss_average(densities, side, prefix, datadir, n_proc=1,
         fscs.append(DENSS.calc_fsc(aligned[calc_map],refrho,side))
     fscs = np.array(fscs)
     fsc = np.mean(fscs,axis=0)
-    np.savetxt(os.path.join(datadir, prefix+'_fsc.dat'), fsc, delimiter=" ",
-        fmt="%.5e".encode('ascii'), header="1/resolution, FSC")
     x = np.linspace(fsc[0,0],fsc[-1,0],100)
-    y = np.interp(x, fsc[:,0], fsc[:,1])
+        y = np.interp(x, fsc[:,0], fsc[:,1])
     resi = np.argmin(y>=0.5)
     resx = np.interp(0.5,[y[resi+1],y[resi]],[x[resi+1],x[resi]])
-    res = round(float(1./resx),1)
+    resn = round(float(1./resx),1)
+    np.savetxt(os.path.join(path, prefix+'_fsc.dat'),fsc,delimiter=" ",
+        fmt="%.5e",header="1/resolution, FSC; Resolution=%.1f A" % resn)
 
     with open(os.path.join(datadir, '{}_average.log'.format(prefix)), 'w') as f:
         f.write( "Mean of correlation scores: %.3f\n" % mean_cor)
