@@ -1501,7 +1501,7 @@ class PDB(object):
             records.append(['ATOM  ' + atomnum + '  ' + atomname + ' ' + resname + ' ' + chain + resnum + '    ' + x + y + z + o + b + '          ' + atomtype + charge])
         np.savetxt(filename, records, fmt='%80s'.encode('ascii'))
 
-def pdb2map_fastgauss(pdb,x,y,z,sigma,r=20.0):
+def pdb2map_fastgauss(pdb,x,y,z,sigma,r=20.0,ignore_waters=True):
     """Simple isotropic gaussian sum at coordinate locations.
 
     This fastgauss function only calculates the values at
@@ -1521,9 +1521,11 @@ def pdb2map_fastgauss(pdb,x,y,z,sigma,r=20.0):
     x_ = x[:,0,0]
     sigma /= 4. #to make compatible with e2pdb2mrc/chimera sigma
     shift = np.ones(3)*dx/2.
-    # print("\n Read density map from PDB... ")
+    # print("\n Calculate density map from PDB... ")
     values = np.zeros(x.shape)
     for i in range(pdb.coords.shape[0]):
+        if ignore_waters and pdb.resname[i]=="HOH":
+            continue
         # sys.stdout.write("\r% 5i / % 5i atoms" % (i+1,pdb.coords.shape[0]))
         # sys.stdout.flush()
         #this will cut out the grid points that are near the atom

@@ -8391,7 +8391,7 @@ class DenssRunPanel(wx.Panel):
             self.denss_settings['voxel'] = dmax*self.denss_settings['oversample']/64.
             self.denss_settings['positivity'] = False
 
-            shrinkwrap_start_end_in_A *= 2.0
+            shrinkwrap_sigma_start_in_A *= 2.0
             shrinkwrap_sigma_end_in_A *= 2.0
 
         if self.denss_settings['swSigmaStart'] == 'None':
@@ -9443,7 +9443,7 @@ class DenssResultsPanel(wx.Panel):
             plot_panel = DenssPlotPanel(self.models, denss_results[i-1], self.iftm)
             self.models.AddPage(plot_panel, str(i))
 
-        if nruns > 1 and settings['average']:
+        if nruns >= 4 and settings['average']:
             plot_panel = DenssAveragePlotPanel(self.models, settings, average_results)
             self.models.AddPage(plot_panel, 'Average')
 
@@ -9473,7 +9473,7 @@ class DenssResultsPanel(wx.Panel):
             if mrsc != '' and float(mrsc) < average_results['thresh']:
                 models_list.SetItemTextColour(i, 'red') #Not working?!
 
-        if settings['runs'] > 1 and settings['average'] and settings['refine']:
+        if settings['runs'] >= 4 and settings['average'] and settings['refine']:
             model = 'Refine'
             last_index = max(np.where(refine_results[5] !=0)[0])
             chisq = str(round(refine_results[5][last_index], 5))
