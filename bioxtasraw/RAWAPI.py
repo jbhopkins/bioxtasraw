@@ -1957,6 +1957,147 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
 
     return mw, shape, dmax
 
+def auto_dmax(profile, dmax_thresh=0.015, dmax_low_bound=0.5, dmax_high_bound=1.5,
+    settings=None, use_atsas=True, single_proc=False):
+    """
+    Automatically calculate the maximum dimension (Dmax) value of a profile.
+    By default uses BIFT, DATGNOM, and DATCLASS to find a starting value and
+    then refines that starting value using GNOM. If use_atsas is False it just
+    returns the BIFT value.
+
+    Parameters
+    ----------
+    profile: :class:`bioxtasraw.SASM.SASM`
+        The profile to find the Dmax for.
+    dmax_thresh: float, optional
+        The threshold for refining the Dmax value. If the value of the P(r) at
+        Dmax is greater than this threshold times the maximum value of the P(r)
+        function Dmax is extended until the value falls below this fracitonal
+        threshold or the Dmax exceeds the initial estimated value times the
+        dmax_high_bound value. Defaults is 0.01.
+    dmax_low_bound: float, optional
+        If the end of the P(r) function contains negative values, Dmax is
+        reduced until either no negative values exist or the Dmax becomes
+        less than this parameter times the initial estimated value of Dmax.
+        Default is 0.5.
+    dmax_high_bound: float, optional
+        If the value of the P(r) at Dmax is greater than dmax_thres times
+        the maximum value of the P(r) function Dmax is extended until the value
+        falls below that fracitonal threshold or the Dmax exceeds the initial
+        estimated value times this parameter. Default is 1.5.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. Passed to BIFT. Default
+        is None, which uses the default RAW settings.
+    use_atsas: bool, optional
+        Whether to use ATSAS functions. If False, simply returns the Dmax
+        found by BIFT. Default is True.
+    single_proc: bool, optional
+        Whether to use one or multple processes. Defaults to False.
+
+    Returns
+    -------
+    dmax: int
+        The maximum dimension found by this algorithm. Returns -1 if not found.
+    """
+
+    if settings is None:
+        settings = __default_settings
+
+    analysis_dict = profile.getParameter('analysis')
+    try:
+        rg = float(analysis_dict['guinier']['Rg'])
+    except Exception:
+        rg = -1
+
+    if rg != -1:
+
+        # Get Dmax from DATCLASS
+        try:
+            dc_dmax = float(analysis_dict['molecularWeight']['ShapeAndSize']['Dmax'])
+        except Exception:
+            dc_dmax = -1
+
+        if dc_dmax == -1 and use_atsas:
+            try:
+                dc_mw, dc_shape, dc_dmax = mw_datclass(profile)
+            except Exception:
+                dc_dmax = -1
+
+        if dc_dmax != -1:
+            dmax = int(round(dc_dmax))
+
+        else:
+            #Calculate the IFT using BIFT
+            try:
+                bift_dmax = float(analysis_dict['BIFT']['Dmax'])
+            except Exception:
+                bift_dmax = -1
+
+            if bift_dmax == -1:
+                try:
+                    (bift, bift_dmax, bift_rg, bift_i0, bift_dmax_err,
+                    bift_rg_err, bift_i0_err, bift_chi_sq, bift_log_alpha,
+                    bift_log_alpha_err, bift_evidence,
+                    bift_evidence_err) = bift(profile, settings=settings,
+                    single_proc=single_proc)
+                except Exception:
+                    bift_dmax = -1
+
+            #Calculate the IFT using DATGNOM
+            if use_atsas:
+                try:
+                    (datgnom_ift, datgnom_dmax, datgnom_rg, datgnom_i0,
+                    datgnom_rg_err, datgnom_i0_err, datgnom_total_est,
+                    datgnom_chi_sq, datgnom_alpha, datgnom_quality) = datgnom(profile)
+                except Exception:
+                    datgnom_dmax = -1
+            else:
+                datgnom_dmax = -1
+
+            if bift_dmax != -1 and datgnom_dmax != -1:
+                dmax = np.mean([bift_dmax, datgnom_dmax])
+
+            elif bift_dmax != -1:
+                dmax = bift_dmax*0.79
+
+            elif datgnom_dmax != -1:
+                dmax = datgnom_dmax*1.2
+
+            else:
+                dmax = -1
+
+            if dmax != -1:
+                dmax = round(dmax)
+
+        if dmax != -1 and use_atsas:
+            # Refine if Dmax is too long
+            ift_results = gnom(profile, dmax)
+            ift = ift_results[0]
+            dmax_start = dmax
+
+            while dmax > dmax_start*dmax_low_bound and np.any(ift.p[-20:] < 0):
+                dmax = dmax -1
+                ift_results = gnom(profile, dmax)
+                ift = ift_results[0]
+
+            if dmax_start == dmax:
+                #Refine if Dmax is too short
+                ift_results = gnom(profile, dmax, dmax_zero=False)
+                ift_unforced = ift_results[0]
+                dmax_start = dmax
+
+                while (dmax < dmax_start*dmax_high_bound
+                    and ift_unforced.p[-1]>dmax_thresh*ift_unforced.p.max()):
+                    dmax = dmax +1
+                    ift_results = gnom(profile, dmax, dmax_zero=False)
+                    ift_unforced = ift_results[0]
+
+    else:
+        dmax = -1
+
+    dmax = int(round(dmax))
+
+    return dmax
 
 def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
     alpha_max=1e10, alpha_pts=16, dmax_min=10, dmax_max=400, dmax_pts=10,
@@ -4011,11 +4152,11 @@ def denss_average(densities, side, prefix, datadir, n_proc=1,
     fscs = np.array(fscs)
     fsc = np.mean(fscs,axis=0)
     x = np.linspace(fsc[0,0],fsc[-1,0],100)
-        y = np.interp(x, fsc[:,0], fsc[:,1])
+    y = np.interp(x, fsc[:,0], fsc[:,1])
     resi = np.argmin(y>=0.5)
     resx = np.interp(0.5,[y[resi+1],y[resi]],[x[resi+1],x[resi]])
     resn = round(float(1./resx),1)
-    np.savetxt(os.path.join(path, prefix+'_fsc.dat'),fsc,delimiter=" ",
+    np.savetxt(os.path.join(datadir, prefix+'_fsc.dat'),fsc,delimiter=" ",
         fmt="%.5e",header="1/resolution, FSC; Resolution=%.1f A" % resn)
 
     with open(os.path.join(datadir, '{}_average.log'.format(prefix)), 'w') as f:
@@ -4025,10 +4166,10 @@ def denss_average(densities, side, prefix, datadir, n_proc=1,
         f.write('Number of aligned maps accepted: %i\n' % aligned.shape[0])
         f.write(('Correlation score between average and reference: %.3f\n'
             % (1./DENSS.rho_overlap_score(average_rho, refrho))))
-        f.write("Resolution: %.1f " % res + 'Angstrom\n')
+        f.write("Resolution: %.1f " % resn + 'Angstrom\n')
 
 
-    return average_rho, mean_cor, std_cor, threshold, res, scores, fsc
+    return average_rho, mean_cor, std_cor, threshold, resn, scores, fsc
 
 def denss_align(density, side, ref_file, ref_datadir='.',  prefix='',
     save_datadir='.', save=True, center=True, resolution=15.0, enantiomer=True,

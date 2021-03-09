@@ -80,6 +80,7 @@ import bioxtasraw.DENSS as DENSS
 import bioxtasraw.SECM as SECM
 import bioxtasraw.SASUtils as SASUtils
 import bioxtasraw.REGALS as REGALS
+import bioxtasraw.RAWAPI as RAWAPI
 
 class UVConcentrationDialog(wx.Dialog):
     def __init__(self, parent, title, selected_sasms, bg_sasm):
@@ -3878,7 +3879,7 @@ class GNOMFrame(wx.Frame):
         if 'GNOM' in analysis_dict:
             wx.CallAfter(self.controlPanel.initGnomValues, sasm)
         else:
-            wx.CallAfter(self.controlPanel.initDatgnomValues, sasm)
+            wx.CallAfter(self.controlPanel.initAutoValues, sasm)
 
     def getGnomVersion(self):
         #Checks if we have gnom4 or gnom5
@@ -3889,9 +3890,12 @@ class GNOMFrame(wx.Frame):
         else:
             self.new_gnom = False
 
-    def showBusy(self, show=True):
+    def showBusy(self, show=True, msg=''):
         if show:
-            self.bi = wx.BusyInfo('Initializing GNOM, please wait.', self)
+            if msg == '':
+                msg = 'Initializing GNOM, please wait.'
+
+            self.bi = wx.BusyInfo(msg, self)
         else:
             try:
                 del self.bi
@@ -4401,8 +4405,8 @@ class GNOMControlPanel(wx.Panel):
         advancedParams = wx.Button(self, -1, 'Change Advanced Parameters')
         advancedParams.Bind(wx.EVT_BUTTON, self.onChangeParams)
 
-        datgnom = wx.Button(self, -1, 'DATGNOM')
-        datgnom.Bind(wx.EVT_BUTTON, self.onDatgnomButton)
+        find_dmax = wx.Button(self, -1, 'Find Dmax')
+        find_dmax.Bind(wx.EVT_BUTTON, self.onFindDmaxButton)
 
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -4412,12 +4416,12 @@ class GNOMControlPanel(wx.Panel):
         top_sizer.Add(rmax_sizer, 0, wx.EXPAND | wx.BOTTOM, self._FromDIP(5))
         top_sizer.Add(self.cut_qrg, 0, wx.EXPAND | wx.BOTTOM, self._FromDIP(5))
         top_sizer.Add(advancedParams, 0, wx.CENTER | wx.BOTTOM, self._FromDIP(5))
-        top_sizer.Add(datgnom, 0, wx.CENTER)
+        top_sizer.Add(find_dmax, 0, wx.CENTER)
 
         return top_sizer
 
 
-    def initDatgnomValues(self, sasm):
+    def initAutoValues(self, sasm):
         self.setGuinierInfo(sasm)
 
         if 'guinier' in sasm.getParameter('analysis'):
@@ -4450,9 +4454,9 @@ class GNOMControlPanel(wx.Panel):
         self.setFilename(os.path.basename(sasm.getParameter('filename')))
         self.alpha_ctrl.SetValue(str(self.gnom_settings['alpha']))
 
-        self.runDatgnom()
+        self._runFindDmax()
 
-        wx.CallAfter(self.gnom_frame.showBusy, False)
+        # wx.CallAfter(self.gnom_frame.showBusy, False)
 
     def initGnomValues(self, sasm):
         self.setGuinierInfo(sasm)
@@ -4530,10 +4534,11 @@ class GNOMControlPanel(wx.Panel):
 
             self.updatePlot()
 
-        else:
-            self.runDatgnom()
+            wx.CallAfter(self.gnom_frame.showBusy, False)
 
-        wx.CallAfter(self.gnom_frame.showBusy, False)
+        else:
+            self._runFindDmax()
+
 
     def setGuinierInfo(self, sasm):
         guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1], self)
@@ -4669,8 +4674,14 @@ class GNOMControlPanel(wx.Panel):
             '\nhttps://www.embl-hamburg.de/biosaxs/gnom.html')
         wx.MessageBox(str(msg), "How to cite GNOM", style = wx.ICON_INFORMATION | wx.OK)
 
-    def onDatgnomButton(self, evt):
-        self.runDatgnom()
+    def onFindDmaxButton(self, evt):
+        self.gnom_frame.showBusy(True, 'Finding Dmax')
+        self._runFindDmax()
+
+    def _runFindDmax(self):
+        t = threading.Thread(target=self.findDmax)
+        t.daemon=True
+        t.start()
 
     def onDmaxText(self,evt):
         self.dmaxSpin.Unbind(wx.EVT_TEXT) #Avoid infinite recursion
@@ -4896,79 +4907,42 @@ class GNOMControlPanel(wx.Panel):
         else:
             plotpanel.clearDataPlot()
 
-    def runDatgnom(self):
+    def findDmax(self):
         startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
         endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
 
         start = int(startSpin.GetValue())
         end = int(endSpin.GetValue())
 
-        # Save temporary .dat file
-        tempdir = self.gnom_frame.standard_paths.GetTempDir()
-
         save_sasm = copy.deepcopy(self.sasm)
 
         save_sasm.setQrange((start, end+1))
-
-        savename = os.path.splitext(save_sasm.getParameter('filename'))[0] + '.dat'
-
-        outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
-        while os.path.isfile(outname):
-            outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
-
-        outname = os.path.split(outname)[1]
-        outname = outname+'.out'
-
-        if (self.gnom_frame.main_frame.OnlineControl.isRunning()
-            and tempdir == self.gnom_frame.main_frame.OnlineControl.getTargetDir()):
-            self.gnom_frame.main_frame.controlTimer(False)
-            restart_timer = True
-        else:
-            restart_timer = False
-
-        try:
-            SASFileIO.saveMeasurement(save_sasm, tempdir, self.raw_settings, filetype = '.dat')
-        except SASExceptions.HeaderSaveError as e:
-            self._showSaveError('header')
 
         # Calculate Rg if not available
         error_weight = self.raw_settings.get('errorWeight')
 
         analysis = save_sasm.getParameter('analysis')
-        if 'guinier' in analysis:
-            rg = float(analysis['guinier']['Rg'])
+        if 'guinier' not in analysis:
+            RAWAPI.auto_guinier(save_sasm, error_weight)
+
+        if platform.system() == 'Darwin' and six.PY3:
+            single_proc = True
         else:
-            rg = -1
+            single_proc = False
 
-        if rg < 0:
-            autorg_output = SASCalc.autoRg(save_sasm, error_weight=error_weight)
-            rg = autorg_output[0]
-            if rg < 0:
-                rg = 20
-
-        #Run datgnom
         try:
-            datgnom = SASCalc.runDatgnom(rg, self.raw_settings.get('ATSASDir'),
-                tempdir, savename, outname, 0, end)
-        except SASExceptions.NoATSASError as e:
-            wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM',
-                style=wx.ICON_ERROR|wx.OK)
-            self.cleanupGNOM(tempdir, savename, outname)
-            self.SetFocusIgnoringChildren()
-            return
-        except Exception:
-            datgnom = None
+            dmax = RAWAPI.auto_dmax(save_sasm, single_proc=single_proc
+                )
+        except Exception as e:
+            dmax = -1
+            msg = ("Automatic Dmax determination failed with the following error:\n"
+                "{}".format(e))
+            dlg = wx.MessageDialog(self.main_frame, msg, "Error finding Dmax",
+                style=wx.ICON_WARNING|wx.OK)
+            wx.CallAfter(dlg.ShowModal)
+            # dlg.Destroy()
 
-        self.cleanupGNOM(tempdir, savename, outname)
-
-        if restart_timer:
-            wx.CallAfter(self.gnom_frame.main_frame.controlTimer, True)
-
-        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-
-        if datgnom is not None:
-            dmax = int(round(datgnom.getParameter('dmax')))
-        else:
+        if dmax == -1:
             try:
                 analysis = save_sasm.getParameter('analysis')
                 rg = float(analysis['guinier']['Rg'])
@@ -4977,16 +4951,10 @@ class GNOMControlPanel(wx.Panel):
 
             dmax = rg*3
 
-        if (datgnom is not None and dmax != datgnom.getParameter('dmax')
-            and str(dmax) not in self.out_list):
-            self.calcGNOM(dmax)
+        wx.CallAfter(self._finishFindDmax, dmax)
 
-        elif (datgnom is not None and dmax == datgnom.getParameter('dmax')
-            and str(dmax) not in self.out_list):
-            self.out_list[str(dmax)] = datgnom
-
-        elif datgnom is None:
-            self.calcGNOM(dmax)
+    def _finishFindDmax(self, dmax):
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
 
         dmaxWindow.SetValue(dmax)
         self.old_dmax = dmax
@@ -4994,7 +4962,13 @@ class GNOMControlPanel(wx.Panel):
         if str(dmax) in self.out_list.keys():
             self.updateGNOMInfo(self.out_list[str(dmax)])
 
+        else:
+            self.calcGNOM(dmax)
+            self.updateGNOMInfo(self.out_list[str(dmax)])
+
         self.updatePlot()
+
+        self.gnom_frame.showBusy(show=False)
 
     def calcGNOM(self, dmax):
         startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
