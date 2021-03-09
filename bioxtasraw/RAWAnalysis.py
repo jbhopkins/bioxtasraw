@@ -8479,11 +8479,13 @@ class DenssRunPanel(wx.Panel):
             try:
                 for key in self.denss_ids:
                     if key != 'average' and key != 'refine' and key!= 'align':
-                        result = my_pool.apply_async(DENSS.runDenss, args=(q, I, sigq,
-                            D, prefix, path, self.denss_settings),
+                        result = my_pool.apply_async(DENSS.runDenss, args=(q, I,
+                            sigq, D, prefix, path, self.denss_settings),
                             kwds={'comm_list':comm_list, 'my_lock':self.my_lock,
                             'thread_num_q':self.thread_nums,
-                            'wx_queue':self.wx_queue, 'abort_event':self.abort_event})
+                            'wx_queue':self.wx_queue,
+                            'abort_event':self.abort_event,
+                            'log_id': self.denss_ids[key],})
 
                         self.results.append(result)
 
@@ -8513,7 +8515,8 @@ class DenssRunPanel(wx.Panel):
                 data = DENSS.runDenss(q, I, sigq, D, prefix, path,
                     self.denss_settings, **{'comm_list':comm_list,
                     'my_lock':self.my_lock, 'thread_num_q':self.thread_nums,
-                    'wx_queue':self.wx_queue, 'abort_event':self.abort_event})
+                    'wx_queue':self.wx_queue, 'abort_event':self.abort_event,
+                    'log_id': self.denss_ids[key],})
 
                 self.results.append(data)
 
@@ -8733,7 +8736,7 @@ class DenssRunPanel(wx.Panel):
                 D, prefix, path, self.denss_settings, avg_model),
                 kwds={'comm_list':comm_list, 'my_lock':self.my_lock,
                     'thread_num_q':self.thread_nums, 'wx_queue':self.wx_queue,
-                    'abort_event':self.abort_event})
+                    'abort_event':self.abort_event, 'log_id': myId,})
 
             my_pool.close()
             my_pool.join()
@@ -8743,7 +8746,8 @@ class DenssRunPanel(wx.Panel):
             self.refine_results = DENSS.runDenss(q, I, sigq, D, prefix, path,
                 self.denss_settings, avg_model, **{'comm_list':comm_list,
                 'my_lock':self.my_lock, 'thread_num_q':self.thread_nums,
-                'wx_queue':self.wx_queue, 'abort_event':self.abort_event})
+                'wx_queue':self.wx_queue, 'abort_event':self.abort_event,
+                'log_id': myId,})
 
         wx.CallAfter(self.status.AppendText, 'Finished Refinement\n')
 

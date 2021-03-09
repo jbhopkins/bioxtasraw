@@ -15263,11 +15263,11 @@ def main():
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__
 
-    # Windows high DPI support
-    try:
-        ctypes.windll.shcore.SetProcessDpiAwareness(True)
-    except:
-        pass
+    # # Windows high DPI support
+    # try:
+    #     ctypes.windll.shcore.SetProcessDpiAwareness(True)
+    # except:
+    #     pass
 
     setup_thread_excepthook()
     global app

@@ -1565,7 +1565,7 @@ def pdb2map_fastgauss(pdb,x,y,z,sigma,r=20.0,ignore_waters=True):
 
 def runDenss(q, I, sigq, D, prefix, path, denss_settings, avg_model=None,
     comm_list=None, my_lock=None, thread_num_q=None, wx_queue=None,
-    abort_event=None, gui=True):
+    abort_event=None, gui=True, log_id=None):
     if gui:
         my_lock.acquire()
         if avg_model is None:
@@ -1625,7 +1625,12 @@ def runDenss(q, I, sigq, D, prefix, path, denss_settings, avg_model=None,
             wx_queue.put_nowait(['status', 'Starting DENSS run %s\n' %(my_num)])
         my_lock.release()
 
-    my_logger = logging.getLogger(prefix)
+    if log_id is None:
+        log_id = prefix
+    else:
+        log_id = '{}'.format(log_id)
+
+    my_logger = logging.getLogger(log_id)
     my_logger.setLevel(logging.DEBUG)
     my_logger.propagate = False
     my_logger.handlers = []
