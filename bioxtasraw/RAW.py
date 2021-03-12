@@ -369,7 +369,10 @@ class MainFrame(wx.Frame):
         if os.path.exists(file):
 
             if self.raw_settings.get('PromptConfigLoad'):
-                dlg = wx.MessageDialog(parent = self, message = 'Load last used configuration?', caption = 'Restore configuration', style=wx.YES_NO|wx.ICON_QUESTION)
+                dlg = wx.MessageDialog(parent = self,
+                    message = 'Load last used configuration?',
+                    caption = 'Restore configuration',
+                    style=wx.YES_NO|wx.ICON_QUESTION)
                 answer = dlg.ShowModal()
                 dlg.Destroy()
             else:
@@ -1888,7 +1891,8 @@ class MainFrame(wx.Frame):
 
                 else:
                     msg = 'You must select at least 2 scattering profiles to run EFA.'
-                    dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
+                    dlg = wx.MessageDialog(self, msg, "Not enough files selected",
+                        style = wx.ICON_INFORMATION | wx.OK)
                     dlg.ShowModal()
                     dlg.Destroy()
 
@@ -1914,7 +1918,8 @@ class MainFrame(wx.Frame):
 
                 else:
                     msg = 'You must select at least 2 P(r) functions to run EFA.'
-                    dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
+                    dlg = wx.MessageDialog(self, msg, "Not enough files selected",
+                        style = wx.ICON_INFORMATION | wx.OK)
                     dlg.ShowModal()
                     dlg.Destroy()
 
@@ -1963,7 +1968,8 @@ class MainFrame(wx.Frame):
 
                 else:
                     msg = 'You must select at least 2 scattering profiles to run REGALS.'
-                    dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
+                    dlg = wx.MessageDialog(self, msg, "Not enough files selected",
+                        style = wx.ICON_INFORMATION | wx.OK)
                     dlg.ShowModal()
                     dlg.Destroy()
 
@@ -1989,7 +1995,8 @@ class MainFrame(wx.Frame):
 
                 else:
                     msg = 'You must select at least 2 P(r) functions to run REGALS.'
-                    dlg = wx.MessageDialog(self, msg, "Not enough files selected", style = wx.ICON_INFORMATION | wx.OK)
+                    dlg = wx.MessageDialog(self, msg, "Not enough files selected",
+                        style = wx.ICON_INFORMATION | wx.OK)
                     dlg.ShowModal()
                     dlg.Destroy()
 
@@ -2525,6 +2532,7 @@ class MainFrame(wx.Frame):
             dialog = RAWOptions.OptionsDialog(self, self.raw_settings)
 
         dialog.ShowModal()
+        dialog.Destroy()
 
     def addHdf5Def(self):
         new_def= self._createFileDialog(wx.FD_OPEN, 'Text files', '*.txt')
@@ -2545,6 +2553,7 @@ class MainFrame(wx.Frame):
                     style=wx.YES_NO)
 
                 result = dialog.ShowModal()
+                dialog.Destroy()
 
                 if result == wx.ID_NO:
                     return
@@ -2896,6 +2905,8 @@ class OnlineController(object):
         if dirdlg.ShowModal() == wx.ID_OK:
             self.seek_dir = dirdlg.GetPath()
             found_path = True
+
+        dirdlg.Destroy()
 
         return found_path
 
@@ -4592,11 +4603,13 @@ class MainWorkerThread(threading.Thread):
         dialog = wx.MessageDialog(self._parent,msg, title,
             style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
         wx.CallAfter(dialog.ShowModal)
+        wx.CallAfter(dialog.Destroy)
 
     def _showGenericMsg(self, msg, title):
         dialog = wx.MessageDialog(self._parent,msg, title,
             style = wx.ICON_INFORMATION | wx.OK | wx.STAY_ON_TOP)
         wx.CallAfter(dialog.ShowModal)
+        wx.CallAfter(dialog.Destroy)
 
     def _displayQuestionDialog(self, question, label, button_list, icon = None,
         filename = None, save_path = None):
@@ -6368,10 +6381,10 @@ class FilePanel(wx.Panel):
 
             if result == wx.ID_OK:
                 save_path = dlg.getPath()
+                dlg.Destroy()
             else:
+                dlg.Destroy()
                 return
-
-            dlg.Destroy()
 
             mainworker_cmd_queue.put(['quick_reduce', [save_path, load_path, files, '.dat']])
 
@@ -6835,6 +6848,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
 
         dlg = RAWCustomDialogs.FilenameChangeDialog(self, 'New Folder')
         result = dlg.ShowModal()
+        dlg.Destroy()
 
         if result == wx.ID_OK:
             dirname = dlg.getFilename()
@@ -6864,6 +6878,8 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         dlg = wx.MessageDialog(self, 'Are you sure you want to PERMANETLY delete ' + txt + ' file'+ txt2 +'?:', 'Are you sure?', wx.YES_NO | wx.ICON_INFORMATION)
 
         answer = dlg.ShowModal()
+
+        dlg.Destroy()
 
         if answer == wx.ID_YES:
             for each in filename_list:
@@ -7111,6 +7127,8 @@ class DirCtrlPanel(wx.Panel):
             path = dirdlg.GetPath()
             self.file_list_box.setDir(path)
             self.setDirLabel(path)
+
+        dirdlg.Destroy()
 
     def _onRefreshButton(self, event):
         self.refresh()
@@ -7684,6 +7702,7 @@ class ManipulationPanel(wx.Panel):
                                 'Invalid Qrange',
                                 wx.OK | wx.CANCEL | wx.NO_DEFAULT | wx.ICON_QUESTION)
                 answer = dial.ShowModal()
+                dial.Destroy()
 
                 if answer == wx.ID_CANCEL:
                     return
@@ -7819,7 +7838,9 @@ class ManipulationPanel(wx.Panel):
 
             if dialog.ShowModal() == wx.ID_OK:
                 path = dialog.GetPath()
+                dialog.Destroy()
             else:
+                dialog.Destroy()
                 return
 
             path=os.path.splitext(path)[0]+'.dat'
@@ -7837,7 +7858,9 @@ class ManipulationPanel(wx.Panel):
 
             if dirdlg.ShowModal() == wx.ID_OK:
                 path = dirdlg.GetPath()
+                dirdlg.Destroy()
             else:
+                dirdlg.Destroy()
                 return
             save_path = path
 
@@ -8742,7 +8765,9 @@ class ManipItemPanel(wx.Panel):
 
             if dialog.ShowModal() == wx.ID_OK:
                 path = dialog.GetPath()
+                dialog.Destroy()
             else:
+                dialog.Destroy()
                 return
 
             path=os.path.splitext(path)[0]+'.csv'
@@ -9452,7 +9477,9 @@ class IFTPanel(wx.Panel):
 
             if dialog.ShowModal() == wx.ID_OK:
                 path = dialog.GetPath()
+                dialog.Destroy()
             else:
+                dialog.Destroy()
                 return
 
             path=os.path.splitext(path)[0]+file_ext
@@ -9470,7 +9497,9 @@ class IFTPanel(wx.Panel):
 
             if dirdlg.ShowModal() == wx.ID_OK:
                 path = dirdlg.GetPath()
+                dirdlg.Destroy()
             else:
+                dirdlg.Destroy()
                 return
             save_path = path
 
@@ -10619,7 +10648,9 @@ class SECPanel(wx.Panel):
 
             if dialog.ShowModal() == wx.ID_OK:
                 path = dialog.GetPath()
+                dialog.Destroy()
             else:
+                dialog.Destroy()
                 return
 
             path=os.path.splitext(path)[0]+'.csv'
@@ -10634,7 +10665,9 @@ class SECPanel(wx.Panel):
 
             if dirdlg.ShowModal() == wx.ID_OK:
                 path = dirdlg.GetPath()
+                dirdlg.Destroy()
             else:
+                dirdlg.Destroy()
                 return
             save_path=[]
 
@@ -10663,7 +10696,9 @@ class SECPanel(wx.Panel):
 
             if dialog.ShowModal() == wx.ID_OK:
                 path = dialog.GetPath()
+                dialog.Destroy()
             else:
+                dialog.Destroy()
                 return
 
             path=os.path.splitext(path)[0]+'.hdf5'
@@ -10680,7 +10715,9 @@ class SECPanel(wx.Panel):
 
             if dirdlg.ShowModal() == wx.ID_OK:
                 path = dirdlg.GetPath()
+                dirdlg.Destroy()
             else:
+                dirdlg.Destroy()
                 return
             save_path=[]
 
@@ -10705,7 +10742,9 @@ class SECPanel(wx.Panel):
 
             if dirdlg.ShowModal() == wx.ID_OK:
                 save_path = dirdlg.GetPath()
+                dirdlg.Destroy()
             else:
+                dirdlg.Destroy()
                 return
 
             for item in selected_items:
@@ -12668,7 +12707,7 @@ class MaskingPanel(scrolled.ScrolledPanel):
                 dial = wx.MessageDialog(None, 'Do you want to overwrite the existing mask?', 'Overwrite exisiting mask?',
                     wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
                 answer = dial.ShowModal()
-
+                dial.Destroy()
                 if answer == wx.ID_NO:
                     return
 
@@ -12690,9 +12729,16 @@ class MaskingPanel(scrolled.ScrolledPanel):
                 queue.put(['create_mask', [mask_key, masks_copy, img_dim]])
 
         else:
-            dial = wx.MessageDialog(None, 'SAXSLAB beamstop masks are set in the image header, and cannot be modified. If you wish to disable the use of this mask, you can do so by unchecking the "Use header for mask creation" option in the General Settings in the Advanced Options panel.\n\nIf you wish to mask additional portions of the image, please set a normal Beamstop Mask.', 'Cannot remove mask',
-            wx.OK | wx.ICON_WARNING)
+            dial = wx.MessageDialog(None, ('SAXSLAB beamstop masks are set in '
+                'the image header, and cannot be modified. If you wish to '
+                'disable the use of this mask, you can do so by unchecking '
+                'the "Use header for mask creation" option in the General '
+                'Settings in the Advanced Options panel.\n\nIf you wish to '
+                'mask additional portions of the image, please set a normal '
+                'Beamstop Mask.'), 'Cannot remove mask',
+                wx.OK | wx.ICON_WARNING)
             dial.ShowModal()
+            dial.Destroy()
 
         self.mask_modified = False
 
@@ -12705,6 +12751,7 @@ class MaskingPanel(scrolled.ScrolledPanel):
             dial = wx.MessageDialog(None, 'Are you sure you want to delete this mask?', 'Are you sure?',
             wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
             answer = dial.ShowModal()
+            dial.Destroy()
 
             if answer == wx.ID_NO:
                 return
@@ -12715,9 +12762,14 @@ class MaskingPanel(scrolled.ScrolledPanel):
             self.image_panel.clearAllMasks()
 
         else:
-            dial = wx.MessageDialog(None, 'SAXSLAB beamstop masks are set in the image header, and cannot be modified. If you wish to disable the use of this mask, you can do so by unchecking the "Use header for mask creation" option in the General Settings in the Advanced Options panel.', 'Cannot remove mask',
-            wx.OK | wx.ICON_WARNING)
+            dial = wx.MessageDialog(None, ('SAXSLAB beamstop masks are set in '
+                'the image header, and cannot be modified. If you wish to '
+                'disable the use of this mask, you can do so by unchecking '
+                'the "Use header for mask creation" option in the General '
+                'Settings in the Advanced Options panel.'), 'Cannot remove mask',
+                wx.OK | wx.ICON_WARNING)
             dial.ShowModal()
+            dial.Destroy()
 
         self.mask_modified = True
 
@@ -12784,6 +12836,7 @@ class MaskingPanel(scrolled.ScrolledPanel):
                 style=wx.YES_NO|wx.NO_DEFAULT|wx.ICON_EXCLAMATION)
 
             result = dlg.ShowModal()
+            dlg.Destroy()
 
             if result == wx.ID_NO:
                 return

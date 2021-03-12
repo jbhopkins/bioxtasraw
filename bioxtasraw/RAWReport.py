@@ -2928,7 +2928,9 @@ class ReportFrame(wx.Frame):
                 save_dir, save_name = os.path.split(save_path)
                 name, ext = os.path.splitext(save_path)
                 save_name = name + '.pdf'
+                dialog.Destroy()
             else:
+                dialog.Destroy()
                 return
 
             wx.CallAfter(self._make_report, save_name, save_dir, profiles,

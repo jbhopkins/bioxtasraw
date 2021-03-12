@@ -2686,6 +2686,8 @@ class GeneralOptionsPanel(scrolled.ScrolledPanel):
             ctrl = wx.FindWindowById(self.raw_settings.getId('OnlineStartupDir'), self)
             ctrl.SetValue(str(selected_path))
 
+        dirdlg.Destroy()
+
     def onHdrLdConfigDirSet(self, event):
         dirdlg = wx.DirDialog(self.GetParent(), "Please select directory:", '')
 
@@ -2693,6 +2695,8 @@ class GeneralOptionsPanel(scrolled.ScrolledPanel):
             selected_path = dirdlg.GetPath()
             ctrl = wx.FindWindowById(self.raw_settings.getId('HdrLoadConfigDir'), self)
             ctrl.SetValue(str(selected_path))
+
+        dirdlg.Destroy()
 
     def onChkBox(self, event):
         pass
@@ -2912,8 +2916,10 @@ class SaveDirectoriesPanel(scrolled.ScrolledPanel):
 
             for labtxt, labl_id, set_button_id, clr_button_id in self.directory_data:
                 if set_button_id == id:
-                        text_ctrl = wx.FindWindowById(labl_id, self)
-                        text_ctrl.SetValue(str(selected_path))
+                    text_ctrl = wx.FindWindowById(labl_id, self)
+                    text_ctrl.SetValue(str(selected_path))
+
+        dirdlg.Destroy()
 
     def onClrFile(self, event):
 
@@ -3405,7 +3411,9 @@ class ATSASGeneralPanel(scrolled.ScrolledPanel):
         if dirdlg.ShowModal() == wx.ID_OK:
             path = dirdlg.GetPath()
         else:
-            path = ''
+            path = path
+
+        dirdlg.Destroy()
 
         self.datadir.SetValue(path)
 
@@ -3753,7 +3761,7 @@ class ATSASGnomAdvanced(scrolled.ScrolledPanel):
         if dirdlg.ShowModal() == wx.ID_OK:
             path = dirdlg.GetPath()
         else:
-            path = ''
+            path = path
 
         if button_id == self.button_ids['expert']:
             path = wx.FindWindowById(self.raw_settings.getId('gnomExpertFile'),
@@ -3762,7 +3770,9 @@ class ATSASGnomAdvanced(scrolled.ScrolledPanel):
             path = wx.FindWindowById(self.raw_settings.getId('gnomFormFactor'),
                 self).SetValue(path)
         else:
-            path = ''
+            path = path
+
+        dirdlg.Destroy()
 
 
 class ATSASDammix(scrolled.ScrolledPanel):
@@ -5375,6 +5385,7 @@ class OptionsFrame(wx.Frame):
 
         dialog = OptionsDialog(self, raw_settings)
         dialog.ShowModal()
+        dialog.Destroy()
 
         self.Destroy()
 

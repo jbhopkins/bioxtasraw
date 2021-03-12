@@ -4941,7 +4941,7 @@ class GNOMControlPanel(wx.Panel):
             dlg = wx.MessageDialog(self.main_frame, msg, "Error finding Dmax",
                 style=wx.ICON_WARNING|wx.OK)
             wx.CallAfter(dlg.ShowModal)
-            # dlg.Destroy()
+            wx.CallAfter(dlg.Destroy)
 
         if dmax == -1:
             try:
@@ -9384,6 +9384,7 @@ class DenssResultsPanel(wx.Panel):
             dialog = wx.MessageDialog(self, str(e), 'Error running Ambimeter',
                 style = wx.ICON_ERROR | wx.OK)
             wx.CallAfter(dialog.ShowModal)
+            wx.CallAfter(dialog.Destroy)
             os.remove(os.path.join(tempdir, outname))
             return
 
@@ -10218,6 +10219,7 @@ class DenssAlignFrame(wx.Frame):
             dialog = wx.MessageDialog(self, msg, 'Error running Alignment',
                 style = wx.ICON_ERROR | wx.OK)
             wx.CallAfter(dialog.ShowModal)
+            wx.CallAfter(dialog.Destroy)
 
             self.abort_event.set()
 
@@ -11363,6 +11365,7 @@ class AmbimeterFrame(wx.Frame):
             dialog = wx.MessageDialog(self, str(e), 'Error running Ambimeter',
                 style = wx.ICON_ERROR | wx.OK)
             wx.CallAfter(dialog.ShowModal)
+            wx.CallAfter(dialog.Destroy)
             os.remove(os.path.join(path, outname))
             wx.CallAfter(self.showBusy, False)
             self.Close()
@@ -11409,6 +11412,7 @@ class AmbimeterFrame(wx.Frame):
             new_path = dirdlg.GetPath()
             wx.FindWindowById(self.ids['save'], self).SetValue(new_path)
 
+        dirdlg.Destroy()
 
     def onSrgText(self, evt):
         srg_ctrl = wx.FindWindowById(self.ids['sRg'], self)
@@ -20977,6 +20981,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             dialog = wx.MessageDialog(self, msg, "Buffer range invalid",
                 style=wx.ICON_ERROR|wx.OK)
             wx.CallAfter(dialog.ShowModal)
+            wx.CallAfter(dialog.Destroy)
 
         return valid
 
@@ -21100,6 +21105,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                         dialog = wx.MessageDialog(self, msg, "Buffer already set",
                             style=wx.ICON_INFORMATION|wx.OK)
                         wx.CallAfter(dialog.ShowModal)
+                        wx.CallAfter(dialog.Destroy)
                         return #No change in buffer range, no need to do anything
 
             frame_idx = []
@@ -21142,6 +21148,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                     dialog = wx.MessageDialog(self, msg, "Average Error",
                         style=wx.ICON_ERROR|wx.OK)
                     wx.CallAfter(dialog.ShowModal)
+                    wx.CallAfter(dialog.Destroy)
                     self.continue_processing = False
                     return
 
@@ -21272,6 +21279,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             dialog = wx.MessageDialog(self, msg, "Baseline start/end range invalid",
                 style=wx.ICON_ERROR|wx.OK)
             wx.CallAfter(dialog.ShowModal)
+            wx.CallAfter(dialog.Destroy)
 
         return valid
 
@@ -21510,6 +21518,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             dialog = wx.MessageDialog(self, msg, "Averaging window size invalid",
                 style=wx.ICON_ERROR|wx.OK)
             wx.CallAfter(dialog.ShowModal)
+            wx.CallAfter(dialog.Destroy)
             return valid
 
         if window_size <= 0:
@@ -21518,6 +21527,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             dialog = wx.MessageDialog(self, msg, "Averaging window size invalid",
                 style=wx.ICON_ERROR|wx.OK)
             wx.CallAfter(dialog.ShowModal)
+            wx.CallAfter(dialog.Destroy)
             return valid
 
         try:
@@ -21528,6 +21538,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             dialog = wx.MessageDialog(self, msg, "Vp MW density invalid",
                 style=wx.ICON_ERROR|wx.OK)
             wx.CallAfter(dialog.ShowModal)
+            wx.CallAfter(dialog.Destroy)
             return valid
 
         if vp_density < 0:
@@ -21536,6 +21547,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             dialog = wx.MessageDialog(self, msg, "Vp MW density invalid",
                 style=wx.ICON_ERROR|wx.OK)
             wx.CallAfter(dialog.ShowModal)
+            wx.CallAfter(dialog.Destroy)
             return valid
 
         return valid
@@ -21722,6 +21734,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             dialog = wx.MessageDialog(self, msg, "Specify buffer range",
                 style=wx.ICON_ERROR|wx.OK)
             wx.CallAfter(dialog.ShowModal)
+            wx.CallAfter(dialog.Destroy)
         else:
             if len(sample_items) == 0:
                 valid = False
@@ -21754,6 +21767,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 dialog = wx.MessageDialog(self, msg, "Sample range invalid",
                 style=wx.ICON_ERROR|wx.OK)
                 wx.CallAfter(dialog.ShowModal)
+                wx.CallAfter(dialog.Destroy)
 
         return valid
 
@@ -21977,6 +21991,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             dialog = wx.MessageDialog(self, msg, "Buffer range not found",
                 style=wx.ICON_ERROR|wx.OK)
             wx.CallAfter(dialog.ShowModal)
+            wx.CallAfter(dialog.Destroy)
 
         wx.CallAfter(self.series_frame.showBusy, False)
 
@@ -21995,6 +22010,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             dialog = wx.MessageDialog(self, msg, "Requires buffer range",
                 style=wx.ICON_ERROR|wx.OK)
             wx.CallAfter(dialog.ShowModal)
+            wx.CallAfter(dialog.Destroy)
 
     def _findSampleRange(self):
         self.proc_lock.acquire()
@@ -22029,6 +22045,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             dialog = wx.MessageDialog(self, msg, "Sample range not found",
                 style=wx.ICON_ERROR|wx.OK)
             wx.CallAfter(dialog.ShowModal)
+            wx.CallAfter(dialog.Destroy)
 
         wx.CallAfter(self.series_frame.showBusy, False)
 
@@ -22048,6 +22065,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             dialog = wx.MessageDialog(self, msg, "Requires buffer range",
                 style=wx.ICON_ERROR|wx.OK)
             wx.CallAfter(dialog.ShowModal)
+            wx.CallAfter(dialog.Destroy)
 
     def _findBaselineRange(self):
         self.proc_lock.acquire()
@@ -22097,6 +22115,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             dialog = wx.MessageDialog(self, msg, "Baseline range not found",
                 style=wx.ICON_ERROR|wx.OK)
             wx.CallAfter(dialog.ShowModal)
+            wx.CallAfter(dialog.Destroy)
 
         wx.CallAfter(self.series_frame.showBusy, False)
 
