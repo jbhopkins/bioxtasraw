@@ -21915,6 +21915,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             else:
                 wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
 
+        secm_prefix = os.path.splitext(os.path.split(self.secm.getParameter('filename'))[1])[0]
 
         if (not self.processing_done['baseline'] and
             not self.results['buffer']['already_subtracted']):
@@ -21926,14 +21927,14 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             average_sasm.setParameter('filename', 'A_{}'.format(average_sasm.getParameter('filename')))
 
             final_sasm = SASProc.subtract(average_sasm, buffer_sasm, forced=True)
-            final_sasm.setParameter('filename', 'S_{}'.format(final_sasm.getParameter('filename')))
+            final_sasm.setParameter('filename', 'S_A_{}'.format(secm_prefix))
             color = 'red'
 
         else:
             sasm_list = [sub_sasms[idx] for idx in frame_idx]
 
             final_sasm = SASProc.average(sasm_list, forced=True)
-            final_sasm.setParameter('filename', 'A_{}'.format(final_sasm.getParameter('filename')))
+            final_sasm.setParameter('filename', 'A_S_{}'.format(secm_prefix))
             color = 'forest green'
 
         RAWGlobals.mainworker_cmd_queue.put(['to_plot_sasm', [[final_sasm], color, None, True, 2]])

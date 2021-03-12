@@ -76,6 +76,9 @@ All changes:
 *   Added the REGALS technique.
 *   Added an enhanced way to automatically find Dmax when using GNOM.
 *   Fixed a bug where running GNOM when RAW was run with python 3.8 could fail.
+*   Added ability to read in a fourth dQ column in .dat files, preserve the dQ
+    values through analysis and saving. Note that merging and interpolating
+    do not preserve the dQ values at this time.
 
 
 2.0.3

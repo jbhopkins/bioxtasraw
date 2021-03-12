@@ -2087,9 +2087,6 @@ def makeSeriesFile(secm_data, settings):
             err = sasm_data['err_raw']
             q_err = sasm_data['q_err_raw']
 
-            print(len(q))
-            print(len(q_err))
-
         new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'], q_err)
 
         new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
