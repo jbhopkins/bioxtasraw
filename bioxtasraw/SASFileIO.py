@@ -40,7 +40,6 @@ import collections
 import datetime
 from xml.dom import minidom
 import ast
-import logging
 
 import numpy as np
 import fabio
@@ -60,9 +59,6 @@ import bioxtasraw.SASProc as SASProc
 import bioxtasraw.SECM as SECM
 import bioxtasraw.SASCalib as SASCalib
 import bioxtasraw.SASUtils as SASUtils
-
-if __name__ != '__main__':
-    logger = logging.getLogger('raw')
 
 ############################
 #--- ## Load image files: ##
@@ -1149,7 +1145,7 @@ def postProcessProfile(sasm, raw_settings, no_processing):
 def loadAsciiFile(filename, file_type):
     ascii_formats = {'rad'        : loadRadFile,
                      'new_rad'    : loadNewRadFile,
-                     'primus'     : loadPrimusDatFile,
+                     'primus'     : loadDatFile,
                      # 'bift'       : loadBiftFile, #'ift' is used instead
                      '2col'       : load2ColFile,
                      'int'        : loadIntFile,
@@ -1789,7 +1785,7 @@ def loadOutFile(filename):
 
 
 
-def load_series_sasm(group, data_name, q_raw=None, use_group_q=True):
+def load_series_sasm(group, data_name, q_raw=None, use_group_q=True, q_err_raw=None):
 
     if 'raw' in group and data_name in group['raw']:
         load_group = group['raw']
@@ -1804,9 +1800,17 @@ def load_series_sasm(group, data_name, q_raw=None, use_group_q=True):
 
     if ('q' in load_group or q_raw is not None) and use_group_q:
         if q_raw is None:
-            sasm_data['q_raw'] = load_group['q'][()]
+            q_vals = load_group['q'][()]
+
+            if q_vals.ndim == 2:
+                sasm_data['q_raw'] = q_vals[:, 0]
+                sasm_data['q_err_raw'] = q_vals[:, 1]
+            else:
+                sasm_data['q_raw'] = q_vals
+                sasm_data['q_err_raw'] = None
         else:
             sasm_data['q_raw'] = copy.copy(q_raw)
+            sasm_data['q_err_raw'] = copy.copy(q_err_raw)
 
         data = load_dataset[()]
         sasm_data['i_raw'] = data[:,0]
@@ -1817,6 +1821,11 @@ def load_series_sasm(group, data_name, q_raw=None, use_group_q=True):
         sasm_data['q_raw'] = data[:,0]
         sasm_data['i_raw'] = data[:,1]
         sasm_data['err_raw'] = data[:,2]
+
+        if data.shape[1] == 4:
+            sasm_data['q_err_raw'] = data[:,3]
+        else:
+            sasm_data['q_err_raw'] = None
 
     if not 'raw' in group or data_name not in group['raw']:
         sasm_data['scale_factor'] = 1.0
@@ -1833,8 +1842,9 @@ def load_series_sasm(group, data_name, q_raw=None, use_group_q=True):
 
     return sasm_data
 
-def load_series_sasm_list(group, excluded_keys=['raw', 'q']):
+def load_series_sasm_list(group, excluded_keys=['raw', 'q', 'q_err']):
     q_raw = None
+    q_err_raw = None
     sasm_list = []
 
     if 'raw' in group:
@@ -1849,9 +1859,14 @@ def load_series_sasm_list(group, excluded_keys=['raw', 'q']):
     elif 'q' in group:
         q_raw = group['q'][()]
 
+    if q_raw is not None and q_raw.ndim == 2:
+        q_err_raw = q_raw[:,1]
+        q_raw = q_raw[:,0]
+
     for data in group:
         if data not in excluded_keys:
-            sasm_list.append(load_series_sasm(group, data, q_raw))
+            sasm_list.append(load_series_sasm(group, data, q_raw,
+                q_err_raw=q_err_raw))
 
     return sasm_list
 
@@ -1868,7 +1883,8 @@ def load_series(name):
 
         # Get data from unsubtracted group
         profiles = f['profiles']
-        seriesm_data['sasm_list'] = load_series_sasm_list(profiles, ['raw', 'q', 'average_buffer_profile'])
+        seriesm_data['sasm_list'] = load_series_sasm_list(profiles, ['raw', 'q',
+            'q_err', 'average_buffer_profile'])
 
         if len(profiles['average_buffer_profile']) > 0:
             seriesm_data['average_buffer_sasm'] = load_series_sasm(profiles,
@@ -2064,12 +2080,17 @@ def makeSeriesFile(secm_data, settings):
             q = sasm_data['q_binned']
             i = sasm_data['i_binned']
             err = sasm_data['err_binned']
+            q_err = None
         else:
             q = sasm_data['q_raw']
             i = sasm_data['i_raw']
             err = sasm_data['err_raw']
+            q_err = sasm_data['q_err_raw']
 
-        new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'])
+            print(len(q))
+            print(len(q_err))
+
+        new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'], q_err)
 
         new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
             sasm_data['q_scale_factor'])
@@ -2125,12 +2146,14 @@ def makeSeriesFile(secm_data, settings):
                 q = sasm_data['q_binned']
                 i = sasm_data['i_binned']
                 err = sasm_data['err_binned']
+                q_err = None
             else:
                 q = sasm_data['q_raw']
                 i = sasm_data['i_raw']
                 err = sasm_data['err_raw']
+                q_err = sasm_data['q_err_raw']
 
-            new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'])
+            new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'], q_err)
 
             new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
                 sasm_data['q_scale_factor'])
@@ -2165,12 +2188,14 @@ def makeSeriesFile(secm_data, settings):
                 q = sasm_data['q_binned']
                 i = sasm_data['i_binned']
                 err = sasm_data['err_binned']
+                q_err = None
             else:
                 q = sasm_data['q_raw']
                 i = sasm_data['i_raw']
                 err = sasm_data['err_raw']
+                q_err = sasm_data['q_err_raw']
 
-            new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'])
+            new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'], q_err)
 
             new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
                 sasm_data['q_scale_factor'])
@@ -2224,12 +2249,14 @@ def makeSeriesFile(secm_data, settings):
                 q = sasm_data['q_binned']
                 i = sasm_data['i_binned']
                 err = sasm_data['err_binned']
+                q_err = None
             else:
                 q = sasm_data['q_raw']
                 i = sasm_data['i_raw']
                 err = sasm_data['err_raw']
+                q_err = sasm_data['q_err_raw']
 
-            new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'])
+            new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'], q_err)
 
         new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
             sasm_data['q_scale_factor'])
@@ -2619,8 +2646,8 @@ def loadPDBFile(filename):
     return np.array(atoms), header, useful_params
 
 
-def loadPrimusDatFile(filename):
-    ''' Loads a Primus .dat format file '''
+def loadDatFile(filename):
+    ''' Loads a .dat format file '''
 
     with open(filename, 'rU') as f:
         lines = f.readlines()
@@ -2654,9 +2681,17 @@ def makeDatFile(lines, filename):
     if comment.find('model_intensity') > -1:
         #FoXS file with a fit! has four data columns
         is_foxs_fit=True
+        is_sans_data = False
         imodel = []
+
+    elif comment.find('dQ') > -1:
+        #ORNL SANS instrument file
+        is_foxs_fit = False
+        is_sans_data = True
+        qerr = []
     else:
         is_foxs_fit = False
+        is_sans_data = False
 
     header = []
     header_start = False
@@ -2665,16 +2700,7 @@ def makeDatFile(lines, filename):
         iq_match = iq_pattern.match(line)
 
         if iq_match:
-            if not is_foxs_fit:
-                found = iq_match.group()
-                if ',' in found:
-                    found = found.split(',')
-                else:
-                    found = found.split()
-                q.append(float(found[0]))
-                i.append(float(found[1]))
-                err.append(abs(float(found[2])))
-            else:
+            if is_foxs_fit:
                 if ',' in line:
                     found = line.split(',')
                 else:
@@ -2683,6 +2709,29 @@ def makeDatFile(lines, filename):
                 i.append(float(found[1]))
                 imodel.append(float(found[2]))
                 err.append(abs(float(found[3])))
+
+            elif is_sans_data:
+                found = iq_match.group()
+                if ',' in found:
+                    found = line.split(',')
+                else:
+                    found = line.split()
+                q.append(float(found[0]))
+                i.append(float(found[1]))
+                err.append(abs(float(found[2])))
+                qerr.append(abs(float(found[3])))
+
+            else:
+                found = iq_match.group()
+                if ',' in found:
+                    found = found.split(',')
+                else:
+                    found = found.split()
+                q.append(float(found[0]))
+                i.append(float(found[1]))
+                err.append(abs(float(found[2])))
+
+
 
         #Check to see if there is any header from RAW, and if so get that.
         #Header at the bottom
@@ -2724,9 +2773,13 @@ def makeDatFile(lines, filename):
         parameters2 = copy.copy(parameters)
         parameters2['filename'] = os.path.splitext(os.path.split(filename)[1])[0]+'_FIT'
 
-        sasm_model = SASM.SASM(imodel,q,err,parameters2)
+        sasm_model = SASM.SASM(imodel, q, err, parameters2)
 
         return [sasm, sasm_model]
+
+    elif is_sans_data:
+        sasm.setRawQErr(np.array(qerr))
+        sasm._update()
 
     return sasm
 
@@ -3000,7 +3053,6 @@ def saveMeasurement(sasm, save_path, raw_settings, filetype = '.dat'):
     ''' Saves a Measurement Object to a .rad file.
         Returns the filename of the saved file '''
 
-    logger.debug('in save measurement')
     if not isinstance(sasm, list):
         sasm = [sasm]
 
@@ -3022,7 +3074,6 @@ def saveMeasurement(sasm, save_path, raw_settings, filetype = '.dat'):
         elif filetype == '.out':
             writeOutFile(each_sasm, os.path.join(save_path, filename + filetype))
         else:
-            logger.debug('Writing dat file')
             try:
                 writeRadFile(each_sasm, os.path.join(save_path, filename + filetype), header_on_top)
             except TypeError as e:
@@ -3032,7 +3083,6 @@ def saveMeasurement(sasm, save_path, raw_settings, filetype = '.dat'):
                 writeRadFile(each_sasm, os.path.join(save_path, filename + filetype), header_on_top, False)
 
                 raise SASExceptions.HeaderSaveError(e)
-    logger.debug('done saving measurement')
 
 def saveSECItem(save_path, secm_dict):
 
@@ -3049,7 +3099,8 @@ def save_series_sasm(profile_group, sasm_data, dataset_name, descrip='',
                 'is stored in a separate dataset called "q" in the same group.')
         else:
             descrip = ('A single scattering profile. Columns correspond to q, '
-                'I(q), and sigma(q) from columns 0 to 2 respecitvely.')
+                'I(q), and sigma(q) from columns 0 to 2 respecitvely. If present '
+                'column 3 is dQ.')
 
     if descrip_raw == '':
         if save_single_q_raw:
@@ -3060,15 +3111,17 @@ def save_series_sasm(profile_group, sasm_data, dataset_name, descrip='',
         else:
             descrip_raw = ('A single scattering profile without scaling, offset, '
                 'or q trimming. Columns correspond to q, I(q), and sigma(q) from '
-                'columns 0 to 2 respecitvely.')
+                'columns 0 to 2 respecitvely. If present column 3 is dQ.')
 
     q_raw = sasm_data['q_raw']
     iq_raw = sasm_data['i_raw']
     err_raw = sasm_data['err_raw']
+    q_err_raw = sasm_data['q_err_raw']
 
     q = sasm_data['q']
     iq = sasm_data['i']
     err = sasm_data['err']
+    q_err = sasm_data['q_err']
 
     if (np.array_equal(q, q_raw) and np.array_equal(iq, iq_raw)
         and np.array_equal(err, err_raw)):
@@ -3085,7 +3138,10 @@ def save_series_sasm(profile_group, sasm_data, dataset_name, descrip='',
         if save_single_q_raw:
             data = np.column_stack((iq_raw, err_raw))
         else:
-            data = np.column_stack((q_raw, iq_raw, err_raw))
+            if q_err_raw is None:
+                data = np.column_stack((q_raw, iq_raw, err_raw))
+            else:
+                data = np.column_stack((q_raw, iq_raw, err_raw, q_err_raw))
 
         dset_raw = raw_group.create_dataset(dataset_name, data=data)
 
@@ -3094,7 +3150,10 @@ def save_series_sasm(profile_group, sasm_data, dataset_name, descrip='',
     if save_single_q:
         data = np.column_stack((iq, err))
     else:
-        data = np.column_stack((q, iq, err))
+        if q_err is None:
+            data = np.column_stack((q, iq, err))
+        else:
+            data = np.column_stack((q, iq, err, q_err))
 
     dset = profile_group.create_dataset(dataset_name, data=data)
 
@@ -3111,29 +3170,69 @@ def save_series_sasm_list(profile_group, sasm_list, frame_num_offset=0):
     if len(sasm_list) > 1:
         save_single_q = all([np.array_equal(sasm['q'], sasm_list[0]['q']) for sasm in sasm_list[1:]])
         save_single_q_raw = all([np.array_equal(sasm['q_raw'], sasm_list[0]['q_raw']) for sasm in sasm_list[1:]])
+
+        q_err_exists = all([sasm['q_err'] is not None for sasm in sasm_list])
+        q_err_raw_exists = all([sasm['q_err_raw'] is not None for sasm in sasm_list])
+
+        if q_err_exists:
+            save_single_q_err = all([np.array_equal(sasm['q_err'], sasm_list[0]['q_err']) for sasm in sasm_list[1:]])
+
+            save_single_q = save_single_q and save_single_q_err
+
+        if q_err_raw_exists:
+            save_single_q_err_raw = all([np.array_equal(sasm['q_err'], sasm_list[0]['q_err']) for sasm in sasm_list[1:]])
+
+            save_single_q_raw = save_single_q_raw and save_single_q_err_raw
+
+        if save_single_q and save_single_q_raw:
+            q_equal = np.array_equal(sasm_list[0]['q'], sasm_list[0]['q_raw'])
+
+            if q_err_exists and q_err_raw_exists:
+                q_err_equal = np.array_equal(sasm_list[0]['q_err'], sasm_list[0]['q_err_raw'])
+
+                save_single_q_raw = not (q_equal and q_err_equal)
+
+            else:
+                save_single_q_raw = not q_equal
+
     else:
         save_single_q_raw = False
         save_single_q = False
 
     if save_single_q:
         q = sasm_list[0]['q']
-        q_dataset = profile_group.create_dataset('q', data=q)
+        q_err = sasm_list[0]['q_err']
+
+        if q_err is not None:
+            data = np.column_stack((q, q_err))
+        else:
+            data = q
+
+        q_dataset = profile_group.create_dataset('q', data=data)
         q_dataset.attrs['description'] = ('the q vector for all numbered (e.g. '
             '00001) data in this group (note: named data, such as the average '
-            'buffer, will have a separate q vector in that dataset).')
+            'buffer, will have a separate q vector in that dataset). If present, '
+            'column 1 is dQ.')
 
     if save_single_q_raw:
-        if not np.array_equal(sasm_list[0]['q'], sasm_list[0]['q_raw']):
-            if not 'raw' in profile_group.keys():
-                raw_group = profile_group.create_group('raw')
-            else:
-                raw_group = profile_group['raw']
+        if not 'raw' in profile_group.keys():
+            raw_group = profile_group.create_group('raw')
+        else:
+            raw_group = profile_group['raw']
 
-            q_raw = sasm_list[0]['q_raw']
-            q_raw_dataset = raw_group.create_dataset('q', data=q_raw)
-            q_raw_dataset.attrs['description'] = ('the q vector for all numbered (e.g. '
-                '"00001") data in this group (note: named data, such as the "average_'
-                'buffer_profile", will have a separate q vector in that dataset).')
+        q_raw = sasm_list[0]['q_raw']
+        q_err_raw = sasm_list[0]['q_err_raw']
+
+        if q_err_raw is not None:
+            data = np.column_stack((q_raw, q_err_raw))
+        else:
+            data = q
+
+        q_raw_dataset = raw_group.create_dataset('q', data=data)
+        q_raw_dataset.attrs['description'] = ('the q vector for all numbered (e.g. '
+            '"00001") data in this group (note: named data, such as the "average_'
+            'buffer_profile", will have a separate q vector in that dataset). '
+            'If present, column 1 is dQ.')
 
     for j, sasm_data in enumerate(sasm_list):
         frame_num = j + frame_num_offset
@@ -3228,7 +3327,7 @@ def save_series(save_name, seriesm, save_gui_data=False):
             sasm = seriesm_data['average_buffer_sasm']
             descrip = ('A single scattering profile giving the averaged buffer '
                 'scattering profile. Columns correspond to q, I(q), and sigma(q) '
-                'from columns 0 to 2 respecitvely.')
+                'from columns 0 to 2 respecitvely. If present, column 3 is dQ.')
 
             save_series_sasm(profiles, sasm, "average_buffer_profile", descrip, descrip)
 
@@ -4350,7 +4449,6 @@ def loadWorkspace(load_path):
     return sasm_dict
 
 def writeHeader(d, f2, ignore_list = []):
-    logger.debug('writing header')
     f2.write('### HEADER:\n#\n#')
 
     ignore_list.append('fit_sasm')
@@ -4366,7 +4464,6 @@ def writeHeader(d, f2, ignore_list = []):
     f2.write(header)
 
     f2.write('\n\n')
-    logger.debug('header written')
 
 def formatHeader(d):
     d = translateHeader(d)
@@ -4417,13 +4514,11 @@ sasbdb_back_trans = {value : key for (key, value) in sasbdb_trans.items()}
 
 def writeRadFile(m, filename, header_on_top = True, use_header = True):
     ''' Writes an ASCII file from a measurement object, using the RAD format '''
-    logger.debug('in writeRadFile')
     if use_header:
         d = m.getAllParameters()
     else:
         d = {}
 
-    logger.debug('opening file')
     with open(filename, 'w') as f:
 
         if header_on_top == True:
@@ -4431,21 +4526,25 @@ def writeRadFile(m, filename, header_on_top = True, use_header = True):
 
         q_min, q_max = m.getQrange()
 
-        logger.debug('writing top lines')
         f.write('### DATA:\n#\n')
         f.write('# %d\n' % len(m.i[q_min:q_max]))
-        f.write('#{:^13}  {:^14}  {:^14}\n'.format('Q', 'I(Q)', 'Error'))
 
-        logger.debug('writing data')
+        if m.q_err is None:
+            f.write('#{:^13}  {:^14}  {:^14}\n'.format('Q', 'I(Q)', 'Error'))
+        else:
+            f.write('#{:^13}  {:^14}  {:^14}  {:^14}\n'.format('Q', 'I(Q)', 'Error', 'dQ'))
+
         for idx in range(q_min, q_max):
-            line = ('%.8E  %.8E  %.8E\n') % ( m.q[idx], m.i[idx], m.err[idx])
+            if m.q_err is None:
+                line = ('%.8E  %.8E  %.8E\n') % ( m.q[idx], m.i[idx], m.err[idx])
+            else:
+                line = ('%.8E  %.8E  %.8E  %.8E\n') % ( m.q[idx], m.i[idx], m.err[idx], m.q_err[idx])
             f.write(line)
 
         f.write('\n')
         if header_on_top == False:
             f.write('\n')
             writeHeader(d, f)
-    logger.debug('done writing file')
 
 def writeIftFile(m, filename, use_header = True):
     ''' Writes an ASCII file from an IFT measurement object created by BIFT'''

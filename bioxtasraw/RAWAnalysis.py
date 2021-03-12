@@ -1225,7 +1225,8 @@ class GuinierControlPanel(wx.Panel):
         old_end = spinend.GetValue()
 
         if rg == -1:
-            dlg = wx.MessageDialog(self, str(msg), "Auto Rg Failed",
+            msg = ('Automatic determination of Rg failed.')
+            dlg = wx.MessageDialog(self, msg, "Auto Rg Failed",
                 style = wx.ICON_ERROR | wx.OK)
             dlg.ShowModal()
             dlg.Destroy()
@@ -14613,11 +14614,14 @@ class EFAControlPanel3(wx.Panel):
             old_filename = old_filename[0]
 
         if self.panel1_results['profile'] == 'Unsubtracted':
-            q = self.secm.getSASM(int_type='unsub').getQ()
+            q = copy.deepcopy(self.secm.getSASM(int_type='unsub').getQ())
+            q_err = copy.deepcopy(self.secm.getSASM(int_type='unsub').getQErr())
         elif self.panel1_results['profile'] == 'Subtracted':
-            q = self.secm.getSASM(int_type='sub').getQ()
+            q = copy.deepcopy(self.secm.getSASM(int_type='sub').getQ())
+            q_err = copy.deepcopy(self.secm.getSASM(int_type='sub').getQErr())
         elif self.panel1_results['profile'] == 'Baseline Corrected':
-            q = self.secm.getSASM(int_type='baseline').getQ()
+            q = copy.deepcopy(self.secm.getSASM(int_type='baseline').getQ())
+            q_err = copy.deepcopy(self.secm.getSASM(int_type='baseline').getQErr())
 
         ranges = self._getRanges()
 
@@ -14626,7 +14630,7 @@ class EFAControlPanel3(wx.Panel):
 
             err = self.rotation_data['err'][:,i]
 
-            sasm = SASM.SASM(intensity, q, err, {})
+            sasm = SASM.SASM(intensity, q, err, {}, q_err)
 
             sasm.setParameter('filename', old_filename+'_%i' %(i))
 
@@ -16060,9 +16064,10 @@ class REGALSRunPanel(wx.Panel):
         sigma = self.svd_results['err']
 
         ref_q = regals_secm.getSASMList(start, end)[0].getQ()
+        ref_q_err = regals_secm.getSASMList(start, end)[0].getQErr()
 
         self.sasms = SASCalc.make_regals_sasms(mixture, ref_q, intensity, sigma,
-            self.secm, start, end)
+            self.secm, start, end, ref_q_err)
 
         self.ifts = SASCalc.make_regals_ifts(mixture, ref_q, intensity, sigma,
             self.secm, start, end)
@@ -20370,7 +20375,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
 
                     parameters = copy.deepcopy(sasm.getAllParameters())
-                    newSASM = SASM.SASM(i, q, err, {})
+                    newSASM = SASM.SASM(i, q, err, {}, copy.deepcopy(sasm.getQErr()))
                     newSASM.setParameter('filename', parameters['filename'])
 
                     history = newSASM.getParameter('history')

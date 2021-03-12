@@ -562,7 +562,7 @@ def profiles_to_series(profiles, settings=None):
 
     return series
 
-def make_profile(q, i, err, name):
+def make_profile(q, i, err, name, q_err=None):
     """
     Makes a profile (:class:`bioxtasraw.SASM.SASM`) from q, I, and uncertainty
     vectors. All three input vectors must be the same length.
@@ -583,6 +583,11 @@ def make_profile(q, i, err, name):
     name: str
         The name of the profile. When loading a profile from a file, this is
         by default set as the filename (without the full path).
+    q_err: iterable, optional
+        The uncertainty vector in q for the scattering profile. Should be
+        either None or an iterable that can be cast to a :class:`numpy.array',
+        such as a list or :class:`numpy.array'. Default is None. Typically only
+        used for SANS data.
 
     Returns
     -------
@@ -591,7 +596,7 @@ def make_profile(q, i, err, name):
         the API.
     """
 
-    profile = SASM.SASM(i, q, err, {'filename': name})
+    profile = SASM.SASM(i, q, err, {'filename': name}, q_err)
 
     return profile
 
@@ -2035,7 +2040,7 @@ def auto_dmax(profile, dmax_thresh=0.015, dmax_low_bound=0.5, dmax_high_bound=1.
 
             if bift_dmax == -1:
                 try:
-                    (bift, bift_dmax, bift_rg, bift_i0, bift_dmax_err,
+                    (bift_ift, bift_dmax, bift_rg, bift_i0, bift_dmax_err,
                     bift_rg_err, bift_i0_err, bift_chi_sq, bift_log_alpha,
                     bift_log_alpha_err, bift_evidence,
                     bift_evidence_err) = bift(profile, settings=settings,
@@ -4495,7 +4500,7 @@ def efa(series, ranges, profile_type='sub', framei=None, framef=None,
 
     efa_profiles = []
 
-    q = sasm_list[0].getQ()
+    q = copy.deepcopy(sasm_list[0].getQ())
 
     if converged:
         for i in range(len(ranges)):
@@ -4503,7 +4508,8 @@ def efa(series, ranges, profile_type='sub', framei=None, framef=None,
 
             err = rotation_data['err'][:,i]
 
-            sasm = SASM.SASM(intensity, q, err, {})
+            sasm = SASM.SASM(intensity, q, err, {},
+                copy.deepcopy(sasm_list[0].getQErr()))
 
             sasm.setParameter('filename', filename+'_%i' %(i))
 

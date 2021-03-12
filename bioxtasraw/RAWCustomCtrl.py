@@ -393,10 +393,10 @@ class FloatSpinCtrl(wx.Panel):
 
     def find_new_val_up(self, val):
 
-        if val > self.max:
+        if self.max is not None and val > self.max:
             newval = self.max
 
-        elif val == self.max:
+        elif self.max is not None and val == self.max:
             newval = val
 
         else:
@@ -412,10 +412,10 @@ class FloatSpinCtrl(wx.Panel):
 
 
     def find_new_val_down(self, val):
-        if val < self.min:
+        if self.min is not None and val < self.min:
             newval = self.min
 
-        elif val == self.min:
+        elif self.min is not None and val == self.min:
             newval = val
 
         else:

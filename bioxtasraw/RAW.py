@@ -4230,7 +4230,7 @@ class MainWorkerThread(threading.Thread):
                             baseline = np.zeros_like(i)
 
                 parameters = copy.deepcopy(sasm.getAllParameters())
-                newSASM = SASM.SASM(i, q, err, {})
+                newSASM = SASM.SASM(i, q, err, {}, copy.deepcopy(sasm.getQErr()))
                 newSASM.setParameter('filename', parameters['filename'])
 
                 history = newSASM.getParameter('history')
@@ -5666,7 +5666,12 @@ class MainWorkerThread(threading.Thread):
                     i = sasm_data['i_raw']
                     err = sasm_data['err_raw']
 
-                new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'])
+                try:
+                    q_err = sasm_data['q_err_raw']
+                except KeyError:
+                    q_err = None #No q_err data before 2.1.0.
+
+                new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'], q_err)
 
                 new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
                     sasm_data['q_scale_factor'])
@@ -10070,14 +10075,23 @@ class IFTItemPanel(wx.Panel):
 
         for item in selected_items:
             filename = os.path.splitext(item.iftm.getParameter('filename'))[0]
-            data_sasm = SASM.SASM(item.iftm.i_orig, item.iftm.q_orig, item.iftm.err_orig, {item.iftm.getParameter('algorithm') : item.iftm.getAllParameters(), 'filename' : filename+'_data'})
-            fit_sasm = SASM.SASM(item.iftm.i_fit, item.iftm.q_orig, np.ones(len(item.iftm.i_fit)), {item.iftm.getParameter('algorithm') : item.iftm.getAllParameters(), 'filename' : filename+'_fit'})
+            data_sasm = SASM.SASM(item.iftm.i_orig, item.iftm.q_orig,
+                item.iftm.err_orig,
+                {item.iftm.getParameter('algorithm') : item.iftm.getAllParameters(),
+                'filename' : filename+'_data'})
+            fit_sasm = SASM.SASM(item.iftm.i_fit, item.iftm.q_orig,
+                np.ones(len(item.iftm.i_fit)),
+                {item.iftm.getParameter('algorithm') : item.iftm.getAllParameters(),
+                'filename' : filename+'_fit'})
 
             sasm_list.append(data_sasm)
             sasm_list.append(fit_sasm)
 
             if len(item.iftm.q_extrap) > 0:
-                extrap_sasm = SASM.SASM(item.iftm.i_extrap, item.iftm.q_extrap, np.ones(len(item.iftm.i_extrap)), {item.iftm.getParameter('algorithm') : item.iftm.getAllParameters(), 'filename' : filename+'_extrap'})
+                extrap_sasm = SASM.SASM(item.iftm.i_extrap, item.iftm.q_extrap,
+                    np.ones(len(item.iftm.i_extrap)),
+                    {item.iftm.getParameter('algorithm') : item.iftm.getAllParameters(),
+                    'filename' : filename+'_extrap'})
                 sasm_list.append(extrap_sasm)
 
 
@@ -11397,7 +11411,8 @@ class SeriesItemPanel(wx.Panel):
                     else:
                         intensity = secm.total_i
 
-                    selected_sasms.append(SASM.SASM(intensity, secm.frame_list, np.sqrt(intensity), secm.getAllParameters()))
+                    selected_sasms.append(SASM.SASM(intensity, secm.frame_list,
+                        np.sqrt(intensity), secm.getAllParameters()))
             else:
                 selected_sasms = []
 

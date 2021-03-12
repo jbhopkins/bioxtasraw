@@ -58,9 +58,12 @@ class SASM(object):
     err: numpy.array
         The scaled error vector, without the trimming specified by
         :func:`setQrange`.
+    q_err: numpy.array
+        The scaled q error vector, without the trimming specified by
+        :func:`setQrange`. Typically only used with SANS data.
     """
 
-    def __init__(self, i, q, err, parameters):
+    def __init__(self, i, q, err, parameters, q_err=None):
         """
         Constructor
 
@@ -86,6 +89,8 @@ class SASM(object):
         self._err_raw = np.array(err)
         self._parameters = parameters
 
+
+
         # Make an entry for analysis parameters i.e. Rg, I(0) etc:
         if 'analysis' not in self._parameters:
             self._parameters['analysis'] = {}
@@ -96,6 +101,18 @@ class SASM(object):
         self.i = self._i_raw.copy()
         self.q = self._q_raw.copy()
         self.err = self._err_raw.copy()
+
+        #For SANS data with a qerr column
+        try:
+            if q_err is not None:
+                self._q_err_raw = np.array(q_err)
+                self.q_err = self._q_err_raw.copy()
+            else:
+                self._q_err_raw = None
+                self.q_err = None
+        except Exception:
+            self._q_err_raw = None
+            self.q_err = None
 
         self._scale_factor = 1
         self._offset_value = 0
@@ -134,6 +151,7 @@ class SASM(object):
         newsasm = SASM(i_raw, q_raw, err_raw, parameters)
 
         newsasm.setQrange(copy.deepcopy(self.getQrange(), memo))
+        newsasm.setRawQErr(copy.deepcopy(self._q_err_raw, memo))
 
         newsasm.scale(copy.deepcopy(self.getScale(), memo))
         newsasm.offset(copy.deepcopy(self.getOffset(), memo))
@@ -149,6 +167,9 @@ class SASM(object):
         self.i = (self._i_raw * self._scale_factor) + self._offset_value
         self.err = self._err_raw * abs(self._scale_factor)
         self.q = self._q_raw * self._q_scale_factor
+
+        if self._q_err_raw is not None:
+            self.q_err = self._q_err_raw*self._q_scale_factor
 
         # print self.err_line
 
@@ -497,7 +518,7 @@ class SASM(object):
 
         Returns
         -------
-        q_raw: numpy.array
+        i_raw: numpy.array
             The raw intensity vector.
         """
         return self._i_raw
@@ -510,10 +531,23 @@ class SASM(object):
 
         Returns
         -------
-        q_raw: numpy.array
+        err_raw: numpy.array
             The raw error vector.
         """
         return self._err_raw
+
+    def getRawQErr(self):
+        """
+        Gets the raw q error vector, without scaling or offset from
+        :func:`scale` and :func:`offset` and without trimming based on
+        :func:`setQrange`.
+
+        Returns
+        -------
+        q_err_raw: numpy.array
+            The raw error vector.
+        """
+        return self._q_err_raw
 
     def setRawI(self, new_raw_i):
         """
@@ -550,6 +584,21 @@ class SASM(object):
             The new error vector.
         """
         self._err_raw = new_raw_err
+
+    def setRawQErr(self, new_raw_q_err):
+        """
+        Sets the raw q error vector. Will overwrite whatever error vector
+        is already in the object! Typically only used during calibration.
+        Q errors are typically only found in SANS data, and currently are
+        only carried and written out with the data set, they are not used
+        in any processing.
+
+        Parameters
+        ----------
+        new_raw_err: numpy.array
+            The new error vector.
+        """
+        self._q_err_raw = new_raw_q_err
 
     def setScaleValues(self, scale_factor, offset_value, q_scale_factor):
         """
@@ -622,10 +671,12 @@ class SASM(object):
         all_data['i_raw'] = self._i_raw
         all_data['q_raw'] = self._q_raw
         all_data['err_raw'] = self._err_raw
+        all_data['q_err_raw'] = self._q_err_raw
 
         all_data['i'] = self.getI()
         all_data['q'] = self.getQ()
         all_data['err'] = self.getErr()
+        all_data['q_err'] = self.getQErr()
 
         all_data['scale_factor'] = self._scale_factor
         all_data['offset_value'] = self._offset_value
@@ -652,8 +703,11 @@ class SASM(object):
             The copied profile
         """
 
-        return SASM(copy.deepcopy(self.i), copy.deepcopy(self.q),
+        sasm = SASM(copy.deepcopy(self.i), copy.deepcopy(self.q),
             copy.deepcopy(self.err), copy.deepcopy(self._parameters))
+        sasm.setRawQErr(self._q_err_raw)
+
+        return sasm
 
     def getMeanI(self):
         """
@@ -763,6 +817,20 @@ class SASM(object):
         want to use to the get the error vector.
         """
         return self.err[self._selected_q_range[0]:self._selected_q_range[1]]
+
+    def getQErr(self):
+        """
+        Gets the scaled, offset, trimmed q error vector. Usually this is what you
+        want to use to the get the q error vector. Q errors are usually only
+        available with SANS data. Returns None if no q error has been defined.
+        """
+
+        if self.q_err is not None:
+            q_err = self.q_err[self._selected_q_range[0]:self._selected_q_range[1]]
+        else:
+            q_err = None
+
+        return q_err
 
 
 class IFTM(object):

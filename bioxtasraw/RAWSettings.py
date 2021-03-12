@@ -850,7 +850,7 @@ def readSettings(filename):
             settings = f.read()
         settings = dict(json.loads(settings))
     except Exception as e:
-        traceback.print_exc()
+        # traceback.print_exc()
         try:
             with open(filename, 'rb') as f:
                 if six.PY3:

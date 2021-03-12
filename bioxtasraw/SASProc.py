@@ -127,7 +127,7 @@ def subtract(sasm1, sasm2, forced = False, full = False):
 
     parameters = copy.deepcopy(sasm1.getAllParameters())
     sub_parameters = get_shared_header([sasm1, sasm2])
-    newSASM = SASM.SASM(i, q, err, sub_parameters)
+    newSASM = SASM.SASM(i, q, err, sub_parameters, copy.deepcopy(sasm1.getQErr()))
     newSASM.setParameter('filename', parameters['filename'])
 
     history = newSASM.getParameter('history')
@@ -155,7 +155,7 @@ def average(sasm_list, forced = False):
 
     if len(sasm_list) == 1:
         #Useful for where all but the first profile are rejected due to similarity
-        #testing. Otherwise we should never have less than one profile to average
+        #testing. Otherwise we should never have just than one profile to average
         sasm = sasm_list[0]
         q_min, q_max = sasm.getQrange()
 
@@ -163,8 +163,9 @@ def average(sasm_list, forced = False):
         avg_i = copy.deepcopy(sasm.i[q_min:q_max])
         avg_err = copy.deepcopy(sasm.err[q_min:q_max])
         avg_parameters = copy.deepcopy(sasm.getAllParameters())
+        avg_q_err = copy.deepcopy(sasm.getQErr())
 
-        avgSASM = SASM.SASM(avg_i, avg_q, avg_err, avg_parameters)
+        avgSASM = SASM.SASM(avg_i, avg_q, avg_err, avg_parameters, avg_q_err)
 
         history = {}
         history_list = []
@@ -216,7 +217,8 @@ def average(sasm_list, forced = False):
 
         avg_parameters = get_shared_header(sasm_list)
 
-        avgSASM = SASM.SASM(avg_i, avg_q, avg_err, avg_parameters)
+        avgSASM = SASM.SASM(avg_i, avg_q, avg_err, avg_parameters,
+            copy.deepcopy(first_sasm.getQErr()))
         avgSASM.setParameter('filename', avg1_parameters['filename'])
 
         history = {}
@@ -249,8 +251,9 @@ def weightedAverage(sasm_list, weightByError, weightCounter, forced = False):
         avg_i = copy.deepcopy(sasm.i[q_min:q_max])
         avg_err = copy.deepcopy(sasm.err[q_min:q_max])
         avg_parameters = copy.deepcopy(sasm.getAllParameters())
+        avg_q_err = copy.deepcopy(sasm.getQErr())
 
-        avgSASM = SASM.SASM(avg_i, avg_q, avg_err, avg_parameters)
+        avgSASM = SASM.SASM(avg_i, avg_q, avg_err, avg_parameters, avg_q_err)
 
         history = {}
         history_list = []
@@ -342,7 +345,8 @@ def weightedAverage(sasm_list, weightByError, weightCounter, forced = False):
 
         avg_parameters = get_shared_header(sasm_list)
 
-        avgSASM = SASM.SASM(avg_i, avg_q, avg_err, avg_parameters)
+        avgSASM = SASM.SASM(avg_i, avg_q, avg_err, avg_parameters,
+            copy.deepcopy(first_sasm.getQErr()))
         avgSASM.setParameter('filename', avg1_parameters['filename'])
         history = avgSASM.getParameter('history')
 
@@ -612,6 +616,11 @@ def logBinning(sasm, no_points):
     err = sasm.getErr()
     err_sqr = err**2
 
+    q_err = sasm.getQErr()
+
+    if q_err is not None:
+        q_err_sqr = q_err**2
+
     total_pts = len(q)
 
     if no_points <=1:
@@ -648,6 +657,11 @@ def logBinning(sasm, no_points):
         binned_i = np.empty(log_bins.shape[0]-1)
         binned_err = np.empty(log_bins.shape[0]-1)
 
+        if q_err is not None:
+            binned_q_err = np.empty(log_bins.shape[0]-1)
+        else:
+            binned_q_err = None
+
         for j in range(log_bins.shape[0]-1):
             start_idx = log_bins[j]
             end_idx = log_bins[j+1]
@@ -656,9 +670,12 @@ def logBinning(sasm, no_points):
             binned_i[j] = np.mean(i[start_idx:end_idx])
             binned_err[j] = np.sqrt(np.sum(err_sqr[start_idx:end_idx])/(end_idx-start_idx))
 
+            if q_err is not None:
+                binned_q_err[j] =np.sqrt(np.sum(q_err_sqr[start_idx:end_idx])/(end_idx-start_idx))
+
     parameters = copy.deepcopy(sasm.getAllParameters())
 
-    newSASM = SASM.SASM(binned_i, binned_q, binned_err, parameters)
+    newSASM = SASM.SASM(binned_i, binned_q, binned_err, parameters, binned_q_err)
 
     history = newSASM.getParameter('history')
 
@@ -704,9 +721,22 @@ def rebin(sasm, rebin_factor):
     err_sqr = err_roi**2
     err_norm = np.sqrt(rebin_factor)
 
+    if sasm.q_err is not None:
+        q_err_roi = sasm.getQErr()[start_idx:end_idx]
+    else:
+        q_err_roi = None
+
+    if q_err_roi is not None:
+        q_err_sqr = q_err_roi**2
+
     new_i = np.zeros(no_of_bins)
     new_q = np.zeros(no_of_bins)
     new_err = np.zeros(no_of_bins)
+
+    if q_err_roi is not None:
+        new_q_err = np.zeros(no_of_bins)
+    else:
+        new_q_err = None
 
     for eachbin in range(0, no_of_bins):
         first_idx = eachbin * rebin_factor
@@ -716,10 +746,13 @@ def rebin(sasm, rebin_factor):
         new_q[eachbin] = np.sum(q_roi[first_idx:last_idx]) / rebin_factor
         new_err[eachbin] = np.sqrt(np.sum(err_sqr[first_idx:last_idx])) / err_norm
 
+        if q_err_roi is not None:
+            new_q_err[eachbin] = np.sqrt(np.sum(q_err_sqr[first_idx:last_idx])) / err_norm
+
 
     parameters = copy.deepcopy(sasm.getAllParameters())
 
-    newSASM = SASM.SASM(new_i, new_q, new_err, parameters)
+    newSASM = SASM.SASM(new_i, new_q, new_err, parameters, new_q_err)
 
     qstart, qend = sasm.getQrange()
 

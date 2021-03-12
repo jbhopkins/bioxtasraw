@@ -818,10 +818,17 @@ class DataDialog(wx.Dialog):
         self.data_grid = gridlib.Grid(self)
         self.data_grid.SetDefaultCellAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTRE)
 
-        self.data_grid.CreateGrid(data_len, 3)
+        if self.sasm.getQErr() is None:
+            self.data_grid.CreateGrid(data_len, 3)
+        else:
+            self.data_grid.CreateGrid(data_len, 4)
         self.data_grid.SetColLabelValue(0, 'q')
         self.data_grid.SetColLabelValue(1, 'i')
         self.data_grid.SetColLabelValue(2, 'err')
+
+        if self.sasm.getQErr() is not None:
+            self.data_grid.SetColLabelValue(3, 'q err')
+
         self.data_grid.SetMinSize(self._FromDIP((400,400)))
 
         self.data_grid.EnableEditing(False)
@@ -884,11 +891,15 @@ class DataDialog(wx.Dialog):
         I = self.sasm.getRawI()
         Q = self.sasm.getRawQ()
         Err = self.sasm.getRawErr()
+        q_err = self.sasm.getRawQErr()
 
         for i in range(0, data_len):
             self.data_grid.SetCellValue(i, 0, str(Q[i]))
             self.data_grid.SetCellValue(i, 1, str(I[i]))
             self.data_grid.SetCellValue(i, 2, str(Err[i]))
+
+            if self.sasm.getQErr() is not None:
+                self.data_grid.SetCellValue(i, 3, str(q_err[i]))
 
     def _onOk(self, event):
         self.Destroy()

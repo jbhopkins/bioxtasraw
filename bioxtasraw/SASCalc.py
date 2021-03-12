@@ -3724,7 +3724,7 @@ def processBaseline(unsub_sasms, sub_sasms, r1, r2, bl_type, min_iter, max_iter,
 
 
             parameters = copy.deepcopy(sasm.getAllParameters())
-            newSASM = SASM.SASM(i, q, err, {})
+            newSASM = SASM.SASM(i, q, err, {}, copy.deepcopy(sasm.getQErr()))
             newSASM.setParameter('filename', parameters['filename'])
 
             history = newSASM.getParameter('history')
@@ -3779,7 +3779,7 @@ def processBaseline(unsub_sasms, sub_sasms, r1, r2, bl_type, min_iter, max_iter,
 
 
             parameters = copy.deepcopy(sasm.getAllParameters())
-            newSASM = SASM.SASM(i, q, err, {})
+            newSASM = SASM.SASM(i, q, err, {}, copy.deepcopy(sasm.getQErr()))
             newSASM.setParameter('filename', parameters['filename'])
 
             history = newSASM.getParameter('history')
@@ -3804,7 +3804,8 @@ def processBaseline(unsub_sasms, sub_sasms, r1, r2, bl_type, min_iter, max_iter,
 
 
     use_subtracted_sasms = []
-    zeroSASM = SASM.SASM(np.zeros_like(sub_sasms[0].getQ()), sub_sasms[0].getQ(), sub_sasms[0].getErr(), {})
+    zeroSASM = SASM.SASM(np.zeros_like(sub_sasms[0].getQ()), sub_sasms[0].getQ(),
+        sub_sasms[0].getErr(), {})
     bl_unsub_sasms = []
 
     for j in range(len(unsub_sasms)):
@@ -4132,7 +4133,7 @@ def match_regals_component_u(new_comp, old_comp, old_u):
     return fixed_u
 
 
-def make_regals_sasms(mixture, q, intensity, sigma, secm, start, end):
+def make_regals_sasms(mixture, q, intensity, sigma, secm, start, end, q_err=None):
 
     old_filename = secm.getParameter('filename').split('.')
 
@@ -4146,7 +4147,7 @@ def make_regals_sasms(mixture, q, intensity, sigma, secm, start, end):
     for j in range(mixture.Nc):
         calc_intensity, calc_err = mixture.extract_profile(intensity, sigma, j)
 
-        sasm = SASM.SASM(calc_intensity, q, calc_err, {})
+        sasm = SASM.SASM(calc_intensity, q, calc_err, {}, q_err)
 
         sasm.setParameter('filename', '{}_{}'.format(old_filename, j))
 
