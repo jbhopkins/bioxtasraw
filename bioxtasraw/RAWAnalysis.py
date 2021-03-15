@@ -17658,7 +17658,7 @@ class REGALSBackgroundSVDPlot(wx.Panel):
 
         if line is None:
             if axis == 'sv':
-                line, = self.sv_subplot.plot(xdata, ydata, '.-', color=color)
+                line, = self.sv_subplot.semilogy(xdata, ydata, '.-', color=color)
                 self.sv_plot_lines[label] = line
 
             elif axis == 'left_ac':

@@ -59,6 +59,7 @@ import bioxtasraw.SECM as SECM
 import bioxtasraw.BIFT as BIFT
 import bioxtasraw.DENSS as DENSS
 import bioxtasraw.SASUtils as SASUtils
+import bioxtasraw.RAWReport as RAWReport
 
 __version__ = RAWGlobals.version
 
@@ -719,6 +720,34 @@ def save_settings(settings, fname, datadir='.'):
 
     return success
 
+def save_report(fname, datadir='.', profiles=[], ifts=[], series=[],
+    dammif_data=[]):
+    """
+    Saves a .pdf report/summary of the input data.
+
+    Parameters
+    ----------
+    fname: str
+        The output filename without the directory path.
+    datadir: str, optional
+        The directory to save the report in. If no directory is provided,
+        the current directory is used.
+    profiles: list
+        A list of :class:`bioxtasraw.SASM.SASM` profiles to add to the report.
+    ifts: list
+        A list of :class:`bioxtasraw.SASM.IFTM` IFTs to add to the report.
+    series: list
+        A list of :class:`bioxtasraw.SECM.SECM` series to add to the report.
+    dammif_data: list
+        A list of paths to the summary files of dammif runs from RAW (.csv files)
+        to add to the report.
+    """
+    datadir = os.path.abspath(os.path.expanduser(datadir))
+
+    fname = os.path.spitext(fname)[0] + '.pdf'
+
+    RAWReport.make_report_from_raw(fname, datadir, profiles, ifts, series,
+        dammif_data)
 
 def average(profiles, forced=False):
     """
@@ -4345,6 +4374,200 @@ def svd(series, profile_type='sub', framei=None, framef=None, norm=True):
     svd_V = svd_Vt.T
 
     return svd_s, svd_U, svd_V
+
+def regals(series, comp_settings, profile_type='sub', framei=None,
+    framef=None, x_vals=None, min_iter=25, max_iter=1000, tol=0.001,
+    conv_type='Chi^2', num_good = 10, use_previous_results=False,
+    previous_results=None):
+"""
+    Runs regularized alternating least squares (REGALS) on the input series to
+    deconvolve overlapping components in the data.
+
+    Parameters
+    ----------
+    series: list or :class:`bioxtasraw.SECM.SECM`
+        The input series to be deconvolved. It should either be a list
+        of individual scattering profiles (:class:`bioxtasraw.SASM.SASM`) or
+        a single series object (:class:`bioxtasraw.SECM.SECM`).
+    comp_settings: list
+        STUFF GOES HERE
+    profile_type: {'unsub', 'sub', 'baseline'} str, optional
+        Only used if a :class:`bioxtasraw.SECM.SECM` is provided for the series
+        argument. Determines which type of profile to use from the series
+        for the REGALS. Unsubtracted profiles - 'unsub', subtracted profiles -
+        'sub', baseline corrected profiles - 'baseline'.
+    framei: int, optional
+        The initial frame in the series to use for REGALS. If not provided,
+        it defaults to the first frame in the series.
+    framef: int, optional
+        The final frame in the series to use for REGALS. If not provided, it
+        defaults to the last frame in the series.
+    min_iter: int, optional
+        The minimum number of iterations of the REGALS algorithm to run. Defaults
+        to 25.
+    max_iter: int, optional
+        The maximum number of iterations of the REGALS algorithm to run. Defaults
+        to 1000. If convergence method is set to 'Iterations' then this value is
+        used as the number of iterations to run.
+    tol: float, optional
+        The relative tolerance to use for the 'Chi^2' convergence criteria.
+        Defaults to 0.001.
+    conv_type: str, optional
+        The convergence type to use. Can be either 'Iterations' or 'Chi^2'.
+        Iterations runs a number of iterations equal to max_iter. The chi^2
+        criteria runs iterations until the average of the past min_iter
+        iterations is stable within the tolerance defined by tol, up to the
+        max_iter number of iterations.
+    num_good: int, optional
+        The number of good parameters in the dataset, used to estimate the
+        lambda values for the data. Defaults to 10.
+    use_previous_results: bool, optional
+        Whether to use previous results as the initial profile and concentration
+        vectors. Requires previous_results input. Defaults to False.
+    previous_results: :class:`bioxtasraw.REGALS.mixture`, optional
+        The mixture output from a previous REGALS run, which will be used as
+        the initial profile and concentration vectors for this REGALS run. Only
+        used of use_previous_results is True.
+
+    Returns
+    -------
+    efa_profiles: list
+        A list of profiles (:class:`bioxtasraw.SASM.SASM`) determined by EFA.
+        If EFA converged, the profile at each list index was determined for the
+        corresponding range in the ranges input parameter. If EFA failed to
+        converge an empty list is returned.
+    converged: bool
+        True if EFA converged, otherwise False.
+    conv_data: dict
+        A dictionary containing information about the convergence. Keys are
+        'steps' - A list containing the value of the convergence criteria at
+        each iteration, if available; 'iterations' - The number of iterations
+        carried out during the rotation, if available; 'final_step' - The
+        value of the convergence criteria in the final iteration step, if
+        available; 'options' - A dictionary containing the input convergence
+        options; 'failed' - A bool indicating if convergence failed.
+    rotation_data: dict
+        A dictionary containing the rotation results, if available. If the
+        rotation failed to converge, the dictionary is empty. Keys are:
+        'C' - Concentration data. A numpy array where the first axis is
+        concentration as a function of frame and the second axis is component
+        number. 'chisq' - Mean error weighted chi squared data. A numpy array
+        of chi squared vs. frame number. 'int' - Scattering intensity. A numpy
+        array where the first axis is intensity and the second axis is component
+        number. ' err' - Scattering intensity uncertainty. A numpy array where
+        the first axis is intensity and the second axis is component number.
+        'M' - The EFA M rotation matrix.
+
+    Raises
+    ------
+    SASExceptions.EFAError
+        If initial SVD cannot be carried out.
+    """
+    if framei is None:
+            framei = 0
+    if framef is None:
+        if isinstance(series, SECM.SECM):
+            framef = len(series.getAllSASMs())-1
+        else:
+            framef = len(series)-1
+
+    ref_q = series.getSASMList(framei, framef)[0].getQ()
+    ref_q_err = series.getSASMList(framei, framef)[0].getQErr()
+
+    if x_vals is None:
+        x_vals = np.arange(framei, framef+1)
+
+    if isinstance(series, SECM.SECM):
+        sasm_list = series.getSASMList(framei, framef, profile_type)
+        filename = os.path.splitext(series.getParameter('filename'))[0]
+    else:
+        sasm_list = series[framei:framef+1]
+        names = [os.path.basename(sasm.getParameter('filename')) for sasm in series]
+        filename = os.path.commonprefix(names).rstrip('_')
+        if filename == '':
+            filename =  os.path.splitext(os.path.basename(series[0].getParameter('filename')))[0]
+
+    (svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, intensity, sigma, svd_a,
+        success) = SASCalc.SVDOnSASMs(sasm_list)
+
+    if (use_previous_results and previous_results is not None and
+        len(previous_results.u_profile) == len(comp_settings)):
+        mixture, components = SASCalc.create_regals_mixture(comp_settings,
+            ref_q, x_vals, num_good, sigma, use_previous_results,
+            previous_results)
+
+    else:
+        mixture, components = SASCalc.create_regals_mixture(comp_settings,
+            ref_q, x_vals, num_good, sigma)
+
+    mixture, params, residual = SASCalc.run_regals(mixture, intensity, sigma,
+        min_iter=min_iter, max_iter=max_iter, tol=tol, conv_type=conv_type)
+
+    regals_profiles = SASCalc.make_regals_sasms(mixture, ref_q, intensity, sigma,
+        series, framei, framef, ref_q_err)
+
+    regals_ifts = SASCalc.make_regals_ifts(mixture, ref_q, intensity, sigma,
+        series, framei, framef)
+
+
+    # Make results into a format that matches the GUI
+    comp_ranges = np.array([[comp[1]['kwargs']['xmin'], comp[1]['kwargs']['xmin']] for comp in comp_settings])
+
+    if x_vals is not None:
+        comp_frame_ranges = []
+
+        for cr in comp_ranges:
+            min_val, min_arg = SASUtils.find_closest(cr[0], x_vals)
+            max_val, max_arg = SASUtils.find_closest(cr[1], x_vals)
+
+            start = min_arg + framei
+            end = max_arg + framei
+
+            comp_frame_ranges.append([start, end])
+
+    ctrl_settings = {
+        'seed_previous' : use_previous_results,
+        'conv_type'     : conv_type,
+        'max_iter'      : max_iter,
+        'min_iter'      : min_iter,
+        'tol'           : tol,
+        }
+
+    for j, comp in enumerate(comp_settings):
+        prof = comp[0]
+        conc = comp[1]
+
+        prof['lambda'] = mixture.lambda_profile[j]
+        conc['lambda'] = mixture.lambda_concentration[j]
+
+    analysis_dict = series.getParameter('analysis')
+
+    regals_dict = {}
+
+    if profile_type == 'unsub':
+        profile_data = 'Unsubtracted'
+    elif profile_type == 'sub':
+        profile_data = 'Subtracted'
+    elif profile_type == 'baseline':
+        profile_data = 'Baseline Corrected'
+
+    regals_dict['fstart'] = str(framei)
+    regals_dict['fend'] = str(framef)
+    regals_dict['profile'] = profile_data
+    regals_dict['nsvs'] = str(len(regals_profiles))
+    regals_dict['ranges'] = comp_ranges
+    regals_dict['frame_ranges'] = comp_frame_ranges
+    regals_dict['component_settings'] = comp_settings
+    regals_dict['run_settings'] = ctrl_settings
+    regals_dict['background_components'] = 0
+    regals_dict['exp_type'] = 'IEC/SEC-SAXS'
+
+    if not np.array_equal(x_vals, np.arange(framei, framef+1)):
+        regals_dict['x_calibration'] = x_vals
+
+    analysis_dict['regals'] = regals_dict
+
+    return regals_profiles, regals_ifts, mixture, params, residual
 
 def efa(series, ranges, profile_type='sub', framei=None, framef=None,
     method='Hybrid', niter=1000, tol=1e-12, norm=True, force_positive=None,
