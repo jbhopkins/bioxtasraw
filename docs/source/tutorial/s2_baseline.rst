@@ -200,11 +200,6 @@ Here we provide detail only where the procedures are different.
 .. |baseline_linear_profiles_png| image:: images/baseline_linear_profiles.png
     :target: ../_images/baseline_linear_profiles.png
 
-
-.. |lc_analysis_baseline_pick_png| image:: images/lc_analysis_baseline_pick.png
-    :width: 300 px
-    :target: ../_images/baseline_series_plot.png
-
 .. |lc_analysis_baseline_regions_png| image:: images/lc_analysis_baseline_regions.png
     :target: ../_images/lc_analysis_baseline_regions.png
 

@@ -587,7 +587,7 @@ def make_profile(q, i, err, name, q_err=None):
     q_err: iterable, optional
         The uncertainty vector in q for the scattering profile. Should be
         either None or an iterable that can be cast to a :class:`numpy.array',
-        such as a list or :class:`numpy.array'. Default is None. Typically only
+        such as a list or :class:`numpy.array`. Default is None. Typically only
         used for SANS data.
 
     Returns
@@ -4379,7 +4379,7 @@ def regals(series, comp_settings, profile_type='sub', framei=None,
     framef=None, x_vals=None, min_iter=25, max_iter=1000, tol=0.001,
     conv_type='Chi^2', num_good = 10, use_previous_results=False,
     previous_results=None):
-"""
+    """
     Runs regularized alternating least squares (REGALS) on the input series to
     deconvolve overlapping components in the data.
 
@@ -4390,7 +4390,37 @@ def regals(series, comp_settings, profile_type='sub', framei=None,
         of individual scattering profiles (:class:`bioxtasraw.SASM.SASM`) or
         a single series object (:class:`bioxtasraw.SECM.SECM`).
     comp_settings: list
-        STUFF GOES HERE
+        A list where each entry is the settings for a REGALS component. REGALS
+        component settings are themselves lists with two entries, one for the
+        profile settings and one for the concentration settings. Each of these
+        is a dictionary. Profile and settings are::
+
+            prof_settings = {
+                'type'          : 'simple', #simple, smooth, or realspace
+                'lambda'        : 1.0, #float of the regularizer
+                'auto_lambda'   : True, #Whether to automatically determine lambda
+                'kwargs'        : {
+                    'Nw'    : 50, #Number of control points (smooth/realspace)
+                    'dmax'  : 100, #Maximum dimension (realspace)
+                    'is_zero_at_r0' : True, #realspace
+                    'is_zero_at_damx': True, #realspace
+                },
+            }
+
+            conc_settings = {
+                'type'  : 'simple', #simple or smooth
+                'lambda'        : 1.0, #float of the regularizer
+                'auto_lambda'   : True, #Whether to automatically determine lambda
+                'kwargs'        : {
+                    'xmin'  : 0, #Minimum x value for the component
+                    'xmax'  : 1, #Maximum x value for the component
+                    'Nw'    : 50, #Number of control points (smooth)
+                    'is_zero_at_xmin'   : True, #Smooth
+                    'is_zero_at_xmax'   : True, #Smooth
+
+                },
+            }
+
     profile_type: {'unsub', 'sub', 'baseline'} str, optional
         Only used if a :class:`bioxtasraw.SECM.SECM` is provided for the series
         argument. Determines which type of profile to use from the series
@@ -4431,37 +4461,27 @@ def regals(series, comp_settings, profile_type='sub', framei=None,
 
     Returns
     -------
-    efa_profiles: list
-        A list of profiles (:class:`bioxtasraw.SASM.SASM`) determined by EFA.
-        If EFA converged, the profile at each list index was determined for the
-        corresponding range in the ranges input parameter. If EFA failed to
-        converge an empty list is returned.
-    converged: bool
-        True if EFA converged, otherwise False.
-    conv_data: dict
-        A dictionary containing information about the convergence. Keys are
-        'steps' - A list containing the value of the convergence criteria at
-        each iteration, if available; 'iterations' - The number of iterations
-        carried out during the rotation, if available; 'final_step' - The
-        value of the convergence criteria in the final iteration step, if
-        available; 'options' - A dictionary containing the input convergence
-        options; 'failed' - A bool indicating if convergence failed.
-    rotation_data: dict
-        A dictionary containing the rotation results, if available. If the
-        rotation failed to converge, the dictionary is empty. Keys are:
-        'C' - Concentration data. A numpy array where the first axis is
-        concentration as a function of frame and the second axis is component
-        number. 'chisq' - Mean error weighted chi squared data. A numpy array
-        of chi squared vs. frame number. 'int' - Scattering intensity. A numpy
-        array where the first axis is intensity and the second axis is component
-        number. ' err' - Scattering intensity uncertainty. A numpy array where
-        the first axis is intensity and the second axis is component number.
-        'M' - The EFA M rotation matrix.
-
-    Raises
-    ------
-    SASExceptions.EFAError
-        If initial SVD cannot be carried out.
+    regals_profiles: list
+        A list of profiles (:class:`bioxtasraw.SASM.SASM`) determined by REGALS.
+    regals_ifts: list
+        A list of IFTS (:class:`bioxtasraw.SASM.IFTM`) determined by REGALS.
+        Only contains results for components using the 'realspace' constraint.
+    mixture: REGALS.mixture
+        The final mixture result from REGALS. Can be used as input to REGALS to
+        start with the previously determined values for each component.
+    params: dict
+        Contains the final convergence parameters for REGALS. Each parameter
+        is for the final iteration of the algorithm. 'x2': chi^2,
+        'delta_concentration': the difference between the final and final-1
+        iterations concentrations. 'delta_profile': the difference between
+        the final and final-1 iterations profiles. 'delta_u_concentration':
+        the difference between the final and final-1 iterations u concentration
+        matrix. 'delta_u_profile': the difference between the final and final-1
+        iterations U profiles matrix. 'total_iter': the total number of iterations.
+    residual: :class:`numpy.array`
+        The residual between the initial input intensities and the deconvolved
+        intensities. This is a matrix where each column corresponds to an
+        input intensity.
     """
     if framei is None:
             framei = 0
@@ -4487,8 +4507,11 @@ def regals(series, comp_settings, profile_type='sub', framei=None,
         if filename == '':
             filename =  os.path.splitext(os.path.basename(series[0].getParameter('filename')))[0]
 
-    (svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, intensity, sigma, svd_a,
-        success) = SASCalc.SVDOnSASMs(sasm_list)
+    i = np.array([sasm.getI() for sasm in sasm_list])
+    err = np.array([sasm.getErr() for sasm in sasm_list])
+
+    intensity = i.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
+    sigma = err.T
 
     if (use_previous_results and previous_results is not None and
         len(previous_results.u_profile) == len(comp_settings)):
@@ -4692,32 +4715,10 @@ def efa(series, ranges, profile_type='sub', framei=None, framef=None,
     if not isinstance(ranges, np.ndarray):
         ranges = np.array(ranges)
 
-    intensity = np.array([sasm.getI() for sasm in sasm_list])
-    err = np.array([sasm.getErr() for sasm in sasm_list])
+    (svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, intensity, sigma, svd_a,
+        success) = SASCalc.SVDOnSASMs(sasm_list)
 
-    intensity = intensity.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
-    err = err.T
-
-    if norm:
-        err_mean = np.mean(err, axis = 1)
-        if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
-            err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), err.shape)
-        else:
-            err_avg = np.array([err_mean for k in range(intensity.shape[1])]).T
-
-        D = intensity/err_avg
-    else:
-        D = intensity
-
-    if not np.all(np.isfinite(D)):
-        raise SASExceptions.EFAError(('Initial SVD matrix contained nans or '
-            'infinities. SVD could not be carried out'))
-
-    svd_U, svd_s, svd_Vt = np.linalg.svd(D, full_matrices = True)
-
-    svd_V = svd_Vt.T
-
-    converged, conv_data, rotation_data = SASCalc.runRotation(D, intensity,
+    converged, conv_data, rotation_data = SASCalc.runRotation(svd_a, intensity,
         err, ranges, force_positive, svd_V, previous_results=previous_results,
         method=method, niter=niter, tol=tol)
 

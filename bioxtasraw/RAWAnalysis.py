@@ -15774,20 +15774,17 @@ class REGALSRunPanel(wx.Panel):
         ctrl_settings['callback'] = self.on_regals_finished_callback
         ctrl_settings['abort_event'] = self.regals_abort_event
 
-        intensity = self.svd_results['int']
-        sigma = self.svd_results['err']
-
         num_good = 10
 
         if (seed_previous and self.regals_results is not None and
             len(self.regals_results['mixture'].u_profile) == len(comp_settings)):
             mixture, components = SASCalc.create_regals_mixture(comp_settings,
-                ref_q, self.regals_x['x'], num_good, sigma, seed_previous,
+                ref_q, self.regals_x['x'], num_good, self.sigma, seed_previous,
                 self.regals_results['mixture'])
 
         else:
             mixture, components = SASCalc.create_regals_mixture(comp_settings,
-                ref_q, self.regals_x['x'], num_good, sigma)
+                ref_q, self.regals_x['x'], num_good, self.sigma)
 
         self.set_lambdas(mixture.lambda_concentration, mixture.lambda_profile)
 
@@ -15804,7 +15801,7 @@ class REGALSRunPanel(wx.Panel):
         if valid:
 
             self.regals_thread = threading.Thread(target=SASCalc.run_regals,
-                args=(mixture, intensity, sigma),
+                args=(mixture, self.intensity, self.sigma),
                 kwargs=ctrl_settings)
             self.regals_thread.daemon = True
             self.regals_thread.start()
@@ -16025,6 +16022,20 @@ class REGALSRunPanel(wx.Panel):
 
                 if len(xdata['x']) == len(self.regals_x['x']):
                     self.change_x(xdata['x'], xdata['x_base'], xdata['x_choice'])
+
+        if self.svd_results['secm_choice'] == 'usub':
+            regals_secm = self.secm
+        elif self.svd_results['secm_choice'] == 'sub':
+            regals_secm = self.svd_results['sub_secm']
+        elif self.svd_results['secm_choice'] == 'bl':
+            regals_secm = self.svd_results['bl_secm']
+
+        sasm_list = regals_secm.getSASMList(start, end)
+        i = np.array([sasm.getI() for sasm in sasm_list])
+        err = np.array([sasm.getErr() for sasm in sasm_list])
+
+        self.intensity = i.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
+        self.sigma = err.T
 
         self.controls.clear_regals_update()
 
