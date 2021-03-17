@@ -3187,7 +3187,7 @@ def save_series_sasm_list(profile_group, sasm_list, frame_num_offset=0):
             if q_err_exists and q_err_raw_exists:
                 q_err_equal = np.array_equal(sasm_list[0]['q_err'], sasm_list[0]['q_err_raw'])
 
-                save_single_q_raw = not (q_equal and q_err_equal)
+                save_single_q_raw = not q_equal or not q_err_equal
 
             else:
                 save_single_q_raw = not q_equal
@@ -3223,7 +3223,7 @@ def save_series_sasm_list(profile_group, sasm_list, frame_num_offset=0):
         if q_err_raw is not None:
             data = np.column_stack((q_raw, q_err_raw))
         else:
-            data = q
+            data = q_raw
 
         q_raw_dataset = raw_group.create_dataset('q', data=data)
         q_raw_dataset.attrs['description'] = ('the q vector for all numbered (e.g. '

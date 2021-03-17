@@ -13730,7 +13730,6 @@ class EFAControlPanel2(wx.Panel):
 
                             if ('exp_type' in self.panel1_results and
                                 self.panel1_results['exp_type'] == 'IEC/SEC-SAXS'):
-                                print('here2')
                                 wx.CallAfter(self._find_regals_bkg)
 
                     if np.all(np.sort(forward_sv) == forward_sv) and np.all(np.sort(backward_sv) == backward_sv):

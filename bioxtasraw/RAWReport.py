@@ -85,7 +85,7 @@ def text_round(value, round_to):
     else:
         high_bound = 1000
 
-    if value < low_bound or value > high_bound:
+    if (value < low_bound and value != 0) or value > high_bound:
             value = str(np.format_float_scientific(value, round_to, trim='0',
             exp_digits=1))
     else:
@@ -232,6 +232,7 @@ class SECData(object):
 
         self.get_metadata(secm)
         self.get_efa_data(secm)
+        self.get_regals_data(secm)
 
     def get_metadata(self, secm):
         metadata_dict = {}
@@ -326,7 +327,7 @@ class SECData(object):
             self.efa_nsvs = ''
             self.efa_iter_limit = ''
             self.efa_method = ''
-            self.efa_profile = ''
+            self.efa_profile_type = ''
             self.efa_tolerance = ''
             self.efa_frames = []
             self.efa_extra_data = False
@@ -334,6 +335,67 @@ class SECData(object):
             self.efa_conc = []
             self.efa_chi = ''
 
+    def get_regals_data(self, secm):
+        analysis_dict = secm.getParameter('analysis')
+
+        if 'regals' in analysis_dict:
+            regals_dict = analysis_dict['regals']
+
+            self.regals_done = True
+            self.regals_ranges = regals_dict['ranges']
+            self.regals_frame_ranges = regals_dict['frame_ranges']
+            self.regals_start = regals_dict['fstart']
+            self.regals_end = regals_dict['fend']
+            self.regals_nsvs = regals_dict['nsvs']
+            self.regals_component_settings = regals_dict['component_settings']
+            self.regals_run_settings = regals_dict['run_settings']
+            self.regals_background_comps = regals_dict['background_components']
+            self.regals_exp_type = regals_dict['exp_type']
+            self.regals_profile_type = regals_dict['profile']
+
+            if 'x_calibration' in regals_dict:
+                self.regals_x_cal = np.array(regals_dict['x_calibration']['x'])
+                self.regals_x_type = regals_dict['x_calibration']['x_choice']
+            else:
+                self.regals_x_cal = np.arange(self.regals_start, self.regals_end+1)
+                self.regals_x_type = 'X'
+
+            if self.regals_profile_type == 'Subtracted':
+                prof_type = 'sub'
+            elif self.regals_profile_type == 'Unsubtracted':
+                prof_type = 'unsub'
+            elif self.regals_profile_type == 'Basline Corrected':
+                prof_type = 'baseline'
+
+            regals_results = raw.regals(secm, self.regals_component_settings, prof_type,
+                int(self.regals_start), int(self.regals_end), self.regals_x_cal,
+                self.regals_run_settings['min_iter'], self.regals_run_settings['max_iter'],
+                self.regals_run_settings['tol'], self.regals_run_settings['conv_type'])
+
+            self.regals_extra_data = True
+            self.regals_profiles = [SAXSData(prof) for prof in regals_results[0]]
+            self.regals_ifts = [IFTData(ift) for ift in regals_results[1]]
+            self.regals_chi = np.mean(regals_results[4] ** 2, 0)
+            self.regals_conc = regals_results[2].concentrations
+
+        else:
+            self.regals_done = False
+            self.regals_ranges = []
+            self.regals_frame_ranges = []
+            self.regals_start = ''
+            self.regals_end = ''
+            self.regals_nsvs = ''
+            self.regals_component_settings = []
+            self.regals_run_settings = {}
+            self.regals_background_comps = ''
+            self.regals_exp_type = ''
+            self.regals_profile_type = ''
+
+            self.regals_extra_data = False
+            self.regals_profiles = []
+            self.regals_ifts = []
+            self.regals_conc = []
+            self.regals_chi = ''
 
 
 class SAXSData(object):
@@ -711,7 +773,7 @@ class DammifData(object):
 
     def __init__(self, prefix, program, mode, sym, aniso, num, damaver,
         damclust, refined, nsd, nsd_std, included, res, res_err, clusters,
-         rep_model):
+        rep_model):
 
         self.prefix = prefix
         self.program = program
@@ -729,6 +791,27 @@ class DammifData(object):
         self.res_err = res_err
         self.clusters = clusters
         self.rep_model = rep_model
+
+class DenssDat(object):
+    """
+    Contains information about DENSS run from the .csv file RAW saves.
+    """
+
+    def __init__(self, prefix, mode, sym, sym_axis, sym_factor, num, average,
+        refined, rsc, rsc_std, included, res):
+
+        self.prefix = prefix
+        self.mode = mode
+        self.sym = sym
+        self.sym_axis = sym_axis
+        self.sym_factor = sym_factor
+        self.num = num
+        self.average = average
+        self.refined = refined
+        self.rsc = rsc
+        self.rsc_std = rsc_std
+        self.included = included
+        self.res = res
 
 
 def parse_efa_file(filename):
@@ -822,9 +905,11 @@ def parse_efa_file(filename):
     return efa_data
 
 
-def parse_dammif_file(filename):
-    with open(filename, 'r') as f:
-        data = f.readlines()
+def parse_dammif_file(filename, data=None):
+
+    if filename is not None:
+        with open(filename, 'r') as f:
+            data = f.readlines()
 
     prefix = ''
     program = ''
@@ -855,11 +940,11 @@ def parse_dammif_file(filename):
         elif 'Total number' in line:
             num = int(line.split(':')[-1].strip())
         elif 'Used DAMAVER' in line:
-            damaver = bool(line.split(':')[-1].strip())
+            damaver = (line.split(':')[-1].strip() == 'True')
         elif 'Refined with DAMMIN' in line:
-            refined = bool(line.split(':')[-1].strip())
+            refined = (line.split(':')[-1].strip() == 'True')
         elif 'Used DAMCLUST' in line:
-            damclust = bool(line.split(':')[-1].strip())
+            damclust = (line.split(':')[-1].strip() == 'True')
         elif 'Mean NSD' in line:
             nsd = float(line.split(':')[-1].strip())
         elif 'Stdev. NSD' in line:
@@ -882,6 +967,56 @@ def parse_dammif_file(filename):
         rep_model)
 
     return dammif_data
+
+def parse_denss_file(filename, data=None):
+
+    if filename is not None:
+        with open(filename, 'r') as f:
+            data = f.readlines()
+
+    prefix = ''
+    mode = ''
+    sym = ''
+    sym_factor = -1
+    sym_axis = ''
+    num = -1
+    average = False
+    refined = False
+    rsc = -1
+    rsc_std = -1
+    included = -1
+    res = -1
+
+    for line in data:
+        if 'Mode:' in line:
+            mode = line.split(':')[-1].strip()
+        elif 'Symmetry applied' in line:
+            sym = line.split(':')[-1].strip()
+        elif 'N-fold' in line:
+            sym_factor = int(line.split(':')[-1].strip())
+        elif 'Symmetry axis' in line:
+            sym_axis = line.split(':')[-1].strip()
+        elif 'Total number' in line:
+            num = int(line.split(':')[-1].strip())
+        elif 'Averaged' in line:
+            average = (line.split(':')[-1].strip() == 'True')
+        elif 'Refined:' in line:
+            refined = (line.split(':')[-1].strip() == 'True')
+        elif 'Mean RSC' in line:
+            rsc = float(line.split(':')[-1].strip())
+        elif 'Stdev. RSC' in line:
+            rsc_std = float(line.split(':')[-1].strip())
+        elif 'Number of models included' in line:
+            included = int(line.split(':')[-1].strip().split(' ')[0].strip())
+        elif 'Correlation Resolution' in line:
+            res = float(line.split(':')[-1].strip())
+        elif 'Output prefix' in line:
+            prefix = line.split(':')[-1].strip()
+
+    denss_data = DenssDat(prefix, mode, sym, sym_axis, sym_factor, num, average,
+        refined, rsc, rsc_std, included, res)
+
+    return denss_data
 
 
 ##################### Contents of reports/plots.py #####################
@@ -919,8 +1054,11 @@ class overview_plot(object):
 
             if len(profiles) > 0:
                 has_profiles = True
+
+                has_rg = any([prof.guinier_data.Rg > 0 and prof.guinier_data.I0 > 0 for prof in profiles])
             else:
                 has_profiles = False
+                has_rg = False
 
             if len(ifts) > 0:
                 has_ifts = True
@@ -934,7 +1072,7 @@ class overview_plot(object):
 
             self.figure = plt.figure(figsize=(img_width, img_height))
 
-            if has_profiles and has_ifts and has_series:
+            if has_profiles and has_rg and has_ifts and has_series:
                 self.gs = self.figure.add_gridspec(3, 2)
 
                 self._make_series_plot('a')
@@ -946,7 +1084,7 @@ class overview_plot(object):
                 self.figure.subplots_adjust(left=0.1, right=0.90, wspace=0.3,
                     bottom=0.07, top=0.98, hspace=0.3)
 
-            elif has_profiles and has_ifts and not has_series:
+            elif has_profiles and has_rg and has_ifts and not has_series:
                 self.gs = self.figure.add_gridspec(2, 2)
 
                 self._make_profile_plot('a', row=0)
@@ -957,7 +1095,7 @@ class overview_plot(object):
                 self.figure.subplots_adjust(left=0.1, right=0.97, wspace=0.3,
                     bottom=0.09, top=0.96, hspace=0.3)
 
-            elif has_profiles and not has_ifts and has_series:
+            elif has_profiles and has_rg and not has_ifts and has_series:
                 self.gs = self.figure.add_gridspec(3, 2)
 
                 self._make_series_plot('a')
@@ -968,7 +1106,7 @@ class overview_plot(object):
                 self.figure.subplots_adjust(left=0.1, right=0.90, wspace=0.3,
                     bottom=0.07, top=0.98, hspace=0.3)
 
-            elif has_profiles and not has_ifts and not has_series:
+            elif has_profiles and has_rg and not has_ifts and not has_series:
                 self.gs = self.figure.add_gridspec(2, 2)
 
                 self._make_profile_plot('a', row=0, span=True)
@@ -977,6 +1115,42 @@ class overview_plot(object):
 
                 self.figure.subplots_adjust(left=0.1, right=0.97, wspace=0.3,
                     bottom=0.10, top=0.97, hspace=0.3)
+
+            elif has_profiles and not has_rg and has_ifts and has_series:
+                self.gs = self.figure.add_gridspec(2, 2)
+
+                self._make_series_plot('a')
+                self._make_profile_plot('b')
+                self._make_ift_plot('e', row=1, column=1)
+
+                self.figure.subplots_adjust(left=0.1, right=0.90, wspace=0.3,
+                    bottom=0.09, top=0.98, hspace=0.3)
+
+            elif has_profiles and not has_rg and has_ifts and not has_series:
+                self.gs = self.figure.add_gridspec(1, 2)
+
+                self._make_profile_plot('a', row=0)
+                self._make_ift_plot('b', row=0, column=1)
+
+                self.figure.subplots_adjust(left=0.1, right=0.97, wspace=0.3,
+                    bottom=0.18, top=0.96, hspace=0.3)
+
+            elif has_profiles and not has_rg and not has_ifts and has_series:
+                self.gs = self.figure.add_gridspec(2, 2)
+
+                self._make_series_plot('a')
+                self._make_profile_plot('b', row=1, span=True)
+
+                self.figure.subplots_adjust(left=0.1, right=0.90, wspace=0.3,
+                    bottom=0.09, top=0.98, hspace=0.3)
+
+            elif has_profiles and not has_rg and not has_ifts and not has_series:
+                self.gs = self.figure.add_gridspec(1, 2)
+
+                self._make_profile_plot('', row=0, span=True)
+
+                self.figure.subplots_adjust(left=0.1, right=0.97, wspace=0.3,
+                    bottom=0.17, top=0.98, hspace=0.3)
 
             elif not has_profiles and has_ifts and has_series:
                 self.gs = self.figure.add_gridspec(2, 2)
@@ -1143,19 +1317,20 @@ class overview_plot(object):
 
 
         for profile in self.profiles:
-            fit = guinier_fit(profile.q, profile.guinier_data.Rg,
-                profile.guinier_data.I0)
-            n_min = profile.guinier_data.n_min
-            n_max = profile.guinier_data.n_max
+            if profile.guinier_data.Rg > 0 and profile.guinier_data.I0 > 0:
+                fit = guinier_fit(profile.q, profile.guinier_data.Rg,
+                    profile.guinier_data.I0)
+                n_min = profile.guinier_data.n_min
+                n_max = profile.guinier_data.n_max
 
-            ax.plot(profile.q[:n_max+1]**2, profile.i[:n_max+1], 'o', markersize=3,
-                label=profile.filename)
-            ax.plot(profile.q[n_min:n_max+1]**2, fit[n_min:n_max+1], '-', color='k')
-            if n_min > 0:
-                ax.plot(profile.q[:n_min]**2, fit[:n_min], '--', color='0.6')
+                ax.plot(profile.q[:n_max+1]**2, profile.i[:n_max+1], 'o', markersize=3,
+                    label=profile.filename)
+                ax.plot(profile.q[n_min:n_max+1]**2, fit[n_min:n_max+1], '-', color='k')
+                if n_min > 0:
+                    ax.plot(profile.q[:n_min]**2, fit[:n_min], '--', color='0.6')
 
-            res_y = (profile.i[n_min:n_max+1]-fit[n_min:n_max+1])/profile.err[n_min:n_max+1]
-            res_ax.plot(profile.q[n_min:n_max+1]**2, res_y, 'o', markersize=3)
+                res_y = (profile.i[n_min:n_max+1]-fit[n_min:n_max+1])/profile.err[n_min:n_max+1]
+                res_ax.plot(profile.q[n_min:n_max+1]**2, res_y, 'o', markersize=3)
 
         res_ax.axhline(0, color='0')
 
@@ -1181,21 +1356,24 @@ class overview_plot(object):
         ax.axvline(np.sqrt(3), 0, 1, linestyle = 'dashed', color='0.6')
         ax.axhline(3/np.e, 0, 1, linestyle = 'dashed', color='0.6')
 
-        tail_norm_i_max = 0
+        norm_i_max = 0
 
         for profile in self.profiles:
             i0 = profile.guinier_data.I0
             rg = profile.guinier_data.Rg
 
-            qRg = profile.q*rg
-            norm_i = qRg**2*profile.i/i0
+            if i0 > 0 and rg > 0:
+                qRg = profile.q*rg
+                norm_i = qRg**2*profile.i/i0
 
-            ax.plot(qRg, norm_i, markersize=1,
-                label=profile.filename)
+                ax.plot(qRg, norm_i, markersize=1, label=profile.filename)
 
-            if len(norm_i) > 51:
-                smoothed_data = scipy.signal.savgol_filter(norm_i, 51, 5)
-                tail_norm_i_max = max(tail_norm_i_max, smoothed_data.max())
+                if len(norm_i) > 51:
+                    smoothed_data = scipy.signal.savgol_filter(norm_i, 51, 5)
+                    norm_i_max = max(norm_i_max, smoothed_data.max())
+
+                else:
+                    norm_i_max = min(norm_i_max, norm_i.max())
 
         ax.axhline(0, color='k')
 
@@ -1205,7 +1383,7 @@ class overview_plot(object):
         ax.set_xlabel(r'q$R_g$')
         ax.set_ylabel(r'(q$R_g$)$^2$I(q)/I(0)')
 
-        top_lim = max(3, tail_norm_i_max*1.1)
+        top_lim = norm_i_max*1.1
 
         ymin, ymax = ax.get_ylim()
         ax.set_ylim(max(-0.1, ymin), min(top_lim, ymax))
@@ -1245,7 +1423,7 @@ class efa_plot(object):
     """
 
     def __init__(self, series, int_type='Total',
-        series_data='Rg', img_width=6, img_height=6):
+        series_data='Rg', img_width=6, img_height=6, is_regals=False):
 
         with mpl.rc_context({'font.size' : 8.0, 'font.family': 'Arial',
             'legend.frameon': False, 'legend.fontsize': 'medium', 'axes.labelsize': 'medium',
@@ -1260,8 +1438,10 @@ class efa_plot(object):
             self.int_type = int_type
             self.series_data = series_data
 
+            self.is_regals = is_regals
 
-            if not series.efa_extra_data:
+
+            if not series.efa_extra_data and not self.is_regals:
                 if img_width == 6 and img_height == 6:
                     self.figure = plt.figure(figsize=(6, 2))
                 else:
@@ -1276,12 +1456,12 @@ class efa_plot(object):
             self._make_series_plot()
             self._make_efa_range_plot()
 
-            if series.efa_extra_data:
+            if series.efa_extra_data or self.is_regals:
                 self._make_efa_chi_plot()
                 self._make_efa_concentration_plot()
                 self._make_efa_profiles_plot()
 
-            if series.efa_extra_data:
+            if series.efa_extra_data or self.is_regals:
 
                 self.figure.subplots_adjust(left=0.1, right=0.98, wspace=0.3,
                     bottom=0.07, top=0.98, hspace=0.3)
@@ -1296,8 +1476,6 @@ class efa_plot(object):
         ax.spines["right"].set_visible(False)
         make_patch_spines_invisible(ax2)
         ax2.spines["right"].set_visible(True)
-
-        x_data = self.series.frames
 
         if self.int_type == 'Total':
             y_data = self.series.total_i
@@ -1314,8 +1492,14 @@ class efa_plot(object):
             elif self.series_data == 'MW_Vp':
                 y2_data = self.series.vpmw
 
-        start = int(self.series.efa_start)
-        end = int(self.series.efa_end)
+        if not self.is_regals:
+            start = int(self.series.efa_start)
+            end = int(self.series.efa_end)
+            x_data = self.series.frames
+        else:
+            start = int(self.series.regals_start)
+            end = int(self.series.regals_end)
+            x_data = self.series.regals_x_cal
 
         int_line, = ax.plot(x_data, y_data, '-', label=self.series.filename)
         ax.plot(x_data[start:end+1], y_data[start:end+1], '-', color='k')
@@ -1340,7 +1524,14 @@ class efa_plot(object):
         ax2.tick_params(axis='y', colors=calc_color)
         ax2.spines['right'].set_color(calc_color)
 
-        ax.set_xlabel('Frames')
+        if not self.is_regals:
+            ax.set_xlabel('Frames')
+        else:
+            if np.array_equal(x_data, np.arange(int(self.series.regals_start),
+                int(self.series.regals_end)+1)):
+                ax.set_xlabel('Frames')
+            else:
+                ax.set_xlabel(self.series.regals_x_type)
 
         ax.set_ylabel('{} Intensity [Arb.]'.format(self.int_type))
 
@@ -1357,11 +1548,16 @@ class efa_plot(object):
             size='large')
 
     def _make_efa_range_plot(self, row=0, column=1):
-        start = int(self.series.efa_start)
-        end = int(self.series.efa_end)
-        ranges = self.series.efa_ranges
-
-        frame_data = self.series.frames
+        if not self.is_regals:
+            start = int(self.series.efa_start)
+            end = int(self.series.efa_end)
+            ranges = self.series.efa_ranges
+            frame_data = self.series.frames
+        else:
+            start = int(self.series.regals_start)
+            end = int(self.series.regals_end)
+            ranges = self.series.regals_ranges
+            frame_data = self.series.regals_x_cal
 
         if self.int_type == 'Total':
             int_data = self.series.total_i
@@ -1387,44 +1583,81 @@ class efa_plot(object):
             ax.axvline(ranges[i][1], 0, 0.975-0.05*(i), linestyle='dashed',
                 color=color)
 
-        ax.set_xlabel('Frames')
+        if not self.is_regals:
+            ax.set_xlabel('Frames')
+        else:
+            if np.array_equal(frame_data, np.arange(int(self.series.regals_start),
+                int(self.series.regals_end)+1)):
+                ax.set_xlabel('Frames')
+            else:
+                ax.set_xlabel(self.series.regals_x_type)
         ax.set_ylabel('{} Intensity [Arb.]'.format(self.int_type))
 
         ax.text(-0.15, 1.0, 'b', transform = ax.transAxes, fontweight='bold',
             size='large')
 
     def _make_efa_chi_plot(self, row=1, column=0):
-        frames = self.series.efa_frames
-        chi = self.series.efa_chi
+        if not self.is_regals:
+            frames = self.series.efa_frames
+            chi = self.series.efa_chi
+        else:
+            frames = self.series.regals_x_cal
+            chi = self.series.regals_chi
 
         ax = self.figure.add_subplot(self.gs[row, column])
         ax.plot(frames, chi, '-', color='k')
 
-        ax.set_xlabel('Frames')
+        if not self.is_regals:
+            ax.set_xlabel('Frames')
+        else:
+            if np.array_equal(frames, np.arange(int(self.series.regals_start),
+                int(self.series.regals_end)+1)):
+                ax.set_xlabel('Frames')
+            else:
+                ax.set_xlabel(self.series.regals_x_type)
         ax.set_ylabel(r'Mean $\chi^2$')
 
         ax.text(-0.15, 1.0, 'c', transform = ax.transAxes, fontweight='bold',
             size='large')
 
     def _make_efa_concentration_plot(self, row=1, column=1):
-        frames = self.series.efa_frames
-        conc = self.series.efa_conc
+        if not self.is_regals:
+            frames = self.series.efa_frames
+            conc = self.series.efa_conc
+        else:
+            frames = self.series.regals_x_cal
+            conc = self.series.regals_conc
 
         ax = self.figure.add_subplot(self.gs[row, column])
 
         for i in range(conc.shape[1]):
             ax.plot(frames, conc[:, i], '-')
 
-        ax.set_xlabel('Frames')
+        if not self.is_regals:
+            ax.set_xlabel('Frames')
+        else:
+            if np.array_equal(frames, np.arange(int(self.series.regals_start),
+                int(self.series.regals_end)+1)):
+                ax.set_xlabel('Frames')
+            else:
+                ax.set_xlabel(self.series.regals_x_type)
         ax.set_ylabel('Norm. Concentration')
 
         ax.text(-0.15, 1.0, 'd', transform = ax.transAxes, fontweight='bold',
             size='large')
 
     def _make_efa_profiles_plot(self, row=2):
-        profiles = self.series.efa_profiles
+        if not self.is_regals:
+            profiles = self.series.efa_profiles
+        else:
+            profiles = self.series.regals_profiles
 
-        ax = self.figure.add_subplot(self.gs[row, :])
+        if self.is_regals and len(self.series.regals_ifts) > 0:
+            ax = self.figure.add_subplot(self.gs[row, 0])
+            span = False
+        else:
+            ax = self.figure.add_subplot(self.gs[row, :])
+            span = True
 
         ax.set_yscale('log')
 
@@ -1434,7 +1667,25 @@ class efa_plot(object):
         ax.set_xlabel(r'q [$\AA^{-1}$]')
         ax.set_ylabel('Intensity [Arb.]')
 
-        ax.text(-0.05, 1.0, 'e', transform = ax.transAxes, fontweight='bold',
+        if span:
+            offset = -0.05
+        else:
+            offset = -0.15
+
+        ax.text(offset, 1.0, 'e', transform = ax.transAxes, fontweight='bold',
+            size='large')
+
+        if self.is_regals and len(self.series.regals_ifts) > 0:
+            ax2 = self.figure.add_subplot(self.gs[row, 1])
+            ax2.axhline(0, color='k')
+
+            for ift in self.series.regals_ifts:
+                ax2.plot(ift.r, ift.p, markersize=1, label=ift.filename)
+
+            ax2.set_xlabel(r'r [$\AA$]')
+            ax2.set_ylabel('P(r)/I(0)')
+
+            ax2.text(offset, 1.0, 'f', transform = ax2.transAxes, fontweight='bold',
             size='large')
 
 def guinier_fit(q, rg, i0):
@@ -1487,6 +1738,12 @@ def generate_report(fname, datadir, profiles, ifts, series, extra_data=None):
         any(dam_data is not None for dam_data in extra_data['dammif'])):
         dammif = generate_dammif_params(extra_data['dammif'])
         elements.extend(dammif)
+
+    if (extra_data is not None and 'denss' in extra_data and
+        len(extra_data['denss']) > 0 and
+        any(dam_data is not None for dam_data in extra_data['denss'])):
+        denss = generate_denss_params(extra_data['denss'])
+        elements.extend(denss)
 
     datadir = os.path.abspath(os.path.expanduser(datadir))
     fname = '{}.pdf'.format(os.path.splitext(fname)[0])
@@ -1547,8 +1804,12 @@ def generate_overview(profiles, ifts, series):
 
     ov_text = Paragraph('Summary:', styles['Heading2'])
 
-    summary_text = ('Data name(s): {}\n'
-        'Collection date(s): {}'.format(name_str, date_str))
+    if any([date != 'N/A' for date in date_list]):
+        summary_text = ('Data name(s): {}\n'
+            'Collection date(s): {}'.format(name_str, date_str))
+    else:
+         summary_text = ('Data name(s): {}\n'.format(name_str))
+
     ov_summary = XPreformatted(summary_text, styles['Normal'])
 
     elements.append(ov_title)
@@ -1559,8 +1820,10 @@ def generate_overview(profiles, ifts, series):
     # Make overview figure
     if len(profiles) > 0:
         has_profiles = True
+        has_rg = any([prof.guinier_data.Rg > 0 and prof.guinier_data.I0 > 0 for prof in profiles])
     else:
         has_profiles = False
+        has_rg = False
 
     if len(ifts) > 0:
         has_ifts = True
@@ -1595,30 +1858,53 @@ def generate_overview(profiles, ifts, series):
 
     img_width = 6
 
-    if has_profiles and has_ifts and has_series:
+    if has_profiles and has_rg and has_ifts and has_series:
         img_height = 6
 
         caption = ('{} a) {} b) {} c) {} d) {} e) {}'.format(caption,
             series_label, profile_label, guinier_label, kratky_label,
             ift_label))
 
-    elif has_profiles and has_ifts and not has_series:
+    elif has_profiles and has_rg and has_ifts and not has_series:
         img_height = 4
 
         caption = ('{} a) {} b) {} c) {} d) {}'.format(caption, profile_label,
             guinier_label, kratky_label, ift_label))
 
-    elif has_profiles and not has_ifts and has_series:
+    elif has_profiles and has_rg and not has_ifts and has_series:
         img_height = 6
 
         caption = ('{} a) {} b) {} c) {} d) {}'.format(caption, series_label,
             profile_label, guinier_label, kratky_label))
 
-    elif has_profiles and not has_ifts and not has_series:
+    elif has_profiles and has_rg and not has_ifts and not has_series:
         img_height = 4
 
         caption = ('{} a) {} b) {} c) {}'.format(caption, profile_label,
             guinier_label, kratky_label))
+
+    elif has_profiles and not has_rg and has_ifts and has_series:
+        img_height = 4
+
+        caption = ('{} a) {} b) {} c) {}'.format(caption,
+            series_label, profile_label, ift_label))
+
+    elif has_profiles and not has_rg and has_ifts and not has_series:
+        img_height = 2
+
+        caption = ('{} a) {} b) {}'.format(caption, profile_label,
+            ift_label))
+
+    elif has_profiles and not has_rg and not has_ifts and has_series:
+        img_height = 4
+
+        caption = ('{} a) {} b) {}'.format(caption, series_label,
+            profile_label))
+
+    elif has_profiles and not has_rg and not has_ifts and not has_series:
+        img_height = 2
+
+        caption = ('{} {}'.format(caption, profile_label))
 
     elif not has_profiles and has_ifts and has_series:
         img_height = 4
@@ -1671,7 +1957,7 @@ def generate_overview(profiles, ifts, series):
 
     table_data = []
 
-    required_data = ['', 'Guinier Rg', 'Guinier I(0)', 'M.W. (Vp)', 'M.W. (Vc)']
+    required_data = ['']
 
 
     for profile in profiles:
@@ -1797,7 +2083,7 @@ def generate_overview(profiles, ifts, series):
                 table_entry.extend(values)
                 table_data.append(table_entry)
 
-    if len(table_data) > 0:
+    if len(table_data) > 1:
         ov_table = Table(table_data, spaceBefore=0.25*inch, spaceAfter=0.1*inch)
 
         table_style = TableStyle(
@@ -1874,8 +2160,7 @@ def generate_exp_params(profiles, ifts, series):
 
     table_data = []
 
-    required_data = ['', 'Date', 'Wavelength (A)', 'Camera length (m)',
-        'Exposure time (s)']
+    required_data = ['']
 
     for j, s in enumerate(data_list):
         for header, key in table_pairs:
@@ -1907,8 +2192,6 @@ def generate_exp_params(profiles, ifts, series):
                 if value != -1:
                     if float(value) == 1:
                         value = 'None'
-                    elif float(value) == -1:
-                        value = ''
                     else:
                         value = str(round(1./float(value),4))
                 else:
@@ -1937,7 +2220,7 @@ def generate_exp_params(profiles, ifts, series):
                 table_entry.extend(values)
                 table_data.append(table_entry)
 
-    if len(table_data) > 0:
+    if len(table_data) > 1:
         exp_table = Table(table_data)
 
         table_style = TableStyle(
@@ -1962,8 +2245,11 @@ def generate_series_params(profiles, ifts, series, extra_data):
     name_list = []
 
     for s in series:
-        if 'prefix' in s.metadata:
-            name_list.append(s.metadata['prefix'])
+        if ('File_prefix' in s.metadata._fields
+            and getattr(s.metadata, 'File_prefix') != ''):
+            name_list.append(getattr(s.metadata, 'File_prefix'))
+        elif s.filename != '':
+            name_list.append(s.filename)
         else:
             name_list.append('N/A')
 
@@ -1983,7 +2269,7 @@ def generate_series_params(profiles, ifts, series, extra_data):
 
     table_data = []
 
-    required_data = ['', 'Buffer range', 'Sample range', 'Baseline correction',]
+    required_data = []
 
 
     for j, s in enumerate(series):
@@ -1995,7 +2281,7 @@ def generate_series_params(profiles, ifts, series, extra_data):
             baseline_start = '{} to {}'.format(*s.baseline_start_range)
             baseline_end = '{} to {}'.format(*s.baseline_end_range)
         else:
-            baseline_type = 'None'
+            baseline_type = ''
             baseline_start = ''
             baseline_end = ''
 
@@ -2029,19 +2315,23 @@ def generate_series_params(profiles, ifts, series, extra_data):
                 table_entry.extend(values)
                 table_data.append(table_entry)
 
-    series_table = Table(table_data)
+    if len(table_data) > 1:
+        series_table = Table(table_data)
 
-    table_style = TableStyle(
-        [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-        ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-        ])
+        table_style = TableStyle(
+            [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
+            ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
+            ])
 
-    series_table.setStyle(table_style)
-    series_table.hAlign = 'LEFT'
-    series_table = KeepTogether([series_text, series_table])
+        series_table.setStyle(table_style)
+        series_table.hAlign = 'LEFT'
+        series_table = KeepTogether([series_text, series_table])
 
-    elements = [series_table]
+        elements = [series_table]
+    else:
+        elements = [series_text]
 
+    #EFA
     efa_elements = []
 
     efa_table_pairs = [
@@ -2072,6 +2362,8 @@ def generate_series_params(profiles, ifts, series, extra_data):
                     value = '{} to {}'.format(s.efa_start, s.efa_end)
                 elif key == 'nsvs':
                     value = '{}'.format(s.efa_nsvs)
+                else:
+                    value = ''
 
                 if header in efa_table_dict:
                     efa_table_dict[header].append(value)
@@ -2110,8 +2402,7 @@ def generate_series_params(profiles, ifts, series, extra_data):
             efa_table.hAlign = 'LEFT'
             # efa_table = KeepTogether([efa_table])
 
-
-             # Make EFA plot
+            # Make EFA plot
 
             efa_plot_panel = efa_plot(s)
 
@@ -2147,6 +2438,207 @@ def generate_series_params(profiles, ifts, series, extra_data):
 
     elements.extend(efa_elements)
 
+    #REGALS
+    regals_elements = []
+
+    regals_table_pairs = [
+        ('', 'name'),
+        ('REGALS data range', 'regals_range'),
+        ('Number of components', 'nsvs'),
+        ('Convergence criteria', 'conv_type'),
+        ('Max iterations', 'max_iter'),
+        ('Min iterations', 'min_iter'),
+        ('Convergence Tolerance', 'tol'),
+        ]
+
+    regals_table_dict = OrderedDict()
+
+    regals_table_data = []
+
+    regals_required_data = ['', 'REGALS data range', 'Number of components']
+
+    regals_comp_table_dict = OrderedDict()
+    regals_comp_table_data = []
+    regals_comp_required_data = []
+
+    regals_profile_component_table_pairs = [
+        ('Component', 'name'),
+        ('Profile type', 'type'),
+        ('Prof. Lambda', 'lambda'),
+        ('Prof. Control points', 'Nw'),
+        ('Dmax', 'dmax'),
+        ('Zero at R=0', 'is_zero_at_r0'),
+        ('Zero at Dmax', 'is_zero_at_dmax'),
+        ]
+
+    regals_conc_component_table_pairs = [
+        ('Concentration type', 'type'),
+        ('Conc. Lambda', 'lambda'),
+        ('Start', 'xmin'),
+        ('End', 'xmax'),
+        ('Conc. Control points', 'Nw'),
+        ('Zero at start', 'is_zero_at_xmin'),
+        ('Zero at end', 'is_zero_at_xmax'),
+        ]
+
+    for j, s in enumerate(series):
+        if s.regals_done:
+            if len(series) > 1:
+                regals_title = Paragraph('{} REGALS results:'.format(name_list[j]),
+                    styles['Heading3'])
+            else:
+                regals_title = Paragraph('REGALS results:', styles['Heading3'])
+
+            # Make REGALS table
+            for header, key in regals_table_pairs:
+                if key == 'name':
+                    value = name_list[j]
+                elif key == 'regals_range':
+                    value = '{} to {}'.format(s.regals_start, s.regals_end)
+                elif key == 'nsvs':
+                    value = '{}'.format(s.regals_nsvs)
+                elif key == 'conv_type':
+                    value = '{}'.format(s.regals_run_settings['conv_type'])
+                elif key == 'max_iter':
+                    value = '{}'.format(s.regals_run_settings['max_iter'])
+                elif key == 'min_iter':
+                    if s.regals_run_settings['conv_type'] != 'Iterations':
+                        value = '{}'.format(s.regals_run_settings['min_iter'])
+                    else:
+                        value = ''
+                elif key == 'tol':
+                    if s.regals_run_settings['conv_type'] != 'Iterations':
+                        value = '{}'.format(s.regals_run_settings['tol'])
+                    else:
+                        value = ''
+                else:
+                    value = ''
+
+                if header in regals_table_dict:
+                    regals_table_dict[header].append(value)
+                else:
+                    regals_table_dict[header] = [value]
+
+            for header, values in regals_table_dict.items():
+                if header in regals_comp_required_data:
+                    regals_table_entry = [header]
+                    regals_table_entry.extend(values)
+                    regals_table_data.append(regals_table_entry)
+                else:
+                    if any(val != '' for val in values):
+                        regals_table_entry = [header]
+                        regals_table_entry.extend(values)
+                        regals_table_data.append(regals_table_entry)
+
+            regals_table = Table(regals_table_data)
+
+            table_style = TableStyle(
+                [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
+                ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
+                ])
+
+            regals_table.setStyle(table_style)
+            regals_table.hAlign = 'LEFT'
+            # regals_table = KeepTogether([regals_table])
+
+
+            #Make REGALS compoment table
+            for k, comp_settings in enumerate(s.regals_component_settings):
+                prof_comp = comp_settings[0]
+                conc_comp = comp_settings[1]
+
+                for header, key in regals_profile_component_table_pairs:
+                    if key == 'name':
+                        value = '{}'.format(k)
+                    elif key == 'lambda':
+                        value = '{}'.format(text_round(prof_comp[key], 2))
+                    elif key in prof_comp:
+                        value = '{}'.format(prof_comp[key])
+                    elif key in prof_comp['kwargs']:
+                        value = '{}'.format(prof_comp['kwargs'][key])
+                    else:
+                        value = ''
+
+                    if header in regals_comp_table_dict:
+                        regals_comp_table_dict[header].append(value)
+                    else:
+                        regals_comp_table_dict[header] = [value]
+
+                for header, key in regals_conc_component_table_pairs:
+                    if key == 'lambda':
+                        value = '{}'.format(text_round(conc_comp[key], 2))
+                    elif key in conc_comp:
+                        value = '{}'.format(conc_comp[key])
+                    elif key in conc_comp['kwargs']:
+                        value = '{}'.format(conc_comp['kwargs'][key])
+                    else:
+                        value = ''
+
+                    if header in regals_comp_table_dict:
+                        regals_comp_table_dict[header].append(value)
+                    else:
+                        regals_comp_table_dict[header] = [value]
+
+            for header, values in regals_comp_table_dict.items():
+                if header in regals_required_data:
+                    regals_table_entry = [header]
+                    regals_table_entry.extend(values)
+                    regals_comp_table_data.append(regals_table_entry)
+                else:
+                    if any(val != '' for val in values):
+                        regals_table_entry = [header]
+                        regals_table_entry.extend(values)
+                        regals_comp_table_data.append(regals_table_entry)
+
+            regals_comp_table = Table(regals_comp_table_data)
+
+            table_style = TableStyle(
+                [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
+                ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
+                ])
+
+            regals_comp_table.setStyle(table_style)
+            regals_comp_table.hAlign = 'LEFT'
+
+            # Make REGALS plot
+
+            regals_plot_panel = efa_plot(s, is_regals=True)
+
+            img_width = 6
+            img_height = 6
+
+            regals_caption = ('REGALS deconvolution results. a) The full series '
+                'intensity (blue), the selected intensity range for regals '
+                '(black), and (if available) Rg values (red). b) The selected '
+                'intensity range for regals (black), and the individual component '
+                'ranges for deconvolution, with component range 0 starting at '
+                'the top left, and component number increasing in descending '
+                'order to the right. c) Mean chi^2 values between the '
+                'fit of the regals deconvolution and the original data. d) '
+                'Area normalized concentration profiles for each component. '
+                'Colors match the component range colors in b. e) Deconvolved '
+                'scattering profiles. Colors match the component range colors in '
+                'b.')
+
+            if len(s.regals_ifts) > 0:
+                regals_caption = regals_caption + (' f) P(r) functions. Colors '
+                    'match the component range colors in b.')
+
+            regals_figure = make_figure(regals_plot_panel.figure, regals_caption,
+                img_width, img_height, styles)
+
+            regals_spacer = Paragraph('<br/><br/>', styles['Normal'])
+            regals_elements.append(regals_title)
+            regals_elements.append(regals_table)
+            regals_elements.append(regals_spacer)
+            regals_elements.append(regals_comp_table)
+            regals_elements.append(regals_figure)
+
+    elements.extend(regals_elements)
+
+    if len(elements) == 1:
+        elements = []
+
     return elements
 
 def generate_guinier_params(profiles, ifts, series):
@@ -2174,8 +2666,7 @@ def generate_guinier_params(profiles, ifts, series):
 
     table_data = []
 
-    required_data = ['', 'Rg [A]', 'I(0)', 'q-range [1/A]', 'qmin*Rg', 'qmax*Rg',
-        'r^2']
+    required_data = ['']
 
 
     for profile in profiles:
@@ -2242,18 +2733,24 @@ def generate_guinier_params(profiles, ifts, series):
                 table_entry.extend(values)
                 table_data.append(table_entry)
 
-    guinier_table = Table(table_data)
+    if len(table_data) > 1:
+        guinier_table = Table(table_data)
 
-    table_style = TableStyle(
-        [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-        ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-        ])
+        table_style = TableStyle(
+            [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
+            ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
+            ])
 
-    guinier_table.setStyle(table_style)
-    guinier_table.hAlign = 'LEFT'
-    guinier_table = KeepTogether([guinier_text, guinier_table])
+        guinier_table.setStyle(table_style)
+        guinier_table.hAlign = 'LEFT'
+        guinier_table = KeepTogether([guinier_text, guinier_table])
 
-    return [guinier_table]
+        elements = [guinier_table]
+
+    else:
+        elements = []
+
+    return elements
 
 def generate_mw_params(profiles, ifts, series):
     styles = getSampleStyleSheet()
@@ -2280,7 +2777,7 @@ def generate_mw_params(profiles, ifts, series):
 
     table_data = []
 
-    required_data = ['', 'M.W. (Vp)', 'M.W. (Vc)']
+    required_data = ['']
 
 
     for profile in profiles:
@@ -2383,18 +2880,24 @@ def generate_mw_params(profiles, ifts, series):
                 table_entry.extend(values)
                 table_data.append(table_entry)
 
-    mw_table = Table(table_data)
+    if len(table_data) > 1:
+        mw_table = Table(table_data)
 
-    table_style = TableStyle(
-        [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-        ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-        ])
+        table_style = TableStyle(
+            [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
+            ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
+            ])
 
-    mw_table.setStyle(table_style)
-    mw_table.hAlign = 'LEFT'
-    mw_table = KeepTogether([mw_text, mw_table])
+        mw_table.setStyle(table_style)
+        mw_table.hAlign = 'LEFT'
+        mw_table = KeepTogether([mw_text, mw_table])
 
-    return [mw_table]
+        elements = [mw_table]
+
+    else:
+        elements = []
+
+    return elements
 
 def generate_gnom_params(profiles, ifts, series):
     styles = getSampleStyleSheet()
@@ -2419,7 +2922,7 @@ def generate_gnom_params(profiles, ifts, series):
 
     table_data = []
 
-    required_data = ['', 'Dmax [A]', 'Rg [A]', 'I(0)']
+    required_data = ['']
 
 
     for ift in ifts:
@@ -2498,18 +3001,24 @@ def generate_gnom_params(profiles, ifts, series):
                 table_entry.extend(values)
                 table_data.append(table_entry)
 
-    gnom_table = Table(table_data)
+    if len(table_data) > 1:
+        gnom_table = Table(table_data)
 
-    table_style = TableStyle(
-        [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-        ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-        ])
+        table_style = TableStyle(
+            [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
+            ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
+            ])
 
-    gnom_table.setStyle(table_style)
-    gnom_table.hAlign = 'LEFT'
-    gnom_table = KeepTogether([gnom_text, gnom_table])
+        gnom_table.setStyle(table_style)
+        gnom_table.hAlign = 'LEFT'
+        gnom_table = KeepTogether([gnom_text, gnom_table])
 
-    return [gnom_table]
+        elements = [gnom_table]
+
+    else:
+        elements = []
+
+    return elements
 
 def generate_bift_params(profiles, ifts, series):
     styles = getSampleStyleSheet()
@@ -2529,7 +3038,7 @@ def generate_bift_params(profiles, ifts, series):
 
     table_data = []
 
-    required_data = ['', 'Dmax [A]', 'Rg [A]', 'I(0)']
+    required_data = ['']
 
 
     for ift in ifts:
@@ -2588,18 +3097,24 @@ def generate_bift_params(profiles, ifts, series):
                 table_entry.extend(values)
                 table_data.append(table_entry)
 
-    bift_table = Table(table_data)
+    if len(table_data) > 1:
+        bift_table = Table(table_data)
 
-    table_style = TableStyle(
-        [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-        ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-        ])
+        table_style = TableStyle(
+            [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
+            ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
+            ])
 
-    bift_table.setStyle(table_style)
-    bift_table.hAlign = 'LEFT'
-    bift_table = KeepTogether([bift_text, bift_table])
+        bift_table.setStyle(table_style)
+        bift_table.hAlign = 'LEFT'
+        bift_table = KeepTogether([bift_text, bift_table])
 
-    return [bift_table]
+        elements = [bift_table]
+
+    else:
+        elements = []
+
+    return elements
 
 def generate_dammif_params(dammif_data):
     styles = getSampleStyleSheet()
@@ -2627,9 +3142,7 @@ def generate_dammif_params(dammif_data):
 
     table_data = []
 
-    required_data = ['', 'Program', 'Mode', 'Symmetry', 'Anisometry',
-        'Number of reconstructions', 'Ran DAMAVER', 'Ran DAMCLUST',
-        'Refined with DAMMIN']
+    required_data = ['']
 
 
     for info in dammif_data:
@@ -2668,18 +3181,104 @@ def generate_dammif_params(dammif_data):
                 table_entry.extend(values)
                 table_data.append(table_entry)
 
-    dammif_table = Table(table_data)
+    if len(table_data) > 1:
+        dammif_table = Table(table_data)
 
-    table_style = TableStyle(
-        [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-        ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-        ])
+        table_style = TableStyle(
+            [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
+            ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
+            ])
 
-    dammif_table.setStyle(table_style)
-    dammif_table.hAlign = 'LEFT'
-    dammif_table = KeepTogether([dammif_text, dammif_table])
+        dammif_table.setStyle(table_style)
+        dammif_table.hAlign = 'LEFT'
+        dammif_table = KeepTogether([dammif_text, dammif_table])
 
-    return [dammif_table]
+        elements = [dammif_table]
+
+    else:
+        elements = []
+
+    return elements
+
+def generate_denss_params(denss_data):
+    styles = getSampleStyleSheet()
+
+    denss_text = Paragraph('Electron density reconstructions:', styles['Heading2'])
+
+    table_pairs = [
+        ('', 'prefix'),
+        ('Mode', 'mode'),
+        ('Symmetry', 'sym'),
+        ('Symmetry axis', 'sym_axis'),
+        ('Symmetry factpr', 'sym_factor'),
+        ('Number of reconstructions', 'num'),
+        ('Averaged', 'average'),
+        ('Refined', 'refined'),
+        ('Mean RSC', 'rsc'),
+        ('Included models', 'included'),
+        ('Resolution', 'res'),
+        ]
+
+    table_dict = OrderedDict()
+
+    table_data = []
+
+    required_data = ['']
+
+
+    for info in denss_data:
+        if info is not None:
+            for header, key in table_pairs:
+                value = getattr(info, key)
+
+                if value == -1:
+                    value = ''
+
+                else:
+                    if key == 'rsc':
+                        value = '{} +/- {}'.format(text_round(value, 3),
+                            text_round(info.rsc_std, 3))
+                    elif key == 'res':
+                        value = '{}'.format(text_round(value, 1))
+                    elif key == 'included':
+                        value = '{} of {}'.format(value, info.num)
+                    elif not isinstance(value, str):
+                        value = '{}'.format(value)
+
+                if header in table_dict:
+                    table_dict[header].append(value)
+                else:
+                    table_dict[header] = [value]
+
+    for header, values in table_dict.items():
+        if header in required_data:
+            table_entry = [header]
+            table_entry.extend(values)
+            table_data.append(table_entry)
+        else:
+            if any(val != '' for val in values):
+                table_entry = [header]
+                table_entry.extend(values)
+                table_data.append(table_entry)
+
+    if len(table_data) > 1:
+        denss_table = Table(table_data)
+
+        table_style = TableStyle(
+            [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
+            ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
+            ])
+
+        denss_table.setStyle(table_style)
+        denss_table.hAlign = 'LEFT'
+        denss_table = KeepTogether([denss_text, denss_table])
+
+        elements = [denss_table]
+
+    else:
+        elements = []
+
+    return elements
 
 def make_figure(figure, caption, img_width, img_height, styles):
     """
