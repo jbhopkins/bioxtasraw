@@ -251,33 +251,30 @@ def test_api_load_settings_old(old_settings):
 
     assert settings.get('denssVoxel') == 5.0
     assert settings.get('denssOversampling') == 3.0
-    assert settings.get('denssNElectrons') == ''
-    assert settings.get('denssSteps') == 10000
+    assert settings.get('denssNElectrons') == '10000'
+    assert settings.get('denssSteps') == 'None'
     assert not settings.get('denssLimitDmax')
-    assert settings.get('denssLimitDmaxStep') == '[500]'
+    assert settings.get('denssLimitDmaxStep') == '[502]'
     assert settings.get('denssRecenter')
-    assert settings.get('denssRecenterStep') == '[1001, 1501, 2001, 2501, 3001, 3501, 4001, 4501, 5001, 5501, 6001, 6501, 7001, 7501, 8001]'
+    assert settings.get('denssRecenterStep') == '[501, 1001, 1501, 2001, 2501, 3001, 3501, 4001, 4501, 5001, 5501, 6001, 6501, 7001, 7501, 8001]'
     assert settings.get('denssPositivity')
     assert settings.get('denssExtrapolate')
     assert settings.get('denssShrinkwrap')
-    assert settings.get('denssShrinkwrapSigmaStart') == 3.0
-    assert settings.get('denssShrinkwrapSigmaEnd') == 1.5
+    assert settings.get('denssShrinkwrapSigmaStart') == 'None'
+    assert settings.get('denssShrinkwrapSigmaEnd') == 'None'
     assert settings.get('denssShrinkwrapSigmaDecay') == 0.99
     assert settings.get('denssShrinkwrapThresFrac') == 0.2
     assert settings.get('denssShrinkwrapIter') == 20
-    assert settings.get('denssShrinkwrapMinStep') == 5000
+    assert settings.get('denssShrinkwrapMinStep') == 'None'
     assert settings.get('denssConnected')
-    assert settings.get('denssConnectivitySteps') == '[7500]'
+    assert settings.get('denssConnectivitySteps') == '[500]'
     assert settings.get('denssChiEndFrac') == 0.001
     assert settings.get('denssAverage')
     assert settings.get('denssReconstruct') == 20
     assert not settings.get('denssCutOut')
-    assert settings.get('denssWriteXplor')
+    assert not settings.get('denssWriteXplor')
     assert settings.get('denssMode') == 'Slow'
     assert settings.get('denssRecenterMode') == 'com'
-    assert settings.get('denssMinDensity') == 'None'
-    assert settings.get('denssMaxDensity') == 'None'
-    assert not settings.get('denssFlattenLowDensity')
     assert settings.get('denssNCS') == 0
     assert settings.get('denssNCSSteps') == '[3000,5000,7000,9000]'
     assert settings.get('denssNCSAxis') == 1
@@ -540,9 +537,6 @@ def test_api_load_settings_new():
     assert settings.get('denssWriteXplor')
     assert settings.get('denssMode') == 'Slow'
     assert settings.get('denssRecenterMode') == 'com'
-    assert settings.get('denssMinDensity') == 'None'
-    assert settings.get('denssMaxDensity') == 'None'
-    assert not settings.get('denssFlattenLowDensity')
     assert settings.get('denssNCS') == 0
     assert settings.get('denssNCSSteps') == '[3000,5000,7000,9000]'
     assert settings.get('denssNCSAxis') == 1
@@ -798,9 +792,6 @@ def test_api_load_settings_saxslab():
     assert settings.get('denssWriteXplor')
     assert settings.get('denssMode') == 'Slow'
     assert settings.get('denssRecenterMode') == 'com'
-    assert settings.get('denssMinDensity') == 'None'
-    assert settings.get('denssMaxDensity') == 'None'
-    assert not settings.get('denssFlattenLowDensity')
     assert settings.get('denssNCS') == 0
     assert settings.get('denssNCSSteps') == '[3000,5000,7000,9000]'
     assert settings.get('denssNCSAxis') == 1

@@ -630,6 +630,7 @@ def logBinning(sasm, no_points):
         binned_q = q
         binned_i = i
         binned_err = err
+        binned_q_err = q_err
         bins = np.empty_like(q)
 
     else:

@@ -3187,10 +3187,7 @@ def save_series_sasm_list(profile_group, sasm_list, frame_num_offset=0):
             if q_err_exists and q_err_raw_exists:
                 q_err_equal = np.array_equal(sasm_list[0]['q_err'], sasm_list[0]['q_err_raw'])
 
-                save_single_q_raw = not q_equal or not q_err_equal
-
-            else:
-                save_single_q_raw = not q_equal
+                q_equal = q_equal and q_err_equal
 
     else:
         save_single_q_raw = False
@@ -3211,7 +3208,7 @@ def save_series_sasm_list(profile_group, sasm_list, frame_num_offset=0):
             'buffer, will have a separate q vector in that dataset). If present, '
             'column 1 is dQ.')
 
-    if save_single_q_raw:
+    if save_single_q_raw and not q_equal:
         if not 'raw' in profile_group.keys():
             raw_group = profile_group.create_group('raw')
         else:

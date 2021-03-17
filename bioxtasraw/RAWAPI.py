@@ -4270,7 +4270,7 @@ def denss_align(density, side, ref_file, ref_datadir='.',  prefix='',
         single_proc = False
 
     rho_list = np.array([density])
-    side_list = [side]
+    side_list = np.array([side])
 
     aligned_rhos, scores = DENSS.run_align(rho_list, side_list, ref_name,
         center=center, resolution=resolution, enantiomer=enantiomer,

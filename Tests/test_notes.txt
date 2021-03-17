@@ -1,10 +1,10 @@
-Run all tests (from the Tests directory) (~530 s):
+Run all tests (from the Tests directory) (~630 s):
 pytest
 
-Run all fast tests (~20 s):
+Run all fast tests (~60 s):
 pytest -k "not slow"
 
-Run all but very slow tests (~60 s)
+Run all but very slow tests (~120 s)
 pytest -m "not very_slow"
 
 

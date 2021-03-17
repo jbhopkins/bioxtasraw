@@ -90,23 +90,23 @@ def test_supcomb(temp_directory):
 @pytest.mark.slow
 def test_denss(gi_gnom_ift, temp_directory):
     (rho, chi_sq, rg, support_vol, side, q_fit, I_fit, I_extrap,
-        err_extrap) = raw.denss(gi_gnom_ift, 'denss', temp_directory, 'Fast',
-        seed=1)
+        err_extrap, all_chi_sq, all_rg, all_support_vol) = raw.denss(gi_gnom_ift,
+        'denss', temp_directory, 'Fast', seed=1)
 
     assert os.path.exists(os.path.join(temp_directory, 'denss.mrc'))
     assert os.path.exists(os.path.join(temp_directory, 'denss.log'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_support.mrc'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_map.fit'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_stats_by_step.dat'))
-    assert np.allclose(chi_sq, 0.002411384413114013)
-    assert np.allclose(rg, 38.18223704287973)
-    assert np.allclose(support_vol, 506818.2928161621)
-    assert np.allclose(I_fit.sum(), 0.1350911293849589)
+    assert np.allclose(chi_sq, 0.006432532615631702)
+    assert np.allclose(rg, 37.79879209138062)
+    assert np.allclose(support_vol, 500026.75790405273)
+    assert np.allclose(I_fit.sum(), 0.1345053935771273)
 
 @pytest.mark.very_slow
 def test_denss_average(temp_directory):
     fnames = ['./data/denss_data/glucose_isomerase_{:02d}.mrc'.format(i)
-        for i in range(1, 4)]
+        for i in range(1, 5)]
 
     for fname in fnames:
         rhos, sides = raw.load_mrc(fnames)
@@ -115,10 +115,10 @@ def test_denss_average(temp_directory):
         fsc) = raw.denss_average(np.array(rhos), sides[0], 'denss',
         temp_directory)
 
-    assert np.isclose(average_rho.sum(), 11.763942082722979)
-    assert np.isclose(mean_cor, 0.9729911145565486)
-    assert np.isclose(std_cor, 0.017942342024373233, rtol=1e-3)
-    assert res == 36.9
+    assert np.isclose(average_rho.sum(), 11.779369592666626)
+    assert np.isclose(mean_cor, 0.9631843704037497)
+    assert np.isclose(std_cor, 0.0054794183741265655, rtol=1e-3)
+    assert res == 30.6
     assert os.path.exists(os.path.join(temp_directory, 'denss_average.log'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_fsc.dat'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_average.mrc'))
@@ -130,5 +130,5 @@ def test_denss_align(temp_directory):
     aligned_density, score = raw.denss_align(rhos[0], sides[0], '1XIB_4mer.pdb',
         './data/dammif_data/', save_datadir=temp_directory)
 
-    assert np.isclose(score, 0.8993042569480916)
-    assert np.isclose(aligned_density.sum(), 11.784799575805664)
+    assert np.isclose(score, 0.8871934673216091)
+    assert np.isclose(aligned_density.sum(), 11.779369354248047)

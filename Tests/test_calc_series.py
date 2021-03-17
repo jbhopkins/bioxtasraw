@@ -132,11 +132,11 @@ def test_set_buffer_range(clean_bsa_series):
         vpmw) = raw.set_buffer_range(clean_bsa_series, [[18, 53]])
 
     assert len(sub_profiles) == len(clean_bsa_series.getAllSASMs())
-    assert rg[200] == 27.883148917654523
-    assert rger[200] == 0.04393097355157037
-    assert i0[200] == 138.32018141846123
-    assert vcmw[200] == 65.55494106050756
-    assert vpmw[200] == 68.91548154696382
+    assert rg[200] == 28.359975022504145
+    assert rger[200] == 0.27691242689048307
+    assert i0[200] == 139.3524947924968
+    assert vcmw[200] == 65.39761365015703
+    assert vpmw[200] == 69.44895475238502
     assert all(clean_bsa_series.getRg()[0] == rg)
     assert clean_bsa_series.getIntI(int_type='sub').sum() == 331.3353154360302
 
@@ -145,11 +145,11 @@ def test_series_calc(bsa_series):
 
     rg, rger, i0, i0er, vcmw, vcmwer, vpmw = raw.series_calc(sasms)
 
-    assert rg[200] == 27.883148917654523
-    assert rger[200] == 0.04393097355157037
-    assert i0[200] == 138.32018141846123
-    assert vcmw[200] == 65.55494106050756
-    assert vpmw[200] == 68.91548154696382
+    assert rg[200] == 28.359975022504145
+    assert rger[200] == 0.27691242689048307
+    assert i0[200] == 139.3524947924968
+    assert vcmw[200] == 65.39761365015703
+    assert vpmw[200] == 69.44895475238502
 
 def test_find_sample_range(bsa_series):
     success, region_start, region_end = raw.find_sample_range(bsa_series)
@@ -364,8 +364,8 @@ def test_set_baseline_correction_integral(clean_baseline_series):
         fit_results) = raw.set_baseline_correction(clean_baseline_series,
         [42, 71], [318, 347], 'Integral')
 
-    assert np.allclose(rg[200], 27.72702098139628)
-    assert np.allclose(rger[200], 0.05435118847512014)
+    assert np.allclose(rg[200], 27.753419465473335)
+    assert np.allclose(rger[200], 0.12139692269361119)
     assert all(rg == clean_baseline_series.getRg()[0])
     assert np.allclose(clean_baseline_series.getIntI(int_type='baseline').sum(),
         0.1031091826570453)
@@ -375,7 +375,7 @@ def test_set_baseline_correction_linear(clean_baseline_series):
         fit_results) = raw.set_baseline_correction(clean_baseline_series,
         [0, 10], [390, 400], 'Linear')
 
-    assert rg[200] == 27.671983516407735
-    assert rger[200] == 0.054747246997416635
+    assert rg[200] == 27.709617891146536
+    assert rger[200] == 0.12827521377190731
     assert all(rg == clean_baseline_series.getRg()[0])
     assert clean_baseline_series.getIntI(int_type='baseline').sum() == 0.10684702672323632

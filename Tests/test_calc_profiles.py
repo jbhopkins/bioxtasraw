@@ -14,17 +14,17 @@ def test_auto_guinier(clean_gi_sub_profile):
     (rg, i0, rg_err, i0_err, qmin, qmax, qRg_min, qRg_max, idx_min,
         idx_max, r_sqr) = raw.auto_guinier(clean_gi_sub_profile)
 
-    assert rg == 33.29883190131079
-    assert i0 == 0.060992517149806996
-    assert rg_err == 0.32254864105150266
-    assert i0_err == 0.00031800660131762646
-    assert qmin == 0.0100967275
-    assert qmax == 0.0343288734
-    assert qRg_min == 0.33620923177584194
-    assert qRg_max == 1.1431113847079795
-    assert idx_min == 0
-    assert idx_max == 42
-    assert r_sqr == 0.9905176599909035
+    assert rg == 33.893575007646085
+    assert i0 == 0.06158163170868536
+    assert rg_err == 0.2411253445992467
+    assert i0_err == 0.0003091474210816724
+    assert qmin == 0.0147123743
+    assert qmax == 0.0389445202
+    assert qRg_min == 0.4986549618776146
+    assert qRg_max == 1.319969016535488
+    assert idx_min == 8
+    assert idx_max == 50
+    assert r_sqr == 00.9942014318763518
 
 def test_guinier_fit(clean_gi_sub_profile):
     (rg, i0, rg_err, i0_err, qmin, qmax, qRg_min, qRg_max,
