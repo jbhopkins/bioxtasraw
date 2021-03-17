@@ -4715,7 +4715,7 @@ def efa(series, ranges, profile_type='sub', framei=None, framef=None,
     if not isinstance(ranges, np.ndarray):
         ranges = np.array(ranges)
 
-    (svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, intensity, sigma, svd_a,
+    (svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, intensity, err, svd_a,
         success) = SASCalc.SVDOnSASMs(sasm_list)
 
     converged, conv_data, rotation_data = SASCalc.runRotation(svd_a, intensity,
