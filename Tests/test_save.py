@@ -14,7 +14,7 @@ def new_settings():
     settings = raw.load_settings(os.path.join('.', 'data', 'settings_new.cfg'))
     return settings
 
-def test_api_save_settings(new_settings, temp_directory):
+def test_save_settings(new_settings, temp_directory):
     raw.save_settings(new_settings, 'test_settings.cfg', temp_directory)
 
     with open(os.path.join(temp_directory, 'test_settings.cfg'), 'r') as f:
@@ -44,7 +44,7 @@ def test_api_save_settings(new_settings, temp_directory):
 
     assert test_settings == exp_settings
 
-def test_api_save_profile(gi_sub_profile, temp_directory):
+def test_save_profile(gi_sub_profile, temp_directory):
     raw.save_profile(gi_sub_profile, 'test_profile.dat', temp_directory)
 
     with open(os.path.join(temp_directory, 'test_profile.dat'), 'r') as f:
@@ -73,7 +73,7 @@ def test_api_save_profile(gi_sub_profile, temp_directory):
 
     assert test_profile == exp_profile
 
-def test_api_save_gnom_ift(gi_gnom_ift, temp_directory):
+def test_save_gnom_ift(gi_gnom_ift, temp_directory):
     raw.save_ift(gi_gnom_ift, 'test_gnom_ift.out', temp_directory)
 
     with open(os.path.join(temp_directory, 'test_gnom_ift.out'), 'r') as f:
@@ -84,7 +84,7 @@ def test_api_save_gnom_ift(gi_gnom_ift, temp_directory):
 
     assert test_ift == exp_ift
 
-def test_api_save_bift_ift(gi_bift_ift, temp_directory):
+def test_save_bift_ift(gi_bift_ift, temp_directory):
     raw.save_ift(gi_bift_ift, 'test_bift_ift.ift', temp_directory)
 
     with open(os.path.join(temp_directory, 'test_bift_ift.ift'), 'r') as f:
@@ -113,7 +113,7 @@ def test_api_save_bift_ift(gi_bift_ift, temp_directory):
 
     assert test_ift == exp_ift
 
-def test_api_save_series_dats(series_dats, temp_directory):
+def test_save_series_dats(series_dats, temp_directory):
     raw.save_series(series_dats, 'test_series_dats.hdf5', temp_directory)
 
     test_series = raw.load_series([os.path.join(temp_directory,
@@ -151,7 +151,7 @@ def test_api_save_series_dats(series_dats, temp_directory):
     assert len(test_series.use_baseline_subtracted_sasm) == len(series_dats.use_baseline_subtracted_sasm)
     assert all(test_series.total_i_bcsub == series_dats.total_i_bcsub)
 
-def test_api_save_series_images(series_images, temp_directory):
+def test_save_series_images(series_images, temp_directory):
     raw.save_series(series_images, 'test_series_images.hdf5', temp_directory)
 
     test_series = raw.load_series([os.path.join(temp_directory,
@@ -188,6 +188,44 @@ def test_api_save_series_images(series_images, temp_directory):
     assert len(test_series.baseline_subtracted_sasm_list) == len(series_images.baseline_subtracted_sasm_list)
     assert len(test_series.use_baseline_subtracted_sasm) == len(series_images.use_baseline_subtracted_sasm)
     assert all(test_series.total_i_bcsub == series_images.total_i_bcsub)
+
+def test_save_series_sasbdb_keywords(series_sasbdb_keywords, temp_directory):
+    raw.save_series(series_sasbdb_keywords, 'test_series_sasbdb_keywords.hdf5', temp_directory)
+
+    test_series = raw.load_series([os.path.join(temp_directory,
+        'test_series_sasbdb_keywords.hdf5')])[0]
+
+    assert test_series._file_list == series_sasbdb_keywords._file_list
+    assert all(test_series.total_i == series_sasbdb_keywords.total_i)
+    assert test_series.window_size == series_sasbdb_keywords.window_size
+    assert test_series.buffer_range == series_sasbdb_keywords.buffer_range
+    assert test_series.buffer_range == series_sasbdb_keywords.buffer_range
+    assert test_series.sample_range == series_sasbdb_keywords.sample_range
+    assert test_series.sample_range == series_sasbdb_keywords.sample_range
+    assert test_series.baseline_start_range == series_sasbdb_keywords.baseline_start_range
+    assert test_series.baseline_end_range == series_sasbdb_keywords.baseline_end_range
+    assert all(test_series.rg_list == series_sasbdb_keywords.rg_list)
+    assert all(test_series.rger_list == series_sasbdb_keywords.rger_list)
+    assert all(test_series.i0_list == series_sasbdb_keywords.i0_list)
+    assert all(test_series.i0er_list == series_sasbdb_keywords.i0er_list)
+    assert all(test_series.vpmw_list == series_sasbdb_keywords.vpmw_list)
+    assert all(test_series.vcmw_list == series_sasbdb_keywords.vcmw_list)
+    assert all(test_series.vcmwer_list == series_sasbdb_keywords.vcmwer_list)
+
+    assert test_series.series_type == series_sasbdb_keywords.series_type
+    assert test_series._scale_factor == series_sasbdb_keywords._scale_factor
+    assert test_series._offset_value == series_sasbdb_keywords._offset_value
+    assert test_series._frame_scale_factor == series_sasbdb_keywords._frame_scale_factor
+    assert test_series.mol_type == series_sasbdb_keywords.mol_type
+    assert test_series.mol_density == series_sasbdb_keywords.mol_density
+    assert test_series.already_subtracted == series_sasbdb_keywords.already_subtracted
+    assert len(test_series.subtracted_sasm_list) == len(series_sasbdb_keywords.subtracted_sasm_list)
+    assert len(test_series.use_subtracted_sasm) == len(series_sasbdb_keywords.use_subtracted_sasm)
+    assert all(test_series.total_i_sub == series_sasbdb_keywords.total_i_sub)
+    assert test_series.baseline_type == series_sasbdb_keywords.baseline_type
+    assert len(test_series.baseline_subtracted_sasm_list) == len(series_sasbdb_keywords.baseline_subtracted_sasm_list)
+    assert len(test_series.use_baseline_subtracted_sasm) == len(series_sasbdb_keywords.use_baseline_subtracted_sasm)
+    assert all(test_series.total_i_bcsub == series_sasbdb_keywords.total_i_bcsub)
 
 def test_save_report_all(gi_sub_profile, gi_gnom_ift, bsa_series, temp_directory):
     raw.save_report('test_all.pdf', temp_directory, [gi_sub_profile], [gi_gnom_ift],

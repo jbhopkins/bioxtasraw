@@ -21,6 +21,12 @@ def gi_sub_profile():
     return profile
 
 @pytest.fixture(scope="package")
+def sans_profile():
+    profile = raw.load_profiles([os.path.join('.', 'data',
+            'sans_data.dat')])[0]
+    return profile
+
+@pytest.fixture(scope="package")
 def gi_gnom_ift():
     ift = raw.load_ifts([os.path.join('.', 'data',
             'glucose_isomerase.out')])[0]
@@ -65,4 +71,10 @@ def temp_directory(tmp_path_factory):
 def bsa_series():
     series = raw.load_series([os.path.join('.', 'data',
             'BSA_001.hdf5')])[0]
+    return series
+
+@pytest.fixture(scope="package")
+def series_sasbdb_keywords():
+    series = raw.load_series([os.path.join('.', 'data',
+            'series_with_sasbdb_keywords.hdf5')])[0]
     return series

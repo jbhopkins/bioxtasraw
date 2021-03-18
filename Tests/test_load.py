@@ -18,7 +18,7 @@ def saxslab_settings():
     settings = raw.load_settings(os.path.join('.', 'data', 'settings_saxslab.cfg'))
     return settings
 
-def test_api_load_settings_old(old_settings):
+def test_load_settings_old(old_settings):
     settings = old_settings
 
     assert isinstance(settings, RAWSettings.RawGuiSettings)
@@ -280,7 +280,7 @@ def test_api_load_settings_old(old_settings):
     assert settings.get('denssNCSAxis') == 1
     assert settings.get('denssRefine')
 
-def test_api_load_settings_new():
+def test_load_settings_new():
     settings = raw.load_settings(os.path.join('.', 'data', 'settings_new.cfg'))
 
     assert isinstance(settings, RAWSettings.RawGuiSettings)
@@ -542,7 +542,7 @@ def test_api_load_settings_new():
     assert settings.get('denssNCSAxis') == 1
     assert settings.get('denssRefine')
 
-def test_api_load_settings_saxslab():
+def test_load_settings_saxslab():
     settings = raw.load_settings(os.path.join('.', 'data', 'settings_saxslab.cfg'))
 
     assert isinstance(settings, RAWSettings.RawGuiSettings)
@@ -797,7 +797,7 @@ def test_api_load_settings_saxslab():
     assert settings.get('denssNCSAxis') == 1
     assert settings.get('denssRefine')
 
-def test_api_load_profile_without_settings():
+def test_load_profile_without_settings():
     filenames = [os.path.join('.', 'data', 'glucose_isomerase.dat')]
     profiles = raw.load_profiles(filenames)
 
@@ -816,6 +816,7 @@ def test_api_load_profile_without_settings():
     assert sasm.getErr()[0] == 1.59855527E-03
     assert sasm.getErr()[-1] == 5.14117602E-04
     assert sasm.getI().sum() == 3.7220912003
+    assert sasm.getQErr() is None
 
     params = sasm.getAllParameters()
 
@@ -825,7 +826,7 @@ def test_api_load_profile_without_settings():
     assert params['config_file'] == "/Users/jesse/Desktop/Tutorial_Data/standards_data/SAXS.cfg"
     assert 'calibration_params' in params
 
-def test_api_load_profile_with_settings(old_settings):
+def test_load_profile_with_settings(old_settings):
     settings = old_settings
     filenames = [os.path.join('.', 'data', 'glucose_isomerase.dat')]
     profiles = raw.load_profiles(filenames, settings)
@@ -845,6 +846,7 @@ def test_api_load_profile_with_settings(old_settings):
     assert sasm.getErr()[0] == 1.59855527E-03
     assert sasm.getErr()[-1] == 5.14117602E-04
     assert sasm.getI().sum() == 3.7220912003
+    assert sasm.getQErr() is None
 
     params = sasm.getAllParameters()
 
@@ -854,7 +856,31 @@ def test_api_load_profile_with_settings(old_settings):
     assert params['config_file'] == "/Users/jesse/Desktop/Tutorial_Data/standards_data/SAXS.cfg"
     assert 'calibration_params' in params
 
-def test_api_load_gnom_ift():
+def test_load_sans_profile():
+    filenames = [os.path.join('.', 'data', 'sans_data.dat')]
+    profiles = raw.load_profiles(filenames)
+
+    assert len(profiles) == 1
+    assert isinstance(profiles[0], SASM.SASM)
+
+    sasm = profiles[0]
+
+    assert len(sasm.getQ()) == 117
+    assert len(sasm.getI()) == 117
+    assert len(sasm.getErr()) == 117
+    assert len(sasm.getQErr()) == 117
+    assert sasm.getQ()[0] == 6.85263400E-03
+    assert sasm.getQ()[-1] == 7.83923000E-01
+    assert sasm.getI()[0] == 7.47717600E-01
+    assert sasm.getI()[-1] == 9.83200300E-01
+    assert sasm.getErr()[0] == 1.28509700E-01
+    assert sasm.getErr()[-1] == 1.73155300E-03
+    assert sasm.getI().sum() == 115.9909959
+    assert sasm.getQErr()[0] == 2.09011000E-03
+    assert sasm.getQErr()[-1] == 4.22697600E-02
+    assert sasm.getQErr().sum() == 1.141910318
+
+def test_load_gnom_ift():
     filenames = [os.path.join('.', 'data', 'glucose_isomerase.out')]
 
     ifts = raw.load_ifts(filenames)
@@ -907,7 +933,7 @@ def test_api_load_gnom_ift():
     assert iftm.getParameter('smooth') == 0.164
 
 
-def test_api_load_bift_ift():
+def test_load_bift_ift():
     filenames = [os.path.join('.', 'data', 'glucose_isomerase.ift')]
 
     ifts = raw.load_ifts(filenames)
@@ -958,7 +984,7 @@ def test_api_load_bift_ift():
     assert iftm.getParameter('rger') == 0.1335668087605545
     assert iftm.getParameter('dmaxer') == 7.736527037387454
 
-def test_api_load_series_old_from_dats():
+def test_load_series_old_from_dats():
     filenames = [os.path.join('.', 'data', 'series_old_dats.sec')]
 
     series_list = raw.load_series(filenames)
@@ -1006,7 +1032,7 @@ def test_api_load_series_old_from_dats():
     assert len(secm.use_baseline_subtracted_sasm) == 324
     assert secm.total_i_bcsub.sum() == 336.10343643715805
 
-def test_api_load_series_old_from_images():
+def test_load_series_old_from_images():
     filenames = [os.path.join('.', 'data', 'series_old_images.sec')]
 
     series_list = raw.load_series(filenames)
@@ -1054,7 +1080,7 @@ def test_api_load_series_old_from_images():
     assert len(secm.use_baseline_subtracted_sasm) == 0
     assert secm.total_i_bcsub.sum() == 0
 
-def test_api_load_series_new_from_dats():
+def test_load_series_new_from_dats():
     filenames = [os.path.join('.', 'data', 'series_new_dats.hdf5')]
 
     series_list = raw.load_series(filenames)
@@ -1102,7 +1128,7 @@ def test_api_load_series_new_from_dats():
     assert len(secm.use_baseline_subtracted_sasm) == 324
     assert secm.total_i_bcsub.sum() == 369.7137800808739
 
-def test_api_load_series_new_from_images():
+def test_load_series_new_from_images():
     filenames = [os.path.join('.', 'data', 'series_new_images.hdf5')]
 
     series_list = raw.load_series(filenames)
@@ -1150,7 +1176,7 @@ def test_api_load_series_new_from_images():
     assert len(secm.use_baseline_subtracted_sasm) == 0
     assert secm.total_i_bcsub.sum() == 0
 
-def test_api_load_series_old_from_dats_with_settings(old_settings):
+def test_load_series_old_from_dats_with_settings(old_settings):
     filenames = [os.path.join('.', 'data', 'series_old_dats.sec')]
 
     series_list = raw.load_series(filenames, old_settings)
@@ -1198,7 +1224,7 @@ def test_api_load_series_old_from_dats_with_settings(old_settings):
     assert len(secm.use_baseline_subtracted_sasm) == 324
     assert secm.total_i_bcsub.sum() == 336.10343643715805
 
-def test_api_load_series_old_from_images_with_settings(old_settings):
+def test_load_series_old_from_images_with_settings(old_settings):
     filenames = [os.path.join('.', 'data', 'series_old_images.sec')]
 
     series_list = raw.load_series(filenames, old_settings)
@@ -1246,7 +1272,7 @@ def test_api_load_series_old_from_images_with_settings(old_settings):
     assert len(secm.use_baseline_subtracted_sasm) == 0
     assert secm.total_i_bcsub.sum() == 0
 
-def test_api_load_series_new_from_dats_with_settings(old_settings):
+def test_load_series_new_from_dats_with_settings(old_settings):
     filenames = [os.path.join('.', 'data', 'series_new_dats.hdf5')]
 
     series_list = raw.load_series(filenames, old_settings)
@@ -1294,7 +1320,7 @@ def test_api_load_series_new_from_dats_with_settings(old_settings):
     assert len(secm.use_baseline_subtracted_sasm) == 324
     assert secm.total_i_bcsub.sum() == 369.7137800808739
 
-def test_api_load_series_new_from_images_with_settings(old_settings):
+def test_load_series_new_from_images_with_settings(old_settings):
     filenames = [os.path.join('.', 'data', 'series_new_images.hdf5')]
 
     series_list = raw.load_series(filenames, old_settings)
@@ -1342,7 +1368,22 @@ def test_api_load_series_new_from_images_with_settings(old_settings):
     assert len(secm.use_baseline_subtracted_sasm) == 0
     assert secm.total_i_bcsub.sum() == 0
 
-def test_api_load_images(old_settings):
+def test_load_series_sasbdb_keywords():
+    filenames = [os.path.join('.', 'data', 'series_with_sasbdb_keywords.hdf5')]
+
+    series_list = raw.load_series(filenames)
+
+    assert len(series_list) == 1
+    assert isinstance(series_list[0], SECM.SECM)
+
+    secm = series_list[0]
+
+    assert len(secm._file_list) == 10
+    assert secm._file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/standards_data/GI2_A9_19_001_0000.tiff'
+    assert secm.total_i[0] == 0.008572792727392729
+    assert secm.total_i[-1] == 0.008598722084516956
+
+def test_load_images(old_settings):
     filenames = [os.path.join('.', 'data', 'GI2_A9_19_001_0000.tiff')]
 
     img_list, img_hdr_list = raw.load_images(filenames, old_settings)
@@ -1365,7 +1406,7 @@ def test_api_load_images(old_settings):
     assert img_hdr['Pixel_size'] == '172e-6 m x 172e-6 m'
     assert img_hdr['Exposure_time'] == '1.0000000 s'
 
-def test_api_load_images_saxslab(saxslab_settings):
+def test_load_images_saxslab(saxslab_settings):
     filenames = [os.path.join('.', 'data', 'saxslab_image.tiff')]
 
     img_list, img_hdr_list = raw.load_images(filenames, saxslab_settings)
@@ -1389,7 +1430,7 @@ def test_api_load_images_saxslab(saxslab_settings):
     assert img_hdr['det_exposure_time'] == 999.0
     assert img_hdr['saxsconf_wavelength'] == 1.5418
 
-def test_api_load_and_integrate_images(old_settings):
+def test_load_and_integrate_images(old_settings):
     filenames = [os.path.join('.', 'data', 'GI2_A9_19_001_0000.tiff')]
 
     profile_list, img_list = raw.load_and_integrate_images(filenames, old_settings)
@@ -1426,7 +1467,7 @@ def test_api_load_and_integrate_images(old_settings):
     assert params['imageHeader']['Gain_setting'] == "mid gain (vrf = -0.200)"
     assert 'calibration_params' in params
 
-def test_api_load_and_integrate_images_saxslab(saxslab_settings):
+def test_load_and_integrate_images_saxslab(saxslab_settings):
     filenames = [os.path.join('.', 'data', 'saxslab_image.tiff')]
 
     profile_list, img_list = raw.load_and_integrate_images(filenames, saxslab_settings)
@@ -1462,7 +1503,7 @@ def test_api_load_and_integrate_images_saxslab(saxslab_settings):
     assert params['imageHeader']['saxsconf_wavelength'] == 1.5418
     assert 'calibration_params' in params
 
-def test_api_profile_to_series():
+def test_profile_to_series():
     filenames = [os.path.join('.', 'data', 'series_dats',
         'BSA_001_{:04d}.dat'.format(i)) for i in range(10)]
 
@@ -1476,7 +1517,7 @@ def test_api_profile_to_series():
     assert series._file_list == test_filenames
     assert series.total_i.sum() == 105.06363296992504
 
-def test_api_profile_to_series_with_settings(old_settings):
+def test_profile_to_series_with_settings(old_settings):
     filenames = [os.path.join('.', 'data', 'series_dats',
         'BSA_001_{:04d}.dat'.format(i)) for i in range(10)]
 
@@ -1490,7 +1531,7 @@ def test_api_profile_to_series_with_settings(old_settings):
     assert series._file_list == test_filenames
     assert series.total_i.sum() == 105.06363296992504
 
-def test_api_make_profile():
+def test_make_profile():
     filenames = [os.path.join('.', 'data', 'glucose_isomerase.dat')]
     profile = raw.load_profiles(filenames)[0]
 
@@ -1501,7 +1542,7 @@ def test_api_make_profile():
     assert all(new_profile.getI() == profile.getI())
     assert all(new_profile.getErr() == profile.getErr())
 
-def test_api_load_crysol_int():
+def test_load_crysol_int():
     filenames = [os.path.join('.', 'data', 'crysol.int')]
 
     profile = raw.load_profiles(filenames)[0]
@@ -1517,7 +1558,7 @@ def test_api_load_crysol_int():
     assert len(profile.getErr()) == 51
     assert profile.getI().sum() == 2522896411.0
 
-def test_api_load_crysol_fit():
+def test_load_crysol_fit():
     filenames = [os.path.join('.', 'data', 'crysol.fit')]
 
     profiles = raw.load_profiles(filenames)
@@ -1546,7 +1587,7 @@ def test_api_load_crysol_fit():
     assert len(fit.getErr()) == 409
     assert fit.getI().sum() == 160.75817242999997
 
-def test_api_load_foxs_dat():
+def test_load_foxs_dat():
     filenames = [os.path.join('.', 'data', 'foxs.dat')]
 
     profile = raw.load_profiles(filenames)[0]
@@ -1562,7 +1603,7 @@ def test_api_load_foxs_dat():
     assert len(profile.getErr()) == 501
     assert profile.getI().sum() == 4620558481.1484375
 
-def test_api_load_foxs_fit():
+def test_load_foxs_fit():
     filenames = [os.path.join('.', 'data', 'foxs.fit')]
 
     profiles = raw.load_profiles(filenames)
@@ -1591,7 +1632,7 @@ def test_api_load_foxs_fit():
     assert len(fit.getErr()) == 404
     assert fit.getI().sum() == 149.89277113
 
-def test_api_load_dammif_fir():
+def test_load_dammif_fir():
     filenames = [os.path.join('.', 'data', 'dammif.fir')]
 
     profiles = raw.load_profiles(filenames)
@@ -1620,7 +1661,7 @@ def test_api_load_dammif_fir():
     assert len(fit.getErr()) == 395
     assert fit.getI().sum() == 3.7354253277000002
 
-def test_api_load_dammif_fit():
+def test_load_dammif_fit():
     filenames = [os.path.join('.', 'data', 'dammif.fit')]
 
     profiles = raw.load_profiles(filenames)
@@ -1645,7 +1686,7 @@ def test_api_load_dammif_fit():
     assert len(fit2.getErr()) == 412
     assert fit2.getI().sum() == 4.7433277
 
-def test_api_load_waxsis_dat():
+def test_load_waxsis_dat():
     filenames = [os.path.join('.', 'data', 'waxsis.dat')]
 
     profile = raw.load_profiles(filenames)[0]
@@ -1661,7 +1702,7 @@ def test_api_load_waxsis_dat():
     assert len(profile.getErr()) == 101
     assert profile.getI().sum() == 491682748.7000001
 
-def test_api_load_csv_dat():
+def test_load_csv_dat():
     filenames = [os.path.join('.', 'data', 'csv.dat')]
 
     profile = raw.load_profiles(filenames)[0]
@@ -1677,7 +1718,7 @@ def test_api_load_csv_dat():
     assert profile.getErr()[-1] == 5.14117602E-04
     assert profile.getI().sum() == 3.7220912003
 
-def test_api_load_counter_values(old_settings):
+def test_load_counter_values(old_settings):
     filenames = [os.path.join('.', 'data', 'GI2_A9_19_001_0000.tiff')]
 
     counters = raw.load_counter_values(filenames, old_settings)[0]
@@ -1691,7 +1732,7 @@ def test_api_load_counter_values(old_settings):
     assert float(counters['hep']) == 0
     assert float(counters['gdoor']) == 1187
 
-def test_api_integrate_image(old_settings):
+def test_integrate_image(old_settings):
     filenames = [os.path.join('.', 'data', 'GI2_A9_19_001_0000.tiff')]
 
     counters = raw.load_counter_values(filenames, old_settings)[0]
