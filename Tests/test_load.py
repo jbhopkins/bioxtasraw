@@ -1458,8 +1458,8 @@ def test_load_and_integrate_images(old_settings):
     assert sasm.getQ()[-1] == 0.28299684709728007
     assert np.isclose(sasm.getI()[0], 0.10278217)
     assert np.isclose(sasm.getI()[-1], 0.022769544)
-    assert sasm.getErr()[0] == 0.004151307731239662
-    assert sasm.getErr()[-1] == 0.0011460830304787166
+    assert np.isclose(sasm.getErr()[0], 0.0041513327)
+    assert np.isclose(sasm.getErr()[-1], 0.0011515054)
     assert np.isclose(sasm.getI().sum(), 14.921439)
 
     params = sasm.getAllParameters()
@@ -1493,7 +1493,7 @@ def test_load_and_integrate_images_saxslab(saxslab_settings):
     assert sasm.getI()[0] == 0.0
     assert np.isclose(sasm.getI()[-1], -1.0374458)
     assert sasm.getErr()[0] == 0.0
-    assert sasm.getErr()[-1] == 0.0
+    assert np.isclose(sasm.getErr()[-1], 0.59896964)
     assert np.isclose(sasm.getI().sum(), 483950.22)
 
     params = sasm.getAllParameters()

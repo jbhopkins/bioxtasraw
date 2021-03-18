@@ -1181,7 +1181,7 @@ class MainFrame(wx.Frame):
 
         if proceed:
 
-            kratkyframe = RAWAnalysis.NormKratkyFrame(self, 'Normalized Kratky Plots', sasm_list)
+            kratkyframe = RAWAnalysis.NormKratkyFrame(self, 'Dimensionless Kratky Plots', sasm_list)
             kratkyframe.SetIcon(self.GetIcon())
             kratkyframe.Show(True)
 

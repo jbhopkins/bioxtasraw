@@ -116,8 +116,8 @@ def test_denss_average(temp_directory):
         temp_directory, n_proc=2)
 
     assert np.isclose(average_rho.sum(), 11.779369592666626)
-    assert np.isclose(mean_cor, 0.9631843704037497)
-    assert np.isclose(std_cor, 0.0054794183741265655, rtol=1e-3)
+    assert np.isclose(mean_cor, 0.9635103450538024, rtol=1e-3)
+    assert np.isclose(std_cor, 0.005107056254368933, rtol=1e-3)
     assert res == 30.6
     assert os.path.exists(os.path.join(temp_directory, 'denss_average.log'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_fsc.dat'))
@@ -136,8 +136,8 @@ def test_denss_average_single_proc(temp_directory):
         temp_directory, n_proc=1)
 
     assert np.isclose(average_rho.sum(), 11.779369592666626)
-    assert np.isclose(mean_cor, 0.9631843704037497)
-    assert np.isclose(std_cor, 0.0054794183741265655, rtol=1e-3)
+    assert np.isclose(mean_cor, 0.9635103450538024, rtol=1e-3)
+    assert np.isclose(std_cor, 0.005107056254368933, rtol=1e-3)
     assert res == 30.6
     assert os.path.exists(os.path.join(temp_directory, 'denss_average.log'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_fsc.dat'))

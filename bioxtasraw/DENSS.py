@@ -1823,6 +1823,8 @@ def run_align(rhos, sides, ref_file, avg_q=None, abort_event=None, center=True,
         refrho, refside = read_mrc(ref_file)
 
     if enantiomer:
+        if gui:
+            avg_q.put_nowait('Selecting best enantiomer...\n')
         rhos, scores = select_best_enantiomers(rhos, refrho, cores,
             avg_q, abort_event, single_proc)
 

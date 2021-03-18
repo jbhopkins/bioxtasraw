@@ -4380,7 +4380,7 @@ class GNOMControlPanel(wx.Panel):
             size=self._FromDIP((40,-1)), style=wx.TE_PROCESS_ENTER)
         self.alpha_ctrl.Bind(wx.EVT_TEXT_ENTER, self.onAlpha)
 
-        self.cut_qrg = wx.CheckBox(self, label='Truncate for dammif/n')
+        self.cut_qrg = wx.CheckBox(self, label='Truncate for DAMMIF/N')
         self.cut_qrg.SetValue(self.raw_settings.get('gnomCut8Rg'))
         self.cut_qrg.Bind(wx.EVT_CHECKBOX, self.onCutQRg)
 

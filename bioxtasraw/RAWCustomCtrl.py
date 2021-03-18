@@ -284,6 +284,14 @@ class FloatSpinCtrl(wx.Panel):
         self.max = max_val
         self.min = min_val
 
+        if never_negative:
+            if self.min is None:
+                self.min = 0.0
+            else:
+                self.min = max(self.min, 0.0)
+
+        self._never_negative = never_negative
+
         if platform.system() != 'Windows':
             self.Scale = wx.TextCtrl(self, -1, initValue,
                 size=self._FromDIP((TextLength,-1)), style=wx.TE_PROCESS_ENTER,
@@ -296,14 +304,12 @@ class FloatSpinCtrl(wx.Panel):
         self.Scale.Bind(wx.EVT_KILL_FOCUS, self.OnFocusChange)
         self.Scale.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
 
-        self._never_negative = never_negative
-
         sizer = wx.BoxSizer()
 
         sizer.Add(self.Scale, 1, wx.RIGHT, border=self._FromDIP(1))
         sizer.Add(self.ScalerButton, 0)
 
-        self.oldValue = 0
+        self.oldValue = float(initValue)
 
         self.SetSizer(sizer)
 
@@ -412,10 +418,10 @@ class FloatSpinCtrl(wx.Panel):
 
 
     def find_new_val_down(self, val):
-        if self.min is not None and val < self.min:
+        if self.min is not None and val < self.min and not self._never_negative:
             newval = self.min
 
-        elif self.min is not None and val == self.min:
+        elif self.min is not None and val == self.min and not self._never_negative:
             newval = val
 
         else:
@@ -426,6 +432,12 @@ class FloatSpinCtrl(wx.Panel):
                 self.ScaleDivider = math.pow(10, self.num_of_digits)
 
                 newval = self.find_new_val_down(val)
+
+            elif self._never_negative and newval == 0.0:
+                self.num_of_digits = self.num_of_digits + 1
+                self.ScaleDivider = math.pow(10, self.num_of_digits)
+
+                newval = float(val) - (1./self.ScaleDivider)
 
         return newval
 
