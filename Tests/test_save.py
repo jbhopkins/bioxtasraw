@@ -188,3 +188,83 @@ def test_api_save_series_images(series_images, temp_directory):
     assert len(test_series.baseline_subtracted_sasm_list) == len(series_images.baseline_subtracted_sasm_list)
     assert len(test_series.use_baseline_subtracted_sasm) == len(series_images.use_baseline_subtracted_sasm)
     assert all(test_series.total_i_bcsub == series_images.total_i_bcsub)
+
+def test_save_report_all(gi_sub_profile, gi_gnom_ift, bsa_series, temp_directory):
+    raw.save_report('test_all.pdf', temp_directory, [gi_sub_profile], [gi_gnom_ift],
+        [bsa_series])
+
+    assert os.path.exists(os.path.join(temp_directory, 'test_all.pdf'))
+
+def test_save_report_prof(gi_sub_profile, temp_directory):
+    raw.save_report('test_prof.pdf', temp_directory, [gi_sub_profile])
+
+    assert os.path.exists(os.path.join(temp_directory, 'test_prof.pdf'))
+
+def test_save_report_ift(gi_gnom_ift, temp_directory):
+    raw.save_report('test_ift.pdf', temp_directory, ifts=[gi_gnom_ift])
+
+    assert os.path.exists(os.path.join(temp_directory, 'test_ift.pdf'))
+
+def test_save_report_series(bsa_series, temp_directory):
+    raw.save_report('test_series.pdf', temp_directory, series=[bsa_series])
+
+    assert os.path.exists(os.path.join(temp_directory, 'test_series.pdf'))
+
+def test_save_report_series_with_efa(bsa_series, temp_directory):
+    efa_profiles, converged, conv_data, rotation_data = raw.efa(bsa_series,
+        [[130, 187], [149, 230]], framei=130, framef=230)
+
+    raw.save_report('test_series_efa.pdf', temp_directory, series=[bsa_series])
+
+    assert os.path.exists(os.path.join(temp_directory, 'test_series_efa.pdf'))
+
+def test_save_report_series_with_regals(bsa_series, temp_directory):
+    prof1_settings = {
+        'type'          : 'simple',
+        'lambda'        : 0.0,
+        'auto_lambda'   : False,
+        'kwargs'        : {},
+        }
+
+    conc1_settings = {
+        'type'          : 'smooth',
+        'lambda'        : 6.0e3,
+        'auto_lambda'   : False,
+        'kwargs'                : {
+            'xmin'              : 130,
+            'xmax'              : 187,
+            'Nw'                : 50,
+            'is_zero_at_xmin'   : False,
+            'is_zero_at_xmax'   : True,
+            }
+        }
+
+    prof2_settings = {
+        'type'          : 'simple',
+        'lambda'        : 0.0,
+        'auto_lambda'   : False,
+        'kwargs'        : {},
+        }
+
+    conc2_settings = {
+        'type'          : 'smooth',
+        'lambda'        : 8.0e3,
+        'auto_lambda'   : False,
+        'kwargs'                : {
+            'xmin'              : 149,
+            'xmax'              : 230,
+            'Nw'                : 50,
+            'is_zero_at_xmin'   : True,
+            'is_zero_at_xmax'   : False,
+            }
+        }
+
+    comp_settings = [(prof1_settings, conc1_settings),
+        (prof2_settings, conc2_settings)]
+
+    regals_profiles, regals_ifts, mixture, params, residual = raw.regals(bsa_series,
+        comp_settings, framei=130, framef=230)
+
+    raw.save_report('test_series_regals.pdf', temp_directory, series=[bsa_series])
+
+    assert os.path.exists(os.path.join(temp_directory, 'test_series_regals.pdf'))

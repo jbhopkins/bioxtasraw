@@ -10,11 +10,6 @@ if raw_path not in os.sys.path:
 
 import bioxtasraw.RAWAPI as raw
 
-@pytest.fixture(scope="package")
-def bsa_series():
-    series = raw.load_series([os.path.join('.', 'data',
-            'BSA_001.hdf5')])[0]
-    return series
 
 @pytest.fixture(scope="function")
 def clean_bsa_series(bsa_series):
@@ -64,6 +59,176 @@ def test_efa_list(bsa_series):
         atol=1e-15, rtol=1e-2)
     assert len(efa_profiles) == 2
     assert np.allclose(efa_profiles[0].getI().sum(), 75885.43573919893)
+
+def test_regals(bsa_series):
+    prof1_settings = {
+        'type'          : 'simple',
+        'lambda'        : 0.0,
+        'auto_lambda'   : False,
+        'kwargs'        : {},
+        }
+
+    conc1_settings = {
+        'type'          : 'smooth',
+        'lambda'        : 6.0e3,
+        'auto_lambda'   : False,
+        'kwargs'                : {
+            'xmin'              : 130,
+            'xmax'              : 187,
+            'Nw'                : 50,
+            'is_zero_at_xmin'   : False,
+            'is_zero_at_xmax'   : True,
+            }
+        }
+
+    prof2_settings = {
+        'type'          : 'simple',
+        'lambda'        : 0.0,
+        'auto_lambda'   : False,
+        'kwargs'        : {},
+        }
+
+    conc2_settings = {
+        'type'          : 'smooth',
+        'lambda'        : 8.0e3,
+        'auto_lambda'   : False,
+        'kwargs'                : {
+            'xmin'              : 149,
+            'xmax'              : 230,
+            'Nw'                : 50,
+            'is_zero_at_xmin'   : True,
+            'is_zero_at_xmax'   : False,
+            }
+        }
+
+    comp_settings = [(prof1_settings, conc1_settings),
+        (prof2_settings, conc2_settings)]
+
+    regals_profiles, regals_ifts, mixture, params, residual = raw.regals(bsa_series,
+        comp_settings, framei=130, framef=230)
+
+    assert len(regals_profiles) == 2
+    assert len(regals_ifts) == 0
+    assert np.allclose(regals_profiles[0].getI().sum(), 194.68241086770107)
+    assert np.allclose(params['x2'], 1.033235305605319)
+    assert params['total_iter'] == 44
+
+def test_regals_auto_lambda(bsa_series):
+    prof1_settings = {
+        'type'          : 'simple',
+        'lambda'        : 0.0,
+        'auto_lambda'   : True,
+        'kwargs'        : {},
+        }
+
+    conc1_settings = {
+        'type'          : 'smooth',
+        'lambda'        : 6.0e3,
+        'auto_lambda'   : True,
+        'kwargs'                : {
+            'xmin'              : 130,
+            'xmax'              : 187,
+            'Nw'                : 50,
+            'is_zero_at_xmin'   : False,
+            'is_zero_at_xmax'   : True,
+            }
+        }
+
+    prof2_settings = {
+        'type'          : 'simple',
+        'lambda'        : 0.0,
+        'auto_lambda'   : True,
+        'kwargs'        : {},
+        }
+
+    conc2_settings = {
+        'type'          : 'smooth',
+        'lambda'        : 8.0e3,
+        'auto_lambda'   : True,
+        'kwargs'                : {
+            'xmin'              : 149,
+            'xmax'              : 230,
+            'Nw'                : 50,
+            'is_zero_at_xmin'   : True,
+            'is_zero_at_xmax'   : False,
+            }
+        }
+
+    comp_settings = [(prof1_settings, conc1_settings),
+        (prof2_settings, conc2_settings)]
+
+    regals_profiles, regals_ifts, mixture, params, residual = raw.regals(bsa_series,
+        comp_settings, framei=130, framef=230)
+
+    assert len(regals_profiles) == 2
+    assert len(regals_ifts) == 0
+    assert np.allclose(regals_profiles[0].getI().sum(), 187.0626608185841)
+    assert np.allclose(params['x2'], 1.4660686512243117)
+    assert params['total_iter'] == 34
+
+def test_regals_realspace(bsa_series):
+    prof1_settings = {
+        'type'          : 'realspace',
+        'lambda'        : 1e10,
+        'auto_lambda'   : False,
+        'kwargs'        : {
+            'Nw'                : 50,
+            'dmax'              : 185,
+            'is_zero_at_r0'     : True,
+            'is_zero_at_dmax'   : True,
+            },
+        }
+
+    conc1_settings = {
+        'type'          : 'smooth',
+        'lambda'        : 6.0e3,
+        'auto_lambda'   : False,
+        'kwargs'                : {
+            'xmin'              : 130,
+            'xmax'              : 187,
+            'Nw'                : 50,
+            'is_zero_at_xmin'   : False,
+            'is_zero_at_xmax'   : True,
+            }
+        }
+
+    prof2_settings = {
+        'type'          : 'realspace',
+        'lambda'        : 1e11,
+        'auto_lambda'   : False,
+        'kwargs'        : {
+            'Nw'                : 50,
+            'dmax'              : 85,
+            'is_zero_at_r0'     : True,
+            'is_zero_at_dmax'   : True,
+            },
+        }
+
+    conc2_settings = {
+        'type'          : 'smooth',
+        'lambda'        : 8.0e3,
+        'auto_lambda'   : False,
+        'kwargs'                : {
+            'xmin'              : 149,
+            'xmax'              : 230,
+            'Nw'                : 50,
+            'is_zero_at_xmin'   : True,
+            'is_zero_at_xmax'   : False,
+            }
+        }
+
+    comp_settings = [(prof1_settings, conc1_settings),
+        (prof2_settings, conc2_settings)]
+
+    regals_profiles, regals_ifts, mixture, params, residual = raw.regals(bsa_series,
+        comp_settings, framei=130, framef=230)
+
+    assert len(regals_profiles) == 2
+    assert len(regals_ifts) == 2
+    assert np.allclose(regals_profiles[0].getI().sum(), 40.69920536222943)
+    assert np.allclose(params['x2'], 1.5197104446744192)
+    assert params['total_iter'] == 34
+    assert np.allclose(regals_ifts[0].p.sum(), 0.021128857674221777)
 
 def test_find_buffer_range(bsa_series):
     success, region_start, region_end = raw.find_buffer_range(bsa_series)

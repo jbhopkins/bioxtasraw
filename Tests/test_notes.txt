@@ -1,3 +1,5 @@
+Tests rely on pytest, so make sure you install that.
+
 Run all tests (from the Tests directory) (~630 s):
 pytest
 

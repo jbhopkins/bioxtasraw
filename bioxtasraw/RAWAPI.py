@@ -744,7 +744,7 @@ def save_report(fname, datadir='.', profiles=[], ifts=[], series=[],
     """
     datadir = os.path.abspath(os.path.expanduser(datadir))
 
-    fname = os.path.spitext(fname)[0] + '.pdf'
+    fname = os.path.splitext(fname)[0] + '.pdf'
 
     RAWReport.make_report_from_raw(fname, datadir, profiles, ifts, series,
         dammif_data)
@@ -4376,7 +4376,7 @@ def svd(series, profile_type='sub', framei=None, framef=None, norm=True):
     return svd_s, svd_U, svd_V
 
 def regals(series, comp_settings, profile_type='sub', framei=None,
-    framef=None, x_vals=None, min_iter=25, max_iter=1000, tol=0.001,
+    framef=None, x_vals=None, min_iter=25, max_iter=1000, tol=0.0001,
     conv_type='Chi^2', num_good = 10, use_previous_results=False,
     previous_results=None):
     """

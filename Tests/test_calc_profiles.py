@@ -118,6 +118,23 @@ def test_gnom(clean_gi_sub_profile, gi_gnom_ift):
     assert np.allclose(ift.r, gi_gnom_ift.r)
     assert np.allclose(ift.p, gi_gnom_ift.p)
 
+@pytest.mark.atsas
+def test_auto_dmax(clean_gi_sub_profile):
+    dmax = raw.auto_dmax(clean_gi_sub_profile)
+
+    assert dmax == 106
+
+def test_auto_dmax_no_atsas(clean_gi_sub_profile):
+    dmax = raw.auto_dmax(clean_gi_sub_profile, use_atsas=False)
+
+    assert dmax == 106
+
+@pytest.mark.atsas
+def test_auto_dmax_single_proc(clean_gi_sub_profile):
+    dmax = raw.auto_dmax(clean_gi_sub_profile, single_proc=True)
+
+    assert dmax == 106
+
 def test_cormap_all(bsa_series_profiles):
     pvals, corrected_pvals, failed_comparisons = raw.cormap(bsa_series_profiles)
 

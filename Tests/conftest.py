@@ -60,3 +60,9 @@ def bsa_series_profiles():
 @pytest.fixture(scope="package")
 def temp_directory(tmp_path_factory):
     return tmp_path_factory.mktemp('raw')
+
+@pytest.fixture(scope="package")
+def bsa_series():
+    series = raw.load_series([os.path.join('.', 'data',
+            'BSA_001.hdf5')])[0]
+    return series
