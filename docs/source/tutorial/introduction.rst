@@ -9,18 +9,21 @@ This tutorial covers SAXS data processing with RAW. You will learn how to:
 *   Process images into scattering profiles
 *   Average, subtract and save scattering profiles
 *   Find |Rg| and I(0) by Guinier analysis
-*   Find molecular weight by four different methods
-*   Do Kratky analysis and normalized Kratky analysis
+*   Find molecular weight by six different methods
+*   Do Kratky analysis and dimensionless Kratky analysis
 *   Test the similarity of scattering profiles
 *   Load and process SEC-SAXS data
 *   Carry out singular value decomposition (SVD) and evolving factor analysis (EFA)
-    to evaluate and analyze SEC-SAXS data
+    to evaluate and deconvolve SEC-SAXS data
+*   Carry out regularized alternating least squares (REGALS) analysis to
+    deconvolve SAXS data.
 *   Do baseline correction on SEC-SAXS data
 *   Merge SAXS/WAXS data from two detectors
 *   Carry out Pair-distance distribution analysis (BIFT and GNOM)
 *   Evaluate ambiguity of 3D shape reconstructions (AMBIMETER)
 *   3D reconstructions with bead models (DAMMIF/N and DAMAVER)
 *   3D reconstructions with electron density (DENSS)
+*   Save your analysis information
 *   Calibrate RAW for integrating images
 *   Mask images for integration
 *   Set up normalization and save processing settings
@@ -38,7 +41,7 @@ on best practices for SAXS data processing.
 
 Requirements
 ^^^^^^^^^^^^
-*  BioXTAS RAW >= v2.0.0 (most recent is best).
+*  BioXTAS RAW >= v2.1.0 (most recent is best).
 
     *   :ref:`Install instructions <install>`
 

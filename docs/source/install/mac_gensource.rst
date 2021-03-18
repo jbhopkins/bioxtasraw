@@ -2,7 +2,8 @@ General instructions for installing from source (advanced users)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _macgen:
 
-#.  Install a standalone version of python 3.7 (recommended, not required).
+#.  Install a standalone version of python 3.X (recommended, not required),
+    RAW is tested on 3.7 and 3.8.
 
 #.  Install the following python packages (most recent version of each recommended):
 
@@ -10,11 +11,11 @@ General instructions for installing from source (advanced users)
 
     *   scipy
 
-    *   matplotlib < 3.2
+    *   matplotlib
 
     *   pillow
 
-    *   wxpython < 4.1
+    *   wxpython
 
     *   h5py
 
@@ -27,6 +28,8 @@ General instructions for installing from source (advanced users)
     *   hdf5plugin
 
     *   numba
+
+    *   reportlab
 
 #.  Download the latest RAW sourcecode from sourceforge (
     `https://sourceforge.net/projects/bioxtasraw <https://sourceforge.net/projects/bioxtasraw>`_)

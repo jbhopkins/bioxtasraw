@@ -335,7 +335,7 @@ The written version of the tutorial follows.
     the ‘Average’ button. That will send the average buffer to the Profiles plot.
 
     *   *Try:* Send the average of the sample range you selected to the main
-        plot (690 to 719), carry out the subtraction, and verify it’s the same as
+        plot (699 to 713), carry out the subtraction, and verify it’s the same as
         the curve produced by the ‘To Profiles Plot’ button in the LC Series Analysis
         panel.
 
@@ -429,6 +429,10 @@ The written version of the tutorial follows.
 
     *   *Try:* Clear the Series data and then open one of your saved files from the Files tab
         using either the “Plot” or “Plot Series” button.
+
+#.  With both items selected, right click and select "Save report". Check the profiles
+    associtated with the SEC-SAXS series, so that you're saving a report that includes
+    both the series and the averaged subtracted profiles. Save the report as a pdf.
 
 .. |series_load1_png| image:: images/series_load1.png
     :width: 500 px

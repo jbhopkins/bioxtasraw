@@ -19,15 +19,17 @@ Features
 
 *   Analysis of radius of gyration (|Rg|) and I(0) via Guinier fit.
 *   Analysis of molecular weight via I(0) comparison to standards, absolute
-    calibration, correlation volume (V\ :sub:`c`) and corrected Porod volume (V\ :sub:`p`) methods.
+    calibration, correlation volume (V\ :sub:`c`), corrected Porod volume
+    (V\ :sub:`p`), the ATSAS Shape&Size and the ATSAS Bayesian methods.
 *   Calculation of inverse Fourier transforms (IFTs) via GNOM and a Bayesian
     indirect Fourier transform (BIFT).
 *   Calculation of envelopes (dummy atom models) using DAMMIF, DAMMIN, DAMAVER, and DAMCLUST.
 *   Calculation of electron density using the DENSS algorithm
 *   Easy processing of in-line chromatography coupled SAXS data, including size-exclusions
     coupled SAXS (SEC-SAXS) data.
-*   Deconvolution of SEC-SAXS data using singular value decomposition (SVD) and
-    evolving factor analysis (EFA).
+*   Deconvolution of SAXS data using singular value decomposition (SVD) and
+    evolving factor analysis (EFA), and regularized alternating least squares
+    (REGALS).
 *   Standard data operations such as averaging, subtraction, merging, and rebinning.
 *   Creation and plotting of 1D scattering profiles from 2D detector images, including
     Pilatus, CBF, Eiger, and more than 20 other types of images.

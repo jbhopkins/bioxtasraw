@@ -11,7 +11,7 @@ Normalized Kratky plots are plots of :math:`q^2I(q)/I(0)` vs. *q*\ . This normal
 by mass and concentration. Dimensionless Kratky plots are presented as either :math:`(qR_g)^2I(q)/I(0)`
 vs. :math:`qR_g`\ or :math:`(q^2V_c)I(q)/I(0)` vs. :math:`q(V_c)^{1/2}`\ . These dimensionless plots
 can provide semi-quantitative analysis of flexibility and disorder. More information about can
-be found here and references therein: `http://www.bioisis.net/tutorial/21 <http://www.bioisis.net/tutorial/21>`_.
+be found here and references therein: `https://www.bioisis.net/tutorials/21 <https://www.bioisis.net/tutorials/21>`_.
 
 A video version of this tutorial is available:
 
@@ -44,7 +44,7 @@ The written version of the tutorial follows.
     *   *Note:* The **unfolded.dat** file is the scattering profile of an unfolded lysine
         riboswitch. The **partially_folded.dat** file is same lysine riboswitch, but in the
         biologically functional configuration. The data were downloaded from the
-        `BIOISIS database <http://www.bioisis.net/>`_, and has the BIOISIS ids of 2LYSRR and 3LYSRR.
+        `BIOISIS database <https://www.bioisis.net/>`_, and has the BIOISIS ids of 2LYSRR and 3LYSRR.
 
 #.  SAXS data can be presented on an arbitrary scale, which is why these two profiles have
     intensity that is much larger than the lysozyme and GI data (which is on an absolute scale).
@@ -60,15 +60,15 @@ The written version of the tutorial follows.
 #.  Kratky analysis can also be done on normalized or dimensionless data. RAW supports normalization
     by I(0), and non-dimensionalization by |Rg| and Vc (the volume of correlation).
 
-#.  Select all four loaded scattering profiles, right click, and select the Normalized Kratky Plot option.
+#.  Select all four loaded scattering profiles, right click, and select the Dimensionless Kratky Plot option.
 
-#.  Normalized Kratky plots require Guinier analysis to be done. If one or more profiles are missing
+#.  Normalized and dimensionless Kratky plots require Guinier analysis to be done. If one or more profiles are missing
     this information, RAW will show the following window. You can either cancel, and do the fits manually,
     or you can proceed with RAW’s automatic determination.
 
     |kratky_norm_autorg|
 
-#.  Click the Proceed using AutoRg button to proceed to the Normalized Kratky Plot window using
+#.  Click the Proceed using AutoRg button to proceed to the Dimensionless Kratky Plot window using
     RAW’s automatic fitting for |Rg|.
 
 #.  By default, the plot is the Dimensionless |Rg| plot. Use the dropdown “Plot” menu at the top to
@@ -93,7 +93,7 @@ The written version of the tutorial follows.
 #.  Right click on the plot and select “Export Data As CSV” to save the dimensionless data
     for further processing or plotting with another program.
 
-#.  Click the Close button to close the Normalized Kratky Plot window.
+#.  Click the Close button to close the Dimensionless Kratky Plot window.
 
 
 .. |kratky_png| image:: images/kratky.png

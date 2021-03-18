@@ -4,7 +4,8 @@ General instructions for installing from source (advanced users)
 
 #.  Install Microsoft Visual C++ 14.2 Standalone: Build Tools for Visual Studio 2019
 
-#.  Install Python 3.7 (if it isn’t already installed) and add it to your system path.
+#.  Install Python 3.X (if it isn’t already installed) and add it to your system
+    path (tested on 3.7 and 3.8).
 
 #.  Install the following Python packages (version indicated if less than most recent):
 
@@ -12,11 +13,11 @@ General instructions for installing from source (advanced users)
 
     *   scipy
 
-    *   matplotlib < 3.2
+    *   matplotlib
 
     *   pillow
 
-    *   wxpython < 4.1
+    *   wxpython
 
     *   h5py
 
@@ -29,6 +30,8 @@ General instructions for installing from source (advanced users)
     *   hdf5plugin
 
     *   numba
+
+    *   reportlab
 
 #.  Download the RAW source file (:file:`RAW-{x}.{y}.{z}-Source` where :file:`{x}.{y}.{z}` is the version number)
     from sourceforge (

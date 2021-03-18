@@ -39,6 +39,19 @@ in addition to the RAW paper, please cite the appropriate paper given on their
 `documentation pages <https://www.embl-hamburg.de/biosaxs/manuals/>`_.
 
 
+BIFT
+-----------
+
+If you used the BIFT method to determine a P(r) function in RAW, in addition to
+the RAW paper please cite the following paper:
+
+*Bayesian estimation of hyperparameters for indirect Fourier transformation in
+small-angle scattering.* Hansen, S. Journal of Applied Crystallography (2000)
+33, 1415-1421.
+
+DOI: `10.1107/S0021889800012930 <https://doi.org/10.1107/S0021889800012930>`_
+
+
 Evolving Factor Analysis (EFA)
 -------------------------------
 
@@ -66,18 +79,20 @@ T. D. Grant. Nature Methods (2018) 15, 191–193.
 
 DOI: `10.1038/nmeth.4581 <https://doi.org/10.1038/nmeth.4581>`_
 
-BIFT
------------
 
-If you used the BIFT method to determine a P(r) function in RAW, in addition to
-the RAW paper please cite the following paper:
+REGularized Alternating Least Squares (REGALS)
+-----------------------------------------------
 
-*Bayesian estimation of hyperparameters for indirect Fourier transformation in
-small-angle scattering.* Hansen, S. Journal of Applied Crystallography (2000)
-33, 1415-1421.
+If you used the REGALS function in RAW to deconvolve SAXS data,
+in addition to the RAW paper please cite the following paper:
 
-DOI: `10.1107/S0021889800012930 <https://doi.org/10.1107/S0021889800012930>`_
+*REGALS: a general method to deconvolve X-ray scattering data from evolving
+mixtures* S. P. Meisburger, D. Xu, and N. Ando.
+IUCrJ (2021). 8(2), 225-237.
 
+DOI: `10.1107/S2052252521000555 <https://doi.org/10.1107/S2052252521000555>`_
+
+REGALS source code is available here: `https://github.com/ando-lab/regals <https://github.com/ando-lab/regals>`_
 
 Molecular Weight
 -------------------------------

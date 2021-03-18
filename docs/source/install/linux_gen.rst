@@ -2,7 +2,7 @@ General instructions for installing from source (advanced users)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _lnxgen:
 
-#.  Install python 3.7 (if it isn’t already installed).
+#.  Install python 3.X (if it isn’t already installed), RAW is tested on 3.7 and 3.8.
 
 #.  Install python3 development tools and gcc (if they are not already installed).
 
@@ -12,11 +12,11 @@ General instructions for installing from source (advanced users)
 
     *   scipy
 
-    *   matplotlib < 3.2.0
+    *   matplotlib
 
     *   pillow
 
-    *   wxpython < 4.1.0
+    *   wxpython
 
     *   h5py
 
@@ -31,6 +31,8 @@ General instructions for installing from source (advanced users)
     *   numba
 
     *   dbus-python
+
+    *   reportlab
 
 #.  Download RAW source code from sourceforge (
     `https://sourceforge.net/projects/bioxtasraw/files <https://sourceforge.net/projects/bioxtasraw/files>`_)

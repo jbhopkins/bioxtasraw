@@ -30,25 +30,17 @@ OS X and macOS install from source instructions
 
     *   Close the terminal window.
 
-#.  Install  numpy scipy matplotlib pillow wxpython numba h5py lxml cython numexpr using conda.
+#.  Install the necessary python packages.
 
     *   Open a new terminal window as in the previous step
 
     *   Type ``conda upgrade conda pip wheel setuptools`` and hit enter. Agree to all the prompts.
 
-    *   Type ``conda install numpy scipy 'matplotlib<3.2' pillow numba h5py cython numexpr`` and hit enter.
+    *   Type ``conda install numpy scipy matplotlib pillow numba h5py cython numexpr reportlab`` and hit enter.
         Agree to all the prompts.
 
-    *   Type ``conda install -c conda-forge 'wxpython<4.1'`` and hit enter. Agree
+    *   Type ``conda install -c conda-forge wxpython hdf5plugin fabio pyfai`` and hit enter. Agree
         to all prompts.
-
-#.  Install the hdf5plugin, silx, fabio, and pyFAI packages using pip
-
-    *   In the terminal window type ``pip install hdf5plugin silx fabio pyfai``
-
-    *   Hit enter
-
-    *   Once the installation finishes, close the terminal window.
 
 #.  Download RAW from sourceforge
 

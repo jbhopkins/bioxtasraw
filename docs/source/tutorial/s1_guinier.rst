@@ -35,15 +35,16 @@ The written version of the tutorial follows.
 
     |guinier_gi_png|
 
-#.  In the "Control" panel, you’ll see that n_min is 0. This means RAW has
-    used all of the low q for the Guinier fit. You can see a little dip in the
-    residual at the lowest q values, use the arrow buttons next to
-    the n_min box to adjust it up several points to remove that dip and check whether
-    the |Rg| changes. Once you're done return n_min to 0.
+#.  In the "Control" panel, you’ll see that n_min is 8. This means RAW has
+    skipped the first few low q points for the Guinier fit. You can see a little
+    dip in the lowest q values, which may be why it was skipped. Use the arrow
+    buttons next to the n_min box to adjust it down several points to include that
+    dip and check whether the |Rg| changes. Once you're done return n_min to 8.
 
-#.  In the "Parameters" panel, note that :math:`q_{max}R_g` is only ~1.14. Recall that for globular
-    proteins like GI, it is typical to have :math:`q_{max}R_g` ~1.3. Adjust n_max until that is
-    the case, watching what happens to the |Rg| and the residual.
+#.  In the "Parameters" panel, note that :math:`q_{max}R_g` is  ~1.32. Recall that for globular
+    proteins like GI, it is typical to have :math:`q_{max}R_g` ~1.3. Adjust
+    n_max down slightly until that is the case, watching what happens to the |Rg|
+    and the residual.
 
     *   *Question:* The literature radius of gyration for GI is 32.7 Å. How does yours compare?
 

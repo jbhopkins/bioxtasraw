@@ -27,8 +27,7 @@ The written version of the tutorial follows.
 
 #.  Right click on the glucose_isomerase profile in the Profiles list and select “IFT (GNOM)”.
 
-    *   *Note:* RAW will automatically try to find an appropriate maximum dimension (|Dmax|)
-        by running the DATGNOM program from the ATSAS software package.
+    *   *Note:* RAW will automatically try to find an appropriate maximum dimension (|Dmax|).
 
     *   *Troubleshooting:* If you do not have the GNOM option in the right click menu, RAW does
         not know where your ATSAS programs are installed. If you installed the ATSAS programs
@@ -60,8 +59,8 @@ The written version of the tutorial follows.
 
     *   *Note:* |Dmax| is in units of Å.
 
-#.  Return the |Dmax| value to that found by DATGNOM by clicking the “DATGNOM” button.
-    |Dmax| should be 101. By default, GNOM forces the P(r) function to zero at |Dmax|.
+#.  Return the |Dmax| value to that found by DATGNOM by clicking the "Find Dmax" button.
+    |Dmax| should be 102. By default, GNOM forces the P(r) function to zero at |Dmax|.
     For a high quality data set and a good choice of |Dmax|, P(r) should go to zero
     naturally. Change the “Force to 0 at Dmax” option to “N”.
 
@@ -70,9 +69,9 @@ The written version of the tutorial follows.
 #.  Reset it so that the P(r) function is again being forced to zero
     at |Dmax|.
 
-#.  RAW makes it easy to truncate your data to a q\ :sub:`max` of 8/|Rg|,
-    which is the recommended maximum q value for bead model reconstructions
-    with DAMMIF/N. Check the 'Cut to q_max=8/Rg' box to truncate the data.
+#.  RAW makes it easy to truncate your data for bead model reconstructions with ,
+    DAMMIF/N by setting q\ :sub:`max` to 8/|Rg| or 0.30, whichever is smaller.
+    Check the "Truncate for DAMMIF/N" box to truncate the data.
 
     |gnom_cutrg_png|
 

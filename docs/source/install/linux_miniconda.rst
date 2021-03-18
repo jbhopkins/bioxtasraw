@@ -32,13 +32,11 @@ Linux install from source instructions
 
     *   ``conda upgrade conda pip wheel setuptools``
 
-    *   ``conda install numpy scipy 'matplotlib<3.2' pillow numba h5py cython numexpr``
+    *   ``conda install numpy scipy matplotlib pillow numba h5py cython numexpr reportlab``
 
-    *  ``conda install -c conda-forge 'wxpython<4.1'``
+    *  ``conda install -c conda-forge wxpython dbus-python fabio pyfai hdf5plugin``
 
     *   ``conda install -c conda-forge dbus-python``
-
-    *   ``pip install silx fabio pyFAI hdf5plugin``
 
 #.  Download RAW source code from sourceforge
 
