@@ -73,6 +73,35 @@ def test_save_profile(gi_sub_profile, temp_directory):
 
     assert test_profile == exp_profile
 
+def test_save_profile_sans(sans_profile, temp_directory):
+    raw.save_profile(sans_profile, 'test_sans_profile.dat', temp_directory)
+
+    with open(os.path.join(temp_directory, 'test_sans_profile.dat'), 'r') as f:
+        test_profile = f.read()
+
+    with open(os.path.join('.', 'data', 'sans_data.dat'), 'r') as f:
+        exp_profile = f.read()
+
+    exclude_keys = ['filename']
+
+    test_profile = test_profile.split('\n')
+    for line in test_profile:
+        for key in exclude_keys:
+            if key in line:
+                test_profile.remove(line)
+
+    test_profile='\n'.join(test_profile)
+
+    exp_profile = exp_profile.split('\n')
+    for line in exp_profile:
+        for key in exclude_keys:
+            if key in line:
+                exp_profile.remove(line)
+
+    exp_profile='\n'.join(exp_profile)
+
+    assert test_profile == exp_profile
+
 def test_save_gnom_ift(gi_gnom_ift, temp_directory):
     raw.save_ift(gi_gnom_ift, 'test_gnom_ift.out', temp_directory)
 
