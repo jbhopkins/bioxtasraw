@@ -1991,13 +1991,13 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
 
     return mw, shape, dmax
 
-def auto_dmax(profile, dmax_thresh=0.015, dmax_low_bound=0.5, dmax_high_bound=1.5,
+def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5,
     settings=None, use_atsas=True, single_proc=False):
     """
     Automatically calculate the maximum dimension (Dmax) value of a profile.
     By default uses BIFT, DATGNOM, and DATCLASS to find a starting value and
     then refines that starting value using GNOM. If use_atsas is False it just
-    returns the BIFT value.
+    returns the BIFT value. It requires having an Rg from the Guineir fit.
 
     Parameters
     ----------
@@ -2113,6 +2113,23 @@ def auto_dmax(profile, dmax_thresh=0.015, dmax_low_bound=0.5, dmax_high_bound=1.
                 dmax = dmax -1
                 ift_results = gnom(profile, dmax)
                 ift = ift_results[0]
+
+            #Refine if Dmax is too long
+            ift_results = gnom(profile, dmax, dmax_zero=False)
+            ift_unforced = ift_results[0]
+
+            refined_shorter = False
+
+            while (dmax > dmax_start*dmax_low_bound
+                and ift_unforced.p[-1]<dmax_thresh*ift_unforced.p.max()):
+                dmax = dmax -1
+                ift_results = gnom(profile, dmax, dmax_zero=False)
+                ift_unforced = ift_results[0]
+
+                refined_shorter = True
+
+            if refined_shorter:
+                dmax = dmax +1
 
             if dmax_start == dmax:
                 #Refine if Dmax is too short
@@ -4095,7 +4112,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
         I_fit, I_extrap, err_extrap, all_chi_sq, all_rg, all_support_vol)
 
 def denss_average(densities, side, prefix, datadir, n_proc=1,
-    abort_event=threading.Event()):
+    abort_event=None):
     """
     Averages multiple electron densities to produce a single average density.
     Uses the averaging procedure from the DENSS package. Function blocks until
@@ -4115,9 +4132,9 @@ def denss_average(densities, side, prefix, datadir, n_proc=1,
     n_proc: int
         The number of processors to use. This could be up to as many cores
         as your computer has.
-    abort_event: :class:`threading.Event`, optional
-        A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
-        event is set it will abort the denss average run.
+    abort_event: :class:`multiprocessing.Manager.Event`, optional
+        A :class:`multiprocessing.ManagerEvent` If this event is set it will abort
+        the denss average run.
 
     Returns
     -------
@@ -4154,19 +4171,19 @@ def denss_average(densities, side, prefix, datadir, n_proc=1,
     allrhos, scores = DENSS.run_enantiomers(densities, n_proc,
         single_proc=single_proc, abort_event=abort_event, gui=False)
 
-    if abort_event.is_set():
+    if abort_event is not None and abort_event.is_set():
         return np.array([-1]), -1, -1, -1, -1, np.array([-1]), np.array([-1])
 
     refrho = DENSS.binary_average(allrhos, n_proc, single_proc=single_proc,
         abort_event=abort_event)
 
-    if abort_event.is_set():
+    if abort_event is not None and abort_event.is_set():
         return np.array([-1]), -1, -1, -1, -1, np.array([-1]), np.array([-1])
 
     aligned, scores = DENSS.align_multiple(refrho, allrhos, n_proc,
         single_proc=single_proc, abort_event=abort_event)
 
-    if abort_event.is_set():
+    if abort_event is not None and abort_event.is_set():
         return np.array([-1]), -1, -1, -1, -1, np.array([-1]), np.array([-1])
 
     #filter rhos with scores below the mean - 2*standard deviation.
@@ -4207,7 +4224,7 @@ def denss_average(densities, side, prefix, datadir, n_proc=1,
 
 def denss_align(density, side, ref_file, ref_datadir='.',  prefix='',
     save_datadir='.', save=True, center=True, resolution=15.0, enantiomer=True,
-    n_proc=1, abort_event=threading.Event()):
+    n_proc=1, abort_event=None):
     """
     Aligns each input electron density against a reference model. The
     reference model can either be a PDB model (.pdb) or electron density (.mrc).
@@ -4247,9 +4264,9 @@ def denss_align(density, side, ref_file, ref_datadir='.',  prefix='',
     n_proc: int, optional
         The number of processors to use. This could be up to as many cores
         as your computer has.
-    abort_event: :class:`threading.Event`, optional
-        A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
-        event is set it will abort the denss average run.
+    abort_event: :class:`multiprocessing.Manager.Event`, optional
+        A :class:`multiprocessing.Manager.Event` If this event is set it will abort
+        the denss alignment run.
 
     Returns
     -------
@@ -4277,7 +4294,7 @@ def denss_align(density, side, ref_file, ref_datadir='.',  prefix='',
         cores=n_proc, single_proc=single_proc, gui=False,
         abort_event=abort_event)
 
-    if abort_event.is_set():
+    if abort_event is not None and abort_event.is_set():
         return np.array([-1]), -1
 
     aligned_density = aligned_rhos[0]

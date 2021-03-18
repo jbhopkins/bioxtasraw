@@ -98,6 +98,17 @@ def test_bift(clean_gi_sub_profile, old_settings, gi_bift_ift):
     assert np.allclose(ift.r, gi_bift_ift.r)
     assert np.allclose(ift.p, gi_bift_ift.p)
 
+@pytest.mark.slow
+def test_bift_single_proc(clean_gi_sub_profile, old_settings, gi_bift_ift):
+    (ift, dmax, rg, i0, dmax_err, rg_err, i0_err, chi_sq, log_alpha,
+        log_alpha_err, evidence, evidence_err) = raw.bift(clean_gi_sub_profile,
+        settings=old_settings, single_proc=True)
+
+    assert np.allclose(dmax, gi_bift_ift.getParameter('dmax'))
+    assert np.allclose(rg, gi_bift_ift.getParameter('rg'))
+    assert np.allclose(ift.r, gi_bift_ift.r)
+    assert np.allclose(ift.p, gi_bift_ift.p)
+
 @pytest.mark.atsas
 def test_datgnom(clean_gi_sub_profile):
     (ift, dmax, rg, i0, rg_err, i0_err, total_est, chi_sq, alpha,
@@ -122,16 +133,17 @@ def test_gnom(clean_gi_sub_profile, gi_gnom_ift):
 def test_auto_dmax(clean_gi_sub_profile):
     dmax = raw.auto_dmax(clean_gi_sub_profile)
 
-    assert dmax == 106
+    assert dmax == 102
 
+@pytest.mark.slow
 def test_auto_dmax_no_atsas(clean_gi_sub_profile):
     dmax = raw.auto_dmax(clean_gi_sub_profile, use_atsas=False)
 
     assert dmax == 106
 
-@pytest.mark.atsas
-def test_auto_dmax_single_proc(clean_gi_sub_profile):
-    dmax = raw.auto_dmax(clean_gi_sub_profile, single_proc=True)
+@pytest.mark.slow
+def test_auto_dmax_single_proc_no_atsas(clean_gi_sub_profile):
+    dmax = raw.auto_dmax(clean_gi_sub_profile, single_proc=True, use_atsas=False)
 
     assert dmax == 106
 

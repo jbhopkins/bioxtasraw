@@ -4932,8 +4932,7 @@ class GNOMControlPanel(wx.Panel):
             single_proc = False
 
         try:
-            dmax = RAWAPI.auto_dmax(save_sasm, single_proc=single_proc
-                )
+            dmax = RAWAPI.auto_dmax(save_sasm, single_proc=single_proc)
         except Exception as e:
             dmax = -1
             msg = ("Automatic Dmax determination failed with the following error:\n"

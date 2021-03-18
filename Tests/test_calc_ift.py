@@ -113,7 +113,27 @@ def test_denss_average(temp_directory):
 
     (average_rho, mean_cor, std_cor, threshold, res, scores,
         fsc) = raw.denss_average(np.array(rhos), sides[0], 'denss',
-        temp_directory)
+        temp_directory, n_proc=2)
+
+    assert np.isclose(average_rho.sum(), 11.779369592666626)
+    assert np.isclose(mean_cor, 0.9631843704037497)
+    assert np.isclose(std_cor, 0.0054794183741265655, rtol=1e-3)
+    assert res == 30.6
+    assert os.path.exists(os.path.join(temp_directory, 'denss_average.log'))
+    assert os.path.exists(os.path.join(temp_directory, 'denss_fsc.dat'))
+    assert os.path.exists(os.path.join(temp_directory, 'denss_average.mrc'))
+
+@pytest.mark.very_slow
+def test_denss_average_single_proc(temp_directory):
+    fnames = ['./data/denss_data/glucose_isomerase_{:02d}.mrc'.format(i)
+        for i in range(1, 5)]
+
+    for fname in fnames:
+        rhos, sides = raw.load_mrc(fnames)
+
+    (average_rho, mean_cor, std_cor, threshold, res, scores,
+        fsc) = raw.denss_average(np.array(rhos), sides[0], 'denss',
+        temp_directory, n_proc=1)
 
     assert np.isclose(average_rho.sum(), 11.779369592666626)
     assert np.isclose(mean_cor, 0.9631843704037497)
@@ -128,7 +148,17 @@ def test_denss_align(temp_directory):
     rhos, sides = raw.load_mrc(['./data/denss_data/glucose_isomerase_01.mrc'])
 
     aligned_density, score = raw.denss_align(rhos[0], sides[0], '1XIB_4mer.pdb',
-        './data/dammif_data/', save_datadir=temp_directory)
+        './data/dammif_data/', save_datadir=temp_directory, n_proc=2)
+
+    assert np.isclose(score, 0.8871934673216091)
+    assert np.isclose(aligned_density.sum(), 11.779369354248047)
+
+@pytest.mark.very_slow
+def test_denss_align_single_proc(temp_directory):
+    rhos, sides = raw.load_mrc(['./data/denss_data/glucose_isomerase_01.mrc'])
+
+    aligned_density, score = raw.denss_align(rhos[0], sides[0], '1XIB_4mer.pdb',
+        './data/dammif_data/', save_datadir=temp_directory, n_proc=1)
 
     assert np.isclose(score, 0.8871934673216091)
     assert np.isclose(aligned_density.sum(), 11.779369354248047)
