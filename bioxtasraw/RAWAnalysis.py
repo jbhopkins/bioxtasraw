@@ -1627,9 +1627,9 @@ class MolWeightFrame(wx.Frame):
                 self.has_atsas = False
 
         if not self.has_atsas:
-            size = (min(500, client_display.Width), min(550, client_display.Height))
+            size = (min(525, client_display.Width), min(550, client_display.Height))
         else:
-            size = (min(725, client_display.Width), min(550, client_display.Height))
+            size = (min(750, client_display.Width), min(550, client_display.Height))
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
@@ -3839,7 +3839,7 @@ class GNOMFrame(wx.Frame):
     def __init__(self, parent, title, sasm, manip_item):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(800, client_display.Width), min(700, client_display.Height))
+        size = (min(825, client_display.Width), min(700, client_display.Height))
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
@@ -3861,10 +3861,10 @@ class GNOMFrame(wx.Frame):
         self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY)
         self.controlPanel = GNOMControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(290))
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(315))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter1.SetMinimumPaneSize(self._FromDIP(290))   #Back compatability with older wxpython versions
+            splitter1.SetMinimumPaneSize(self._FromDIP(315))   #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -13066,7 +13066,7 @@ class EFAFrame(wx.Frame):
     def __init__(self, parent, title, secm, manip_item):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(950, client_display.Width), min(750, client_display.Height))
+        size = (min(950, client_display.Width), min(800, client_display.Height))
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
@@ -13136,10 +13136,10 @@ class EFAFrame(wx.Frame):
         self.controlPanel2 = EFAControlPanel2(self.splitter2, -1, self.secm,
             self.manip_item, self, 'EFA')
 
-        self.splitter2.SplitVertically(self.controlPanel2, self.plotPanel2, self._FromDIP(300))
+        self.splitter2.SplitVertically(self.controlPanel2, self.plotPanel2, self._FromDIP(325))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter2.SetMinimumPaneSize(self._FromDIP(300))    #Back compatability with older wxpython versions
+            self.splitter2.SetMinimumPaneSize(self._FromDIP(325))    #Back compatability with older wxpython versions
         else:
             self.splitter2.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -13152,10 +13152,10 @@ class EFAFrame(wx.Frame):
         self.plotPanel3 = EFAResultsPlotPanel3(self.splitter3, -1)
         self.controlPanel3 = EFAControlPanel3(self.splitter3, -1, self.secm, self.manip_item)
 
-        self.splitter3.SplitVertically(self.controlPanel3, self.plotPanel3, self._FromDIP(300))
+        self.splitter3.SplitVertically(self.controlPanel3, self.plotPanel3, self._FromDIP(325))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter3.SetMinimumPaneSize(self._FromDIP(300))    #Back compatability with older wxpython versions
+            self.splitter3.SetMinimumPaneSize(self._FromDIP(325))    #Back compatability with older wxpython versions
         else:
             self.splitter3.SetMinimumPaneSize(self._FromDIP(50))
 
