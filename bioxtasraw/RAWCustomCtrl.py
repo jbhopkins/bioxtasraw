@@ -938,7 +938,7 @@ class ItemList(wx.Panel):
             self.list_panel_sizer.Add(item, flag=wx.EXPAND)
             self.all_items.append(item)
 
-        self.resize_list
+        self.resize_list()
 
     def mark_item(self, item):
         self._marked_item = item

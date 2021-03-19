@@ -6219,7 +6219,7 @@ class FilePanel(wx.Panel):
         box = wx.StaticBox(self, -1, 'Background File:')
         bg_label_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
-        bg_filename = wx.StaticText(self, -1, 'None')
+        bg_filename = wx.StaticText(box, -1, 'None')
         bg_filename.SetMinSize(self._FromDIP((230,20)))
 
         bg_label_sizer.Add(bg_filename, 1, wx.EXPAND)
@@ -11656,15 +11656,17 @@ class SeriesControlPanel(wx.Panel):
 
     def createControls(self):
 
+        load_box = wx.StaticBox(self, -1, 'Load/Online Mode')
+
         sizer = wx.BoxSizer(wx.VERTICAL)
 
-        select_button = wx.Button(self, -1, 'Select')
+        select_button = wx.Button(load_box, -1, 'Select')
         select_button.Bind(wx.EVT_BUTTON, self._onSelectButton)
 
-        update_button = wx.Button(self, -1, 'Update')
+        update_button = wx.Button(load_box, -1, 'Update')
         update_button.Bind(wx.EVT_BUTTON, self._onUpdateButton)
 
-        self.online_mode_button = wx.CheckBox(self, -1, "AutoUpdate")
+        self.online_mode_button = wx.CheckBox(load_box, -1, "AutoUpdate")
         self.online_mode_button.SetValue(self.seriesIsOnline)
         self.online_mode_button.Bind(wx.EVT_CHECKBOX, self._onOnlineButton)
 
@@ -11677,9 +11679,9 @@ class SeriesControlPanel(wx.Panel):
 
             if type == 'imghdr':
 
-                labelbox = wx.StaticText(self, -1, label)
+                labelbox = wx.StaticText(load_box, -1, label)
 
-                self.image_prefix_box=wx.TextCtrl(self, id=id,
+                self.image_prefix_box=wx.TextCtrl(load_box, id=id,
                     value=self.image_prefix, style=wx.TE_READONLY)
 
                 img_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -11691,10 +11693,10 @@ class SeriesControlPanel(wx.Panel):
                 img_sizer.Add(select_button, flag=wx.ALIGN_CENTER_VERTICAL)
 
             elif type == 'iframenum':
-                labelbox = wx.StaticText(self, -1, "Frames:")
-                labelbox2=wx.StaticText(self,-1,"to")
+                labelbox = wx.StaticText(load_box, -1, "Frames:")
+                labelbox2=wx.StaticText(load_box,-1,"to")
 
-                self.initial_frame_number_box = wx.TextCtrl(self, id=id,
+                self.initial_frame_number_box = wx.TextCtrl(load_box, id=id,
                     value=self.initial_frame_number, size=self._FromDIP((45,-1)),
                     style=wx.TE_READONLY)
 
@@ -11708,7 +11710,7 @@ class SeriesControlPanel(wx.Panel):
                     border=self._FromDIP(2))
 
             elif type == 'fframenum':
-                self.final_frame_number_box = wx.TextCtrl(self, id=id,
+                self.final_frame_number_box = wx.TextCtrl(load_box, id=id,
                     value=self.final_frame_number, size=self._FromDIP((45,-1)),
                     style=wx.TE_READONLY)
 
@@ -11722,7 +11724,6 @@ class SeriesControlPanel(wx.Panel):
             border=self._FromDIP(2))
 
 
-        load_box = wx.StaticBox(self, -1, 'Load/Online Mode')
         load_sizer = wx.StaticBoxSizer(load_box, wx.VERTICAL)
         load_sizer.Add(img_sizer, 0, flag = wx.EXPAND|wx.ALL,
             border=self._FromDIP(2))
@@ -11731,6 +11732,8 @@ class SeriesControlPanel(wx.Panel):
 
         sizer.Add(load_sizer, 0, wx.EXPAND | wx.BOTTOM, self._FromDIP(5))
 
+
+        send_box = wx.StaticBox(self, -1, 'Data to profiles plot')
 
         selected_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -11742,9 +11745,9 @@ class SeriesControlPanel(wx.Panel):
 
             if ctrl_type == 'isframenum':
 
-                labelbox = wx.StaticText(self, -1, "Frames:")
-                labelbox2 = wx.StaticText(self, -1, "to")
-                self.initial_selected_box = wx.TextCtrl(self, ctrl_id,
+                labelbox = wx.StaticText(send_box, -1, "Frames:")
+                labelbox2 = wx.StaticText(send_box, -1, "to")
+                self.initial_selected_box = wx.TextCtrl(send_box, ctrl_id,
                     value=self.initial_selected_frame, size=self._FromDIP((50,-1)))
 
                 selected_sizer.Add(labelbox, border=self._FromDIP(2),
@@ -11756,14 +11759,14 @@ class SeriesControlPanel(wx.Panel):
                     flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
 
             elif ctrl_type == 'fsframenum':
-                self.final_selected_box = wx.TextCtrl(self, ctrl_id,
+                self.final_selected_box = wx.TextCtrl(send_box, ctrl_id,
                     value=self.final_selected_frame, size=self._FromDIP((50,-1)))
                 selected_sizer.Add(self.final_selected_box,
                     border=self._FromDIP(5), flag=wx.ALIGN_CENTER_VERTICAL
                     |wx.RIGHT)
 
         ####
-        self.data_type = wx.Choice(self,
+        self.data_type = wx.Choice(send_box,
             choices=['Unsubtracted', 'Subtracted', 'Baseline Corrected'])
         self.data_type.SetSelection(0)
 
@@ -11771,9 +11774,9 @@ class SeriesControlPanel(wx.Panel):
 
         selected_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        frames_plot_button = wx.Button(self, -1, 'Plot')
+        frames_plot_button = wx.Button(send_box, -1, 'Plot')
         frames_plot_button.Bind(wx.EVT_BUTTON, self._onFramesToMainPlot)
-        average_plot_button = wx.Button(self, -1, 'Average')
+        average_plot_button = wx.Button(send_box, -1, 'Average')
         average_plot_button.Bind(wx.EVT_BUTTON, self._onAverageToMainPlot)
 
         selected_button_sizer.Add(frames_plot_button, 0, border=self._FromDIP(5),
@@ -11781,7 +11784,7 @@ class SeriesControlPanel(wx.Panel):
         selected_button_sizer.Add(average_plot_button, 0, border=self._FromDIP(5),
             flag =wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
 
-        send_box = wx.StaticBox(self, -1, 'Data to profiles plot')
+
         send_sizer = wx.StaticBoxSizer(send_box, wx.VERTICAL)
 
         send_sizer.Add(selected_sizer, flag=wx.EXPAND|wx.ALL, border=self._FromDIP(2))
@@ -12292,11 +12295,11 @@ class MaskingPanel(scrolled.ScrolledPanel):
     def _create_layout(self):
         manual_box = wx.StaticBox(self, -1, 'Mask Drawing')
         self.manual_boxsizer = wx.StaticBoxSizer(manual_box)
-        self.manual_boxsizer.Add(self._createDrawCtrls(), 1)
+        self.manual_boxsizer.Add(self._createDrawCtrls(manual_box), 1)
 
         auto_box = wx.StaticBox(self, -1, 'Mask Creation')
         auto_boxsizer = wx.StaticBoxSizer(auto_box)
-        auto_boxsizer.Add(self._createMaskSelector(), 0)
+        auto_boxsizer.Add(self._createMaskSelector(auto_box), 0)
 
         button_sizer = self._createButtonSizer()
 
@@ -12308,13 +12311,14 @@ class MaskingPanel(scrolled.ScrolledPanel):
 
         self.SetSizer(self.sizer)
 
-    def _createDrawCtrls(self):
+    def _createDrawCtrls(self, parent):
+        man_box = wx.StaticBox(parent, label='Manual')
 
-        self.circle_button = wxbutton.GenBitmapToggleButton(self, self.CIRCLE_ID,
+        self.circle_button = wxbutton.GenBitmapToggleButton(man_box, self.CIRCLE_ID,
             self.circle_bmp, size=self._FromDIP((60,60)))
-        self.rectangle_button = wxbutton.GenBitmapToggleButton(self, self.RECTANGLE_ID,
+        self.rectangle_button = wxbutton.GenBitmapToggleButton(man_box, self.RECTANGLE_ID,
             self.rectangle_bmp, size=self._FromDIP((60,60)))
-        self.polygon_button = wxbutton.GenBitmapToggleButton(self, self.POLYGON_ID,
+        self.polygon_button = wxbutton.GenBitmapToggleButton(man_box, self.POLYGON_ID,
             self.polygon_bmp, size=self._FromDIP((60,60)))
 
         self.circle_button.Bind(wx.EVT_BUTTON, self._onDrawButton)
@@ -12326,35 +12330,35 @@ class MaskingPanel(scrolled.ScrolledPanel):
         draw_sizer.Add(self.circle_button, flag=wx.ALIGN_CENTER_HORIZONTAL)
         draw_sizer.Add(self.rectangle_button, flag=wx.ALIGN_CENTER_HORIZONTAL)
         draw_sizer.Add(self.polygon_button, flag=wx.ALIGN_CENTER_HORIZONTAL)
-        draw_sizer.Add(wx.StaticText(self, label='Circle'),
+        draw_sizer.Add(wx.StaticText(man_box, label='Circle'),
             flag=wx.ALIGN_CENTER_HORIZONTAL)
-        draw_sizer.Add(wx.StaticText(self, label='Rectangle'),
+        draw_sizer.Add(wx.StaticText(man_box, label='Rectangle'),
             flag=wx.ALIGN_CENTER_HORIZONTAL)
-        draw_sizer.Add(wx.StaticText(self, label='Polygon'),
+        draw_sizer.Add(wx.StaticText(man_box, label='Polygon'),
             flag=wx.ALIGN_CENTER_HORIZONTAL)
 
-        self.circ_radius = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
-        self.circ_x = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
-        self.circ_y = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
-        circ_btn2 = wx.Button(self, label='Create')
+        self.circ_radius = wx.TextCtrl(man_box, size=self._FromDIP((50,-1)))
+        self.circ_x = wx.TextCtrl(man_box, size=self._FromDIP((50,-1)))
+        self.circ_y = wx.TextCtrl(man_box, size=self._FromDIP((50,-1)))
+        circ_btn2 = wx.Button(man_box, label='Create')
         circ_btn2.Bind(wx.EVT_BUTTON, self._on_create_circle)
 
         circ_sub_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
-        circ_sub_sizer1.Add(wx.StaticText(self, label='Circle'),
+        circ_sub_sizer1.Add(wx.StaticText(man_box, label='Circle'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         circ_sub_sizer1.Add(circ_btn2, border=self._FromDIP(15), flag=wx.LEFT
             |wx.ALIGN_CENTER_VERTICAL)
 
         circ_sub_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        circ_sub_sizer2.Add(wx.StaticText(self, label='Radius:'),
+        circ_sub_sizer2.Add(wx.StaticText(man_box, label='Radius:'),
             border=self._FromDIP(15), flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         circ_sub_sizer2.Add(self.circ_radius, border=self._FromDIP(3),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        circ_sub_sizer2.Add(wx.StaticText(self, label='X cen.:'),
+        circ_sub_sizer2.Add(wx.StaticText(man_box, label='X cen.:'),
             border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         circ_sub_sizer2.Add(self.circ_x, border=self._FromDIP(3),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        circ_sub_sizer2.Add(wx.StaticText(self, label='Y cen.:'),
+        circ_sub_sizer2.Add(wx.StaticText(man_box, label='Y cen.:'),
             border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         circ_sub_sizer2.Add(self.circ_y, border=self._FromDIP(3),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
@@ -12363,33 +12367,33 @@ class MaskingPanel(scrolled.ScrolledPanel):
         circ_sizer.Add(circ_sub_sizer1)
         circ_sizer.Add(circ_sub_sizer2, border=self._FromDIP(3), flag=wx.TOP)
 
-        self.rect_width = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
-        self.rect_height = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
-        self.rect_x = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
-        self.rect_y = wx.TextCtrl(self, size=self._FromDIP((50,-1)))
-        rect_btn2 = wx.Button(self, label='Create')
+        self.rect_width = wx.TextCtrl(man_box, size=self._FromDIP((50,-1)))
+        self.rect_height = wx.TextCtrl(man_box, size=self._FromDIP((50,-1)))
+        self.rect_x = wx.TextCtrl(man_box, size=self._FromDIP((50,-1)))
+        self.rect_y = wx.TextCtrl(man_box, size=self._FromDIP((50,-1)))
+        rect_btn2 = wx.Button(man_box, label='Create')
         rect_btn2.Bind(wx.EVT_BUTTON, self._on_create_rectangle)
 
         rect_sub_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
-        rect_sub_sizer1.Add(wx.StaticText(self, label='Rectangle'),
+        rect_sub_sizer1.Add(wx.StaticText(man_box, label='Rectangle'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         rect_sub_sizer1.Add(rect_btn2, border=self._FromDIP(15), flag=wx.LEFT
             |wx.ALIGN_CENTER_VERTICAL)
 
         rect_sub_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        rect_sub_sizer2.Add(wx.StaticText(self, label='X1:'),
+        rect_sub_sizer2.Add(wx.StaticText(man_box, label='X1:'),
             border=self._FromDIP(15), flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         rect_sub_sizer2.Add(self.rect_x, border=self._FromDIP(3),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        rect_sub_sizer2.Add(wx.StaticText(self, label='Y1:'),
+        rect_sub_sizer2.Add(wx.StaticText(man_box, label='Y1:'),
             border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         rect_sub_sizer2.Add(self.rect_y, border=self._FromDIP(3),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        rect_sub_sizer2.Add(wx.StaticText(self, label='W.:'),
+        rect_sub_sizer2.Add(wx.StaticText(man_box, label='W.:'),
             border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         rect_sub_sizer2.Add(self.rect_width, border=self._FromDIP(3),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
-        rect_sub_sizer2.Add(wx.StaticText(self, label='H.:'),
+        rect_sub_sizer2.Add(wx.StaticText(man_box, label='H.:'),
             border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
         rect_sub_sizer2.Add(self.rect_height, border=self._FromDIP(3),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
@@ -12398,24 +12402,26 @@ class MaskingPanel(scrolled.ScrolledPanel):
         rect_sizer.Add(rect_sub_sizer1)
         rect_sizer.Add(rect_sub_sizer2, border=self._FromDIP(3), flag=wx.TOP)
 
-        man_box = wx.StaticBox(self, label='Manual')
+
         man_sizer = wx.StaticBoxSizer(man_box, wx.VERTICAL)
         man_sizer.Add(draw_sizer, border=self._FromDIP(3),
             flag=wx.ALIGN_CENTER_HORIZONTAL|wx.BOTTOM)
-        man_sizer.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL),
+        man_sizer.Add(wx.StaticLine(man_box, style=wx.LI_HORIZONTAL),
             border=self._FromDIP(10), flag=wx.LEFT|wx.RIGHT|wx.EXPAND)
         man_sizer.Add(circ_sizer, border=self._FromDIP(3), flag=wx.TOP)
         man_sizer.Add(rect_sizer, border=self._FromDIP(3), flag=wx.TOP)
 
 
-        self.auto_type = wx.Choice(self, choices=['>', '<','=', '>=', '<='])
+        auto_box = wx.StaticBox(parent, label='Automatic')
+
+        self.auto_type = wx.Choice(auto_box, choices=['>', '<','=', '>=', '<='])
         self.auto_type.SetSelection(2)
-        self.auto_val = wx.TextCtrl(self, value='-2', size=self._FromDIP((65,-1)))
-        auto_pixel_btn = wx.Button(self, label='Create')
+        self.auto_val = wx.TextCtrl(auto_box, value='-2', size=self._FromDIP((65,-1)))
+        auto_pixel_btn = wx.Button(auto_box, label='Create')
         auto_pixel_btn.Bind(wx.EVT_BUTTON, self._on_auto_pixel_mask)
 
         pixel_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        pixel_sizer.Add(wx.StaticText(self, label='Mask all pixels'),
+        pixel_sizer.Add(wx.StaticText(auto_box, label='Mask all pixels'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         pixel_sizer.Add(self.auto_type, border=self._FromDIP(3), flag=wx.LEFT
             |wx.ALIGN_CENTER_VERTICAL)
@@ -12424,36 +12430,38 @@ class MaskingPanel(scrolled.ScrolledPanel):
         pixel_sizer.Add(auto_pixel_btn, border=self._FromDIP(15), flag=wx.LEFT
             |wx.ALIGN_CENTER_VERTICAL)
 
-        self.auto_det_type = wx.Choice(self, choices=self._getDetList(),
+        self.auto_det_type = wx.Choice(auto_box, choices=self._getDetList(),
             size=self._FromDIP((150,-1)))
         self.auto_det_type.SetStringSelection(
             self._main_frame.raw_settings.get('Detector'))
-        auto_det_btn = wx.Button(self, label='Create')
+        auto_det_btn = wx.Button(auto_box, label='Create')
         auto_det_btn.Bind(wx.EVT_BUTTON, self._on_auto_det_mask)
 
         det_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        det_sizer.Add(wx.StaticText(self, label='Mask detector:'),
+        det_sizer.Add(wx.StaticText(auto_box, label='Mask detector:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         det_sizer.Add(self.auto_det_type, proportion=1, border=self._FromDIP(3),
             flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
         det_sizer.Add(auto_det_btn, border=self._FromDIP(15), flag=wx.LEFT
             |wx.ALIGN_CENTER_VERTICAL)
 
-        auto_box = wx.StaticBox(self, label='Automatic')
+
         auto_sizer = wx.StaticBoxSizer(auto_box, wx.VERTICAL)
         auto_sizer.Add(pixel_sizer)
         auto_sizer.Add(det_sizer, border=self._FromDIP(3), flag=wx.TOP|wx.EXPAND)
 
 
-        options = self._createMaskOptions()
-        options_sizer = wx.StaticBoxSizer(wx.StaticBox(self, label='Options'))
+        options_box = wx.StaticBox(parent, label='Options')
+
+        options = self._createMaskOptions(options_box)
+        options_sizer = wx.StaticBoxSizer(options_box)
         options_sizer.Add(options)
 
-        save_button= wx.Button(self, -1, "Save to file")
+        save_button= wx.Button(parent, -1, "Save to file")
         save_button.Bind(wx.EVT_BUTTON, self._onSaveMaskToFile)
-        load_button= wx.Button(self, -1, "Load from file")
+        load_button= wx.Button(parent, -1, "Load from file")
         load_button.Bind(wx.EVT_BUTTON, self._onLoadMaskFromFile)
-        clear_button= wx.Button(self, -1, "Clear")
+        clear_button= wx.Button(parent, -1, "Clear")
         clear_button.Bind(wx.EVT_BUTTON, self._onClearDrawnMasks)
 
         button_sizer = wx.BoxSizer()
@@ -12474,10 +12482,10 @@ class MaskingPanel(scrolled.ScrolledPanel):
 
         return final_sizer
 
-    def _createMaskOptions(self):
+    def _createMaskOptions(self, parent):
 
         sizer = wx.BoxSizer(wx.VERTICAL)
-        center_chkbox = wx.CheckBox(self, -1, 'Show Beam Center')
+        center_chkbox = wx.CheckBox(parent, -1, 'Show Beam Center')
         center_chkbox.Bind(wx.EVT_CHECKBOX, self._onShowCenterChkbox)
         sizer.Add(center_chkbox)
 
@@ -12499,21 +12507,21 @@ class MaskingPanel(scrolled.ScrolledPanel):
             self.show_center = False
             wx.CallAfter(self.image_panel.removeCenterPatch)
 
-    def _createMaskSelector(self):
+    def _createMaskSelector(self, parent):
 
         sizer = wx.BoxSizer()
 
-        self.selector_choice = wx.Choice(self, -1,
+        self.selector_choice = wx.Choice(parent, -1,
             choices=list(self.mask_choices.keys()))
         self.selector_choice.SetStringSelection('Beamstop mask')
 
-        set_button = wx.Button(self, -1, 'Set', size=self._FromDIP((60,-1)))
+        set_button = wx.Button(parent, -1, 'Set', size=self._FromDIP((60,-1)))
         set_button.Bind(wx.EVT_BUTTON, self._onSetButton)
 
-        clear_button = wx.Button(self, -1, 'Remove', size=self._FromDIP((65,-1)))
+        clear_button = wx.Button(parent, -1, 'Remove', size=self._FromDIP((65,-1)))
         clear_button.Bind(wx.EVT_BUTTON, self._onClearButton)
 
-        show_button = wx.Button(self, -1, 'Show', size=self._FromDIP((60,-1)))
+        show_button = wx.Button(parent, -1, 'Show', size=self._FromDIP((60,-1)))
         show_button.Bind(wx.EVT_BUTTON, self._onShowButton)
 
         sizer.Add(self.selector_choice, 1, wx.EXPAND | wx.RIGHT,
@@ -12950,8 +12958,8 @@ class CenteringPanel(scrolled.ScrolledPanel):
         manual_box = wx.StaticBox(self, -1, 'Manual Center/Calibration Adjustments')
         self.manual_boxsizer = wx.StaticBoxSizer(manual_box)
 
-        button_sizer = self._createCenteringButtonsSizer()
-        info_sizer = self._createCenteringInfoSizer()
+        button_sizer = self._createCenteringButtonsSizer(manual_box)
+        info_sizer = self._createCenteringInfoSizer(manual_box)
 
         self.manual_boxsizer.Add(info_sizer, 0, wx.ALL, border=self._FromDIP(5))
         self.manual_boxsizer.Add((1,1), 1, wx.EXPAND)
@@ -12961,7 +12969,7 @@ class CenteringPanel(scrolled.ScrolledPanel):
         auto_box = wx.StaticBox(self, -1, 'Automatic Centering/Calibration')
         auto_boxsizer = wx.StaticBoxSizer(auto_box)
 
-        auto_sizer = self._createAutoCenteringSizer()
+        auto_sizer = self._createAutoCenteringSizer(auto_box)
         auto_boxsizer.Add(auto_sizer, 1, wx.EXPAND|wx.ALL, border=self._FromDIP(5))
 
         button_sizer = self._createButtonSizer()
@@ -13000,7 +13008,7 @@ class CenteringPanel(scrolled.ScrolledPanel):
         self.left_arrow_bmp = SASUtils.load_DIP_bitmap(left, wx.BITMAP_TYPE_PNG)
         self.target_bmp = SASUtils.load_DIP_bitmap(target, wx.BITMAP_TYPE_PNG)
 
-    def _createAutoCenteringSizer(self):
+    def _createAutoCenteringSizer(self, parent):
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -13008,7 +13016,7 @@ class CenteringPanel(scrolled.ScrolledPanel):
             vgap=self._FromDIP(3))
 
         for label, newid in self._fix_list:
-            chkbox = wx.CheckBox(self, newid, label)
+            chkbox = wx.CheckBox(parent, newid, label)
             if label == 'Wavelength':
                 chkbox.SetValue(True)
             else:
@@ -13018,18 +13026,18 @@ class CenteringPanel(scrolled.ScrolledPanel):
 
         fix_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        fix_text = wx.StaticText(self, -1, 'Fix:')
+        fix_text = wx.StaticText(parent, -1, 'Fix:')
         fix_sizer.Add(fix_text, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(3))
         fix_sizer.Add(fix_ctrl_sizer, 1, wx.RIGHT, border=self._FromDIP(3))
 
 
-        ring_text = wx.StaticText(self, -1, 'Ring #:')
-        ring_ctrl = RAWCustomCtrl.IntSpinCtrl(self, self.pyfai_autofit_ids['ring'],
+        ring_text = wx.StaticText(parent, -1, 'Ring #:')
+        ring_ctrl = RAWCustomCtrl.IntSpinCtrl(parent, self.pyfai_autofit_ids['ring'],
             min_val=0, max_val=100, TextLength=43)
         ring_ctrl.SetValue(0)
         ring_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onAutoRingSpinner)
 
-        ring_remove_btn = wx.Button(self, self.pyfai_autofit_ids['remove_pts'],
+        ring_remove_btn = wx.Button(parent, self.pyfai_autofit_ids['remove_pts'],
             'Clear Last Selected Points')
         ring_remove_btn.Bind(wx.EVT_BUTTON, self._onAutoRingRemoveButton)
         ring_remove_btn.Enable(False)
@@ -13041,26 +13049,26 @@ class CenteringPanel(scrolled.ScrolledPanel):
 
         det_list = self._getDetList()
 
-        det_text = wx.StaticText(self, -1, 'Detector: ')
-        det_choice = wx.Choice(self, self.pyfai_autofit_ids['detector'], choices = det_list)
+        det_text = wx.StaticText(parent, -1, 'Detector: ')
+        det_choice = wx.Choice(parent, self.pyfai_autofit_ids['detector'], choices = det_list)
         det_choice.SetStringSelection(self._main_frame.raw_settings.get('Detector'))
 
         det_sizer = wx.BoxSizer(wx.HORIZONTAL)
         det_sizer.Add(det_text, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(3))
         det_sizer.Add(det_choice, 0, wx.RIGHT, border=self._FromDIP(3))
 
-        start_btn = wx.Button(self, self.pyfai_autofit_ids['start'], 'Start')
+        start_btn = wx.Button(parent, self.pyfai_autofit_ids['start'], 'Start')
         start_btn.Bind(wx.EVT_BUTTON, self._onAutoCenterStartButton)
 
-        done_btn = wx.Button(self, self.pyfai_autofit_ids['done'], 'Done')
+        done_btn = wx.Button(parent, self.pyfai_autofit_ids['done'], 'Done')
         done_btn.Bind(wx.EVT_BUTTON, self._onAutoCenterDoneButton)
         done_btn.Enable(False)
 
-        cancel_btn = wx.Button(self, self.pyfai_autofit_ids['cancel'], 'Cancel')
+        cancel_btn = wx.Button(parent, self.pyfai_autofit_ids['cancel'], 'Cancel')
         cancel_btn.Bind(wx.EVT_BUTTON, self._onAutoCenterCancelButton)
         cancel_btn.Enable(False)
 
-        help_btn = wx.Button(self, self.pyfai_autofit_ids['help'], 'How To Use')
+        help_btn = wx.Button(parent, self.pyfai_autofit_ids['help'], 'How To Use')
         help_btn.Bind(wx.EVT_BUTTON, self._onAutoCenterHelpButton)
 
         ctrl_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -13077,16 +13085,16 @@ class CenteringPanel(scrolled.ScrolledPanel):
 
         return top_sizer
 
-    def _createCenteringButtonsSizer(self):
+    def _createCenteringButtonsSizer(self, parent):
 
         buttonsizer = wx.FlexGridSizer(rows=3, cols=3, hgap=self._FromDIP(1),
             vgap=self._FromDIP(1))
 
-        up_button = wx.BitmapButton(self, self.ID_UP, self.up_arrow_bmp)
-        down_button = wx.BitmapButton(self,self.ID_DOWN, self.down_arrow_bmp)
-        right_button = wx.BitmapButton(self, self.ID_RIGHT , self.right_arrow_bmp)
-        left_button = wx.BitmapButton(self, self.ID_LEFT, self.left_arrow_bmp)
-        target_button = wx.BitmapButton(self, self.ID_TARGET, self.target_bmp)
+        up_button = wx.BitmapButton(parent, self.ID_UP, self.up_arrow_bmp)
+        down_button = wx.BitmapButton(parent,self.ID_DOWN, self.down_arrow_bmp)
+        right_button = wx.BitmapButton(parent, self.ID_RIGHT , self.right_arrow_bmp)
+        left_button = wx.BitmapButton(parent, self.ID_LEFT, self.left_arrow_bmp)
+        target_button = wx.BitmapButton(parent, self.ID_TARGET, self.target_bmp)
 
         up_button.Bind(wx.EVT_LEFT_DOWN, self._onCenteringButtons)
         down_button.Bind(wx.EVT_LEFT_DOWN, self._onCenteringButtons)
@@ -13124,32 +13132,32 @@ class CenteringPanel(scrolled.ScrolledPanel):
 
         return buttonsizer
 
-    def _createCenteringInfoSizer(self):
+    def _createCenteringInfoSizer(self, parent):
 
         step_list= ['0.1', '1', '2', '5', '10', '20', '50', '100', '500']
 
         pattern_list = ['None'] + sorted(pyFAI.calibrant.names(), key = str.lower)
 
-        self._x_cent_text = wx.TextCtrl(self, -1, '0', size=self._FromDIP((65, -1)),
+        self._x_cent_text = wx.TextCtrl(parent, -1, '0', size=self._FromDIP((65, -1)),
             style = wx.TE_PROCESS_ENTER)
-        self._y_cent_text = wx.TextCtrl(self, -1, '0', size=self._FromDIP((65, -1)),
+        self._y_cent_text = wx.TextCtrl(parent, -1, '0', size=self._FromDIP((65, -1)),
             style = wx.TE_PROCESS_ENTER)
         self._y_cent_text.Bind(wx.EVT_TEXT_ENTER, self._onEnterInCenterCtrl)
         self._x_cent_text.Bind(wx.EVT_TEXT_ENTER, self._onEnterInCenterCtrl)
         self._x_cent_text.Bind(wx.EVT_KILL_FOCUS, self._onEnterInCenterCtrl)
         self._y_cent_text.Bind(wx.EVT_KILL_FOCUS, self._onEnterInCenterCtrl)
 
-        self._step_combo = wx.ComboBox(self, -1, choices = step_list)
+        self._step_combo = wx.ComboBox(parent, -1, choices = step_list)
         self._step_combo.Select(1)
 
-        self._wavelen_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength=70)
-        self._energy_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength=70)
-        self._pixel_x_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength=60)
-        self._pixel_y_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength=60)
-        self._sd_text = RAWCustomCtrl.FloatSpinCtrl(self, -1, TextLength = 80)
-        self._det_tilt_text = RAWCustomCtrl.FloatSpinCtrl(self, wx.ID_ANY,
+        self._wavelen_text = RAWCustomCtrl.FloatSpinCtrl(parent, -1, TextLength=70)
+        self._energy_text = RAWCustomCtrl.FloatSpinCtrl(parent, -1, TextLength=70)
+        self._pixel_x_text = RAWCustomCtrl.FloatSpinCtrl(parent, -1, TextLength=60)
+        self._pixel_y_text = RAWCustomCtrl.FloatSpinCtrl(parent, -1, TextLength=60)
+        self._sd_text = RAWCustomCtrl.FloatSpinCtrl(parent, -1, TextLength = 80)
+        self._det_tilt_text = RAWCustomCtrl.FloatSpinCtrl(parent, wx.ID_ANY,
             TextLength = 70)
-        self._det_tilt_plane_text = RAWCustomCtrl.FloatSpinCtrl(self, wx.ID_ANY,
+        self._det_tilt_plane_text = RAWCustomCtrl.FloatSpinCtrl(parent, wx.ID_ANY,
             TextLength = 70)
 
         self._sd_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onSampDetDistSpin)
@@ -13165,22 +13173,22 @@ class CenteringPanel(scrolled.ScrolledPanel):
             self._onPixelWavelengthChange)
         self._energy_text.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onEnergyChange)
 
-        self._pattern_list = wx.Choice(self, -1, choices = pattern_list)
+        self._pattern_list = wx.Choice(parent, -1, choices = pattern_list)
         if 'AgBh' in pattern_list:
             self._pattern_list.SetStringSelection('AgBh')
         else:
             self._pattern_list.Select(1)
         self._pattern_list.Bind(wx.EVT_CHOICE, self._onPatternChoice)
 
-        wavelen_label = wx.StaticText(self, -1, 'Wavelength [A]:')
-        energy_label = wx.StaticText(self, -1, 'Energy [keV]:')
-        sd_label = wx.StaticText(self, -1, 'Sample-Detector Distance [mm]:')
-        pixel_label = wx.StaticText(self, -1, 'Detector Pixel Size [um]:')
+        wavelen_label = wx.StaticText(parent, -1, 'Wavelength [A]:')
+        energy_label = wx.StaticText(parent, -1, 'Energy [keV]:')
+        sd_label = wx.StaticText(parent, -1, 'Sample-Detector Distance [mm]:')
+        pixel_label = wx.StaticText(parent, -1, 'Detector Pixel Size [um]:')
 
-        ylabel = wx.StaticText(self, -1, 'Y center:')
-        xlabel = wx.StaticText(self, -1, 'X center:')
-        step_label = wx.StaticText(self, -1, 'Steps:')
-        pattern_label = wx.StaticText(self, -1, 'Standard:')
+        ylabel = wx.StaticText(parent, -1, 'Y center:')
+        xlabel = wx.StaticText(parent, -1, 'X center:')
+        step_label = wx.StaticText(parent, -1, 'Steps:')
+        pattern_label = wx.StaticText(parent, -1, 'Standard:')
 
         x_sizer = wx.BoxSizer(wx.VERTICAL)
         y_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -13201,22 +13209,22 @@ class CenteringPanel(scrolled.ScrolledPanel):
         y_sizer.Add(ylabel, 0)
         y_sizer.Add(self._y_cent_text,0)
 
-        pixelsize_unit_sizer.Add(wx.StaticText(self, label='X:'),
+        pixelsize_unit_sizer.Add(wx.StaticText(parent, label='X:'),
             border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         pixelsize_unit_sizer.Add(self._pixel_x_text, 0, flag=wx.RIGHT
             |wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(3))
-        pixelsize_unit_sizer.Add(wx.StaticText(self, label='Y:'),
+        pixelsize_unit_sizer.Add(wx.StaticText(parent, label='Y:'),
             border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         pixelsize_unit_sizer.Add(self._pixel_y_text, 0, wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(3))
 
         tilt_1_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        tilt_1_sizer.Add(wx.StaticText(self, label='Tilt:'),
+        tilt_1_sizer.Add(wx.StaticText(parent, label='Tilt:'),
             border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         tilt_1_sizer.Add(self._det_tilt_text, flag=wx.ALIGN_CENTER_VERTICAL)
 
         tilt_2_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        tilt_2_sizer.Add(wx.StaticText(self, label='Tilt Plane Rot.:'),
+        tilt_2_sizer.Add(wx.StaticText(parent, label='Tilt Plane Rot.:'),
             border=self._FromDIP(3), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
         tilt_2_sizer.Add(self._det_tilt_plane_text, flag=wx.ALIGN_CENTER_VERTICAL)
 
@@ -13232,7 +13240,7 @@ class CenteringPanel(scrolled.ScrolledPanel):
         pixel_sizer.Add(pixel_label, 0, border=self._FromDIP(2), flag=wx.BOTTOM)
         pixel_sizer.Add(pixelsize_unit_sizer, 0)
 
-        tilt_sizer.Add(wx.StaticText(self, label='Detector angles [deg]:'),
+        tilt_sizer.Add(wx.StaticText(parent, label='Detector angles [deg]:'),
             border=self._FromDIP(2), flag=wx.BOTTOM)
         tilt_sizer.Add(tilt_1_sizer, border=self._FromDIP(2), flag=wx.BOTTOM)
         tilt_sizer.Add(tilt_2_sizer)

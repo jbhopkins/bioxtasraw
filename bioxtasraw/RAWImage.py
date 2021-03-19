@@ -1495,7 +1495,7 @@ class ImageSettingsDialog(wx.Dialog):
         box = wx.StaticBox(self, -1, 'Image parameters')
         finalfinal_sizer = wx.BoxSizer()
 
-        slidersizer = self.createSettingsWindow()
+        slidersizer = self.createSettingsWindow(box)
         scalesizer = self.createScaleSelector()
         colormapsizer = self.createColormapSelector()
 
@@ -1677,19 +1677,19 @@ class ImageSettingsDialog(wx.Dialog):
 
                 self.parent.updateImage()
 
-    def createSettingsWindow(self):
+    def createSettingsWindow(self, parent):
 
         finalSizer = wx.BoxSizer(wx.VERTICAL)
 
         for each in self.sliderinfo:
 
-            label = wx.StaticText(self, -1, each[0])
-            val = wx.TextCtrl(self, each[1], size=self._FromDIP((60, 21)),
+            label = wx.StaticText(parent, -1, each[0])
+            val = wx.TextCtrl(parent, each[1], size=self._FromDIP((60, 21)),
                 style=wx.TE_PROCESS_ENTER)
             val.Bind(wx.EVT_TEXT_ENTER, self.OnTxtEnter)
             val.Bind(wx.EVT_KILL_FOCUS, self.OnTxtEnter)
 
-            slider = wx.Slider(self, each[2], style = wx.HORIZONTAL)
+            slider = wx.Slider(parent, each[2], style = wx.HORIZONTAL)
 
             if platform.system() == 'Darwin':
                 slider.Bind(wx.EVT_SCROLL_THUMBRELEASE, self.OnSlider)
@@ -1718,7 +1718,7 @@ class ImageSettingsDialog(wx.Dialog):
             finalSizer.Add(hslider, 0, wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT,
                 border=self._FromDIP(5))
 
-        chkbox = wx.CheckBox(self, -1, 'Lock values')
+        chkbox = wx.CheckBox(parent, -1, 'Lock values')
         chkbox.Bind(wx.EVT_CHECKBOX, self.onLockValues)
         chkbox.SetValue(self.parent.plot_parameters['ClimLocked'])
 

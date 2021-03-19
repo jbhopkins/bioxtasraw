@@ -145,14 +145,14 @@ class ArtifactOptionsPanel(scrolled.ScrolledPanel):
                 type = param[1]
 
                 if type != 'bool':
-                    text = wx.StaticText(self, -1, label)
-                    ctrl = wx.TextCtrl(self, id, 'None', style=wx.TE_PROCESS_ENTER)
+                    text = wx.StaticText(box, -1, label)
+                    ctrl = wx.TextCtrl(box, id, 'None', style=wx.TE_PROCESS_ENTER)
 
                     grid_sizer.Add(text, 1, wx.EXPAND|wx.ALIGN_LEFT
                         |wx.ALIGN_CENTER_VERTICAL)
                     grid_sizer.Add(ctrl, 1, wx.EXPAND)
                 else:
-                    chk = wx.CheckBox(self, id, label)
+                    chk = wx.CheckBox(box, id, label)
                     chk.Bind(wx.EVT_CHECKBOX, self.onChkBox)
                     chkbox_sizer.Add(chk, 0, wx.EXPAND|wx.ALL,
                         border=self._FromDIP(5))
@@ -175,13 +175,13 @@ class ArtifactOptionsPanel(scrolled.ScrolledPanel):
             type = param[1]
 
             if type != 'bool':
-                text = wx.StaticText(self, -1, label)
-                ctrl = wx.TextCtrl(self, id, 'None', style = wx.TE_PROCESS_ENTER)
+                text = wx.StaticText(box, -1, label)
+                ctrl = wx.TextCtrl(box, id, 'None', style = wx.TE_PROCESS_ENTER)
 
                 grid_sizer.Add(text, 1, wx.EXPAND|wx.ALIGN_LEFT|wx.ALIGN_CENTER_VERTICAL)
                 grid_sizer.Add(ctrl, 1, wx.EXPAND)
             else:
-                chk = wx.CheckBox(self, id, label)
+                chk = wx.CheckBox(box, id, label)
                 chk.Bind(wx.EVT_CHECKBOX, self.onChkBox)
                 chkbox_sizer.Add(chk, 0, wx.EXPAND|wx.ALL,
                     border=self._FromDIP(5))
@@ -1285,13 +1285,13 @@ class ReductionNormalizationAbsScPanel(scrolled.ScrolledPanel):
     def _createWaterLayout(self):
         box = wx.StaticBox(self, -1, 'Absolute scaling using water')
 
-        self.abssc_chkbox = wx.CheckBox(self,
+        self.abssc_chkbox = wx.CheckBox(box,
             self.raw_settings.getId('NormAbsWater'), ('Normalize processed data '
             'to absolute scale using water'))
         self.abssc_chkbox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
 
-        file_sizer = self.createWaterFileSettings()
-        norm_const_sizer = self.createWaterNormConstants()
+        file_sizer = self.createWaterFileSettings(box)
+        norm_const_sizer = self.createWaterNormConstants(box)
         chkbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         chkbox_sizer.Add(self.abssc_chkbox, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP,
             border=self._FromDIP(5))
@@ -1303,20 +1303,22 @@ class ReductionNormalizationAbsScPanel(scrolled.ScrolledPanel):
         return chkbox_sizer
 
     def _createCarbonLayout(self):
+        box = wx.StaticBox(self, -1, 'Absolute scaling using glassy carbon')
+
         noOfRows = int(len(self.carbonFilesData))
         file_sizer = wx.FlexGridSizer(cols=4, rows=noOfRows, vgap=self._FromDIP(3),
             hgap=self._FromDIP(3))
 
         for labtxt, labl_ID, setButton_ID, clrButton_ID, setButtonTxt, clrButtonTxt, setBindFunc, clrBindFunc in self.carbonFilesData:
 
-            setButton = wx.Button(self, setButton_ID, setButtonTxt)
+            setButton = wx.Button(box, setButton_ID, setButtonTxt)
             setButton.Bind(wx.EVT_BUTTON, setBindFunc)
-            clrButton = wx.Button(self, clrButton_ID, clrButtonTxt)
+            clrButton = wx.Button(box, clrButton_ID, clrButtonTxt)
             clrButton.Bind(wx.EVT_BUTTON, clrBindFunc)
 
-            label = wx.StaticText(self, -1, labtxt)
+            label = wx.StaticText(box, -1, labtxt)
 
-            filenameLabel = wx.TextCtrl(self, labl_ID, "None",
+            filenameLabel = wx.TextCtrl(box, labl_ID, "None",
                 style = wx.TE_PROCESS_ENTER)
             filenameLabel.SetEditable(False)
 
@@ -1336,30 +1338,28 @@ class ReductionNormalizationAbsScPanel(scrolled.ScrolledPanel):
 
         for eachLabel, item_id, item_type, has_button in self.carbonNormConstantsData:
 
-            txt = wx.StaticText(self, -1, eachLabel)
+            txt = wx.StaticText(box, -1, eachLabel)
 
             if item_type == 'choice':
-                ctrl = wx.Choice(self, item_id, choices = counter_choices,
+                ctrl = wx.Choice(box, item_id, choices = counter_choices,
                     size=self._FromDIP((80, -1)))
             else:
-                ctrl = wx.TextCtrl(self, item_id, '0', style=wx.TE_PROCESS_ENTER
+                ctrl = wx.TextCtrl(box, item_id, '0', style=wx.TE_PROCESS_ENTER
                     |wx.TE_RIGHT, size=self._FromDIP((80, -1)))
 
             norm_const_sizer.Add(txt, 1, wx.ALIGN_CENTER_VERTICAL)
             norm_const_sizer.Add(ctrl, 1)
 
             if has_button == True:
-                button = wx.Button(self, -1, 'Calculate')
+                button = wx.Button(box, -1, 'Calculate')
                 button.Bind(wx.EVT_BUTTON, self._onCalculateCarbonButton)
                 norm_const_sizer.Add(button,1)
 
 
-        box = wx.StaticBox(self, -1, 'Absolute scaling using glassy carbon')
-
-        abscar_chkbox = wx.CheckBox(self, self.raw_settings.getId('NormAbsCarbon'),
+        abscar_chkbox = wx.CheckBox(box, self.raw_settings.getId('NormAbsCarbon'),
             'Normalize processed data to absolute scale using glassy carbon')
         abscar_chkbox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
-        abscarig_chkbox = wx.CheckBox(self, self.raw_settings.getId('NormAbsCarbonIgnoreBkg'),
+        abscarig_chkbox = wx.CheckBox(box, self.raw_settings.getId('NormAbsCarbonIgnoreBkg'),
             'Ignore background')
         abscarig_chkbox.Bind(wx.EVT_CHECKBOX, self.onIgnoreBackground)
 
@@ -1375,7 +1375,7 @@ class ReductionNormalizationAbsScPanel(scrolled.ScrolledPanel):
 
         return carbon_sizer
 
-    def createWaterFileSettings(self):
+    def createWaterFileSettings(self, parent):
 
         noOfRows = int(len(self.filesData))
         hSizer = wx.FlexGridSizer(cols=4, rows=noOfRows, vgap=self._FromDIP(3),
@@ -1383,14 +1383,14 @@ class ReductionNormalizationAbsScPanel(scrolled.ScrolledPanel):
 
         for labtxt, labl_ID, setButton_ID, clrButton_ID, setButtonTxt, clrButtonTxt, setBindFunc, clrBindFunc in self.filesData:
 
-            setButton = wx.Button(self, setButton_ID, setButtonTxt)
+            setButton = wx.Button(parent, setButton_ID, setButtonTxt)
             setButton.Bind(wx.EVT_BUTTON, setBindFunc)
-            clrButton = wx.Button(self, clrButton_ID, clrButtonTxt)
+            clrButton = wx.Button(parent, clrButton_ID, clrButtonTxt)
             clrButton.Bind(wx.EVT_BUTTON, clrBindFunc)
 
-            label = wx.StaticText(self, -1, labtxt)
+            label = wx.StaticText(parent, -1, labtxt)
 
-            filenameLabel = wx.TextCtrl(self, labl_ID, "None",
+            filenameLabel = wx.TextCtrl(parent, labl_ID, "None",
                 style=wx.TE_PROCESS_ENTER)
             filenameLabel.SetEditable(False)
 
@@ -1402,7 +1402,7 @@ class ReductionNormalizationAbsScPanel(scrolled.ScrolledPanel):
         hSizer.AddGrowableCol(1)
         return hSizer
 
-    def createWaterNormConstants(self):
+    def createWaterNormConstants(self, parent):
 
         noOfRows = int(len(self.normConstantsData))
         hSizer = wx.FlexGridSizer(cols=3, rows=noOfRows, vgap=self._FromDIP(3),
@@ -1414,21 +1414,21 @@ class ReductionNormalizationAbsScPanel(scrolled.ScrolledPanel):
 
         for eachLabel, id, has_button in self.normConstantsData:
 
-            txt = wx.StaticText(self, -1, eachLabel)
+            txt = wx.StaticText(parent, -1, eachLabel)
 
             if id == self.normConstantsData[0][1]:
-                ctrl = wx.Choice(self, id, choices = sorted(temps, key=int),
+                ctrl = wx.Choice(parent, id, choices = sorted(temps, key=int),
                     size=self._FromDIP((80, -1)))
                 ctrl.Bind(wx.EVT_CHOICE, self._onTempChoice)
             else:
-                ctrl = wx.TextCtrl(self, id, '0', style=wx.TE_PROCESS_ENTER
+                ctrl = wx.TextCtrl(parent, id, '0', style=wx.TE_PROCESS_ENTER
                     |wx.TE_RIGHT, size=self._FromDIP((80, -1)))
 
             hSizer.Add(txt, 1, wx.ALIGN_CENTER_VERTICAL)
             hSizer.Add(ctrl, 1)
 
             if has_button == True:
-                button = wx.Button(self, -1, 'Calculate')
+                button = wx.Button(parent, -1, 'Calculate')
                 button.Bind(wx.EVT_BUTTON, self._onCalculateWaterButton)
                 hSizer.Add(button,1)
 
@@ -1953,22 +1953,22 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
         abs_box = wx.StaticBox(self, -1, ('Molecular Weight Estimation From '
             'Absolute Intensity Calibration'))
 
-        rel_mw_sizer = self.createRelMWSettings()
+        rel_mw_sizer = self.createRelMWSettings(rel_box)
         rel_mwbox_sizer = wx.StaticBoxSizer(rel_box, wx.VERTICAL)
         rel_mwbox_sizer.Add(rel_mw_sizer, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP,
             border=self._FromDIP(5))
 
-        vc_mw_sizer = self.createVcMWSettings()
+        vc_mw_sizer = self.createVcMWSettings(vc_box)
         vc_mwbox_sizer = wx.StaticBoxSizer(vc_box, wx.VERTICAL)
         vc_mwbox_sizer.Add(vc_mw_sizer, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP,
             border=self._FromDIP(5))
 
-        vp_mw_sizer = self.createVpMWSettings()
+        vp_mw_sizer = self.createVpMWSettings(vp_box)
         vp_mwbox_sizer = wx.StaticBoxSizer(vp_box, wx.VERTICAL)
         vp_mwbox_sizer.Add(vp_mw_sizer, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP,
             border=self._FromDIP(5))
 
-        abs_mw_sizer = self.createAbsMWSettings()
+        abs_mw_sizer = self.createAbsMWSettings(abs_box)
         abs_mwbox_sizer = wx.StaticBoxSizer(abs_box, wx.VERTICAL)
         abs_mwbox_sizer.Add(abs_mw_sizer, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP,
             border=self._FromDIP(5))
@@ -1998,7 +1998,7 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
         except Exception:
             return size
 
-    def createRelMWSettings(self):
+    def createRelMWSettings(self, parent):
 
         hSizer = wx.FlexGridSizer(cols=4, rows=1, vgap=self._FromDIP(3),
             hgap=self._FromDIP(5))
@@ -2006,11 +2006,11 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
         for txt, id in self.RelMWData:
             sizer = wx.BoxSizer(wx.VERTICAL)
             if id == self.raw_settings.getId('MWStandardFile'):
-                ctrl = wx.TextCtrl(self, id, '', size=self._FromDIP((200,-1)),
+                ctrl = wx.TextCtrl(parent, id, '', size=self._FromDIP((200,-1)),
                     style = wx.TE_PROCESS_ENTER)
             else:
-                ctrl = wx.TextCtrl(self, id, '', style = wx.TE_PROCESS_ENTER)
-            txt = wx.StaticText(self, -1, txt)
+                ctrl = wx.TextCtrl(parent, id, '', style = wx.TE_PROCESS_ENTER)
+            txt = wx.StaticText(parent, -1, txt)
 
             sizer.Add(txt, 0, wx.ALIGN_CENTER_HORIZONTAL)
             sizer.Add(ctrl, 0)
@@ -2019,18 +2019,18 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
 
         return hSizer
 
-    def createVcMWSettings(self):
+    def createVcMWSettings(self, parent):
         hSizer = wx.FlexGridSizer(cols=5, rows=1, vgap=self._FromDIP(3),
             hgap=self._FromDIP(5))
 
         for txt, my_id in self.VcMWData:
             sizer = wx.BoxSizer(wx.VERTICAL)
             if my_id == self.raw_settings.getId('MWVcType'):
-                ctrl = wx.Choice(self, my_id, choices = ['Protein', 'RNA'])
+                ctrl = wx.Choice(parent, my_id, choices = ['Protein', 'RNA'])
             else:
-                ctrl = wx.TextCtrl(self, my_id, '', style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, my_id, '', style = wx.TE_PROCESS_ENTER)
 
-            txt = wx.StaticText(self, -1, txt)
+            txt = wx.StaticText(parent, -1, txt)
 
             sizer.Add(txt, 0, wx.ALIGN_CENTER_HORIZONTAL)
             sizer.Add(ctrl, 0)
@@ -2042,12 +2042,12 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
 
         for txt, my_id in self.VcMwData2:
             if my_id == self.raw_settings.getId('MWVcCutoff'):
-                ctrl = wx.Choice(self, my_id, choices=['Default', '8/Rg',
+                ctrl = wx.Choice(parent, my_id, choices=['Default', '8/Rg',
                     'log(I0/I(q))', 'Manual'])
             else:
-                ctrl = wx.TextCtrl(self, my_id, '', style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, my_id, '', style = wx.TE_PROCESS_ENTER)
 
-            txt = wx.StaticText(self, -1, txt)
+            txt = wx.StaticText(parent, -1, txt)
 
             h_sizer2.Add(txt, flag=wx.ALIGN_CENTER_VERTICAL)
             h_sizer2.Add(ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -2058,31 +2058,31 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
 
         return top_sizer
 
-    def createVpMWSettings(self):
+    def createVpMWSettings(self, parent):
         sizer = wx.FlexGridSizer(cols=2, vgap=self._FromDIP(3),
             hgap=self._FromDIP(5))
 
         for txt, my_id in self.VpMWData:
             if my_id == self.raw_settings.getId('MWVpCutoff'):
-                ctrl = wx.Choice(self, my_id, choices=['Default', '8/Rg',
+                ctrl = wx.Choice(parent, my_id, choices=['Default', '8/Rg',
                     'log(I0/I(q))', 'Manual'])
-                txt = wx.StaticText(self, -1, txt)
+                txt = wx.StaticText(parent, -1, txt)
             else:
-                ctrl = wx.TextCtrl(self, my_id, '', style = wx.TE_PROCESS_ENTER)
-                txt = wx.StaticText(self, -1, txt)
+                ctrl = wx.TextCtrl(parent, my_id, '', style = wx.TE_PROCESS_ENTER)
+                txt = wx.StaticText(parent, -1, txt)
 
             sizer.Add(txt)
             sizer.Add(ctrl)
 
         return sizer
 
-    def createAbsMWSettings(self):
+    def createAbsMWSettings(self, parent):
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
         for txt, id in self.AbsMWData:
             sizer = wx.BoxSizer(wx.HORIZONTAL)
-            ctrl = wx.TextCtrl(self, id, '', style = wx.TE_PROCESS_ENTER)
-            txt = wx.StaticText(self, -1, txt)
+            ctrl = wx.TextCtrl(parent, id, '', style = wx.TE_PROCESS_ENTER)
+            txt = wx.StaticText(parent, -1, txt)
 
             sizer.Add(txt, 0, wx.ALIGN_CENTER_VERTICAL)
             sizer.Add(ctrl, 0)
@@ -2639,18 +2639,18 @@ class GeneralOptionsPanel(scrolled.ScrolledPanel):
 
         treatmentSizer = wx.BoxSizer(wx.VERTICAL)
         for each, id in self.chkboxdata:
-            chkBox = wx.CheckBox(self, id, each)
+            chkBox = wx.CheckBox(box, id, each)
             chkBox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
             treatmentSizer.Add(chkBox, 0, wx.TOP, border=self._FromDIP(5))
 
         staticBoxSizer.Add(treatmentSizer, 0, wx.BOTTOM|wx.LEFT,
             border=self._FromDIP(5))
 
-        online_dir_ctrl = wx.TextCtrl(self, self.raw_settings.getId('OnlineStartupDir'),
+        online_dir_ctrl = wx.TextCtrl(box, self.raw_settings.getId('OnlineStartupDir'),
             '', style = wx.TE_PROCESS_ENTER)
-        online_dir_txt = wx.StaticText(self, -1, 'Online mode startup directory:')
+        online_dir_txt = wx.StaticText(box, -1, 'Online mode startup directory:')
 
-        setdir_button = wx.Button(self, -1, 'Set')
+        setdir_button = wx.Button(box, -1, 'Set')
         setdir_button.Bind(wx.EVT_BUTTON, self.onOnlineDirSet)
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -2658,11 +2658,11 @@ class GeneralOptionsPanel(scrolled.ScrolledPanel):
         hsizer.Add(online_dir_ctrl, 1, wx.EXPAND|wx.LEFT, border=self._FromDIP(5))
         hsizer.Add(setdir_button, 0, wx.LEFT, border=self._FromDIP(5))
 
-        hdrldconfig_dir_ctrl = wx.TextCtrl(self, self.raw_settings.getId('HdrLoadConfigDir'),
+        hdrldconfig_dir_ctrl = wx.TextCtrl(box, self.raw_settings.getId('HdrLoadConfigDir'),
             '', style = wx.TE_PROCESS_ENTER)
-        hdrldconfig_dir_txt = wx.StaticText(self, -1, 'Header loaded config directory:')
+        hdrldconfig_dir_txt = wx.StaticText(box, -1, 'Header loaded config directory:')
 
-        hdrldsetdir_button = wx.Button(self, -1, 'Set')
+        hdrldsetdir_button = wx.Button(box, -1, 'Set')
         hdrldsetdir_button.Bind(wx.EVT_BUTTON, self.onHdrLdConfigDirSet)
 
         hsizer2 = wx.BoxSizer(wx.HORIZONTAL)
@@ -2862,7 +2862,7 @@ class SaveDirectoriesPanel(scrolled.ScrolledPanel):
         chkbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
         for label, id in self.auto_save_data:
-            chkbox = wx.CheckBox(self, id, label)
+            chkbox = wx.CheckBox(box, id, label)
             chkbox.Bind(wx.EVT_CHECKBOX, self.onSaveCheckbox)
             chkbox_sizer.Add(self._FromDIP((1,5)), 0)
             chkbox_sizer.Add(chkbox, 0, wx.EXPAND|wx.LEFT|wx.RIGHT,
@@ -2883,14 +2883,14 @@ class SaveDirectoriesPanel(scrolled.ScrolledPanel):
 
             if labtxt is not None:
 
-                set_button = wx.Button(self, set_button_id, 'Set')
+                set_button = wx.Button(box, set_button_id, 'Set')
                 set_button.Bind(wx.EVT_BUTTON, self.onSetFile)
-                clr_button = wx.Button(self, clr_button_id, 'Clear')
+                clr_button = wx.Button(box, clr_button_id, 'Clear')
                 clr_button.Bind(wx.EVT_BUTTON, self.onClrFile)
 
-                label = wx.StaticText(self, -1, labtxt)
+                label = wx.StaticText(box, -1, labtxt)
 
-                filenameLabel = wx.TextCtrl(self, labl_id, '',
+                filenameLabel = wx.TextCtrl(box, labl_id, '',
                     style=wx.TE_PROCESS_ENTER)
                 filenameLabel.SetEditable(False)
 
@@ -2998,7 +2998,7 @@ class IftOptionsPanel(scrolled.ScrolledPanel):
 
         bift_panel = wx.Panel(notebook, -1)
         box = wx.StaticBox(bift_panel, -1, 'BIFT Grid-Search Parameters')
-        bift_options_sizer = self.createBiftOptions(bift_panel)
+        bift_options_sizer = self.createBiftOptions(box)
         chkbox_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         chkbox_sizer.Add(bift_options_sizer, 1, wx.EXPAND|wx.ALL,
             border=self._FromDIP(5))
@@ -3021,7 +3021,7 @@ class IftOptionsPanel(scrolled.ScrolledPanel):
         except Exception:
             return size
 
-    def createBiftOptions(self, bift_panel):
+    def createBiftOptions(self, parent):
 
         no_of_rows = ceil(int(len(self.bift_options_data))/2.0)
         grid_sizer = wx.FlexGridSizer(cols=4, rows=no_of_rows,
@@ -3031,8 +3031,8 @@ class IftOptionsPanel(scrolled.ScrolledPanel):
             label = each[0]
             id = each[1]
 
-            labeltxt = wx.StaticText(bift_panel, -1, str(label))
-            ctrl = wx.TextCtrl(bift_panel, id, '0', size=self._FromDIP((60, 21)),
+            labeltxt = wx.StaticText(parent, -1, str(label))
+            ctrl = wx.TextCtrl(parent, id, '0', size=self._FromDIP((60, 21)),
                 style=wx.TE_RIGHT|wx.TE_PROCESS_ENTER)
 
             grid_sizer.Add(labeltxt, 1)
@@ -3078,32 +3078,32 @@ class AutomationOptionsPanel(scrolled.ScrolledPanel):
 
         inbox = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-        chkbox = wx.CheckBox(self, self.raw_settings.getId('AutoAvg'),
+        chkbox = wx.CheckBox(topbox, self.raw_settings.getId('AutoAvg'),
             'Automated Averaging')
 
-        chkbox2 = wx.CheckBox(self, self.raw_settings.getId('AutoAvgRemovePlots'),
+        chkbox2 = wx.CheckBox(topbox, self.raw_settings.getId('AutoAvgRemovePlots'),
             'Remove Plotted Frames')
 
         box12 = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.reglabel = wx.StaticText(self, -1, 'Regular Expression (frame):')
-        self.regctrl = wx.TextCtrl(self, self.raw_settings.getId('AutoAvgRegExp'),
+        self.reglabel = wx.StaticText(topbox, -1, 'Regular Expression (frame):')
+        self.regctrl = wx.TextCtrl(topbox, self.raw_settings.getId('AutoAvgRegExp'),
             size=self._FromDIP((150,-1)), style = wx.TE_PROCESS_ENTER)
 
         box1 = wx.BoxSizer(wx.VERTICAL)
         box1.Add(self.reglabel,0)
         box1.Add(self.regctrl,0)
 
-        self.reglabelname = wx.StaticText(self, -1, 'Regular Expression (name):')
-        self.regctrlname = wx.TextCtrl(self, self.raw_settings.getId('AutoAvgNameRegExp'),
+        self.reglabelname = wx.StaticText(topbox, -1, 'Regular Expression (name):')
+        self.regctrlname = wx.TextCtrl(topbox, self.raw_settings.getId('AutoAvgNameRegExp'),
             size=self._FromDIP((150,-1)), style = wx.TE_PROCESS_ENTER)
 
         box5 = wx.BoxSizer(wx.VERTICAL)
         box5.Add(self.reglabelname,0)
         box5.Add(self.regctrlname,0)
 
-        self.numofframesLabel = wx.StaticText(self, -1, 'No. of Frames:')
-        self.numofframesCtrl = wx.TextCtrl(self,
+        self.numofframesLabel = wx.StaticText(topbox, -1, 'No. of Frames:')
+        self.numofframesCtrl = wx.TextCtrl(topbox,
             self.raw_settings.getId('AutoAvgNoOfFrames'), '1',
             style = wx.TE_CENTER|wx.TE_PROCESS_ENTER)
         box2 = wx.BoxSizer(wx.VERTICAL)
@@ -3117,25 +3117,25 @@ class AutomationOptionsPanel(scrolled.ScrolledPanel):
 
         box34 = wx.BoxSizer(wx.HORIZONTAL)
 
-        testfilenameLabel = wx.StaticText(self, -1, 'Test Filename:')
-        self.testfilenameCtrl = wx.TextCtrl(self, -1,
+        testfilenameLabel = wx.StaticText(topbox, -1, 'Test Filename:')
+        self.testfilenameCtrl = wx.TextCtrl(topbox, -1,
             size=self._FromDIP((150,-1)), style = wx.TE_PROCESS_ENTER)
         box3 = wx.BoxSizer(wx.VERTICAL)
         box3.Add(testfilenameLabel, 0)
         box3.Add(self.testfilenameCtrl, 0)
 
-        testfilenameLabelex = wx.StaticText(self, -1, 'Extracted Filename:')
-        self.testfilenameCtrlex = wx.TextCtrl(self, -1,
+        testfilenameLabelex = wx.StaticText(topbox, -1, 'Extracted Filename:')
+        self.testfilenameCtrlex = wx.TextCtrl(topbox, -1,
             size=self._FromDIP((150,-1)), style = wx.TE_CENTER|wx.TE_READONLY
            |wx.TE_PROCESS_ENTER)
         box6 = wx.BoxSizer(wx.VERTICAL)
         box6.Add(testfilenameLabelex, 0)
         box6.Add(self.testfilenameCtrlex, 0)
 
-        testframenum = wx.StaticText(self, -1, 'Frame #:')
-        self.testframectrl = wx.TextCtrl(self, -1, style = wx.TE_CENTER
+        testframenum = wx.StaticText(topbox, -1, 'Frame #:')
+        self.testframectrl = wx.TextCtrl(topbox, -1, style = wx.TE_CENTER
            |wx.TE_READONLY|wx.TE_PROCESS_ENTER)
-        testbutton = wx.Button(self, -1 , 'Test')
+        testbutton = wx.Button(topbox, -1 , 'Test')
         testbutton.Bind(wx.EVT_BUTTON, self.OnAutoAvgTest)
 
         box4 = wx.BoxSizer(wx.VERTICAL)
@@ -3161,7 +3161,7 @@ class AutomationOptionsPanel(scrolled.ScrolledPanel):
 
         topbox = wx.StaticBox(self, -1, 'Indirect Fourier Transform')
         inbox = wx.StaticBoxSizer(topbox, wx.VERTICAL)
-        chkbox = wx.CheckBox(self, self.raw_settings.getId('AutoBIFT'),
+        chkbox = wx.CheckBox(topbox, self.raw_settings.getId('AutoBIFT'),
             'Automated Bayesian Indirect Fourier Transform (BIFT)')
         inbox.Add(chkbox,0, wx.ALL, border=self._FromDIP(5))
 
@@ -3176,13 +3176,13 @@ class AutomationOptionsPanel(scrolled.ScrolledPanel):
 
         inbox = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-        chkbox = wx.CheckBox(self, self.raw_settings.getId('AutoBgSubtract'),
+        chkbox = wx.CheckBox(topbox, self.raw_settings.getId('AutoBgSubtract'),
             'Automated Background Subtraction')
 
         box12 = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.autobgreglabel = wx.StaticText(self, -1, 'Regular Expression:')
-        self.autobgregctrl = wx.TextCtrl(self, self.raw_settings.getId('AutoBgSubRegExp'),
+        self.autobgreglabel = wx.StaticText(topbox, -1, 'Regular Expression:')
+        self.autobgregctrl = wx.TextCtrl(topbox, self.raw_settings.getId('AutoBgSubRegExp'),
             size=self._FromDIP((150,-1)), style = wx.TE_PROCESS_ENTER)
 
         box1 = wx.BoxSizer(wx.VERTICAL)
@@ -3194,17 +3194,17 @@ class AutomationOptionsPanel(scrolled.ScrolledPanel):
 
         box34 = wx.BoxSizer(wx.HORIZONTAL)
 
-        testfilenameLabel = wx.StaticText(self, -1, 'Test Filename:')
-        self.autobgtestfilenameCtrl = wx.TextCtrl(self, -1,
+        testfilenameLabel = wx.StaticText(topbox, -1, 'Test Filename:')
+        self.autobgtestfilenameCtrl = wx.TextCtrl(topbox, -1,
             size=self._FromDIP((150,-1)), style = wx.TE_PROCESS_ENTER)
         box3 = wx.BoxSizer(wx.VERTICAL)
         box3.Add(testfilenameLabel,0)
         box3.Add(self.autobgtestfilenameCtrl,0)
 
-        testframenum = wx.StaticText(self, -1, 'Match Test:')
-        self.autobgtestframectrl = wx.TextCtrl(self, -1,
+        testframenum = wx.StaticText(topbox, -1, 'Match Test:')
+        self.autobgtestframectrl = wx.TextCtrl(topbox, -1,
             style = wx.TE_CENTER|wx.TE_READONLY|wx.TE_PROCESS_ENTER)
-        testbutton = wx.Button(self, -1 , 'Test')
+        testbutton = wx.Button(topbox, -1 , 'Test')
         testbutton.Bind(wx.EVT_BUTTON, self.OnAutoBgTest)
 
         box4 = wx.BoxSizer(wx.VERTICAL)
@@ -3251,7 +3251,7 @@ class AutomationOptionsPanel(scrolled.ScrolledPanel):
         for eachLabel, id in self.chkboxData:
 
             if eachLabel is not None:
-                chkBox = wx.CheckBox(self, id, eachLabel)
+                chkBox = wx.CheckBox(box, id, eachLabel)
                 chkBox.Bind(wx.EVT_CHECKBOX, self.onChkBox)
                 chkboxgridSizer.Add(chkBox, 1, wx.EXPAND)
 
@@ -3451,8 +3451,10 @@ class ATSASGnom(scrolled.ScrolledPanel):
             return size
 
     def createGNOMOptions(self):
-        rmin_text = wx.StaticText(self, -1, 'Force P(r) to 0 at r = 0 :')
-        rmin_choice = wx.Choice(self, self.raw_settings.getId('gnomForceRminZero'),
+        standardBox = wx.StaticBox(self, -1, 'Standard Settings')
+
+        rmin_text = wx.StaticText(standardBox, -1, 'Force P(r) to 0 at r = 0 :')
+        rmin_choice = wx.Choice(standardBox, self.raw_settings.getId('gnomForceRminZero'),
             choices = ['Y', 'N'])
 
         rmin_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -3461,9 +3463,9 @@ class ATSASGnom(scrolled.ScrolledPanel):
         rmin_sizer.Add(rmin_choice, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM,
             border=self._FromDIP(5))
 
-        rmax_text = wx.StaticText(self, -1, ('Force P(r) to 0 at r = Dmax '
+        rmax_text = wx.StaticText(standardBox, -1, ('Force P(r) to 0 at r = Dmax '
             '(sets default for GNOM window):'))
-        rmax_choice = wx.Choice(self, self.raw_settings.getId('gnomForceRmaxZero'),
+        rmax_choice = wx.Choice(standardBox, self.raw_settings.getId('gnomForceRmaxZero'),
             choices = ['Y', 'N'])
 
         rmax_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -3473,9 +3475,9 @@ class ATSASGnom(scrolled.ScrolledPanel):
             border=self._FromDIP(5))
 
 
-        npts_text = wx.StaticText(self, -1, ('Number of points in real space '
+        npts_text = wx.StaticText(standardBox, -1, ('Number of points in real space '
             '(0=auto, value sets to default):'))
-        npts_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomNPoints'),
+        npts_ctrl = wx.TextCtrl(standardBox, self.raw_settings.getId('gnomNPoints'),
             '', size=self._FromDIP((60, -1)), style=wx.TE_PROCESS_ENTER)
 
         npts_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -3485,9 +3487,9 @@ class ATSASGnom(scrolled.ScrolledPanel):
             border=self._FromDIP(5))
 
 
-        alpha_text = wx.StaticText(self, -1, ('Initial Alpha (0=auto, value '
+        alpha_text = wx.StaticText(standardBox, -1, ('Initial Alpha (0=auto, value '
             'sets default):'))
-        alpha_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomInitialAlpha'),
+        alpha_ctrl = wx.TextCtrl(standardBox, self.raw_settings.getId('gnomInitialAlpha'),
             '', size=self._FromDIP((60, -1)), style=wx.TE_PROCESS_ENTER)
 
         alpha_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -3496,15 +3498,17 @@ class ATSASGnom(scrolled.ScrolledPanel):
         alpha_sizer.Add(alpha_ctrl, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM,
             border=self._FromDIP(5))
 
-        cut_ctrl = wx.CheckBox(self, self.raw_settings.getId('gnomCut8Rg'),
+        cut_ctrl = wx.CheckBox(standardBox, self.raw_settings.getId('gnomCut8Rg'),
             'Truncate to q_max=8/Rg (dammif/n)')
 
-        resetText = wx.StaticText(self, -1, ('Reset all GNOM settings '
+        resetBox = wx.StaticBox(self, -1, 'Reset')
+
+        resetText = wx.StaticText(resetBox, -1, ('Reset all GNOM settings '
             '(including advanced) to default:'))
-        resetButton = wx.Button(self, -1, 'Reset to default')
+        resetButton = wx.Button(resetBox, -1, 'Reset to default')
         resetButton.Bind(wx.EVT_BUTTON, self._onResetButton)
 
-        resetBox = wx.StaticBox(self, -1, 'Reset')
+
         resetSizer = wx.StaticBoxSizer(resetBox, wx.VERTICAL)
         resetSizer.Add(resetText, 0, wx.ALL, border=self._FromDIP(5))
         resetSizer.Add(resetButton, 0, wx.ALL, border=self._FromDIP(5))
@@ -3513,7 +3517,6 @@ class ATSASGnom(scrolled.ScrolledPanel):
             'the commonly used advanced settings used by the ATSAS software GNOM.'))
 
 
-        standardBox = wx.StaticBox(self, -1, 'Standard Settings')
         standardSizer = wx.StaticBoxSizer(standardBox, wx.VERTICAL)
         standardSizer.Add(rmin_sizer, 0)
         standardSizer.Add(rmax_sizer, 0)
@@ -3627,12 +3630,12 @@ class ATSASGnomAdvanced(scrolled.ScrolledPanel):
 
 
         angular_box = wx.StaticBox(self)
-        angular_text1 = wx.StaticText(self, -1, 'Angular Scale :')
-        angular_text2 = wx.StaticText(self, -1, ('1 - q=4pi*sin(theta)/lambda '
+        angular_text1 = wx.StaticText(angular_box, -1, 'Angular Scale :')
+        angular_text2 = wx.StaticText(angular_box, -1, ('1 - q=4pi*sin(theta)/lambda '
             '[A^-1]\n2 - q=4pi*sin(theta)/lambda, convert [nm^-1] to [A^-1]\n3 '
             '- q=2*sin(theta)/lambda [A^-1]\n4 - q=2*sin(theta)/lambda, convert '
             '[nm^-1] to [A^-1]'), style = wx.TE_MULTILINE)
-        angular_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomAngularScale'),
+        angular_ctrl = wx.TextCtrl(angular_box, self.raw_settings.getId('gnomAngularScale'),
             '', size = self._FromDIP((60,-1)), style = wx.TE_PROCESS_ENTER)
 
         angular_sizer = wx.StaticBoxSizer(angular_box, wx.VERTICAL)
@@ -3648,8 +3651,8 @@ class ATSASGnomAdvanced(scrolled.ScrolledPanel):
 
 
         system_box = wx.StaticBox(self)
-        system_text1 = wx.StaticText(self, -1, 'Job Type :')
-        system_text2 = wx.StaticText(self, -1, ('0 - P(r) for a mondisperse '
+        system_text1 = wx.StaticText(system_box, -1, 'Job Type :')
+        system_text2 = wx.StaticText(system_box, -1, ('0 - P(r) for a mondisperse '
             'system\n1 - Volume distribution function for polydisperse system '
             'of solid spheres\n2 - P(r) with a user supplied form factor\n3 '
             '- Thickness distance distribution of a monodisperse system of '
@@ -3658,7 +3661,7 @@ class ATSASGnomAdvanced(scrolled.ScrolledPanel):
             'polydisperse system of long cylinders\n6 - Surface distribution '
             'function for a polydisperse system of spherical shells'),
             style = wx.TE_MULTILINE)
-        system_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomSystem'),
+        system_ctrl = wx.TextCtrl(system_box, self.raw_settings.getId('gnomSystem'),
             '', size = self._FromDIP((60,-1)), style = wx.TE_PROCESS_ENTER)
 
         system_sizer = wx.StaticBoxSizer(system_box, wx.VERTICAL)
@@ -3843,7 +3846,7 @@ class ATSASDammix(scrolled.ScrolledPanel):
         defaultBox = wx.StaticBox(parent, -1, 'Defaults')
         defaultSizer = wx.StaticBoxSizer(defaultBox, wx.VERTICAL)
 
-        defaultText = wx.StaticText(parent, -1, ('The default settings applied '
+        defaultText = wx.StaticText(defaultBox, -1, ('The default settings applied '
             'when the DAMMIF window is opened.'))
         defaultSizer.Add(defaultText, 0, wx.ALL, border=self._FromDIP(3))
 
@@ -3855,22 +3858,22 @@ class ATSASDammix(scrolled.ScrolledPanel):
             sizer = wx.BoxSizer(wx.HORIZONTAL)
 
             if itemType == 'choice':
-                labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.Choice(parent, myId, choices = item[3])
+                labeltxt = wx.StaticText(defaultBox, -1, label)
+                ctrl = wx.Choice(defaultBox, myId, choices = item[3])
 
                 sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(2))
                 sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
-                labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size = self._FromDIP((60,-1)),
+                labeltxt = wx.StaticText(defaultBox, -1, label)
+                ctrl = wx.TextCtrl(defaultBox, myId, '', size = self._FromDIP((60,-1)),
                     style = wx.TE_PROCESS_ENTER)
 
                 sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(2))
                 sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
 
             elif itemType == 'bool':
-                ctrl = wx.CheckBox(parent, myId, label)
+                ctrl = wx.CheckBox(defaultBox, myId, label)
                 sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
 
                 if (myId == self.raw_settings.getId('dammifDamaver')
@@ -3884,7 +3887,7 @@ class ATSASDammix(scrolled.ScrolledPanel):
         standardBox = wx.StaticBox(parent, -1, 'Standard Settings')
         standardSizer = wx.StaticBoxSizer(standardBox, wx.VERTICAL)
 
-        standardText = wx.StaticText(parent, -1, ('Standard settings that can '
+        standardText = wx.StaticText(standardBox, -1, ('Standard settings that can '
             'be changed in Fast/Slow mode.'))
         standardSizer.Add(standardText, 0, wx.ALL, border=self._FromDIP(3))
 
@@ -3898,31 +3901,32 @@ class ATSASDammix(scrolled.ScrolledPanel):
                 sizer = wx.BoxSizer(wx.HORIZONTAL)
 
                 if itemType == 'choice':
-                    labeltxt = wx.StaticText(parent, -1, label)
-                    ctrl = wx.Choice(parent, myId, choices = item[3])
+                    labeltxt = wx.StaticText(standardBox, -1, label)
+                    ctrl = wx.Choice(standardBox, myId, choices = item[3])
 
                     sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(3))
                     sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(3))
                 elif itemType == 'text':
-                    labeltxt = wx.StaticText(parent, -1, label)
-                    ctrl = wx.TextCtrl(parent, myId, '', size = self._FromDIP((60,-1)),
+                    labeltxt = wx.StaticText(standardBox, -1, label)
+                    ctrl = wx.TextCtrl(standardBox, myId, '', size = self._FromDIP((60,-1)),
                         style = wx.TE_PROCESS_ENTER)
 
                     sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(3))
                     sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(3))
                 elif itemType == 'bool':
-                    ctrl = wx.CheckBox(parent, myId, label)
+                    ctrl = wx.CheckBox(standardBox, myId, label)
                     sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(3))
 
                 standardSizer.Add(sizer, 0)
 
 
-        resetText = wx.StaticText(parent, -1, ('Reset all DAMMIF/N settings '
+        resetBox = wx.StaticBox(parent, -1, 'Reset')
+
+        resetText = wx.StaticText(resetBox, -1, ('Reset all DAMMIF/N settings '
             '(including advanced) to default:'))
-        resetButton = wx.Button(parent, -1, 'Reset to default')
+        resetButton = wx.Button(resetBox, -1, 'Reset to default')
         resetButton.Bind(wx.EVT_BUTTON, self._onResetButton)
 
-        resetBox = wx.StaticBox(parent, -1, 'Reset')
         resetSizer = wx.StaticBoxSizer(resetBox, wx.VERTICAL)
         resetSizer.Add(resetText, 0, wx.ALL, border=self._FromDIP(5))
         resetSizer.Add(resetButton, 0, wx.ALL, border=self._FromDIP(5))
@@ -4741,8 +4745,8 @@ class DenssPanel(scrolled.ScrolledPanel):
             return size
 
     def _createLayout(self, parent):
-        box = wx.StaticBox(parent, wx.ID_ANY, 'Default settings')
-        default_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        default_box = wx.StaticBox(parent, wx.ID_ANY, 'Default settings')
+        default_sizer = wx.StaticBoxSizer(default_box, wx.VERTICAL)
 
         for item in self.default_options:
             label = item[0]
@@ -4752,28 +4756,28 @@ class DenssPanel(scrolled.ScrolledPanel):
             sizer = wx.BoxSizer(wx.HORIZONTAL)
 
             if itemType == 'choice':
-                labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.Choice(parent, myId, choices = item[3])
+                labeltxt = wx.StaticText(default_box, -1, label)
+                ctrl = wx.Choice(default_box, myId, choices = item[3])
 
                 sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(2))
                 sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
-                labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((475,-1)),
+                labeltxt = wx.StaticText(default_box, -1, label)
+                ctrl = wx.TextCtrl(default_box, myId, '', size=self._FromDIP((475,-1)),
                     style = wx.TE_PROCESS_ENTER)
 
                 sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(2))
                 sizer.Add(ctrl, 1, wx.ALL|wx.EXPAND, border=self._FromDIP(2))
 
             elif itemType == 'bool':
-                ctrl = wx.CheckBox(parent, myId, label)
+                ctrl = wx.CheckBox(default_box, myId, label)
                 sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
 
             default_sizer.Add(sizer, 0)
 
-        box = wx.StaticBox(parent, wx.ID_ANY, 'Custom settings (only used in custom mode)')
-        customSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        custom_box = wx.StaticBox(parent, wx.ID_ANY, 'Custom settings (only used in custom mode)')
+        customSizer = wx.StaticBoxSizer(custom_box, wx.VERTICAL)
 
         for item in self.custom_options_long:
             label = item[0]
@@ -4783,22 +4787,22 @@ class DenssPanel(scrolled.ScrolledPanel):
             sizer = wx.BoxSizer(wx.HORIZONTAL)
 
             if itemType == 'choice':
-                labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.Choice(parent, myId, choices = item[3])
+                labeltxt = wx.StaticText(custom_box, -1, label)
+                ctrl = wx.Choice(custom_box, myId, choices = item[3])
 
                 sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(2))
                 sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
-                labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((60,-1)),
+                labeltxt = wx.StaticText(custom_box, -1, label)
+                ctrl = wx.TextCtrl(custom_box, myId, '', size=self._FromDIP((60,-1)),
                     style = wx.TE_PROCESS_ENTER)
 
                 sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(2))
                 sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
 
             elif itemType == 'bool':
-                ctrl = wx.CheckBox(parent, myId, label)
+                ctrl = wx.CheckBox(custom_box, myId, label)
                 sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
 
             customSizer.Add(sizer, 0)
@@ -4812,22 +4816,22 @@ class DenssPanel(scrolled.ScrolledPanel):
             itemType = item[2]
 
             if itemType == 'choice':
-                labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.Choice(parent, myId, choices = item[3])
+                labeltxt = wx.StaticText(custom_box, -1, label)
+                ctrl = wx.Choice(custom_box, myId, choices = item[3])
 
                 short_sizer.Add(labeltxt, 0)
                 short_sizer.Add(ctrl, 0)
 
             elif itemType == 'text' or itemType == 'int' or itemType =='float':
-                labeltxt = wx.StaticText(parent, -1, label)
-                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((60,-1)),
+                labeltxt = wx.StaticText(custom_box, -1, label)
+                ctrl = wx.TextCtrl(custom_box, myId, '', size=self._FromDIP((60,-1)),
                     style = wx.TE_PROCESS_ENTER)
 
                 short_sizer.Add(labeltxt, 0)
                 short_sizer.Add(ctrl, 0)
 
             elif itemType == 'bool':
-                ctrl = wx.CheckBox(parent, myId, label)
+                ctrl = wx.CheckBox(custom_box, myId, label)
                 short_sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
                 short_sizer.AddStretchSpacer(1)
 

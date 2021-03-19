@@ -1354,7 +1354,7 @@ class SyncDialog(wx.Dialog):
 
         for each in self.chkbox_list:
             label, key, id = each
-            chkbox = wx.CheckBox(self, id, label, name = key)
+            chkbox = wx.CheckBox(sync_box, id, label, name = key)
             chkbox.Bind(wx.EVT_CHECKBOX, self._onCheckBox)
             sync_boxsizer.Add(chkbox, 0, wx.TOP | wx.LEFT, border=self._FromDIP(5))
 
@@ -1907,7 +1907,7 @@ class LinePropertyDialog(wx.Dialog):
         topbox = wx.StaticBox(self, -1, 'Legend Label')
         box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-        self.legend_label_text = wx.TextCtrl(self, -1, self.legend_label)
+        self.legend_label_text = wx.TextCtrl(topbox, -1, self.legend_label)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.legend_label_text, 1, wx.EXPAND)
@@ -1919,20 +1919,20 @@ class LinePropertyDialog(wx.Dialog):
         topbox = wx.StaticBox(self, -1, 'Error Bars')
         box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-        err_linewidth_label = wx.StaticText(self, -1, 'Width :')
-        err_linestyle_label = wx.StaticText(self, -1, 'Style :')
-        err_colour_label = wx.StaticText(self, -1, 'Line Colour :')
+        err_linewidth_label = wx.StaticText(topbox, -1, 'Width :')
+        err_linestyle_label = wx.StaticText(topbox, -1, 'Style :')
+        err_colour_label = wx.StaticText(topbox, -1, 'Line Colour :')
 
-        self.err_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+        self.err_linewidth = RAWCustomCtrl.FloatSpinCtrl(topbox, -1, '1.0',
             TextLength = 60, never_negative = True)
         self.err_linewidth.SetValue(str(self._old_errlinewidth))
         self.err_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
-        self.err_linestyle_list = wx.Choice(self, -1, choices = self.linestyle_list_choices)
+        self.err_linestyle_list = wx.Choice(topbox, -1, choices = self.linestyle_list_choices)
         self.err_linestyle_list.Select(self.linestyle_list_choices.index(str(self._old_errlinestyle)))
         self.err_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-        self.err_colour = wx.Panel(self, -1, name = 'ErrColour', style = wx.RAISED_BORDER)
+        self.err_colour = wx.Panel(topbox, -1, name = 'ErrColour', style = wx.RAISED_BORDER)
         self.err_colour.SetBackgroundColour(self._errcolour)
         self.err_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
@@ -1979,36 +1979,36 @@ class LinePropertyDialog(wx.Dialog):
         topbox = wx.StaticBox(self, -1, 'Data Point Marker')
         box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-        mar_size_label = wx.StaticText(self, -1, 'Size :')
-        self.mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour :')
+        mar_size_label = wx.StaticText(topbox, -1, 'Size :')
+        self.mar_fillcolour_label = wx.StaticText(topbox, -1, 'Fill Colour :')
         self.mar_fillcolour_label.Enable(not self.hollow_marker)
-        mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
-        mar_linemarker_label = wx.StaticText(self, -1, 'Marker :')
-        mar_hollow_label = wx.StaticText(self, -1, 'Hollow :')
+        mar_linecolour_label = wx.StaticText(topbox, -1, 'Line Colour :')
+        mar_linemarker_label = wx.StaticText(topbox, -1, 'Marker :')
+        mar_hollow_label = wx.StaticText(topbox, -1, 'Hollow :')
 
-        self.mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+        self.mar_size = RAWCustomCtrl.FloatSpinCtrl(topbox, -1, '1.0',
             TextLength = 60, never_negative = True)
         self.mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
         self.mar_size.SetValue(str(self._old_marsize))
 
-        self.mar_fillcolour = wx.Panel(self, -1, name = 'MarFillColour',
+        self.mar_fillcolour = wx.Panel(topbox, -1, name = 'MarFillColour',
             style = wx.RAISED_BORDER)
         self.mar_fillcolour.SetBackgroundColour(self._marcolour)
         self.mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
         self.mar_fillcolour.Enable(not self.hollow_marker)
 
-        self.mar_linecolour = wx.Panel(self, -1, name = 'MarLineColour',
+        self.mar_linecolour = wx.Panel(topbox, -1, name = 'MarLineColour',
             style = wx.RAISED_BORDER)
         self.mar_linecolour.SetBackgroundColour(self._marlinecolour)
         self.mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-        self.mar_linemarker_list = wx.Choice(self, -1,
+        self.mar_linemarker_list = wx.Choice(topbox, -1,
             choices = self.linemarker_list_choices)
         self.mar_linemarker_list.Select(self.linemarker_list_choices.index(
             str(self._linemarker)))
         self.mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-        self.mar_hollow = wx.CheckBox(self, -1)
+        self.mar_hollow = wx.CheckBox(topbox, -1)
         self.mar_hollow.SetValue(self.hollow_marker)
         self.mar_hollow.Bind(wx.EVT_CHECKBOX, self._onHollowCheckBox)
 
@@ -2052,22 +2052,22 @@ class LinePropertyDialog(wx.Dialog):
         topbox = wx.StaticBox(self, -1, 'Line')
         box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-        linewidth_label = wx.StaticText(self, -1, 'Width :')
-        linestyle_label = wx.StaticText(self, -1, 'Style :')
-        linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
+        linewidth_label = wx.StaticText(topbox, -1, 'Width :')
+        linestyle_label = wx.StaticText(topbox, -1, 'Style :')
+        linecolour_label = wx.StaticText(topbox, -1, 'Line Colour :')
 
-        self.linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+        self.linewidth = RAWCustomCtrl.FloatSpinCtrl(topbox, -1, '1.0',
             TextLength = 60, never_negative = True)
         self.linewidth.SetValue(str(self._old_linewidth))
         self.linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
-        self.linestyle_list = wx.Choice(self, -1,
+        self.linestyle_list = wx.Choice(topbox, -1,
             choices = self.linestyle_list_choices)
         self.linestyle_list.Select(self.linestyle_list_choices.index(str(
             self._linestyle)))
         self.linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-        self.line_colour = wx.Panel(self, -1, name = 'LineColour',
+        self.line_colour = wx.Panel(topbox, -1, name = 'LineColour',
             style = wx.RAISED_BORDER)
         self.line_colour.SetBackgroundColour(self._linecolour)
         self.line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
@@ -2330,39 +2330,38 @@ class IFTMLinePropertyDialog(wx.Dialog):
         self.Bind( wx.EVT_BUTTON, self._onOkButton, id=wx.ID_OK )
         self.Bind( wx.EVT_BUTTON, self._onCancelButton, id=wx.ID_CANCEL )
 
-
-        r_linesettings_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 3, hgap = 3)
-        r_linesettings_sizer.Add(self._createLineControls(self.r_line), 1, wx.EXPAND)
-        r_linesettings_sizer.Add(self._createErrorBarsControls(self.r_line), 1, wx.EXPAND)
-        r_linesettings_sizer.Add(self._createLineMarkerControls(self.r_line), 1, wx.EXPAND)
-
-        qo_linesettings_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 3, hgap = 3)
-        qo_linesettings_sizer.Add(self._createLineControls(self.qo_line), 1, wx.EXPAND)
-        qo_linesettings_sizer.Add(self._createErrorBarsControls(self.qo_line), 1, wx.EXPAND)
-        qo_linesettings_sizer.Add(self._createLineMarkerControls(self.qo_line), 1, wx.EXPAND)
-
-        qf_linesettings_sizer = wx.FlexGridSizer(cols = 2, rows = 1, vgap = 3, hgap = 3)
-        qf_linesettings_sizer.Add(self._createLineControls(self.qf_line), 1, wx.EXPAND)
-        # qf_linesettings_sizer.Add(self._createErrorBarsControls(self.qf_line), 1, wx.EXPAND)
-        qf_linesettings_sizer.Add(self._createLineMarkerControls(self.qf_line), 1, wx.EXPAND)
-
-
         rbox = wx.StaticBox(self, -1, 'P(r) line settings')
         qobox = wx.StaticBox(self, -1, 'Data line settings')
         qfbox = wx.StaticBox(self, -1, 'Fit line settings')
 
+        r_linesettings_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 3, hgap = 3)
+        r_linesettings_sizer.Add(self._createLineControls(self.r_line, rbox), 1, wx.EXPAND)
+        r_linesettings_sizer.Add(self._createErrorBarsControls(self.r_line, rbox), 1, wx.EXPAND)
+        r_linesettings_sizer.Add(self._createLineMarkerControls(self.r_line, rbox), 1, wx.EXPAND)
+
+        qo_linesettings_sizer = wx.FlexGridSizer(cols = 2, rows = 2, vgap = 3, hgap = 3)
+        qo_linesettings_sizer.Add(self._createLineControls(self.qo_line, qobox), 1, wx.EXPAND)
+        qo_linesettings_sizer.Add(self._createErrorBarsControls(self.qo_line, qobox), 1, wx.EXPAND)
+        qo_linesettings_sizer.Add(self._createLineMarkerControls(self.qo_line, qobox), 1, wx.EXPAND)
+
+        qf_linesettings_sizer = wx.FlexGridSizer(cols = 2, rows = 1, vgap = 3, hgap = 3)
+        qf_linesettings_sizer.Add(self._createLineControls(self.qf_line, qfbox), 1, wx.EXPAND)
+        # qf_linesettings_sizer.Add(self._createErrorBarsControls(self.qf_line, qfbox), 1, wx.EXPAND)
+        qf_linesettings_sizer.Add(self._createLineMarkerControls(self.qf_line, qfbox), 1, wx.EXPAND)
+
+
         rboxSizer = wx.StaticBoxSizer(rbox, wx.VERTICAL)
-        rboxSizer.Add(self._createLegendLabelControls(self.r_line), 0, wx.LEFT
+        rboxSizer.Add(self._createLegendLabelControls(self.r_line, rbox), 0, wx.LEFT
             |wx.RIGHT|wx.EXPAND, self._FromDIP(3))
         rboxSizer.Add(r_linesettings_sizer, 0, wx.EXPAND)
 
         qoboxSizer = wx.StaticBoxSizer(qobox, wx.VERTICAL)
-        qoboxSizer.Add(self._createLegendLabelControls(self.qo_line), 0, wx.LEFT
+        qoboxSizer.Add(self._createLegendLabelControls(self.qo_line, qobox), 0, wx.LEFT
             |wx.RIGHT|wx.EXPAND, self._FromDIP(3))
         qoboxSizer.Add(qo_linesettings_sizer, 0, wx.EXPAND)
 
         qfboxSizer = wx.StaticBoxSizer(qfbox, wx.VERTICAL)
-        qfboxSizer.Add(self._createLegendLabelControls(self.qf_line), 0, wx.LEFT
+        qfboxSizer.Add(self._createLegendLabelControls(self.qf_line, qfbox), 0, wx.LEFT
             |wx.RIGHT|wx.EXPAND, self._FromDIP(3))
         qfboxSizer.Add(qf_linesettings_sizer, 0, wx.EXPAND)
 
@@ -2395,12 +2394,12 @@ class IFTMLinePropertyDialog(wx.Dialog):
         except Exception:
             return size
 
-    def _createLegendLabelControls(self, line):
+    def _createLegendLabelControls(self, line, parent):
         if line == self.r_line:
-            topbox = wx.StaticBox(self, -1, 'Legend Label')
+            topbox = wx.StaticBox(parent, -1, 'Legend Label')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            self.r_legend_label_text = wx.TextCtrl(self, -1,
+            self.r_legend_label_text = wx.TextCtrl(topbox, -1,
                 self.legend_label[self.r_line])
 
             sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -2409,10 +2408,10 @@ class IFTMLinePropertyDialog(wx.Dialog):
             box.Add(sizer, 0, wx.EXPAND | wx.ALL, border=self._FromDIP(3))
 
         elif line == self.qo_line:
-            topbox = wx.StaticBox(self, -1, 'Legend Label')
+            topbox = wx.StaticBox(parent, -1, 'Legend Label')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            self.qo_legend_label_text = wx.TextCtrl(self, -1,
+            self.qo_legend_label_text = wx.TextCtrl(topbox, -1,
                 self.legend_label[self.qo_line])
 
             sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -2421,10 +2420,10 @@ class IFTMLinePropertyDialog(wx.Dialog):
             box.Add(sizer, 0, wx.EXPAND | wx.ALL, border=self._FromDIP(3))
 
         elif line == self.qf_line:
-            topbox = wx.StaticBox(self, -1, 'Legend Label')
+            topbox = wx.StaticBox(parent, -1, 'Legend Label')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            self.qf_legend_label_text = wx.TextCtrl(self, -1,
+            self.qf_legend_label_text = wx.TextCtrl(topbox, -1,
                 self.legend_label[self.qf_line])
 
             sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -2435,27 +2434,27 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
         return box
 
-    def _createErrorBarsControls(self, line):
+    def _createErrorBarsControls(self, line, parent):
 
-        topbox = wx.StaticBox(self, -1, 'Error Bars')
+        topbox = wx.StaticBox(parent, -1, 'Error Bars')
         box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
         if line == self.r_line:
 
-            err_linewidth_label = wx.StaticText(self, -1, 'Width:')
-            err_linestyle_label = wx.StaticText(self, -1, 'Style:')
-            err_colour_label = wx.StaticText(self, -1, 'Line Colour:')
+            err_linewidth_label = wx.StaticText(topbox, -1, 'Width:')
+            err_linestyle_label = wx.StaticText(topbox, -1, 'Style:')
+            err_colour_label = wx.StaticText(topbox, -1, 'Line Colour:')
 
-            self.r_err_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+            self.r_err_linewidth = RAWCustomCtrl.FloatSpinCtrl(topbox, -1, '1.0',
                 TextLength = 60, never_negative = True)
             self.r_err_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN,
                 self.updateLine)
 
-            self.r_err_linestyle_list = wx.Choice(self, -1,
+            self.r_err_linestyle_list = wx.Choice(topbox, -1,
                 choices = self.linestyle_list_choices)
             self.r_err_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.r_err_colour = wx.Panel(self, -1, name = 'PrErrColour',
+            self.r_err_colour = wx.Panel(topbox, -1, name = 'PrErrColour',
                 style = wx.RAISED_BORDER)
             self.r_err_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
@@ -2474,19 +2473,19 @@ class IFTMLinePropertyDialog(wx.Dialog):
             self.r_err_colour.SetBackgroundColour(self.r_errcolour)
 
         elif line == self.qo_line:
-            err_linewidth_label = wx.StaticText(self, -1, 'Width:')
-            err_linestyle_label = wx.StaticText(self, -1, 'Style:')
-            err_colour_label = wx.StaticText(self, -1, 'Line Colour:')
+            err_linewidth_label = wx.StaticText(topbox, -1, 'Width:')
+            err_linestyle_label = wx.StaticText(topbox, -1, 'Style:')
+            err_colour_label = wx.StaticText(topbox, -1, 'Line Colour:')
 
-            self.qo_err_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+            self.qo_err_linewidth = RAWCustomCtrl.FloatSpinCtrl(topbox, -1, '1.0',
                 TextLength = 60, never_negative = True)
             self.qo_err_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
-            self.qo_err_linestyle_list = wx.Choice(self, -1,
+            self.qo_err_linestyle_list = wx.Choice(topbox, -1,
                 choices = self.linestyle_list_choices)
             self.qo_err_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.qo_err_colour = wx.Panel(self, -1, name = 'QoErrColour',
+            self.qo_err_colour = wx.Panel(topbox, -1, name = 'QoErrColour',
                 style = wx.RAISED_BORDER)
             self.qo_err_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
@@ -2550,42 +2549,42 @@ class IFTMLinePropertyDialog(wx.Dialog):
             colour_panel.SetBackgroundColour(color)
             colour_panel.Refresh()
 
-    def _createLineMarkerControls(self, line):
+    def _createLineMarkerControls(self, line, parent):
 
         if line == self.r_line:
-            topbox = wx.StaticBox(self, -1, 'Data Point Marker')
+            topbox = wx.StaticBox(parent, -1, 'Data Point Marker')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            mar_size_label = wx.StaticText(self, -1, 'Size:')
-            self.r_mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour:')
+            mar_size_label = wx.StaticText(topbox, -1, 'Size:')
+            self.r_mar_fillcolour_label = wx.StaticText(topbox, -1, 'Fill Colour:')
             self.r_mar_fillcolour_label.Enable(not self.r_hollow_marker)
-            mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour:')
-            mar_linemarker_label = wx.StaticText(self, -1, 'Marker:')
-            mar_hollow_label = wx.StaticText(self, -1, 'Hollow:')
+            mar_linecolour_label = wx.StaticText(topbox, -1, 'Line Colour:')
+            mar_linemarker_label = wx.StaticText(topbox, -1, 'Marker:')
+            mar_hollow_label = wx.StaticText(topbox, -1, 'Hollow:')
 
-            self.r_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+            self.r_mar_size = RAWCustomCtrl.FloatSpinCtrl(topbox, -1, '1.0',
                 TextLength = 60, never_negative = True)
             self.r_mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.r_mar_size.SetValue(str(self._old_r_marsize))
 
-            self.r_mar_fillcolour = wx.Panel(self, -1, name = 'PrMarFillColour',
+            self.r_mar_fillcolour = wx.Panel(topbox, -1, name = 'PrMarFillColour',
                 style = wx.RAISED_BORDER)
             self.r_mar_fillcolour.SetBackgroundColour(self.r_marcolour)
             self.r_mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
             self.r_mar_fillcolour.Enable(not self.r_hollow_marker)
 
-            self.r_mar_linecolour = wx.Panel(self, -1, name = 'PrMarLineColour',
+            self.r_mar_linecolour = wx.Panel(topbox, -1, name = 'PrMarLineColour',
                 style = wx.RAISED_BORDER)
             self.r_mar_linecolour.SetBackgroundColour(self.r_marlinecolour)
             self.r_mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-            self.r_mar_linemarker_list = wx.Choice(self, -1,
+            self.r_mar_linemarker_list = wx.Choice(topbox, -1,
                 choices = self.linemarker_list_choices)
             self.r_mar_linemarker_list.Select(self.linemarker_list_choices.index(
                 str(self.r_linemarker)))
             self.r_mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.r_mar_hollow = wx.CheckBox(self, -1)
+            self.r_mar_hollow = wx.CheckBox(topbox, -1)
             self.r_mar_hollow.SetValue(self.r_hollow_marker)
             self.r_mar_hollow.Bind(wx.EVT_CHECKBOX, self.r_onHollowCheckBox)
 
@@ -2605,39 +2604,39 @@ class IFTMLinePropertyDialog(wx.Dialog):
             box.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
         elif line == self.qo_line:
-            topbox = wx.StaticBox(self, -1, 'Data Point Marker')
+            topbox = wx.StaticBox(parent, -1, 'Data Point Marker')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            mar_size_label = wx.StaticText(self, -1, 'Size:')
-            self.qo_mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour:')
+            mar_size_label = wx.StaticText(topbox, -1, 'Size:')
+            self.qo_mar_fillcolour_label = wx.StaticText(topbox, -1, 'Fill Colour:')
             self.qo_mar_fillcolour_label.Enable(not self.qo_hollow_marker)
-            mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour:')
-            mar_linemarker_label = wx.StaticText(self, -1, 'Marker:')
-            mar_hollow_label = wx.StaticText(self, -1, 'Hollow:')
+            mar_linecolour_label = wx.StaticText(topbox, -1, 'Line Colour:')
+            mar_linemarker_label = wx.StaticText(topbox, -1, 'Marker:')
+            mar_hollow_label = wx.StaticText(topbox, -1, 'Hollow:')
 
-            self.qo_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+            self.qo_mar_size = RAWCustomCtrl.FloatSpinCtrl(topbox, -1, '1.0',
                 TextLength = 60, never_negative = True)
             self.qo_mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.qo_mar_size.SetValue(str(self._old_qo_marsize))
 
-            self.qo_mar_fillcolour = wx.Panel(self, -1, name = 'QoMarFillColour',
+            self.qo_mar_fillcolour = wx.Panel(topbox, -1, name = 'QoMarFillColour',
                 style = wx.RAISED_BORDER)
             self.qo_mar_fillcolour.SetBackgroundColour(self.qo_marcolour)
             self.qo_mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
             self.qo_mar_fillcolour.Enable(not self.qo_hollow_marker)
 
-            self.qo_mar_linecolour = wx.Panel(self, -1, name = 'QoMarLineColour',
+            self.qo_mar_linecolour = wx.Panel(topbox, -1, name = 'QoMarLineColour',
                 style = wx.RAISED_BORDER)
             self.qo_mar_linecolour.SetBackgroundColour(self.qo_marlinecolour)
             self.qo_mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-            self.qo_mar_linemarker_list = wx.Choice(self, -1,
+            self.qo_mar_linemarker_list = wx.Choice(topbox, -1,
                 choices = self.linemarker_list_choices)
             self.qo_mar_linemarker_list.Select(self.linemarker_list_choices.index(
                 str(self.qo_linemarker)))
             self.qo_mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.qo_mar_hollow = wx.CheckBox(self, -1)
+            self.qo_mar_hollow = wx.CheckBox(topbox, -1)
             self.qo_mar_hollow.SetValue(self.qo_hollow_marker)
             self.qo_mar_hollow.Bind(wx.EVT_CHECKBOX, self.qo_onHollowCheckBox)
 
@@ -2658,39 +2657,39 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
 
         elif line == self.qf_line:
-            topbox = wx.StaticBox(self, -1, 'Data Point Marker')
+            topbox = wx.StaticBox(parent, -1, 'Data Point Marker')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            mar_size_label = wx.StaticText(self, -1, 'Size:')
-            self.qf_mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour:')
+            mar_size_label = wx.StaticText(topbox, -1, 'Size:')
+            self.qf_mar_fillcolour_label = wx.StaticText(topbox, -1, 'Fill Colour:')
             self.qf_mar_fillcolour_label.Enable(not self.qf_hollow_marker)
-            mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour:')
-            mar_linemarker_label = wx.StaticText(self, -1, 'Marker:')
-            mar_hollow_label = wx.StaticText(self, -1, 'Hollow:')
+            mar_linecolour_label = wx.StaticText(topbox, -1, 'Line Colour:')
+            mar_linemarker_label = wx.StaticText(topbox, -1, 'Marker:')
+            mar_hollow_label = wx.StaticText(topbox, -1, 'Hollow:')
 
-            self.qf_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+            self.qf_mar_size = RAWCustomCtrl.FloatSpinCtrl(topbox, -1, '1.0',
                 TextLength = 60, never_negative = True)
             self.qf_mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.qf_mar_size.SetValue(str(self._old_qf_marsize))
 
-            self.qf_mar_fillcolour = wx.Panel(self, -1, name = 'QfMarFillColour',
+            self.qf_mar_fillcolour = wx.Panel(topbox, -1, name = 'QfMarFillColour',
                 style = wx.RAISED_BORDER)
             self.qf_mar_fillcolour.SetBackgroundColour(self.qf_marcolour)
             self.qf_mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
             self.qf_mar_fillcolour.Enable(not self.qf_hollow_marker)
 
-            self.qf_mar_linecolour = wx.Panel(self, -1, name = 'QfMarLineColour',
+            self.qf_mar_linecolour = wx.Panel(topbox, -1, name = 'QfMarLineColour',
                 style = wx.RAISED_BORDER)
             self.qf_mar_linecolour.SetBackgroundColour(self.qf_marlinecolour)
             self.qf_mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-            self.qf_mar_linemarker_list = wx.Choice(self, -1,
+            self.qf_mar_linemarker_list = wx.Choice(topbox, -1,
                 choices = self.linemarker_list_choices)
             self.qf_mar_linemarker_list.Select(self.linemarker_list_choices.index(
                 str(self.qf_linemarker)))
             self.qf_mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.qf_mar_hollow = wx.CheckBox(self, -1)
+            self.qf_mar_hollow = wx.CheckBox(topbox, -1)
             self.qf_mar_hollow.SetValue(self.qf_hollow_marker)
             self.qf_mar_hollow.Bind(wx.EVT_CHECKBOX, self.qf_onHollowCheckBox)
 
@@ -2762,28 +2761,28 @@ class IFTMLinePropertyDialog(wx.Dialog):
             self.qf_line.set_markerfacecolor(colour)
             self.iftm.plot_panel.canvas.draw()
 
-    def _createLineControls(self, line):
+    def _createLineControls(self, line, parent):
 
         if line == self.r_line:
-            topbox = wx.StaticBox(self, -1, 'Line')
+            topbox = wx.StaticBox(parent, -1, 'Line')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            linewidth_label = wx.StaticText(self, -1, 'Width:')
-            linestyle_label = wx.StaticText(self, -1, 'Style:')
-            linecolour_label = wx.StaticText(self, -1, 'Line Colour:')
+            linewidth_label = wx.StaticText(topbox, -1, 'Width:')
+            linestyle_label = wx.StaticText(topbox, -1, 'Style:')
+            linecolour_label = wx.StaticText(topbox, -1, 'Line Colour:')
 
-            self.r_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+            self.r_linewidth = RAWCustomCtrl.FloatSpinCtrl(topbox, -1, '1.0',
                 TextLength = 60, never_negative = True)
             self.r_linewidth.SetValue(str(self._old_r_linewidth))
             self.r_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
-            self.r_linestyle_list = wx.Choice(self, -1,
+            self.r_linestyle_list = wx.Choice(topbox, -1,
                 choices = self.linestyle_list_choices)
             self.r_linestyle_list.Select(self.linestyle_list_choices.index(
                 str(self.r_linestyle)))
             self.r_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.r_line_colour = wx.Panel(self, -1, name = 'PrLineColour',
+            self.r_line_colour = wx.Panel(topbox, -1, name = 'PrLineColour',
                 style = wx.RAISED_BORDER)
             self.r_line_colour.SetBackgroundColour(self.r_linecolour)
             self.r_line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
@@ -2801,25 +2800,25 @@ class IFTMLinePropertyDialog(wx.Dialog):
             box.Add(sizer, 0, wx.ALL, 5)
 
         elif line == self.qo_line:
-            topbox = wx.StaticBox(self, -1, 'Line')
+            topbox = wx.StaticBox(parent, -1, 'Line')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            linewidth_label = wx.StaticText(self, -1, 'Width:')
-            linestyle_label = wx.StaticText(self, -1, 'Style:')
-            linecolour_label = wx.StaticText(self, -1, 'Line Colour:')
+            linewidth_label = wx.StaticText(topbox, -1, 'Width:')
+            linestyle_label = wx.StaticText(topbox, -1, 'Style:')
+            linecolour_label = wx.StaticText(topbox, -1, 'Line Colour:')
 
-            self.qo_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+            self.qo_linewidth = RAWCustomCtrl.FloatSpinCtrl(topbox, -1, '1.0',
                 TextLength = 60, never_negative = True)
             self.qo_linewidth.SetValue(str(self._old_qo_linewidth))
             self.qo_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
-            self.qo_linestyle_list = wx.Choice(self, -1,
+            self.qo_linestyle_list = wx.Choice(topbox, -1,
                 choices = self.linestyle_list_choices)
             self.qo_linestyle_list.Select(self.linestyle_list_choices.index(
                 str(self.qo_linestyle)))
             self.qo_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.qo_line_colour = wx.Panel(self, -1, name = 'QoLineColour',
+            self.qo_line_colour = wx.Panel(topbox, -1, name = 'QoLineColour',
                 style = wx.RAISED_BORDER)
             self.qo_line_colour.SetBackgroundColour(self.qo_linecolour)
             self.qo_line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
@@ -2837,25 +2836,25 @@ class IFTMLinePropertyDialog(wx.Dialog):
             box.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
         elif line == self.qf_line:
-            topbox = wx.StaticBox(self, -1, 'Line')
+            topbox = wx.StaticBox(parent, -1, 'Line')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            linewidth_label = wx.StaticText(self, -1, 'Width:')
-            linestyle_label = wx.StaticText(self, -1, 'Style:')
-            linecolour_label = wx.StaticText(self, -1, 'Line Colour:')
+            linewidth_label = wx.StaticText(topbox, -1, 'Width:')
+            linestyle_label = wx.StaticText(topbox, -1, 'Style:')
+            linecolour_label = wx.StaticText(topbox, -1, 'Line Colour:')
 
-            self.qf_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+            self.qf_linewidth = RAWCustomCtrl.FloatSpinCtrl(topbox, -1, '1.0',
                 TextLength = 60, never_negative = True)
             self.qf_linewidth.SetValue(str(self._old_qf_linewidth))
             self.qf_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
-            self.qf_linestyle_list = wx.Choice(self, -1,
+            self.qf_linestyle_list = wx.Choice(topbox, -1,
                 choices = self.linestyle_list_choices)
             self.qf_linestyle_list.Select(self.linestyle_list_choices.index(
                 str(self.qf_linestyle)))
             self.qf_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.qf_line_colour = wx.Panel(self, -1, name = 'QfLineColour',
+            self.qf_line_colour = wx.Panel(topbox, -1, name = 'QfLineColour',
                 style = wx.RAISED_BORDER)
             self.qf_line_colour.SetBackgroundColour(self.qf_linecolour)
             self.qf_line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
@@ -3126,7 +3125,7 @@ class SECMLinePropertyDialog(wx.Dialog):
         sec_box = wx.StaticBox(self, -1, 'Series Line')
         secline_sizer = wx.StaticBoxSizer(sec_box, wx.VERTICAL)
 
-        line_legend = self._createLegendLabelControls(self.line)
+        line_legend = self._createLegendLabelControls(self.line, sec_box)
 
         linesettings_sizer = wx.FlexGridSizer(cols=5, rows=1, vgap=self._FromDIP(5),
             hgap=self._FromDIP(10))
@@ -3135,9 +3134,9 @@ class SECMLinePropertyDialog(wx.Dialog):
         linesettings_sizer.AddGrowableCol(4)
 
         linesettings_sizer.AddStretchSpacer(1)
-        linesettings_sizer.Add(self._createLineControls(), 1, wx.EXPAND)
+        linesettings_sizer.Add(self._createLineControls(sec_box), 1, wx.EXPAND)
         linesettings_sizer.AddStretchSpacer(1)
-        linesettings_sizer.Add(self._createLineMarkerControls(), 1, wx.EXPAND)
+        linesettings_sizer.Add(self._createLineMarkerControls(sec_box), 1, wx.EXPAND)
         linesettings_sizer.AddStretchSpacer(1)
 
         secline_sizer.Add(line_legend, 0, wx.ALL|wx.EXPAND, border=self._FromDIP(5))
@@ -3148,7 +3147,7 @@ class SECMLinePropertyDialog(wx.Dialog):
         calc_box = wx.StaticBox(self, -1, 'Calculated Line')
         calcline_sizer = wx.StaticBoxSizer(calc_box, wx.VERTICAL)
 
-        calc_legend = self._createLegendLabelControls(self.calc_line)
+        calc_legend = self._createLegendLabelControls(self.calc_line, calc_box)
 
         calclinesettings_sizer = wx.FlexGridSizer(cols=5, rows=1,
             vgap=self._FromDIP(5), hgap=self._FromDIP(10))
@@ -3157,10 +3156,10 @@ class SECMLinePropertyDialog(wx.Dialog):
         calclinesettings_sizer.AddGrowableCol(4)
 
         calclinesettings_sizer.AddStretchSpacer(1)
-        calclinesettings_sizer.Add(self._createLineControls(calc = True), 1,
+        calclinesettings_sizer.Add(self._createLineControls(calc_box, calc = True), 1,
             wx.EXPAND)
         calclinesettings_sizer.AddStretchSpacer(1)
-        calclinesettings_sizer.Add(self._createLineMarkerControls(calc = True),
+        calclinesettings_sizer.Add(self._createLineMarkerControls(calc_box, calc = True),
             1, wx.EXPAND)
         calclinesettings_sizer.AddStretchSpacer(1)
 
@@ -3188,13 +3187,13 @@ class SECMLinePropertyDialog(wx.Dialog):
         except Exception:
             return size
 
-    def _createLegendLabelControls(self, line):
+    def _createLegendLabelControls(self, line, parent):
 
         if line == self.line:
-            topbox = wx.StaticBox(self, -1, 'Legend Label')
+            topbox = wx.StaticBox(parent, -1, 'Legend Label')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            self.line_legend_label_text = wx.TextCtrl(self, -1,
+            self.line_legend_label_text = wx.TextCtrl(topbox, -1,
                 self.legend_label[self.line])
 
             sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -3203,10 +3202,10 @@ class SECMLinePropertyDialog(wx.Dialog):
             box.Add(sizer, 0, wx.EXPAND | wx.ALL, border=self._FromDIP(5))
 
         elif line == self.calc_line:
-            topbox = wx.StaticBox(self, -1, 'Legend Label')
+            topbox = wx.StaticBox(parent, -1, 'Legend Label')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            self.calc_legend_label_text = wx.TextCtrl(self, -1,
+            self.calc_legend_label_text = wx.TextCtrl(topbox, -1,
                 self.legend_label[self.calc_line])
 
             sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -3290,44 +3289,44 @@ class SECMLinePropertyDialog(wx.Dialog):
             colour_panel.SetBackgroundColour(color)
             colour_panel.Refresh()
 
-    def _createLineMarkerControls(self, calc = False):
+    def _createLineMarkerControls(self, parent, calc = False):
 
         if not calc:
-            topbox = wx.StaticBox(self, -1, 'Data Point Marker')
+            topbox = wx.StaticBox(parent, -1, 'Data Point Marker')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            mar_size_label = wx.StaticText(self, -1, 'Size:')
-            self.mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour:')
+            mar_size_label = wx.StaticText(topbox, -1, 'Size:')
+            self.mar_fillcolour_label = wx.StaticText(topbox, -1, 'Fill Colour:')
             self.mar_fillcolour_label.Enable(not self.hollow_marker)
-            mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour:')
-            mar_linemarker_label = wx.StaticText(self, -1, 'Marker:')
-            mar_hollow_label = wx.StaticText(self, -1, 'Hollow:')
+            mar_linecolour_label = wx.StaticText(topbox, -1, 'Line Colour:')
+            mar_linemarker_label = wx.StaticText(topbox, -1, 'Marker:')
+            mar_hollow_label = wx.StaticText(topbox, -1, 'Hollow:')
 
-            #self.mar_size = wx.SpinCtrl(self, -1, '1')
-            self.mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+            #self.mar_size = wx.SpinCtrl(topbox, -1, '1')
+            self.mar_size = RAWCustomCtrl.FloatSpinCtrl(topbox, -1, '1.0',
                 TextLength = 60, never_negative = True)
             self.mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.mar_size.SetValue(str(self._old_marsize))
             #self.mar_size.Bind(wx.EVT_SPINCTRL, self.updateLine)
 
-            self.mar_fillcolour = wx.Panel(self, -1, name = 'MarFillColour',
+            self.mar_fillcolour = wx.Panel(topbox, -1, name = 'MarFillColour',
                 style = wx.RAISED_BORDER)
             self.mar_fillcolour.SetBackgroundColour(self._marcolour)
             self.mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
             self.mar_fillcolour.Enable(not self.hollow_marker)
 
-            self.mar_linecolour = wx.Panel(self, -1, name = 'MarLineColour',
+            self.mar_linecolour = wx.Panel(topbox, -1, name = 'MarLineColour',
                 style = wx.RAISED_BORDER)
             self.mar_linecolour.SetBackgroundColour(self._marlinecolour)
             self.mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-            self.mar_linemarker_list = wx.Choice(self, -1,
+            self.mar_linemarker_list = wx.Choice(topbox, -1,
                 choices=self.linemarker_list_choices)
             self.mar_linemarker_list.Select(self.linemarker_list_choices.index(
                 str(self._linemarker)))
             self.mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.mar_hollow = wx.CheckBox(self, -1)
+            self.mar_hollow = wx.CheckBox(topbox, -1)
             self.mar_hollow.SetValue(self.hollow_marker)
             self.mar_hollow.Bind(wx.EVT_CHECKBOX, self._onHollowCheckBox)
 
@@ -3348,41 +3347,41 @@ class SECMLinePropertyDialog(wx.Dialog):
             box.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
         else:
-            topbox = wx.StaticBox(self, -1, 'Calc Data Point Marker')
+            topbox = wx.StaticBox(parent, -1, 'Calc Data Point Marker')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            mar_size_label = wx.StaticText(self, -1, 'Size:')
-            self.calc_mar_fillcolour_label = wx.StaticText(self, -1, 'Fill Colour:')
+            mar_size_label = wx.StaticText(topbox, -1, 'Size:')
+            self.calc_mar_fillcolour_label = wx.StaticText(topbox, -1, 'Fill Colour:')
             self.calc_mar_fillcolour_label.Enable(not self.hollow_marker_calc)
-            mar_linecolour_label = wx.StaticText(self, -1, 'Line Colour:')
-            mar_linemarker_label = wx.StaticText(self, -1, 'Marker:')
-            mar_hollow_label = wx.StaticText(self, -1, 'Hollow:')
+            mar_linecolour_label = wx.StaticText(topbox, -1, 'Line Colour:')
+            mar_linemarker_label = wx.StaticText(topbox, -1, 'Marker:')
+            mar_hollow_label = wx.StaticText(topbox, -1, 'Hollow:')
 
-            #self.mar_size = wx.SpinCtrl(self, -1, '1')
-            self.calc_mar_size = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+            #self.mar_size = wx.SpinCtrl(topbox, -1, '1')
+            self.calc_mar_size = RAWCustomCtrl.FloatSpinCtrl(topbox, -1, '1.0',
                 TextLength = 60, never_negative = True)
             self.calc_mar_size.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
             self.calc_mar_size.SetValue(str(self._old_calcmarsize))
             #self.mar_size.Bind(wx.EVT_SPINCTRL, self.updateLine)
 
-            self.calc_mar_fillcolour = wx.Panel(self, -1, name='CalcMarFillColour',
+            self.calc_mar_fillcolour = wx.Panel(topbox, -1, name='CalcMarFillColour',
                 style = wx.RAISED_BORDER)
             self.calc_mar_fillcolour.SetBackgroundColour(self._calcmarcolour)
             self.calc_mar_fillcolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
             self.calc_mar_fillcolour.Enable(not self.hollow_marker_calc)
 
-            self.calc_mar_linecolour = wx.Panel(self, -1, name='CalcMarLineColour',
+            self.calc_mar_linecolour = wx.Panel(topbox, -1, name='CalcMarLineColour',
                 style = wx.RAISED_BORDER)
             self.calc_mar_linecolour.SetBackgroundColour(self._calcmarlinecolour)
             self.calc_mar_linecolour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
 
-            self.calc_mar_linemarker_list = wx.Choice(self, -1,
+            self.calc_mar_linemarker_list = wx.Choice(topbox, -1,
                 choices=self.linemarker_list_choices)
             self.calc_mar_linemarker_list.Select(self.linemarker_list_choices.index(
                 str(self._calclinemarker)))
             self.calc_mar_linemarker_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.calc_mar_hollow = wx.CheckBox(self, -1)
+            self.calc_mar_hollow = wx.CheckBox(topbox, -1)
             self.calc_mar_hollow.SetValue(self.hollow_marker_calc)
             self.calc_mar_hollow.Bind(wx.EVT_CHECKBOX, self._onHollowCheckBoxCalc)
 
@@ -3437,28 +3436,28 @@ class SECMLinePropertyDialog(wx.Dialog):
             self.calc_line.set_markerfacecolor(colour)
             self.secm.plot_panel.canvas.draw()
 
-    def _createLineControls(self, calc = False):
+    def _createLineControls(self, parent, calc = False):
 
         if not calc:
-            topbox = wx.StaticBox(self, -1, 'Line')
+            topbox = wx.StaticBox(parent, -1, 'Line')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            linewidth_label = wx.StaticText(self, -1, 'Width :')
-            linestyle_label = wx.StaticText(self, -1, 'Style :')
-            linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
+            linewidth_label = wx.StaticText(topbox, -1, 'Width :')
+            linestyle_label = wx.StaticText(topbox, -1, 'Style :')
+            linecolour_label = wx.StaticText(topbox, -1, 'Line Colour :')
 
-            self.linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+            self.linewidth = RAWCustomCtrl.FloatSpinCtrl(topbox, -1, '1.0',
                 TextLength = 60, never_negative = True)
             self.linewidth.SetValue(str(self._old_linewidth))
             self.linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
-            self.linestyle_list = wx.Choice(self, -1,
+            self.linestyle_list = wx.Choice(topbox, -1,
              choices=self.linestyle_list_choices)
             self.linestyle_list.Select(self.linestyle_list_choices.index(
                 str(self._linestyle)))
             self.linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.line_colour = wx.Panel(self, -1, name='LineColour',
+            self.line_colour = wx.Panel(topbox, -1, name='LineColour',
                 style=wx.RAISED_BORDER)
             self.line_colour.SetBackgroundColour(self._linecolour)
             self.line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
@@ -3476,25 +3475,25 @@ class SECMLinePropertyDialog(wx.Dialog):
             box.Add(sizer, 0, wx.ALL, border=self._FromDIP(5))
 
         else:
-            topbox = wx.StaticBox(self, -1, 'Calc Line')
+            topbox = wx.StaticBox(parent, -1, 'Calc Line')
             box = wx.StaticBoxSizer(topbox, wx.VERTICAL)
 
-            linewidth_label = wx.StaticText(self, -1, 'Width :')
-            linestyle_label = wx.StaticText(self, -1, 'Style :')
-            linecolour_label = wx.StaticText(self, -1, 'Line Colour :')
+            linewidth_label = wx.StaticText(topbox, -1, 'Width :')
+            linestyle_label = wx.StaticText(topbox, -1, 'Style :')
+            linecolour_label = wx.StaticText(topbox, -1, 'Line Colour :')
 
-            self.calc_linewidth = RAWCustomCtrl.FloatSpinCtrl(self, -1, '1.0',
+            self.calc_linewidth = RAWCustomCtrl.FloatSpinCtrl(topbox, -1, '1.0',
                 TextLength = 60, never_negative = True)
             self.calc_linewidth.SetValue(str(self._old_calclinewidth))
             self.calc_linewidth.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateLine)
 
-            self.calc_linestyle_list = wx.Choice(self, -1,
+            self.calc_linestyle_list = wx.Choice(topbox, -1,
                 choices=self.linestyle_list_choices)
             self.calc_linestyle_list.Select(self.linestyle_list_choices.index(
                 str(self._calclinestyle)))
             self.calc_linestyle_list.Bind(wx.EVT_CHOICE, self.updateLine)
 
-            self.calc_line_colour = wx.Panel(self, -1, name = 'CalcLineColour',
+            self.calc_line_colour = wx.Panel(topbox, -1, name = 'CalcLineColour',
                 style = wx.RAISED_BORDER)
             self.calc_line_colour.SetBackgroundColour(self._calclinecolour)
             self.calc_line_colour.Bind(wx.EVT_LEFT_DOWN, self._onColourPress)
@@ -3923,10 +3922,10 @@ class PlotOptionsDialog(wx.Dialog):
 
         sizer.Add(self._FromDIP((5,5)), 0)
         sizer.Add(self._FromDIP((5,5)), 0)
-        sizer.Add(wx.StaticText(self, -1, 'Font'), 1)
-        sizer.Add(wx.StaticText(self, -1, 'Size'), 1)
-        sizer.Add(wx.StaticText(self, -1, 'Bold'), 1)
-        sizer.Add(wx.StaticText(self, -1, 'Italic'), 1)
+        sizer.Add(wx.StaticText(box, -1, 'Font'), 1)
+        sizer.Add(wx.StaticText(box, -1, 'Size'), 1)
+        sizer.Add(wx.StaticText(box, -1, 'Bold'), 1)
+        sizer.Add(wx.StaticText(box, -1, 'Italic'), 1)
 
         for each_label, each_name, my_ids in self.labels:
             if each_name == 'title':
@@ -3943,28 +3942,28 @@ class PlotOptionsDialog(wx.Dialog):
                 else:
                     label = self.legend.get_title()
 
-            txt = wx.StaticText(self, -1, each_label)
+            txt = wx.StaticText(box, -1, each_label)
 
             labtxt = label.get_text()
 
             if each_name == 'legtit':
                  if labtxt == 'None': labtxt = ''
 
-            txt_ctrl = wx.TextCtrl(self, my_ids['text'], labtxt, name=each_name)
+            txt_ctrl = wx.TextCtrl(box, my_ids['text'], labtxt, name=each_name)
 
-            font_ctrl = wx.Choice(self, my_ids['fontname'], choices=self.font_list,
+            font_ctrl = wx.Choice(box, my_ids['fontname'], choices=self.font_list,
                 name=each_name)
             if each_name == 'legtit' and not self.is_legend:
                 font_ctrl.SetStringSelection(self._old_legend_settings['font'])
             else:
                 font_ctrl.SetStringSelection(label.get_fontname())
 
-            font_size = wx.SpinCtrl(self, my_ids['size'], str(label.get_size()),
+            font_size = wx.SpinCtrl(box, my_ids['size'], str(label.get_size()),
                 name=each_name)
             font_size.SetValue(int(label.get_size()))
 
-            bold = wx.CheckBox(self, my_ids['weight'], name=each_name)
-            italic = wx.CheckBox(self, my_ids['style'], name=each_name)
+            bold = wx.CheckBox(box, my_ids['weight'], name=each_name)
+            italic = wx.CheckBox(box, my_ids['style'], name=each_name)
 
             bold.Bind(wx.EVT_CHECKBOX, self._updateLabels)
             italic.Bind(wx.EVT_CHECKBOX, self._updateLabels)
@@ -4008,13 +4007,13 @@ class PlotOptionsDialog(wx.Dialog):
         sizer = wx.FlexGridSizer(rows=7, cols=2, hgap=self._FromDIP(5),
             vgap=self._FromDIP(3))
 
-        self.axes_autolimits = wx.CheckBox(self, -1)
+        self.axes_autolimits = wx.CheckBox(box, -1)
         self.axes_autolimits.Bind(wx.EVT_CHECKBOX, self._updateAxesSettings)
 
         val = self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)]
         self.axes_autolimits.SetValue(val)
 
-        sizer.Add(wx.StaticText(self, -1, 'Auto limits:'), 0,
+        sizer.Add(wx.StaticText(box, -1, 'Auto limits:'), 0,
             wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.axes_autolimits, 0)
 
@@ -4035,7 +4034,7 @@ class PlotOptionsDialog(wx.Dialog):
 
         for i in range(0, 2):
             id = self.axes_fixed_limits_data[i][1]
-            limit_sizer.Add(wx.TextCtrl(self, id,
+            limit_sizer.Add(wx.TextCtrl(box, id,
                 str(self.axes_fixed_limits_data[i][2]), size=self._FromDIP((80, -1))),
                 0)
             wx.FindWindowById(id, self).Bind(wx.EVT_TEXT, self._updateAxesRange)
@@ -4045,7 +4044,7 @@ class PlotOptionsDialog(wx.Dialog):
 
         for i in range(2, 4):
             id = self.axes_fixed_limits_data[i][1]
-            limit_sizer2.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]),
+            limit_sizer2.Add(wx.TextCtrl(box, id, str(self.axes_fixed_limits_data[i][2]),
                 size=self._FromDIP((80, -1))), 0)
             wx.FindWindowById(id, self).Bind(wx.EVT_TEXT, self._updateAxesRange)
 
@@ -4055,27 +4054,27 @@ class PlotOptionsDialog(wx.Dialog):
 
             for i in range(4, 6):
                 id = self.axes_fixed_limits_data[i][1]
-                limit_sizer3.Add(wx.TextCtrl(self, id, str(self.axes_fixed_limits_data[i][2]),
+                limit_sizer3.Add(wx.TextCtrl(box, id, str(self.axes_fixed_limits_data[i][2]),
                     size=self._FromDIP((80, -1))), 0)
                 wx.FindWindowById(id, self).Bind(wx.EVT_TEXT, self._updateAxesRange)
 
         maxmin_sizer = wx.BoxSizer()
-        maxmin_sizer.Add(wx.StaticText(self, -1, 'min'), 1, wx.EXPAND)
-        maxmin_sizer.Add(wx.StaticText(self, -1, 'max'), 1, wx.EXPAND | wx.LEFT,
+        maxmin_sizer.Add(wx.StaticText(box, -1, 'min'), 1, wx.EXPAND)
+        maxmin_sizer.Add(wx.StaticText(box, -1, 'max'), 1, wx.EXPAND | wx.LEFT,
             border=self._FromDIP(5))
 
         sizer.Add(self._FromDIP((5,5)))
         sizer.Add(maxmin_sizer, 0, wx.EXPAND)
-        sizer.Add(wx.StaticText(self, -1, 'x-limits'), 0)
+        sizer.Add(wx.StaticText(box, -1, 'x-limits'), 0)
         sizer.Add(limit_sizer, 0)
         if self.is_sec and self.sec_calc != 'None':
-            sizer.Add(wx.StaticText(self, -1, 'y-limits (left)'), 0)
+            sizer.Add(wx.StaticText(box, -1, 'y-limits (left)'), 0)
             sizer.Add(limit_sizer2, 0)
-            sizer.Add(wx.StaticText(self, -1, 'y-limits (right)'), 0)
+            sizer.Add(wx.StaticText(box, -1, 'y-limits (right)'), 0)
             sizer.Add(limit_sizer3, 0)
 
         else:
-            sizer.Add(wx.StaticText(self, -1, 'y-limits'), 0)
+            sizer.Add(wx.StaticText(box, -1, 'y-limits'), 0)
             sizer.Add(limit_sizer2, 0)
 
         border_sizer = wx.FlexGridSizer(rows=2, cols=2, hgap=self._FromDIP(5),
@@ -4092,7 +4091,7 @@ class PlotOptionsDialog(wx.Dialog):
             framestyle = framestyle+framestyle2
 
         for each, id in self.axes_borders:
-            border_sizer.Add(wx.CheckBox(self, id, each), 0, wx.RIGHT,
+            border_sizer.Add(wx.CheckBox(box, id, each), 0, wx.RIGHT,
                 border=self._FromDIP(5))
             wx.FindWindowById(id, self).Bind(wx.EVT_CHECKBOX, self._updateAxesSettings)
 
@@ -4105,7 +4104,7 @@ class PlotOptionsDialog(wx.Dialog):
             if each == 'Bottom' and framestyle.find('b')>-1:
                 wx.FindWindowById(id, self).SetValue(True)
 
-        sizer.Add(wx.StaticText(self, -1, 'Borders:'), 0)
+        sizer.Add(wx.StaticText(box, -1, 'Borders:'), 0)
         sizer.Add(border_sizer, 0, wx.TOP, border=self._FromDIP(5))
 
         topbox.Add(sizer, 0, wx.ALL | wx.EXPAND, border=self._FromDIP(5))
@@ -4113,24 +4112,24 @@ class PlotOptionsDialog(wx.Dialog):
         self._enableLimitsCtrls(not self.parent.plotparams['auto_fitaxes' + str(self.parent.selected_plot)])
 
 
-        self.zero_line = wx.CheckBox(self, -1)
+        self.zero_line = wx.CheckBox(box, -1)
         self.zero_line.Bind(wx.EVT_CHECKBOX, self._updateAxesSettings)
 
         zval = self.parent.plotparams['zero_line'+ str(self.parent.selected_plot)]
         self.zero_line.SetValue(zval)
 
-        sizer.Add(wx.StaticText(self, -1, 'Zero Line:'), 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(wx.StaticText(box, -1, 'Zero Line:'), 0, wx.ALIGN_CENTER_VERTICAL)
         sizer.Add(self.zero_line, 0)
 
 
-        x_tick_label = wx.StaticText(self, -1, 'X-tick label font size:')
+        x_tick_label = wx.StaticText(box, -1, 'X-tick label font size:')
 
 
         if self.is_sec and self.sec_calc != 'None':
-            y_tick_label = wx.StaticText(self, -1, 'Y-tick (left) label font size:')
-            y2_tick_label = wx.StaticText(self, -1, 'Y-tick (right) label font size:')
+            y_tick_label = wx.StaticText(box, -1, 'Y-tick (left) label font size:')
+            y2_tick_label = wx.StaticText(box, -1, 'Y-tick (right) label font size:')
         else:
-            y_tick_label = wx.StaticText(self, -1, 'Y-tick label font size:')
+            y_tick_label = wx.StaticText(box, -1, 'Y-tick label font size:')
 
         for tick in self.axes.xaxis.get_major_ticks():
             x_tick_size = tick.label.get_fontsize()
@@ -4146,14 +4145,14 @@ class PlotOptionsDialog(wx.Dialog):
                 break
 
 
-        x_tick_font_size = wx.SpinCtrl(self, -1, str(x_tick_size), name='xticksize')
+        x_tick_font_size = wx.SpinCtrl(box, -1, str(x_tick_size), name='xticksize')
         x_tick_font_size.SetValue(int(x_tick_size))
 
-        y_tick_font_size = wx.SpinCtrl(self, -1, str(y_tick_size), name='yticksize')
+        y_tick_font_size = wx.SpinCtrl(box, -1, str(y_tick_size), name='yticksize')
         y_tick_font_size.SetValue(int(y_tick_size))
 
         if self.is_sec and self.sec_calc != 'None':
-            y2_tick_font_size = wx.SpinCtrl(self, -1, str(y2_tick_size),
+            y2_tick_font_size = wx.SpinCtrl(box, -1, str(y2_tick_size),
                 name='y2ticksize')
             y2_tick_font_size.SetValue(int(y2_tick_size))
 
@@ -4238,15 +4237,15 @@ class PlotOptionsDialog(wx.Dialog):
             val = item[3]
             my_type = item[4]
 
-            lbl_txt = wx.StaticText(self, -1, label)
+            lbl_txt = wx.StaticText(box, -1, label)
 
             if my_type == 'bool':
-                ctrl = wx.CheckBox(self, my_id)
+                ctrl = wx.CheckBox(box, my_id)
                 ctrl.SetValue(val)
                 ctrl.Bind(wx.EVT_CHECKBOX, self._updateLegendSettings)
 
             elif my_type == 'int':
-                ctrl = wx.SpinCtrl(self, my_id, '')
+                ctrl = wx.SpinCtrl(box, my_id, '')
                 if each_key == 'alpha':
                     ctrl.SetValue(int(abs(val*100-100)))
                 else:
@@ -4257,7 +4256,7 @@ class PlotOptionsDialog(wx.Dialog):
                 if each_key == 'font':
                     choices = self.font_list
 
-                ctrl = wx.Choice(self, my_id, choices = choices)
+                ctrl = wx.Choice(box, my_id, choices = choices)
                 ctrl.SetStringSelection(val)
                 ctrl.Bind(wx.EVT_CHOICE, self._updateLegendSettings)
 

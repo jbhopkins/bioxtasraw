@@ -3883,8 +3883,8 @@ def run_regals(M, intensity, sigma, min_iter=20, max_iter=1000, tol=0.001,
         M, params, resid = R.step(M)
         chis[niter] = params['x2']
 
-        if (niter +1) % 1 == 0 or niter == 0:
-            print('Iteration: {}, chi^2: {}'.format(niter+1, params['x2']))
+        # if (niter +1) % 1 == 0 or niter == 0:
+        #     print('Iteration: {}, chi^2: {}'.format(niter+1, params['x2']))
 
         if niter >= min_iter and conv_type=='Chi^2':
             if np.std(chis[niter-min_iter:niter+1]) < tol*np.median(chis[niter-min_iter:niter+1]):
@@ -3894,8 +3894,6 @@ def run_regals(M, intensity, sigma, min_iter=20, max_iter=1000, tol=0.001,
             break
 
         niter += 1
-
-    # print('Iteration: {}, chi^2: {}'.format(niter+1, params['x2']))
 
     params['total_iter'] = niter+1
 
