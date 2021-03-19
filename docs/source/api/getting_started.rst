@@ -49,9 +49,9 @@ into 1D scattering profiles. This is easily accomplished with the API.
 
 .. code-block:: python
 
-    #Define a list of image filenames to load.
-    buffer_images = ['./standards_data/GI2_A9_19_001_0000.tiff',
-        './standards_data/GI2_A9_19_001_0000.tiff']
+    ##Define a list of image filenames to load.
+    buffer_images = ['./standards_data/GIbuf2_A9_18_001_0000.tiff',
+        './standards_data/GIbuf2_A9_18_001_0001.tiff']
 
     #Load and radially average images
     profiles, imgs = raw.load_and_integrate_images(buffer_images, my_settings)

@@ -110,6 +110,19 @@ class SECM(object):
         define a sample range consisting of two sub-ranges, the first from
         profiles 0-10 in the series and the second from profiles 100-110
         in the series.
+    use_subtracted_sasm: list
+        A list of bools defining which frames should be used when calculating
+        Rg, MW. This is based on how the total intensity in the frame compares
+        to the average intensity of the buffer region. If the intensity ratio
+        of a profile divided by the average buffer profile is greater than
+        the threshold defined in the RAW settings, that frame is used
+        to calculate Rg and MW, otherwise it is not. This is simply to
+        increase speed of calculation by not trying to calculate these
+        parametesr for buffer data.
+    use_baseline_subtracted_sasm: list
+        As use_subtracted_sasm, but for the baseline corrected profiles (if
+        available).
+
     """
 
     def __init__(self, file_list, sasm_list, frame_list, parameters, settings):

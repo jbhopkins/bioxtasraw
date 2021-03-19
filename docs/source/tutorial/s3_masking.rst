@@ -50,10 +50,10 @@ The written version of the tutorial follows.
         it and selecting resize.
 
     *   *Tip:* You can create a rectangle of defined position and size by entering
-        the x and y coordiantes of the bottom left corner and the width and
+        the x and y coordinates of the bottom left corner and the width and
         height of the rectangle then clicking 'Create'.
 
-#.  If the mask is not perfectly centered, click and drag it until it's centere.d
+#.  If the mask is not perfectly centered, click and drag it until it's centered.
 
 #.  If the mask is too large or small once centered, right click and click resize.
     Then move the mouse pointer to resize the mask, and click once to set the new size.
@@ -69,7 +69,7 @@ The written version of the tutorial follows.
     finish the map.
 
     *   *Tip:* Each click in a polygon mask adds a new point, which defines a
-        line segement between it and the previous point.
+        line segment between it and the previous point.
 
     |masking_circle_png|
 

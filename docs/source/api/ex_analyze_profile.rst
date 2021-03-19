@@ -52,37 +52,48 @@ Calculate IFTs
     (gi_bift, gi_bift_dmax, gi_bift_rg, gi_bift_i0, gi_bift_dmax_err,
         gi_bift_rg_err, gi_bift_i0_err, gi_bift_chi_sq, gi_bift_log_alpha,
         gi_bift_log_alpha_err, gi_bift_evidence,
-        gi_bift_evidence_err) = raw.bift(gi_prof, settings=settings)
+        gi_bift_evidence_err) = raw.bift(gi_prof, settings=settings, single_proc=True)
 
 
-    #Calculate the IFT using GNOM
+    #Calculate the IFT using DATGNOM
     (gi_datgnom_ift, gi_datgnom_dmax, gi_datgnom_rg, gi_datgnom_i0,
         gi_datgnom_rg_err, gi_datgnom_i0_err, gi_datgnom_total_est,
         gi_datgnom_chi_sq, gi_datgnom_alpha, gi_datgnom_quality) = raw.datgnom(gi_prof)
 
 
-Save the profile and IFTs
-++++++++++++++++++++++++++++
+    #Use the auto_dmax function to find the best Dmax and then calculate the IFT using GNOM
+    dmax = raw.auto_dmax(gi_prof)
+
+    (gi_gnom_ift, gi_gnom_dmax, gi_gnom_rg, gi_gnom_i0, gi_gnom_rg_err,
+        gi_gnom_i0_err, gi_gnom_total_est, gi_gnom_chi_sq, gi_gnom_alpha,
+        gi_gnom_quality) = raw.gnom(gi_prof, dmax)
+
+
+Save the profile, IFTs, and analysis summary
+++++++++++++++++++++++++++++++++++++++++++++++
 
 .. code-block:: python
 
-    #Save the profile and IFTs
+    #Save the profile, IFTs, and analysis summary
     if not os.path.exists('./api_results'):
         os.mkdir('./api_results')
 
     raw.save_profile(gi_prof, 'gi.dat', './api_results')
-    raw.save_ift(gi_datgnom_ift, 'gi.out', './api_results')
     raw.save_ift(gi_bift, 'gi.ift', './api_results')
+    raw.save_ift(gi_gnom_ift, 'gi.out', './api_results')
 
-
-    #Calculate the ambiguity using AMBIMETER
-    a_score, a_cats, a_eval = raw.ambimeter(gi_datgnom_ift)
+    raw.save_report('gi_report.pdf', './api_results', [gi_prof],
+        [gi_gnom_ift, gi_bift])
 
 
 Create a bead model reconstruction
 +++++++++++++++++++++++++++++++++++
 
 .. code-block:: python
+
+    #Calculate the ambiguity using AMBIMETER
+    a_score, a_cats, a_eval = raw.ambimeter(gi_gnom_ift)
+
 
     #Create individual bead model reconstructions
     if not os.path.exists('./api_results/gi_dammif'):
@@ -99,7 +110,7 @@ Create a bead model reconstruction
     ev_vals = []
 
     for i in range(5):
-        chi_sq, rg, dmax, mw, ev = raw.dammif(gi_datgnom_ift,
+        chi_sq, rg, dmax, mw, ev = raw.dammif(gi_gnom_ift,
             'gi_{:02d}'.format(i+1), './api_results/gi_dammif', mode='Fast')
 
         chi_sq_vals.append(chi_sq)
@@ -123,7 +134,7 @@ Create a bead model reconstruction
 
 
     #Refine the bead model
-    chi_sq, rg, dmax, mw, ev = raw.dammin(gi_datgnom_ift, 'refine_gi',
+    chi_sq, rg, dmax, mw, ev = raw.dammin(gi_gnom_ift, 'refine_gi',
         './api_results/gi_dammif', 'Refine',
         initial_dam='gi_damstart.pdb')
 
@@ -157,8 +168,8 @@ Create an electron density reconstruction
 
     for i in range(5):
         (rho, chi_sq, rg, support_vol, side, q_fit, I_fit, I_extrap,
-            err_extrap) = raw.denss(gi_datgnom_ift, 'gi_{:02d}'.format(i+1),
-            './api_results/gi_denss', mode='Fast')
+            err_extrap, all_chi_sq, all_rg, all_support_vol) = raw.denss(gi_gnom_ift,
+            'gi_{:02d}'.format(i+1), './api_results/gi_denss', mode='Fast')
 
         rhos.append(rho)
         chi_vals.append(chi_sq)
@@ -177,7 +188,8 @@ Create an electron density reconstruction
     #Refine the electron density
     (refined_rho, refined_chi_sq, refined_rg, refined_support_vol, refined_side,
         refined_q_fit, refined_I_fit, refined_I_extrap,
-        refined_err_extrap) = raw.denss(gi_datgnom_ift, 'gi_refine',
+        refined_err_extrap, all_chi_sq, all_rg,
+        all_support_vol) = raw.denss(gi_gnom_ift, 'gi_refine',
         './api_results/gi_denss', mode='Fast',
         initial_model=average_rho)
 

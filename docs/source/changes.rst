@@ -13,7 +13,7 @@ The RAW team is pleased to announce the release of RAW version 2.1.0. This
 has the release of two major new features:
 
 *   Analysis reports on your data can now be saved as PDFs.
-*   The release of a GUI for the REGALS technique, a new way to deconvole
+*   The release of a GUI for the REGALS technique, a new way to deconvolve
     overlapping LC-SAXS peaks. REGALS can be considered an extension and
     enhancement of EFA.
 
@@ -47,10 +47,10 @@ All changes:
     including better accuracy, better handling of low quality data, and better
     handling of poorly formatted data.
 *   Fixed a bug in the API where running EFA would change the associated ranges.
-*   Fixed a bug in the API that would cause BIFT to fail.
+*   Fixed a bug in the API that could cause BIFT to fail.
 *   Fixed a bug where if previous EFA ranges were available they wouldn't be
     properly set when the EFA window was opened.
-*   Added a feture to the API to truncate an IFT for dammif using either 8/rg
+*   Added a feature to the API to truncate an IFT for dammif using either 8/rg
     or 0.3, whichever is smaller.
 *   Fixed a bug in the API that could cause GNOM to fail to run.
 *   The DENSS function in the API now returns chi squared, rg, and support
@@ -79,6 +79,28 @@ All changes:
 *   Added ability to read in a fourth dQ column in .dat files, preserve the dQ
     values through analysis and saving. Note that merging and interpolating
     do not preserve the dQ values at this time.
+*   Added ability to read in CRYSOL 3 .int files.
+*   Fixed an off by one bug that could affect SVD/EFA/REGALS
+*   Fixed a bug where settings could fail to save or load on Windows if they included
+    non-ascii characters
+*   Fixed a bug where calculating the corrected Porod volume MW could return an error
+*   EFA now remembers the force positive settings for concentration.
+*   Fixed a bug where if an EFA range was listed high to low it would cause an
+    error.
+*   Fixed a bug where scaling q by 10x or 0.1x only worked once (i.e. you could
+    scale to 0.1x or 10x, but not 100x, and couldn't go back to 1x after
+    applying a scale).
+*   Fixed a bug where the linear baseline wasn't getting a good start value.
+*   GNOM window now 'truncates for dammif/n', which truncates to the smaller
+    of 8/Rg or 0.3.
+*   Guinier window now opens faster.
+*   Updated DENSS to version 1.6.3.
+*   Fixed a bug where multiple DENSS windows couldn't be used at the same time.
+*   Fixed a bug where subtracted and baseline corrected profiles from the LC
+    Series Analysis window would have the prefix of the individual profiles in
+    the series, rather than the series itself.
+*   Fixed some possible memory leaks related to dialog creation/destruction.
+*   Added a number of new tests.
 
 
 2.0.3

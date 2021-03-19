@@ -4406,7 +4406,7 @@ class GNOMControlPanel(wx.Panel):
         advancedParams = wx.Button(self, -1, 'Change Advanced Parameters')
         advancedParams.Bind(wx.EVT_BUTTON, self.onChangeParams)
 
-        find_dmax = wx.Button(self, -1, 'Find Dmax')
+        find_dmax = wx.Button(self, -1, 'Auto Dmax')
         find_dmax.Bind(wx.EVT_BUTTON, self.onFindDmaxButton)
 
 
@@ -8339,7 +8339,6 @@ class DenssRunPanel(wx.Panel):
 
         shrinkwrap_sigma_start_in_A = (3.0 * dmax / 64.0) * 3.0
         shrinkwrap_sigma_end_in_A = (3.0 * dmax / 64.0) * 1.5
-        shrinkwrap_threshold_fraction = 0.2
 
         if self.denss_settings['mode'] == 'Fast':
             self.denss_settings['swMinStep'] = 1000

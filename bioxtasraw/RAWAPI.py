@@ -4049,7 +4049,6 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
 
     shrinkwrap_sigma_start_in_A = (3.0 * D / 64.0) * 3.0
     shrinkwrap_sigma_end_in_A = (3.0 * D / 64.0) * 1.5
-    shrinkwrap_threshold_fraction = 0.2
 
     if denss_settings['mode'] == 'Fast':
         denss_settings['swMinStep'] = 1000

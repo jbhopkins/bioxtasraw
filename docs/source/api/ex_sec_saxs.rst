@@ -192,11 +192,11 @@ useful at the moment, it almost always returns invalid.
         other_results) = raw.validate_baseline_range(series, [539, 568],
         [817, 846])
 
-Carrying out SVD and EFA
-+++++++++++++++++++++++++
+Carrying out SVD, EFA, and REGALS
+++++++++++++++++++++++++++++++++++
 
-You can carry out SVD and EFA from the API (though without the GUI you have
-to know what the appropriate ranges are for each EFA component as input).
+You can carry out SVD, EFA, and REGALS from the API (though without the GUI
+you have to know what the appropriate ranges are for each EFA component as input).
 
 .. code-block:: python
 
@@ -213,3 +213,70 @@ to know what the appropriate ranges are for each EFA component as input).
 
     (efa_profiles, efa_converged, efa_conv_data,
         efa_rotation_data) = raw.efa(phehc_series, efa_ranges)
+
+    # Do REGALS
+    prof1_settings = {
+        'type'          : 'simple',
+        'lambda'        : 0.0,
+        'auto_lambda'   : True,
+        'kwargs'        : {},
+        }
+
+    conc1_settings = {
+        'type'          : 'smooth',
+        'lambda'        : 1.0,
+        'auto_lambda'   : True,
+        'kwargs'                : {
+            'xmin'              : 145,
+            'xmax'              : 195,
+            'Nw'                : 50,
+            'is_zero_at_xmin'   : True,
+            'is_zero_at_xmax'   : True,
+            }
+        }
+
+    prof2_settings = {
+        'type'          : 'simple',
+        'lambda'        : 0.0,
+        'auto_lambda'   : True,
+        'kwargs'        : {},
+        }
+
+    conc2_settings = {
+        'type'          : 'smooth',
+        'lambda'        : 3.0e3,
+        'auto_lambda'   : False,
+        'kwargs'                : {
+            'xmin'              : 160,
+            'xmax'              : 325,
+            'Nw'                : 50,
+            'is_zero_at_xmin'   : True,
+            'is_zero_at_xmax'   : True,
+            }
+        }
+
+    prof3_settings = {
+        'type'          : 'simple',
+        'lambda'        : 0.0,
+        'auto_lambda'   : True,
+        'kwargs'        : {},
+        }
+
+    conc3_settings = {
+        'type'          : 'smooth',
+        'lambda'        : 1.0,
+        'auto_lambda'   : True,
+        'kwargs'                : {
+            'xmin'              : 320,
+            'xmax'              : 383,
+            'Nw'                : 50,
+            'is_zero_at_xmin'   : True,
+            'is_zero_at_xmax'   : True,
+            }
+        }
+
+    comp_settings = [(prof1_settings, conc1_settings),
+        (prof2_settings, conc2_settings), (prof3_settings, conc3_settings)]
+
+    regals_profiles, regals_ifts, mixture, params, residual = raw.regals(phehc_series,
+        comp_settings)
