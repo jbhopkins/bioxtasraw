@@ -430,6 +430,7 @@ class GuinierPlotPanel(wx.Panel):
         # self.canvas.SetBackgroundColour('white')
 
         # Connect the callback for the draw_event so that window resizing works:
+        self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
         self.canvas.callbacks.connect('button_release_event', self._onMouseButtonReleaseEvent)
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
@@ -446,6 +447,10 @@ class GuinierPlotPanel(wx.Panel):
         self.err_background = self.canvas.copy_from_bbox(b.bbox)
         self.redrawLines()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def refresh_display(self):
+        self.ax_redraw()
+        self.toolbar.Refresh()
 
     def _calcFit(self, is_autorg=False):
         ''' calculate fit and statistics '''
@@ -1576,7 +1581,11 @@ class GuinierFrame(wx.Frame):
         top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
         self.SetSizer(top_sizer)
 
+        self.Layout()
+
         SASUtils.set_best_size(self)
+
+        self.plotPanel.refresh_display()
 
         self.controlPanel._initSettings()
 
@@ -3747,6 +3756,8 @@ class MWPlotPanel(wx.Panel):
         for tick in a.yaxis.get_major_ticks():
             tick.label.set_fontsize(font_size)
 
+        self.canvas.draw()
+
     def _calcInt(self, sasm, qmax, interp=True):
         ''' calculate pointwise integral '''
 
@@ -3984,6 +3995,7 @@ class IFTPlotPanel(wx.Panel):
         self.SetSizer(sizer)
 
         # Connect the callback for the draw_event so that window resizing works:
+        self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def ax_redraw(self, widget=None):
@@ -7450,6 +7462,8 @@ class DammifViewerPanel(wx.Panel):
         layout_sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.EXPAND)
         # sizer.Add(self.toolbar, 0, wx.GROW)
 
+        self.canvas.draw()
+
         return layout_sizer
 
     def _plotModel(self, atoms, radius):
@@ -9689,6 +9703,8 @@ class DenssViewerPanel(wx.Panel):
         layout_sizer.Add(ctrls_sizer, 0, wx.BOTTOM | wx.EXPAND, self._FromDIP(5))
         layout_sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.EXPAND)
         # sizer.Add(self.toolbar, 0, wx.GROW)
+
+        self.canvas.draw()
 
         return layout_sizer
 
@@ -12063,6 +12079,7 @@ class SVDResultsPlotPanel(wx.Panel):
         self.SetSizer(sizer)
 
         # Connect the callback for the draw_event so that window resizing works:
+        self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def ax_redraw(self, widget=None):
@@ -12227,6 +12244,7 @@ class SVDSECPlotPanel(wx.Panel):
         self.SetSizer(sizer)
 
         # Connect the callback for the draw_event so that window resizing works:
+        self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def ax_redraw(self, widget=None):
@@ -13219,6 +13237,8 @@ class EFAFrame(wx.Frame):
 
                     self.back_button.Enable()
 
+                    self.plotPanel2.refresh_display()
+
                     if not self.controlPanel2.initialized:
                         self.controlPanel2.initialize(self.panel1_results)
 
@@ -13229,8 +13249,6 @@ class EFAFrame(wx.Frame):
 
                     elif  self.panel1_results['input'] != self.controlPanel2.panel1_results['input']:
                         self.controlPanel2.reinitialize(self.panel1_results, efa = False)
-
-                    self.Layout()
 
                 else:
                     msg = ('SVD not successful. Either change data range '
@@ -13275,6 +13293,8 @@ class EFAFrame(wx.Frame):
                 self.next_button.Disable()
 
                 self.done_button.Enable()
+
+                self.plotPanel3.refresh_display()
 
                 if not self.controlPanel3.initialized:
                     self.controlPanel3.initialize(self.panel1_results,
@@ -13982,6 +14002,7 @@ class EFAResultsPlotPanel2(wx.Panel):
         self.SetSizer(sizer)
 
         # Connect the callback for the draw_event so that window resizing works:
+        self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def ax_redraw(self, widget=None):
@@ -14021,6 +14042,10 @@ class EFAResultsPlotPanel2(wx.Panel):
         else:
             a.set_color_cycle(None)
             b.set_color_cycle(None)
+
+    def refresh_display(self):
+        self.ax_redraw()
+        self.toolbar.Refresh()
 
     def plotEFA(self, forward_data, backward_data):
 
@@ -14785,6 +14810,7 @@ class EFAResultsPlotPanel3(wx.Panel):
         self.SetSizer(sizer)
 
         # Connect the callback for the draw_event so that window resizing works:
+        self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
         self.show_pr = False
@@ -14842,6 +14868,10 @@ class EFAResultsPlotPanel3(wx.Panel):
             b.set_color_cycle(None)
             c.set_color_cycle(None)
             d.set_color_cycle(None)
+
+    def refresh_display(self):
+        self.ax_redraw()
+        self.toolbar.Refresh()
 
     def update_layout(self):
 
@@ -15084,6 +15114,7 @@ class EFARangePlotPanel(wx.Panel):
         self.SetSizer(sizer)
 
         # Connect the callback for the draw_event so that window resizing works:
+        self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def _FromDIP(self, size):
@@ -15351,6 +15382,8 @@ class REGALSFrame(wx.Frame):
         self.top_sizer.Hide(self.panels[self.current_panel], recursive=True)
         self.top_sizer.Show(self.panels[self.current_panel+1], recursive=True)
 
+        self.panels[self.current_panel].refresh_display()
+
         self.panels[self.current_panel+1].initialize(self.panel_results)
 
         self.current_panel += 1
@@ -15580,6 +15613,9 @@ class REGALSSVDPanel(wx.Panel):
         if nvals != self.controlPanel.getSignificant():
             self.controlPanel.setSignificant(nvals)
 
+    def refresh_display(self):
+        pass
+
 class REGALSEFAPanel(wx.Panel):
     def __init__(self, parent, secm, manip_item):
         wx.Panel.__init__(self, parent, wx.ID_ANY)
@@ -15664,6 +15700,9 @@ class REGALSEFAPanel(wx.Panel):
 
     def plotEFA(self, forward_data, backward_data):
         self.plotPanel.plotEFA(forward_data, backward_data)
+
+    def refresh_display(self):
+        self.plotPanel.refresh_display()
 
 class REGALSRunPanel(wx.Panel):
     def __init__(self, parent, secm, regals_frame):
@@ -15752,6 +15791,9 @@ class REGALSRunPanel(wx.Panel):
 
         self.SetSizer(top_sizer)
 
+    def refresh_display(self):
+        pass
+
     def on_component_change(self, num_comps):
         self.controls.set_component_number(num_comps)
         self.comp_grid.set_component_number(num_comps,
@@ -15760,8 +15802,6 @@ class REGALSRunPanel(wx.Panel):
         self.SendSizeEvent()
 
     def run_regals(self):
-        print('running regals')
-
         if self.svd_results['secm_choice'] == 'usub':
             regals_secm = self.secm
         elif self.svd_results['secm_choice'] == 'sub':
@@ -15854,12 +15894,6 @@ class REGALSRunPanel(wx.Panel):
                 if np.all(regals_ranges[i] == regals_ranges[j]):
                     s1 = comp_settings[i]
                     s2 = comp_settings[j]
-
-                    print(s1)
-                    print(s2)
-                    print(s1==s2)
-                    print(s1[0] == s2[0])
-                    print(s1[1] == s2[1])
 
                     range_valid = not s1 == s2
 
@@ -17630,6 +17664,7 @@ class REGALSBackgroundSVDPlot(wx.Panel):
         self.create_layout()
 
         self.fig.tight_layout()
+        self.canvas.draw()
 
         # Connect the callback for the draw_event so that window resizing works:
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
@@ -18255,6 +18290,7 @@ class NormKratkyPlotPanel(wx.Panel):
         self.SetSizer(sizer)
 
         # Connect the callback for the draw_event so that window resizing works:
+        self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
         self.canvas.callbacks.connect('button_release_event', self._onMouseButtonReleaseEvent)
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
@@ -18574,7 +18610,7 @@ class NormKratkyControlPanel(wx.Panel):
         plt_sizer.Add(plt_text, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(5))
         plt_sizer.Add(plt_ctrl, 0, wx.RIGHT, border=self._FromDIP(5))
 
-        self.list = normKratkyListPanel(self)
+        self.list = normKratkyListPanel(ctrl_box)
 
 
         control_sizer.Add(plt_sizer, 0)
@@ -18638,7 +18674,7 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
             | ULC.ULC_SORT_ASCENDING|ULC.ULC_NO_HIGHLIGHT,
             size=self._FromDIP((-1,450)))
 
-        self.norm_kratky_frame = parent.norm_kratky_frame
+        self.norm_kratky_frame = parent.GetParent().norm_kratky_frame
 
         self.list_ctrl.InsertColumn(0, 'Show')
         self.list_ctrl.InsertColumn(1, 'Filename')
@@ -18939,6 +18975,7 @@ class SeriesPlotPanel(wx.Panel):
             self.fig.tight_layout()
 
         # Connect the callback for the draw_event so that window resizing works:
+        self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
         self.canvas.mpl_connect('motion_notify_event', self._onMouseMotionEvent)
         self.canvas.mpl_connect('button_press_event', self._onMousePressEvent)
