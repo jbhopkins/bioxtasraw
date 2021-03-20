@@ -1877,7 +1877,7 @@ def load_series(name):
         seriesm_data['series_type'] = str(f.attrs['series_type'])
         seriesm_data['parameters'] = loadDatHeader(f.attrs['parameters'])
 
-        seriesm_data['file_list'] = list(map(str, f['file_names'][()]))
+        seriesm_data['file_list'] = f['file_names'][()]
         seriesm_data['frame_list'] = list(map(int, f['frame_numbers'][()]))
         seriesm_data['time'] = list(map(float, f['times'][()]))
 
@@ -1897,13 +1897,13 @@ def load_series(name):
         sub_profiles = f['subtracted_profiles']
         seriesm_data['subtracted_sasm_list'] = load_series_sasm_list(sub_profiles)
 
-        seriesm_data['use_subtracted_sasm'] = list(map(bool, sub_profiles.attrs['use_subtracted_sasm'][()]))
+        seriesm_data['use_subtracted_sasm'] = sub_profiles.attrs['use_subtracted_sasm'][()]
 
         # Get data from baseline subtracted group
         baseline_profiles = f['baseline_subtracted_profiles']
         seriesm_data['baseline_subtracted_sasm_list'] = load_series_sasm_list(baseline_profiles)
 
-        seriesm_data['use_baseline_subtracted_sasm'] = list(map(bool, baseline_profiles.attrs['use_baseline_subtracted_sasm'][()]))
+        seriesm_data['use_baseline_subtracted_sasm'] = baseline_profiles.attrs['use_baseline_subtracted_sasm'][()]
 
         # Get data from intensity groups
         intensity = f['intensities']
@@ -1915,7 +1915,7 @@ def load_series(name):
         else:
             seriesm_data['buffer_range'] = list(map(tuple, intensity.attrs['buffer_range'][()]))
 
-        seriesm_data['already_subtracted'] = bool(intensity.attrs['already_subtracted'][()])
+        seriesm_data['already_subtracted'] = intensity.attrs['already_subtracted'][()]
         seriesm_data['qref'] = float(intensity['qref_intensities'].attrs['q_value'][()])
         seriesm_data['qrange'] = tuple(intensity['qrange_intensities'].attrs['q_range'][()])
 
@@ -1941,7 +1941,7 @@ def load_series(name):
         seriesm_data['window_size'] = int(calc_data.attrs['window_size'][()])
         seriesm_data['mol_type'] = str(calc_data.attrs['molecule_type'][:])
         seriesm_data['mol_density'] = float(calc_data.attrs['molecule_density'][()])
-        seriesm_data['calc_has_data'] = bool(calc_data.attrs['has_data'][()])
+        seriesm_data['calc_has_data'] = calc_data.attrs['has_data'][()]
 
         # Get baseline
         baseline = f['baseline']
@@ -1966,7 +1966,7 @@ def load_series(name):
             seriesm_data['baseline_end_range'] = list(map(tuple, baseline.attrs['baseline_end_range'][()]))
 
         seriesm_data['baseline_type'] = str(baseline.attrs['baseline_type'])
-        seriesm_data['baseline_extrapolation'] = bool(baseline.attrs['baseline_extrapolation'])
+        seriesm_data['baseline_extrapolation'] = baseline.attrs['baseline_extrapolation']
 
         try:
             seriesm_data['item_font_color'] = f.attrs['item_font_color'][()]
@@ -1994,6 +1994,13 @@ def load_series(name):
 
         except Exception:
             pass
+
+    # Deals with a change in how h5py reads in strings between version 2 and 3.
+    if h5py.version.version_tuple.major >= 3:
+        seriesm_data['file_list'] = [fname.decode('utf-8') for fname in seriesm_data['file_list']]
+
+    else:
+        seriesm_data['file_list'] = list(map(str, seriesm_data['file_list']))
 
     return seriesm_data
 

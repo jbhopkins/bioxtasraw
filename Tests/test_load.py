@@ -1122,6 +1122,8 @@ def test_load_series_new_from_dats():
     assert isinstance(secm.average_buffer_sasm, SASM.SASM)
     assert len(secm.subtracted_sasm_list) == 324
     assert len(secm.use_subtracted_sasm) == 324
+    assert secm.use_subtracted_sasm[200]
+    assert not secm.use_subtracted_sasm[0]
     assert secm.total_i_sub.sum() == 364.4688469796332
     assert secm.baseline_type == 'Linear'
     assert len(secm.baseline_subtracted_sasm_list) == 324
