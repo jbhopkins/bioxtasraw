@@ -3294,7 +3294,8 @@ def make_figure(figure, caption, img_width, img_height, styles):
     temp_files.append(filename) #Note defined at a module level
 
     figure.savefig(filename, dpi=300)
-    image = Image(filename, img_width*inch, img_height*inch)
+    plt.close(figure)
+    image = Image(filename, img_width*inch, img_height*inch, lazy=2)
     image.hAlign = 'CENTER'
 
     text = Paragraph(caption, styles['Normal'])
