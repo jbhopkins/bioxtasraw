@@ -18,7 +18,8 @@ Steps:
 9)  Rename the package appropriate (e.g. RAW-2.0.0-linux-amd64.deb)
 
 Note: If installer is built on Ubuntu 14.04 LTS it works on Debian 8-10 and Ubuntu 14-18.
-If installer is built on Debian 8 it works on Debian 8-10 and Ubuntu 16-18.
+If installer is built on Debian 8 it works on Debian 8-10 and Ubuntu 16-18. Currently
+building on Ubuntu 14.04
 
 Useful resources for building .deb package:
 https://plashless.wordpress.com/2013/08/25/a-short-debian-packaging-case-gui-apps-gpl-pyinstaller/

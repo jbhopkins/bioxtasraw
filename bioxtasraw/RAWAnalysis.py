@@ -1584,9 +1584,9 @@ class GuinierFrame(wx.Frame):
         self.Layout()
 
         SASUtils.set_best_size(self)
+        self.SendSizeEvent()
 
         self.plotPanel.refresh_display()
-
         self.controlPanel._initSettings()
 
         self.CenterOnParent()
@@ -1742,6 +1742,8 @@ class MolWeightFrame(wx.Frame):
         self.SetSizer(top_sizer)
 
         SASUtils.set_best_size(self)
+
+        self.SendSizeEvent()
 
         self.CenterOnParent()
 
@@ -3874,6 +3876,8 @@ class GNOMFrame(wx.Frame):
         self.SetSizer(top_sizer)
 
         SASUtils.set_best_size(self)
+
+        self.SendSizeEvent()
 
         self.CenterOnParent()
         self.Raise()
@@ -9966,6 +9970,7 @@ class DenssAlignFrame(wx.Frame):
         self._createLayout()
 
         SASUtils.set_best_size(self)
+        self.SendSizeEvent()
 
         self.CenterOnParent()
 
@@ -10369,6 +10374,7 @@ class BIFTFrame(wx.Frame):
         self.SetSizer(top_sizer)
 
         SASUtils.set_best_size(self)
+        self.SendSizeEvent()
 
         self.CenterOnParent()
         self.Raise()
@@ -11143,7 +11149,7 @@ class AmbimeterFrame(wx.Frame):
         self.SetSizer(top_sizer)
 
         SASUtils.set_best_size(self)
-
+        self.SendSizeEvent()
 
         self.CenterOnParent()
 
@@ -11540,6 +11546,7 @@ class SupcombFrame(wx.Frame):
         self._createLayout()
 
         SASUtils.set_best_size(self)
+        self.SendSizeEvent()
 
         self.CenterOnParent()
 
@@ -11925,6 +11932,7 @@ class SVDFrame(wx.Frame):
         self._Layout()
 
         SASUtils.set_best_size(self)
+        self.SendSizeEvent()
 
         self.CenterOnParent()
         self.Raise()
@@ -13095,6 +13103,7 @@ class EFAFrame(wx.Frame):
         self.SetSizer(top_sizer)
 
         SASUtils.set_best_size(self)
+        self.SendSizeEvent()
 
         self.CenterOnParent()
         self.Raise()
@@ -15306,6 +15315,7 @@ class REGALSFrame(wx.Frame):
         self.panel_results = [None for panel in self.panels]
 
         SASUtils.set_best_size(self)
+        self.SendSizeEvent()
 
         self.CenterOnParent()
         self.Raise()
@@ -17828,6 +17838,7 @@ class SimilarityFrame(wx.Frame):
         self.SetSizer(top_sizer)
 
         SASUtils.set_best_size(self)
+        self.SendSizeEvent()
 
         self.CenterOnParent()
 
@@ -18222,6 +18233,7 @@ class NormKratkyFrame(wx.Frame):
         self.SetSizer(top_sizer)
 
         SASUtils.set_best_size(self)
+        self.SendSizeEvent()
 
         self.CenterOnParent()
         self.Raise()
@@ -18885,6 +18897,7 @@ class LCSeriesFrame(wx.Frame):
         self.SetSizer(top_sizer)
 
         SASUtils.set_best_size(self)
+        self.SendSizeEvent()
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseEvt)
 
