@@ -104,7 +104,7 @@ def test_regals(bsa_series):
     comp_settings = [(prof1_settings, conc1_settings),
         (prof2_settings, conc2_settings)]
 
-    regals_profiles, regals_ifts, mixture, params, residual = raw.regals(bsa_series,
+    regals_profiles, regals_ifts, concs, reg_concs, mixture, params, residual = raw.regals(bsa_series,
         comp_settings, framei=130, framef=230)
 
     assert len(regals_profiles) == 2
@@ -157,7 +157,7 @@ def test_regals_auto_lambda(bsa_series):
     comp_settings = [(prof1_settings, conc1_settings),
         (prof2_settings, conc2_settings)]
 
-    regals_profiles, regals_ifts, mixture, params, residual = raw.regals(bsa_series,
+    regals_profiles, regals_ifts, concs, reg_concs, mixture, params, residual = raw.regals(bsa_series,
         comp_settings, framei=130, framef=230)
 
     assert len(regals_profiles) == 2
@@ -220,7 +220,7 @@ def test_regals_realspace(bsa_series):
     comp_settings = [(prof1_settings, conc1_settings),
         (prof2_settings, conc2_settings)]
 
-    regals_profiles, regals_ifts, mixture, params, residual = raw.regals(bsa_series,
+    regals_profiles, regals_ifts, concs, reg_concs, mixture, params, residual = raw.regals(bsa_series,
         comp_settings, framei=130, framef=230)
 
     assert len(regals_profiles) == 2

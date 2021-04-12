@@ -4206,11 +4206,16 @@ def saveREGALSData(filename, panel_results):
 
     body_string = ''
     body_string = body_string+'# Concentration Matrix Results\n'
-    body_string = body_string+'# X,'+','.join(['Comp_%i' %i for i in range(nvals)])+'\n'
+    body_string = body_string+'# X,'+','.join(['Comp_{0}_C,Comp_{0}_Err'.format(i) for i in range(nvals)])+'\n'
 
-    conc = regals_results['mixture'].concentrations
+    conc = regals_results['conc']
 
-    conc_output = np.column_stack((regals_results['x'], conc))
+    conc_list = [conc[0][0]]
+
+    for c in conc:
+        conc_list.extend([c[1], c[2]])
+
+    conc_output = np.column_stack(conc_list)
 
     for line in conc_output:
         body_string = body_string+','.join(map(str, line)) + '\n'

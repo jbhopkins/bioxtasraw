@@ -4271,6 +4271,17 @@ def make_regals_ifts(mixture, q, intensity, sigma, secm, start, end):
 
     return new_ifts
 
+def make_regals_concs(mixture, intensity, sigma):
+    concs = []
+
+    for j in range(mixture.Nc):
+        x = mixture.components[j].concentration._regularizer.x
+        c = mixture.extract_concentration(intensity, sigma, j)
+
+        concs.append((x, c[0], c[1]))
+
+    return concs
+
 def make_regals_regularized_concs(mixture):
     reg_concs = []
 

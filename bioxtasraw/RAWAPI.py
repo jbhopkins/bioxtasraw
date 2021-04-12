@@ -4393,7 +4393,7 @@ def svd(series, profile_type='sub', framei=None, framef=None, norm=True):
 
 def regals(series, comp_settings, profile_type='sub', framei=None,
     framef=None, x_vals=None, min_iter=25, max_iter=1000, tol=0.0001,
-    conv_type='Chi^2', num_good = 10, use_previous_results=False,
+    conv_type='Chi^2', num_good = [], use_previous_results=False,
     previous_results=None):
     """
     Runs regularized alternating least squares (REGALS) on the input series to
@@ -4464,9 +4464,14 @@ def regals(series, comp_settings, profile_type='sub', framei=None,
         criteria runs iterations until the average of the past min_iter
         iterations is stable within the tolerance defined by tol, up to the
         max_iter number of iterations.
-    num_good: int, optional
+    num_good: list, optional
         The number of good parameters in the dataset, used to estimate the
-        lambda values for the data. Defaults to 10.
+        lambda values for the data. Defaults to 10. If a non-default value
+        is provided, it should be a list, where the first entry is a list
+        of the num_good values for the profile regularizers and the second
+        entry is a list of the num_good values for the concentration
+        regularizers. So for a three component dataset, you might use
+        [[10, 8, 12], [8, 10, 6]].
     use_previous_results: bool, optional
         Whether to use previous results as the initial profile and concentration
         vectors. Requires previous_results input. Defaults to False.
@@ -4482,6 +4487,12 @@ def regals(series, comp_settings, profile_type='sub', framei=None,
     regals_ifts: list
         A list of IFTS (:class:`bioxtasraw.SASM.IFTM`) determined by REGALS.
         Only contains results for components using the 'realspace' constraint.
+    concs: list
+        The concentrations sampled at the input experimental points. Returns
+        a list where each list item is a tuple of (x, conc, conc_sigma).
+    reg_concs: list
+        The regularized concentrations sampled at the grid/control points.
+        Returns a list where each list item is a list of (x, conc).
     mixture: REGALS.mixture
         The final mixture result from REGALS. Can be used as input to REGALS to
         start with the previously determined values for each component.
@@ -4529,6 +4540,10 @@ def regals(series, comp_settings, profile_type='sub', framei=None,
     intensity = i.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
     sigma = err.T
 
+    if len(num_good) == 0:
+        num_good = [[10 for j in range(len(comp_settings))],
+            [10 for j in range(len(comp_settings))]]
+
     if (use_previous_results and previous_results is not None and
         len(previous_results.u_profile) == len(comp_settings)):
         mixture, components = SASCalc.create_regals_mixture(comp_settings,
@@ -4548,6 +4563,8 @@ def regals(series, comp_settings, profile_type='sub', framei=None,
     regals_ifts = SASCalc.make_regals_ifts(mixture, ref_q, intensity, sigma,
         series, framei, framef)
 
+    concs = SASCalc.make_regals_concs(mixture, intensity, sigma)
+    reg_concs = SASCalc.make_regals_regularized_concs(mixture)
 
     # Make results into a format that matches the GUI
     comp_ranges = np.array([[comp[1]['kwargs']['xmin'], comp[1]['kwargs']['xmin']] for comp in comp_settings])
@@ -4600,13 +4617,14 @@ def regals(series, comp_settings, profile_type='sub', framei=None,
     regals_dict['run_settings'] = ctrl_settings
     regals_dict['background_components'] = 0
     regals_dict['exp_type'] = 'IEC/SEC-SAXS'
+    regals_dict['use_efa'] = True
 
     if not np.array_equal(x_vals, np.arange(framei, framef+1)):
         regals_dict['x_calibration'] = x_vals
 
     analysis_dict['regals'] = regals_dict
 
-    return regals_profiles, regals_ifts, mixture, params, residual
+    return regals_profiles, regals_ifts, concs, reg_concs, mixture, params, residual
 
 def efa(series, ranges, profile_type='sub', framei=None, framef=None,
     method='Hybrid', niter=1000, tol=1e-12, norm=True, force_positive=None,

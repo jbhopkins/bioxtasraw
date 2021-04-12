@@ -375,8 +375,9 @@ class SECData(object):
             self.regals_extra_data = True
             self.regals_profiles = [SAXSData(prof) for prof in regals_results[0]]
             self.regals_ifts = [IFTData(ift) for ift in regals_results[1]]
-            self.regals_chi = np.mean(regals_results[4] ** 2, 0)
-            self.regals_conc = regals_results[2].concentrations
+            self.regals_chi = np.mean(regals_results[6] ** 2, 0)
+            self.regals_conc = regals_results[2]
+            self.regals_reg_conc = regals_results[3]
 
         else:
             self.regals_done = False
@@ -395,6 +396,7 @@ class SECData(object):
             self.regals_profiles = []
             self.regals_ifts = []
             self.regals_conc = []
+            self.regals_reg_conc = []
             self.regals_chi = ''
 
 
@@ -1626,12 +1628,30 @@ class efa_plot(object):
             conc = self.series.efa_conc
         else:
             frames = self.series.regals_x_cal
-            conc = self.series.regals_conc
+            conc_vals = self.series.regals_conc
+            conc = [c[1] for c in conc_vals]
+            conc = np.column_stack(conc)
+
+            reg_conc_vals = self.series.regals_reg_conc
 
         ax = self.figure.add_subplot(self.gs[row, column])
 
+        conc_lines = []
+
         for i in range(conc.shape[1]):
-            ax.plot(frames, conc[:, i], '-')
+            if not self.is_regals:
+                ax.plot(frames, conc[:, i], '-')
+            else:
+                if conc.shape[0] < 40:
+                    line, = ax.plot(frames, conc[:, i], 'o', markersize=2)
+                    conc_lines.append(line)
+                else:
+                    line, = ax.plot(frames, conc[:, i], '-')
+
+        if self.is_regals and conc.shape[0] < 40:
+            for i in range(conc.shape[1]):
+                line, = ax.plot(reg_conc_vals[i][0], reg_conc_vals[i][1], '-')
+                line.set_color(conc_lines[i].get_color())
 
         if not self.is_regals:
             ax.set_xlabel('Frames')

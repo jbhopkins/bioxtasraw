@@ -14982,11 +14982,11 @@ class EFAResultsPlotPanel3(wx.Panel):
 
             self.b_lines.append(line)
 
-            for j in range(conc_data[0].shape[1]):
-                if len(conc_data[1]) < 40 and len(reg_conc_data) > 0:
-                    line, = c.plot(conc_data[1], conc_data[0][:,j], 'o', animated = True)
+            for c_data in conc_data:
+                if len(c_data[0]) < 40 and len(reg_conc_data) > 0:
+                    line, = c.plot(c_data[0], c_data[1], 'o', animated = True)
                 else:
-                    line, = c.plot(conc_data[1], conc_data[0][:,j], animated = True)
+                    line, = c.plot(c_data[0], c_data[1], animated = True)
                 self.c_lines.append(line)
 
             if len(conc_data[1]) <= 40:
@@ -15024,8 +15024,8 @@ class EFAResultsPlotPanel3(wx.Panel):
 
             for j in range(len(self.c_lines)):
                 line = self.c_lines[j]
-                line.set_xdata(conc_data[1])
-                line.set_ydata(conc_data[0][:,j])
+                line.set_xdata(conc_data[j][0])
+                line.set_ydata(conc_data[j][1])
 
             for j in range(len(self.c_reg_lines)):
                 line = self.c_reg_lines[j]
@@ -16112,10 +16112,12 @@ class REGALSRunPanel(wx.Panel):
             ctrl_settings = analysis_dict['regals']['run_settings']
 
             if nvals == len(comp_settings):
-
                 self.comp_grid.set_all_component_settings(comp_settings)
 
-            self.update_ranges_from_frames(self.efa_results['points'])
+            if self.efa_results is not None and self.svd_results['use_efa']:
+                self.update_ranges_from_frames(self.efa_results['points'])
+            else:
+                self.update_ranges_from_frames(np.array(analysis_dict['regals']['frame_ranges']))
 
             self.controls.set_settings(ctrl_settings)
 
@@ -16186,6 +16188,9 @@ class REGALSRunPanel(wx.Panel):
     def on_regals_finished(self, *args, **kwargs):
         mixture, params, resid = args
 
+        intensity = self.svd_results['int']
+        sigma = self.svd_results['err']
+
         self.regals_results = {
             'mixture'   : mixture,
             'params'    : params,
@@ -16193,6 +16198,7 @@ class REGALSRunPanel(wx.Panel):
             'chisq'     : np.mean(resid ** 2, 0),
             'settings'  : self.regals_settings,
             'x'         : mixture.components[0].concentration._regularizer.x,
+            'conc'      : SASCalc.make_regals_concs(mixture, intensity, sigma),
             'reg_conc'  : SASCalc.make_regals_regularized_concs(mixture),
             }
 
@@ -16205,9 +16211,6 @@ class REGALSRunPanel(wx.Panel):
 
         start = self.svd_results['fstart']
         end = self.svd_results['fend']
-
-        intensity = self.svd_results['int']
-        sigma = self.svd_results['err']
 
         ref_q = regals_secm.getSASMList(start, end)[0].getQ()
         ref_q_err = regals_secm.getSASMList(start, end)[0].getQErr()
@@ -16229,11 +16232,9 @@ class REGALSRunPanel(wx.Panel):
 
     def update_results(self):
 
-        concentrations = self.regals_results['mixture'].concentrations
+        conc_data = self.regals_results['conc']
 
         rmsd_data = [self.regals_results['chisq'], self.regals_results['x']]
-
-        conc_data = [concentrations, self.regals_results['x']]
 
         total_iter = self.regals_results['params']['total_iter']
         aver_chisq = self.regals_results['params']['x2']

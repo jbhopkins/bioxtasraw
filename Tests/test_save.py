@@ -329,7 +329,7 @@ def test_save_report_series_with_regals(bsa_series, temp_directory):
     comp_settings = [(prof1_settings, conc1_settings),
         (prof2_settings, conc2_settings)]
 
-    regals_profiles, regals_ifts, mixture, params, residual = raw.regals(bsa_series,
+    regals_profiles, regals_ifts, conc, reg_conc, mixture, params, residual = raw.regals(bsa_series,
         comp_settings, framei=130, framef=230)
 
     raw.save_report('test_series_regals.pdf', temp_directory, series=[bsa_series])
