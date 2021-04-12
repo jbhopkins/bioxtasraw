@@ -19,7 +19,7 @@ Steps:
 
 Note: If installer is built on Ubuntu 14.04 LTS it works on Debian 8-10 and Ubuntu 14-18.
 If installer is built on Debian 8 it works on Debian 8-10 and Ubuntu 16-18. Currently
-building on Ubuntu 14.04
+building on Ubuntu 14.04 using conda 'revert_test' env (some broke in the base env)
 
 Useful resources for building .deb package:
 https://plashless.wordpress.com/2013/08/25/a-short-debian-packaging-case-gui-apps-gpl-pyinstaller/

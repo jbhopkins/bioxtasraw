@@ -259,6 +259,8 @@ class mixture:
 
         dd = dd[np.logical_and(dd >= 0,~np.isinf(dd))]
 
+        dd = dd[~np.isinf(np.log10(dd))]
+
         lambda_list = np.logspace(np.amax(np.log10(dd)) + 2, np.amin(np.log10(dd)) - 2, 51)
 
         ng_list = np.zeros(len(lambda_list))

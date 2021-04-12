@@ -4206,7 +4206,7 @@ def saveREGALSData(filename, panel_results):
 
     body_string = ''
     body_string = body_string+'# Concentration Matrix Results\n'
-    body_string = body_string+'# X,'+','.join(['Value_%i' %i for i in range(nvals)])+'\n'
+    body_string = body_string+'# X,'+','.join(['Comp_%i' %i for i in range(nvals)])+'\n'
 
     conc = regals_results['mixture'].concentrations
 
@@ -4216,6 +4216,17 @@ def saveREGALSData(filename, panel_results):
         body_string = body_string+','.join(map(str, line)) + '\n'
 
     body_string = body_string +'\n'
+
+    body_string = body_string+'# Regularized Concentration Results\n'
+    for j, conc in enumerate(regals_results['reg_conc']):
+        body_string = body_string+'# X,Comp_{}\n' .format(j)
+
+        conc_output = np.column_stack((conc[0], conc[1]))
+
+        for line in conc_output:
+            body_string = body_string+','.join(map(str, line)) + '\n'
+
+        body_string = body_string +'\n'
 
 
     body_string = body_string+'# Rotation Chi^2\n'
@@ -4254,28 +4265,29 @@ def saveREGALSData(filename, panel_results):
 
             body_string = body_string + '\n'
 
-    body_string = body_string + '# Forward EFA Results\n'
-    body_string = body_string + '# X,'+','.join(['Value_%i' %i for i in range(nvals+1)])+'\n'
+    if efa_results is not None and svd_results['use_efa']:
+        body_string = body_string + '# Forward EFA Results\n'
+        body_string = body_string + '# X,'+','.join(['Value_%i' %i for i in range(nvals+1)])+'\n'
 
-    fefa = efa_results['forward_efa'].T[:,:nvals+1]
-    fefa_output = np.column_stack((regals_results['x'], fefa))
+        fefa = efa_results['forward_efa'].T[:,:nvals+1]
+        fefa_output = np.column_stack((regals_results['x'], fefa))
 
-    for line in fefa_output:
-        body_string = body_string+','.join(map(str, line)) + '\n'
+        for line in fefa_output:
+            body_string = body_string+','.join(map(str, line)) + '\n'
 
-    body_string = body_string +'\n'
+        body_string = body_string +'\n'
 
 
-    body_string = body_string + '# Backward EFA Results\n'
-    body_string = body_string + '# X,'+','.join(['Value_%i' %i for i in range(nvals)])+'\n'
+        body_string = body_string + '# Backward EFA Results\n'
+        body_string = body_string + '# X,'+','.join(['Value_%i' %i for i in range(nvals)])+'\n'
 
-    befa = efa_results['backward_efa'][:, ::-1].T[:,:nvals+1]
-    befa_output = np.column_stack((regals_results['x'], befa))
+        befa = efa_results['backward_efa'][:, ::-1].T[:,:nvals+1]
+        befa_output = np.column_stack((regals_results['x'], befa))
 
-    for line in befa_output:
-        body_string = body_string+','.join(map(str, line)) + '\n'
+        for line in befa_output:
+            body_string = body_string+','.join(map(str, line)) + '\n'
 
-    body_string = body_string +'\n'
+        body_string = body_string +'\n'
 
 
     body_string = body_string + '# Singular Value Results\n\n'

@@ -93,6 +93,9 @@ class CharValidator(wx.Validator):
                 return
             elif self.flag == 'float_sci_neg' and key not in string.digits+'.-eE':
                 return
+            elif self.flag == 'float_sci_neg_te' and key not in string.digits+'.-eE\n\r':
+                return
+
         event.Skip()
 
 
@@ -672,12 +675,17 @@ class IntSpinCtrl(wx.Panel):
         self.max_val = max_val
         self.min_val = min_val
 
+        if min_val is None:
+            start_val = '0'
+        else:
+            start_val = str(min_val)
+
         if platform.system() != 'Windows':
-            self.Scale = wx.TextCtrl(self, -1, str(min),
+            self.Scale = wx.TextCtrl(self, -1, start_val,
                 size=self._FromDIP((TextLength,-1)), style=wx.TE_PROCESS_ENTER,
                 validator=CharValidator('int_te'))
         else:
-            self.Scale = wx.TextCtrl(self, -1, str(min),
+            self.Scale = wx.TextCtrl(self, -1, start_val,
                 size=self._FromDIP((TextLength,22)), style=wx.TE_PROCESS_ENTER,
                 validator=CharValidator('int_te'))
 
@@ -814,6 +822,257 @@ class IntSpinCtrl(wx.Panel):
 
     def GetRange(self):
         return (self.min_val, self.max_val)
+
+
+class MagnitudeSpinCtrl(wx.Panel):
+
+    def __init__(self, parent, id, initValue=None, min_val=None, max_val=None,
+        button_style = wx.SP_VERTICAL, TextLength=40, never_negative=False,
+        **kwargs):
+
+        wx.Panel.__init__(self, parent, id, **kwargs)
+
+        if initValue is None:
+            initValue = '1e0'
+
+        self.defaultScaleDivider = 100
+        self.ScaleDivider = 100
+
+        if platform.system() != 'Windows':
+            self.ScalerButton = wx.SpinButton(self, -1, style = button_style)
+        else:
+            self.ScalerButton = wx.SpinButton(self, -1,
+                size=self._FromDIP((-1, 22)), style=button_style)
+        self.ScalerButton.Bind(wx.EVT_SET_FOCUS, self.OnFocusChange)
+        self.ScalerButton.Bind(wx.EVT_SPIN_UP, self.OnSpinUpScale)
+        self.ScalerButton.Bind(wx.EVT_SPIN_DOWN, self.OnSpinDownScale)
+        self.ScalerButton.SetRange(-99999, 99999)   #Needed for proper function of button on Linux
+
+        self.max = max_val
+        self.min = min_val
+
+        if never_negative:
+            if self.min is None:
+                self.min = 0.0
+            else:
+                self.min = max(self.min, 0.0)
+
+        self._never_negative = never_negative
+
+        if platform.system() != 'Windows':
+            self.Scale = wx.TextCtrl(self, -1, initValue,
+                size=self._FromDIP((TextLength,-1)), style=wx.TE_PROCESS_ENTER,
+                validator=CharValidator('float_sci_neg_te'))
+        else:
+            self.Scale = wx.TextCtrl(self, -1, initValue,
+                size=self._FromDIP((TextLength,22)), style=wx.TE_PROCESS_ENTER,
+                validator=CharValidator('float_sci_neg_te'))
+
+        self.Scale.Bind(wx.EVT_KILL_FOCUS, self.OnFocusChange)
+        self.Scale.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
+
+        sizer = wx.BoxSizer()
+
+        sizer.Add(self.Scale, 1, wx.RIGHT, border=self._FromDIP(1))
+        sizer.Add(self.ScalerButton, 0)
+
+        self.oldValue = float(initValue)
+
+        self.SetSizer(sizer)
+
+        self.ScalerButton.SetValue(0)
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def CastFloatSpinEvent(self):
+        event = FloatSpinEvent(myEVT_MY_SPIN, self.GetId(), self)
+        event.SetValue( self.Scale.GetValue() )
+        self.GetEventHandler().ProcessEvent(event)
+
+    def OnFocusChange(self, event):
+
+        val = self.Scale.GetValue()
+
+        try:
+             float(val)
+        except ValueError:
+            return
+
+        self.CastFloatSpinEvent()
+
+        event.Skip()
+
+    def OnEnter(self, event):
+        self.OnScaleChange(None)
+        self.Scale.SelectAll()
+        self.CastFloatSpinEvent()
+
+        event.Skip()
+
+    def OnScaleChange(self, event):
+
+        val = self.Scale.GetValue()
+        val = val.replace(',', '.')
+
+        if self.max is not None:
+            if float(val) > self.max:
+                self.Scale.SetValue(str(self.max ))
+        if self.min is not None:
+            if float(val) < self.min:
+                self.Scale.SetValue(str(self.min))
+
+        try:
+            self.num_of_digits = len(val.split('.')[1].lower().split('e')[0])
+
+        except IndexError:
+            self.num_of_digits = None
+
+    def OnSpinUpScale(self, event):
+
+        self.OnScaleChange(None)
+
+        val = self.Scale.GetValue()
+        val = float(val.replace(',', '.'))
+
+        # Reset spinbutton counter. Fixes bug on MAC
+        if self.ScalerButton.GetValue() > 90000:
+            self.ScalerButton.SetValue(0)
+
+        try:
+            newval = self.find_new_val_up(val)
+
+        except ValueError:
+            self.CastFloatSpinEvent()
+            return
+
+
+        if self.num_of_digits is not None:
+            newval_str = "{0:.{1}e}".format(newval, self.num_of_digits)
+        else:
+            newval_str = "{:e}".format(newval)
+
+        self.Scale.SetValue(newval_str)
+        self.CastFloatSpinEvent()
+
+    def find_new_val_up(self, val):
+
+        if self.max is not None and val > self.max:
+            newval = self.max
+
+        elif self.max is not None and val == self.max:
+            newval = val
+
+        else:
+            newval = val*10.
+
+        return newval
+
+
+    def find_new_val_down(self, val):
+        if self.min is not None and val < self.min and not self._never_negative:
+            newval = self.min
+
+        elif self.min is not None and val == self.min and not self._never_negative:
+            newval = val
+
+        else:
+            newval = val/10.
+
+        return newval
+
+    def _showInvalidNumberError(self):
+        wx.CallAfter(wx.MessageBox, 'The entered value is invalid. Please remove non-numeric characters.', 'Invalid Value Error', style = wx.ICON_ERROR)
+
+    def OnSpinDownScale(self, event):
+
+        self.OnScaleChange(None)
+
+        val = self.Scale.GetValue()
+        val = float(val.replace(',', '.'))
+
+        # Reset spinbutton counter. Fixes bug on MAC
+        if self.ScalerButton.GetValue() < -90000:
+            self.ScalerButton.SetValue(0)
+
+        try:
+            newval = self.find_new_val_down(val)
+
+        except ValueError:
+            self.CastFloatSpinEvent()
+            return
+
+        if self.num_of_digits is not None:
+            newval_str = "{0:.{1}e}".format(newval, self.num_of_digits)
+        else:
+            newval_str = "{:e}".format(newval)
+
+        self.Scale.SetValue(str(newval_str))
+        self.CastFloatSpinEvent()
+
+    def GetValue(self):
+        value = self.Scale.GetValue()
+        return value
+
+    def SetValue(self, val):
+        val = str(val)
+        val = val.replace(',', '.')
+
+        if self.max is not None:
+            if float(val) > self.max:
+                self.Scale.SetValue(str(self.max ))
+        if self.min is not None:
+            if float(val) < self.min:
+                self.Scale.SetValue(str(self.min))
+
+        try:
+            self.num_of_digits = len(val.split('.')[1].lower().split('e')[0])
+
+        except IndexError:
+            self.num_of_digits = None
+
+        if self.num_of_digits is not None:
+            newval_str = "{0:.{1}e}".format(float(val), self.num_of_digits)
+        else:
+            newval_str = "{:e}".format(float(val))
+
+        self.Scale.SetValue(str(newval_str))
+
+    def ChangeValue(self, val):
+        val = str(val)
+        val = val.replace(',', '.')
+
+        if self.max is not None:
+            if float(val) > self.max:
+                self.Scale.SetValue(str(self.max ))
+        if self.min is not None:
+            if float(val) < self.min:
+                self.Scale.SetValue(str(self.min))
+
+        try:
+            self.num_of_digits = len(val.split('.')[1].lower().split('e')[0])
+
+        except IndexError:
+            self.num_of_digits = None
+
+        if self.num_of_digits is not None:
+            newval_str = "{0:.{1}e}".format(float(val), self.num_of_digits)
+        else:
+            newval_str = "{:e}".format(float(val))
+
+        self.Scale.ChangeValue(str(newval_str))
+
+    def SetRange(self, minmax):
+        self.max = float(minmax[1])
+        self.min = float(minmax[0])
+
+    def GetRange(self):
+        return (self.min, self.max)
+
 
 class RawPanelFileDropTarget(wx.FileDropTarget):
     """"""

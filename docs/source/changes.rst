@@ -22,6 +22,9 @@ applicability to lower quality data. We've also added a new, more accurate
 method for automatically finding Dmax when using GNOM. There are also numerous
 small tweaks and bug fixes for the main RAW GUI and the API.
 
+Special thanks to Steve Meisburger and Darren Xu for helping with the
+details of their REGALS algorithm, and testing the new REGALS GUI.
+
 All changes:
 ^^^^^^^^^^^^^
 
@@ -94,13 +97,15 @@ All changes:
 *   GNOM window now 'truncates for dammif/n', which truncates to the smaller
     of 8/Rg or 0.3.
 *   Guinier window now opens faster.
-*   Updated DENSS to version 1.6.3.
+*   Updated DENSS to version 1.6.3, which includes the possibility of doing
+    DENSS on a GPU.
 *   Fixed a bug where multiple DENSS windows couldn't be used at the same time.
 *   Fixed a bug where subtracted and baseline corrected profiles from the LC
     Series Analysis window would have the prefix of the individual profiles in
     the series, rather than the series itself.
 *   Fixed some possible memory leaks related to dialog creation/destruction.
 *   Added a number of new tests.
+*   Added compatibility with new string handing in h5py version 3.
 
 
 2.0.3

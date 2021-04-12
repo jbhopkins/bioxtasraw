@@ -59,11 +59,11 @@ for i in range(len(control_lines)):
 with open(os.path.join(app_path, 'bioxtas-raw.desktop'), 'w') as f:
     f.writelines(control_lines)
 
-proc = subprocess.Popen("fakeroot dpkg-deb --build bioxtas-raw-{}".format(version),
+proc = subprocess.Popen("fakeroot dpkg-deb --build RAW-{}-linux-amd64".format(version),
     shell=True)
 proc.communicate()
 
 print('Checking .deb installer with lintian')
-proc = subprocess.Popen("lintian bioxtas-raw-{}.deb".format(version),
+proc = subprocess.Popen("lintian RAW-{}-linux-amd64.deb".format(version),
     shell=True)
 proc.communicate()

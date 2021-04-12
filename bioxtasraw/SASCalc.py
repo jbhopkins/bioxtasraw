@@ -3967,7 +3967,7 @@ def create_regals_mixture(component_settings, q, x, num_good, sigma,
             if conc_settings['type'] == 'simple':
                 est = np.inf
             else:
-                est = num_good
+                est = num_good[1][j]
 
         else:
             est = np.inf
@@ -3978,7 +3978,7 @@ def create_regals_mixture(component_settings, q, x, num_good, sigma,
             if prof_settings['type'] == 'simple':
                 est = np.inf
             else:
-                est = num_good
+                est = num_good[0][j]
 
         else:
             est = np.inf
@@ -4270,3 +4270,19 @@ def make_regals_ifts(mixture, q, intensity, sigma, secm, start, end):
             new_ifts.append(ift)
 
     return new_ifts
+
+def make_regals_regularized_concs(mixture):
+    reg_concs = []
+
+    for j in range(mixture.Nc):
+        x = mixture.components[j].concentration.w
+        c = mixture.u_concentration[j]
+
+        if mixture.components[j].concentration._regularizer.is_zero_at_xmin:
+            c = np.concatenate(([0], c))
+        if mixture.components[j].concentration._regularizer.is_zero_at_xmax:
+            c = np.concatenate((c, [0]))
+
+        reg_concs.append((x, c))
+
+    return reg_concs
