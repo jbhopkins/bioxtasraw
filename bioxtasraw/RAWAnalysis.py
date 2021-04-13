@@ -14982,20 +14982,25 @@ class EFAResultsPlotPanel3(wx.Panel):
 
             self.b_lines.append(line)
 
-            for c_data in conc_data:
-                if len(c_data[0]) < 40 and len(reg_conc_data) > 0:
-                    line, = c.plot(c_data[0], c_data[1], 'o', animated = True)
-                else:
-                    line, = c.plot(c_data[0], c_data[1], animated = True)
-                self.c_lines.append(line)
+            if isinstance(conc_data[0], np.ndarray):
+                for j in range(conc_data[0].shape[1]):
+                    line, = c.plot(conc_data[1], conc_data[0][:,j], animated = True)
+                    self.c_lines.append(line)
+            else:
+                for c_data in conc_data:
+                    if len(c_data[0]) < 40 and len(reg_conc_data) > 0:
+                        line, = c.plot(c_data[0], c_data[1], 'o', animated = True)
+                    else:
+                        line, = c.plot(c_data[0], c_data[1], animated = True)
+                    self.c_lines.append(line)
 
-            if len(conc_data[1]) <= 40:
-                for j, reg_data in enumerate(reg_conc_data):
-                    color = self.c_lines[j].get_color()
+                if len(conc_data[1]) <= 40:
+                    for j, reg_data in enumerate(reg_conc_data):
+                        color = self.c_lines[j].get_color()
 
-                    line, = c.plot(reg_data[0], reg_data[1], animated=True)
-                    line.set_color(color)
-                    self.c_reg_lines.append(line)
+                        line, = c.plot(reg_data[0], reg_data[1], animated=True)
+                        line.set_color(color)
+                        self.c_reg_lines.append(line)
 
             for j in range(len(ift_data)):
                 line, = d.plot(ift_data[j].r, ift_data[j].p/ift_data[j].getParameter('i0'),
