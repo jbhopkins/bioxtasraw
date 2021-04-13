@@ -261,6 +261,7 @@ class MainFrame(wx.Frame):
         self.plot_notebook.AddPage(img_panel, "Image", False)
         self.plot_notebook.AddPage(self.sec_plot_panel, "Series", False)
 
+        self.plot_notebook.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.onPlotTabChange)
 
         self.control_notebook = aui.AuiNotebook(self, style = aui.AUI_NB_TAB_MOVE)
         self.profile_panel = ManipulationPanel(self.control_notebook, self.raw_settings)
@@ -334,7 +335,6 @@ class MainFrame(wx.Frame):
         self.SetSize(self._FromDIP(size))
         self.CenterOnScreen()
         self.Show(True)
-
 
         wx.CallAfter(self._showWelcomeDialog)
 
@@ -2852,6 +2852,16 @@ class MainFrame(wx.Frame):
                 file_panel = wx.FindWindowByName('FilePanel')
                 file_panel.dir_panel.refresh()
 
+            # Needed because of weirdness with items not showing properly on tabs in MacOS 11
+            self.control_notebook.GetPage(evt.GetSelection()).Refresh()
+
+
+    def onPlotTabChange(self, evt):
+
+        if not self._closing:
+            page = self.plot_notebook.GetPage(evt.GetSelection())
+            # page_label = self.plot_notebook.GetPageText(evt.GetSelection())
+            page.Refresh()
 
 class OnlineController(object):
     def __init__(self, parent, raw_settings):

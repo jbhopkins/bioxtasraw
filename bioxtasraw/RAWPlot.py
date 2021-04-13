@@ -458,6 +458,8 @@ class PlotPanel(wx.Panel):
         self.updatePlotType(self.subplot1)
         self.updatePlotAxes()
 
+        self.canvas.draw()
+
         self.canvas.callbacks.connect('pick_event', self._onPickEvent)
         self.canvas.callbacks.connect('key_press_event', self._onKeyPressEvent)
         self.canvas.callbacks.connect('motion_notify_event', self._onMouseMotionEvent)
@@ -1457,6 +1459,8 @@ class IftPlotPanel(PlotPanel):
         self._updateFrameStylesForAllPlots()
         self.updatePlotType(self.subplot1)
         self.updatePlotAxes()
+
+        self.canvas.draw()
 
         self.canvas.callbacks.connect('pick_event', self._onPickEvent)
         self.canvas.callbacks.connect('key_press_event', self._onKeyPressEvent)
@@ -2700,6 +2704,8 @@ class SeriesPlotPanel(wx.Panel):
 
         self._updateFrameStylesForAllPlots()
         self.updatePlotAxes()
+
+        self.canvas.draw()
 
         self.canvas.callbacks.connect('pick_event', self._onPickEvent)
         self.canvas.callbacks.connect('key_press_event', self._onKeyPressEvent)

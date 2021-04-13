@@ -223,15 +223,6 @@ class ImagePanel(wx.Panel):
         self.fig = matplotlib.figure.Figure((5,4), 75)
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
 
-        self.canvas.mpl_connect('motion_notify_event', self._onMouseMotion)
-        self.canvas.mpl_connect('button_press_event', self._onMouseButtonPressEvent)
-        self.canvas.mpl_connect('button_release_event', self._onMouseButtonReleaseEvent)
-        self.canvas.mpl_connect('pick_event', self._onPickEvent)
-        self.canvas.mpl_connect('key_press_event', self._onKeyPressEvent)
-        self.canvas.mpl_connect('scroll_event', self._onMouseScroll)
-
-        self.draw_cid = self.canvas.mpl_connect('draw_event', self.safe_draw)
-
         self.toolbar = ImagePanelToolbar(self, self.canvas)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -291,6 +282,16 @@ class ImagePanel(wx.Panel):
                                 'maxImgval'         : None,
                                 'minImgVal'         : None}
 
+        self.canvas.draw()
+
+        self.canvas.mpl_connect('motion_notify_event', self._onMouseMotion)
+        self.canvas.mpl_connect('button_press_event', self._onMouseButtonPressEvent)
+        self.canvas.mpl_connect('button_release_event', self._onMouseButtonReleaseEvent)
+        self.canvas.mpl_connect('pick_event', self._onPickEvent)
+        self.canvas.mpl_connect('key_press_event', self._onKeyPressEvent)
+        self.canvas.mpl_connect('scroll_event', self._onMouseScroll)
+
+        self.draw_cid = self.canvas.mpl_connect('draw_event', self.safe_draw)
 
     def showHdrInfo(self):
 
@@ -437,7 +438,7 @@ class ImagePanel(wx.Panel):
         else:
             a.set_xlim(xlims[0], xlims[1])
             a.set_ylim(ylims[0], ylims[1])
-        self.canvas.draw()
+        self.safe_draw()
 
     def showImageSetDialog(self):
         if self.img is not None:
