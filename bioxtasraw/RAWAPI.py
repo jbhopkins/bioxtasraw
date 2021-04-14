@@ -4393,7 +4393,7 @@ def svd(series, profile_type='sub', framei=None, framef=None, norm=True):
 
 def regals(series, comp_settings, profile_type='sub', framei=None,
     framef=None, x_vals=None, min_iter=25, max_iter=1000, tol=0.0001,
-    conv_type='Chi^2', num_good = [], use_previous_results=False,
+    conv_type='Chi^2', use_previous_results=False,
     previous_results=None):
     """
     Runs regularized alternating least squares (REGALS) on the input series to
@@ -4464,14 +4464,6 @@ def regals(series, comp_settings, profile_type='sub', framei=None,
         criteria runs iterations until the average of the past min_iter
         iterations is stable within the tolerance defined by tol, up to the
         max_iter number of iterations.
-    num_good: list, optional
-        The number of good parameters in the dataset, used to estimate the
-        lambda values for the data. Defaults to 10. If a non-default value
-        is provided, it should be a list, where the first entry is a list
-        of the num_good values for the profile regularizers and the second
-        entry is a list of the num_good values for the concentration
-        regularizers. So for a three component dataset, you might use
-        [[10, 8, 12], [8, 10, 6]].
     use_previous_results: bool, optional
         Whether to use previous results as the initial profile and concentration
         vectors. Requires previous_results input. Defaults to False.
@@ -4540,19 +4532,15 @@ def regals(series, comp_settings, profile_type='sub', framei=None,
     intensity = i.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
     sigma = err.T
 
-    if len(num_good) == 0:
-        num_good = [[10 for j in range(len(comp_settings))],
-            [10 for j in range(len(comp_settings))]]
-
     if (use_previous_results and previous_results is not None and
         len(previous_results.u_profile) == len(comp_settings)):
         mixture, components = SASCalc.create_regals_mixture(comp_settings,
-            ref_q, x_vals, num_good, sigma, use_previous_results,
+            ref_q, x_vals, intensity, sigma, use_previous_results,
             previous_results)
 
     else:
         mixture, components = SASCalc.create_regals_mixture(comp_settings,
-            ref_q, x_vals, num_good, sigma)
+            ref_q, x_vals, intensity, sigma)
 
     mixture, params, residual = SASCalc.run_regals(mixture, intensity, sigma,
         min_iter=min_iter, max_iter=max_iter, tol=tol, conv_type=conv_type)

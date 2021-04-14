@@ -15800,7 +15800,6 @@ class REGALSRunPanel(wx.Panel):
             'type': 'simple',
             'lambda': 0.0,
             'auto_lambda': True,
-            'ng': 10,
             'kwargs': {
                 'Nw': 50,
                 'dmax': 100,
@@ -15813,7 +15812,6 @@ class REGALSRunPanel(wx.Panel):
             'type': 'smooth',
             'lambda': 1.0,
             'auto_lambda': True,
-            'ng': 10,
             'xrange': [0, 10],
             'kwargs' : {
                 'Nw': 50,
@@ -15904,19 +15902,15 @@ class REGALSRunPanel(wx.Panel):
         ctrl_settings['callback'] = self.on_regals_finished_callback
         ctrl_settings['abort_event'] = self.regals_abort_event
 
-        num_good_prof = [cs[0].pop('ng') for cs in comp_settings]
-        num_good_conc = [cs[1].pop('ng') for cs in comp_settings]
-        num_good = (num_good_prof, num_good_conc)
-
         if (seed_previous and self.regals_results is not None and
             len(self.regals_results['mixture'].u_profile) == len(comp_settings)):
             mixture, components = SASCalc.create_regals_mixture(comp_settings,
-                ref_q, self.regals_x['x'], num_good, self.sigma, seed_previous,
+                ref_q, self.regals_x['x'], self.intensity, self.sigma, seed_previous,
                 self.regals_results['mixture'])
 
         else:
             mixture, components = SASCalc.create_regals_mixture(comp_settings,
-                ref_q, self.regals_x['x'], num_good, self.sigma)
+                ref_q, self.regals_x['x'], self.intensity, self.sigma)
 
         self.set_lambdas(mixture.lambda_concentration, mixture.lambda_profile)
 
@@ -16671,7 +16665,6 @@ class REGALSComponent(wx.Panel):
         if init_settings is None:
             self.prof_comp_ctrl.SetStringSelection('simple')
             self.prof_auto_regularizer_ctrl.SetValue(True)
-            self.prof_ng_ctrl.SetValue(10)
             self.prof_regularizer_ctrl.SetValue(0)
             self.prof_nw_ctrl.SetValue(50)
             self.dmax_ctrl.SetValue(100)
@@ -16680,7 +16673,6 @@ class REGALSComponent(wx.Panel):
 
             self.conc_comp_ctrl.SetStringSelection('smooth')
             self.conc_auto_regularizer_ctrl.SetValue(True)
-            self.conc_ng_ctrl.SetValue(10)
             self.conc_regularizer_ctrl.SetValue(0)
             self.conc_nw_ctrl.SetValue(50)
             self.zero_at_xmin_ctrl.SetValue(True)
@@ -16716,15 +16708,12 @@ class REGALSComponent(wx.Panel):
         prof_box = self.prof_sizer.GetStaticBox()
 
         self.prof_comp_ctrl = wx.Choice(prof_box,
-            choices=list(REGALS.profile_class._regularizer_classes.keys()))
+            choices=['simple', 'smooth', 'realspace'])
 
         self.prof_comp_ctrl.Bind(wx.EVT_CHOICE, self._on_prof_comp_change)
 
         self.prof_auto_regularizer_ctrl = wx.CheckBox(prof_box, label='Auto lambda')
         self.prof_auto_regularizer_ctrl.Bind(wx.EVT_CHECKBOX, self._on_auto_prof_lambda)
-
-        self.prof_ng_ctrl = RAWCustomCtrl.IntSpinCtrl(prof_box)
-        self.prof_ng_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_regals)
 
         self.prof_regularizer_ctrl = RAWCustomCtrl.MagnitudeSpinCtrl(prof_box,
             wx.ID_ANY, size=self._FromDIP((80, -1)))
@@ -16755,10 +16744,6 @@ class REGALSComponent(wx.Panel):
         prof_auto_reg_sizer = wx.BoxSizer(wx.HORIZONTAL)
         prof_auto_reg_sizer.Add(self.prof_auto_regularizer_ctrl,
             flag=wx.ALIGN_CENTER_VERTICAL)
-        prof_auto_reg_sizer.Add(wx.StaticText(prof_box, label='Ng:'),
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT, border=self._FromDIP(5))
-        prof_auto_reg_sizer.Add(self.prof_ng_ctrl, border=self._FromDIP(5),
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
 
         prof_reg_sizer = wx.BoxSizer(wx.HORIZONTAL)
         prof_reg_sizer.Add(wx.StaticText(prof_box, label='Lambda:'),
@@ -16799,16 +16784,13 @@ class REGALSComponent(wx.Panel):
         conc_box = self.conc_sizer.GetStaticBox()
 
         self.conc_comp_ctrl = wx.Choice(conc_box,
-            choices=list(REGALS.concentration_class._regularizer_classes.keys()))
+            choices=['simple', 'smooth'])
         self.conc_comp_ctrl.SetStringSelection('smooth')
 
         self.conc_comp_ctrl.Bind(wx.EVT_CHOICE, self._on_conc_comp_change)
 
         self.conc_auto_regularizer_ctrl = wx.CheckBox(conc_box, label='Auto lambda')
         self.conc_auto_regularizer_ctrl.Bind(wx.EVT_CHECKBOX, self._on_auto_conc_lambda)
-
-        self.conc_ng_ctrl = RAWCustomCtrl.IntSpinCtrl(conc_box)
-        self.conc_ng_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_regals)
 
         self.conc_regularizer_ctrl = RAWCustomCtrl.MagnitudeSpinCtrl(conc_box,
             wx.ID_ANY, size=self._FromDIP((80, -1)))
@@ -16846,10 +16828,6 @@ class REGALSComponent(wx.Panel):
         conc_auto_reg_sizer = wx.BoxSizer(wx.HORIZONTAL)
         conc_auto_reg_sizer.Add(self.conc_auto_regularizer_ctrl,
             flag=wx.ALIGN_CENTER_VERTICAL)
-        conc_auto_reg_sizer.Add(wx.StaticText(conc_box, label='Ng:'),
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT, border=self._FromDIP(5))
-        conc_auto_reg_sizer.Add(self.conc_ng_ctrl, border=self._FromDIP(5),
-            flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT)
 
         conc_reg_sizer = wx.BoxSizer(wx.HORIZONTAL)
         conc_reg_sizer.Add(wx.StaticText(conc_box, label='Lambda:'),
@@ -16972,9 +16950,8 @@ class REGALSComponent(wx.Panel):
     def _get_prof_settings(self):
         prof_settings = {
             'type'          : self.prof_comp_ctrl.GetStringSelection(),
-            'lambda'        : self.prof_regularizer_ctrl.GetValue(),
+            'lambda'        : float(self.prof_regularizer_ctrl.GetValue()),
             'auto_lambda'   : self.prof_auto_regularizer_ctrl.GetValue(),
-            'ng'            : self.prof_ng_ctrl.GetValue(),
         }
 
         if prof_settings['type'] == 'simple':
@@ -17013,9 +16990,8 @@ class REGALSComponent(wx.Panel):
 
         conc_settings = {
             'type'          : self.conc_comp_ctrl.GetStringSelection(),
-            'lambda'        : self.conc_regularizer_ctrl.GetValue(),
+            'lambda'        : float(self.conc_regularizer_ctrl.GetValue()),
             'auto_lambda'   : self.conc_auto_regularizer_ctrl.GetValue(),
-            'ng'            : self.conc_ng_ctrl.GetValue(),
             'kwargs'    : {
                 'xmin'  : xmin,
                 'xmax'  : xmax,
@@ -17042,8 +17018,6 @@ class REGALSComponent(wx.Panel):
                 self.prof_regularizer_ctrl.ChangeValue(float(prof_settings['lambda']))
                 self.prof_auto_regularizer_ctrl.SetValue(prof_settings['auto_lambda'])
 
-            self.prof_ng_ctrl.SetValue(prof_settings['ng'])
-
             if prof_settings['type'] == 'smooth':
                 self.prof_nw_ctrl.SetValue(int(prof_settings['kwargs']['Nw']))
 
@@ -17059,8 +17033,6 @@ class REGALSComponent(wx.Panel):
             if conc_settings['lambda'] is not None:
                 self.conc_regularizer_ctrl.ChangeValue(float(conc_settings['lambda']))
                 self.conc_auto_regularizer_ctrl.SetValue(conc_settings['auto_lambda'])
-
-            self.conc_ng_ctrl.SetValue(conc_settings['ng'])
 
             self.set_frame_range((conc_settings['frame_xmin'], conc_settings['frame_xmax']),
                 conc_settings['xrange'][0], conc_settings['xrange'][1])

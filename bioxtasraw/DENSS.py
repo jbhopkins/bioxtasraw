@@ -27,7 +27,7 @@ Much of the code is from the DENSS source code, released here:
     https://github.com/tdgrant1/denss
 That code was released under GPL V3. The original author is Thomas Grant.
 
-This code matches that as of 43/8/21, commit cce26a7, version 1.6.3
+This code matches that as of 3/8/21, commit cce26a7, version 1.6.3
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals

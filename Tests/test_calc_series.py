@@ -109,9 +109,9 @@ def test_regals(bsa_series):
 
     assert len(regals_profiles) == 2
     assert len(regals_ifts) == 0
-    assert np.allclose(regals_profiles[0].getI().sum(), 194.68241086770107)
-    assert np.allclose(params['x2'], 1.033235305605319)
-    assert params['total_iter'] == 44
+    assert np.allclose(regals_profiles[0].getI().sum(), 194.77363667059115)
+    assert np.allclose(params['x2'], 1.0332748476863391)
+    assert params['total_iter'] == 43
 
 def test_regals_auto_lambda(bsa_series):
     prof1_settings = {
@@ -162,9 +162,9 @@ def test_regals_auto_lambda(bsa_series):
 
     assert len(regals_profiles) == 2
     assert len(regals_ifts) == 0
-    assert np.allclose(regals_profiles[0].getI().sum(), 187.0626608185841)
-    assert np.allclose(params['x2'], 1.4660686512243117)
-    assert params['total_iter'] == 34
+    assert np.allclose(regals_profiles[0].getI().sum(), 200.45514174941226)
+    assert np.allclose(params['x2'], 0.9949186551912603)
+    assert params['total_iter'] == 33
 
 def test_regals_realspace(bsa_series):
     prof1_settings = {
@@ -225,10 +225,10 @@ def test_regals_realspace(bsa_series):
 
     assert len(regals_profiles) == 2
     assert len(regals_ifts) == 2
-    assert np.allclose(regals_profiles[0].getI().sum(), 40.69920536222943)
-    assert np.allclose(params['x2'], 1.5197104446744192)
-    assert params['total_iter'] == 34
-    assert np.allclose(regals_ifts[0].p.sum(), 0.021128857674221777)
+    assert np.allclose(regals_profiles[0].getI().sum(), 40.58942509086738)
+    assert np.allclose(params['x2'], 1.5230463212831427)
+    assert params['total_iter'] == 33
+    assert np.allclose(regals_ifts[0].p.sum(), 0.021077276247305057)
 
 def test_find_buffer_range(bsa_series):
     success, region_start, region_end = raw.find_buffer_range(bsa_series)

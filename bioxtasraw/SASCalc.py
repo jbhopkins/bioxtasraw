@@ -3906,7 +3906,7 @@ def run_regals(M, intensity, sigma, min_iter=20, max_iter=1000, tol=0.001,
 
     return M, params, resid
 
-def create_regals_mixture(component_settings, q, x, num_good, sigma,
+def create_regals_mixture(component_settings, q, x, intensity, sigma,
     seed_previous=False, prev_mixture=None):
     """
     Creates regals components, puts them into a mixture, and estimates/assigns
@@ -3953,65 +3953,63 @@ def create_regals_mixture(component_settings, q, x, num_good, sigma,
     else:
         mixture = REGALS.mixture(components)
 
-    conc_lambda_est_input = np.empty(len(components))
-    prof_lambda_est_input = np.empty(len(components))
+    if any([settings[0]['auto_lambda'] for settings in component_settings]):
+        prof_lambda_est = mixture.estimate_profile_lambda(sigma)
+        auto_prof = True
+    else:
+        prof_lambda_est = [settings[0]['lambda'] for settings in component_settings]
+        auto_prof = False
 
-    conc_lambdas = np.empty(len(components))
-    prof_lambdas = np.empty(len(components))
+    if any([settings[1]['auto_lambda'] for settings in component_settings]):
+        conc_lambda_est = mixture.estimate_concentration_lambda(sigma)
+        auto_conc = True
+    else:
+        conc_lambda_est = [settings[1]['lambda'] for settings in component_settings]
+        auto_conc = False
 
-    for j, settings in enumerate(component_settings):
-        prof_settings = settings[0]
-        conc_settings = settings[1]
+    if auto_prof or auto_conc:
+        for j, settings in enumerate(component_settings):
+            prof_settings = settings[0]
+            conc_settings = settings[1]
 
-        if conc_settings['auto_lambda']:
-            if conc_settings['type'] == 'simple':
-                est = np.inf
+            if auto_prof and not prof_settings['auto_lambda']:
+                prof_lambda_est[j] = prof_settings['lambda']
+
+            if auto_conc and not conc_settings['auto_lambda']:
+                conc_lambda_est[j] = conc_settings['lambda']
+
+        mix_temp = copy.deepcopy(mixture)
+
+        mix_temp.lambda_profile = prof_lambda_est
+        mix_temp.lambda_concentration = conc_lambda_est
+
+        R = REGALS.regals(intensity, sigma)
+
+        mix_temp = R.step(mix_temp)[0]
+
+        prof_lambda_est = mix_temp.estimate_profile_lambda(sigma)
+        conc_lambda_est = mix_temp.estimate_concentration_lambda(sigma)
+
+        for j, settings in enumerate(component_settings):
+            prof_settings = settings[0]
+            conc_settings = settings[1]
+
+            if prof_settings['auto_lambda']:
+                p_lambda = float(np.format_float_scientific(prof_lambda_est[j], 0))
             else:
-                est = num_good[1][j]
+                p_lambda = prof_settings['lambda']
 
-        else:
-            est = np.inf
+            prof_lambda_est[j] = p_lambda
 
-        conc_lambda_est_input[j] = est
-
-        if prof_settings['auto_lambda']:
-            if prof_settings['type'] == 'simple':
-                est = np.inf
+            if conc_settings['auto_lambda']:
+                c_lambda = float(np.format_float_scientific(conc_lambda_est[j], 0))
             else:
-                est = num_good[0][j]
+                c_lambda = conc_settings['lambda']
 
-        else:
-            est = np.inf
+            conc_lambda_est[j] = c_lambda
 
-        prof_lambda_est_input[j] = est
-
-
-    conc_lambda_est = mixture.estimate_concentration_lambda(sigma,
-        conc_lambda_est_input)
-
-    prof_lambda_est = mixture.estimate_profile_lambda(sigma,
-        prof_lambda_est_input)
-
-    for j, settings in enumerate(component_settings):
-        prof_settings = settings[0]
-        conc_settings = settings[1]
-
-        if conc_settings['auto_lambda']:
-            c_lambda = float(np.format_float_scientific(conc_lambda_est[j], 0))
-        else:
-            c_lambda = conc_settings['lambda']
-
-        conc_lambdas[j] = c_lambda
-
-        if prof_settings['auto_lambda']:
-            p_lambda = float(np.format_float_scientific(prof_lambda_est[j], 0))
-        else:
-            p_lambda = prof_settings['lambda']
-
-        prof_lambdas[j] = p_lambda
-
-    mixture.lambda_concentration = conc_lambdas
-    mixture.lambda_profile = prof_lambdas
+    mixture.lambda_profile = prof_lambda_est
+    mixture.lambda_concentration = conc_lambda_est
 
     return mixture, components
 
