@@ -13,6 +13,18 @@ doing SVD, but that happens entirely within the EFA analysis window. The SVD
 window does not need to be opened before doing EFA. This tutorial covers
 EFA.
 
+:ref:`REGALS <raw_regals>` is a similar deconvolution technique, but can be
+applied in cases where there are components that are not strictly
+first-in-first-out and EFA would fail. EFA is recommended for standard
+SEC-SAXS data, but for more complex data, such as ion exchange chromatography,
+or time resolved or titration data you should use REGALS. REGALS can also
+handle deconvolution of SEC-SAXS data with a sloping baseline.
+
+If you use EFA in RAW, in addition to citing the RAW paper, please cite the
+EFA paper: S. P. Meisburger, A. B. Taylor, C. A. Khan, S. Zhang, P. F.
+Fitzpatrick, N. Ando. Journal of the American Chemical Society (2016). 138(20),
+6506-6516. DOI: `10.1021/jacs.6b01563 <https://doi.org/10.1021/jacs.6b01563>`_
+
 A video version of this tutorial is available:
 
 .. raw:: html
@@ -22,7 +34,7 @@ A video version of this tutorial is available:
 The written version of the tutorial follows.
 
 
-#.  Clear all of the data in RAW. Load the **phehc_sec.hdf5** file in the **sec_data** folder.
+#.  Clear all of the data in RAW. Load the **phehc_sec.hdf5** file in the **series_data** folder.
 
     *   *Note:* The data were provided by the Ando group at Cornell University
         and is some of the data used in the paper: *Domain Movements upon Activation of
@@ -34,9 +46,9 @@ The written version of the tutorial follows.
 
     |efa_series_plot_png|
 
-#.  We will now use EFA to attempt to extract out the two scattering components in the
-    main peak in this data. Right click on the **phehc_sec.hdf5** item in the Series list.
-    Select the “EFA” option.
+#.  We will use EFA to extract out the two scattering components in the main
+    peak in this data. Right click on the **phehc_sec.hdf5** item in the Series
+    list. Select the “EFA” option.
 
 #.  The EFA window will be displayed. On the left are controls, on the right are plots of
     the value of the singular values and the first autocorrelation of the left and right
@@ -62,7 +74,7 @@ The written version of the tutorial follows.
         *   *Tip:* If you have a dataset where you have a large number of components,
             such as 4+, it can be useful to set the EFA range to isolate just
             2-3 of those components. The more components you have, the harder
-            it is to do the EFA. There is a tradeoff in the amount of data
+            it is to do the EFA. There is a trade off in the amount of data
             used (more is better), and the number of components in the
             deconvolution (less is better) that requires some experimentation
             to find the right balance for a given dataset.
@@ -87,7 +99,7 @@ The written version of the tutorial follows.
         the higher number of components.
 
     *   *Note:* RAW can find the wrong number of components automatically. You will
-        always want to double check this automatic determation against the SVD results in
+        always want to double check this automatic determination against the SVD results in
         the plots. If you change the data range used (or data type), the number
         of components will not automatically update so you should check and update
         it if necessary.
@@ -123,15 +135,15 @@ The written version of the tutorial follows.
         scattering component starting to be present in the data.
 
 #.  In the User Input panel, tweak the “Backward” value start frames so that the frame
-    number, as indicated by the open circle on the plot, aligns with where the singular
-    value first starts to increase quickly, reading the plot left to right (i.e. where
-    it drops back to near the baseline). This should be around 380, 324, and 190.
+    number, as indicated by the open circle on the plot, aligns with where
+    the singular value drops back to near the baseline. This should be around
+    380, 324, and 190.
 
     *   *Note:* For the Backward EFA plot, SVD is run on just the last two frames, then the
         last three, and so on, until all frames in the range are included. As more frames are
-        added, the singular values change, as shown on the plot. When a singular value starts
-        increasingly sharply (as seen from right to left), it indicates that there is a new
-        scattering component in the scattering profile measured at that point.
+        added, the singular values change, as shown on the plot. When a singular value
+        drops back to baseline, it indicates that a scattering component is leaving
+        the dataset at that point.
 
     *   *Note:* The algorithm for determining the start and end points is not particularly
         advanced. For some datasets you may need to do significantly more adjustment of these values

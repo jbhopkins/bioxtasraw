@@ -20,6 +20,24 @@ calculation using the ATSAS tools, for a total of six different methods:
 *   From a Bayesian estimation based on concentration independent methods (ATSAS
     datmw bayes)
 
+If you use these MW methods in RAW, in addition to the RAW paper please cite
+these papers:
+
+    *   Volume of correlation: Rambo, R.P. & Tainer, J.A. Nature (2013). 496,
+        477-481. DOI: `10.1038/nature12070 <https://doi.org/10.1038/nature12070>`_
+
+    *   Corrected Porod volume: V. Piiadov, E. Ares de Araujo, M. Oliveira Neto, A. F.
+        Craievich, and I. Polikarpov. Protein Science (2019). 28(2), 454-473.
+        DOI: `10.1002/pro.3528 <https://doi.org/10.1002/pro.3528>`_
+
+    *   Bayesian inference (ATSAS): Hajizadeh, N. R., Franke, D., Jeffries, C.
+        M. & Svergun, D. I. (2018). Sci. Rep. 8, 7204.
+        DOI: `10.1038/s41598-018-25355-2 <https://doi.org/10.1038/s41598-018-25355-2>`_
+
+    *   Shape&Size (ATSAS): Franke, D., Jeffries, C. M. & Svergun, D. I. (2018).
+        Biophys. J. 114, 2485–2492.
+        DOI: `10.1016/j.bpj.2018.04.018 <https://doi.org/10.1016/j.bpj.2018.04.018>`_
+
 A video version of this tutorial is available:
 
 .. raw:: html

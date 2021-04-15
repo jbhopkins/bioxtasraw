@@ -36,8 +36,6 @@ Linux install from source instructions
 
     *  ``conda install -c conda-forge wxpython dbus-python fabio pyfai hdf5plugin``
 
-    *   ``conda install -c conda-forge dbus-python``
-
 #.  Download RAW source code from sourceforge
 
     *   `https://sourceforge.net/projects/bioxtasraw/files <https://sourceforge.net/projects/bioxtasraw/files>`_

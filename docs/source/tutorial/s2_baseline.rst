@@ -9,6 +9,11 @@ is best for instrumental drifts, while the integral baseline method is best
 for capillary fouling. Both baseline methods apply a distinct correction for each
 *q* value.
 
+If you use integral baseline correction in RAW, in addition to citing the RAW
+paper, please cite this paper: E. Brookes, P. Vachette, M. Rocco, and J. Pérez.
+Journal of Applied Crystallography (2016). 49, 1827-1841.
+DOI: `10.1107/S1600576716011201 <https://doi.org/10.1107/S1600576716011201>`_
+
 A video version of this tutorial is available:
 
 .. raw:: html
@@ -21,7 +26,7 @@ Linear Baseline Correction
 *****************************
 
 #.  Clear all of the data in RAW. Load the **xylanase.hdf5** SEC data in the
-    **sec_data** folder.
+    **series_data** folder.
 
 #.  When it loads in, you will see there is a distinct constant upward slope in the
     integrated intensity. This usually happens due to instrumental drift,
@@ -109,7 +114,7 @@ Integral baseline correction proceeds very similarly to linear baseline correcti
 Here we provide detail only where the procedures are different.
 
 #.  Clear all of the data in RAW. Load the **baseline.hdf5** SEC data in the
-    **sec_data** folder.
+    **series_data** folder.
 
     *   *Note:* This is the same as what you :ref:`previously saved <s1p7>` in
         an earlier part of the tutorial.

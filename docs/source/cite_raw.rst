@@ -33,6 +33,7 @@ If you use RAW to control any of the ATSAS programs (
 `DAMAVER <https://www.embl-hamburg.de/biosaxs/manuals/damaver.html>`_,
 `DAMCLUST <https://www.embl-hamburg.de/biosaxs/manuals/damclust.html>`_,
 `DATCLASS <https://www.embl-hamburg.de/biosaxs/manuals/datclass.html>`_,
+`GNOM <https://www.embl-hamburg.de/biosaxs/manuals/gnom.html>`_,
 `SASRES <https://www.embl-hamburg.de/biosaxs/manuals/sasres.html>`_,
 `SUPCOMB <https://www.embl-hamburg.de/biosaxs/manuals/supcomb.html>`_),
 in addition to the RAW paper, please cite the appropriate paper given on their

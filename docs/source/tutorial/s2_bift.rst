@@ -10,6 +10,10 @@ This tutorial covers how to use RAW for doing an IFT. This is not a tutorial
 on basic principles and best practices for doing an IFT or analysis of the
 resulting P(r) function. For that, please see the :ref:`SAXS tutorial <saxs_ift>`.
 
+If you use RAW to run BIFT, in addition to citing the RAW paper, please
+cite the BIFT paper: Hansen, S. Journal of Applied Crystallography (2000)
+33, 1415-1421. DOI: `10.1107/S0021889800012930 <https://doi.org/10.1107/S0021889800012930>`_
+
 A video version of this tutorial is available:
 
 .. raw:: html

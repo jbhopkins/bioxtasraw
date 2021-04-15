@@ -13,6 +13,18 @@ the ATSAS package is the most commonly used program for building consensus shape
 This is not a tutorial on basic principles and best practices for doing bead
 model reconstructions. For that, please see the :ref:`SAXS tutorial <saxs_bead_models>`.
 
+If you use RAW to run DAMMIF or associated programs, in addition to citing the
+RAW paper, please cite the papers given in the:
+
+    *    `DAMMIF manual <https://www.embl-hamburg.de/biosaxs/manuals/dammif.html>`_
+    *    `DAMMIN manual <https://www.embl-hamburg.de/biosaxs/manuals/dammin.html>`_
+    *    `DAMAVER manual <https://www.embl-hamburg.de/biosaxs/manuals/damaver.html>`_
+    *    `DAMCLUST manual <https://www.embl-hamburg.de/biosaxs/manuals/damclust.html>`_
+    *    `SASRES manual <https://www.embl-hamburg.de/biosaxs/manuals/sasres.html>`_
+    *    `SUPCOMB manual <https://www.embl-hamburg.de/biosaxs/manuals/supcomb.html>`_
+
+as appropriate
+
 A video version of this tutorial is available:
 
 .. raw:: html

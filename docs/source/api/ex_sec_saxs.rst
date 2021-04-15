@@ -13,7 +13,7 @@ Finding and setting buffer and sample regions
     import bioxtasraw.RAWAPI as raw
 
     #Load the series
-    profile_names = sorted(glob.glob('./sec_data/sec_sample_1/profile_001_*.dat'))
+    profile_names = sorted(glob.glob('./series_data/sec_sample_1/profile_001_*.dat'))
     profiles = raw.load_profiles(profile_names)
     series = raw.profiles_to_series(profiles)
 
@@ -55,7 +55,7 @@ Applying a linear baseline correction
     import bioxtasraw.RAWAPI as raw
 
     #Load series
-    xyl_series = raw.load_series(['./sec_data/xylanase.hdf5'])[0]
+    xyl_series = raw.load_series(['./series_data/xylanase.hdf5'])[0]
 
     #Set buffer range
     success, start, end = raw.find_buffer_range(xyl_series)
@@ -100,7 +100,7 @@ Applying an integral baseline correction
     import bioxtasraw.RAWAPI as raw
 
     #Load series
-    series = raw.load_series(['./sec_data/baseline.hdf5'])[0]
+    series = raw.load_series(['./series_data/baseline.hdf5'])[0]
 
     #Find baseline range
     (start_found, end_found, start_range,
@@ -140,7 +140,7 @@ with those functions.
     import bioxtasraw.RAWAPI as raw
 
     #Load series
-    xyl_series = raw.load_series(['./sec_data/xylanase.hdf5'])[0]
+    xyl_series = raw.load_series(['./series_data/xylanase.hdf5'])[0]
 
     #Validate buffer region
     buffer_range = [[180, 240], [500, 560]]
@@ -180,7 +180,7 @@ useful at the moment, it almost always returns invalid.
     import bioxtasraw.RAWAPI as raw
 
     #Load series
-    series = raw.load_series(['./sec_data/baseline.hdf5'])[0]
+    series = raw.load_series(['./series_data/baseline.hdf5'])[0]
 
     #Validate linear baseline range
     (valid, valid_results, similarity_results, svd_results, intI_results,
@@ -203,7 +203,7 @@ you have to know what the appropriate ranges are for each EFA component as input
     import bioxtasraw.RAWAPI as raw
 
     # Load data
-    phehc_series = raw.load_series(['./sec_data/phehc_sec.hdf5'])[0]
+    phehc_series = raw.load_series(['./series_data/phehc_sec.hdf5'])[0]
 
     #Do SVD
     svd_s, svd_U, svd_V = raw.svd(phehc_series)

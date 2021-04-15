@@ -10,6 +10,10 @@ density. Bead models typically only have two (molecule and solvent) or three bea
 and so typically fail to reconstruct these complex objects. `DENSS <http://denss.org>`_ has
 been fully implemented in RAW and will be used to reconstruct these electron densities.
 
+If you use DENSS in RAW, in addition to citing the RAW paper, please cite the
+DENSS paper: T. D. Grant. Nature Methods (2018) 15, 191–193.
+DOI: `10.1038/nmeth.4581 <https://doi.org/10.1038/nmeth.4581>`_
+
 A video version of this tutorial is available:
 
 .. raw:: html

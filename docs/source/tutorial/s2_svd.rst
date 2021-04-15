@@ -22,7 +22,7 @@ A video version of this tutorial is available:
 The written version of the tutorial follows.
 
 
-#.  Clear all of the data in RAW. Load the **phehc_sec.hdf5** file in the **sec_data** folder.
+#.  Clear all of the data in RAW. Load the **phehc_sec.hdf5** file in the **series_data** folder.
 
     *   *Note:* The data were provided by the Ando group at Cornell University
         and is some of the data used in the paper: *Domain Movements upon Activation of

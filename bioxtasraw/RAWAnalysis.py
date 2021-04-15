@@ -17560,10 +17560,20 @@ class REGALSBackground(wx.Dialog):
         sub_sizer.Add(plot_sizer, flag=wx.TOP|wx.BOTTOM|wx.RIGHT|wx.EXPAND,
             proportion=1, border=self._FromDIP(5))
 
+
+        cancel_button = wx.Button(parent, label='Cancel')
+        cancel_button.Bind(wx.EVT_BUTTON, self._onCancel)
+        done_button = wx.Button(parent, label='Done')
+        done_button.Bind(wx.EVT_BUTTON, self._onOK)
+
+        button_sizer = wx.BoxSizer()
+        button_sizer.Add(cancel_button, flag=wx.ALL, border=self._FromDIP(5))
+        button_sizer.Add(done_button, flag=wx.ALL, border=self._FromDIP(5))
+
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(sub_sizer, flag=wx.TOP|wx.LEFT|wx.RIGHT|wx.EXPAND,
             proportion=1, border=self._FromDIP(5))
-        top_sizer.Add(self.CreateButtonSizer(wx.OK|wx.CANCEL), flag=wx.ALL,
+        top_sizer.Add(button_sizer, flag=wx.ALL,
             border=self._FromDIP(5))
 
         self.Bind(wx.EVT_BUTTON, self._onOK, id=wx.ID_OK)

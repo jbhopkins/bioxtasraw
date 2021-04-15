@@ -10,6 +10,10 @@ shapes. The more possible shapes that could have generated the scattering profil
 ambiguity there will be in the reconstruction. We will use RAW to run AMBIMETER. Note that you need
 :ref:`ATSAS installed <atsas>` to do this part of the tutorial.
 
+If you use RAW to run AMBIMETER, in addition to citing the RAW paper, please
+cite the paper given in the `AMBIMETER manual. <https://www.embl-hamburg.de/biosaxs/manuals/ambimeter.html>`_
+
+
 A video version of this tutorial is available:
 
 .. raw:: html

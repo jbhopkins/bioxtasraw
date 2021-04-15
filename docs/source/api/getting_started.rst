@@ -94,7 +94,7 @@ series file saved by RAW.
 .. code-block:: python
 
     #Define a list of series filenames to load
-    series_names = ['./sec_data/phehc_sec.hdf5', './sec_data/xylanase.hdf5']
+    series_names = ['./series_data/phehc_sec.hdf5', './series_data/xylanase.hdf5']
 
     #Load the series
     series = raw.load_series(series_names)
@@ -107,7 +107,7 @@ then use the API to convert those set of profiles into a series.
     import glob
 
     #Define a list of profile filenames to load
-    profile_names = sorted(glob.glob('./sec_data/sec_sample_2/BSA_001_*.dat'))
+    profile_names = sorted(glob.glob('./series_data/sec_sample_2/BSA_001_*.dat'))
 
     #Load the profiles
     profiles = raw.load_profiles(profile_names)
@@ -268,7 +268,7 @@ intensity as a function of frame number. You can get that data as:
 
 .. code-block:: python
 
-    series_names = ['./sec_data/baseline.hdf5']
+    series_names = ['./series_data/baseline.hdf5']
     series = raw.load_series(series_names)
 
     my_series = series[0]

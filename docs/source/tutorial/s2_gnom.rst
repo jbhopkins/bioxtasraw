@@ -12,6 +12,9 @@ This tutorial covers how to use RAW for doing an IFT. This is not a tutorial
 on basic principles and best practices for doing an IFT or analysis of the
 resulting P(r) function. For that, please see the :ref:`SAXS tutorial <saxs_ift>`.
 
+If you use RAW to run GNOM, in addition to citing the RAW paper, please
+cite the paper given in the `GNOM manual. <https://www.embl-hamburg.de/biosaxs/manuals/gnom.html>`_
+
 A video version of this tutorial is available:
 
 .. raw:: html

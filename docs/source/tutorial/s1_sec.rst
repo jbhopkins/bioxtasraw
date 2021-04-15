@@ -375,7 +375,7 @@ The written version of the tutorial follows.
 #.  We will load in the Bovine Serum Albumin (BSA) SEC-SAXS data contained
     in the **sec_sample_2** data folder using this automatic method.
     In the Series control panel, click the “Select” button. Navigate to
-    the **Tutorial_Data/sec_data/sec_sample_2** folder and select any of
+    the **Tutorial_Data/series_data/sec_sample_2** folder and select any of
     the **.dat** files in the folder.
 
     *   *Troubleshooting:* If you get an error message, it means you don't have
@@ -424,7 +424,7 @@ The written version of the tutorial follows.
 
     *   *Try:* Open the **.csv** file you just saved in Excel or Libre/Open Office Calc.
 
-#.  Select both items in the Series control panel list, and save them in the **sec_data**
+#.  Select both items in the Series control panel list, and save them in the **series_data**
     folder. This saves the series data in a form that can be quickly loaded by RAW.
 
     *   *Try:* Clear the Series data and then open one of your saved files from the Files tab

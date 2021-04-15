@@ -1015,9 +1015,9 @@ class MainFrame(wx.Frame):
         for regals_frame in self.regals_frames:
             if regals_frame:
                 if regals_frame.orig_secm == secm:
-                    msg = ('There is already an EFA window open for this dataset.'
+                    msg = ('There is already an REGALS window open for this dataset.'
                         'Do you want to open another?')
-                    answer = wx.MessageBox(msg, 'Open duplicate EFA window?',
+                    answer = wx.MessageBox(msg, 'Open duplicate REGALS window?',
                         style=wx.YES_NO)
 
                     if answer == wx.NO:

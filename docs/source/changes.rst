@@ -4,26 +4,40 @@ Changes
 2.1.0
 -----------
 
-Release date: 2021-02-14
+Release date: 2021-04-14
 
 Overview
 ^^^^^^^^^^^
 
 The RAW team is pleased to announce the release of RAW version 2.1.0. This
-has the release of two major new features:
+version sees the release of two major new features:
 
 *   Analysis reports on your data can now be saved as PDFs.
 *   The release of a GUI for the REGALS technique, a new way to deconvolve
-    overlapping LC-SAXS peaks. REGALS can be considered an extension and
-    enhancement of EFA.
+    overlapping LC-SAXS peaks. REGALS can be thought of as an extension and
+    enhancement of EFA for other types of SAXS data, such as ion exchange
+    chromatography, titration series, and time resolved SAXS.
+    You can :ref:`read more about REGALS here <raw_regals>`.
 
 Additionally we've overhauled the auto_guinier function to improve accuracy and
 applicability to lower quality data. We've also added a new, more accurate
-method for automatically finding Dmax when using GNOM. There are also numerous
-small tweaks and bug fixes for the main RAW GUI and the API.
+method for automatically finding Dmax when using GNOM. Finally, there are the usual
+numerous small tweaks and bug fixes for the main RAW GUI and the API.
 
 Special thanks to Steve Meisburger and Darren Xu for helping with the
-details of their REGALS algorithm, and testing the new REGALS GUI.
+details of their REGALS algorithm and code, and testing the new REGALS GUI.
+
+**Note for MacOS users:** In order to achieve full compatibility with MacOS 11, we
+have had to drop support in the prebuilt version for 10.9 and 10.10. The
+prebuilt version of RAW will now run only on 10.11 or later. Additionally,
+in 10.11-10.13 the main RAW windows will show some odd coloration (black
+bars near the top of various windows, for example), but all functionality
+seems to work fine. You can still build RAW from source on older versions of MacOS.
+
+Also, we haven't been able to test on the Apple M1 chipset. RAW should work via the
+built in Rosetta 2 translation in MacOS 11, but it will not run natively. If
+someone wants to send us a Mac with an M1 chip to test on, we're happy to work on
+getting it to run natively.
 
 All changes:
 ^^^^^^^^^^^^^
@@ -32,7 +46,6 @@ All changes:
     time, slowing down radial averaging.
 *   Fixed a BioCAT specific bug where concentration would end up in the profile
     info when it wasn't actually known for that profile.
-*   Fixed a bug in the mw_vp API function.
 *   Fixed a bug where series files couldn't be loaded or saved in python 3.8.
 *   Fixed a bug where if you declined to load a config when you started RAW,
     the ATSAS install location wouldn't be automatically found.
@@ -45,37 +58,17 @@ All changes:
 *   Added the ability to generate PDF reports of analysis.
 *   Fixed a bug where the profile and ift line options dialogs couldn't be
     opened with matplotlib 3.3.
-*   Fixed a bug in the API that could cause the auto_guinier function to fail.
 *   Significant improvements to auto_guinier function for both the GUI and API,
     including better accuracy, better handling of low quality data, and better
     handling of poorly formatted data.
-*   Fixed a bug in the API where running EFA would change the associated ranges.
-*   Fixed a bug in the API that could cause BIFT to fail.
 *   Fixed a bug where if previous EFA ranges were available they wouldn't be
     properly set when the EFA window was opened.
-*   Added a feature to the API to truncate an IFT for dammif using either 8/rg
-    or 0.3, whichever is smaller.
-*   Fixed a bug in the API that could cause GNOM to fail to run.
-*   The DENSS function in the API now returns chi squared, rg, and support
-    volume as a function of iteration so you can check convergence.
 *   The RAW DENSS results .csv file now indicates if a refinement was run.
 *   Fixed a bug where RAW could fail to load a .out file.
 *   Fixed a bug where aborting in the middle of a DENSS average could
     cause an error.
-*   Fixed a bug with the API where loading multiple images from a single file
-    wasn't working properly.
-*   Added the ability abort DAMMIF/N and related functions and DENSS runs
-    in the API.
-*   Made SECM and RAWSettings objects pickalable, so they can be passed
-    through a multiprocessing queue.
-*   Fixed an API bug where saving a series would fail if you didn't set a
-    filename.
-*   Fixed an API bug where saving the GNOM results to a profile was saving
-    the wrong qmax value.
-*   Fixed a bug in the API where Dmin and Dmax zero conditions weren't getting
-    set correctly for GNOM.
-*   Fixed a bug in RAW where opening the GNOM window if the profile had a
-    non-interger Dmax value caused an error.
+*   Fixed a bug where opening the GNOM window if the profile had a non-interger
+    Dmax value caused an error.
 *   Added the REGALS technique.
 *   Added an enhanced way to automatically find Dmax when using GNOM.
 *   Fixed a bug where running GNOM when RAW was run with python 3.8 could fail.
@@ -98,7 +91,7 @@ All changes:
     of 8/Rg or 0.3.
 *   Guinier window now opens faster.
 *   Updated DENSS to version 1.6.3, which includes the possibility of doing
-    DENSS on a GPU.
+    DENSS on a GPU (requires RAW to be built from source).
 *   Fixed a bug where multiple DENSS windows couldn't be used at the same time.
 *   Fixed a bug where subtracted and baseline corrected profiles from the LC
     Series Analysis window would have the prefix of the individual profiles in
@@ -106,6 +99,30 @@ All changes:
 *   Fixed some possible memory leaks related to dialog creation/destruction.
 *   Added a number of new tests.
 *   Added compatibility with new string handing in h5py version 3.
+*   Full compatibility with MacOS 11, which fixes several graphics glitches
+    in 10.15 and 11. This required dropping support in the prebuilt version
+    for MacOS 10.10 and earlier.
+*   Fixed a bug with the API where loading multiple images from a single file
+    wasn't working properly.
+*   Added the ability to abort DAMMIF/N and related functions and DENSS runs
+    in the API.
+*   Made SECM and RAWSettings objects pickalable, so they can be passed
+    through a multiprocessing queue.
+*   Fixed an API bug where saving a series would fail if you didn't set a
+    filename.
+*   Fixed an API bug where saving the GNOM results to a profile was saving
+    the wrong qmax value.
+*   Fixed a bug in the API where Dmin and Dmax zero conditions weren't getting
+    set correctly for GNOM.
+*   Added a feature to the API to truncate an IFT for dammif using either 8/rg
+    or 0.3, whichever is smaller.
+*   Fixed a bug in the API that could cause GNOM to fail to run.
+*   The DENSS function in the API now returns chi squared, rg, and support
+    volume as a function of iteration so you can check convergence.
+*   Fixed a bug in the API where running EFA would change the associated ranges.
+*   Fixed a bug in the API that could cause BIFT to fail.
+*   Fixed a bug in the API that could cause the auto_guinier function to fail.
+*   Fixed a bug in the mw_vp API function.
 
 
 2.0.3

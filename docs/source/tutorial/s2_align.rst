@@ -9,6 +9,13 @@ as described in the :ref:`DAMMIF/N <dammif>` and :ref:`DENSS <denss_s2>` section
 of the tutorial. RAW also provides standalone windows for doing the alignment
 with already generated reconstructions.
 
+If you use DENSS alignment in RAW, in addition to citing the RAW paper, please cite the
+DENSS paper: T. D. Grant. Nature Methods (2018) 15, 191–193.
+DOI: `10.1038/nmeth.4581 <https://doi.org/10.1038/nmeth.4581>`_
+
+If you use RAW to run SUPCOMB, in addition to citing the RAW paper, please
+cite the paper given in the `SUPCOMB manual. <https://www.embl-hamburg.de/biosaxs/manuals/supcomb.html>`_
+
 A video version of this tutorial is available:
 
 .. raw:: html
