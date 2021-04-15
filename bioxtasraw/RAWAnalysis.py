@@ -13917,16 +13917,19 @@ class EFAControlPanel2(wx.Panel):
         backward_points = [wx.FindWindowById(my_id, self).GetValue() for my_id in self.backward_ids]
         self.results['backward_points'] = copy.copy(backward_points)
 
+        forward_points.sort()
+
         if self.ctrl_type == 'EFA':
-            forward_points.sort()
             backward_points.sort()
-        else:
-            backward_points = backward_points[::-1]
 
-
-        if self.ctrl_type == 'REGALS':
+        elif self.ctrl_type == 'REGALS':
             # Unlike elution compoments, background components are assumed to be first in last out
             n_bkg = self.bkg_components.GetValue()
+
+            if n_bkg == 0:
+                backward_points.sort()
+            else:
+                backward_points = backward_points[::-1]
 
             for i in range(n_bkg):
                 backward_points.insert(0, backward_points.pop())
@@ -15957,10 +15960,18 @@ class REGALSRunPanel(wx.Panel):
         for i in range(len(regals_ranges)):
             for j in range(i+1, len(regals_ranges)):
                 if np.all(regals_ranges[i] == regals_ranges[j]):
-                    s1 = comp_settings[i]
-                    s2 = comp_settings[j]
+                    s1 = copy.deepcopy(comp_settings[i])
+                    s2 = copy.deepcopy(comp_settings[j])
+
+                    s1[0].pop('auto_lambda')
+                    s1[1].pop('auto_lambda')
+                    s2[0].pop('auto_lambda')
+                    s2[1].pop('auto_lambda')
 
                     range_valid = not s1 == s2
+
+                    if not range_valid:
+                        break
 
         valid_settings = True
 
@@ -16121,11 +16132,17 @@ class REGALSRunPanel(wx.Panel):
             self.controls.set_settings(ctrl_settings)
 
             if 'x_calibration' in analysis_dict['regals']:
-                xdata = analysis_dict['regals']['x_calibration']
+                xdata = all_previous_results[-1]['x_calibration']
+                old_start = all_previous_results[-1]['fstart']
+                old_end = all_previous_results[-1]['fend']
 
                 if len(xdata['x']) == len(self.regals_x['x']):
-                    self.change_x(np.array(xdata['x']),
-                        np.array(xdata['x_base']), xdata['x_choice'])
+                    self.change_x(xdata['x'], xdata['x_base'], xdata['x_choice'])
+
+                elif start >= old_start and end <= old_end:
+                    self.change_x(xdata['x'][start-old_start:end-old_start+1],
+                        xdata['x_base'][start-old_start:end-old_start+1],
+                        xdata['x_choice'][start-old_start:end-old_start+1])
 
         else:
             if self.efa_results is not None and self.svd_results['use_efa']:
@@ -16137,6 +16154,24 @@ class REGALSRunPanel(wx.Panel):
             comp_settings = self.comp_grid.get_all_component_settings()
 
             for settings in comp_settings:
+                if settings[1]['frame_xmin'] < start:
+                    settings[1]['frame_xmin'] = start
+
+                if settings[1]['frame_xmax'] > end:
+                    settings[1]['frame_xmax'] = end
+
+                if settings[1]['xrange'][0] < start:
+                    settings[1]['xrange'][0] = start
+
+                if settings[1]['xrange'][1] > end:
+                    settings[1]['xrange'][1] = end
+
+                if settings[1]['kwargs']['xmin'] < start:
+                    settings[1]['kwargs']['xmin'] = start
+
+                if settings[1]['kwargs']['xmax'] > end:
+                    settings[1]['kwargs']['xmax'] = end
+
                 if settings[1]['frame_xmin'] == start:
                     settings[1]['kwargs']['is_zero_at_xmin'] = False
 
@@ -16147,9 +16182,21 @@ class REGALSRunPanel(wx.Panel):
 
             if all_previous_results[-1] is not None:
                 xdata = all_previous_results[-1]['x_calibration']
+                old_start = all_previous_results[-1]['fstart']
+                old_end = all_previous_results[-1]['fend']
 
                 if len(xdata['x']) == len(self.regals_x['x']):
                     self.change_x(xdata['x'], xdata['x_base'], xdata['x_choice'])
+
+                elif start >= old_start and end <= old_end:
+                    self.change_x(xdata['x'][start-old_start:end-old_start+1],
+                        xdata['x_base'][start-old_start:end-old_start+1],
+                        xdata['x_choice'][start-old_start:end-old_start+1])
+
+            new_frame_ranges = self.comp_grid.get_component_frame_ranges()
+            self.update_ranges_from_frames(new_frame_ranges)
+            new_ranges = self.comp_grid.get_component_ranges()
+            self.controls.update_ranges(new_ranges, self.svd_results, self.secm)
 
         if self.svd_results['secm_choice'] == 'usub':
             regals_secm = self.secm
@@ -16267,11 +16314,16 @@ class REGALSRunPanel(wx.Panel):
         self.controls.update_ranges(new_ranges, self.svd_results, self.secm)
 
     def get_panel_results(self):
+        start = self.svd_results['fstart']
+        end = self.svd_results['fend']
+
         results = {
-            'profiles': self.sasms,
-            'ifts': self.ifts,
+            'profiles' : self.sasms,
+            'ifts' : self.ifts,
             'regals_results': self.regals_results,
-            'x_calibration' : self.regals_x
+            'x_calibration' : self.regals_x,
+            'fstart' : start,
+            'fend' : end,
             }
 
         return results
@@ -17150,13 +17202,21 @@ class REGALSComponent(wx.Panel):
         return (int(self.conc_start.GetValue()), int(self.conc_end.GetValue()))
 
     def set_frame_range(self, new_range, cmin=None, cmax=None):
-
         start = self.regals_frame.run_panel.svd_results['fstart']
 
         if cmin is None:
             cmin, _ = self.conc_start.GetRange()
         if cmax is None:
             _, cmax = self.conc_end.GetRange()
+
+        if new_range[0] > new_range[1]:
+            new_range = [new_range[1], new_range[0]]
+
+        elif new_range[0] == new_range[1]:
+            if new_range[0] > cmin:
+                new_range[0] = new_range[0]-1
+            elif new_range[1] < cmax:
+                new_range[1] = new_range[1]+1
 
         self.conc_start.SetRange((cmin, new_range[1]-1))
         self.conc_end.SetRange((new_range[0]+1, cmax))
@@ -17364,11 +17424,13 @@ class REGALSXCalibration(wx.Dialog):
             dlg.Destroy()
 
     def _set_x_val(self, val, row, set_x=True):
-        if set_x:
-            self.data_grid.SetCellValue(row, 2, '{}'.format(val))
 
-        self.data_grid.SetCellValue(row, 3, '{}'.format(np.log10(val)))
-        self.data_grid.SetCellValue(row, 4, '{}'.format(np.log(val)))
+        if row < self.data_grid.GetNumberRows():
+            if set_x:
+                self.data_grid.SetCellValue(row, 2, '{}'.format(val))
+
+            self.data_grid.SetCellValue(row, 3, '{}'.format(np.log10(val)))
+            self.data_grid.SetCellValue(row, 4, '{}'.format(np.log(val)))
 
     def get_X_val(self):
         x_choice = self.use_x.GetStringSelection()
