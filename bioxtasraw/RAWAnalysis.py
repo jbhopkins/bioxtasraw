@@ -15032,8 +15032,12 @@ class EFAResultsPlotPanel3(wx.Panel):
 
             for j in range(len(self.c_lines)):
                 line = self.c_lines[j]
-                line.set_xdata(conc_data[j][0])
-                line.set_ydata(conc_data[j][1])
+                if isinstance(conc_data[0], np.ndarray):
+                    line.set_xdata(conc_data[1])
+                    line.set_ydata(conc_data[0][:,j])
+                else:
+                    line.set_xdata(conc_data[j][0])
+                    line.set_ydata(conc_data[j][1])
 
             for j in range(len(self.c_reg_lines)):
                 line = self.c_reg_lines[j]
