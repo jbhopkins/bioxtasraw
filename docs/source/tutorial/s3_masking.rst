@@ -95,7 +95,7 @@ The written version of the tutorial follows.
     |masking_panel_gap_png|
 
 #.  In the masking panel, make sure that “Beamstop mask” is selected in the Mask Creation
-    dropdown menu. Click the "Set" button to set the mask you just made as the beamstop mask.
+    drop-down menu. Click the "Set" button to set the mask you just made as the beamstop mask.
 
     |masking_set_png|
 

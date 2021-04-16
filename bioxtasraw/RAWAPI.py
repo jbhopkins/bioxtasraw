@@ -289,7 +289,7 @@ def load_series(filename_list, settings=None):
         calibration values used when radially averaging images. Default is
         None. This is required if you are loading images into a series or if
         you wish to set the header style of the series loaded in, which is
-        necessary for calculating the timepoint of each frame in the series.
+        necessary for calculating the time point of each frame in the series.
 
     Returns
     -------
@@ -413,7 +413,7 @@ def load_counter_values(filename_list, settings, new_filename_list=[]):
         The RAW settings to be used when loading in the header, which defines
         what type of header to look for.
     new_filename_list: list, optional
-        A list of strings containing optional flienames for the images.
+        A list of strings containing optional filenames for the images.
         If an image file contains multiple images such as some hdf5 files),
         this filename is used to determine what image inside the image file
         the header should be loaded for. RAW expects this to be in the form
@@ -546,7 +546,7 @@ def profiles_to_series(profiles, settings=None):
         The RAW settings to be used when converting profiles to a series.
         Default is None. This is required if you wish to set the header style
         of the series loaded in, which is necessary for calculating the
-        timepoint of each frame in the series.
+        time point of each frame in the series.
 
     Returns
     -------
@@ -1037,7 +1037,7 @@ def auto_guinier(profile, error_weight=True, single_fit=True, settings=None):
     error_weight: bool, optional
         If True (default), then the Guinier fit is calculated in an error
         weighted fashion. If not, the Guinier fit is calculated without
-        error weight. This is overriden by the value in the settings if
+        error weight. This is overridden by the value in the settings if
         a settings object is provided.
     single_fit: bool, optional
         If True (default), then after the correct range for the Guinier fit
@@ -1175,7 +1175,7 @@ def guinier_fit(profile, idx_min, idx_max, error_weight=True, settings=None):
     error_weight: bool, optional
         If True (default), then the Guinier fit is calculated in an error
         weighted fashion. If not, the Guinier fit is calculated without
-        error weight. This is overriden by the value in the settings if
+        error weight. This is overridden by the value in the settings if
         a settings object is provided.
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
         RAW settings containing relevant parameters. If provided, the
@@ -1190,12 +1190,12 @@ def guinier_fit(profile, idx_min, idx_max, error_weight=True, settings=None):
         The I(0) value of the fit.
     rg_err: float
         The uncertainty in Rg. This is calculated as the largest
-        of the uncertainty returned from autorg and the uncertatiny as
+        of the uncertainty returned from autorg and the uncertainty as
         calculated from the covariance of the Guinier fit with the autorg
         determined ranges.
     i0_err: float
         The uncertainty in I(0). This is calculated as the largest
-        of the uncertainty returned from autorg and the uncertatiny as
+        of the uncertainty returned from autorg and the uncertainty as
         calculated from the covariance of the Guinier fit with the autorg
         determined ranges.
     qmin: float
@@ -1997,7 +1997,7 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
     Automatically calculate the maximum dimension (Dmax) value of a profile.
     By default uses BIFT, DATGNOM, and DATCLASS to find a starting value and
     then refines that starting value using GNOM. If use_atsas is False it just
-    returns the BIFT value. It requires having an Rg from the Guineir fit.
+    returns the BIFT value. It requires having an Rg from the Guinier fit.
 
     Parameters
     ----------
@@ -2006,7 +2006,7 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
     dmax_thresh: float, optional
         The threshold for refining the Dmax value. If the value of the P(r) at
         Dmax is greater than this threshold times the maximum value of the P(r)
-        function Dmax is extended until the value falls below this fracitonal
+        function Dmax is extended until the value falls below this fractional
         threshold or the Dmax exceeds the initial estimated value times the
         dmax_high_bound value. Defaults is 0.01.
     dmax_low_bound: float, optional
@@ -2017,7 +2017,7 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
     dmax_high_bound: float, optional
         If the value of the P(r) at Dmax is greater than dmax_thres times
         the maximum value of the P(r) function Dmax is extended until the value
-        falls below that fracitonal threshold or the Dmax exceeds the initial
+        falls below that fractional threshold or the Dmax exceeds the initial
         estimated value times this parameter. Default is 1.5.
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
         RAW settings containing relevant parameters. Passed to BIFT. Default
@@ -2026,7 +2026,7 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
         Whether to use ATSAS functions. If False, simply returns the Dmax
         found by BIFT. Default is True.
     single_proc: bool, optional
-        Whether to use one or multple processes. Defaults to False.
+        Whether to use one or multiple processors. Defaults to False.
 
     Returns
     -------
@@ -2211,7 +2211,7 @@ def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
         been done for the input profile, the start point of the Guinier fit is
         used as the start point for the IFT.
     single_proc: bool, optional
-        Whether to use one or multple processes. Defaults to False.
+        Whether to use one or multiple processors. Defaults to False.
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
         RAW settings containing relevant parameters. If provided, the
         pr_Pts, alpha_min, alpha_max, alpha_pts, dmax_min, dmax_max, dmax_pts,
@@ -4653,7 +4653,7 @@ def efa(series, ranges, profile_type='sub', framei=None, framef=None,
         hybrid or iterative mode. Defaults to 1000. Can be increased if
         EFA fails to converge.
     tol: float, optional
-        The tolerance used as the convergence critera for the EFA rotation
+        The tolerance used as the convergence criteria for the EFA rotation
         in hybrid or iterative mode. Defaults to 1e-12. Can be decreased
         if EFA fails to converge.
     norm: bool, optional
@@ -5922,7 +5922,7 @@ def validate_baseline_range(series, start_range, end_range,
         A tuple of dicts. The first entry is the start range intensity results,
         the second entry is the end range intensity results. The intensity
         test is only done for integral baselines. For linear baselines an
-        empty dictionary is returned. For an itnegral baseline, each
+        empty dictionary is returned. For an integral baseline, each
         dictionary has the following keys: 'intI_r' - the Spearman correlation
         coefficient of the intensity in the region. 'inti_pval' - the p-value
         from the Spearman correlation test on the intensity of the region.
@@ -6156,7 +6156,7 @@ def set_baseline_correction(series, start_range, end_range, baseline_type,
         Each array index is the M.W. corresponding to the subtracted profile
         at that index in the sub_profiles list.
     bl_corr: list
-        A list of the baesline correction applied. Each item is a
+        A list of the baseline correction applied. Each item is a
         :class:`bioxtasraw.SASM.SASM`, and there is one for every baseline
         corrected profile. The intensity is the value subtracted from the
         starting intensity of the corresponding profile to achieve the

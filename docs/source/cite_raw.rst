@@ -128,7 +128,8 @@ Bayesian Inference
 If you used the Bayesian inference method (datbayes) to determine molecular
 weight in RAW, in addition to the RAW paper please cite the following paper:
 
-Hajizadeh, N. R., Franke, D., Jeffries, C. M. & Svergun, D. I. (2018).
+*Consensus Bayesian assessment of protein molecular mass from solution X-ray
+scattering data.* Hajizadeh, N. R., Franke, D., Jeffries, C. M. & Svergun, D. I. (2018).
 Sci. Rep. 8, 7204.
 
 DOI: `10.1038/s41598-018-25355-2 <https://doi.org/10.1038/s41598-018-25355-2>`_
@@ -140,8 +141,9 @@ If you used the comparison to known structures (Shape&Size) method to determine
 molecular weight in RAW, in addition to the RAW paper please cite the following
 paper:
 
-Franke, D., Jeffries, C. M. & Svergun, D. I. (2018). Biophys. J. 114,
-2485–2492.
+*Machine Learning Methods for X-Ray Scattering Data Analysis from
+Biomacromolecular Solutions*Franke, D., Jeffries, C. M. & Svergun, D. I. (2018).
+Biophys. J. 114, 2485–2492.
 
 DOI: `10.1016/j.bpj.2018.04.018 <https://doi.org/10.1016/j.bpj.2018.04.018>`_
 

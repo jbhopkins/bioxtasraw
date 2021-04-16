@@ -22,7 +22,7 @@ The written version of the tutorial follows.
         (filename: "**..**"") to move up a directory level or double click on a directory
         to open it.
 
-#.  At the bottom of the File tab in the Control Panel, use the dropdown menu to
+#.  At the bottom of the File tab in the Control Panel, use the drop-down menu to
     set the file type filter to “CFG files (\*.cfg)”.
 
     |file_ctrl_3_png|

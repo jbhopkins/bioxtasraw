@@ -8,8 +8,8 @@ Common problems/troubleshooting
     security warnings when you install RAW. When you do, just give the installer
     and program permission to run on your computer.
 
-*   RAW is used by (relatively) few people, which means many antivirus programs
-    have not seen the RAW software before. Occasionally virus scanners will mark
+*   RAW is used by (relatively) few people, which means some antivirus programs
+    may not have seen the RAW software before. Occasionally virus scanners will mark
     a file (typically :file:`RAW.exe`) as a threat (it will usually be in the ‘general
     malware’ category). If this happens, please do the following:
 

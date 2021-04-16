@@ -6,7 +6,7 @@ What is BioXTAS RAW?
 
 BioXTAS RAW is a GUI based, free, open-source Python program for reduction and analysis
 of small-angle X-ray solution scattering (SAXS) data. The software is designed for biological
-SAXS data. It is available on windows, macOS (and OS X), and linux. It provides an
+SAXS data. It is available on windows, macOS (and OS X), and Linux. It provides an
 alternative to closed source programs such as Primus and Scatter for primary data analysis.
 Because it can calibrate, mask, and integrate images it also provides an alternative to
 synchrotron beamline pipelines that scientists can install on their own computers and use
@@ -42,9 +42,9 @@ You can also :ref:`install BioXTAS RAW as a python package <api>` without the
 GUI. This lets you import RAW directly into your python scripts and use the
 API to call any of the functions in RAW. This is great for creating custom
 processing scripts, either for unusual datasets that aren't handled in the
-GUI (such as ion exchange or time resolved SAXS data), or to ensure
-reproducibility in your analysis. It can also be used as the basis for an
-open-source automated SAXS data processing pipeline at a beamline or homesource.
+GUI, or to ensure reproducibility in your analysis. It can also be used
+as the basis for an open-source automated SAXS data processing pipeline at
+a beamline or homesource.
 
 
 History and Usage
@@ -61,8 +61,8 @@ also used at various other beamlines, including:
 *   BL19U2 (SSRF)
 *   I911-4 (aka I911-SAXS) beamline at MAX-LAB
 
-`SAXSLAB <http://saxslab.com/>`_ distributes RAW with some of its homesources, and RAW is used at various
-other homesources around the world.
+`SAXSLAB <http://saxslab.com/>`_ distributes RAW with some of its homesources,
+and RAW is used at various other homesources around the world.
 
 Do you use RAW? :ref:`Let us know! <contactus>`
 

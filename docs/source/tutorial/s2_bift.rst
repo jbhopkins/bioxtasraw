@@ -2,7 +2,7 @@ Pair-distance distribution analysis – BIFT in RAW
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _bift_tutorial:
 
-RAW also has a built in method for determining the P(r) function using a Bayesian IFT method.
+RAW has a built in method for determining the P(r) function using a Bayesian IFT method.
 This has the advantage of only have one possible solution. More information on this method can
 be found in the RAW paper and manual and references therein.
 

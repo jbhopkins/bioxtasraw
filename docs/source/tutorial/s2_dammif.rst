@@ -173,7 +173,7 @@ The written version of the tutorial follows.
     depend on what other processing was done.
 
     *   If refinement was done, then there will be a single file named
-        **refine_<prefilx>_-1_aligned.pdb**. For this tutorial,
+        **refine_<prefix>_-1_aligned.pdb**. For this tutorial,
         **refine_glucose_isomerase-1_aligned.pdb**.
 
     *   If no refinement is done but averaging is done, then the

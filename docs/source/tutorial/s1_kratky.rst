@@ -71,7 +71,7 @@ The written version of the tutorial follows.
 #.  Click the Proceed using AutoRg button to proceed to the Dimensionless Kratky Plot window using
     RAW’s automatic fitting for |Rg|.
 
-#.  By default, the plot is the Dimensionless |Rg| plot. Use the dropdown “Plot” menu at the top to
+#.  By default, the plot is the Dimensionless |Rg| plot. Use the drop-down “Plot” menu at the top to
     select the Normalized (by I(0)) and Dimensionless Vc plots.
 
     *   *Tip:* The dashed gray lines on the Dimensionless (Rg) plot are guidelines

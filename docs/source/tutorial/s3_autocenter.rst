@@ -22,7 +22,7 @@ The written version of the tutorial follows.
 
 #.  In the options window, select the Image/Header Format section on the left.
 
-#.  In the area on the right, set the Image format dropdown menu to “Pilatus” and the
+#.  In the area on the right, set the Image format drop-down menu to “Pilatus” and the
     Header file format to “BioCAT, APS”.
 
     |options_header_png|
@@ -41,7 +41,7 @@ The written version of the tutorial follows.
 #.  Click the OK button in the bottom right to close the window and save the
     changes to the settings.
 
-#.  In the files tab, avigate to the **Tutorial_Data/calibration_data** folder.
+#.  In the files tab, navigate to the **Tutorial_Data/calibration_data** folder.
 
 #.  We will use silver behenate to calibrate the sample to detector distance,
     the beam center on the detector, and the detector rotation. Show the silver
@@ -76,7 +76,7 @@ The written version of the tutorial follows.
 
 #.  The goal of centering and calibration is to find a beam center position, sample
     to detector distance, and detector rotation that causes the calculated
-    Silver-Behenate ring pattern to match up with the rings on the image.
+    Silver Behenate ring pattern to match up with the rings on the image.
 
     *   *Note:* The beamstop is the blue/green bar extending out from the top
         right edge of the detector
@@ -147,7 +147,7 @@ The written version of the tutorial follows.
 #.  If necessary (such as if the autocentering routine fails), all of the calibration
     values can be adjusted manually. The beam center can either be typed into the
     appropriate boxes, or the red arrows can be used to nudge it by "Steps" pixels
-    in any direction. The crosshares can be used to pick the beam center position by
+    in any direction. The crosshairs can be used to pick the beam center position by
     hand, good for getting a rough alignment. The other parameters can be
     typed into their appropriate boxes. Manual centering is an iterative process:
 

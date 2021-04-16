@@ -37,7 +37,8 @@ those who do not already have a configuration file.
 
 
 This tutorial is focused on how to use RAW, it is not necessarily a tutorial
-on best practices for SAXS data processing.
+on best practices for SAXS data processing. The :ref:`SAXS tutorial <saxs_tutorial>`
+covers some basic processing and analysis best practices.
 
 Requirements
 ^^^^^^^^^^^^
@@ -50,11 +51,13 @@ Requirements
 *   Tutorial data.
 
     *   Available from:
-        `https://sourceforge.net/projects/bioxtasraw/files/?source=navbar <https://sourceforge.net/projects/bioxtasraw/files/?source=navbar>`_
+        `https://sourceforge.net/projects/bioxtasraw/files/?source=navbar
+        <https://sourceforge.net/projects/bioxtasraw/files/?source=navbar>`_
 
 .. _atsas:
 
-*   ATSAS programs, >= v2.8.0 (for parts of :ref:`Section 2 <section2>` of the tutorial only).
+*   ATSAS programs, >= v2.8.0 (for parts of :ref:`Section 2 <section2>` of
+    the tutorial).
 
     *   Download and installation instructions are available from:
         `https://www.embl-hamburg.de/biosaxs/download.html <https://www.embl-hamburg.de/biosaxs/download.html>`_
@@ -63,11 +66,12 @@ Requirements
 
 Other useful materials
 ^^^^^^^^^^^^^^^^^^^^^^^
-#.  `Video lectures from the BioCAT Everything BioSAXS 5 workshop, <https://www.youtube.com/playlist?list=PLbPNI520xTsEYbJk8V0BNQ461xnG6tpRW>`_
+#.  `Video lectures from BioCAT's Everything BioSAXS workshops,
+    <https://www.youtube.com/playlist?list=PLbPNI520xTsEYbJk8V0BNQ461xnG6tpRW>`_
     which can help you learn more about best practices for SAXS data processing.
 
 #.  Each tutorial section has a linked video tutorial. A full playlist of the
-    vides is available here:
+    videos is available here:
 
     .. raw:: html
 

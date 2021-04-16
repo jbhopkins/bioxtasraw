@@ -46,9 +46,9 @@ General instructions for installing from source (advanced users)
 
 #.  Enjoy!
 
-    *   If you have problems, please consult the detailed installation guides and the
-        :ref:`solutions to common problems <wintrb>` below. If that doesn’t help,
-        please contact the developers.
+    *   If you have problems, please consult the :ref:`detailed installation guide
+        <winsource>` and the :ref:`solutions to common problems <wintrb>`. If
+        that doesn’t help, please contact the developers.
 
 
 Notes for python 2 installation

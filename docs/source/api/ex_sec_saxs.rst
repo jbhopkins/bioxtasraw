@@ -278,5 +278,5 @@ you have to know what the appropriate ranges are for each EFA component as input
     comp_settings = [(prof1_settings, conc1_settings),
         (prof2_settings, conc2_settings), (prof3_settings, conc3_settings)]
 
-    regals_profiles, regals_ifts, mixture, params, residual = raw.regals(phehc_series,
-        comp_settings)
+    (regals_profiles, regals_ifts, concs, reg_concs, mixture, params,
+        residual) = raw.regals(phehc_series, comp_settings)

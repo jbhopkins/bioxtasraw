@@ -12,7 +12,7 @@ Overview
 The RAW team is pleased to announce the release of RAW version 2.1.0. This
 version sees the release of two major new features:
 
-*   Analysis reports on your data can now be saved as PDFs.
+*   Analysis reports on your data can now be :ref:`saved as PDFs <s1p4>`.
 *   The release of a GUI for the REGALS technique, a new way to deconvolve
     overlapping LC-SAXS peaks. REGALS can be thought of as an extension and
     enhancement of EFA for other types of SAXS data, such as ion exchange
@@ -67,7 +67,7 @@ All changes:
 *   Fixed a bug where RAW could fail to load a .out file.
 *   Fixed a bug where aborting in the middle of a DENSS average could
     cause an error.
-*   Fixed a bug where opening the GNOM window if the profile had a non-interger
+*   Fixed a bug where opening the GNOM window if the profile had a non-integer
     Dmax value caused an error.
 *   Added the REGALS technique.
 *   Added an enhanced way to automatically find Dmax when using GNOM.

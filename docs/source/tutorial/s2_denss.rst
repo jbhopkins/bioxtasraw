@@ -111,21 +111,21 @@ The written version of the tutorial follows.
 
 #.  The results summary shown in Summary tab is automatically saved as a
     **<prefix>_denss_results.csv** csv file, e.g. for this data as
-    **lglucose_isomerase_denss_results.csv**. All the plots shown on the individual model
+    **glucose_isomerase_denss_results.csv**. All the plots shown on the individual model
     tabs are automatically saved as a multi-page pdf file with the same name.
 
 #.  Click the “Close” button when you are finished looking at the results and reconstructions.
 
 #.  The results from the individual DENSS runs are saved in the selected output folder as
     **<prefix>_xx.mrc** where *xx* corresponds to the run number: 01, 02, etc. For this
-    tutorial that would be **lglucose_isomerase_01.mrc**, **lglucose_isomerase_02.mrc**, etc.
+    tutorial that would be **glucose_isomerase_01.mrc**, **glucose_isomerase_02.mrc**, etc.
 
 #.  If averaging was done, final average density is saved in the selected output
-    folder as **<prefix>_aver.mrc**. For this tutorial, that would be **lglucose_isomerase_aver.mrc**.
+    folder as **<prefix>_aver.mrc**. For this tutorial, that would be **glucose_isomerase_aver.mrc**.
 
 #.  If refinement was done, the final refined density is saved in the selected
     output folder as **<prefix>_refine.mrc**. For this tutorial that would be
-    **lglucose_isomerase_refine.mrc**.
+    **glucose_isomerase_refine.mrc**.
 
 #.  If alignment to a reference model was done, the files aligned
     depend on what other processing was done.

@@ -78,7 +78,7 @@ class SASM(object):
         parameters: dict
             A dictionary of metadata for the object. This should contain at
             least {'filename': filename_with_no_path}. Other reserved keys are:
-            'counters' : [(countername, value),...] Info from counterfiles
+            'counters' : [(countername, value),...] Info from counter files
             'fileHeader' : [(label, value),...] Info from the header in the
             loaded file
         """
@@ -835,7 +835,7 @@ class SASM(object):
 
 class IFTM(object):
     """
-    Inverse fourier tranform measurement (IFTM) object. Contains the P(r), r
+    Inverse Fourier transform measurement (IFTM) object. Contains the P(r), r
     and error vectors, as well as the original data, the fit of the P(r) to
     the data, and all associated metadata.
 

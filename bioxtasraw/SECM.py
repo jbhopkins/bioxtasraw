@@ -118,7 +118,7 @@ class SECM(object):
         the threshold defined in the RAW settings, that frame is used
         to calculate Rg and MW, otherwise it is not. This is simply to
         increase speed of calculation by not trying to calculate these
-        parametesr for buffer data.
+        parameters for buffer data.
     use_baseline_subtracted_sasm: list
         As use_subtracted_sasm, but for the baseline corrected profiles (if
         available).

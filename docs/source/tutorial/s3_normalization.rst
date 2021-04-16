@@ -33,13 +33,13 @@ The written version of the tutorial follows.
 #.  Click on the Normalization section in the options list on the left.
 
 #.  In the fields at the bottom of the Normalization panel, make sure “/” is selected
-    in the left dropdown menu, and enter I1 in the large field.
+    in the left drop-down menu, and enter I1 in the large field.
 
     *   *Note:* It is typical in SAXS to normalize by the transmitted intensity. At the
         BioCAT beamline, the beamstop counter is name I1, which is why we are using
         that name in the normalization expression.
 
-    *   *Tip:* You can use the large field as a dropdown menu to see and select
+    *   *Tip:* You can use the large field as a drop-down menu to see and select
         available normalization counters.
 
 #.  Click the Calc button to evaluate the expression for the counter values loaded
@@ -49,7 +49,7 @@ The written version of the tutorial follows.
 
     |config_norm_values_png|
 
-#.  You should now see the normalization in the normaliation list.
+#.  You should now see the normalization in the normalization list.
     Make sure the “Enable Normalization” checkbox at the top of the page is checked.
 
     |config_norm_enable_png|

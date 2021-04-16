@@ -7,7 +7,7 @@ Tutorial videos
 ---------------------
 
 Every section of the RAW tutorial has an associated tutorial video. These can be
-found in the appropriate section. A playlist of all the vides is available:
+found in the appropriate section. A playlist of all the videos is available:
 
 .. raw:: html
 

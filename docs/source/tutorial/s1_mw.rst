@@ -16,7 +16,7 @@ RAW provides four methods of molecular weight analysis:
 If ATSAS is installed, RAW also provides an additional two methods of MW
 calculation using the ATSAS tools, for a total of six different methods:
 
-*   From classificiation by machine learning (ATSAS datclass/Shape&Size)
+*   From classification by machine learning (ATSAS datclass/Shape&Size)
 *   From a Bayesian estimation based on concentration independent methods (ATSAS
     datmw bayes)
 

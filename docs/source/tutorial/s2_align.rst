@@ -97,13 +97,13 @@ is the high resolution
 
     |align_denss_select_png|
 
-#.  Click the start button. DENSS alignement will run.
+#.  Click the start button. DENSS alignment will run.
 
     *   *Tip:* If there is already a file in the folder with the aligned output
         filename you will get a prompt to overwrite it.
 
     *   *Tip:* By default, DENSS centers the Reference file. This writes out
-        a file namged **<reference_name>_centered.pdb** in the same folder as
+        a file named **<reference_name>_centered.pdb** in the same folder as
         the reference file, which is what should be compared to the aligned
         file. You can turn this off in the Advanced Settings.
 

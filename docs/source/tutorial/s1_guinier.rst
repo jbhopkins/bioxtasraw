@@ -53,7 +53,7 @@ The written version of the tutorial follows.
 
     *   *Note:* This is the largest of the uncertainties from the fit (standard deviation
         of fit values calculated from the covariance matrix), and either the standard deviation of
-        |Rg| and I(0) across all acceptable intervals found by the autorg function
+        |Rg| and I(0) across all acceptable intervals found by the automatic |Rg| function
         or an estimated uncertainty in |Rg| and I(0) based on variation of the selected
         interval start and end points.
 

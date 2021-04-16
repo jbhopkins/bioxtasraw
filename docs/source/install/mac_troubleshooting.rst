@@ -11,7 +11,7 @@ Common problems/troubleshooting
     *   This requires administrator privileges
 
 *   If the above doesn’t work, you can run the RAW app from the command line. Navigate to
-    :file:`RAW.app/Contents/MacOS` and run the RAW unix executable file (:file:`./RAW`) in that directory.
+    :file:`RAW.app/Contents/MacOS` and run the RAW executable file (:file:`./RAW`) in that directory.
 
 
 **Installing from source:**
@@ -23,9 +23,9 @@ Common problems/troubleshooting
     If you get an error running this function update your numba version to the
     most recent.
 
-*   If you are installong on an older Macbook (older than ~2012) you need to install all packages
+*   If you are installing on an older Macbook (older than ~2012) you need to install all packages
     through conda forge (``conda install -c conda-forge <package_name>``). The
     new ones in the main conda channel cuase an illegal instruction error.
     See this thread: `https://github.com/conda/conda/issues/9678 <https://github.com/conda/conda/issues/9678>`_.
     It's possible this will be resolved at some point and the main channel
-    will be useable for older machines again.
+    will be usable for older machines again.
