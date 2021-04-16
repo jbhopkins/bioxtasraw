@@ -13,15 +13,15 @@ os.sys.path.append(os.path.abspath(os.path.join('..', '..')))
 
 from bioxtasraw.RAWGlobals import version
 
-deb_path = os.path.join('.', 'bioxtas-raw-{}'.format(version),
+deb_path = os.path.join('.', 'RAW-{}-linux-amd64'.format(version),
     'DEBIAN')
-exc_path = os.path.join('.', 'bioxtas-raw-{}'.format(version),
+exc_path = os.path.join('.', 'RAW-{}-linux-amd64'.format(version),
     'usr', 'bin')
-app_path = os.path.join('.', 'bioxtas-raw-{}'.format(version),
+app_path = os.path.join('.', 'RAW-{}-linux-amd64'.format(version),
     'usr', 'share', 'applications')
-png_path = os.path.join('.', 'bioxtas-raw-{}'.format(version),
+png_path = os.path.join('.', 'RAW-{}-linux-amd64'.format(version),
     'usr', 'share', 'icons', 'hicolor', '48x48', 'apps')
-xpm_path = os.path.join('.', 'bioxtas-raw-{}'.format(version),
+xpm_path = os.path.join('.', 'RAW-{}-linux-amd64'.format(version),
     'usr', 'share', 'pixmaps')
 
 os.makedirs(deb_path, exist_ok=True)
