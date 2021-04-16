@@ -1146,7 +1146,7 @@ class MainFrame(wx.Frame):
 
             if len(failed_autorg) > 0:
                 msg = ('AutoRg failed for one or more of the files, so the '
-                        'normalized Kratky plot cannot be shown. Autorg failed on:')
+                        'dimensionless Kratky plot cannot be shown. Autorg failed on:')
                 for sasm in failed_autorg:
                     msg = msg + '\n%s' %(sasm.getParameter('filename'))
 
@@ -1489,7 +1489,7 @@ class MainFrame(wx.Frame):
                 ('&EFA', self.MenuIDs['runefa'], self._onToolsMenu, 'normal'),
                 ('&REGALS', self.MenuIDs['runregals'], self._onToolsMenu, 'normal'),
                 ('&Similarity Test', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
-                ('&Normalized Kratky Plots', self.MenuIDs['normalizedKratky'], self._onToolsMenu, 'normal'),
+                ('&Dimensionless Kratky Plots', self.MenuIDs['normalizedKratky'], self._onToolsMenu, 'normal'),
                 (None, None, None, 'separator'),
                 ('&Centering/Calibration', self.MenuIDs['centering'], self._onToolsMenu, 'normal'),
                 ('&Masking', self.MenuIDs['masking'], self._onToolsMenu, 'normal'),

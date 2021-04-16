@@ -15550,6 +15550,7 @@ class REGALSFrame(wx.Frame):
                     regals_dict['component_settings'] = regals_results['settings']['comp_settings']
                     regals_dict['run_settings'] = regals_results['settings']['ctrl_settings']
                     regals_dict['exp_type'] = self.panel_results[0]['exp_type']
+                    regals_dict['use_efa'] = self.panel_results[0]['use_efa']
 
                     if self.panel_results[1] is not None:
                         regals_dict['background_components'] = self.panel_results[1]['bkg_components']
@@ -16136,9 +16137,13 @@ class REGALSRunPanel(wx.Panel):
             self.controls.set_settings(ctrl_settings)
 
             if 'x_calibration' in analysis_dict['regals']:
-                xdata = all_previous_results[-1]['x_calibration']
-                old_start = all_previous_results[-1]['fstart']
-                old_end = all_previous_results[-1]['fend']
+                xdata = analysis_dict['regals']['x_calibration']
+                old_start = analysis_dict['regals']['fstart']
+
+                xdata['x'] = np.array(xdata['x'])
+                xdata['x_base'] = np.array(xdata['x_base'])
+
+                old_end = analysis_dict['regals']['fend']
 
                 if len(xdata['x']) == len(self.regals_x['x']):
                     self.change_x(xdata['x'], xdata['x_base'], xdata['x_choice'])
