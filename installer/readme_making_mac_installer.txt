@@ -21,6 +21,12 @@ Steps:
     (note, the disk image must be ejected for this to work
 
 
+
+Need to use wxpython >=4.1 to eliminate some weird GUI glitches on MacOS 11.
+To do so at the moment with pyinstaller 4.2 requires some manual modification
+to the app package, as described here:
+https://github.com/pyinstaller/pyinstaller/issues/5710
+
 Note: For RAW to work on macbooks older than 2011 need to install all packages
 through conda forge. The new ones through conda have some weird error. See:
 https://github.com/conda/conda/issues/9678

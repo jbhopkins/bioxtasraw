@@ -28,9 +28,6 @@ If you use REGALS in RAW, in addition to citing the RAW paper, please cite the
 REGALS paper: S. P. Meisburger, D. Xu, and N. Ando. IUCrJ (2021). 8(2), 225-237.
 DOI: `10.1107/S2052252521000555 <https://doi.org/10.1107/S2052252521000555>`_
 
-
-A video version of this tutorial is available:
-
 The written version of the tutorial follows.
 
 Deconvolving ion exchange chromatograph coupled SAXS (IEC-SAXS) data
