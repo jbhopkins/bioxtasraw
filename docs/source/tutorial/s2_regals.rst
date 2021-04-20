@@ -47,7 +47,7 @@ from the changing scattering of the buffer.
     **series_data** folder.
 
     *   *Note:* The data were provided by the Ando group at Cornell University,
-        and was originally published in the paper: Parker, M. J. et al. (2018).
+        and were originally published in the paper: Parker, M. J. et al. (2018).
         *An endogenous dAMP ligand in Bacillus subtilis class Ib RNR promotes
         assembly of a noncanonical dimer for regulation by dATP.* Proc Natl
         Acad Sci USA 115, E4594–E4603.
@@ -425,7 +425,7 @@ titration series to get pure profiles for each component.
         <http://dx.doi.org/10.1021/jacs.6b01563>`_.
 
     *   *Note:* The data were provided by the Ando group at Cornell University,
-        and was originally published in the paper: Meisburger, S. P. et al. (2016).
+        and were originally published in the paper: Meisburger, S. P. et al. (2016).
         *Domain Movements upon Activation of Phenylalanine Hydroxylase
         Characterized by Crystallography and Chromatography-Coupled
         Small-Angle X-ray Scattering.* J Am Chem Soc 138, 6506–6516.
