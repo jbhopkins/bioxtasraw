@@ -47,7 +47,7 @@ from the changing scattering of the buffer.
     **series_data** folder.
 
     *   *Note:* The data were provided by the Ando group at Cornell University,
-        and was original published in the paper: Parker, M. J. et al. (2018).
+        and was originally published in the paper: Parker, M. J. et al. (2018).
         *An endogenous dAMP ligand in Bacillus subtilis class Ib RNR promotes
         assembly of a noncanonical dimer for regulation by dATP.* Proc Natl
         Acad Sci USA 115, E4594–E4603.
