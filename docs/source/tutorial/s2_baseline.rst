@@ -174,6 +174,11 @@ Here we provide detail only where the procedures are different.
         you could truncate the profiles to lower *q* before doing the baseline
         correction.
 
+#.  Switch back to displaying the total intensity and the Baseline Corrected plot.
+
+#.  Remove any existing sample region and find a new sample region using the "Auto"
+    button. Send that sample region to the main plot.
+
 
 .. |baseline_series_plot_png| image:: images/baseline_series_plot.png
     :target: ../_images/baseline_series_plot.png

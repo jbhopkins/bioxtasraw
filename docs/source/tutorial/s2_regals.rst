@@ -47,10 +47,11 @@ from the changing scattering of the buffer.
     **series_data** folder.
 
     *   *Note:* The data were provided by the Ando group at Cornell University,
-        and is some of the data used in the paper: *REGALS: a general method to
-        deconvolve X-ray scattering data from evolving mixtures* S. P. Meisburger,
-        D. Xu, and N. Ando. IUCrJ (2021). 8(2), 225-237.
-        DOI: `10.1107/S2052252521000555 <https://doi.org/10.1107/S2052252521000555>`_.
+        and was original published in the paper: Parker, M. J. et al. (2018).
+        *An endogenous dAMP ligand in Bacillus subtilis class Ib RNR promotes
+        assembly of a noncanonical dimer for regulation by dATP.* Proc Natl
+        Acad Sci USA 115, E4594–E4603.
+        DOI: `10.1073/pnas.1800356115 <https://doi.org/10.1073/pnas.1800356115>`_.
         It is also available from the `REGALS github repository <https://github.com/ando-lab/regals>`_.
 
     |regals_series_plot_png|
@@ -424,10 +425,11 @@ titration series to get pure profiles for each component.
         <http://dx.doi.org/10.1021/jacs.6b01563>`_.
 
     *   *Note:* The data were provided by the Ando group at Cornell University,
-        and is some of the data used in the paper: *REGALS: a general method to
-        deconvolve X-ray scattering data from evolving mixtures* S. P. Meisburger,
-        D. Xu, and N. Ando. IUCrJ (2021). 8(2), 225-237.
-        DOI: `10.1107/S2052252521000555 <https://doi.org/10.1107/S2052252521000555>`_.
+        and was originally published in the paper: Meisburger, S. P. et al. (2016).
+        *Domain Movements upon Activation of Phenylalanine Hydroxylase
+        Characterized by Crystallography and Chromatography-Coupled
+        Small-Angle X-ray Scattering.* J Am Chem Soc 138, 6506–6516.
+        DOI: `10.1021/jacs.6b01563 <https://doi.org/10.1021/jacs.6b01563>`_.
         It is also available from the `REGALS github repository
         <https://github.com/ando-lab/regals>`_.
 

@@ -22,7 +22,7 @@ Steps:
 
 
 
-Need to use wxpython >=4.1 to eliminate some weird GUI glitches on MacOS 11.
+Need to use wxpython >=4.1 to eliminate some weird GUI glitches on MacOS 11 (conda's wx env on 10.11 build machine).
 To do so at the moment with pyinstaller 4.2 requires some manual modification
 to the app package, as described here:
 https://github.com/pyinstaller/pyinstaller/issues/5710

@@ -20,7 +20,7 @@ A video version of this tutorial is available:
 The written version of this tutorial follows:
 
 #.  Select the subtracted GI scattering profile in the Profiles panel
-    and right click and on it and select “Save report.”
+    and right click on it and select “Save report.”
 
     |report_open_png|
 

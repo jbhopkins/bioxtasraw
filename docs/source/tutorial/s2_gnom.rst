@@ -62,7 +62,7 @@ The written version of the tutorial follows.
 
     *   *Note:* |Dmax| is in units of Å.
 
-#.  Return the |Dmax| value to that found by DATGNOM by clicking the "Auto Dmax" button.
+#.  Return the |Dmax| value to that found by RAW by clicking the "Auto Dmax" button.
     |Dmax| should be 102. By default, GNOM forces the P(r) function to zero at |Dmax|.
     For a high quality data set and a good choice of |Dmax|, P(r) should go to zero
     naturally. Change the “Force to 0 at Dmax” option to “N”.
