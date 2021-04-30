@@ -549,6 +549,11 @@ class MainFrame(wx.Frame):
 
         thread_wait_event.set()                 # Release thread from its waiting state
 
+    def showMessageDialog(self, parent, msg, title, style):
+        dialog = wx.MessageDialog(parent, msg, title, style=style)
+        dialog.ShowModal()
+        dialog.Destroy()
+
     def showGNOMFrame(self, sasm, manip_item):
 
         atsasPath = self.raw_settings.get('ATSASDir')
@@ -3187,7 +3192,6 @@ class MainWorkerThread(threading.Thread):
                         'online_mode_update_data'       : self._onlineModeUpdate,
                         'show_nextprev_img'             : self._loadAndShowNextImage,
                         'show_image'                    : self._loadAndShowImage,
-                        'subtract_filenames'            : self._subtractFilenames,
                         'subtract_items'                : self._subtractItems,
                         'average_items'                 : self._averageItems,
                         'save_items'                    : self._saveItems,
@@ -3550,12 +3554,6 @@ class MainWorkerThread(threading.Thread):
                 plot_param['storedMasks'].extend(masks)
                 wx.CallAfter(self.image_panel.setPlotParameters, plot_param)
 
-                #Plot mask on load:
-#                parameters = {'filename' : os.path.split(filenamepath)[1],
-#                              'imageHeader' : []}
-#                bogus_sasm= SASM.SASM([0,1], [0,1], [0,1], parameters)
-#                wx.CallAfter(self.image_panel.showImage,mask, bogus_sasm)
-
                 wx.CallAfter(self.image_panel.plotStoredMasks)
 
             wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -3666,7 +3664,7 @@ class MainWorkerThread(threading.Thread):
                                 'Advanced Options/Autosave to change the save '
                                 'folders, or save you config file to avoid this '
                                 'message next time.')
-                            wx.CallAfter(wx._showGenericError, msg, 'Autosave Error')
+                            wx.CallAfter(self._showGenericError, msg, 'Autosave Error')
 
                 if isinstance(loaded_files, list):
                     for each in loaded_files:
@@ -4610,16 +4608,12 @@ class MainWorkerThread(threading.Thread):
         self._showGenericError(msg, 'Error Loading Header File')
 
     def _showGenericError(self, msg, title):
-        dialog = wx.MessageDialog(self._parent,msg, title,
-            style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
-        wx.CallAfter(dialog.ShowModal)
-        wx.CallAfter(dialog.Destroy)
+        wx.CallAfter(self.main_frame.showMessageDialog, self.main_frame, msg, title,
+            wx.ICON_ERROR|wx.OK|wx.STAY_ON_TOP)
 
     def _showGenericMsg(self, msg, title):
-        dialog = wx.MessageDialog(self._parent,msg, title,
-            style = wx.ICON_INFORMATION | wx.OK | wx.STAY_ON_TOP)
-        wx.CallAfter(dialog.ShowModal)
-        wx.CallAfter(dialog.Destroy)
+        wx.CallAfter(self.main_frame.showMessageDialog, self.main_frame, msg, title,
+            wx.ICON_INFORMATION|wx.OK|wx.STAY_ON_TOP)
 
     def _displayQuestionDialog(self, question, label, button_list, icon = None,
         filename = None, save_path = None):
@@ -4634,9 +4628,6 @@ class MainWorkerThread(threading.Thread):
         question_return_queue.task_done()
 
         return answer
-
-    def _subtractFilenames(self):
-        pass
 
     def _plotIFTM(self, data):
 
@@ -5274,7 +5265,8 @@ class MainWorkerThread(threading.Thread):
 
     def _saveSASM(self, sasm, filetype = 'dat', save_path = ''):
 
-        if self.main_frame.OnlineControl.isRunning() and save_path == self.main_frame.OnlineControl.getTargetDir():
+        if (self.main_frame.OnlineControl.isRunning() and
+            save_path == self.main_frame.OnlineControl.getTargetDir()):
             self.main_frame.controlTimer(False)
             restart_timer = True
         else:
@@ -5314,7 +5306,8 @@ class MainWorkerThread(threading.Thread):
         iftm = data[0]
         save_path = data[1]
 
-        if self.main_frame.OnlineControl.isRunning() and save_path == self.main_frame.OnlineControl.getTargetDir():
+        if (self.main_frame.OnlineControl.isRunning() and
+            save_path == self.main_frame.OnlineControl.getTargetDir()):
             self.main_frame.controlTimer(False)
             restart_timer = True
         else:
@@ -5360,7 +5353,8 @@ class MainWorkerThread(threading.Thread):
         include_data = data[1]
         save_path = data[2]
 
-        if self.main_frame.OnlineControl.isRunning() and os.path.split(save_path)[0] == self.main_frame.OnlineControl.getTargetDir():
+        if (self.main_frame.OnlineControl.isRunning() and
+            os.path.split(save_path)[0] == self.main_frame.OnlineControl.getTargetDir()):
             self.main_frame.controlTimer(False)
             restart_timer = True
         else:
@@ -5395,7 +5389,8 @@ class MainWorkerThread(threading.Thread):
 
         save_path, selected_sasms = data[0], data[1]
 
-        if self.main_frame.OnlineControl.isRunning() and os.path.split(save_path)[0] == self.main_frame.OnlineControl.getTargetDir():
+        if (self.main_frame.OnlineControl.isRunning() and
+            os.path.split(save_path)[0] == self.main_frame.OnlineControl.getTargetDir()):
             self.main_frame.controlTimer(False)
             restart_timer = True
         else:
@@ -5424,7 +5419,8 @@ class MainWorkerThread(threading.Thread):
         secm_items = data[2]
         save_path = data[3]
 
-        if self.main_frame.OnlineControl.isRunning() and os.path.split(save_path)[0] == self.main_frame.OnlineControl.getTargetDir():
+        if (self.main_frame.OnlineControl.isRunning() and
+            os.path.split(save_path)[0] == self.main_frame.OnlineControl.getTargetDir()):
             self.main_frame.controlTimer(False)
             restart_timer = True
         else:
@@ -5759,7 +5755,8 @@ class MainWorkerThread(threading.Thread):
     def _saveSeriesData(self,data):
         save_path, selected_items = data[0], data[1]
 
-        if self.main_frame.OnlineControl.isRunning() and os.path.split(save_path[0])[0] == self.main_frame.OnlineControl.getTargetDir():
+        if (self.main_frame.OnlineControl.isRunning() and
+            os.path.split(save_path[0])[0] == self.main_frame.OnlineControl.getTargetDir()):
             self.main_frame.controlTimer(False)
             restart_timer = True
         else:
@@ -5826,7 +5823,8 @@ class MainWorkerThread(threading.Thread):
     def _saveSeriesItem(self, data):
         save_path, selected_items = data[0], data[1]
 
-        if self.main_frame.OnlineControl.isRunning() and os.path.split(save_path[0])[0] == self.main_frame.OnlineControl.getTargetDir():
+        if (self.main_frame.OnlineControl.isRunning() and
+            os.path.split(save_path[0])[0] == self.main_frame.OnlineControl.getTargetDir()):
             self.main_frame.controlTimer(False)
             restart_timer = True
         else:
@@ -5920,7 +5918,8 @@ class MainWorkerThread(threading.Thread):
         save_path = data[0]
         item_list = data[1]
 
-        if self.main_frame.OnlineControl.isRunning() and save_path == self.main_frame.OnlineControl.getTargetDir():
+        if (self.main_frame.OnlineControl.isRunning() and
+            save_path == self.main_frame.OnlineControl.getTargetDir()):
             self.main_frame.controlTimer(False)
             restart_timer = True
         else:
@@ -6030,7 +6029,8 @@ class MainWorkerThread(threading.Thread):
         save_path = data[0]
         item_list = data[1]
 
-        if self.main_frame.OnlineControl.isRunning() and save_path == self.main_frame.OnlineControl.getTargetDir():
+        if (self.main_frame.OnlineControl.isRunning() and
+            save_path == self.main_frame.OnlineControl.getTargetDir()):
             self.main_frame.controlTimer(False)
             restart_timer = True
         else:

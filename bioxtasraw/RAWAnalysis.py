@@ -1241,7 +1241,11 @@ class GuinierControlPanel(wx.Panel):
             dlg.ShowModal()
             dlg.Destroy()
 
-            self.updatePlot()
+            try:
+                self.updatePlot()
+
+            except Exception:
+                pass
 
         else:
             try:
@@ -1296,10 +1300,12 @@ class GuinierControlPanel(wx.Panel):
                 # Most likely window has been closed before AutoRg finished
                 pass
 
-        self.showBusy(False)
+        try:
+            self.showBusy(False)
+        except Exception:
+            pass
 
     def setCurrentExpObj(self, ExpObj):
-
         self.ExpObj = ExpObj
 
     def _onShowButton(self, evt):
@@ -4960,12 +4966,8 @@ class GNOMControlPanel(wx.Panel):
             dmax = RAWAPI.auto_dmax(save_sasm, single_proc=single_proc)
         except Exception as e:
             dmax = -1
-            msg = ("Automatic Dmax determination failed with the following error:\n"
-                "{}".format(e))
-            dlg = wx.MessageDialog(self.main_frame, msg, "Error finding Dmax",
-                style=wx.ICON_WARNING|wx.OK)
-            wx.CallAfter(dlg.ShowModal)
-            wx.CallAfter(dlg.Destroy)
+            wx.CallAfter(self.main_frame.showMessageDialog, self, msg, "Error finding Dmax",
+                wx.ICON_WARNING|wx.OK)
 
         if dmax == -1:
             try:
@@ -6235,8 +6237,6 @@ class DammifRunPanel(wx.Panel):
             wx.CallAfter(self.status.AppendText, 'Starting DAMCLUST\n')
 
 
-
-
             dam_filelist = [prefix+'_%s-1.pdb' %(str(i).zfill(2)) for i in range(1, nruns+1)]
 
             symmetry = self.dammif_settings['sym']
@@ -7026,7 +7026,8 @@ class DammifResultsPanel(wx.Panel):
                 tempdir, self.raw_settings.get('ATSASDir'))
 
         except SASExceptions.NoATSASError as e:
-            wx.CallAfter(wx.MessageBox, str(e), 'Error running Ambimeter', style = wx.ICON_ERROR | wx.OK)
+            wx.CallAfter(self.main_frame.showMessageDialog, self, str(e),
+                "Error running Ambimeter", wx.ICON_ERROR|wx.OK)
             os.remove(os.path.join(tempdir, outname))
             return
 
@@ -9417,10 +9418,8 @@ class DenssResultsPanel(wx.Panel):
                 tempdir, self.raw_settings.get('ATSASDir'))
 
         except SASExceptions.NoATSASError as e:
-            dialog = wx.MessageDialog(self, str(e), 'Error running Ambimeter',
-                style = wx.ICON_ERROR | wx.OK)
-            wx.CallAfter(dialog.ShowModal)
-            wx.CallAfter(dialog.Destroy)
+            wx.CallAfter(self.main_frame.showMessageDialog, self, str(e),
+                "Error running Ambimeter", wx.ICON_ERROR|wx.OK)
             os.remove(os.path.join(tempdir, outname))
             return
 
@@ -10255,11 +10254,8 @@ class DenssAlignFrame(wx.Frame):
         try:
             rho, side = DENSS.read_mrc(self.target_file_name)
         except Exception:
-            msg = ("Couldn't load target file, please verify that it is a .mrc file.")
-            dialog = wx.MessageDialog(self, msg, 'Error running Alignment',
-                style = wx.ICON_ERROR | wx.OK)
-            wx.CallAfter(dialog.ShowModal)
-            wx.CallAfter(dialog.Destroy)
+            wx.CallAfter(self.main_frame.showMessageDialog, self, msg,
+                "Error running Alignment", wx.ICON_ERROR|wx.OK)
 
             self.abort_event.set()
 
@@ -11403,10 +11399,8 @@ class AmbimeterFrame(wx.Frame):
                 self.ambi_settings, path, self.raw_settings.get('ATSASDir'))
 
         except SASExceptions.NoATSASError as e:
-            dialog = wx.MessageDialog(self, str(e), 'Error running Ambimeter',
-                style = wx.ICON_ERROR | wx.OK)
-            wx.CallAfter(dialog.ShowModal)
-            wx.CallAfter(dialog.Destroy)
+            wx.CallAfter(self.main_frame.showMessageDialog, self, str(e),
+                "Error running Ambimeter", wx.ICON_ERROR|wx.OK)
             os.remove(os.path.join(path, outname))
             wx.CallAfter(self.showBusy, False)
             self.Close()
@@ -21249,10 +21243,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 msg = ("Buffer ranges should be non-overlapping.")
 
         if not valid:
-            dialog = wx.MessageDialog(self, msg, "Buffer range invalid",
-                style=wx.ICON_ERROR|wx.OK)
-            wx.CallAfter(dialog.ShowModal)
-            wx.CallAfter(dialog.Destroy)
+            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame, msg,
+                "Buffer range invalid", wx.ICON_ERROR|wx.OK)
 
         return valid
 
@@ -21373,10 +21365,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                     if cur_br == old_br and not self.secm.intensity_change:
                         self.continue_processing = False
                         msg = ("This buffer range is already set.")
-                        dialog = wx.MessageDialog(self, msg, "Buffer already set",
-                            style=wx.ICON_INFORMATION|wx.OK)
-                        wx.CallAfter(dialog.ShowModal)
-                        wx.CallAfter(dialog.Destroy)
+                        wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame,
+                            msg, "Buffer already set", wx.ICON_INFORMATION|wx.OK)
                         return #No change in buffer range, no need to do anything
 
             frame_idx = []
@@ -21416,10 +21406,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             if not success:
                 if err[0] == 'q_vector':
                     msg = 'The selected items must have the same q vectors to be averaged.'
-                    dialog = wx.MessageDialog(self, msg, "Average Error",
-                        style=wx.ICON_ERROR|wx.OK)
-                    wx.CallAfter(dialog.ShowModal)
-                    wx.CallAfter(dialog.Destroy)
+                    wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame,
+                            msg, "Average Error", wx.ICON_INFORMATION|wx.OK)
                     self.continue_processing = False
                     return
 
@@ -21547,10 +21535,9 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                     '10 frames long.')
 
         if not valid:
-            dialog = wx.MessageDialog(self, msg, "Baseline start/end range invalid",
-                style=wx.ICON_ERROR|wx.OK)
-            wx.CallAfter(dialog.ShowModal)
-            wx.CallAfter(dialog.Destroy)
+            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame,
+                msg, "Baseline start/end range invalid", wx.ICON_ERROR|wx.OK)
+
 
         return valid
 
@@ -21786,19 +21773,15 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         except Exception:
             msg = ("The averaging window size must be an integer.")
             valid = False
-            dialog = wx.MessageDialog(self, msg, "Averaging window size invalid",
-                style=wx.ICON_ERROR|wx.OK)
-            wx.CallAfter(dialog.ShowModal)
-            wx.CallAfter(dialog.Destroy)
+            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame, msg,
+                "Averaging window size invalid", wx.ICON_ERROR|wx.OK)
             return valid
 
         if window_size <= 0:
             msg = ("The window size must be larger than 0.")
             valid = False
-            dialog = wx.MessageDialog(self, msg, "Averaging window size invalid",
-                style=wx.ICON_ERROR|wx.OK)
-            wx.CallAfter(dialog.ShowModal)
-            wx.CallAfter(dialog.Destroy)
+            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame, msg,
+                "Averaging window size invalid", wx.ICON_ERROR|wx.OK)
             return valid
 
         try:
@@ -21806,19 +21789,15 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         except Exception:
             msg = ("The density for the Vp MW estimate must be a number.")
             valid = False
-            dialog = wx.MessageDialog(self, msg, "Vp MW density invalid",
-                style=wx.ICON_ERROR|wx.OK)
-            wx.CallAfter(dialog.ShowModal)
-            wx.CallAfter(dialog.Destroy)
+            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame, msg,
+                "Vp MW density invalid", wx.ICON_ERROR|wx.OK)
             return valid
 
         if vp_density < 0:
             msg = ("The density for the Vp MW estimate must be greater than 0.")
             valid = False
-            dialog = wx.MessageDialog(self, msg, "Vp MW density invalid",
-                style=wx.ICON_ERROR|wx.OK)
-            wx.CallAfter(dialog.ShowModal)
-            wx.CallAfter(dialog.Destroy)
+            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame, msg,
+                "Vp MW density invalid", wx.ICON_ERROR|wx.OK)
             return valid
 
         return valid
@@ -22002,10 +21981,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         if not self.processing_done['calc']:
             valid = False
             msg = ("You must first specify a buffer range.")
-            dialog = wx.MessageDialog(self, msg, "Specify buffer range",
-                style=wx.ICON_ERROR|wx.OK)
-            wx.CallAfter(dialog.ShowModal)
-            wx.CallAfter(dialog.Destroy)
+            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame, msg,
+                "Specify buffer range", wx.ICON_ERROR|wx.OK)
         else:
             if len(sample_items) == 0:
                 valid = False
@@ -22035,10 +22012,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 msg = ("Sample ranges should be non-overlapping.")
 
             if not valid:
-                dialog = wx.MessageDialog(self, msg, "Sample range invalid",
-                style=wx.ICON_ERROR|wx.OK)
-                wx.CallAfter(dialog.ShowModal)
-                wx.CallAfter(dialog.Destroy)
+                wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame, msg,
+                    "Sample range invalid", wx.ICON_ERROR|wx.OK)
 
         return valid
 
@@ -22259,10 +22234,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             wx.CallAfter(self._addAutoBufferRange, region_start, region_end)
         else:
             msg = ("Failed to find a valid buffer range.")
-            dialog = wx.MessageDialog(self, msg, "Buffer range not found",
-                style=wx.ICON_ERROR|wx.OK)
-            wx.CallAfter(dialog.ShowModal)
-            wx.CallAfter(dialog.Destroy)
+            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame, msg,
+                "Buffer range not found", wx.ICON_ERROR|wx.OK)
 
         wx.CallAfter(self.series_frame.showBusy, False)
 
@@ -22278,10 +22251,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         else:
             msg = ("You must first set a buffer range before you can run the "
                 "automated determination of the sample range.")
-            dialog = wx.MessageDialog(self, msg, "Requires buffer range",
-                style=wx.ICON_ERROR|wx.OK)
-            wx.CallAfter(dialog.ShowModal)
-            wx.CallAfter(dialog.Destroy)
+            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame, msg,
+                "Requires buffer range", wx.ICON_ERROR|wx.OK)
 
     def _findSampleRange(self):
         self.proc_lock.acquire()
@@ -22313,10 +22284,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             wx.CallAfter(self._addAutoSampleRange, region_start, region_end)
         else:
             msg = ("Failed to find a valid sample range.")
-            dialog = wx.MessageDialog(self, msg, "Sample range not found",
-                style=wx.ICON_ERROR|wx.OK)
-            wx.CallAfter(dialog.ShowModal)
-            wx.CallAfter(dialog.Destroy)
+            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame, msg,
+                "Sample range not found", wx.ICON_ERROR|wx.OK)
 
         wx.CallAfter(self.series_frame.showBusy, False)
 
@@ -22333,10 +22302,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         else:
             msg = ("You must first set a buffer range before you can run the "
                 "automated determination of the baseline region.")
-            dialog = wx.MessageDialog(self, msg, "Requires buffer range",
-                style=wx.ICON_ERROR|wx.OK)
-            wx.CallAfter(dialog.ShowModal)
-            wx.CallAfter(dialog.Destroy)
+            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame, msg,
+                "Requires buffer range", wx.ICON_ERROR|wx.OK)
 
     def _findBaselineRange(self):
         self.proc_lock.acquire()
@@ -22383,10 +22350,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             else:
                 msg = ("Failed to find valid baseline start and end regions.")
 
-            dialog = wx.MessageDialog(self, msg, "Baseline range not found",
-                style=wx.ICON_ERROR|wx.OK)
-            wx.CallAfter(dialog.ShowModal)
-            wx.CallAfter(dialog.Destroy)
+            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame, msg,
+                "Baseline range not found", wx.ICON_ERROR|wx.OK)
 
         wx.CallAfter(self.series_frame.showBusy, False)
 

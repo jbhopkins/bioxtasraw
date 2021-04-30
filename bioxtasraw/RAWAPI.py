@@ -4089,7 +4089,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
 
     if not abort_event.is_set():
         (qdata, I_extrap, err_extrap, q_fit, I_fit, chi_sq, rg, support_vol, rho,
-        side) = denss_data
+            side) = denss_data
 
         last_index = max(np.where(rg !=0)[0])
         all_rg = rg[:last_index+1]
