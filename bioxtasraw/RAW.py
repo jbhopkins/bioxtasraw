@@ -397,7 +397,7 @@ class MainFrame(wx.Frame):
     def _showWelcomeDialog(self):
         dlg = WelcomeDialog(self, name = "WelcomeDialog")
         dlg.SetIcon(self.GetIcon())
-        res = dlg.ShowModal()
+        dlg.ShowModal()
         dlg.Destroy()
 
         wx.CallAfter(self._onStartup, sys.argv)

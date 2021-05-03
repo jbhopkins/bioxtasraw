@@ -1,6 +1,38 @@
 Changes
 ============
 
+2.0.2
+-----------
+
+Release date: 2021-05-05
+
+Overview
+^^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 2.1.1. The
+major change in this version is:
+
+*   Fixed a serious bug that would cause RAW to crash on Ubuntu.
+
+There are also several other small bug fixes and new features.
+
+All changes:
+^^^^^^^^^^^^^
+
+*   Fixed a serious bug that would cause RAW to crash on Ubuntu (and possibly other
+    OSes).
+*   Fixed a bug where closing the Guinier window before autorg finished would
+    result in an error.
+*   Fixed a bug that could cause an error if the auto_dmax function failed to
+    return a result.
+*   Fixed a bug where using simple concentration regularizers would fail.
+*   Fixed a bug where caching of certain compiled functions wasn't working,
+    leading to them having to be compiled every time RAW was opened.
+*   Tweaked when functions are compiled to try to speed up the user experience,
+    particularly when opening the Guinier window, and either IFT window.
+
+
+
 2.1.0
 -----------
 
