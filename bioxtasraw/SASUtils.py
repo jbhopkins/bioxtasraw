@@ -571,3 +571,9 @@ def find_closest(val, array):
     argmin = np.argmin(np.absolute(array-val))
 
     return array[argmin], argmin
+
+def sphere_intensity(q, R):
+    """
+    Scattering for a sphere
+    """
+    return (4*np.pi*R**3/3)**2*(3*np.pi*(np.sin(q*R)-(q*R)*np.cos(q*R))/(q*R)**3)**2

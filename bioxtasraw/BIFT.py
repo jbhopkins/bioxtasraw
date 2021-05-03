@@ -84,6 +84,9 @@ def distDistribution_Sphere(i0_meas, N, dmax):
 def makePriorDistribution(i0, N, dmax, dist_type='sphere'):
     if dist_type == 'sphere':
         p, r = distDistribution_Sphere(i0, N, dmax)
+    else:
+        r = np.linspace(0, dmax, N+1)
+        p = np.zeros_like(r)
 
     return p, r
 
@@ -231,7 +234,7 @@ def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False,
 
     max_dmax = dmax_opt+0.1*dmax_opt*0.5*mult
 
-    _, ref_r = makePriorDistribution(i[0], N, max_dmax)
+    _, ref_r = makePriorDistribution(i[0], N, max_dmax, 'sphere')
 
     run_mc = True
 

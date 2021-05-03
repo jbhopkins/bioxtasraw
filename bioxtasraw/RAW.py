@@ -103,6 +103,7 @@ import bioxtasraw.SASProc as SASProc
 import bioxtasraw.SASUtils as SASUtils
 import bioxtasraw.SECM as SECM
 import bioxtasraw.RAWReport as RAWReport
+import bioxtasraw.BIFT as BIFT
 from bioxtasraw.RAWGlobals import mainworker_cmd_queue
 
 thread_wait_event = threading.Event()
@@ -336,6 +337,10 @@ class MainFrame(wx.Frame):
         self.CenterOnScreen()
         self.Show(True)
 
+        thread = threading.Thread(target= self._compileNumbaJits)
+        thread.daemon = True
+        thread.start()
+
         wx.CallAfter(self._showWelcomeDialog)
 
     def _FromDIP(self, size):
@@ -345,14 +350,57 @@ class MainFrame(wx.Frame):
         except Exception:
             return size
 
+    def _compileNumbaJits(self):
+        """
+        Compiles numba jit functions in startup so that they don't take forever
+        to load when the users first run the associated windows.
+        """
+        q = np.linspace(0.005, 0.5, 200)
+        i = SASUtils.sphere_intensity(q, 20)
+        err = np.sqrt(i)
+
+        profile = SASM.SASM(i, q, err, {'filename': 'temp'})
+
+        settings = RAWSettings.RawGuiSettings()
+
+        try:
+            SASMask.PolygonMask([(0,0), (0, 2), (2, 0)], -1, (10, 10))
+        except Exception:
+            pass
+        try:
+            SASCalc.autoRg(profile)
+        except Exception:
+            pass
+
+        alpha_min = settings.get('minAlpha')
+        alpha_max = settings.get('maxAlpha')
+        dmax_min = settings.get('maxDmax')
+        dmax_max = settings.get('minDmax')
+
+        bift_settings = {
+        'npts'      : 10,
+        'alpha_max' : alpha_max,
+        'alpha_min' : alpha_min,
+        'alpha_n'   : 2,
+        'dmax_min'  : dmax_min,
+        'dmax_max'  : dmax_max,
+        'dmax_n'    : 2,
+        'mc_runs'   : 2,
+        'single_proc' : True,
+        }
+
+        try:
+            BIFT.doBift(q, i, err, 'test', **bift_settings)
+        except Exception:
+            pass
+
     def _showWelcomeDialog(self):
         dlg = WelcomeDialog(self, name = "WelcomeDialog")
         dlg.SetIcon(self.GetIcon())
         res = dlg.ShowModal()
         dlg.Destroy()
 
-        if res == wx.ID_OK:
-            wx.CallAfter(self._onStartup, sys.argv)
+        wx.CallAfter(self._onStartup, sys.argv)
 
     def _onStartup(self, data):
         _, errors = SASUtils.loadFileDefinitions()

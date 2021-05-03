@@ -386,7 +386,9 @@ def autoRg(sasm, single_fit=False, error_weight=True):
 
     try:
         rg, rger, i0, i0er, idx_min, idx_max = autoRg_inner(q, i, err, qmin,
-            single_fit, error_weight)
+            single_fit, error_weight, min_window=10, min_qrg=1.0, max_qrg=1.35,
+            quality_thresh=0.6, data_range_scale=None, corr_coefht=2.,
+            win_length_weight=1.0)
     except Exception: #Catches unexpected numba errors, I hope
         traceback.print_exc()
         rg = -1
@@ -400,7 +402,9 @@ def autoRg(sasm, single_fit=False, error_weight=True):
         #If we don't find a fit, relax the criteria
         try:
             rg, rger, i0, i0er, idx_min, idx_max = autoRg_inner(q, i, err, qmin,
-                single_fit, error_weight, quality_thresh=0.5, min_window=5)
+                single_fit, error_weight, min_window=5, min_qrg=1.0, max_qrg=1.35,
+                quality_thresh=0.5, data_range_scale=None, corr_coefht=2.,
+                win_length_weight=1.0)
         except Exception: #Catches unexpected numba errors, I hope
             traceback.print_exc()
             rg = -1
@@ -414,7 +418,9 @@ def autoRg(sasm, single_fit=False, error_weight=True):
         #If we don't find a fit, relax the criteria
         try:
             rg, rger, i0, i0er, idx_min, idx_max = autoRg_inner(q, i, err, qmin,
-                single_fit, error_weight, data_range_scale=100)
+                single_fit, error_weight, min_window=10, min_qrg=1.0, max_qrg=1.35,
+                quality_thresh=0.6, data_range_scale=100, corr_coefht=2.,
+                win_length_weight=1.0)
         except Exception: #Catches unexpected numba errors, I hope
             traceback.print_exc()
             rg = -1
@@ -428,8 +434,9 @@ def autoRg(sasm, single_fit=False, error_weight=True):
         #If we don't find a fit, relax the criteria
         try:
             rg, rger, i0, i0er, idx_min, idx_max = autoRg_inner(q, i, err, qmin,
-                single_fit, error_weight, min_qrg=1.2, max_qrg=1.5,
-                quality_thresh=0.3, data_range_scale=100)
+                single_fit, error_weight, min_window=10, min_qrg=1.2, max_qrg=1.5,
+                quality_thresh=0.3, data_range_scale=100, corr_coefht=2.,
+                win_length_weight=1.0)
         except Exception: #Catches unexpected numba errors, I hope
             traceback.print_exc()
             rg = -1
@@ -444,7 +451,8 @@ def autoRg(sasm, single_fit=False, error_weight=True):
         try:
             rg, rger, i0, i0er, idx_min, idx_max = autoRg_inner(q, i, err, qmin,
                 single_fit, error_weight, min_window=5, min_qrg=1.2, max_qrg=1.5,
-                quality_thresh=0.3, data_range_scale=100)
+                quality_thresh=0.3, data_range_scale=100, corr_coefht=2.,
+                win_length_weight=1.0)
         except Exception: #Catches unexpected numba errors, I hope
             traceback.print_exc()
             rg = -1
