@@ -4287,10 +4287,11 @@ def make_regals_regularized_concs(mixture):
         x = mixture.components[j].concentration.w
         c = mixture.u_concentration[j]
 
-        if mixture.components[j].concentration._regularizer.is_zero_at_xmin:
-            c = np.concatenate(([0], c))
-        if mixture.components[j].concentration._regularizer.is_zero_at_xmax:
-            c = np.concatenate((c, [0]))
+        if mixture.components[j].concentration.reg_type == 'smooth':
+            if mixture.components[j].concentration._regularizer.is_zero_at_xmin:
+                c = np.concatenate(([0], c))
+            if mixture.components[j].concentration._regularizer.is_zero_at_xmax:
+                c = np.concatenate((c, [0]))
 
         reg_concs.append((x, c))
 
