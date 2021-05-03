@@ -387,7 +387,7 @@ def autoRg(sasm, single_fit=False, error_weight=True):
     try:
         rg, rger, i0, i0er, idx_min, idx_max = autoRg_inner(q, i, err, qmin,
             single_fit, error_weight, min_window=10, min_qrg=1.0, max_qrg=1.35,
-            quality_thresh=0.6, data_range_scale=None, corr_coefht=2.,
+            quality_thresh=0.6, data_range_scale=0, corr_coefht=2.,
             win_length_weight=1.0)
     except Exception: #Catches unexpected numba errors, I hope
         traceback.print_exc()
@@ -403,7 +403,7 @@ def autoRg(sasm, single_fit=False, error_weight=True):
         try:
             rg, rger, i0, i0er, idx_min, idx_max = autoRg_inner(q, i, err, qmin,
                 single_fit, error_weight, min_window=5, min_qrg=1.0, max_qrg=1.35,
-                quality_thresh=0.5, data_range_scale=None, corr_coefht=2.,
+                quality_thresh=0.5, data_range_scale=0, corr_coefht=2.,
                 win_length_weight=1.0)
         except Exception: #Catches unexpected numba errors, I hope
             traceback.print_exc()
@@ -466,7 +466,7 @@ def autoRg(sasm, single_fit=False, error_weight=True):
 
 @jit(nopython=True, cache=True, parallel=False)
 def autoRg_inner(q, i, err, qmin, single_fit, error_weight, min_window=10,
-    min_qrg=1.0, max_qrg=1.35, quality_thresh=0.6, data_range_scale=None,
+    min_qrg=1.0, max_qrg=1.35, quality_thresh=0.6, data_range_scale=0,
     corr_coefht=2., win_length_weight=1.0):
     #Pick the start of the RG fitting range. Note that in autorg, this is done
     #by looking for strong deviations at low q from aggregation or structure factor
@@ -490,7 +490,7 @@ def autoRg_inner(q, i, err, qmin, single_fit, error_weight, min_window=10,
 
     # Turns out to be pretty important to pick a good initial q range for the search
     # This is just kind of determined by what looks reasonable
-    if data_range_scale is None:
+    if data_range_scale == 0:
         total_int_range = np.abs(np.mean(i[data_start:data_start+20])/np.mean(i[-20:]))
         if total_int_range < 20:
             data_range_scale = 2.5

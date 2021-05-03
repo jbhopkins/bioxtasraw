@@ -355,7 +355,7 @@ class MainFrame(wx.Frame):
         Compiles numba jit functions in startup so that they don't take forever
         to load when the users first run the associated windows.
         """
-        q = np.linspace(0.005, 0.5, 200)
+        q = np.linspace(0.005, 0.3, 200)
         i = SASUtils.sphere_intensity(q, 20)
         err = np.sqrt(i)
 
@@ -378,14 +378,14 @@ class MainFrame(wx.Frame):
         dmax_max = settings.get('minDmax')
 
         bift_settings = {
-        'npts'      : 10,
+        'npts'      : 2,
         'alpha_max' : alpha_max,
         'alpha_min' : alpha_min,
-        'alpha_n'   : 2,
+        'alpha_n'   : 1,
         'dmax_min'  : dmax_min,
         'dmax_max'  : dmax_max,
-        'dmax_n'    : 2,
-        'mc_runs'   : 2,
+        'dmax_n'    : 1,
+        'mc_runs'   : 1,
         'single_proc' : True,
         }
 
