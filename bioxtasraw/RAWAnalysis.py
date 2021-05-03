@@ -1228,11 +1228,16 @@ class GuinierControlPanel(wx.Panel):
         wx.CallAfter(self._finish_autorg, rg, rger, i0, i0er, idx_min, idx_max)
 
     def _finish_autorg(self, rg, rger, i0, i0er, idx_min, idx_max):
-        spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
-        spinend = wx.FindWindowById(self.spinctrlIDs['qend'], self)
+        try:
+            spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
+            spinend = wx.FindWindowById(self.spinctrlIDs['qend'], self)
 
-        old_start = spinstart.GetValue()
-        old_end = spinend.GetValue()
+            old_start = spinstart.GetValue()
+            old_end = spinend.GetValue()
+
+        except Exception:
+            # Window is closed before autorg finishes
+            return
 
         if rg == -1:
             msg = ('Automatic determination of Rg failed.')
@@ -4966,6 +4971,8 @@ class GNOMControlPanel(wx.Panel):
             dmax = RAWAPI.auto_dmax(save_sasm, single_proc=single_proc)
         except Exception as e:
             dmax = -1
+            msg = ("Automatic Dmax determination failed with the following error:\n"
+                "{}".format(e))
             wx.CallAfter(self.main_frame.showMessageDialog, self, msg, "Error finding Dmax",
                 wx.ICON_WARNING|wx.OK)
 
@@ -4976,7 +4983,7 @@ class GNOMControlPanel(wx.Panel):
             except Exception:
                 rg = 10
 
-            dmax = rg*3
+            dmax = int(round(rg*3))
 
         wx.CallAfter(self._finishFindDmax, dmax)
 
@@ -10254,6 +10261,7 @@ class DenssAlignFrame(wx.Frame):
         try:
             rho, side = DENSS.read_mrc(self.target_file_name)
         except Exception:
+            msg = ("Couldn't load target file, please verify that it is a .mrc file.")
             wx.CallAfter(self.main_frame.showMessageDialog, self, msg,
                 "Error running Alignment", wx.ICON_ERROR|wx.OK)
 
