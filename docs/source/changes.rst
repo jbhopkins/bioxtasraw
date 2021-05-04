@@ -30,6 +30,10 @@ All changes:
     leading to them having to be compiled every time RAW was opened.
 *   Tweaked when functions are compiled to try to speed up the user experience,
     particularly when opening the Guinier window, and either IFT window.
+*   Improved the speed of BIFT on Linux and Windows.
+*   In the RAW API, BIFT now defaults to single processor (should be faster),
+    and you can specify the number of processors to use if you use it in
+    multiprocessor mode.
 
 
 
