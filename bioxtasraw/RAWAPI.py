@@ -2152,7 +2152,8 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
 
 def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
     alpha_max=1e10, alpha_pts=16, dmax_min=10, dmax_max=400, dmax_pts=10,
-    mc_runs=300, use_guinier_start=True, single_proc=False, settings=None):
+    mc_runs=300, use_guinier_start=True, single_proc=True, nprocs=None,
+    settings=None):
     """
     Calculates the Bayesian indirect Fourier transform (BIFT) of a scattering
     profile to generate a P(r) function and determine the maximum dimension
@@ -2211,7 +2212,14 @@ def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
         been done for the input profile, the start point of the Guinier fit is
         used as the start point for the IFT.
     single_proc: bool, optional
-        Whether to use one or multiple processors. Defaults to False.
+        Whether to use one or multiple processors. Defaults to True. In limited
+        testing the single processor version has been found to be 2-3x faster
+        than the multiprocessor version, but actual results may depend on
+        the computer and the number of gird search points.
+    nprocs: int, optional
+        If specified, and single_proc is False, determines the number of processors
+        to use for BIFT. Otherwise defaults to number of processors in the computer
+        -1 (minimum 1).
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
         RAW settings containing relevant parameters. If provided, the
         pr_Pts, alpha_min, alpha_max, alpha_pts, dmax_min, dmax_max, dmax_pts,
@@ -2285,6 +2293,9 @@ def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
         i = i[idx_min:]
         err = err[idx_min:]
 
+    if nprocs is None:
+        nprocs = 0
+
     bift_settings = {
         'npts'      : pr_pts,
         'alpha_max' : alpha_max,
@@ -2295,6 +2306,7 @@ def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
         'dmax_n'    : dmax_pts,
         'mc_runs'   : mc_runs,
         'single_proc' : single_proc,
+        'nprocs'    : nprocs,
         }
 
     ift = BIFT.doBift(q, i, err, filename, **bift_settings)

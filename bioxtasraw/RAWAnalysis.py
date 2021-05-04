@@ -10431,10 +10431,12 @@ class BIFTControlPanel(wx.Panel):
 
         self.old_analysis = {}
 
-        if platform.system() == 'Darwin' and six.PY3:
-            self.single_proc = True
-        else:
-            self.single_proc = False
+        # if platform.system() == 'Darwin' and six.PY3:
+        #     self.single_proc = True
+        # else:
+        #     self.single_proc = False
+
+        self.single_proc = True
 
         if 'BIFT' in self.sasm.getParameter('analysis'):
             self.old_analysis = copy.deepcopy(self.sasm.getParameter('analysis')['BIFT'])

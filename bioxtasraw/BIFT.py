@@ -216,16 +216,21 @@ def getEvidenceOptimize(params, q, i, err, N):
     return -evidence
 
 def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False,
-    single_proc=False):
+    single_proc=False, nprocs=0):
     #First, randomly generate a set of parameters similar but not quite the same as the best parameters (monte carlo)
     #Then, calculate the evidence, pr, and other results for each set of parameters
     alpha_opt, dmax_opt = opt_params
     mult = 3.0
 
     if not single_proc:
-        n_proc = multiprocessing.cpu_count()
+        if nprocs == 0:
+            n_proc = max(multiprocessing.cpu_count()-1, 1)
+        else:
+            n_proc = min(nprocs, multiprocessing.cpu_count())
         mp_pool = multiprocessing.Pool(processes=n_proc)
         mp_get_evidence = functools.partial(getEvidence, q=q, i=i, err=err, N=N)
+    else:
+        n_proc = nprocs
 
     ev_array = np.zeros(mc_runs)
     c_array = np.zeros(mc_runs)
@@ -334,7 +339,7 @@ def make_fit(q, r, pr):
 
 def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
     dmax_max, dmax_n, mc_runs, queue=None, abort_check=threading.Event(),
-    single_proc=False):
+    single_proc=False, nprocs=0):
 
     # Clean up data
     start_idx = 0
@@ -382,9 +387,14 @@ def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
     N = npts - 1
 
     if not single_proc:
-        n_proc = multiprocessing.cpu_count()
+        if nprocs == 0:
+            n_proc = max(multiprocessing.cpu_count()-1, 1)
+        else:
+            n_proc = min(nprocs, multiprocessing.cpu_count())
         mp_pool = multiprocessing.Pool(processes=n_proc)
         mp_get_evidence = functools.partial(getEvidence, q=q, i=i, err=err, N=N)
+    else:
+        n_proc = nprocs
 
     # Loop through a range of dmax and alpha to get a starting point for the minimization
 
@@ -504,7 +514,7 @@ def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
 
             # Use a monte carlo method to estimate the errors in pr function, values found
             err_calc = calc_bift_errors((alpha, dmax), q, i, err, N, mc_runs,
-                abort_check=abort_check, single_proc=single_proc)
+                abort_check=abort_check, single_proc=single_proc, nprocs=n_proc)
 
             if abort_check.is_set():
                 if queue is not None:

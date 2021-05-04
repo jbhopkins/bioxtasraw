@@ -372,13 +372,25 @@ class MainFrame(wx.Frame):
         except Exception:
             pass
 
+        try:
+            SASCalc.calcRg(q, i, err, transform=False,
+                error_weight=True)
+            SASCalc.calcRg(q, i, err, transform=True,
+                error_weight=True)
+            SASCalc.calcRg(q, i, err, transform=True,
+                error_weight=False)
+            SASCalc.calcRg(q, i, err, transform=False,
+                error_weight=False)
+        except Exception:
+            pass
+
         alpha_min = settings.get('minAlpha')
         alpha_max = settings.get('maxAlpha')
         dmax_min = settings.get('maxDmax')
         dmax_max = settings.get('minDmax')
 
         bift_settings = {
-        'npts'      : 2,
+        'npts'      : 4,
         'alpha_max' : alpha_max,
         'alpha_min' : alpha_min,
         'alpha_n'   : 1,
@@ -387,12 +399,14 @@ class MainFrame(wx.Frame):
         'dmax_n'    : 1,
         'mc_runs'   : 1,
         'single_proc' : True,
+        'nprocs': 1,
         }
 
         try:
             BIFT.doBift(q, i, err, 'test', **bift_settings)
         except Exception:
             pass
+            traceback.print_exc()
 
     def _showWelcomeDialog(self):
         dlg = WelcomeDialog(self, name = "WelcomeDialog")

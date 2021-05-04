@@ -91,7 +91,18 @@ def test_mw_datclass(clean_gi_sub_profile):
 def test_bift(clean_gi_sub_profile, old_settings, gi_bift_ift):
     (ift, dmax, rg, i0, dmax_err, rg_err, i0_err, chi_sq, log_alpha,
         log_alpha_err, evidence, evidence_err) = raw.bift(clean_gi_sub_profile,
-        settings=old_settings)
+        settings=old_settings, single_proc=False)
+
+    assert np.allclose(dmax, gi_bift_ift.getParameter('dmax'))
+    assert np.allclose(rg, gi_bift_ift.getParameter('rg'))
+    assert np.allclose(ift.r, gi_bift_ift.r)
+    assert np.allclose(ift.p, gi_bift_ift.p)
+
+@pytest.mark.slow
+def test_bift_limited_proc(clean_gi_sub_profile, old_settings, gi_bift_ift):
+    (ift, dmax, rg, i0, dmax_err, rg_err, i0_err, chi_sq, log_alpha,
+        log_alpha_err, evidence, evidence_err) = raw.bift(clean_gi_sub_profile,
+        settings=old_settings, single_proc=False, nprocs=2)
 
     assert np.allclose(dmax, gi_bift_ift.getParameter('dmax'))
     assert np.allclose(rg, gi_bift_ift.getParameter('rg'))
