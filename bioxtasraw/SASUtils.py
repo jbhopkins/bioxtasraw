@@ -43,19 +43,22 @@ import json
 import sys
 import math
 
+import numpy as np
+import matplotlib as mpl
+import matplotlib.font_manager as fm
+import pyFAI
+
 try:
     import wx
 except Exception:
     pass #Installed as API
-
-import numpy as np
 
 try:
     import dbus
 except Exception:
     pass
 
-import pyFAI
+
 
 #NOTE: SASUtils should never import another RAW module besides RAWGlobals, to avoid circular imports.
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
@@ -577,3 +580,35 @@ def sphere_intensity(q, R):
     Scattering for a sphere
     """
     return (4*np.pi*R**3/3)**2*(3*np.pi*(np.sin(q*R)-(q*R)*np.cos(q*R))/(q*R)**3)**2
+
+def get_mpl_fonts():
+
+        fonts = []
+
+        mpl_flist = fm.fontManager.ttflist
+
+        for f in mpl_flist:
+            if f.name != 'System Font' and not f.name.startswith('.') and f.name not in fonts:
+                fonts.append(f.name)
+
+        fonts = sorted(fonts)
+
+        possible_fonts = mpl.rcParams['font.'+mpl.rcParams['font.family'][0]]
+
+        found_font = False
+        i = 0
+
+        default_plot_font = None
+        while not found_font and i in range(len(possible_fonts)):
+            test_font = possible_fonts[i]
+
+            if test_font in fonts:
+                default_plot_font = test_font
+                found_font = True
+
+            i = i + 1
+
+        if default_plot_font is None:
+            default_plot_font = 'Arial'
+
+        return fonts, default_plot_font

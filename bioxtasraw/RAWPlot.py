@@ -338,51 +338,7 @@ class PlotPanel(wx.Panel):
         self.blink_timer = wx.Timer()
         self.blink_timer.Bind(wx.EVT_TIMER, self._onBlinkTimer)
 
-        #Find the plot font, which is strangely hard!
-        font_list = fm.get_fontconfig_fonts()
-
-        fonts=[]
-
-        for item in font_list:
-            try:
-                font_name = fm.FontProperties(fname=item).get_name()
-
-                if font_name != 'System Font' and not font_name.startswith('.'):
-                    fonts.append(font_name)
-            except:
-                pass
-
-        mpl_font_dir = os.path.join(matplotlib.rcParams['datapath'],'fonts/ttf')
-        font_list2 = fm.list_fonts(mpl_font_dir, '*.ttf')
-
-        for item in font_list2:
-            fp = fm.FontProperties()
-            try:
-                fp.set_file(item)
-                font_name = fp.get_name()
-                if font_name != 'System Font' and not font_name.startswith('.'):
-                    fonts.append(font_name)
-            except:
-                pass
-
-        fonts = sorted(set(fonts))
-
-        possible_fonts = matplotlib.rcParams['font.'+matplotlib.rcParams['font.family'][0]]
-
-        found_font = False
-        i = 0
-        self.default_plot_font = None
-        while not found_font and i in range(len(possible_fonts)):
-            test_font = possible_fonts[i]
-
-            if test_font in fonts:
-                self.default_plot_font = test_font
-                found_font = True
-
-            i = i + 1
-
-        if self.default_plot_font is None:
-            self.default_plot_font = 'Arial'
+        fonts, self.default_plot_font = SASUtils.get_mpl_fonts()
 
         self.plotparams = {         'axesscale1'            : 'loglin',
                                     'axesscale2'            : 'loglin',
@@ -1339,51 +1295,7 @@ class IftPlotPanel(PlotPanel):
         self.blink_timer = wx.Timer()
         self.blink_timer.Bind(wx.EVT_TIMER, self._onBlinkTimer)
 
-        #Find the plot font, which is strangely hard!
-        font_list = fm.get_fontconfig_fonts()
-
-        fonts=[]
-
-        for item in font_list:
-            try:
-                font_name = fm.FontProperties(fname=item).get_name()
-
-                if font_name != 'System Font' and not font_name.startswith('.'):
-                    fonts.append(font_name)
-            except:
-                pass
-
-        mpl_font_dir = os.path.join(matplotlib.rcParams['datapath'],'fonts/ttf')
-        font_list2 = fm.list_fonts(mpl_font_dir, '*.ttf')
-
-        for item in font_list2:
-            fp = fm.FontProperties()
-            try:
-                fp.set_file(item)
-                font_name = fp.get_name()
-                if font_name != 'System Font' and not font_name.startswith('.'):
-                    fonts.append(font_name)
-            except:
-                pass
-
-        fonts = sorted(set(fonts))
-
-        possible_fonts = matplotlib.rcParams['font.'+matplotlib.rcParams['font.family'][0]]
-
-        found_font = False
-        i = 0
-        self.default_plot_font = None
-        while not found_font and i in range(len(possible_fonts)):
-            test_font = possible_fonts[i]
-
-            if test_font in fonts:
-                self.default_plot_font = test_font
-                found_font = True
-
-            i = i + 1
-
-        if self.default_plot_font is None:
-            self.default_plot_font = 'Arial'
+        fonts, self.default_plot_font = SASUtils.get_mpl_fonts()
 
         self.plotparams = {         'axesscale1'            : 'linlin',
                                     'axesscale2'            : 'loglin',
@@ -2563,51 +2475,7 @@ class SeriesPlotPanel(wx.Panel):
         file_drop_target = RAWCustomCtrl.RawPlotFileDropTarget(self, 'sec')
         self.SetDropTarget(file_drop_target)
 
-        #Find the plot font, which is strangely hard!
-        font_list = fm.get_fontconfig_fonts()
-
-        fonts=[]
-
-        for item in font_list:
-            try:
-                font_name = fm.FontProperties(fname=item).get_name()
-
-                if font_name != 'System Font' and not font_name.startswith('.'):
-                    fonts.append(font_name)
-            except:
-                pass
-
-        mpl_font_dir = os.path.join(matplotlib.rcParams['datapath'],'fonts/ttf')
-        font_list2 = fm.list_fonts(mpl_font_dir, '*.ttf')
-
-        for item in font_list2:
-            fp = fm.FontProperties()
-            try:
-                fp.set_file(item)
-                font_name = fp.get_name()
-                if font_name != 'System Font' and not font_name.startswith('.'):
-                    fonts.append(font_name)
-            except:
-                pass
-
-        fonts = sorted(set(fonts))
-
-        possible_fonts = matplotlib.rcParams['font.'+matplotlib.rcParams['font.family'][0]]
-
-        found_font = False
-        i = 0
-        self.default_plot_font = None
-        while not found_font and i in range(len(possible_fonts)):
-            test_font = possible_fonts[i]
-
-            if test_font in fonts:
-                self.default_plot_font = test_font
-                found_font = True
-
-            i = i + 1
-
-        if self.default_plot_font is None:
-            self.default_plot_font = 'Arial'
+        fonts, self.default_plot_font = SASUtils.get_mpl_fonts()
 
         self.plotparams = {         'axesscale1'            : 'linlin',
                                     'axesscale2'            : 'linlin',

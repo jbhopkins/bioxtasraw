@@ -44,7 +44,6 @@ except Exception:
 
 import matplotlib
 import matplotlib.colors as mplcol
-import matplotlib.font_manager as fm
 import numpy as np
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
@@ -3849,35 +3848,9 @@ class PlotOptionsDialog(wx.Dialog):
             return size
 
     def _getFonts(self):
-        font_list = fm.get_fontconfig_fonts()
+        fonts, default_plot_font = SASUtils.get_mpl_fonts()
 
-        names=[]
-
-        for item in font_list:
-            try:
-                font_name = fm.FontProperties(fname=item).get_name()
-
-                if font_name != 'System Font' and not font_name.startswith('.'):
-                    names.append(font_name)
-            except:
-                pass
-
-        mpl_font_dir = os.path.join(matplotlib.rcParams['datapath'],'fonts/ttf')
-        font_list2 = fm.list_fonts(mpl_font_dir, '*.ttf')
-
-        for item in font_list2:
-            fp = fm.FontProperties()
-            try:
-                fp.set_file(item)
-                font_name = fp.get_name()
-                if font_name != 'System Font' and not font_name.startswith('.'):
-                    names.append(font_name)
-            except:
-                pass
-
-        names = sorted(set(names))
-
-        return names
+        return fonts
 
     def _createLabelSettings(self):
 
