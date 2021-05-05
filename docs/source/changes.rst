@@ -31,6 +31,9 @@ All changes:
 *   Tweaked when functions are compiled to try to speed up the user experience,
     particularly when opening the Guinier window, and either IFT window.
 *   Improved the speed of BIFT on Linux and Windows.
+*   Fixed an issue where RAW wouldn't work with matplotlib>=3.4.1.
+*   Fixed an issue where available fonts weren't properly displayed in the
+    prebuilt versions.
 *   In the RAW API, BIFT now defaults to single processor (should be faster),
     and you can specify the number of processors to use if you use it in
     multiprocessor mode.
