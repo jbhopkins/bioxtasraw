@@ -11,6 +11,8 @@ Steps:
 
 If it fails, run it again. If it still fails, try deleting the build and dist directories.
 
+Currently using the raw_new environment.
+
 Note: Needs pyinstaller 3.6 for python 3.7.
 
 To make a .exe installer, use Inno (simple).
