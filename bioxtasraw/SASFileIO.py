@@ -797,7 +797,7 @@ def parseBioCATlogfile(filename):
         vals=allLines[line_num].split('\t')
 
         for a in range(len(labels)):
-            counters[labels[a]] = vals[a]
+            counters[labels[a].strip()] = vals[a].strip()
 
     return counters
 
