@@ -142,7 +142,7 @@ molecular weight in RAW, in addition to the RAW paper please cite the following
 paper:
 
 *Machine Learning Methods for X-Ray Scattering Data Analysis from
-Biomacromolecular Solutions*Franke, D., Jeffries, C. M. & Svergun, D. I. (2018).
+Biomacromolecular Solutions* Franke, D., Jeffries, C. M. & Svergun, D. I. (2018).
 Biophys. J. 114, 2485–2492.
 
 DOI: `10.1016/j.bpj.2018.04.018 <https://doi.org/10.1016/j.bpj.2018.04.018>`_
