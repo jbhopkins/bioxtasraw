@@ -47,9 +47,13 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Table, Image,
     XPreformatted, KeepTogether, TableStyle)
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import wx
-import wx.lib.mixins.listctrl as listmix
-from wx.lib.agw import ultimatelistctrl as ULC
+
+try:
+    import wx
+    import wx.lib.mixins.listctrl as listmix
+    from wx.lib.agw import ultimatelistctrl as ULC
+except Exception:
+    pass #Installed as API
 
 import bioxtasraw.RAWAPI as raw
 import bioxtasraw.RAWGlobals as RAWGlobals
