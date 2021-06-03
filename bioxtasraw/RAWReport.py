@@ -34,7 +34,6 @@ import collections
 from collections import OrderedDict, defaultdict
 import tempfile
 import os
-import sys
 import copy
 
 import numpy as np
@@ -49,6 +48,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 import bioxtasraw.RAWAPI as raw
+import bioxtasraw.SASCalc as SASCalc
 
 # mpl.rc('font', size = 8.0, family='Arial')
 # mpl.rc('legend', frameon=False, fontsize='medium')
@@ -299,7 +299,7 @@ class SECData(object):
             elif self.efa_profile_type == 'Basline Corrected':
                 prof_type = 'baseline'
 
-            efa_results = raw.efa(secm, self.efa_ranges, prof_type,
+            efa_results = run_efa_for_report(secm, self.efa_ranges, prof_type,
                 int(self.efa_start), int(self.efa_end), self.efa_method,
                 int(self.efa_iter_limit), float(self.efa_tolerance))
 
@@ -362,8 +362,8 @@ class SECData(object):
             elif self.regals_profile_type == 'Basline Corrected':
                 prof_type = 'baseline'
 
-            regals_results = raw.regals(secm, self.regals_component_settings, prof_type,
-                int(self.regals_start), int(self.regals_end), self.regals_x_cal,
+            regals_results = run_regals_for_report(secm, self.regals_component_settings,
+                prof_type, int(self.regals_start), int(self.regals_end), self.regals_x_cal,
                 self.regals_run_settings['min_iter'], self.regals_run_settings['max_iter'],
                 self.regals_run_settings['tol'], self.regals_run_settings['conv_type'])
 
@@ -3322,7 +3322,29 @@ def make_figure(figure, caption, img_width, img_height, styles):
 
 ###### New stuff ######
 
-def make_report_from_raw(name, out_dir, profiles, ifts, series,
+def run_efa_for_report(secm, efa_ranges, prof_type, efa_start, efa_end,
+    efa_method, efa_iter_limit, efa_tolerance):
+    efa_results = SASCalc.run_full_efa(secm, efa_ranges, prof_type, int(efa_start),
+        int(efa_end), efa_method, int(efa_iter_limit), float(efa_tolerance))
+
+    return efa_results
+
+def run_regals_for_report(secm, regals_component_settings, prof_type, regals_start,
+    regals_end, regals_x_cal, min_iter, max_iter, tol, conv_type):
+    regals_results = SASCalc.run_full_regals(secm, regals_component_settings, prof_type,
+        int(regals_start), int(regals_end), regals_x_cal, min_iter, max_iter,
+        tol, conv_type)
+
+    return regals_results
+
+def run_ambimeter_for_report(ift, settings):
+    atsas_dir = settings.get('ATSASDir')
+
+    a_score, a_cats, a_interp = SASCalc.run_ambimeter_from_ift(ift, atsas_dir)
+
+    return a_score, a_cats, a_interp
+
+def make_report_from_raw(name, out_dir, profiles, ifts, series, settings,
         dammif_data=None):
 
     profile_data = [SAXSData(copy.deepcopy(profile)) for profile in profiles]
@@ -3332,7 +3354,8 @@ def make_report_from_raw(name, out_dir, profiles, ifts, series,
     for j, ift in enumerate(ift_data):
         if ift.type == 'GNOM':
             try:
-                a_score, a_cats, a_interp = raw.ambimeter(ifts[j])
+                a_score, a_cats, a_interp = run_ambimeter_for_report(ifts[j],
+                    settings)
 
                 ift.a_score = a_score
                 ift.a_cats = a_cats

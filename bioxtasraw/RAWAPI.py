@@ -747,7 +747,7 @@ def save_report(fname, datadir='.', profiles=[], ifts=[], series=[],
     fname = os.path.splitext(fname)[0] + '.pdf'
 
     RAWReport.make_report_from_raw(fname, datadir, profiles, ifts, series,
-        dammif_data)
+        __default_settings, dammif_data)
 
 def average(profiles, forced=False):
     """
@@ -3110,50 +3110,8 @@ def ambimeter(ift, qRg_max=4, save_models='none', save_prefix=None,
     if atsas_dir is None:
         atsas_dir = __default_settings.get('ATSASDir')
 
-    # Set input and output filenames and directory
-    if write_ift and save_models=='none':
-        datadir = os.path.abspath(os.path.expanduser(tempfile.gettempdir()))
-
-        filename = tempfile.NamedTemporaryFile(dir=datadir).name
-        filename = os.path.split(filename)[-1] + '.out'
-
-    elif write_ift:
-        datadir = os.path.abspath(os.path.expanduser(datadir))
-        filename = tempfile.NamedTemporaryFile(dir=datadir).name
-        filename = os.path.split(filename)[-1] + '.out'
-
-    else:
-        datadir = os.path.abspath(os.path.expanduser(datadir))
-
-    # Save profile if necessary, truncating q range as appropriate
-    if write_ift:
-        SASFileIO.writeOutFile(ift, os.path.join(datadir, filename))
-
-    # Run ambimeter
-    ambimeter_settings = {
-        'sRg'   : qRg_max,
-        'files' : save_models,
-        }
-
-    ret = SASCalc.runAmbimeter(filename, save_prefix, ambimeter_settings, datadir,
-        atsas_dir)
-
-    # Clean up
-    if write_ift and os.path.isfile(os.path.join(datadir, filename)):
-        try:
-            os.remove(os.path.join(datadir, filename))
-        except Exception:
-            pass
-
-    if ret is not None:
-        categories = int(ret[0])
-        score = float(ret[1])
-        evaluation = ret[2]
-
-    else:
-        categories = -1
-        score = -1
-        evaluation = ''
+    score, categories, evaluation = SASCalc.run_ambimeter_from_ift(ift, atsas_dir,
+        qRg_max, save_models, save_prefix, datadir, write_ift, filename)
 
     return score, categories, evaluation
 
@@ -4514,115 +4472,10 @@ def regals(series, comp_settings, profile_type='sub', framei=None,
         intensities. This is a matrix where each column corresponds to an
         input intensity.
     """
-    if framei is None:
-            framei = 0
-    if framef is None:
-        if isinstance(series, SECM.SECM):
-            framef = len(series.getAllSASMs())-1
-        else:
-            framef = len(series)-1
-
-    ref_q = series.getSASMList(framei, framef)[0].getQ()
-    ref_q_err = series.getSASMList(framei, framef)[0].getQErr()
-
-    if x_vals is None:
-        x_vals = np.arange(framei, framef+1)
-
-    if isinstance(series, SECM.SECM):
-        sasm_list = series.getSASMList(framei, framef, profile_type)
-        filename = os.path.splitext(series.getParameter('filename'))[0]
-    else:
-        sasm_list = series[framei:framef+1]
-        names = [os.path.basename(sasm.getParameter('filename')) for sasm in series]
-        filename = os.path.commonprefix(names).rstrip('_')
-        if filename == '':
-            filename =  os.path.splitext(os.path.basename(series[0].getParameter('filename')))[0]
-
-    i = np.array([sasm.getI() for sasm in sasm_list])
-    err = np.array([sasm.getErr() for sasm in sasm_list])
-
-    intensity = i.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
-    sigma = err.T
-
-    if (use_previous_results and previous_results is not None and
-        len(previous_results.u_profile) == len(comp_settings)):
-        mixture, components = SASCalc.create_regals_mixture(comp_settings,
-            ref_q, x_vals, intensity, sigma, use_previous_results,
-            previous_results)
-
-    else:
-        mixture, components = SASCalc.create_regals_mixture(comp_settings,
-            ref_q, x_vals, intensity, sigma)
-
-    mixture, params, residual = SASCalc.run_regals(mixture, intensity, sigma,
-        min_iter=min_iter, max_iter=max_iter, tol=tol, conv_type=conv_type)
-
-    regals_profiles = SASCalc.make_regals_sasms(mixture, ref_q, intensity, sigma,
-        series, framei, framef, ref_q_err)
-
-    regals_ifts = SASCalc.make_regals_ifts(mixture, ref_q, intensity, sigma,
-        series, framei, framef)
-
-    concs = SASCalc.make_regals_concs(mixture, intensity, sigma)
-    reg_concs = SASCalc.make_regals_regularized_concs(mixture)
-
-    # Make results into a format that matches the GUI
-    comp_ranges = np.array([[comp[1]['kwargs']['xmin'], comp[1]['kwargs']['xmin']] for comp in comp_settings])
-
-    if x_vals is not None:
-        comp_frame_ranges = []
-
-        for cr in comp_ranges:
-            min_val, min_arg = SASUtils.find_closest(cr[0], x_vals)
-            max_val, max_arg = SASUtils.find_closest(cr[1], x_vals)
-
-            start = min_arg + framei
-            end = max_arg + framei
-
-            comp_frame_ranges.append([start, end])
-
-    ctrl_settings = {
-        'seed_previous' : use_previous_results,
-        'conv_type'     : conv_type,
-        'max_iter'      : max_iter,
-        'min_iter'      : min_iter,
-        'tol'           : tol,
-        }
-
-    for j, comp in enumerate(comp_settings):
-        prof = comp[0]
-        conc = comp[1]
-
-        prof['lambda'] = mixture.lambda_profile[j]
-        conc['lambda'] = mixture.lambda_concentration[j]
-
-    analysis_dict = series.getParameter('analysis')
-
-    regals_dict = {}
-
-    if profile_type == 'unsub':
-        profile_data = 'Unsubtracted'
-    elif profile_type == 'sub':
-        profile_data = 'Subtracted'
-    elif profile_type == 'baseline':
-        profile_data = 'Baseline Corrected'
-
-    regals_dict['fstart'] = str(framei)
-    regals_dict['fend'] = str(framef)
-    regals_dict['profile'] = profile_data
-    regals_dict['nsvs'] = str(len(regals_profiles))
-    regals_dict['ranges'] = comp_ranges
-    regals_dict['frame_ranges'] = comp_frame_ranges
-    regals_dict['component_settings'] = comp_settings
-    regals_dict['run_settings'] = ctrl_settings
-    regals_dict['background_components'] = 0
-    regals_dict['exp_type'] = 'IEC/SEC-SAXS'
-    regals_dict['use_efa'] = True
-
-    if not np.array_equal(x_vals, np.arange(framei, framef+1)):
-        regals_dict['x_calibration'] = x_vals
-
-    analysis_dict['regals'] = regals_dict
+    (regals_profiles, regals_ifts, concs, reg_concs, mixture, params,
+        residual) = SASCalc.run_full_regals(series, comp_settings, profile_type,
+        framei, framef, x_vals, min_iter, max_iter, tol, conv_type,
+        use_previous_results, previous_results)
 
     return regals_profiles, regals_ifts, concs, reg_concs, mixture, params, residual
 
@@ -4720,96 +4573,9 @@ def efa(series, ranges, profile_type='sub', framei=None, framef=None,
         If initial SVD cannot be carried out.
     """
 
-    if force_positive is None:
-        force_positive = [True for i in range(len(ranges))]
-
-    if framei is None:
-            framei = 0
-    if framef is None:
-        if isinstance(series, SECM.SECM):
-            framef = len(series.getAllSASMs())-1
-        else:
-            framef = len(series)-1
-
-    ranges = copy.deepcopy(ranges)
-    for efa_range in ranges:
-        efa_range[0] = efa_range[0] - framei
-        efa_range[1] = efa_range[1] - framei
-
-    if isinstance(series, SECM.SECM):
-        sasm_list = series.getSASMList(framei, framef, profile_type)
-        filename = os.path.splitext(series.getParameter('filename'))[0]
-    else:
-        sasm_list = series[framei:framef+1]
-        names = [os.path.basename(sasm.getParameter('filename')) for sasm in series]
-        filename = os.path.commonprefix(names).rstrip('_')
-        if filename == '':
-            filename =  os.path.splitext(os.path.basename(series[0].getParameter('filename')))[0]
-
-    if not isinstance(ranges, np.ndarray):
-        ranges = np.array(ranges)
-
-    (svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, intensity, err, svd_a,
-        success) = SASCalc.SVDOnSASMs(sasm_list)
-
-    converged, conv_data, rotation_data = SASCalc.runRotation(svd_a, intensity,
-        err, ranges, force_positive, svd_V, previous_results=previous_results,
-        method=method, niter=niter, tol=tol)
-
-    efa_profiles = []
-
-    q = copy.deepcopy(sasm_list[0].getQ())
-
-    if converged:
-        for i in range(len(ranges)):
-            intensity = rotation_data['int'][:,i]
-
-            err = rotation_data['err'][:,i]
-
-            sasm = SASM.SASM(intensity, q, err, {},
-                copy.deepcopy(sasm_list[0].getQErr()))
-
-            sasm.setParameter('filename', filename+'_%i' %(i))
-
-            history_dict = {}
-
-            history_dict['input_filename'] = filename
-            history_dict['start_index'] = str(framei)
-            history_dict['end_index'] = str(framef)
-            history_dict['component_number'] = str(i)
-
-            points = ranges[i]
-            history_dict['component_range'] = '[%i, %i]' %(points[0], points[1])
-
-            history = sasm.getParameter('history')
-            history['EFA'] = history_dict
-
-            efa_profiles.append(sasm)
-
-        if isinstance(series, SECM.SECM):
-            analysis_dict = series.getParameter('analysis')
-
-            efa_dict = {}
-
-            if profile_type == 'unsub':
-                profile_data = 'Unsubtracted'
-            elif profile_type == 'sub':
-                profile_data = 'Subtracted'
-            elif profile_type == 'baseline':
-                profile_data = 'Baseline Corrected'
-
-            efa_dict['fstart'] = str(framei)
-            efa_dict['fend'] = str(framef)
-            efa_dict['profile'] = profile_data
-            efa_dict['nsvs'] = str(len(ranges))
-            efa_dict['ranges'] = ranges
-            efa_dict['iter_limit'] = str(niter)
-            efa_dict['tolerance'] = str(tol)
-            efa_dict['method'] = method
-
-            analysis_dict['efa'] = efa_dict
-
-            series.setParameter('analysis', analysis_dict)
+    efa_profiles, converged, conv_data, rotation_data = SASCalc.run_full_efa(series,
+        ranges, profile_type, framei, framef, method, niter, tol, norm,
+        force_positive, previous_results)
 
     return efa_profiles, converged, conv_data, rotation_data
 

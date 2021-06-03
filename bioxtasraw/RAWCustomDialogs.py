@@ -5340,7 +5340,8 @@ class ReportFrame(wx.Frame):
         self.showBusy(msg='Saving report, please wait . . .')
         self.main_frame.setStatus('Saving report', 0)
 
-        RAWReport.make_report_from_raw(save_name, save_dir, profiles, ifts, series)
+        RAWReport.make_report_from_raw(save_name, save_dir, profiles, ifts,
+            series, self.raw_settings)
 
         self.showBusy(False)
         RAWGlobals.save_in_progress = False

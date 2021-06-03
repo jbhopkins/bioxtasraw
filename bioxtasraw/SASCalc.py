@@ -45,6 +45,7 @@ import re
 import math
 import traceback
 import copy
+import tempfile
 
 import numpy as np
 from scipy import integrate as integrate
@@ -64,6 +65,8 @@ import bioxtasraw.RAWSettings as RAWSettings
 import bioxtasraw.SASProc as SASProc
 import bioxtasraw.SASM as SASM
 import bioxtasraw.REGALS as REGALS
+import bioxtasraw.SECM as SECM
+import bioxtasraw.SASUtils as SASUtils
 
 
 #Define the rg fit function
@@ -2262,6 +2265,111 @@ def runDammin(fname, prefix, args, path, atsasDir):
         return None
 
 
+def run_ambimeter_from_ift(ift, atsas_dir, qRg_max=4, save_models='none',
+        save_prefix=None, datadir=None, write_ift=True, filename=None):
+    """
+    Evaluates ambiguity of a potential 3D reconstruction from a GNOM IFT (.out
+    file) by running Ambimeter from the ATSAS package. Requires separate
+    installation of the ATSAS package. Doesn't work on BIFT IFTs. Returns
+    -1 and '' if it fails to run.
+
+    Parameters
+    ----------
+    ift: :class:`bioxtasraw.SASM.IFTM`
+        The GNOM IFT to be evaluated. If write_ift is False, an IFT already
+        on disk is used and this parameter can be ``None``.
+    qRg_max: float, optional
+        The maximum qRg to be used when evaluating the ambiguity. Allowed
+        range is 3-7, default is 4.
+    save_models: {'all', 'best', 'none'} str, optional
+        Whether to save all, the single best, or none of the models that
+        ambimeter finds to be similar to the input ift. Default is 'none'.
+        If set to 'all' or 'best', save_prefix and datadir parameters must
+        be provided.
+    save_prefix: str, optional
+        The prefix to use for the saved modes, if any are saved.
+    datadir: str, optional
+        The datadir to use for reading a IFT already on disk and saving
+        models from ambimeter.
+    write_profile: bool, optional
+        If True, the input ift is written to file. If False, then the
+        input ift is ignored, and the ift specified by datadir and
+        filename is used. This is convenient if you are trying to process
+        a lot of files that are already on disk, as it saves having to read
+        in each file and then save them again. Defaults to True. If False,
+        you must provide a value for the datadir and filename parameters.
+    filename: str, optional
+        The filename of an ift on disk. Used if write_profile is False.
+    atsas_dir: str, optional
+        The directory of the atsas programs (the bin directory). If not provided,
+        the API uses the auto-detected directory.
+
+    Returns
+    -------
+    score: float
+        The ambiguity score (A score), which is log base 10 of the number of
+        compatible shape categories.
+    categories: int
+        The number of compatible shape categories.
+    evaluation: str
+        The Ambimeter evaluation of ift based on the ambiguity score.
+
+    Raises
+    ------
+    SASEXceptions.NoATSASError
+        If the Ambimeter program cannot be found in the ATSAS directory or
+        running Ambimeter times out (>120 s).
+    """
+
+
+    # Set input and output filenames and directory
+    if write_ift and save_models=='none':
+        datadir = os.path.abspath(os.path.expanduser(tempfile.gettempdir()))
+
+        filename = tempfile.NamedTemporaryFile(dir=datadir).name
+        filename = os.path.split(filename)[-1] + '.out'
+
+    elif write_ift:
+        datadir = os.path.abspath(os.path.expanduser(datadir))
+        filename = tempfile.NamedTemporaryFile(dir=datadir).name
+        filename = os.path.split(filename)[-1] + '.out'
+
+    else:
+        datadir = os.path.abspath(os.path.expanduser(datadir))
+
+    # Save profile if necessary, truncating q range as appropriate
+    if write_ift:
+        SASFileIO.writeOutFile(ift, os.path.join(datadir, filename))
+
+    # Run ambimeter
+    ambimeter_settings = {
+        'sRg'   : qRg_max,
+        'files' : save_models,
+        }
+
+    ret = runAmbimeter(filename, save_prefix, ambimeter_settings, datadir,
+        atsas_dir)
+
+    # Clean up
+    if write_ift and os.path.isfile(os.path.join(datadir, filename)):
+        try:
+            os.remove(os.path.join(datadir, filename))
+        except Exception:
+            pass
+
+    if ret is not None:
+        categories = int(ret[0])
+        score = float(ret[1])
+        evaluation = ret[2]
+
+    else:
+        categories = -1
+        score = -1
+        evaluation = ''
+
+    return score, categories, evaluation
+
+
 def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
     is_protein, error_weight, vp_density, vp_cutoff, vp_qmax, vc_cutoff,
     vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna, vc_b_rna):
@@ -2749,6 +2857,193 @@ def initHybridEFA(M, num_sv, D, C, converged, V_bar):
         C, failed, temp1, temp2, temp3 = runExplicitEFARotation(M, None, None, None, V_bar, T, None, None, None)
 
     return failed, C, None
+
+def run_full_efa(series, ranges, profile_type='sub', framei=None, framef=None,
+    method='Hybrid', niter=1000, tol=1e-12, norm=True, force_positive=None,
+    previous_results=None):
+    """
+    Runs evolving factor analysis (EFA) on the input series to deconvolve
+    overlapping elution peaks in the data.
+
+    Parameters
+    ----------
+    series: list or :class:`bioxtasraw.SECM.SECM`
+        The input series to be deconvolved. It should either be a list
+        of individual scattering profiles (:class:`bioxtasraw.SASM.SASM`) or
+        a single series object (:class:`bioxtasraw.SECM.SECM`).
+    ranges: iterable
+        A list, :class:`numpy.array`, or other iterable of the EFA ranges,
+        which each item is the range of a given component, and contains two
+        integers, the first is start of that component range the second the
+        end of the component range. Must be a type that can be cast as a
+        numpy array. Should be relative to the full range of the series,
+        even if framei and framef are provided.
+    profile_type: {'unsub', 'sub', 'baseline'} str, optional
+        Only used if a :class:`bioxtasraw.SECM.SECM` is provided for the series
+        argument. Determines which type of profile to use from the series
+        for the EFA. Unsubtracted profiles - 'unsub', subtracted profiles -
+        'sub', baseline corrected profiles - 'baseline'.
+    framei: int, optional
+        The initial frame in the series to use for EFA. If not provided,
+        it defaults to the first frame in the series.
+    framef: int, optional
+        The final frame in the series to use for EFA. If not provided, it
+        defaults to the last frame in the series.
+    method: {'Hybrid', 'Iterative', 'Explicit'} str, optional
+        Sets the method used for the EFA rotation step as either 'Hybrid',
+        'Iterative', or 'Explicit'.
+    niter: int, optional
+        The maximum number of iterations to use for the rotation in either
+        hybrid or iterative mode. Defaults to 1000. Can be increased if
+        EFA fails to converge.
+    tol: float, optional
+        The tolerance used as the convergence criteria for the EFA rotation
+        in hybrid or iterative mode. Defaults to 1e-12. Can be decreased
+        if EFA fails to converge.
+    norm: bool, optional
+        Whether error normalized intensity should be used for EFA. Defaults
+        to True. Recommended to not change this.
+    force_positive: list, optional
+        Whether EFA ranges should be constrained to force positive. By default
+        all ranges are forced positive. If provided, it should be a list of
+        bool values with a length equal to the number of EFA ranges. Each
+        list item determines whether to force positive the range defined by the
+        same index in the ranges parameter.
+    previous_results: list, optional
+        This list contains the previous results of EFA, if any. This is used
+        to improve the starting guess. The first entry in the list is a boolean
+        corresponding to whether the previous results converged, and the second
+        is a dictionary of the previous results, corresponding to the
+        rotation_data dictionary returned by this function. Defaults to None,
+        which should be used if no previous results are available.
+
+    Returns
+    -------
+    efa_profiles: list
+        A list of profiles (:class:`bioxtasraw.SASM.SASM`) determined by EFA.
+        If EFA converged, the profile at each list index was determined for the
+        corresponding range in the ranges input parameter. If EFA failed to
+        converge an empty list is returned.
+    converged: bool
+        True if EFA converged, otherwise False.
+    conv_data: dict
+        A dictionary containing information about the convergence. Keys are
+        'steps' - A list containing the value of the convergence criteria at
+        each iteration, if available; 'iterations' - The number of iterations
+        carried out during the rotation, if available; 'final_step' - The
+        value of the convergence criteria in the final iteration step, if
+        available; 'options' - A dictionary containing the input convergence
+        options; 'failed' - A bool indicating if convergence failed.
+    rotation_data: dict
+        A dictionary containing the rotation results, if available. If the
+        rotation failed to converge, the dictionary is empty. Keys are:
+        'C' - Concentration data. A numpy array where the first axis is
+        concentration as a function of frame and the second axis is component
+        number. 'chisq' - Mean error weighted chi squared data. A numpy array
+        of chi squared vs. frame number. 'int' - Scattering intensity. A numpy
+        array where the first axis is intensity and the second axis is component
+        number. ' err' - Scattering intensity uncertainty. A numpy array where
+        the first axis is intensity and the second axis is component number.
+        'M' - The EFA M rotation matrix.
+
+    Raises
+    ------
+    SASExceptions.EFAError
+        If initial SVD cannot be carried out.
+    """
+
+    if force_positive is None:
+        force_positive = [True for i in range(len(ranges))]
+
+    if framei is None:
+            framei = 0
+    if framef is None:
+        if isinstance(series, SECM.SECM):
+            framef = len(series.getAllSASMs())-1
+        else:
+            framef = len(series)-1
+
+    ranges = copy.deepcopy(ranges)
+    for efa_range in ranges:
+        efa_range[0] = efa_range[0] - framei
+        efa_range[1] = efa_range[1] - framei
+
+    if isinstance(series, SECM.SECM):
+        sasm_list = series.getSASMList(framei, framef, profile_type)
+        filename = os.path.splitext(series.getParameter('filename'))[0]
+    else:
+        sasm_list = series[framei:framef+1]
+        names = [os.path.basename(sasm.getParameter('filename')) for sasm in series]
+        filename = os.path.commonprefix(names).rstrip('_')
+        if filename == '':
+            filename =  os.path.splitext(os.path.basename(series[0].getParameter('filename')))[0]
+
+    if not isinstance(ranges, np.ndarray):
+        ranges = np.array(ranges)
+
+    (svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, intensity, err, svd_a,
+        success) = SVDOnSASMs(sasm_list)
+
+    converged, conv_data, rotation_data = runRotation(svd_a, intensity,
+        err, ranges, force_positive, svd_V, previous_results=previous_results,
+        method=method, niter=niter, tol=tol)
+
+    efa_profiles = []
+
+    q = copy.deepcopy(sasm_list[0].getQ())
+
+    if converged:
+        for i in range(len(ranges)):
+            intensity = rotation_data['int'][:,i]
+
+            err = rotation_data['err'][:,i]
+
+            sasm = SASM.SASM(intensity, q, err, {},
+                copy.deepcopy(sasm_list[0].getQErr()))
+
+            sasm.setParameter('filename', filename+'_%i' %(i))
+
+            history_dict = {}
+
+            history_dict['input_filename'] = filename
+            history_dict['start_index'] = str(framei)
+            history_dict['end_index'] = str(framef)
+            history_dict['component_number'] = str(i)
+
+            points = ranges[i]
+            history_dict['component_range'] = '[%i, %i]' %(points[0], points[1])
+
+            history = sasm.getParameter('history')
+            history['EFA'] = history_dict
+
+            efa_profiles.append(sasm)
+
+        if isinstance(series, SECM.SECM):
+            analysis_dict = series.getParameter('analysis')
+
+            efa_dict = {}
+
+            if profile_type == 'unsub':
+                profile_data = 'Unsubtracted'
+            elif profile_type == 'sub':
+                profile_data = 'Subtracted'
+            elif profile_type == 'baseline':
+                profile_data = 'Baseline Corrected'
+
+            efa_dict['fstart'] = str(framei)
+            efa_dict['fend'] = str(framef)
+            efa_dict['profile'] = profile_data
+            efa_dict['nsvs'] = str(len(ranges))
+            efa_dict['ranges'] = ranges
+            efa_dict['iter_limit'] = str(niter)
+            efa_dict['tolerance'] = str(tol)
+            efa_dict['method'] = method
+
+            analysis_dict['efa'] = efa_dict
+
+            series.setParameter('analysis', analysis_dict)
+
+    return efa_profiles, converged, conv_data, rotation_data
 
 def validateBuffer(sasms, frame_idx, intensity, sim_test, sim_cor, sim_thresh,
     fast):
@@ -4362,3 +4657,226 @@ def make_regals_regularized_concs(mixture):
         reg_concs.append((x, c))
 
     return reg_concs
+
+def run_full_regals(series, comp_settings, profile_type='sub', framei=None,
+    framef=None, x_vals=None, min_iter=25, max_iter=1000, tol=0.0001,
+    conv_type='Chi^2', use_previous_results=False,
+    previous_results=None):
+    """
+    Runs regularized alternating least squares (REGALS) on the input series to
+    deconvolve overlapping components in the data.
+
+    Parameters
+    ----------
+    series: list or :class:`bioxtasraw.SECM.SECM`
+        The input series to be deconvolved. It should either be a list
+        of individual scattering profiles (:class:`bioxtasraw.SASM.SASM`) or
+        a single series object (:class:`bioxtasraw.SECM.SECM`).
+    comp_settings: list
+        A list where each entry is the settings for a REGALS component. REGALS
+        component settings are themselves lists with two entries, one for the
+        profile settings and one for the concentration settings. Each of these
+        is a dictionary. Profile and settings are::
+
+            prof_settings = {
+                'type'          : 'simple', #simple, smooth, or realspace
+                'lambda'        : 1.0, #float of the regularizer
+                'auto_lambda'   : True, #Whether to automatically determine lambda
+                'kwargs'        : {
+                    'Nw'    : 50, #Number of control points (smooth/realspace)
+                    'dmax'  : 100, #Maximum dimension (realspace)
+                    'is_zero_at_r0' : True, #realspace
+                    'is_zero_at_damx': True, #realspace
+                },
+            }
+
+            conc_settings = {
+                'type'  : 'simple', #simple or smooth
+                'lambda'        : 1.0, #float of the regularizer
+                'auto_lambda'   : True, #Whether to automatically determine lambda
+                'kwargs'        : {
+                    'xmin'  : 0, #Minimum x value for the component
+                    'xmax'  : 1, #Maximum x value for the component
+                    'Nw'    : 50, #Number of control points (smooth)
+                    'is_zero_at_xmin'   : True, #Smooth
+                    'is_zero_at_xmax'   : True, #Smooth
+
+                },
+            }
+
+    profile_type: {'unsub', 'sub', 'baseline'} str, optional
+        Only used if a :class:`bioxtasraw.SECM.SECM` is provided for the series
+        argument. Determines which type of profile to use from the series
+        for the REGALS. Unsubtracted profiles - 'unsub', subtracted profiles -
+        'sub', baseline corrected profiles - 'baseline'.
+    framei: int, optional
+        The initial frame in the series to use for REGALS. If not provided,
+        it defaults to the first frame in the series.
+    framef: int, optional
+        The final frame in the series to use for REGALS. If not provided, it
+        defaults to the last frame in the series.
+    min_iter: int, optional
+        The minimum number of iterations of the REGALS algorithm to run. Defaults
+        to 25.
+    max_iter: int, optional
+        The maximum number of iterations of the REGALS algorithm to run. Defaults
+        to 1000. If convergence method is set to 'Iterations' then this value is
+        used as the number of iterations to run.
+    tol: float, optional
+        The relative tolerance to use for the 'Chi^2' convergence criteria.
+        Defaults to 0.001.
+    conv_type: str, optional
+        The convergence type to use. Can be either 'Iterations' or 'Chi^2'.
+        Iterations runs a number of iterations equal to max_iter. The chi^2
+        criteria runs iterations until the average of the past min_iter
+        iterations is stable within the tolerance defined by tol, up to the
+        max_iter number of iterations.
+    use_previous_results: bool, optional
+        Whether to use previous results as the initial profile and concentration
+        vectors. Requires previous_results input. Defaults to False.
+    previous_results: :class:`bioxtasraw.REGALS.mixture`, optional
+        The mixture output from a previous REGALS run, which will be used as
+        the initial profile and concentration vectors for this REGALS run. Only
+        used of use_previous_results is True.
+
+    Returns
+    -------
+    regals_profiles: list
+        A list of profiles (:class:`bioxtasraw.SASM.SASM`) determined by REGALS.
+    regals_ifts: list
+        A list of IFTS (:class:`bioxtasraw.SASM.IFTM`) determined by REGALS.
+        Only contains results for components using the 'realspace' constraint.
+    concs: list
+        The concentrations sampled at the input experimental points. Returns
+        a list where each list item is a tuple of (x, conc, conc_sigma).
+    reg_concs: list
+        The regularized concentrations sampled at the grid/control points.
+        Returns a list where each list item is a list of (x, conc).
+    mixture: REGALS.mixture
+        The final mixture result from REGALS. Can be used as input to REGALS to
+        start with the previously determined values for each component.
+    params: dict
+        Contains the final convergence parameters for REGALS. Each parameter
+        is for the final iteration of the algorithm. 'x2': chi^2,
+        'delta_concentration': the difference between the final and final-1
+        iterations concentrations. 'delta_profile': the difference between
+        the final and final-1 iterations profiles. 'delta_u_concentration':
+        the difference between the final and final-1 iterations u concentration
+        matrix. 'delta_u_profile': the difference between the final and final-1
+        iterations U profiles matrix. 'total_iter': the total number of iterations.
+    residual: :class:`numpy.array`
+        The residual between the initial input intensities and the deconvolved
+        intensities. This is a matrix where each column corresponds to an
+        input intensity.
+    """
+    if framei is None:
+            framei = 0
+    if framef is None:
+        if isinstance(series, SECM.SECM):
+            framef = len(series.getAllSASMs())-1
+        else:
+            framef = len(series)-1
+
+    ref_q = series.getSASMList(framei, framef)[0].getQ()
+    ref_q_err = series.getSASMList(framei, framef)[0].getQErr()
+
+    if x_vals is None:
+        x_vals = np.arange(framei, framef+1)
+
+    if isinstance(series, SECM.SECM):
+        sasm_list = series.getSASMList(framei, framef, profile_type)
+        filename = os.path.splitext(series.getParameter('filename'))[0]
+    else:
+        sasm_list = series[framei:framef+1]
+        names = [os.path.basename(sasm.getParameter('filename')) for sasm in series]
+        filename = os.path.commonprefix(names).rstrip('_')
+        if filename == '':
+            filename =  os.path.splitext(os.path.basename(series[0].getParameter('filename')))[0]
+
+    i = np.array([sasm.getI() for sasm in sasm_list])
+    err = np.array([sasm.getErr() for sasm in sasm_list])
+
+    intensity = i.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
+    sigma = err.T
+
+    if (use_previous_results and previous_results is not None and
+        len(previous_results.u_profile) == len(comp_settings)):
+        mixture, components = create_regals_mixture(comp_settings,
+            ref_q, x_vals, intensity, sigma, use_previous_results,
+            previous_results)
+
+    else:
+        mixture, components = create_regals_mixture(comp_settings,
+            ref_q, x_vals, intensity, sigma)
+
+    mixture, params, residual = run_regals(mixture, intensity, sigma,
+        min_iter=min_iter, max_iter=max_iter, tol=tol, conv_type=conv_type)
+
+    regals_profiles = make_regals_sasms(mixture, ref_q, intensity, sigma,
+        series, framei, framef, ref_q_err)
+
+    regals_ifts = make_regals_ifts(mixture, ref_q, intensity, sigma,
+        series, framei, framef)
+
+    concs = make_regals_concs(mixture, intensity, sigma)
+    reg_concs = make_regals_regularized_concs(mixture)
+
+    # Make results into a format that matches the GUI
+    comp_ranges = np.array([[comp[1]['kwargs']['xmin'], comp[1]['kwargs']['xmin']] for comp in comp_settings])
+
+    if x_vals is not None:
+        comp_frame_ranges = []
+
+        for cr in comp_ranges:
+            min_val, min_arg = SASUtils.find_closest(cr[0], x_vals)
+            max_val, max_arg = SASUtils.find_closest(cr[1], x_vals)
+
+            start = min_arg + framei
+            end = max_arg + framei
+
+            comp_frame_ranges.append([start, end])
+
+    ctrl_settings = {
+        'seed_previous' : use_previous_results,
+        'conv_type'     : conv_type,
+        'max_iter'      : max_iter,
+        'min_iter'      : min_iter,
+        'tol'           : tol,
+        }
+
+    for j, comp in enumerate(comp_settings):
+        prof = comp[0]
+        conc = comp[1]
+
+        prof['lambda'] = mixture.lambda_profile[j]
+        conc['lambda'] = mixture.lambda_concentration[j]
+
+    analysis_dict = series.getParameter('analysis')
+
+    regals_dict = {}
+
+    if profile_type == 'unsub':
+        profile_data = 'Unsubtracted'
+    elif profile_type == 'sub':
+        profile_data = 'Subtracted'
+    elif profile_type == 'baseline':
+        profile_data = 'Baseline Corrected'
+
+    regals_dict['fstart'] = str(framei)
+    regals_dict['fend'] = str(framef)
+    regals_dict['profile'] = profile_data
+    regals_dict['nsvs'] = str(len(regals_profiles))
+    regals_dict['ranges'] = comp_ranges
+    regals_dict['frame_ranges'] = comp_frame_ranges
+    regals_dict['component_settings'] = comp_settings
+    regals_dict['run_settings'] = ctrl_settings
+    regals_dict['background_components'] = 0
+    regals_dict['exp_type'] = 'IEC/SEC-SAXS'
+    regals_dict['use_efa'] = True
+
+    if not np.array_equal(x_vals, np.arange(framei, framef+1)):
+        regals_dict['x_calibration'] = x_vals
+
+    analysis_dict['regals'] = regals_dict
+
+    return regals_profiles, regals_ifts, concs, reg_concs, mixture, params, residual

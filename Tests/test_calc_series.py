@@ -234,8 +234,8 @@ def test_find_buffer_range(bsa_series):
     success, region_start, region_end = raw.find_buffer_range(bsa_series)
 
     assert success
-    assert region_start == 18
-    assert region_end == 53
+    assert region_start == 45
+    assert region_end == 80
 
 def test_find_buffer_range_list(bsa_series):
     sasms = bsa_series.getAllSASMs()
@@ -243,8 +243,8 @@ def test_find_buffer_range_list(bsa_series):
     success, region_start, region_end = raw.find_buffer_range(sasms)
 
     assert success
-    assert region_start == 18
-    assert region_end == 53
+    assert region_start == 45
+    assert region_end == 80
 
 def test_validate_buffer_range_good(bsa_series):
     (valid, similarity_results, svd_results,
