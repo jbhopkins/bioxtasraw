@@ -8464,6 +8464,8 @@ class DenssRunPanel(wx.Panel):
         else:
             sigq = I*(self.iftm.err_orig/self.iftm.i_orig)
 
+        sigq = np.abs(sigq)
+
         D = self.iftm.getParameter('dmax')
 
         for key in self.denss_ids:
@@ -21946,7 +21948,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             if success:
                 self.results['buffer']['calc'] = results
 
-        wx.CallAfter(self.plotCalc)
+        if success:
+            wx.CallAfter(self.plotCalc)
 
     def plotCalc(self):
         frames = self.secm.getFrames()

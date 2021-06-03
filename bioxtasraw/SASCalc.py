@@ -3055,45 +3055,141 @@ def findBufferRange(buffer_sasms, intensity, avg_window, sim_test, sim_cor,
         min_window_width = 2
 
     if len(peaks) == 0:
+        # Searches entire series
+
         start_window_size =  min_window_width
         start_point = 0
         end_point = len(intensity) - 1 - start_window_size
 
+        use_peak_search = False
+        search_full_length = True
+
     else:
+        use_peak_search = True
+
         max_peak_idx = np.argmax(peak_params['peak_heights'])
         main_peak_width = int(round(peak_params['widths'][max_peak_idx]))
 
-        start_window_size = max(main_peak_width, min_window_width)
+        max_peak_prom = peak_params['prominences'][max_peak_idx]
+        prom_thres = 0.05
+
+        peak_idx = []
+        peak_pos = []
+
+        for j in range(len(peak_params['peak_heights'])):
+            if peak_params['prominences'][j] > max_peak_prom*prom_thres:
+                peak_idx.append(j)
+                peak_pos.append(peaks[j])
+                peak_pos.append(peak_params['right_ips'][j])
+                peak_pos.append(peak_params['left_ips'][j])
+
+        start_window_size = max(main_peak_width*2, min_window_width)
+        start_window_size = min(start_window_size, len(intensity)//2)
+
         start_point = 0
 
         if start_window_size == min_window_width:
             end_point = len(intensity) - 1 - start_window_size
+            search_full_length = True
+
         else:
-            end_point = int(round(peak_params['left_ips'][max_peak_idx]))
+            #Start search to the left from edge of leftmost peak and go to start
+            end_point = int(round(peak_params['left_ips'][peak_idx[0]]))
+
             if end_point + start_window_size > len(intensity) - 1 - start_window_size:
                 end_point = len(intensity) - 1 - start_window_size
+
+            search_full_length = False
+
+    #Initial search
+    failed, region_start, region_end = inner_find_buffer_range(intensity,
+        buffer_sasms, start_point, end_point, start_window_size,
+        min_window_width, peak_pos, sim_test, sim_cor, sim_thresh, True)
+
+    if use_peak_search and not search_full_length and failed:
+        #Start search to the right from edge of rightmost peak and go to end
+        start_point = int(round(peak_params['right_ips'][peak_idx[-1]]))
+        end_point = len(intensity) - 1 - start_window_size
+
+        if start_point + start_window_size > len(intensity) - 1 - start_window_size:
+            failed = True
+
+        else:
+            failed, region_start, region_end = inner_find_buffer_range(intensity,
+                buffer_sasms, start_point, end_point, start_window_size,
+                min_window_width, peak_pos, sim_test, sim_cor, sim_thresh, False)
+
+    if use_peak_search and not search_full_length and failed:
+        #Start search to the left from edge of main peak and go to the left edge of the first peak
+        start_point = int(round(peak_params['left_ips'][peak_idx[0]]))
+        end_point = int(round(peak_params['left_ips'][max_peak_idx]))
+
+        if start_point + start_window_size > len(intensity) - 1 - start_window_size:
+            failed = True
+
+        else:
+            if end_point + start_window_size > len(intensity) - 1 - start_window_size:
+                end_point = len(intensity) - 1 - start_window_size
+
+            if end_point != start_point:
+                failed, region_start, region_end = inner_find_buffer_range(intensity,
+                    buffer_sasms, start_point, end_point, start_window_size,
+                    min_window_width, peak_pos, sim_test, sim_cor, sim_thresh, True)
+
+            else:
+                failed = True
+
+    if use_peak_search and not search_full_length and failed:
+        #Start search to the right from edge of main peak and go to the rightmost edge of the rightmost peak
+        start_point = int(round(peak_params['right_ips'][max_peak_idx]))
+        end_point = int(round(peak_params['right_ips'][peak_idx[-1]]))
+
+        if start_point + start_window_size > len(intensity) - 1 - start_window_size:
+            failed = True
+
+        else:
+            if end_point + start_window_size > len(intensity) - 1 - start_window_size:
+                end_point = len(intensity) - 1 - start_window_size
+
+            if end_point != start_point:
+                failed, region_start, region_end = inner_find_buffer_range(intensity,
+                    buffer_sasms, start_point, end_point, start_window_size,
+                    min_window_width, peak_pos, sim_test, sim_cor, sim_thresh, False)
+            else:
+                failed = True
+
+    success = not failed
+
+    return success, region_start, region_end
+
+def inner_find_buffer_range(intensity, buffer_sasms, start_point, end_point,
+    start_window_size, min_window_width, peaks, sim_test, sim_cor, sim_thresh,
+    flip_regions):
 
     found_region = False
     failed = False
 
     window_size = start_window_size
 
+    region_start = None
+    region_end = None
+
     while not found_region and not failed:
         step_size = max(1, int(round(window_size/4.)))
-
         region_starts = list(range(start_point, end_point, step_size))
 
-        region_starts = region_starts[::-1]
+        if flip_regions:
+            region_starts = region_starts[::-1]
 
         for idx in region_starts:
             region_sasms = buffer_sasms[idx:idx+window_size+1]
             frame_idx = list(range(idx, idx+window_size+1))
             region_intensity = intensity[idx:idx+window_size+1]
-            valid, similarity_results, svd_results, intI_results = validateBuffer(region_sasms,
-                frame_idx, region_intensity, sim_test, sim_cor, sim_thresh, True)
 
-            if np.all([peak not in frame_idx for peak in peaks]) and valid:
-                found_region = True
+            if np.all([peak not in frame_idx for peak in peaks]):
+                found_region, similarity_results, svd_results, intI_results = validateBuffer(region_sasms,
+                    frame_idx, region_intensity, sim_test, sim_cor, sim_thresh, True)
+
             else:
                 found_region = False
 
@@ -3107,45 +3203,7 @@ def findBufferRange(buffer_sasms, intensity, avg_window, sim_test, sim_cor,
         if window_size < min_window_width and not found_region:
             failed = True
 
-    if end_point != len(intensity) - 1 - start_window_size and failed:
-        failed = False
-        window_size = start_window_size
-
-        start_point = int(round(peak_params['right_ips'][max_peak_idx]))
-        end_point = len(intensity) - 1 - start_window_size
-
-        if start_point + start_window_size > len(intensity) - 1 - start_window_size:
-            failed = True
-
-        while not found_region and not failed:
-            step_size = max(1, int(round(window_size/4.)))
-            region_starts = list(range(start_point, end_point, step_size))
-
-            for idx in region_starts:
-                region_sasms = buffer_sasms[idx:idx+window_size+1]
-                frame_idx = list(range(idx, idx+window_size+1))
-                region_intensity = intensity[idx:idx+window_size+1]
-                valid, similarity_results, svd_results, intI_results = validateBuffer(region_sasms,
-                    frame_idx, region_intensity, sim_test, sim_cor, sim_thresh, True)
-
-                if np.all([peak not in frame_idx for peak in peaks]) and valid:
-                    found_region = True
-                else:
-                    found_region = False
-
-                if found_region:
-                    region_start = idx
-                    region_end = idx+window_size
-                    break
-
-            window_size = int(round(window_size/2.))
-
-            if window_size < min_window_width and not found_region:
-                failed = True
-
-    success = not failed
-
-    return success, region_start, region_end
+    return failed, region_start, region_end
 
 def validateSample(sub_sasms, frame_idx, intensity, rg, vcmw, vpmw,
     sim_test, sim_cor, sim_thresh, fast):

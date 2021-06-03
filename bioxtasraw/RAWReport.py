@@ -1371,11 +1371,11 @@ class overview_plot(object):
                 ax.plot(qRg, norm_i, markersize=1, label=profile.filename)
 
                 if len(norm_i) > 51:
-                    smoothed_data = scipy.signal.savgol_filter(norm_i, 51, 5)
+                    smoothed_data = scipy.signal.savgol_filter(norm_i, 51, 0)
                     norm_i_max = max(norm_i_max, smoothed_data.max())
 
                 else:
-                    norm_i_max = min(norm_i_max, norm_i.max())
+                    norm_i_max = max(norm_i_max, norm_i.max())
 
         ax.axhline(0, color='k')
 
