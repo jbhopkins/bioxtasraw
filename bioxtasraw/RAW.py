@@ -1329,7 +1329,7 @@ class MainFrame(wx.Frame):
         all_ifts = [item.getIFTM() for item in self.ift_panel.all_manipulation_items]
         all_series = [item.getSECM() for item in self.series_panel.all_manipulation_items]
 
-        report_frame = RAWReport.ReportFrame(self, 'Save Report', all_profiles,
+        report_frame = RAWCustomDialogs.ReportFrame(self, 'Save Report', all_profiles,
             all_ifts, all_series, profiles, ifts, series)
         report_frame.SetIcon(self.GetIcon())
         report_frame.Show(True)
