@@ -145,7 +145,7 @@ All changes:
     wasn't working properly.
 *   Added the ability to abort DAMMIF/N and related functions and DENSS runs
     in the API.
-*   Made SECM and RAWSettings objects pickalable, so they can be passed
+*   Made SECM and RAWSettings objects picklable, so they can be passed
     through a multiprocessing queue.
 *   Fixed an API bug where saving a series would fail if you didn't set a
     filename.

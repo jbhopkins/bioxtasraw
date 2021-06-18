@@ -4988,19 +4988,21 @@ class GNOMControlPanel(wx.Panel):
         wx.CallAfter(self._finishFindDmax, dmax)
 
     def _finishFindDmax(self, dmax):
-        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
 
-        dmaxWindow.SetValue(dmax)
-        self.old_dmax = dmax
+        if dmax != -1:
+            dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
 
-        if str(dmax) in self.out_list.keys():
-            self.updateGNOMInfo(self.out_list[str(dmax)])
+            dmaxWindow.SetValue(dmax)
+            self.old_dmax = dmax
 
-        else:
-            self.calcGNOM(dmax)
-            self.updateGNOMInfo(self.out_list[str(dmax)])
+            if str(dmax) in self.out_list.keys():
+                self.updateGNOMInfo(self.out_list[str(dmax)])
 
-        self.updatePlot()
+            else:
+                self.calcGNOM(dmax)
+                self.updateGNOMInfo(self.out_list[str(dmax)])
+
+            self.updatePlot()
 
         self.gnom_frame.showBusy(show=False)
 
