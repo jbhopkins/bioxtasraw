@@ -3359,6 +3359,8 @@ def findBufferRange(buffer_sasms, intensity, avg_window, sim_test, sim_cor,
         use_peak_search = False
         search_full_length = True
 
+        peak_pos = []
+
     else:
         use_peak_search = True
 
@@ -3481,7 +3483,7 @@ def inner_find_buffer_range(intensity, buffer_sasms, start_point, end_point,
             frame_idx = list(range(idx, idx+window_size+1))
             region_intensity = intensity[idx:idx+window_size+1]
 
-            if np.all([peak not in frame_idx for peak in peaks]):
+            if len(peaks) == 0 or np.all([peak not in frame_idx for peak in peaks]):
                 found_region, similarity_results, svd_results, intI_results = validateBuffer(region_sasms,
                     frame_idx, region_intensity, sim_test, sim_cor, sim_thresh, True)
 
