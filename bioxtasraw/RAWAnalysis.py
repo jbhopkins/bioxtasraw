@@ -15005,7 +15005,7 @@ class EFAResultsPlotPanel3(wx.Panel):
                         line, = c.plot(c_data[0], c_data[1], animated = True)
                     self.c_lines.append(line)
 
-                if len(conc_data[1]) <= 40:
+                if len(c_data[1]) <= 40:
                     for j, reg_data in enumerate(reg_conc_data):
                         color = self.c_lines[j].get_color()
 
@@ -15918,35 +15918,40 @@ class REGALSRunPanel(wx.Panel):
         ctrl_settings['callback'] = self.on_regals_finished_callback
         ctrl_settings['abort_event'] = self.regals_abort_event
 
-        if (seed_previous and self.regals_results is not None and
-            len(self.regals_results['mixture'].u_profile) == len(comp_settings)):
-            mixture, components = SASCalc.create_regals_mixture(comp_settings,
-                ref_q, self.regals_x['x'], self.intensity, self.sigma, seed_previous,
-                self.regals_results['mixture'])
-
-        else:
-            mixture, components = SASCalc.create_regals_mixture(comp_settings,
-                ref_q, self.regals_x['x'], self.intensity, self.sigma)
-
-        self.set_lambdas(mixture.lambda_concentration, mixture.lambda_profile)
-
-        for j, comp in enumerate(self.regals_settings['comp_settings']):
-            prof = comp[0]
-            conc = comp[1]
-
-            prof['lambda'] = mixture.lambda_profile[j]
-            conc['lambda'] = mixture.lambda_concentration[j]
+        use_previous_results = (seed_previous and self.regals_results is not None
+            and len(self.regals_results['mixture'].u_profile) == len(comp_settings))
 
         valid = self.validate_regals(regals_secm, start, end, ref_q,
-            ctrl_settings, self.regals_settings['comp_settings'], comp_ranges)
+            ctrl_settings, self.regals_settings['comp_settings'], comp_ranges,
+            use_previous_results)
 
         if valid:
 
-            self.regals_thread = threading.Thread(target=SASCalc.run_regals,
-                args=(mixture, self.intensity, self.sigma),
-                kwargs=ctrl_settings)
-            self.regals_thread.daemon = True
-            self.regals_thread.start()
+            if use_previous_results:
+                mixture, components = SASCalc.create_regals_mixture(comp_settings,
+                    ref_q, self.regals_x['x'], self.intensity, self.sigma, seed_previous,
+                    self.regals_results['mixture'])
+
+            else:
+                mixture, components = SASCalc.create_regals_mixture(comp_settings,
+                    ref_q, self.regals_x['x'], self.intensity, self.sigma)
+
+            self.set_lambdas(mixture.lambda_concentration, mixture.lambda_profile)
+
+            for j, comp in enumerate(self.regals_settings['comp_settings']):
+                prof = comp[0]
+                conc = comp[1]
+
+                prof['lambda'] = mixture.lambda_profile[j]
+                conc['lambda'] = mixture.lambda_concentration[j]
+
+
+
+                self.regals_thread = threading.Thread(target=SASCalc.run_regals,
+                    args=(mixture, self.intensity, self.sigma),
+                    kwargs=ctrl_settings)
+                self.regals_thread.daemon = True
+                self.regals_thread.start()
 
         else:
             self.abort_regals()
@@ -15959,7 +15964,8 @@ class REGALSRunPanel(wx.Panel):
         self.regals_running = False
 
     def validate_regals(self, regals_secm, start, end, ref_q, ctrl_settings,
-        comp_settings, regals_ranges):
+        comp_settings, regals_ranges, use_previous_results):
+        print('validating regals')
 
         try:
             q_valid = all([np.all(ref_q == sasm.getQ() for sasm in regals_secm.getSASMList(start, end))])
@@ -15972,7 +15978,8 @@ class REGALSRunPanel(wx.Panel):
 
         for i in range(len(regals_ranges)):
             for j in range(i+1, len(regals_ranges)):
-                if np.all(regals_ranges[i] == regals_ranges[j]):
+                if (np.all(regals_ranges[i] == regals_ranges[j])
+                    and not use_previous_results):
                     s1 = copy.deepcopy(comp_settings[i])
                     s2 = copy.deepcopy(comp_settings[j])
 
@@ -16130,7 +16137,12 @@ class REGALSRunPanel(wx.Panel):
 
         analysis_dict = self.secm.getParameter('analysis')
 
-        if 'regals' in analysis_dict:
+        if ('regals' in analysis_dict and nvals == analysis_dict['regals']['nsvs']
+            and start == analysis_dict['regals']['fstart']
+            and end == analysis_dict['regals']['fend']
+            and self.svd_results['profile'] == analysis_dict['regals']['profile']
+            and nvals == len(analysis_dict['regals']['ranges'])):
+
             comp_settings = analysis_dict['regals']['component_settings']
             ctrl_settings = analysis_dict['regals']['run_settings']
 
