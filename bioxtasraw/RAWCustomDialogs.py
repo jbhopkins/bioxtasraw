@@ -5064,12 +5064,14 @@ class SeriesAdjustmentFrame(wx.Frame):
             min_q_ctrl = self.min_q
             max_q_ctrl = self.max_q
             q = self.seriesm.getAllSASMs()[0].q
+
         elif evt_object == self.min_q_sub or evt_object == self.max_q_sub:
             nmin_ctrl = self.nmin_sub
             nmax_ctrl = self.nmax_sub
             min_q_ctrl = self.min_q_sub
             max_q_ctrl = self.max_q_sub
             q = self.seriesm.subtracted_sasm_list[0].q
+
         elif evt_object == self.min_q_bcsub or evt_object == self.max_q_bcsub:
             nmin_ctrl = self.nmin_bcsub
             nmax_ctrl = self.nmax_bcsub
@@ -5082,13 +5084,16 @@ class SeriesAdjustmentFrame(wx.Frame):
         if evt_object == min_q_ctrl:
             closest_q = findClosest(float(min_q_ctrl.GetValue()), q)
             nmin = np.where(q == closest_q)[0][0]
+            nmax = nmax_ctrl.GetValue()
 
             min_q_ctrl.SetValue(str(round(closest_q, 5)))
             nmin_ctrl.SetValue(nmin)
             _, maxval = nmax_ctrl.GetRange()
             nmax_ctrl.SetRange((nmin, maxval))
+
         else:
             closest_q = findClosest(float(max_q_ctrl.GetValue()), q)
+            nmin = nmin_ctrl.GetValue()
             nmax = np.where(q == closest_q)[0][0]+1
 
             max_q_ctrl.SetValue(str(round(closest_q, 5)))

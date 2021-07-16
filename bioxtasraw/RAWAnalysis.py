@@ -15965,7 +15965,6 @@ class REGALSRunPanel(wx.Panel):
 
     def validate_regals(self, regals_secm, start, end, ref_q, ctrl_settings,
         comp_settings, regals_ranges, use_previous_results):
-        print('validating regals')
 
         try:
             q_valid = all([np.all(ref_q == sasm.getQ() for sasm in regals_secm.getSASMList(start, end))])
