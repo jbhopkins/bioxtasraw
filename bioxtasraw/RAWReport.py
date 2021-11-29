@@ -344,9 +344,13 @@ class SECData(object):
             self.regals_nsvs = regals_dict['nsvs']
             self.regals_component_settings = regals_dict['component_settings']
             self.regals_run_settings = regals_dict['run_settings']
-            self.regals_background_comps = regals_dict['background_components']
             self.regals_exp_type = regals_dict['exp_type']
             self.regals_profile_type = regals_dict['profile']
+
+            if 'background_components' in regals_dict:
+                self.regals_background_comps = regals_dict['background_components']
+            else:
+                self.regals_background_comps = ''
 
             if 'x_calibration' in regals_dict:
                 self.regals_x_cal = np.array(regals_dict['x_calibration']['x'])

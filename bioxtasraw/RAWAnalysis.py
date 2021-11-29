@@ -15923,7 +15923,7 @@ class REGALSRunPanel(wx.Panel):
 
         valid = self.validate_regals(regals_secm, start, end, ref_q,
             ctrl_settings, self.regals_settings['comp_settings'], comp_ranges,
-            use_previous_results)
+            use_previous_results, warn=False)
 
         if valid:
 
@@ -15938,20 +15938,26 @@ class REGALSRunPanel(wx.Panel):
 
             self.set_lambdas(mixture.lambda_concentration, mixture.lambda_profile)
 
-            for j, comp in enumerate(self.regals_settings['comp_settings']):
-                prof = comp[0]
-                conc = comp[1]
+            valid = self.validate_regals(regals_secm, start, end, ref_q,
+            ctrl_settings, self.regals_settings['comp_settings'], comp_ranges,
+            use_previous_results, validate=False)
 
-                prof['lambda'] = mixture.lambda_profile[j]
-                conc['lambda'] = mixture.lambda_concentration[j]
+            if valid:
+                for j, comp in enumerate(self.regals_settings['comp_settings']):
+                    prof = comp[0]
+                    conc = comp[1]
 
+                    prof['lambda'] = mixture.lambda_profile[j]
+                    conc['lambda'] = mixture.lambda_concentration[j]
 
+                    self.regals_thread = threading.Thread(target=SASCalc.run_regals,
+                        args=(mixture, self.intensity, self.sigma),
+                        kwargs=ctrl_settings)
+                    self.regals_thread.daemon = True
+                    self.regals_thread.start()
 
-                self.regals_thread = threading.Thread(target=SASCalc.run_regals,
-                    args=(mixture, self.intensity, self.sigma),
-                    kwargs=ctrl_settings)
-                self.regals_thread.daemon = True
-                self.regals_thread.start()
+            else:
+                self.abort_regals()
 
         else:
             self.abort_regals()
@@ -15964,88 +15970,93 @@ class REGALSRunPanel(wx.Panel):
         self.regals_running = False
 
     def validate_regals(self, regals_secm, start, end, ref_q, ctrl_settings,
-        comp_settings, regals_ranges, use_previous_results):
+        comp_settings, regals_ranges, use_previous_results, warn=True,
+        validate=True):
 
-        try:
-            q_valid = all([np.all(ref_q == sasm.getQ() for sasm in regals_secm.getSASMList(start, end))])
-        except Exception:
-            q_valid = False
+        if validate:
+            try:
+                q_valid = all([np.all(ref_q == sasm.getQ() for sasm in regals_secm.getSASMList(start, end))])
+            except Exception:
+                q_valid = False
 
-        range_valid = True
+            range_valid = True
 
-        regals_ranges = [np.array(rr) for rr in regals_ranges]
+            regals_ranges = [np.array(rr) for rr in regals_ranges]
 
-        for i in range(len(regals_ranges)):
-            for j in range(i+1, len(regals_ranges)):
-                if (np.all(regals_ranges[i] == regals_ranges[j])
-                    and not use_previous_results):
-                    s1 = copy.deepcopy(comp_settings[i])
-                    s2 = copy.deepcopy(comp_settings[j])
+            for i in range(len(regals_ranges)):
+                for j in range(i+1, len(regals_ranges)):
+                    if (np.all(regals_ranges[i] == regals_ranges[j])
+                        and not use_previous_results):
+                        s1 = copy.deepcopy(comp_settings[i])
+                        s2 = copy.deepcopy(comp_settings[j])
 
-                    s1[0].pop('auto_lambda')
-                    s1[1].pop('auto_lambda')
-                    s2[0].pop('auto_lambda')
-                    s2[1].pop('auto_lambda')
+                        s1[0].pop('auto_lambda')
+                        s1[1].pop('auto_lambda')
+                        s2[0].pop('auto_lambda')
+                        s2[1].pop('auto_lambda')
 
-                    range_valid = not s1 == s2
+                        range_valid = not s1 == s2
 
-                    if not range_valid:
-                        break
+                        if not range_valid:
+                            break
 
-        valid_settings = True
+            valid_settings = True
 
-        settings_msg = ''
+            settings_msg = ''
 
-        for i, comp in enumerate(comp_settings):
-            conc_comp = comp[1]
+            for i, comp in enumerate(comp_settings):
+                conc_comp = comp[1]
 
-            if conc_comp['type'] != 'simple':
-                if conc_comp['lambda'] == 0:
-                    nw = conc_comp['kwargs']['Nw']
-                    xmin = conc_comp['kwargs']['xmin']
-                    xmax = conc_comp['kwargs']['xmax']
+                if conc_comp['type'] != 'simple':
+                    if conc_comp['lambda'] == 0:
+                        nw = conc_comp['kwargs']['Nw']
+                        xmin = conc_comp['kwargs']['xmin']
+                        xmax = conc_comp['kwargs']['xmax']
 
-                    frame_xmin = conc_comp['frame_xmin']
-                    frame_xmax = conc_comp['frame_xmax']
+                        frame_xmin = conc_comp['frame_xmin']
+                        frame_xmax = conc_comp['frame_xmax']
 
-                    if nw >= frame_xmax - frame_xmin:
-                        valid_settings = False
+                        if nw >= frame_xmax - frame_xmin:
+                            valid_settings = False
 
-                        msg = ('- Component {} grid points ({}) are more '
-                            'than the number of measurements in the defined '
-                            'range ({} to {}) and lambda is 0. Either set '
-                            'lambda to a non-zero value, reduce the number '
-                            'of grid points, or expand the concentration '
-                            'range.\n'.format(i, nw, xmin, xmax))
-                        settings_msg = settings_msg + msg
-
-
-        valid = q_valid and range_valid and valid_settings
-
-        err_msg = ''
-        if not q_valid:
-            err_msg = err_msg+ ('- All q vectors must match to use REGALS. '
-                'One or more q vectors in the dataset does not match the '
-                'others.\n')
-
-        if not range_valid:
-            err_msg = err_msg+ ('- Components must be unique. Two or '
-                'more components are identical.\n')
-
-        if not valid_settings:
-            err_msg = err_msg + settings_msg
-
-        if not valid:
-            msg = ('The following errors must be fixed before REGALS can '
-                'be run:\n')
-            msg = msg + err_msg
-            dlg = wx.MessageDialog(self, msg, 'Invalid input/settings',
-                style=wx.ICON_ERROR|wx.OK)
-            dlg.ShowModal()
-            dlg.Destroy()
+                            msg = ('- Component {} grid points ({}) are more '
+                                'than the number of measurements in the defined '
+                                'range ({} to {}) and lambda is 0. Either set '
+                                'lambda to a non-zero value, reduce the number '
+                                'of grid points, or expand the concentration '
+                                'range.\n'.format(i, nw, xmin, xmax))
+                            settings_msg = settings_msg + msg
 
 
-        if valid:
+            valid = q_valid and range_valid and valid_settings
+
+            err_msg = ''
+            if not q_valid:
+                err_msg = err_msg+ ('- All q vectors must match to use REGALS. '
+                    'One or more q vectors in the dataset does not match the '
+                    'others.\n')
+
+            if not range_valid:
+                err_msg = err_msg+ ('- Components must be unique. Two or '
+                    'more components are identical.\n')
+
+            if not valid_settings:
+                err_msg = err_msg + settings_msg
+
+            if not valid:
+                msg = ('The following errors must be fixed before REGALS can '
+                    'be run:\n')
+                msg = msg + err_msg
+                dlg = wx.MessageDialog(self, msg, 'Invalid input/settings',
+                    style=wx.ICON_ERROR|wx.OK)
+                dlg.ShowModal()
+                dlg.Destroy()
+
+        else:
+            valid = True
+
+
+        if valid and warn:
             warn_settings = False
 
             warn_settings_msg = ''
