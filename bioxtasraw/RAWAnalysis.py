@@ -15938,18 +15938,18 @@ class REGALSRunPanel(wx.Panel):
 
             self.set_lambdas(mixture.lambda_concentration, mixture.lambda_profile)
 
-            valid = self.validate_regals(regals_secm, start, end, ref_q,
-            ctrl_settings, self.regals_settings['comp_settings'], comp_ranges,
-            use_previous_results, validate=False)
-
-            if valid:
-                for j, comp in enumerate(self.regals_settings['comp_settings']):
+            for j, comp in enumerate(self.regals_settings['comp_settings']):
                     prof = comp[0]
                     conc = comp[1]
 
                     prof['lambda'] = mixture.lambda_profile[j]
                     conc['lambda'] = mixture.lambda_concentration[j]
 
+            valid = self.validate_regals(regals_secm, start, end, ref_q,
+            ctrl_settings, self.regals_settings['comp_settings'], comp_ranges,
+            use_previous_results, validate=False)
+
+            if valid:
                     self.regals_thread = threading.Thread(target=SASCalc.run_regals,
                         args=(mixture, self.intensity, self.sigma),
                         kwargs=ctrl_settings)
@@ -15978,6 +15978,13 @@ class REGALSRunPanel(wx.Panel):
                 q_valid = all([np.all(ref_q == sasm.getQ() for sasm in regals_secm.getSASMList(start, end))])
             except Exception:
                 q_valid = False
+
+            invalid_err = np.argwhere(np.array([sasm.getErr() for sasm in regals_secm.getSASMList(start, end)]) <= 0)
+
+            if invalid_err.size > 0:
+                err_valid = False
+            else:
+                err_valid = True
 
             range_valid = True
 
@@ -16008,7 +16015,7 @@ class REGALSRunPanel(wx.Panel):
                 conc_comp = comp[1]
 
                 if conc_comp['type'] != 'simple':
-                    if conc_comp['lambda'] == 0:
+                    if conc_comp['lambda'] == 0 and not conc_comp['auto_lambda']:
                         nw = conc_comp['kwargs']['Nw']
                         xmin = conc_comp['kwargs']['xmin']
                         xmax = conc_comp['kwargs']['xmax']
@@ -16028,13 +16035,18 @@ class REGALSRunPanel(wx.Panel):
                             settings_msg = settings_msg + msg
 
 
-            valid = q_valid and range_valid and valid_settings
+            valid = q_valid and err_valid and range_valid and valid_settings
 
             err_msg = ''
             if not q_valid:
                 err_msg = err_msg+ ('- All q vectors must match to use REGALS. '
                     'One or more q vectors in the dataset does not match the '
                     'others.\n')
+
+            if not err_valid:
+                err_msg = err_msg + ('- All sigma (error) values need to be > 0. '
+                    'One or more scattering profile in the dataset has one or '
+                    'more sigma values <= 0.')
 
             if not range_valid:
                 err_msg = err_msg+ ('- Components must be unique. Two or '
