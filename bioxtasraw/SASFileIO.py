@@ -766,7 +766,7 @@ def parseBioCATlogfile(filename, new_filename=None):
         sname_offset = int(fname.split('.')[0].split('_')[-1])-1
         sname_val = int(new_filename.split('.')[0].split('_')[-1])
         searchName = '.'.join(fname.split('.')[:-1])
-        searchName = '_'.join(fname.split('_')[:-2]) + '_{:04d}'.format(sname_val+sname_offset)
+        searchName = '_'.join(fname.split('_')[:-2]) + '_{:06d}'.format(sname_val+sname_offset)
     else:
         #BioCAT Pilatus
         countFilename=os.path.join(datadir, '_'.join(fname.split('_')[:-1])+'.log')
@@ -1019,7 +1019,7 @@ def loadHeader(filename, new_filename, header_type):
             raise SASExceptions.HeaderLoadError(str(io).replace("u'",''))
         except Exception as e:
             # print(e)
-            traceback.print_exc()
+            # traceback.print_exc()
             raise SASExceptions.HeaderLoadError('Header file for : ' + str(filename) + ' could not be read or contains incorrectly formatted data. ')
     else:
         hdr = {}
