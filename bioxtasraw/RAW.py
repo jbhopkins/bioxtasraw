@@ -3782,6 +3782,7 @@ class MainWorkerThread(threading.Thread):
         except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat) as msg:
             wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1])
             wx.CallAfter(self.main_frame.closeBusyDialog)
+            traceback.print_exc()
             return
         except SASExceptions.HeaderLoadError as msg:
             wx.CallAfter(self._showHeaderError, msg)

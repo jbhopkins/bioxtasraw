@@ -241,7 +241,7 @@ class CalibrationOptionsPanel(scrolled.ScrolledPanel):
 
         error_choices = ['poisson', 'azimuthal']
         angular_choices = ['q_nm^-1', 'q_A^-1', '2th_deg', '2th_rad', 'r_mm']
-        bin_choices = ['Linear',]
+        bin_choices = ['Linear', 'Log10']
 
         self.calibConstantsData = (
             ("Wavelength [A]:", raw_settings.getId('WaveLength')),

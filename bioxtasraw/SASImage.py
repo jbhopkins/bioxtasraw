@@ -44,6 +44,7 @@ import bioxtasraw.SASMask as SASMask
 import bioxtasraw.RAWGlobals as RAWGlobals
 import bioxtasraw.RAWSettings as RAWSettings
 import bioxtasraw.SASExceptions as SASExceptions
+import bioxtasraw.SASProc as SASProc
 
 def calcExpression(expr, img_hdr, file_hdr):
 
@@ -204,6 +205,7 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
     pixel_size_y = raw_settings.get('DetectorPixelSizeY')
     wavelength = raw_settings.get('WaveLength')
     bin_size = int(raw_settings.get('Binsize'))
+    bin_type = raw_settings.get('BinType')
     x_c = float(raw_settings.get('Xcenter'))
     y_c = float(raw_settings.get('Ycenter'))
     det_tilt = raw_settings.get('DetectorTilt')
@@ -301,7 +303,11 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
     diag4 = int(np.sqrt((xlen-x_c)**2 + (ylen-y_c)**2))
 
     maxlen = int(max(diag1, diag2, diag3, diag4, maxlen1))
-    npts = maxlen//bin_size
+
+    if bin_type == 'Linear':
+        npts = maxlen//bin_size
+    else:
+        npts = maxlen
 
 
     # Create radially averaged file metadata
@@ -497,5 +503,8 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
 
             elif op == '-':
                 sasm.offsetRawIntensity(-val)
+
+    if bin_type == 'Log10':
+        sasm = SASProc.logBinning(sasm, len(q)//bin_size)
 
     return sasm

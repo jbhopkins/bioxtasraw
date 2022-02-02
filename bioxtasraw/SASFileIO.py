@@ -1103,6 +1103,7 @@ def loadFile(filename, raw_settings, no_processing = False):
             sasm, img = loadImageFile(filename, raw_settings, hdf5_file)
         except (ValueError, AttributeError) as msg:
             raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
+            traceback.print_exc()
 
         #Always do some post processing for image files
         if not isinstance(sasm, list):

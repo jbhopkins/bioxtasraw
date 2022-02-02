@@ -87,7 +87,7 @@ class RawGuiSettings(object):
         if settings is None:
             file_defs, _ = SASUtils.loadFileDefinitions()
             self._params = {
-                'RequiredVersion'       : ['2.0.0', get_id(), 'text'],
+                'RequiredVersion'       : ['2.1.2', get_id(), 'text'],
 
                 #Water absolute scale
                 'NormAbsWater'      	: [False,   get_id(),  'bool'],
