@@ -669,10 +669,10 @@ def logBinning(sasm, no_points):
 
             binned_q[j] = np.mean(q[start_idx:end_idx])
             binned_i[j] = np.mean(i[start_idx:end_idx])
-            binned_err[j] = np.sqrt(np.sum(err_sqr[start_idx:end_idx])/(end_idx-start_idx))
+            binned_err[j] = np.sqrt(np.sum(err_sqr[start_idx:end_idx]))/(end_idx-start_idx)
 
             if q_err is not None:
-                binned_q_err[j] =np.sqrt(np.sum(q_err_sqr[start_idx:end_idx])/(end_idx-start_idx))
+                binned_q_err[j] =np.sqrt(np.sum(q_err_sqr[start_idx:end_idx]))/(end_idx-start_idx)
 
     parameters = copy.deepcopy(sasm.getAllParameters())
 
@@ -720,7 +720,6 @@ def rebin(sasm, rebin_factor):
     err_roi = sasm.getErr()[start_idx:end_idx]
 
     err_sqr = err_roi**2
-    err_norm = np.sqrt(rebin_factor)
 
     if sasm.q_err is not None:
         q_err_roi = sasm.getQErr()[start_idx:end_idx]
@@ -745,10 +744,10 @@ def rebin(sasm, rebin_factor):
 
         new_i[eachbin] = np.sum(i_roi[first_idx:last_idx]) / rebin_factor
         new_q[eachbin] = np.sum(q_roi[first_idx:last_idx]) / rebin_factor
-        new_err[eachbin] = np.sqrt(np.sum(err_sqr[first_idx:last_idx])) / err_norm
+        new_err[eachbin] = np.sqrt(np.sum(err_sqr[first_idx:last_idx])) / (last_idx-first_idx)
 
         if q_err_roi is not None:
-            new_q_err[eachbin] = np.sqrt(np.sum(q_err_sqr[first_idx:last_idx])) / err_norm
+            new_q_err[eachbin] = np.sqrt(np.sum(q_err_sqr[first_idx:last_idx])) / (last_idx-first_idx)
 
 
     parameters = copy.deepcopy(sasm.getAllParameters())
