@@ -59,10 +59,13 @@ def calcTheta(sd_distance, pixel_size, q_length_pixels):
 #########################################
 #Methods adapted from pyFAI methods of the same or similar name to automatically get points in calibrant rings and fit them
 
-def new_grp(img, loc, gpt, defaultNbPoints, ring):
+def new_grp(img, loc, gpt, defaultNbPoints, ring, mask):
+    # some weirdness in making the image axis go from 0 to max in y, instead of max to 0
+    mask = np.flipud(mask)
 
-    massif = pyFAI.massif.Massif(img)
+    massif = pyFAI.massif.Massif(img, mask=mask)
     points = massif.find_peaks([loc[1], loc[0]], defaultNbPoints)
+
     if points:
         gpt.append(points, ring=ring)
 
@@ -74,7 +77,8 @@ class RAWCalibration(object):
 
     PARAMETERS = ["dist", "poni1", "poni2", "rot1", "rot2", "rot3", "wavelength"]
 
-    def __init__(self, img, wavelength = None, detector = None, calibrant = None, pixelSize = None, gaussianWidth = None):
+    def __init__(self, img, wavelength = None, detector = None, calibrant = None,
+        pixelSize = None, gaussianWidth = None):
         self.gaussianWidth = gaussianWidth
         self.detector = detector
         self.calibrant = calibrant

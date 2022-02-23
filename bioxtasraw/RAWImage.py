@@ -654,7 +654,9 @@ class ImagePanel(wx.Panel):
             self._addRectanglePoint(x, y, event)
 
         elif self.pyfai_cent_mode and self.toolbar.getCurrentTool() is None:
-            points, centering_panel.c.points = SASCalib.new_grp(self.img, [int(x), int(y)], centering_panel.c.points, 100, self.pyfai_ring_num)
+            points, centering_panel.c.points = SASCalib.new_grp(self.img, [int(x),
+                int(y)], centering_panel.c.points, 200, self.pyfai_ring_num,
+                centering_panel.bs_mask)
 
             if not points:
                 if self.canvas.HasCapture():

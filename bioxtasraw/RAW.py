@@ -13702,6 +13702,22 @@ class CenteringPanel(scrolled.ScrolledPanel):
 
             detector = pyFAI.detectors.Detector(pixel1=pixel_size_y, pixel2=pixel_size_x, max_shape=img.shape)
 
+        # Get mask
+        use_hdr_config = self._main_frame.raw_settings.get('UseHeaderForConfig')
+
+        if not use_hdr_config:
+            mask_dict = self._main_frame.raw_settings.get('Masks')
+            self.bs_mask = mask_dict['BeamStopMask'][0]
+
+            if self.bs_mask is None:
+                self.bs_mask = np.zeros(img.shape)
+
+            else:
+                self.bs_mask = np.logical_not(self.bs_mask)
+
+        else:
+            self.bs_mask = np.zeros(img.shape)
+
         self.c = SASCalib.RAWCalibration(img, wavelength = wavelength, calibrant = calibrant, detector = detector)
         self.c.ai = pyFAI.azimuthalIntegrator.AzimuthalIntegrator(wavelength = wavelength, detector = detector)
         self.c.ai.setFit2D(sd_distance, self._center[0], self._center[1],
