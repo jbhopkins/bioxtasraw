@@ -796,7 +796,7 @@ def parseBioCATlogfile(filename, new_filename=None):
 
     test_idx = int(searchName.split('_')[-1]) + offset
 
-    if searchName in allLines[test_idx]:
+    if test_idx < len(allLines) and searchName in allLines[test_idx]:
         line_num = test_idx
     else:
         for a in range(1,len(allLines)):
@@ -1017,6 +1017,7 @@ def loadHeader(filename, new_filename, header_type):
                 hdr = all_header_types[header_type](filename)
         except IOError as io:
             raise SASExceptions.HeaderLoadError(str(io).replace("u'",''))
+            # traceback.print_exc()
         except Exception as e:
             # print(e)
             # traceback.print_exc()
