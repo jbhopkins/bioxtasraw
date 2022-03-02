@@ -2556,6 +2556,13 @@ def loadDamselLogFile(filename):
 
                     if part2.strip().split()[-1].isalpha():
                         res_unit = part2.strip().split()[-1]
+                else:
+                    vals = line.split('=')[-1].strip()
+                    res, res_unit = vals.split()
+                    res = res.strip()
+                    res_err = 0
+                    res_unit = res_unit.strip()
+
 
     return mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit
 

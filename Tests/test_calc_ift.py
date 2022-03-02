@@ -55,8 +55,8 @@ def test_damaver(temp_directory):
 
     assert np.allclose(mean_nsd, 0.443, rtol=1e-2)
     assert stdev_nsd == 0.014
-    assert res == 25
-    assert res_err == 2
+    assert res == 20
+    assert res_err == 0
 
 @pytest.mark.atsas
 @pytest.mark.very_slow
