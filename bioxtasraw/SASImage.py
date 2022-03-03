@@ -148,6 +148,7 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
                 mask_param = mask_dict[each_key]
                 mask_param[0] = mask_img
                 mask_param[1] = masks
+                mask_param[2] = np.logical_not(mask_img)
 
     else:
         mask_dict = raw_settings.get('Masks')
@@ -233,17 +234,19 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
                 all_mask_patches = mask_patches
 
             bs_mask = SASMask.createMaskMatrix(img.shape, all_mask_patches)
+
+            if bs_mask is not None:
+                bs_mask = np.logical_not(bs_mask) #Invert mask for pyFAI
+
         except KeyError:
             raise SASExceptions.HeaderMaskLoadError('bsmask_configuration not found in header.')
 
     else:
-        bs_mask = mask_dict['BeamStopMask'][0]
+        bs_mask = mask_dict['BeamStopMask'][2]
         tbs_mask = mask_dict['TransparentBSMask'][0]
 
     if bs_mask is None:
         bs_mask = np.zeros(img.shape)
-    else:
-        bs_mask = np.logical_not(bs_mask) #Invert mask for pyFAI
 
     # Get values from image header if applicable
     if use_hdr_calib:

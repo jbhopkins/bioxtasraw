@@ -119,6 +119,7 @@ def load_settings(file, settings=None):
                 mask_param = mask_dict[each_key]
                 mask_param[0] = mask_img
                 mask_param[1] = masks
+                mask_param[2] = np.logical_not(mask_img)
     else:
         print('Failed to load settings')
 

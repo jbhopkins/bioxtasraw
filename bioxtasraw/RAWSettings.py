@@ -176,9 +176,9 @@ class RawGuiSettings(object):
 
                 'DataSECM'                : [None, get_id(), 'text'],
 
-                                                                    #mask, mask_patches
-                'Masks'                   : [{'BeamStopMask'     : [None, None],
-                                              'TransparentBSMask': [None, None],
+                                                                    #mask, mask_patches, inverted mask
+                'Masks'                   : [{'BeamStopMask'     : [None, None, None],
+                                              'TransparentBSMask': [None, None, None],
                                              }],
 
                 'MaskDimension'          : [1024,1024],
@@ -619,6 +619,9 @@ def fixBackwardsCompatibility(raw_settings, loaded_param):
 
             masks[mask_type][1] = mask_list
 
+        if len(masks[mask_type]) == 2:
+            masks[mask_type].append(None)
+
     raw_settings.set('Masks', masks)
 
     if 'DetectorPixelSize' in loaded_param:
@@ -722,6 +725,9 @@ def postProcess(raw_settings, default_settings, loaded_param):
 
             masks[mask_type][1] = mask_list
 
+        if len(masks[mask_type]) == 2:
+            masks[mask_type].append(None)
+
     raw_settings.set('Masks', masks)
 
     if 'ocl' in raw_settings.get('IntegrationMethod') and not RAWGlobals.has_pyopencl:
@@ -808,6 +814,7 @@ def saveSettings(raw_settings, savepath, save_backup=True):
 
     for key in masks:
         masks[key][0] = None
+        masks[key][2] = None
         if masks[key][1] is not None:
             masks[key][1] = [mask.getSaveFormat() for mask in masks[key][1]]
 

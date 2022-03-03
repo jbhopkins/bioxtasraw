@@ -664,19 +664,8 @@ def logBinning(sasm, no_points):
         else:
             binned_q_err = None
 
-        # for j in range(log_bins.shape[0]-1):
-        #     start_idx = log_bins[j]
-        #     end_idx = log_bins[j+1]
-
-        #     binned_q[j] = np.sum(q[start_idx:end_idx])/(end_idx-start_idx)
-        #     binned_i[j] = np.sum(i[start_idx:end_idx])/(end_idx-start_idx)
-        #     binned_err[j] = np.sqrt(np.sum(err_sqr[start_idx:end_idx]))/(end_idx-start_idx)
-
-        #     if q_err is not None:
-        #         binned_q_err[j] =np.sqrt(np.sum(q_err_sqr[start_idx:end_idx]))/(end_idx-start_idx)
-
-        binned_q, binned_i, binned_err, binned_q_err = sub_log_bin(q, i, err_sqr, q_err, binned_q, binned_i, 
-            binned_err, binned_q_err, log_bins)
+        binned_q, binned_i, binned_err, binned_q_err = sub_log_bin(q, i, err_sqr,
+            q_err, binned_q, binned_i, binned_err, binned_q_err, log_bins)
 
     parameters = copy.deepcopy(sasm.getAllParameters())
 
