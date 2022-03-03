@@ -290,7 +290,7 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
     y_c = img.shape[0]-y_c
 
     # Find the maximum distance to the edge in the image:
-    img = np.float64(img)
+    # img = np.float64(img)
     ylen, xlen = img.shape
 
     xlen = int(xlen)
