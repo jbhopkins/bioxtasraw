@@ -1199,6 +1199,11 @@ def loadAsciiFile(filename, file_type):
 def loadImageFile(filename, raw_settings, hdf5_file=None):
     hdr_fmt = raw_settings.get('ImageHdrFormat')
 
+    if hdf5_file is not None:
+        is_hdf5 = True
+    else:
+        is_hdf5 = False
+
     loaded_data, loaded_hdr = loadImage(filename, raw_settings, hdf5_file)
 
     sasm_list = [None for i in range(len(loaded_data))]
@@ -1208,7 +1213,7 @@ def loadImageFile(filename, raw_settings, hdf5_file=None):
         img = loaded_data[i]
         img_hdr = loaded_hdr[i]
 
-        if len(loaded_data) > 1:
+        if len(loaded_data) > 1 or is_hdf5:
             temp_filename = os.path.split(filename)[1].split('.')
             if len(temp_filename) > 1:
                 temp_filename[-2] = temp_filename[-2] + '_%05i' %(i+1)
