@@ -59,6 +59,7 @@ class Mask(object):
 
     def setPoints(self, points):
         self._points = points
+        self._calcFillPoints()
 
     def setId(self, id):
         self._mask_id = id
@@ -166,8 +167,9 @@ class RectangleMask(Mask):
     def __init__(self, first_point, second_point, id, img_dim, negative = False):
 
         Mask.__init__(self, id, img_dim, 'rectangle', negative)
-        self._points = [first_point, second_point]
-        self._calcFillPoints()
+
+        self.setPoints([first_point, second_point])
+
 
     def grow(self, pixels):
 
@@ -190,9 +192,7 @@ class RectangleMask(Mask):
             y1 = y1 + pixels
             y2 = y2 - pixels
 
-        self._points = [(x1,y1), (x2,y2)]
-
-        self._calcFillPoints()
+        self.setPoints((x1,y1), (x2,y2))
 
     def shrink(self):
         ''' NOT IMPLEMENTED YET '''
@@ -253,9 +253,7 @@ class PolygonMask(Mask):
 
         Mask.__init__(self, id, img_dim, 'polygon', negative)
 
-        self._points = points
-
-        self._calcFillPoints()
+        self.setPoints(points)
 
     def _calcFillPoints(self):
         proper_formatted_points = []

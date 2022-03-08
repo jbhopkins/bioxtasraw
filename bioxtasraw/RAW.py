@@ -3637,6 +3637,8 @@ class MainWorkerThread(threading.Thread):
                 mask_param[1] = masks
                 mask_param[2] = np.logical_not(mask_img)
 
+        self._raw_settings.set('Masks', mask_dict)
+
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
     def _createMask(self, data):
@@ -3656,6 +3658,8 @@ class MainWorkerThread(threading.Thread):
         mask_param[0] = mask_img
         mask_param[1] = masks
         mask_param[2] = np.logical_not(mask_img)
+
+        self._raw_settings.set('Masks', mask_dict)
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
         wx.CallAfter(self._showGenericMsg, 'The mask has been created and enabled.', 'Mask creation finished')
