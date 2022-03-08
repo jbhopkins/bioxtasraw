@@ -1228,6 +1228,9 @@ class GuinierControlPanel(wx.Panel):
         wx.CallAfter(self._finish_autorg, rg, rger, i0, i0er, idx_min, idx_max)
 
     def _finish_autorg(self, rg, rger, i0, i0er, idx_min, idx_max):
+
+        nmin_offset, _ = self.ExpObj.getQrange()
+
         try:
             spinstart = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
             spinend = wx.FindWindowById(self.spinctrlIDs['qend'], self)
@@ -1254,8 +1257,8 @@ class GuinierControlPanel(wx.Panel):
 
         else:
             try:
-                spinstart.SetValue(int(idx_min))
-                spinend.SetValue(int(idx_max))
+                spinstart.SetValue(int(idx_min)+nmin_offset)
+                spinend.SetValue(int(idx_max)+nmin_offset)
 
                 txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
                 txt.SetValue(str(round(self.ExpObj.q[int(idx_min)],5)))
@@ -4962,19 +4965,15 @@ class GNOMControlPanel(wx.Panel):
         if 'guinier' not in analysis:
             RAWAPI.auto_guinier(save_sasm, error_weight)
 
-        if platform.system() == 'Darwin' and six.PY3:
-            single_proc = True
-        else:
-            single_proc = False
-
         try:
-            dmax = RAWAPI.auto_dmax(save_sasm, single_proc=single_proc)
+            dmax = RAWAPI.auto_dmax(save_sasm, single_proc=True)
         except Exception as e:
             dmax = -1
             msg = ("Automatic Dmax determination failed with the following error:\n"
                 "{}".format(e))
             wx.CallAfter(self.main_frame.showMessageDialog, self, msg, "Error finding Dmax",
                 wx.ICON_WARNING|wx.OK)
+            traceback.print_exc()
 
         if dmax == -1:
             try:

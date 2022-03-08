@@ -1120,11 +1120,13 @@ def auto_guinier(profile, error_weight=True, single_fit=True, settings=None):
         error = y - y_fit
         r_sqr = 1 - np.square(error).sum()/np.square(y-y.mean()).sum()
 
+        nmin_offset, _ = profile.getQrange()
+
         info_dict = {}
         info_dict['Rg'] = rg
         info_dict['I0'] = i0
-        info_dict['nStart'] = idx_min
-        info_dict['nEnd'] = idx_max
+        info_dict['nStart'] = idx_min + nmin_offset
+        info_dict['nEnd'] = idx_max + nmin_offset
         info_dict['qStart'] = qmin
         info_dict['qEnd'] = qmax
         info_dict['qRg_min'] = qRg_min
@@ -1785,7 +1787,7 @@ def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
                 guinier_dict = analysis_dict['guinier']
                 rg = float(guinier_dict['Rg'])
                 i0 = float(guinier_dict['I0'])
-                first = int(guinier_dict['nStart']) - profile.getQrange()[0] + 1
+                first = int(guinier_dict['nStart']) + 1
 
             elif use_i0_from == 'gnom':
                 gnom_dict = analysis_dict['GNOM']
@@ -1794,7 +1796,7 @@ def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
 
                 if 'guinier' in analysis_dict:
                     guinier_dict = analysis_dict['guinier']
-                    first = int(guinier_dict['nStart']) - profile.getQrange()[0] + 1
+                    first = int(guinier_dict['nStart']) + 1
                 else:
                     first = 1
 
@@ -1805,7 +1807,7 @@ def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
 
                 if 'guinier' in analysis_dict:
                     guinier_dict = analysis_dict['guinier']
-                    first = int(guinier_dict['nStart']) - profile.getQrange()[0] + 1
+                    first = int(guinier_dict['nStart']) + 1
                 else:
                     first = 1
 
@@ -1927,7 +1929,7 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
                 guinier_dict = analysis_dict['guinier']
                 rg = float(guinier_dict['Rg'])
                 i0 = float(guinier_dict['I0'])
-                first = int(guinier_dict['nStart']) - profile.getQrange()[0] + 1
+                first = int(guinier_dict['nStart']) + 1
 
             elif use_i0_from == 'gnom':
                 gnom_dict = analysis_dict['GNOM']
@@ -1936,7 +1938,7 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
 
                 if 'guinier' in analysis_dict:
                     guinier_dict = analysis_dict['guinier']
-                    first = int(guinier_dict['nStart']) - profile.getQrange()[0] + 1
+                    first = int(guinier_dict['nStart']) + 1
                 else:
                     first = 1
 
@@ -1947,7 +1949,7 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
 
                 if 'guinier' in analysis_dict:
                     guinier_dict = analysis_dict['guinier']
-                    first = int(guinier_dict['nStart']) - profile.getQrange()[0] + 1
+                    first = int(guinier_dict['nStart']) + 1
                 else:
                     first = 1
 
@@ -2278,7 +2280,7 @@ def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
         analysis_dict = profile.getParameter('analysis')
         if 'guinier' in analysis_dict:
             guinier_dict = analysis_dict['guinier']
-            idx_min = int(guinier_dict['nStart']) - profile.getQrange()[0]
+            idx_min = int(guinier_dict['nStart'])
         else:
             idx_min = 0
 
@@ -2495,7 +2497,7 @@ def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
             analysis_dict = profile.getParameter('analysis')
             if 'guinier' in analysis_dict:
                 guinier_dict = analysis_dict['guinier']
-                idx_min = int(guinier_dict['nStart']) - profile.getQrange()[0]
+                idx_min = int(guinier_dict['nStart'])
             else:
                 idx_min = 0
 
@@ -2521,7 +2523,7 @@ def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
             analysis_dict = profile.getParameter('analysis')
             if 'guinier' in analysis_dict:
                 guinier_dict = analysis_dict['guinier']
-                idx_min = int(guinier_dict['nStart']) - profile.getQrange()[0]
+                idx_min = int(guinier_dict['nStart'])
             else:
                 idx_min = 0
 
@@ -2795,7 +2797,7 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
             analysis_dict = profile.getParameter('analysis')
             if 'guinier' in analysis_dict:
                 guinier_dict = analysis_dict['guinier']
-                idx_min = int(guinier_dict['nStart']) - profile.getQrange()[0]
+                idx_min = int(guinier_dict['nStart'])
             else:
                 idx_min = 0
 
@@ -2822,7 +2824,7 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
             analysis_dict = profile.getParameter('analysis')
             if 'guinier' in analysis_dict:
                 guinier_dict = analysis_dict['guinier']
-                idx_min = int(guinier_dict['nStart']) - profile.getQrange()[0]
+                idx_min = int(guinier_dict['nStart'])
             else:
                 idx_min = 0
 
