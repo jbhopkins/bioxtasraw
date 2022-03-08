@@ -412,14 +412,27 @@ class ImagePanel(wx.Panel):
 
         self.plotStoredMasks(update=False)
 
-        self.plot_parameters['maxImgVal'] = self.img.max()
-        self.plot_parameters['minImgVal'] = self.img.min()
+        mainframe = wx.FindWindowByName('MainFrame')
+
+        settings = mainframe.raw_settings
+
+        if 'eiger2' in settings.get('Detector'):
+            self.plot_parameters['maxImgVal'] = self.img[self.img<4294967295].max()
+
+        else:
+            self.plot_parameters['maxImgVal'] = self.img.max()
+
+        if 'pilatus' in settings.get('Detector'):
+            self.plot_parameters['maxImgVal'] = self.img[self.img>-1].min()
+
+        else:
+            self.plot_parameters['minImgVal'] = self.img.min()
 
         if self.plot_parameters['ClimLocked'] == False:
             clim = self.imgobj.get_clim()
 
-            self.plot_parameters['UpperClim'] = clim[1]
-            self.plot_parameters['LowerClim'] = clim[0]
+            self.plot_parameters['UpperClim'] = min(clim[1], self.plot_parameters['maxImgVal'])
+            self.plot_parameters['LowerClim'] = max(clim[0], self.plot_parameters['minImgVal'])
         else:
             clim = self.imgobj.set_clim(self.plot_parameters['LowerClim'], self.plot_parameters['UpperClim'])
 
