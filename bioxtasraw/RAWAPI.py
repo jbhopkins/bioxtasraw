@@ -1787,7 +1787,7 @@ def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
                 guinier_dict = analysis_dict['guinier']
                 rg = float(guinier_dict['Rg'])
                 i0 = float(guinier_dict['I0'])
-                first = int(guinier_dict['nStart']) + 1
+                first = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
 
             elif use_i0_from == 'gnom':
                 gnom_dict = analysis_dict['GNOM']
@@ -1796,7 +1796,7 @@ def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
 
                 if 'guinier' in analysis_dict:
                     guinier_dict = analysis_dict['guinier']
-                    first = int(guinier_dict['nStart']) + 1
+                    first = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
                 else:
                     first = 1
 
@@ -1807,7 +1807,7 @@ def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
 
                 if 'guinier' in analysis_dict:
                     guinier_dict = analysis_dict['guinier']
-                    first = int(guinier_dict['nStart']) + 1
+                    first = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
                 else:
                     first = 1
 
@@ -1929,7 +1929,7 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
                 guinier_dict = analysis_dict['guinier']
                 rg = float(guinier_dict['Rg'])
                 i0 = float(guinier_dict['I0'])
-                first = int(guinier_dict['nStart']) + 1
+                first = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
 
             elif use_i0_from == 'gnom':
                 gnom_dict = analysis_dict['GNOM']
@@ -1938,7 +1938,7 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
 
                 if 'guinier' in analysis_dict:
                     guinier_dict = analysis_dict['guinier']
-                    first = int(guinier_dict['nStart']) + 1
+                    first = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
                 else:
                     first = 1
 
@@ -1949,7 +1949,7 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
 
                 if 'guinier' in analysis_dict:
                     guinier_dict = analysis_dict['guinier']
-                    first = int(guinier_dict['nStart']) + 1
+                    first = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
                 else:
                     first = 1
 
@@ -1967,7 +1967,7 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
         datadir = os.path.abspath(os.path.expanduser(datadir))
 
 
-    res = SASCalc.runDatclass(rg, i0, atsas_dir, datadir, filename)
+    res = SASCalc.runDatclass(rg, i0, first, atsas_dir, datadir, filename)
 
 
     if write_file and os.path.isfile(os.path.join(datadir, filename)):
@@ -2280,7 +2280,7 @@ def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
         analysis_dict = profile.getParameter('analysis')
         if 'guinier' in analysis_dict:
             guinier_dict = analysis_dict['guinier']
-            idx_min = int(guinier_dict['nStart'])
+            idx_min = max(0, int(analysis['guinier']['nStart']) - profile.getQrange()[0])
         else:
             idx_min = 0
 
@@ -2497,23 +2497,19 @@ def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
             analysis_dict = profile.getParameter('analysis')
             if 'guinier' in analysis_dict:
                 guinier_dict = analysis_dict['guinier']
-                idx_min = int(guinier_dict['nStart'])
+                idx_min = max(1, int(analysis['guinier']['nStart']) - profile.getQrange()[0] + 1)
             else:
-                idx_min = 0
+                idx_min = 1
 
         elif idx_min is None:
-            idx_min = 0
+            idx_min = 1
 
-        if idx_max is not None:
-            save_profile.setQrange((idx_min, idx_max+1))
-        else:
+        if idx_max is None:
             if cut_8rg:
                 q = save_profile.getQ()
-                idx_max = np.argmin(np.abs(q-(8/rg)))
+                idx_max = np.argmin(np.abs(q-(8/rg))) +1
             else:
-                _, idx_max = save_profile.getQrange()
-
-            save_profile.setQrange((idx_min, idx_max))
+                idx_max = save_profile.getQrange()[1] + 1
 
         SASFileIO.writeRadFile(save_profile, os.path.join(datadir, filename),
             False)
@@ -2523,15 +2519,15 @@ def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
             analysis_dict = profile.getParameter('analysis')
             if 'guinier' in analysis_dict:
                 guinier_dict = analysis_dict['guinier']
-                idx_min = int(guinier_dict['nStart'])
+                idx_min = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
             else:
-                idx_min = 0
+                idx_min = 1
 
         elif idx_min is None:
-            idx_min=0
+            idx_min=1
 
         if idx_max is None and profile is not None:
-            _, idx_max = save_profile.getQrange()
+            idx_max = profile.getQrange()[1] + 1
 
 
     if not save_ift:
@@ -2797,24 +2793,22 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
             analysis_dict = profile.getParameter('analysis')
             if 'guinier' in analysis_dict:
                 guinier_dict = analysis_dict['guinier']
-                idx_min = int(guinier_dict['nStart'])
+                idx_min = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] +1)
             else:
-                idx_min = 0
+                idx_min = 1
 
         elif idx_min is None:
-            idx_min = 0
+            idx_min = 1
 
-        if idx_max is not None:
-            save_profile.setQrange((idx_min, idx_max+1))
-        else:
+        if idx_max is None:
             if cut_dam:
                 q = save_profile.getQ()
                 max_q = min(8/rg, 0.3)
-                idx_max = np.argmin(np.abs(q-max_q))
+                idx_max = np.argmin(np.abs(q-max_q)) -profile.getQrange()[0] -1
             else:
-                _, idx_max = save_profile.getQrange()
+                idx_max = save_profile.getQrange()[1] -profile.getQrange()[0] -1
 
-            save_profile.setQrange((idx_min, idx_max))
+        idx_max = idx_max + 1
 
         SASFileIO.writeRadFile(save_profile, os.path.join(datadir, filename),
             False)
@@ -2824,15 +2818,15 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
             analysis_dict = profile.getParameter('analysis')
             if 'guinier' in analysis_dict:
                 guinier_dict = analysis_dict['guinier']
-                idx_min = int(guinier_dict['nStart'])
+                idx_min = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
             else:
-                idx_min = 0
+                idx_min = 1
 
         elif idx_min is None:
-            idx_min=0
+            idx_min=1
 
         if idx_max is None and profile is not None:
-            _, idx_max = save_profile.getQrange()
+            idx_max = profile.getQrange()[1] +1
 
 
     #Initialize settings
@@ -2843,6 +2837,8 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
             'rmax_zero'     : dmax_zero,
             'npts'          : settings.get('gnomNPoints'),
             'alpha'         : alpha,
+            'first'         : idx_min,
+            'last'          : idx_max,
             'angular'       : settings.get('gnomAngularScale'),
             'system'        : settings.get('gnomSystem'),
             'form'          : settings.get('gnomFormFactor'),
@@ -2876,6 +2872,9 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
             'rmax_zero'     : dmax_zero,
             'npts'          : npts,
             'alpha'         : alpha,
+            'first'         : idx_min,
+            'last'          : idx_max,
+            'alpha'         : alpha,
             'angular'       : angular_scale,
             'system'        : system,
             'form'          : form_factor,
@@ -2891,8 +2890,8 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
             }
 
     # Run the IFT
-    ift = SASCalc.runGnom(filename, savename, dmax, gnom_settings, datadir,
-        atsas_dir, True)
+    ift = SASCalc.runGnom(filename, save_ift, dmax, gnom_settings, datadir,
+        atsas_dir, savename, True)
 
     # Clean up
     if write_profile and os.path.isfile(os.path.join(datadir, filename)):

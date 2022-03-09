@@ -3552,11 +3552,12 @@ class MolWeightFrame(wx.Frame):
 
                 try:
                     #Plus one offset is because datmw has 1 as first point, not 0
-                    first = int(analysis['guinier']['nStart']) - self.sasm.getQrange()[0] + 1
+                    first = max(1, int(analysis['guinier']['nStart']) - profile.getQrange()[0] + 1)
+
                 except Exception:
                     first = self.sasm.getQrange()[0]+1
 
-            if i0 == -1 or rg == -1:
+            if i0 == -1 or rg == -1 or first == -1:
                 raise SASExceptions.NoATSASError('Datmw requires rg and i0.')
 
             res = SASCalc.runDatmw(rg, i0, first, 'bayes',
@@ -3643,8 +3644,11 @@ class MolWeightFrame(wx.Frame):
             if i0 == -1 or rg == -1:
                 raise SASExceptions.NoATSASError('Datclass requires rg and i0.')
 
-            res = SASCalc.runDatclass(rg, i0, self.raw_settings.get('ATSASDir'),
+            first = max(1, int(analysis['guinier']['nStart']) - profile.getQrange()[0] + 1)
+
+            res = SASCalc.runDatclass(rg, i0, first, self.raw_settings.get('ATSASDir'),
                 path, datname)
+
         except Exception:
             res = ()
 
@@ -3914,6 +3918,8 @@ class GNOMFrame(wx.Frame):
 
     def initGNOM(self, sasm):
 
+        self.saveGNOMProfile()
+
         analysis_dict = sasm.getParameter('analysis')
         if 'GNOM' in analysis_dict:
             wx.CallAfter(self.controlPanel.initGnomValues, sasm)
@@ -3945,7 +3951,61 @@ class GNOMFrame(wx.Frame):
     def updateGNOMSettings(self):
         self.controlPanel.updateGNOMSettings()
 
+    def saveGNOMProfile(self):
+        tempdir = self.standard_paths.GetTempDir()
+
+        save_sasm = copy.deepcopy(self.sasm)
+
+        savename = os.path.splitext(save_sasm.getParameter('filename'))[0] + '.dat'
+
+        outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
+        while os.path.isfile(outname):
+            outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
+
+        outname = os.path.split(outname)[1]
+        outname = outname+'.out'
+
+        if (self.main_frame.OnlineControl.isRunning()
+            and tempdir == self.main_frame.OnlineControl.getTargetDir()):
+            self.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
+        try:
+            SASFileIO.saveMeasurement(save_sasm, tempdir, self._raw_settings, filetype = '.dat')
+        except SASExceptions.HeaderSaveError as e:
+            self._showSaveError('header')
+
+        self.tempdir = tempdir
+        self.savename = savename
+        self.outname = outname
+
+        if restart_timer:
+            wx.CallAfter(self.main_frame.controlTimer, True)
+
+    def cleanupGNOM(self):
+        savefile = os.path.join(self.tempdir, self.savename)
+        outfile = os.path.join(self.tempdir, self.outname)
+
+        if self.savename != '':
+            if os.path.isfile(savefile):
+                try:
+                    os.remove(savefile)
+                except Exception as e:
+                    print(e)
+                    print('GNOM cleanup failed to remove the .dat file!')
+
+        if self.outname != '':
+            if os.path.isfile(outfile):
+                try:
+                    os.remove(outfile)
+                except Exception as e:
+                    print(e)
+                    print('GNOM cleanup failed to remove the .out file!')
+
     def OnClose(self):
+        self.cleanupGNOM()
 
         self.Destroy()
 
@@ -4187,6 +4247,8 @@ class GNOMControlPanel(wx.Panel):
             'rmax_zero'     : self.raw_settings.get('gnomForceRmaxZero'),
             'npts'          : self.raw_settings.get('gnomNPoints'),
             'alpha'         : self.raw_settings.get('gnomInitialAlpha'),
+            'first'         : 1,
+            'last'          : len(self.sasm.q) + 1,
             'angular'       : self.raw_settings.get('gnomAngularScale'),
             'system'        : self.raw_settings.get('gnomSystem'),
             'form'          : self.raw_settings.get('gnomFormFactor'),
@@ -4552,6 +4614,8 @@ class GNOMControlPanel(wx.Panel):
         else:
             self.alpha_ctrl.SetValue('0')
 
+        self.updateGNOMSettings(update_plot=False)
+
         if dmax != -1:
             self.old_dmax = dmax
 
@@ -4567,7 +4631,6 @@ class GNOMControlPanel(wx.Panel):
                     self.alpha_ctrl.SetValue('0')
                 else:
                     self.alpha_ctrl.SetValue(str(alpha))
-                    self.updateGNOMSettings(update_plot=False)
                     self.calcGNOM(dmax)
 
             self.updateGNOMInfo(self.out_list[str(dmax)])
@@ -4667,6 +4730,7 @@ class GNOMControlPanel(wx.Panel):
         end_idx = endSpin.GetValue()
 
         if not self.out_list or dmax not in self.out_list:
+            self.updateGNOMSettings(update_plot=False)
             self.calcGNOM(dmax)
 
         gnom_results['Dmax'] = dmax
@@ -4931,6 +4995,7 @@ class GNOMControlPanel(wx.Panel):
         plotpanel = self.gnom_frame.plotPanel
 
         if str(dmax) not in self.out_list:
+            self.updateGNOMSettings(update_plot=False)
             self.calcGNOM(dmax)
 
         if str(dmax) in self.out_list:
@@ -4948,15 +5013,14 @@ class GNOMControlPanel(wx.Panel):
             plotpanel.clearDataPlot()
 
     def findDmax(self):
-        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
-        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
+        self.updateGNOMSettings(update_plot=False)
 
-        start = int(startSpin.GetValue())
-        end = int(endSpin.GetValue())
+        start = self.gnom_settings['first'] -1
+        end = self.gnom_settings['last'] -1
 
         save_sasm = copy.deepcopy(self.sasm)
 
-        save_sasm.setQrange((start, end+1))
+        save_sasm.setQrange((start, end))
 
         # Calculate Rg if not available
         error_weight = self.raw_settings.get('errorWeight')
@@ -5006,18 +5070,9 @@ class GNOMControlPanel(wx.Panel):
         self.gnom_frame.showBusy(show=False)
 
     def calcGNOM(self, dmax):
-        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
-        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
-
-        start = int(startSpin.GetValue())
-        end = int(endSpin.GetValue())
-
         tempdir = self.gnom_frame.standard_paths.GetTempDir()
 
-        save_sasm = SASM.SASM(copy.deepcopy(self.sasm.i), copy.deepcopy(self.sasm.q),
-            copy.deepcopy(self.sasm.err), copy.deepcopy(self.sasm.getAllParameters()))
-
-        save_sasm.setQrange((start, end+1))
+        save_sasm = copy.deepcopy(self.sasm)
 
         savename = os.path.splitext(save_sasm.getParameter('filename'))[0] + '.dat'
 
@@ -5027,6 +5082,9 @@ class GNOMControlPanel(wx.Panel):
 
         outname = os.path.split(outname)[1]
         outname = outname+'.out'
+
+        if not os.path.isfile(os.path.join(self.gnom_frame.tempdir, self.gnom_frame.savename)):
+            self.gnom_Frame.saveGNOMProfile()
 
         if (self.gnom_frame.main_frame.OnlineControl.isRunning()
             and tempdir == self.gnom_frame.main_frame.OnlineControl.getTargetDir()):
@@ -5041,16 +5099,16 @@ class GNOMControlPanel(wx.Panel):
             self._showSaveError('header')
 
         try:
-            iftm = SASCalc.runGnom(savename, outname, dmax, self.gnom_settings,
-                tempdir, self.raw_settings.get('ATSASDir'),
+            iftm = SASCalc.runGnom(self.gnom_frame.savename, False, dmax,
+                self.gnom_settings, self.gnom_frame.tempdir,
+                self.raw_settings.get('ATSASDir'), self.gnom_frame.outname,
                 new_gnom=self.gnom_frame.new_gnom)
+
         except (SASExceptions.NoATSASError, SASExceptions.GNOMError) as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
-            self.cleanupGNOM(tempdir, savename, outname)
             self.SetFocusIgnoringChildren()
+            traceback.print_exc()
             return
-
-        self.cleanupGNOM(tempdir, savename, outname)
 
         if restart_timer:
             wx.CallAfter(self.gnom_frame.main_frame.controlTimer, True)
@@ -5063,24 +5121,27 @@ class GNOMControlPanel(wx.Panel):
     def updateGNOMSettings(self, update_plot=True):
         self.old_settings = copy.deepcopy(self.gnom_settings)
 
-        self.gnom_settings = {  'expert'        : self.raw_settings.get('gnomExpertFile'),
-                                'rmin_zero'     : self.raw_settings.get('gnomForceRminZero'),
-                                'rmax_zero'     : wx.FindWindowById(self.otherctrlIDs['force_dmax']).GetStringSelection(),
-                                'npts'          : self.raw_settings.get('gnomNPoints'),
-                                'alpha'         : wx.FindWindowById(self.staticTxtIDs['alpha']).GetValue(),
-                                'angular'       : self.raw_settings.get('gnomAngularScale'),
-                                'system'        : self.raw_settings.get('gnomSystem'),
-                                'form'          : self.raw_settings.get('gnomFormFactor'),
-                                'radius56'      : self.raw_settings.get('gnomRadius56'),
-                                'rmin'          : self.raw_settings.get('gnomRmin'),
-                                'fwhm'          : self.raw_settings.get('gnomFWHM'),
-                                'ah'            : self.raw_settings.get('gnomAH'),
-                                'lh'            : self.raw_settings.get('gnomLH'),
-                                'aw'            : self.raw_settings.get('gnomAW'),
-                                'lw'            : self.raw_settings.get('gnomLW'),
-                                'spot'          : self.raw_settings.get('gnomSpot'),
-                                'expt'          : self.raw_settings.get('gnomExpt')
-                                }
+        self.gnom_settings = {
+            'expert'    : self.raw_settings.get('gnomExpertFile'),
+            'rmin_zero' : self.raw_settings.get('gnomForceRminZero'),
+            'rmax_zero' : wx.FindWindowById(self.otherctrlIDs['force_dmax']).GetStringSelection(),
+            'npts'      : self.raw_settings.get('gnomNPoints'),
+            'alpha'     : wx.FindWindowById(self.staticTxtIDs['alpha']).GetValue(),
+            'first'     : int( wx.FindWindowById(self.spinctrlIDs['qstart'], self).GetValue())+1,
+            'last'      : int( wx.FindWindowById(self.spinctrlIDs['qend'], self).GetValue())+1,
+            'angular'   : self.raw_settings.get('gnomAngularScale'),
+            'system'    : self.raw_settings.get('gnomSystem'),
+            'form'      : self.raw_settings.get('gnomFormFactor'),
+            'radius56'  : self.raw_settings.get('gnomRadius56'),
+            'rmin'      : self.raw_settings.get('gnomRmin'),
+            'fwhm'      : self.raw_settings.get('gnomFWHM'),
+            'ah'        : self.raw_settings.get('gnomAH'),
+            'lh'        : self.raw_settings.get('gnomLH'),
+            'aw'        : self.raw_settings.get('gnomAW'),
+            'lw'        : self.raw_settings.get('gnomLW'),
+            'spot'      : self.raw_settings.get('gnomSpot'),
+            'expt'      : self.raw_settings.get('gnomExpt')
+            }
 
         if self.old_settings != self.gnom_settings:
             self.out_list = {}
@@ -5091,27 +5152,6 @@ class GNOMControlPanel(wx.Panel):
 
     def onChangeParams(self, evt):
         self.main_frame.showOptionsDialog(focusHead='GNOM')
-
-    def cleanupGNOM(self, path, savename = '', outname = ''):
-        savefile = os.path.join(path, savename)
-        outfile = os.path.join(path, outname)
-
-        if savename != '':
-            if os.path.isfile(savefile):
-                try:
-                    os.remove(savefile)
-                except Exception as e:
-                    print(e)
-                    print('GNOM cleanup failed to remove the .dat file!')
-
-        if outname != '':
-            if os.path.isfile(outfile):
-                try:
-                    os.remove(outfile)
-                except Exception as e:
-                    print(e)
-                    print('GNOM cleanup failed to remove the .out file!')
-
 
 class DammifFrame(wx.Frame):
 

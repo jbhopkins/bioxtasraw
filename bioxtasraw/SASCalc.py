@@ -1027,7 +1027,7 @@ def setATSASEnv(atsasDir):
 
     return my_env
 
-def runGnom(fname, outname, dmax, args, path, atsasDir, new_gnom = False, ):
+def runGnom(fname, save_ift, dmax, args, path, atsasDir, outname=None, new_gnom = False, ):
     #This function runs GNOM from the atsas package. It can do so without writing a GNOM cfg file.
     #It takes as input the filename to run GNOM on, the output name from the GNOM file, the dmax to evaluate
     #at, and a dictionary of arguments, which can be used to set the optional GNOM arguments.
@@ -1119,7 +1119,11 @@ def runGnom(fname, outname, dmax, args, path, atsasDir, new_gnom = False, ):
                 os.remove(os.path.join(path, 'gnom.cfg'))
 
             if new_gnom and use_cmd_line:
-                cmd = '"%s" --rmax=%s --output="%s"' %(gnomDir, str(dmax), outname)
+                cmd = ('"%s" --rmax=%s --first=%s --last=%s' %(gnomDir,
+                    str(dmax), str(args['first']), str(args['last'])))
+
+                if save_ift and outname is not None:
+                    cmd = cmd + ' --output="{}"'.format(outname)
 
                 if args['npts'] > 0:
                     cmd = cmd + ' --nr=%s'%(str(args['npts']))
@@ -1144,10 +1148,23 @@ def runGnom(fname, outname, dmax, args, path, atsasDir, new_gnom = False, ):
 
                 cmd = cmd + ' "%s"' %(fname)
 
-                proc = subprocess.Popen(cmd, shell=shell, cwd=path, env=my_env)
+                process=subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE, shell=shell, cwd=path, env=my_env)
 
-                proc.wait()
+                output, error = process.communicate()
 
+                if not isinstance(output, str):
+                    output = str(output, encoding='UTF-8')
+
+                if not isinstance(error, str):
+                    error = str(error, encoding='UTF-8')
+
+                output = output.strip()
+                error = error.strip()
+
+                if error != '':
+                    raise SASExceptions.GNOMError(('GNOM failed to run with the '
+                        'following error:\n{}'.format(error)))
             else:
 
                 gnom_q = queue.Queue()
@@ -1337,15 +1354,15 @@ def runGnom(fname, outname, dmax, args, path, atsasDir, new_gnom = False, ):
                             proc.stdin.write('\r\n') #Default is user, good for now. Looks like setting weights is now done in expert mode rather than with a file, so eventually incorporate that.
 
                         elif previous_line.find('First point to use') > -1:
-                            if 's_skip' in args and args['s_skip'] != '':
-                                proc.stdin.write('%i\r\n' %(int(args['s_skip'])+1))
+                            if 'first' in args and args['first'] != '':
+                                proc.stdin.write('%i\r\n' %(int(args['first'])))
                             else:
                                 proc.stdin.write('\r\n') #Number of start points to skip, plus one, default is 1
 
                         elif previous_line.find('Last point to use') > -1:
                             tot_pts = int(current_line.split()[0].strip().rstrip(')'))
-                            if 'e_skip' in args and args['e_skip'] != '':
-                                proc.stdin.write('%i\r\n' %(tot_pts-int(args['e_skip'])))
+                            if 'last' in args and args['last'] != '':
+                                proc.stdin.write('%i\r\n' %(int(args['last'])))
                             else:
                                 proc.stdin.write('\r\n') #Number of start points to skip, plus one, default is 1
 
@@ -1370,7 +1387,12 @@ def runGnom(fname, outname, dmax, args, path, atsasDir, new_gnom = False, ):
 
                 gnom_t.join()
         try:
-            iftm=SASFileIO.loadOutFile(os.path.join(path, outname))[0]
+            if save_ift:
+                iftm=SASFileIO.loadOutFile(os.path.join(path, outname))[0]
+
+            else:
+                iftm = SASFileIO.parse_out_file(output.split('\n'))
+
         except IOError:
             raise SASExceptions.GNOMError('No GNOM output file present. GNOM failed to run correctly')
 
@@ -1602,7 +1624,7 @@ def runDatmw(rg, i0, first, method, atsasDir, path, datname):
     else:
         raise SASExceptions.NoATSASError('Cannot find datmw.')
 
-def runDatclass(rg, i0, atsasDir, path, datname):
+def runDatclass(rg, i0, first, atsasDir, path, datname):
     #This runs the ATSAS package DATCLASS program, to find the M.W. using
     #the shape and size method.
 
@@ -1617,7 +1639,8 @@ def runDatclass(rg, i0, atsasDir, path, datname):
 
         my_env = setATSASEnv(atsasDir)
 
-        cmd = '"{}" --rg={} --i0={} {}'.format(datclassDir, rg, i0, datname)
+        cmd = '"{}" --rg={} --i0={} --first={} {}'.format(datclassDir, rg, i0,
+            first, datname)
         process=subprocess.Popen(cmd, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, shell=True, cwd=path, env=my_env)
 

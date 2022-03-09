@@ -1617,6 +1617,16 @@ def loadHdf5File(filename, raw_settings):
 
 def loadOutFile(filename):
 
+    with open(filename, 'rU') as f:
+        lines = f.readlines()
+
+    iftm = parse_out_file(lines)
+
+    iftm.setParameter('filename', os.path.basename(filename))
+
+    return [iftm]
+
+def parse_out_file(lines):
     five_col_fit = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
     three_col_fit = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
     two_col_fit = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
@@ -1667,95 +1677,93 @@ def loadOutFile(filename):
     Actual_VALCEN = -1
     Actual_SMOOTH = -1
 
+    for line in lines:
+        twocol_match = two_col_fit.match(line)
+        threecol_match = three_col_fit.match(line)
+        fivecol_match = five_col_fit.match(line)
+        results_match = results_fit.match(line)
+        te_match = te_fit.match(line)
+        p_rg_match = p_rg_fit.match(line)
+        q_rg_match = q_rg_fit.match(line)
+        p_i0_match = p_i0_fit.match(line)
+        q_i0_match = q_i0_fit.match(line)
+        alpha_match = alpha_fit.match(line)
 
-    with open(filename, 'rU') as f:
-        for line in f:
-            twocol_match = two_col_fit.match(line)
-            threecol_match = three_col_fit.match(line)
-            fivecol_match = five_col_fit.match(line)
-            results_match = results_fit.match(line)
-            te_match = te_fit.match(line)
-            p_rg_match = p_rg_fit.match(line)
-            q_rg_match = q_rg_fit.match(line)
-            p_i0_match = p_i0_fit.match(line)
-            q_i0_match = q_i0_fit.match(line)
-            alpha_match = alpha_fit.match(line)
+        outfile.append(line)
 
-            outfile.append(line)
+        if twocol_match:
+            # print line
+            found = twocol_match.group().split()
 
-            if twocol_match:
-                # print line
-                found = twocol_match.group().split()
+            qfull.append(float(found[0]))
+            Ireg.append(float(found[1]))
 
-                qfull.append(float(found[0]))
-                Ireg.append(float(found[1]))
+        elif threecol_match:
+            #print line
+            found = threecol_match.group().split()
 
-            elif threecol_match:
-                #print line
-                found = threecol_match.group().split()
+            R.append(float(found[0]))
+            P.append(float(found[1]))
+            Perr.append(float(found[2]))
 
-                R.append(float(found[0]))
-                P.append(float(found[1]))
-                Perr.append(float(found[2]))
+        elif fivecol_match:
+            #print line
+            found = fivecol_match.group().split()
 
-            elif fivecol_match:
-                #print line
-                found = fivecol_match.group().split()
+            qfull.append(float(found[0]))
+            qshort.append(float(found[0]))
+            Jexp.append(float(found[1]))
+            Jerr.append(float(found[2]))
+            Jreg.append(float(found[3]))
+            Ireg.append(float(found[4]))
 
-                qfull.append(float(found[0]))
-                qshort.append(float(found[0]))
-                Jexp.append(float(found[1]))
-                Jerr.append(float(found[2]))
-                Jreg.append(float(found[3]))
-                Ireg.append(float(found[4]))
+        elif results_match:
+            found = results_match.group().split()
+            Actual_DISCRP = float(found[1])
+            Actual_OSCILL = float(found[2])
+            Actual_STABIL = float(found[3])
+            Actual_SYSDEV = float(found[4])
+            Actual_POSITV = float(found[5])
+            Actual_VALCEN = float(found[6])
 
-            elif results_match:
-                found = results_match.group().split()
-                Actual_DISCRP = float(found[1])
-                Actual_OSCILL = float(found[2])
-                Actual_STABIL = float(found[3])
-                Actual_SYSDEV = float(found[4])
-                Actual_POSITV = float(found[5])
-                Actual_VALCEN = float(found[6])
+            if len(found) == 8:
+                Actual_SMOOTH = float(found[7])
 
-                if len(found) == 8:
-                    Actual_SMOOTH = float(found[7])
+        elif te_match:
+            te_num_search = te_num_fit.search(line)
+            te_quality_search = te_quality_fit.search(line)
 
-            elif te_match:
-                te_num_search = te_num_fit.search(line)
-                te_quality_search = te_quality_fit.search(line)
-
-                TE_out = float(te_num_search.group().strip())
-                quality = te_quality_search.group().strip().rstrip(')').strip()
+            TE_out = float(te_num_search.group().strip())
+            quality = te_quality_search.group().strip().rstrip(')').strip()
 
 
-            if p_rg_match:
-                found = p_rg_match.group().split()
-                try:
-                    rg = float(found[-3])
-                except:
-                    rg = float(found[-2])
-                try:
-                    rger = float(found[-1])
-                except:
-                    rger = float(found[-1].strip('+-'))
+        if p_rg_match:
+            found = p_rg_match.group().split()
+            try:
+                rg = float(found[-3])
+            except:
+                rg = float(found[-2])
+            try:
+                rger = float(found[-1])
+            except:
+                rger = float(found[-1].strip('+-'))
 
-            elif q_rg_match:
-                found = q_rg_match.group().split()
-                q_rg = float(found[-1])
+        elif q_rg_match:
+            found = q_rg_match.group().split()
+            q_rg = float(found[-1])
 
-            if p_i0_match:
-                found = p_i0_match.group().split()
-                i0 = float(found[-3])
-                i0er = float(found[-1])
+        if p_i0_match:
+            found = p_i0_match.group().split()
+            i0 = float(found[-3])
+            i0er = float(found[-1])
 
-            elif q_i0_match:
-                found = q_i0_match.group().split()
-                q_i0 = float(found[-1])
+        elif q_i0_match:
+            found = q_i0_match.group().split()
+            q_i0 = float(found[-1])
 
-            if alpha_match:
-                found = alpha_match.group().split()
-                alpha = float(found[-1])
+        if alpha_match:
+            found = alpha_match.group().split()
+            alpha = float(found[-1])
 
     # Output variables not in the results file:
         # 'r'         : R,            #R, note R[-1] == Dmax
@@ -1768,7 +1776,7 @@ def loadOutFile(filename):
         # 'jreg'      : Jreg,         #Experimental intensities from P(r)
         # 'ireg'      : Ireg,         #Experimental intensities extrapolated to q=0
 
-    name = os.path.basename(filename)
+
 
     chisq = np.sum(np.square(np.array(Jexp)-np.array(Jreg))/np.square(Jerr))/(len(Jexp)-1) #DOF normalied chi squared
 
@@ -1789,7 +1797,7 @@ def loadOutFile(filename):
                 'positv'    : Actual_POSITV,#Relative norm of the positive part of P(r)
                 'valcen'    : Actual_VALCEN,#Validity of the chosen interval in real space
                 'smooth'    : Actual_SMOOTH,#Smoothness of the chosen interval? -1 indicates no real value, for versions of GNOM < 5.0 (ATSAS <2.8)
-                'filename'  : name,         #GNOM filename
+                'filename'  : '',          #GNOM filename
                 'algorithm' : 'GNOM',       #Lets us know what algorithm was used to find the IFT
                 'chisq'     : chisq,        #Actual chi squared value
                 'alpha'     : alpha,        #Alpha used for the IFT
@@ -1799,9 +1807,7 @@ def loadOutFile(filename):
 
     iftm = SASM.IFTM(P, R, Perr, Jexp, qshort, Jerr, Jreg, results, Ireg, qfull)
 
-    return [iftm]
-
-
+    return iftm
 
 def load_series_sasm(group, data_name, q_raw=None, use_group_q=True, q_err_raw=None):
 
