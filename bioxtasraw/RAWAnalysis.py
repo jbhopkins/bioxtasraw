@@ -3930,7 +3930,8 @@ class GNOMFrame(wx.Frame):
         #Checks if we have gnom4 or gnom5
         version = SASCalc.getATSASVersion(self._raw_settings.get('ATSASDir'))
 
-        if int(version.split('.')[0]) > 2 or (int(version.split('.')[0]) == 2 and int(version.split('.')[1]) >=8):
+        if (int(version.split('.')[0]) > 2 or
+            (int(version.split('.')[0]) == 2 and int(version.split('.')[1]) >=8)):
             self.new_gnom = True
         else:
             self.new_gnom = False
@@ -5084,7 +5085,7 @@ class GNOMControlPanel(wx.Panel):
         outname = outname+'.out'
 
         if not os.path.isfile(os.path.join(self.gnom_frame.tempdir, self.gnom_frame.savename)):
-            self.gnom_Frame.saveGNOMProfile()
+            self.gnom_frame.saveGNOMProfile()
 
         if (self.gnom_frame.main_frame.OnlineControl.isRunning()
             and tempdir == self.gnom_frame.main_frame.OnlineControl.getTargetDir()):

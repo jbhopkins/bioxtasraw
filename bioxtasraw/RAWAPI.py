@@ -1860,7 +1860,7 @@ def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
     return mw, mw_prob, ci_lower, ci_upper, ci_prob
 
 def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
-    use_i0_from='guinier', write_file=True, datadir=None, filename=None):
+    use_i0_from='guinier', write_profile=True, datadir=None, filename=None):
     """
     Calculates the M.W. of the input profile using the Bayesian inference
     method implemented in datmw in the ATSAS package. This requires a separate
@@ -1872,7 +1872,7 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
     Parameters
     ----------
     profile: :class:`bioxtasraw.SASM.SASM`
-        The profile to calculate the M.W. for. If using write_file false, you
+        The profile to calculate the M.W. for. If using write_profile false, you
         can pass None here. In that case you must pass values for rg, i0, and
         first.
     rg: float, optional
@@ -1890,17 +1890,17 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
         Determines whether the Rg and I(0) value used for the M.W. calculation
         is from the Guinier fit, or the GNOM or BIFT P(r) function. Ignored if
         both rg and i0 parameters are provided.
-    write_file: bool, optional
+    write_profile: bool, optional
         If True, the input profile is written to file. If False, then the
         input profile is ignored, and the profile specified by datadir and
         filename is used. This is convenient if you are trying to process
         a lot of files that are already on disk, as it saves having to read
         in each file and then save them again. Defaults to True.
     datadir: str, optional
-        If write_file is False, this is used as the path to the scattering
+        If write_profile is False, this is used as the path to the scattering
         profile on disk.
     filename: str, optional.
-        If write_file is False, this is used as the filename of the scattering
+        If write_profile is False, this is used as the filename of the scattering
         profile on disk.
 
     Returns
@@ -1917,13 +1917,14 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
     if atsas_dir is None:
         atsas_dir = settings.get('ATSASDir')
 
-    if write_file:
+    if profile is not None:
         analysis_dict = profile.getParameter('analysis')
         if 'molecularWeight' in analysis_dict:
             mw_dict = analysis_dict['molecularWeight']
         else:
             mw_dict = {}
 
+    if write_profile:
         if rg is None or i0 is None:
             if use_i0_from == 'guinier':
                 guinier_dict = analysis_dict['guinier']
@@ -1965,12 +1966,13 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
 
     else:
         datadir = os.path.abspath(os.path.expanduser(datadir))
+        first = 1
 
 
     res = SASCalc.runDatclass(rg, i0, first, atsas_dir, datadir, filename)
 
 
-    if write_file and os.path.isfile(os.path.join(datadir, filename)):
+    if write_profile and os.path.isfile(os.path.join(datadir, filename)):
             try:
                 os.remove(os.path.join(datadir, filename))
             except Exception:
@@ -2043,10 +2045,23 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
     analysis_dict = profile.getParameter('analysis')
     try:
         rg = float(analysis_dict['guinier']['Rg'])
+        i0 = float(analysis_dict['guinier']['I0'])
     except Exception:
         rg = -1
+        i0 = -1
+
+    datadir = os.path.abspath(os.path.expanduser(tempfile.gettempdir()))
+
+    filename = tempfile.NamedTemporaryFile(dir=datadir).name
+    filename = os.path.split(filename)[-1] + '.dat'
 
     if rg != -1:
+
+        # Save profile
+        save_profile = copy.deepcopy(profile)
+
+        SASFileIO.writeRadFile(save_profile, os.path.join(datadir, filename),
+            False)
 
         # Get Dmax from DATCLASS
         try:
@@ -2056,8 +2071,10 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
 
         if dc_dmax == -1 and use_atsas:
             try:
-                dc_mw, dc_shape, dc_dmax = mw_datclass(profile)
+                dc_mw, dc_shape, dc_dmax = mw_datclass(profile, rg, i0,
+                    write_profile=False, datadir=datadir, filename=filename)
             except Exception:
+                traceback.print_exc()
                 dc_dmax = -1
 
         if dc_dmax != -1:
@@ -2075,8 +2092,8 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
                     (bift_ift, bift_dmax, bift_rg, bift_i0, bift_dmax_err,
                     bift_rg_err, bift_i0_err, bift_chi_sq, bift_log_alpha,
                     bift_log_alpha_err, bift_evidence,
-                    bift_evidence_err) = bift(profile, settings=settings,
-                    single_proc=single_proc)
+                    bift_evidence_err) = bift(profile, use_guinier_start=False,
+                    settings=settings, single_proc=single_proc)
                 except Exception:
                     bift_dmax = -1
 
@@ -2085,7 +2102,9 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
                 try:
                     (datgnom_ift, datgnom_dmax, datgnom_rg, datgnom_i0,
                     datgnom_rg_err, datgnom_i0_err, datgnom_total_est,
-                    datgnom_chi_sq, datgnom_alpha, datgnom_quality) = datgnom(profile)
+                    datgnom_chi_sq, datgnom_alpha, datgnom_quality) = datgnom(profile,
+                    use_guinier_start=False, write_profile=False,
+                    datadir=datadir, filename=filename)
                 except Exception:
                     datgnom_dmax = -1
             else:
@@ -2108,17 +2127,23 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
 
         if dmax != -1 and use_atsas:
             # Refine if Dmax is too long
-            ift_results = gnom(profile, dmax)
+            ift_results = gnom(profile, dmax, use_guinier_start=False,
+                settings=settings, write_profile=False, datadir=datadir,
+                filename=filename)
             ift = ift_results[0]
             dmax_start = dmax
 
             while dmax > dmax_start*dmax_low_bound and np.any(ift.p[-20:] < 0):
                 dmax = dmax -1
-                ift_results = gnom(profile, dmax)
+                ift_results = gnom(profile, dmax, use_guinier_start=False,
+                    settings=settings, write_profile=False, datadir=datadir,
+                    filename=filename)
                 ift = ift_results[0]
 
             #Refine if Dmax is too long
-            ift_results = gnom(profile, dmax, dmax_zero=False)
+            ift_results = gnom(profile, dmax, dmax_zero=False,
+                use_guinier_start=False, settings=settings,
+                write_profile=False, datadir=datadir, filename=filename)
             ift_unforced = ift_results[0]
 
             refined_shorter = False
@@ -2126,7 +2151,9 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
             while (dmax > dmax_start*dmax_low_bound
                 and ift_unforced.p[-1]<dmax_thresh*ift_unforced.p.max()):
                 dmax = dmax -1
-                ift_results = gnom(profile, dmax, dmax_zero=False)
+                ift_results = gnom(profile, dmax, dmax_zero=False,
+                    use_guinier_start=False, settings=settings,
+                    write_profile=False, datadir=datadir, filename=filename)
                 ift_unforced = ift_results[0]
 
                 refined_shorter = True
@@ -2136,18 +2163,28 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
 
             if dmax_start == dmax:
                 #Refine if Dmax is too short
-                ift_results = gnom(profile, dmax, dmax_zero=False)
+                ift_results = gnom(profile, dmax, dmax_zero=False,
+                    use_guinier_start=False, settings=settings,
+                    write_profile=False, datadir=datadir, filename=filename)
                 ift_unforced = ift_results[0]
                 dmax_start = dmax
 
                 while (dmax < dmax_start*dmax_high_bound
                     and ift_unforced.p[-1]>dmax_thresh*ift_unforced.p.max()):
                     dmax = dmax +1
-                    ift_results = gnom(profile, dmax, dmax_zero=False)
+                    ift_results = gnom(profile, dmax, dmax_zero=False,
+                        use_guinier_start=False, settings=settings,
+                        write_profile=False, datadir=datadir, filename=filename)
                     ift_unforced = ift_results[0]
 
     else:
         dmax = -1
+
+    if os.path.isfile(os.path.join(datadir, filename)):
+        try:
+            os.remove(os.path.join(datadir, filename))
+        except Exception:
+            pass
 
     dmax = int(round(dmax))
 
@@ -2769,11 +2806,11 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
         savename = savename+'.out'
 
 
+    if profile is not None:
+        analysis_dict = profile.getParameter('analysis')
 
     # Save profile if necessary, truncating q range as appropriate
     if write_profile:
-        analysis_dict = profile.getParameter('analysis')
-
         if rg is None:
             if use_rg_from == 'guinier':
                 guinier_dict = analysis_dict['guinier']
@@ -2790,10 +2827,9 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
         save_profile = copy.deepcopy(profile)
 
         if idx_min is None and use_guinier_start:
-            analysis_dict = profile.getParameter('analysis')
             if 'guinier' in analysis_dict:
                 guinier_dict = analysis_dict['guinier']
-                idx_min = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] +1)
+                idx_min = max(1, int(guinier_dict['nStart']) - save_profile.getQrange()[0] +1)
             else:
                 idx_min = 1
 
@@ -2802,20 +2838,17 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
 
         if idx_max is None:
             if cut_dam:
-                q = save_profile.getQ()
+                q = save_save_profile.getQ()
                 max_q = min(8/rg, 0.3)
-                idx_max = np.argmin(np.abs(q-max_q)) -profile.getQrange()[0] -1
+                idx_max = np.argmin(np.abs(q-max_q)) -save_profile.getQrange()[0]
             else:
-                idx_max = save_profile.getQrange()[1] -profile.getQrange()[0] -1
-
-        idx_max = idx_max + 1
+                idx_max = save_profile.getQrange()[1] -save_profile.getQrange()[0]
 
         SASFileIO.writeRadFile(save_profile, os.path.join(datadir, filename),
             False)
 
     else:
         if idx_min is None and use_guinier_start and profile is not None:
-            analysis_dict = profile.getParameter('analysis')
             if 'guinier' in analysis_dict:
                 guinier_dict = analysis_dict['guinier']
                 idx_min = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
@@ -2823,10 +2856,10 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
                 idx_min = 1
 
         elif idx_min is None:
-            idx_min=1
+            idx_min = 1
 
         if idx_max is None and profile is not None:
-            idx_max = profile.getQrange()[1] +1
+            idx_max = profile.getQrange()[1] - profile.getQrange()[0]
 
 
     #Initialize settings
@@ -2972,8 +3005,8 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
             results_dict['Real_Space_I0_Err'] = i0_err
             results_dict['GNOM_ChiSquared'] = chi_sq
             results_dict['Alpha'] = alpha
-            results_dict['qStart'] = save_profile.getQ()[0]
-            results_dict['qEnd'] = save_profile.getQ()[-1]
+            results_dict['qStart'] = profile.getQ()[idx_min-1]
+            results_dict['qEnd'] = profile.getQ()[idx_max-1]
             results_dict['GNOM_Quality_Assessment'] = quality
             analysis_dict['GNOM'] = results_dict
             profile.setParameter('analysis', analysis_dict)

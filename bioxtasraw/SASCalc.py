@@ -1027,7 +1027,8 @@ def setATSASEnv(atsasDir):
 
     return my_env
 
-def runGnom(fname, save_ift, dmax, args, path, atsasDir, outname=None, new_gnom = False, ):
+def runGnom(fname, save_ift, dmax, args, path, atsasDir, outname=None,
+    new_gnom=False):
     #This function runs GNOM from the atsas package. It can do so without writing a GNOM cfg file.
     #It takes as input the filename to run GNOM on, the output name from the GNOM file, the dmax to evaluate
     #at, and a dictionary of arguments, which can be used to set the optional GNOM arguments.
