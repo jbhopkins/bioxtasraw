@@ -809,6 +809,9 @@ def parseBioCATlogfile(filename, new_filename=None):
         for a in range(len(labels)):
             counters[labels[a].strip()] = vals[a].strip()
 
+    else:
+        counters = {}
+
     return counters
 
 

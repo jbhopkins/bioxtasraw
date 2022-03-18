@@ -2838,7 +2838,7 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
 
         if idx_max is None:
             if cut_dam:
-                q = save_save_profile.getQ()
+                q = save_profile.getQ()
                 max_q = min(8/rg, 0.3)
                 idx_max = np.argmin(np.abs(q-max_q)) -save_profile.getQrange()[0]
             else:
