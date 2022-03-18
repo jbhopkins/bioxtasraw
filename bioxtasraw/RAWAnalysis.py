@@ -3644,7 +3644,7 @@ class MolWeightFrame(wx.Frame):
             if i0 == -1 or rg == -1:
                 raise SASExceptions.NoATSASError('Datclass requires rg and i0.')
 
-            first = max(1, int(analysis['guinier']['nStart']) - profile.getQrange()[0] + 1)
+            first = max(1, int(analysis['guinier']['nStart']) - self.sasm.getQrange()[0] + 1)
 
             res = SASCalc.runDatclass(rg, i0, first, self.raw_settings.get('ATSASDir'),
                 path, datname)
