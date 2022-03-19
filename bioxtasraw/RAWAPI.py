@@ -2859,7 +2859,12 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
             idx_min = 1
 
         if idx_max is None and profile is not None:
-            idx_max = profile.getQrange()[1] - profile.getQrange()[0]
+            if cut_dam:
+                q = profile.getQ()
+                max_q = min(8/rg, 0.3)
+                idx_max = np.argmin(np.abs(q-max_q)) -profile.getQrange()[0]
+            else:
+                idx_max = profile.getQrange()[1] -profile.getQrange()[0]
 
 
     #Initialize settings
@@ -2939,16 +2944,18 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
         except Exception:
             pass
 
-        if write_profile:
-            ift_name = profile.getParameter('filename')
-        else:
-            ift_name = filename
-
-        ift_name = os.path.splitext(ift_name)[0] + '.out'
-        ift.setParameter('filename', ift_name)
-
     # Save results
     if ift is not None:
+        if not save_ift:
+            if write_profile:
+                ift_name = profile.getParameter('filename')
+            else:
+                ift_name = filename
+
+            ift_name = os.path.splitext(ift_name)[0] + '.out'
+            ift.setParameter('filename', ift_name)
+
+
         try:
             dmax = float(ift.getParameter('dmax'))
         except Exception:
