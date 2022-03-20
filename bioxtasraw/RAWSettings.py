@@ -127,6 +127,9 @@ class RawGuiSettings(object):
                 'DetectorFlipLR' : [True, get_id(), 'bool'],
                 'DetectorFlipUD' : [False, get_id(), 'bool'],
 
+                #Image display
+                'ExcludeMaskFromImageScale' : [True, get_id(), 'bool'],
+
                 #Special settings for Xenocs/SAXSLAB
                 'UseHeaderForMask'      : [False, get_id(), 'bool'],
                 'UseHeaderForConfig'    : [False, get_id(), 'bool'],

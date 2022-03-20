@@ -2597,7 +2597,7 @@ class GeneralOptionsPanel(scrolled.ScrolledPanel):
         self.update_keys = ['ManipItemCollapsed', 'DatHeaderOnTop',
             'UseHeaderForMask', 'DetectorFlipped90', 'OnlineModeOnStartup',
             'OnlineStartupDir', 'DetectorFlipLR', 'DetectorFlipUD',
-            'UseHeaderForConfig', 'HdrLoadConfigDir'
+            'UseHeaderForConfig', 'HdrLoadConfigDir', 'ExcludeMaskFromImageScale',
             ]# 'PromptConfigLoad']
 
         self.chkboxdata = [
@@ -2616,7 +2616,10 @@ class GeneralOptionsPanel(scrolled.ScrolledPanel):
                 raw_settings.getId('DetectorFlipUD')),
             #('Prompt for config load on startup', raw_settings.getId('PromptConfigLoad')),
             ('Start online mode on startup',
-                raw_settings.getId('OnlineModeOnStartup'))]
+                raw_settings.getId('OnlineModeOnStartup')),
+            ('Exclude masked pixels from image viewer scaling',
+                raw_settings.getId('ExcludeMaskFromImageScale')),
+            ]
 
         options_sizer = self.createGeneralOptionsData()
 

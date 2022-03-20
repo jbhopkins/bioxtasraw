@@ -34,6 +34,7 @@ from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 import wx
 import numpy as np
+import matplotlib.pyplot as plt
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -416,17 +417,35 @@ class ImagePanel(wx.Panel):
 
         settings = mainframe.raw_settings
 
+        mask_dict = settings.get('Masks')
+        bs_mask = np.flipud(mask_dict['BeamStopMask'][0]) == 1
+
+        if bs_mask is None:
+            bs_mask = np.ones(self.img.shape) == 1
+
         if 'eiger2' in settings.get('Detector'):
-            self.plot_parameters['maxImgVal'] = self.img[self.img<4294967295].max()
+            if settings.get('ExcludeMaskFromImageScale'):
+                self.plot_parameters['maxImgVal'] = self.img[np.logical_and(self.img<4294967295, bs_mask)].max()
+            else:
+                self.plot_parameters['maxImgVal'] = self.img[self.img<4294967295].max()
 
         else:
-            self.plot_parameters['maxImgVal'] = self.img.max()
+            if settings.get('ExcludeMaskFromImageScale'):
+                self.plot_parameters['maxImgVal'] = self.img[bs_mask].max()
+            else:
+                self.plot_parameters['maxImgVal'] = self.img.max()
 
         if 'pilatus' in settings.get('Detector'):
-            self.plot_parameters['maxImgVal'] = self.img[self.img>-1].min()
+            if settings.get('ExcludeMaskFromImageScale'):
+                self.plot_parameters['minImgVal'] = self.img[np.logical_and(self.img>-1, bs_mask)].min()
+            else:
+                self.plot_parameters['minImgVal'] = self.img[self.img>-1].min()
 
         else:
-            self.plot_parameters['minImgVal'] = self.img.min()
+            if settings.get('ExcludeMaskFromImageScale'):
+                self.plot_parameters['minImgVal'] = self.img[bs_mask].min()
+            else:
+                self.plot_parameters['minImgVal'] = self.img.min()
 
         if self.plot_parameters['ClimLocked'] == False:
             clim = self.imgobj.get_clim()
@@ -1631,27 +1650,27 @@ class ImageSettingsDialog(wx.Dialog):
         lower_val = wx.FindWindowById(self.sliderinfo[1][1])
         lower_slider = wx.FindWindowById(self.sliderinfo[1][2])
 
+        if not self.parent.plot_parameters['ClimLocked']:
+            minval = self.parent.plot_parameters['minImgVal']
+            maxval = self.parent.plot_parameters['maxImgVal']
+
+            self.parent.plot_parameters['UpperClim'] = maxval
+            self.parent.plot_parameters['LowerClim'] = minval
+
+            upper_slider.SetValue(min(2147483647,int(maxval)))
+            lower_slider.SetValue(min(2147483647,int(minval)))
+
+            upper_val.ChangeValue(str(maxval))
+            lower_val.ChangeValue(str(minval))
+
+        else:
+            maxval = self.parent.plot_parameters['UpperClim']
+            minval = self.parent.plot_parameters['LowerClim']
+
         if selection == 0:
             if self.parent.plot_parameters['ImgScale'] != 'linear':
 
                 self.parent.plot_parameters['ImgScale'] = 'linear'
-
-                if not self.parent.plot_parameters['ClimLocked']:
-                    minval = self.parent.img.min()
-                    maxval = self.parent.img.max()
-
-                    self.parent.plot_parameters['UpperClim'] = maxval
-                    self.parent.plot_parameters['LowerClim'] = minval
-
-                    upper_slider.SetValue(min(2147483647,int(maxval)))
-                    lower_slider.SetValue(min(2147483647,int(minval)))
-
-                    upper_val.ChangeValue(str(maxval))
-                    lower_val.ChangeValue(str(minval))
-
-                else:
-                    maxval = self.parent.plot_parameters['UpperClim']
-                    minval = self.parent.plot_parameters['LowerClim']
 
                 norm = matplotlib.colors.Normalize(vmin = minval, vmax = maxval)
 
@@ -1666,23 +1685,6 @@ class ImageSettingsDialog(wx.Dialog):
             if self.parent.plot_parameters['ImgScale'] != 'logarithmic':
 
                 self.parent.plot_parameters['ImgScale'] = 'logarithmic'
-
-                if not self.parent.plot_parameters['ClimLocked']:
-                    minval = self.parent.img.min()
-                    maxval = self.parent.img.max()
-
-                    self.parent.plot_parameters['UpperClim'] = maxval
-                    self.parent.plot_parameters['LowerClim'] = minval
-
-                    upper_slider.SetValue(min(2147483647,int(maxval)))
-                    lower_slider.SetValue(min(2147483647,int(minval)))
-
-                    upper_val.ChangeValue(str(maxval))
-                    lower_val.ChangeValue(str(minval))
-
-                else:
-                    maxval = self.parent.plot_parameters['UpperClim']
-                    minval = self.parent.plot_parameters['LowerClim']
 
                 norm = matplotlib.colors.SymLogNorm(vmin = minval, vmax = maxval,linthresh = 1)
 
