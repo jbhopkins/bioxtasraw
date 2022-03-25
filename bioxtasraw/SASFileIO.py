@@ -762,11 +762,10 @@ def parseBioCATlogfile(filename, new_filename=None):
     if new_filename is not None:
         #BioCAT Eiger
         countFilename=os.path.join(datadir, '_'.join(fname.split('_')[:-2])+'.log')
-
-        sname_offset = int(fname.split('.')[0].split('_')[-1])-1
+        print(new_filename)
         sname_val = int(new_filename.split('.')[0].split('_')[-1])
         searchName = '.'.join(fname.split('.')[:-1])
-        searchName = '_'.join(fname.split('_')[:-2]) + '_{:06d}'.format(sname_val+sname_offset)
+        searchName = '_'.join(fname.split('_')[:-2]) + '_{:06d}'.format(sname_val)
     else:
         #BioCAT Pilatus
         countFilename=os.path.join(datadir, '_'.join(fname.split('_')[:-1])+'.log')
@@ -1216,12 +1215,35 @@ def loadImageFile(filename, raw_settings, hdf5_file=None):
         img = loaded_data[i]
         img_hdr = loaded_hdr[i]
 
-        if len(loaded_data) > 1 or is_hdf5:
+        if i == 0 and (len(loaded_data) > 1 or is_hdf5):
+
             temp_filename = os.path.split(filename)[1].split('.')
+
             if len(temp_filename) > 1:
                 temp_filename[-2] = temp_filename[-2] + '_%05i' %(i+1)
             else:
                 temp_filename[0] = temp_filename[0] + '_%05i' %(i+1)
+
+            new_filename = '.'.join(temp_filename)
+
+            base_hdr = hdrfile_info = loadHeader(filename, new_filename, hdr_fmt)
+
+            sname_offset = int(filename.split('.')[0].split('_')[-1])-1
+
+            if 'Number_of_images_per_file' in base_hdr:
+                mult = int(base_hdr['Number_of_images_per_file'])
+            else:
+                mult = len(loaded_data)
+
+            offset = sname_offset*mult
+
+        if len(loaded_data) > 1 or is_hdf5:
+            temp_filename = os.path.split(filename)[1].split('.')
+
+            if len(temp_filename) > 1:
+                temp_filename[-2] = temp_filename[-2] + '_%05i' %(i+offset+1)
+            else:
+                temp_filename[0] = temp_filename[0] + '_%05i' %(i+offset+1)
 
             new_filename = '.'.join(temp_filename)
         else:

@@ -450,15 +450,21 @@ class ImagePanel(wx.Panel):
         if self.plot_parameters['ClimLocked'] == False:
             clim = self.imgobj.get_clim()
 
-            self.plot_parameters['UpperClim'] = min(clim[1], self.plot_parameters['maxImgVal'])
-            self.plot_parameters['LowerClim'] = max(clim[0], self.plot_parameters['minImgVal'])
+            self.plot_parameters['UpperClim'] = min(clim[1],
+                self.plot_parameters['maxImgVal'])
+            self.plot_parameters['LowerClim'] = max(clim[0],
+                self.plot_parameters['minImgVal'])
         else:
-            clim = self.imgobj.set_clim(self.plot_parameters['LowerClim'], self.plot_parameters['UpperClim'])
+            clim = self.imgobj.set_clim(self.plot_parameters['LowerClim'],
+                self.plot_parameters['UpperClim'])
 
         if self.plot_parameters['ImgScale'] == 'linear':
-            norm = matplotlib.colors.Normalize(vmin = self.plot_parameters['LowerClim'], vmax = self.plot_parameters['UpperClim'])
+            norm = matplotlib.colors.Normalize(vmin=self.plot_parameters['LowerClim'],
+                vmax=self.plot_parameters['UpperClim'])
         else:
-            norm = matplotlib.colors.SymLogNorm(linthresh = 1, vmin = self.plot_parameters['LowerClim'], vmax = self.plot_parameters['UpperClim'])
+            norm = matplotlib.colors.SymLogNorm(linthresh=1,
+                vmin=self.plot_parameters['LowerClim'],
+                vmax=self.plot_parameters['UpperClim'])
 
         self.imgobj.set_norm(norm)
 
