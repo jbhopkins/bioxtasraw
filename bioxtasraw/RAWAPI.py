@@ -384,7 +384,7 @@ def load_images(filename_list, settings, frame_num=None):
         filename = os.path.abspath(os.path.expanduser(filename))
 
         if frame_num is None:
-
+            img, imghdr, _ = SASFileIO.loadImage(filename, settings)
         else:
             img, imghdr, _ = SASFileIO.loadImage(filename, settings,
                 next_image=frame_num)
