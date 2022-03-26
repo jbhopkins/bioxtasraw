@@ -116,26 +116,20 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         return self._current_tool
 
     def onPreviousImgButton(self, event):
-        if self.parent.multi_image_file and self.parent.current_index > 0:
-            self.parent.current_index = self.parent.current_index - 1
-            self.parent.showNewImage(self.parent.img_list[self.parent.current_index])
-        else:
-            try:
-                current_file = self.parent.current_sasm.getParameter('filename')
-            except AttributeError:
-                current_file = None
-            RAWGlobals.mainworker_cmd_queue.put(['show_nextprev_img', [current_file, -1]])
+        try:
+            current_file = self.parent.current_sasm.getParameter('filename')
+        except AttributeError:
+            current_file = None
+        RAWGlobals.mainworker_cmd_queue.put(['show_nextprev_img', [current_file,
+            -1, self.parent.current_index, self.parent.total_frames]])
 
     def onNextImgButton(self, event):
-        if self.parent.multi_image_file and self.parent.current_index < len(self.parent.img_list)-1:
-            self.parent.current_index = self.parent.current_index + 1
-            self.parent.showNewImage(self.parent.img_list[self.parent.current_index])
-        else:
-            try:
-                current_file = self.parent.current_sasm.getParameter('filename')
-            except AttributeError:
-                current_file = None
-            RAWGlobals.mainworker_cmd_queue.put(['show_nextprev_img', [current_file, 1]])
+        try:
+            current_file = self.parent.current_sasm.getParameter('filename')
+        except AttributeError:
+            current_file = None
+        RAWGlobals.mainworker_cmd_queue.put(['show_nextprev_img', [current_file,
+            1, self.parent.current_index, self.parent.total_frames]])
 
     def onImageSettingsButton(self, event):
         self.parent.showImageSetDialog()
@@ -351,29 +345,32 @@ class ImagePanel(wx.Panel):
         self.masking_panel.disableDrawButtons()
         self.setTool(None)
 
-    def showImage(self, img, sasm, fnum=0):
+    def showImage(self, img, sasm, fnum=0, num_frames=1):
         ''' This function is the one that gets called when a new
         image is to be displayed '''
 
-        if isinstance(img, list) and len(img) > 1:
+        # print(len(img))
+        # print(len(sasm))
+        # print(fnum)
+
+        if num_frames > 1:
             self.multi_image_file = True
             self.current_index = fnum
-            self.img_list = img
+            self.total_frames = num_frames
         else:
             self.multi_image_file = False
             self.current_index = 0
-            self.img_list = None
-            if isinstance(img, list):
-                img = img[0]
+            self.total_frames = 1
+
+        if isinstance(img, list):
+            img = img[0]
 
         if isinstance(sasm, list):
             sasm = sasm[0]
+
         self.current_sasm = sasm
 
-        if self.multi_image_file:
-            self.showNewImage(self.img_list[self.current_index])
-        else:
-            self.showNewImage(img)
+        self.showNewImage(img)
 
     def showNewImage(self, img):
         self.img = np.flipud(img)
@@ -404,7 +401,7 @@ class ImagePanel(wx.Panel):
         else:
             title_str = title_str + self.current_sasm.getParameter('filename')
         if self.multi_image_file:
-            title_str = title_str + '  Image: %i of %i' %(self.current_index+1, len(self.img_list))
+            title_str = title_str + '  Image: %i of %i' %(self.current_index+1, self.total_frames)
 
         a.set_title(title_str)
         a.set_xlabel('x (pixels)')
@@ -418,34 +415,42 @@ class ImagePanel(wx.Panel):
         settings = mainframe.raw_settings
 
         mask_dict = settings.get('Masks')
-        bs_mask = np.flipud(mask_dict['BeamStopMask'][0]) == 1
+        try:
+            bs_mask = np.flipud(mask_dict['BeamStopMask'][0]) == 1
+        except Exception:
+            bs_mask = None
 
         if bs_mask is None:
             bs_mask = np.ones(self.img.shape) == 1
 
-        if 'eiger2' in settings.get('Detector'):
-            if settings.get('ExcludeMaskFromImageScale'):
-                self.plot_parameters['maxImgVal'] = self.img[np.logical_and(self.img<4294967295, bs_mask)].max()
-            else:
-                self.plot_parameters['maxImgVal'] = self.img[self.img<4294967295].max()
+        try:
+            if 'eiger2' in settings.get('Detector'):
+                if settings.get('ExcludeMaskFromImageScale'):
+                    self.plot_parameters['maxImgVal'] = self.img[np.logical_and(self.img<4294967295, bs_mask)].max()
+                else:
+                    self.plot_parameters['maxImgVal'] = self.img[self.img<4294967295].max()
 
-        else:
-            if settings.get('ExcludeMaskFromImageScale'):
-                self.plot_parameters['maxImgVal'] = self.img[bs_mask].max()
             else:
-                self.plot_parameters['maxImgVal'] = self.img.max()
+                if settings.get('ExcludeMaskFromImageScale'):
+                    self.plot_parameters['maxImgVal'] = self.img[bs_mask].max()
+                else:
+                    self.plot_parameters['maxImgVal'] = self.img.max()
 
-        if 'pilatus' in settings.get('Detector'):
-            if settings.get('ExcludeMaskFromImageScale'):
-                self.plot_parameters['minImgVal'] = self.img[np.logical_and(self.img>-1, bs_mask)].min()
-            else:
-                self.plot_parameters['minImgVal'] = self.img[self.img>-1].min()
+            if 'pilatus' in settings.get('Detector'):
+                if settings.get('ExcludeMaskFromImageScale'):
+                    self.plot_parameters['minImgVal'] = self.img[np.logical_and(self.img>-1, bs_mask)].min()
+                else:
+                    self.plot_parameters['minImgVal'] = self.img[self.img>-1].min()
 
-        else:
-            if settings.get('ExcludeMaskFromImageScale'):
-                self.plot_parameters['minImgVal'] = self.img[bs_mask].min()
             else:
-                self.plot_parameters['minImgVal'] = self.img.min()
+                if settings.get('ExcludeMaskFromImageScale'):
+                    self.plot_parameters['minImgVal'] = self.img[bs_mask].min()
+                else:
+                    self.plot_parameters['minImgVal'] = self.img.min()
+
+        except ValueError:
+            self.plot_parameters['maxImgVal'] = self.img.max()
+            self.plot_parameters['minImgVal'] = self.img.min()
 
         if self.plot_parameters['ClimLocked'] == False:
             clim = self.imgobj.get_clim()

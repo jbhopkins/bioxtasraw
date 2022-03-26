@@ -65,13 +65,15 @@ import bioxtasraw.SASUtils as SASUtils
 #--- ## Load image files: ##
 ############################
 
-def loadFabio(filename, hdf5_file=None):
+def loadFabio(filename, hdf5_file=None, next_image=None):
     if hdf5_file is None:
         fabio_img = fabio.open(filename)
     else:
         fabio_img = hdf5_file
 
-    if fabio_img.nframes == 1:
+    num_frames = fabio_img.nframes
+
+    if num_frames == 1:
         data = fabio_img.data
         hdr = fabio_img.getheader()
 
@@ -79,20 +81,30 @@ def loadFabio(filename, hdf5_file=None):
         img_hdr = [hdr]
 
     else:
-        img = [None for i in range(fabio_img.nframes)]
-        img_hdr = [None for i in range(fabio_img.nframes)]
+        if next_image is None:
+            img = [None for i in range(fabio_img.nframes)]
+            img_hdr = [None for i in range(fabio_img.nframes)]
 
-        img[0] = fabio_img.data
-        img_hdr[0] = fabio_img.getheader()
+            img[0] = fabio_img.data
+            img_hdr[0] = fabio_img.getheader()
 
-        for i in range(1,fabio_img.nframes):
-            fabio_img = fabio_img.next()
-            img[i] = fabio_img.data
-            img_hdr[i] = fabio_img.getheader()
+            for i in range(1,fabio_img.nframes):
+                fabio_img = fabio_img.next()
+                img[i] = fabio_img.data
+                img_hdr[i] = fabio_img.getheader()
 
-    fabio_img.close()
+        else:
+            frame = fabio_img.get_frame(next_image)
+            data = frame.data
+            hdr = frame.header
 
-    return img, img_hdr
+            img = [data]
+            img_hdr = [hdr]
+
+    if next_image is None or next_image == fabio_img.nframes -1:
+        fabio_img.close()
+
+    return img, img_hdr, num_frames
 
 def loadTiffImage(filename):
     ''' Load TIFF image '''
@@ -762,7 +774,6 @@ def parseBioCATlogfile(filename, new_filename=None):
     if new_filename is not None:
         #BioCAT Eiger
         countFilename=os.path.join(datadir, '_'.join(fname.split('_')[:-2])+'.log')
-        print(new_filename)
         sname_val = int(new_filename.split('.')[0].split('_')[-1])
         searchName = '.'.join(fname.split('.')[:-1])
         searchName = '_'.join(fname.split('_')[:-2]) + '_{:06d}'.format(sname_val)
@@ -777,6 +788,8 @@ def parseBioCATlogfile(filename, new_filename=None):
     line_num=0
 
     counters = {}
+
+    offset = 0
 
     for i, line in enumerate(allLines):
         if line.startswith('#'):
@@ -974,10 +987,33 @@ all_image_types = {
 def loadAllHeaders(filename, image_type, header_type, raw_settings):
     ''' returns the image header and the info from the header file only. '''
 
-    img, imghdr = loadImage(filename, raw_settings)
+    try:
+        file_type = checkFileType(filename)
+        # print file_type
+    except IOError:
+        raise
+    except Exception as msg:
+        print(str(msg))
+        file_type = None
 
-    if len(img) > 1:
+    if file_type == 'hdf5':
+        try:
+            hdf5_file = fabio.open(filename)
+            file_type = 'image'
+        except Exception:
+            pass
+    else:
+        hdf5_file = None
+
+    if hdf5_file is not None:
+        img, imghdr, num_frames = loadImage(filename, raw_settings, hdf5_file,
+            next_image=0)
+    else:
+        img, imghdr, num_frames = loadImage(filename, raw_settings, next_image=0)
+
+    if len(img) > 1 or num_frames > 1 or hdf5_file is not None:
         temp_filename = os.path.split(filename)[1].split('.')
+
         if len(temp_filename) > 1:
             temp_filename[-2] = temp_filename[-2] + '_%05i' %(1)
         else:
@@ -1011,6 +1047,10 @@ def loadAllHeaders(filename, image_type, header_type, raw_settings):
 def loadHeader(filename, new_filename, header_type):
     ''' returns header information based on the *image* filename
      and the type of headerfile     '''
+
+    print(filename)
+    print(new_filename)
+    print(header_type)
     if header_type != 'None':
         try:
             if new_filename != os.path.split(filename)[1]:
@@ -1036,16 +1076,19 @@ def loadHeader(filename, new_filename, header_type):
 
     return hdr
 
-def loadImage(filename, raw_settings, hdf5_file=None):
+def loadImage(filename, raw_settings, hdf5_file=None, next_image=None):
     ''' returns the loaded image based on the image filename
     and image type. '''
     image_type = raw_settings.get('ImageFormat')
     fliplr = raw_settings.get('DetectorFlipLR')
     flipud = raw_settings.get('DetectorFlipUD')
 
+    num_frames = 1
+
     try:
         if all_image_types[image_type] == loadFabio:
-            img, imghdr = all_image_types[image_type](filename, hdf5_file)
+            img, imghdr, num_frames = all_image_types[image_type](filename,
+                hdf5_file, next_image)
         else:
             img, imghdr = all_image_types[image_type](filename)
     except (ValueError, TypeError, KeyError, fabio.fabioutils.NotGoodReader, Exception) as msg:
@@ -1071,13 +1114,14 @@ def loadImage(filename, raw_settings, hdf5_file=None):
                 img[i] = np.fliplr(img[i])
             if flipud:
                 img[i] = np.flipud(img[i])
-    return img, imghdr
+
+    return img, imghdr, num_frames
 
 #################################
 #--- ** MAIN LOADING FUNCTION **
 #################################
 
-def loadFile(filename, raw_settings, no_processing = False):
+def loadFile(filename, raw_settings, no_processing=False, return_all_images=True):
     ''' Loads a file an returns a SAS Measurement Object (SASM) and the full image if the
         selected file was an Image file
 
@@ -1103,9 +1147,12 @@ def loadFile(filename, raw_settings, no_processing = False):
 
     if file_type == 'image':
         try:
-            sasm, img = loadImageFile(filename, raw_settings, hdf5_file)
+            sasm, img = loadImageFile(filename, raw_settings, hdf5_file,
+                return_all_images)
         except (ValueError, AttributeError) as msg:
             raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
+            traceback.print_exc()
+        except Exception:
             traceback.print_exc()
 
         #Always do some post processing for image files
@@ -1198,7 +1245,7 @@ def loadAsciiFile(filename, file_type):
     return sasm
 
 
-def loadImageFile(filename, raw_settings, hdf5_file=None):
+def loadImageFile(filename, raw_settings, hdf5_file=None, return_all_images=True):
     hdr_fmt = raw_settings.get('ImageHdrFormat')
 
     if hdf5_file is not None:
@@ -1206,60 +1253,81 @@ def loadImageFile(filename, raw_settings, hdf5_file=None):
     else:
         is_hdf5 = False
 
-    loaded_data, loaded_hdr = loadImage(filename, raw_settings, hdf5_file)
+    load_one_frame = False
 
-    sasm_list = [None for i in range(len(loaded_data))]
+    if is_hdf5 and hdf5_file.nframes > 1:
+        num_frames = hdf5_file.nframes
+        load_one_frame = True
+    else:
+        num_frames = 1
 
-    #Process all loaded images into sasms
-    for i in range(len(loaded_data)):
-        img = loaded_data[i]
-        img_hdr = loaded_hdr[i]
 
-        if i == 0 and (len(loaded_data) > 1 or is_hdf5):
+    loaded_data = []
+    sasm_list = []
 
-            temp_filename = os.path.split(filename)[1].split('.')
+    for file_num in range(num_frames):
+        if load_one_frame:
+            new_data, new_hdr, _ = loadImage(filename, raw_settings, hdf5_file, file_num)
 
-            if len(temp_filename) > 1:
-                temp_filename[-2] = temp_filename[-2] + '_%05i' %(i+1)
-            else:
-                temp_filename[0] = temp_filename[0] + '_%05i' %(i+1)
-
-            new_filename = '.'.join(temp_filename)
-
-            base_hdr = hdrfile_info = loadHeader(filename, new_filename, hdr_fmt)
-
-            sname_offset = int(filename.split('.')[0].split('_')[-1])-1
-
-            if 'Number_of_images_per_file' in base_hdr:
-                mult = int(base_hdr['Number_of_images_per_file'])
-            else:
-                mult = len(loaded_data)
-
-            offset = sname_offset*mult
-
-        if len(loaded_data) > 1 or is_hdf5:
-            temp_filename = os.path.split(filename)[1].split('.')
-
-            if len(temp_filename) > 1:
-                temp_filename[-2] = temp_filename[-2] + '_%05i' %(i+offset+1)
-            else:
-                temp_filename[0] = temp_filename[0] + '_%05i' %(i+offset+1)
-
-            new_filename = '.'.join(temp_filename)
         else:
-            new_filename = os.path.split(filename)[1]
+            new_data, new_hdr, _ = loadImage(filename, raw_settings, hdf5_file)
 
-        hdrfile_info = loadHeader(filename, new_filename, hdr_fmt)
+        if return_all_images:
+            loaded_data.extend(new_data)
+        elif not return_all_images and file_num == 0:
+            loaded_data.append(new_data[0])
 
-        parameters = {'imageHeader' : img_hdr,
-                      'counters'    : hdrfile_info,
-                      'filename'    : new_filename,
-                      'load_path'   : filename}
+        offset = 0
 
-        sasm = processImage(img, parameters, raw_settings)
+        #Process all loaded images into sasms
+        for i in range(len(new_data)):
+            img = new_data[i]
+            img_hdr = new_hdr[i]
 
-        sasm_list[i] = sasm
+            if i == 0 and (len(new_data) > 1 or is_hdf5):
 
+                temp_filename = os.path.split(filename)[1].split('.')
+
+                if len(temp_filename) > 1:
+                    temp_filename[-2] = temp_filename[-2] + '_%05i' %(i+1)
+                else:
+                    temp_filename[0] = temp_filename[0] + '_%05i' %(i+1)
+
+                new_filename = '.'.join(temp_filename)
+
+                base_hdr = hdrfile_info = loadHeader(filename, new_filename, hdr_fmt)
+
+                sname_offset = int(filename.split('.')[0].split('_')[-1])-1
+
+                if 'Number_of_images_per_file' in base_hdr:
+                    mult = int(base_hdr['Number_of_images_per_file'])
+                else:
+                    mult = len(new_data)
+
+                offset = sname_offset*mult
+
+            if len(new_data) > 1 or is_hdf5:
+                temp_filename = os.path.split(filename)[1].split('.')
+
+                if len(temp_filename) > 1:
+                    temp_filename[-2] = temp_filename[-2] + '_%05i' %(i+file_num+offset+1)
+                else:
+                    temp_filename[0] = temp_filename[0] + '_%05i' %(i+file_num+offset+1)
+
+                new_filename = '.'.join(temp_filename)
+            else:
+                new_filename = os.path.split(filename)[1]
+
+            hdrfile_info = loadHeader(filename, new_filename, hdr_fmt)
+
+            parameters = {'imageHeader' : img_hdr,
+                          'counters'    : hdrfile_info,
+                          'filename'    : new_filename,
+                          'load_path'   : filename}
+
+            sasm = processImage(img, parameters, raw_settings)
+
+            sasm_list.append(sasm)
 
     return sasm_list, loaded_data
 

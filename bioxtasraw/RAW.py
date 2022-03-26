@@ -3329,7 +3329,8 @@ class MainWorkerThread(threading.Thread):
             if not os.path.isfile(filename):
                 raise SASExceptions.WrongImageFormat('not a valid file!')
 
-            img, imghdr = SASFileIO.loadImage(filename, self._raw_settings)
+            img, imghdr, num_frames = SASFileIO.loadImage(filename, self._raw_settings,
+                next_image=0)
 
             if img[-1] is None:
                 raise SASExceptions.WrongImageFormat('not a valid file!')
@@ -3343,7 +3344,7 @@ class MainWorkerThread(threading.Thread):
 
         bogus_sasm = SASM.SASM([0,1], [0,1], [0,1], parameters)
 
-        self._sendImageToDisplay(img, bogus_sasm)
+        self._sendImageToDisplay(img, bogus_sasm, 0, num_frames)
 
 
     def _sendIFTMToPlot(self, iftm, item_colour='black', line_color=None,
@@ -3423,15 +3424,16 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.sec_plot_panel.fitAxis)
 
 
-    def _sendImageToDisplay(self, img, sasm, fnum=0):
-        wx.CallAfter(self.image_panel.showImage, img, sasm, fnum)
+    def _sendImageToDisplay(self, img, sasm, fnum=0, num_frames=1):
+        wx.CallAfter(self.image_panel.showImage, img, sasm, fnum, num_frames)
 
     ################################
     # COMMANDS:
     ################################
 
     def _calcAbsScWaterConst(self, data):
-        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading files and calculating the absolute scale constant...')
+        wx.CallAfter(self.main_frame.showBusyDialog, ('Please wait while '
+            'loading files and calculating the absolute scale constant...'))
 
         abs_scale_constant = 1.0
         water_filename = data[0]
@@ -3440,9 +3442,11 @@ class MainWorkerThread(threading.Thread):
 
         try:
             filename = water_filename
-            water_sasm, img = SASFileIO.loadFile(filename, self._raw_settings, no_processing = True)
+            water_sasm, img = SASFileIO.loadFile(filename, self._raw_settings,
+                no_processing=True, return_all_images=False)
             filename = empty_filename
-            empty_sasm, img = SASFileIO.loadFile(filename, self._raw_settings, no_processing = True)
+            empty_sasm, img = SASFileIO.loadFile(filename, self._raw_settings,
+                no_processing=True, return_all_images=False)
         except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
             wx.CallAfter(self._showDataFormatError, os.path.split(filename)[1])
             wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -3461,7 +3465,8 @@ class MainWorkerThread(threading.Thread):
             else:
                 empty_sasm = SASProc.average(empty_sasm)
         try:
-            abs_scale_constant = SASCalib.calcAbsoluteScaleWaterConst(water_sasm, empty_sasm, waterI0, self._raw_settings)
+            abs_scale_constant = SASCalib.calcAbsoluteScaleWaterConst(water_sasm,
+                empty_sasm, waterI0, self._raw_settings)
         except SASExceptions.DataNotCompatible:
             wx.CallAfter(self.main_frame.closeBusyDialog)
             wx.CallAfter(self._showSubtractionError, water_sasm, empty_sasm)
@@ -3502,7 +3507,8 @@ class MainWorkerThread(threading.Thread):
 
         if ignore_bkg:
             try:
-                carbon_sasm, img = SASFileIO.loadFile(carbon_file, self._raw_settings, no_processing=True)
+                carbon_sasm, img = SASFileIO.loadFile(carbon_file,
+                    self._raw_settings, no_processing=True, return_all_images=False)
             except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
                 wx.CallAfter(self._showDataFormatError, os.path.split(carbon_file)[1])
                 question_return_queue.put(None)
@@ -3522,8 +3528,10 @@ class MainWorkerThread(threading.Thread):
 
         else:
             try:
-                carbon_sasm, img = SASFileIO.loadFile(carbon_file, self._raw_settings, no_processing=True)
-                bkg_sasm, img = SASFileIO.loadFile(carbon_bkg_file, self._raw_settings, no_processing=True)
+                carbon_sasm, img = SASFileIO.loadFile(carbon_file,
+                    self._raw_settings, no_processing=True, return_all_images=False)
+                bkg_sasm, img = SASFileIO.loadFile(carbon_bkg_file,
+                    self._raw_settings, no_processing=True, return_all_images=False)
             except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
                 wx.CallAfter(self._showDataFormatError, os.path.split(carbon_file)[1] + ' or ' + os.path.split(carbon_bkg_file)[1])
                 question_return_queue.put(None)
@@ -3555,10 +3563,10 @@ class MainWorkerThread(threading.Thread):
             bkg_ctr_dns_val = float(bkg_ctrs[ctr_dns])
 
         try:
-            abs_scale_const = SASCalib.calcAbsoluteScaleCarbonConst(carbon_sasm, carbon_thickness,
-                            self._raw_settings, cal_q, cal_i, cal_err, ignore_bkg, bkg_sasm,
-                            carbon_ctr_ups_val, carbon_ctr_dns_val, bkg_ctr_ups_val,
-                            bkg_ctr_dns_val)
+            abs_scale_const = SASCalib.calcAbsoluteScaleCarbonConst(carbon_sasm,
+                carbon_thickness, self._raw_settings, cal_q, cal_i, cal_err,
+                ignore_bkg, bkg_sasm, carbon_ctr_ups_val, carbon_ctr_dns_val,
+                bkg_ctr_ups_val, bkg_ctr_dns_val)
         except SASExceptions.DataNotCompatible:
             wx.CallAfter(self._showSubtractionError, carbon_sasm, bkg_sasm)
             question_return_queue.put(None)
@@ -3692,18 +3700,21 @@ class MainWorkerThread(threading.Thread):
                 if file_ext == '.sec' or file_ext == '.hdf5':
                     try:
                         loaded_files = SASFileIO.loadSeriesFile(each_filename,
-                            self._raw_settings)
+                            self._raw_settings, return_all_images=False)
                     except Exception:
-                        loaded_files, img = SASFileIO.loadFile(each_filename, self._raw_settings)
+                        loaded_files, img = SASFileIO.loadFile(each_filename,
+                            self._raw_settings, return_all_images=False)
                         sasm = loaded_files
 
                     img = None
 
                 elif file_ext == '.ift' or file_ext == '.out':
-                    loaded_files, img = SASFileIO.loadFile(each_filename, self._raw_settings)
+                    loaded_files, img = SASFileIO.loadFile(each_filename,
+                        self._raw_settings, return_all_images=False)
 
                 else:
-                    loaded_files, img = SASFileIO.loadFile(each_filename, self._raw_settings)
+                    loaded_files, img = SASFileIO.loadFile(each_filename,
+                        self._raw_settings, return_all_images=False)
                     sasm = loaded_files
 
                 if img is not None:
@@ -3788,7 +3799,6 @@ class MainWorkerThread(threading.Thread):
         except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat) as msg:
             wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1])
             wx.CallAfter(self.main_frame.closeBusyDialog)
-            traceback.print_exc()
             return
         except SASExceptions.HeaderLoadError as msg:
             wx.CallAfter(self._showHeaderError, msg)
@@ -3817,7 +3827,22 @@ class MainWorkerThread(threading.Thread):
             return
 
         if img is not None:
-            self._sendImageToDisplay(img, sasm)
+            if isinstance(loaded_files, list):
+                num_frames = len(loaded_files)
+                first_sasm = loaded_files[0]
+            else:
+                num_frames = 1
+                first_sasm = loaded_files
+
+            image_header = first_sasm.getParameter('imageHeader')
+
+
+            parameters = {'filename' : os.path.split(each_filename)[1],
+                        'imageHeader' : image_header}
+
+            bogus_sasm = SASM.SASM([0,1], [0,1], [0,1], parameters)
+
+            self._sendImageToDisplay(img, bogus_sasm, 0, num_frames)
 
         if loaded_secm and not loaded_sasm and not loaded_iftm:
             wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 3)
@@ -3883,7 +3908,8 @@ class MainWorkerThread(threading.Thread):
             try:
                 for j in range(len(filename_list)):
                     each_filename = filename_list[j]
-                    sasm, img = SASFileIO.loadFile(each_filename, self._raw_settings)
+                    sasm, img = SASFileIO.loadFile(each_filename,
+                        self._raw_settings, return_all_images=False)
 
                     if img is not None:
                         start_point = self._raw_settings.get('StartPoint')
@@ -3896,6 +3922,7 @@ class MainWorkerThread(threading.Thread):
                             qrange = (start_point, len(sasm[0].getRawQ())-end_point)
                             for each_sasm in sasm:
                                 each_sasm.setQrange(qrange)
+
                     if isinstance(sasm, list):
                         sasm_list.extend(sasm)
                     else:
@@ -3975,7 +4002,8 @@ class MainWorkerThread(threading.Thread):
         for j in range(len(filename_list)):
             try:
                 each_filename = filename_list[j]
-                sasm, img = SASFileIO.loadFile(each_filename, self._raw_settings)
+                sasm, img = SASFileIO.loadFile(each_filename, self._raw_settings,
+                    return_all_images=False)
 
                 if img is not None:
                     start_point = self._raw_settings.get('StartPoint')
@@ -4418,17 +4446,19 @@ class MainWorkerThread(threading.Thread):
 
         current_file = data[0]
         direction = data[1]
+        fnum = data[2]
+        total_frames = data[3]
 
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading image...')
 
         path = self.dir_panel.file_list_box.path
-        dir = sorted(os.listdir(path))
+        file_list = sorted(os.listdir(path))
 
         if current_file is None:
             idx = 0
         else:
             try:
-                idx = dir.index(current_file)
+                idx = file_list.index(current_file)
             except ValueError:
                 idx = 0
                 msg = ('Could not find the current image file in the active '
@@ -4437,20 +4467,35 @@ class MainWorkerThread(threading.Thread):
                     'in the Files control tab.')
                 wx.CallAfter(self._showGenericError, msg, 'Error Loading Image')
 
-
         while True:
-            idx = idx + direction
 
-            if idx < 0: break
-            if idx >= len(dir): break
+            if direction < 0 and fnum > 0:
+                fnum = fnum -1
+                new_idx = False
+            elif direction > 0 and fnum < total_frames -1:
+                fnum = fnum + 1
+                new_idx = False
+            else:
+                fnum = 0
+                new_idx = True
 
-            next_file = dir[idx]
+
+            if new_idx:
+                idx = idx + direction
+
+            if idx < 0:
+                break
+            if idx >= len(file_list):
+                break
+
+            next_file = file_list[idx]
             next_file_path = os.path.join(path, next_file)
 
             try:
                 img = None
                 if self._fileTypeIsCompatible(next_file_path):
-                    img, imghdr = SASFileIO.loadImage(next_file_path, self._raw_settings)
+                    img, imghdr, num_frames = SASFileIO.loadImage(next_file_path,
+                        self._raw_settings, next_image=fnum)
 
                 if img is not None:
                     parameters = {'filename' : os.path.split(next_file_path)[1],
@@ -4458,12 +4503,12 @@ class MainWorkerThread(threading.Thread):
 
                     bogus_sasm = SASM.SASM([0,1], [0,1], [0,1], parameters)
 
-                    if isinstance(img, list) and len(img) > 1 and direction == -1:
-                        fnum = len(img) - 1
-                    else:
-                        fnum = 0
+                    if num_frames > 1 and direction == -1 and new_idx:
+                        fnum = num_frames - 1
+                        img, imghdr, _ = SASFileIO.loadImage(next_file_path,
+                        self._raw_settings, next_image=fnum)
 
-                    self._sendImageToDisplay(img, bogus_sasm, fnum)
+                    self._sendImageToDisplay(img, bogus_sasm, fnum, num_frames)
                     break
             except Exception:
                 pass
@@ -4490,7 +4535,8 @@ class MainWorkerThread(threading.Thread):
             if not os.path.isfile(filename):
                 raise SASExceptions.WrongImageFormat('not a valid file!')
 
-            img, imghdr = SASFileIO.loadImage(filename, self._raw_settings)
+            img, imghdr, num_frames = SASFileIO.loadImage(filename,
+                self._raw_settings, next_image=fnum)
 
             if img is None:
                 raise SASExceptions.WrongImageFormat('not a valid file!')
@@ -4498,6 +4544,7 @@ class MainWorkerThread(threading.Thread):
         except SASExceptions.WrongImageFormat:
             wx.CallAfter(self._showDataFormatError, os.path.split(filename)[1], include_ascii = False)
             wx.CallAfter(self.main_frame.closeBusyDialog)
+            traceback.print_exc()
             return
 
         parameters = {'filename' : os.path.split(filename)[1],
@@ -4505,7 +4552,7 @@ class MainWorkerThread(threading.Thread):
 
         bogus_sasm = SASM.SASM([0,1], [0,1], [0,1], parameters)
 
-        self._sendImageToDisplay(img, bogus_sasm, fnum)
+        self._sendImageToDisplay(img, bogus_sasm, fnum, num_frames)
         wx.CallAfter(self.main_frame.plot_notebook.SetSelection, 2)
         file_list = wx.FindWindowByName('FileListCtrl')
         wx.CallAfter(file_list.SetFocus)
@@ -4771,9 +4818,11 @@ class MainWorkerThread(threading.Thread):
                 if result[0] == wx.ID_YESTOALL:
                     yes_to_all = True
 
-                if result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL or result[0] == wx.ID_EDIT:
+                if (result[0] == wx.ID_YES or result[0] == wx.ID_YESTOALL
+                    or result[0] == wx.ID_EDIT):
                     try:
-                        sasm, img = SASFileIO.loadFile(full_load_path, self._raw_settings)
+                        sasm, img = SASFileIO.loadFile(full_load_path,
+                            self._raw_settings, return_all_images=False)
 
                         start_point = self._raw_settings.get('StartPoint')
                         end_point = self._raw_settings.get('EndPoint')
@@ -4800,15 +4849,18 @@ class MainWorkerThread(threading.Thread):
 
                         if img is not None:
                             try:
-                                SASFileIO.saveMeasurement(sasm, final_save_path, self._raw_settings)
+                                SASFileIO.saveMeasurement(sasm, final_save_path,
+                                    self._raw_settings)
                             except SASExceptions.HeaderSaveError:
                                 wx.CallAfter(self._showSaveError, 'header')
 
                             processed_files += 1
                         else:
-                            wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_ascii = False)
+                            wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1],
+                                include_ascii = False)
                     except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
-                        wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_ascii = False)
+                        wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1],
+                            include_ascii = False)
                     except SASExceptions.HeaderLoadError as msg:
                         wx.CallAfter(self._showHeaderError, str(msg))
                     except SASExceptions.AbsScaleNormFailed:
@@ -4821,7 +4873,8 @@ class MainWorkerThread(threading.Thread):
 
             else:
                 try:
-                    sasm, img = SASFileIO.loadFile(full_load_path, self._raw_settings)
+                    sasm, img = SASFileIO.loadFile(full_load_path,
+                        self._raw_settings, return_all_images=False)
 
                     start_point = self._raw_settings.get('StartPoint')
                     end_point = self._raw_settings.get('EndPoint')
@@ -4842,9 +4895,11 @@ class MainWorkerThread(threading.Thread):
 
                         processed_files += 1
                     else:
-                        wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_ascii = False)
+                        wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1],
+                            include_ascii = False)
                 except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat):
-                    wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1], include_ascii = False)
+                    wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1],
+                        include_ascii = False)
                 except SASExceptions.HeaderLoadError as msg:
                     wx.CallAfter(self._showHeaderError, str(msg))
                 except SASExceptions.AbsScaleNormFailed:
@@ -11906,7 +11961,8 @@ class SeriesControlPanel(wx.Panel):
                 return
 
             try:
-                sasm, img = SASFileIO.loadFile(fname, self.parent._raw_settings)
+                sasm, img = SASFileIO.loadFile(fname, self.parent._raw_settings,
+                    return_all_images=False)
             except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat) as msg:
                 img_fmt = self._raw_settings.get('ImageFormat')
                 ascii = ' or any of the supported ASCII formats'

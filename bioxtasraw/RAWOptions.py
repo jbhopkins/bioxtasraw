@@ -1775,7 +1775,8 @@ class ReductionFlatfield(scrolled.ScrolledPanel):
         if selectedFile is not None:
 
             try:
-                SASFileIO.loadImage(selectedFile, self.raw_settings)
+                SASFileIO.loadImage(selectedFile, self.raw_settings,
+                    next_image=0)
                 valid_file = True
             except Exception:
                 valid_file = False
@@ -1838,7 +1839,8 @@ class ReductionFlatfield(scrolled.ScrolledPanel):
 
             else:
                 try:
-                    SASFileIO.loadImage(selected_file, self.raw_settings)
+                    SASFileIO.loadImage(selected_file, self.raw_settings,
+                        next_image=0)
                     valid_file = True
                 except Exception:
                     valid_file = False
@@ -1870,7 +1872,8 @@ class ReductionFlatfield(scrolled.ScrolledPanel):
 
             else:
                 try:
-                    SASFileIO.loadImage(selected_file, self.raw_settings)
+                    SASFileIO.loadImage(selected_file, self.raw_settings,
+                        next_image=0)
                     valid_file = True
                 except Exception:
                     valid_file = False
@@ -5366,14 +5369,16 @@ class OptionsDialog(wx.Dialog):
 
         if self._raw_settings.get('NormFlatfieldEnabled'):
             flat_filename = self._raw_settings.get('NormFlatfieldFile')
-            flat_img, _ = SASFileIO.loadImage(flat_filename, self._raw_settings)
+            flat_img, _, _ = SASFileIO.loadImage(flat_filename, self._raw_settings,
+                next_image=0)
             self._raw_settings.set('NormFlatfieldImage', flat_img[0])
         else:
             self._raw_settings.set('NormFlatfieldImage', None)
 
         if self._raw_settings.get('DarkCorrEnabled'):
             dark_filename = self._raw_settings.get('DarkCorrFilename')
-            dark_img, _ = SASFileIO.loadImage(dark_filename, self._raw_settings)
+            dark_img, _, _ = SASFileIO.loadImage(dark_filename, self._raw_settings,
+                next_image=0)
             self._raw_settings.set('DarkCorrImage', dark_img[0])
         else:
             self._raw_settings.set('DarkCorrImage', None)

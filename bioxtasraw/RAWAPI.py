@@ -125,7 +125,7 @@ def load_settings(file, settings=None):
 
     return settings
 
-def load_files(filename_list, settings):
+def load_files(filename_list, settings, return_all_images=False):
     """
     Loads all types of files that RAW knows how to load. If images are
     included in the list, then the images are radially averaged as part
@@ -139,6 +139,10 @@ def load_files(filename_list, settings):
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`
         The RAW settings to be used when loading in the files, such as the
         calibration values used when radially averaging images.
+    return_all_images: bool
+        If True, all loaded images are returned. If false, only the first loaded
+        image of the last file is returned. Useful for minimizing memory use
+        if loading and processing a large number of images. False by default.
 
     Returns
     -------
@@ -175,7 +179,7 @@ def load_files(filename_list, settings):
             series_list.append(secm)
 
         elif file_ext == '.ift' or file_ext == '.out':
-            iftm, img = SASFileIO.loadFile(filename, settings)
+            iftm, img = SASFileIO.loadFile(filename, settings, return_all_images=False)
 
             if isinstance(iftm, list):
                 ift_list.append(iftm[0])
@@ -191,7 +195,8 @@ def load_files(filename_list, settings):
             is_profile = True
 
         if is_profile:
-            sasm, img = SASFileIO.loadFile(filename, settings)
+            sasm, img = SASFileIO.loadFile(filename, settings,
+                return_all_images=return_all_images)
 
             if img is not None:
                 start_point = settings.get('StartPoint')
@@ -206,9 +211,19 @@ def load_files(filename_list, settings):
                         each_sasm.setQrange(qrange)
 
                 if isinstance(img, list):
-                    img_list.extend(img)
+                    if not return_all_images and len(img_list) == 0:
+                        img_list.append(img[0])
+                    elif not return_all_images:
+                        img_list[0] = img[0]
+                    else:
+                        img_list.extend(img)
                 else:
-                    img_list.append(img)
+                    if not return_all_images and len(img_list) == 0:
+                        img_list.append(img)
+                    elif not return_all_images:
+                        img_list[0] = img
+                    else:
+                        img_list.append(img)
 
             if isinstance(sasm, list):
                 profile_list.extend(sasm)
@@ -328,7 +343,7 @@ def load_series(filename_list, settings=None):
 
     return series_list
 
-def load_images(filename_list, settings):
+def load_images(filename_list, settings, frame_num=None):
     """
     Loads in image files.
 
@@ -340,6 +355,11 @@ def load_images(filename_list, settings):
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`
         The RAW settings to be used when loading in the files, such as the
         calibration values used when radially averaging images.
+    frame_num: int
+        If a frame number is passed, only that specific frame is returned from
+        a multi-image file. If no frame number is passed, all frames are returned
+        from a multi-image file. Should be either None (the default) or 0 for
+        single image files.
 
     Returns
     -------
@@ -362,7 +382,12 @@ def load_images(filename_list, settings):
 
     for filename in filename_list:
         filename = os.path.abspath(os.path.expanduser(filename))
-        img, imghdr = SASFileIO.loadImage(filename, settings)
+
+        if frame_num is None:
+
+        else:
+            img, imghdr, _ = SASFileIO.loadImage(filename, settings,
+                next_image=frame_num)
 
         if img is None:
             raise SASExceptions.WrongImageFormat('not a valid file!')
@@ -372,7 +397,7 @@ def load_images(filename_list, settings):
 
     return img_list, imghdr_list
 
-def load_and_integrate_images(filename_list, settings):
+def load_and_integrate_images(filename_list, settings, return_all_images=False):
     """
     Loads in image files and radially averages them into 1D scattering
     profiles. This is a convenience wrapper for :py:func:`load_files` that
@@ -386,6 +411,10 @@ def load_and_integrate_images(filename_list, settings):
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`
         The RAW settings to be used when loading in the files, such as the
         calibration values used when radially averaging images.
+    return_all_images: bool
+        If True, all loaded images are returned. If false, only the first loaded
+        image of the last file is returned. Useful for minimizing memory use
+        if loading and processing a large number of images. False by default.
 
     Returns
     -------
@@ -396,7 +425,8 @@ def load_and_integrate_images(filename_list, settings):
     img_list: list
         A list of individual images (:class:`numpy.array`) loaded in.
     """
-    profile_list, iftm_list, secm_list, img_list = load_files(filename_list, settings)
+    profile_list, iftm_list, secm_list, img_list = load_files(filename_list,
+        settings, return_all_images)
 
     return profile_list, img_list
 
