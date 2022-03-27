@@ -455,10 +455,19 @@ class ImagePanel(wx.Panel):
         if self.plot_parameters['ClimLocked'] == False:
             clim = self.imgobj.get_clim()
 
-            self.plot_parameters['UpperClim'] = min(clim[1],
-                self.plot_parameters['maxImgVal'])
-            self.plot_parameters['LowerClim'] = max(clim[0],
-                self.plot_parameters['minImgVal'])
+            if clim[0] is not None and self.plot_parameters['minImgVal'] is not None:
+                self.plot_parameters['LowerClim'] = max(clim[0], self.plot_parameters['minImgVal'])
+            elif clim[0] is None:
+                self.plot_parameters['LowerClim'] = self.plot_parameters['minImgVal']
+            else:
+                self.plot_parameters['LowerClim'] = clim[0]
+
+            if clim[1] is not None and self.plot_parameters['maxImgVal'] is not None:
+                self.plot_parameters['UpperClim'] = min(clim[1], self.plot_parameters['maxImgVal'])
+            elif clim[1] is None:
+                self.plot_parameters['UpperClim'] = self.plot_parameters['maxImgVal']
+            else:
+                self.plot_parameters['UpperClim'] = clim[1]
         else:
             clim = self.imgobj.set_clim(self.plot_parameters['LowerClim'],
                 self.plot_parameters['UpperClim'])
