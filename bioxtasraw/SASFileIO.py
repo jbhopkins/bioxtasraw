@@ -1790,8 +1790,6 @@ def parse_out_file(lines):
         q_i0_match = q_i0_fit.match(line)
         alpha_match = alpha_fit.match(line)
 
-        outfile.append(line)
-
         if twocol_match:
             # print line
             found = twocol_match.group().split()
@@ -1865,6 +1863,12 @@ def parse_out_file(lines):
         if alpha_match:
             found = alpha_match.group().split()
             alpha = float(found[-1])
+
+
+        if not line.endswith('\n'):
+            line += '\n'
+
+        outfile.append(line)
 
     # Output variables not in the results file:
         # 'r'         : R,            #R, note R[-1] == Dmax
