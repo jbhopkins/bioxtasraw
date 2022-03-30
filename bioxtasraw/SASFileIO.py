@@ -773,10 +773,17 @@ def parseBioCATlogfile(filename, new_filename=None):
 
     if new_filename is not None:
         #BioCAT Eiger
-        countFilename=os.path.join(datadir, '_'.join(fname.split('_')[:-2])+'.log')
+
         sname_val = int(new_filename.split('.')[0].split('_')[-1])
         searchName = '.'.join(fname.split('.')[:-1])
-        searchName = '_'.join(fname.split('_')[:-2]) + '_{:06d}'.format(sname_val)
+
+        if fname.endswith('master.h5'):
+            countFilename=os.path.join(datadir, '_'.join(fname.split('_')[:-1])+'.log')
+            searchName = '_'.join(searchName.split('_')[:-1]) + '_{:06d}'.format(sname_val)
+        else:
+            countFilename=os.path.join(datadir, '_'.join(fname.split('_')[:-2])+'.log')
+            searchName = '_'.join(searchName.split('_')[:-2]) + '_{:06d}'.format(sname_val)
+
     else:
         #BioCAT Pilatus
         countFilename=os.path.join(datadir, '_'.join(fname.split('_')[:-1])+'.log')
@@ -1048,9 +1055,6 @@ def loadHeader(filename, new_filename, header_type):
     ''' returns header information based on the *image* filename
      and the type of headerfile     '''
 
-    print(filename)
-    print(new_filename)
-    print(header_type)
     if header_type != 'None':
         try:
             if new_filename != os.path.split(filename)[1]:
@@ -1152,8 +1156,9 @@ def loadFile(filename, raw_settings, no_processing=False, return_all_images=True
         except (ValueError, AttributeError) as msg:
             raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
             traceback.print_exc()
-        except Exception:
-            traceback.print_exc()
+        # except Exception:
+            # traceback.print_exc()
+            # raise
 
         #Always do some post processing for image files
         if not isinstance(sasm, list):
@@ -1297,7 +1302,10 @@ def loadImageFile(filename, raw_settings, hdf5_file=None, return_all_images=True
 
                 base_hdr = hdrfile_info = loadHeader(filename, new_filename, hdr_fmt)
 
-                sname_offset = int(filename.split('.')[0].split('_')[-1])-1
+                if not filename.endswith('master.h5'):
+                    sname_offset = int(filename.split('.')[0].split('_')[-1])-1
+                else:
+                    sname_offset = 0
 
                 if 'Number_of_images_per_file' in base_hdr:
                     mult = int(base_hdr['Number_of_images_per_file'])
