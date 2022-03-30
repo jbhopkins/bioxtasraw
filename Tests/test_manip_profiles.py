@@ -92,14 +92,21 @@ def test_linear_rebin_factor(gi_sub_profile, rebin_factor):
     if rebin_factor < 1:
         rebin_factor = 1
 
-    intensity = gi_sub_profile.getI()
-    q = gi_sub_profile.getQ()
-    err = gi_sub_profile.getErr()
+    len_iq = len(gi_sub_profile.getI())
 
-    no_of_bins = int(np.floor(len(intensity) / rebin_factor))
+    no_of_bins = int(np.floor(len_iq / rebin_factor))
 
     if no_of_bins < 1:
         no_of_bins = 1
+
+    end_idx = no_of_bins * rebin_factor
+
+    start_idx = 0
+    i_roi = gi_sub_profile.getI()[start_idx:end_idx]
+    q_roi = gi_sub_profile.getQ()[start_idx:end_idx]
+    err_roi = gi_sub_profile.getErr()[start_idx:end_idx]
+
+    err_sqr = err_roi**2
 
     new_i = np.zeros(no_of_bins)
     new_q = np.zeros(no_of_bins)
@@ -109,9 +116,9 @@ def test_linear_rebin_factor(gi_sub_profile, rebin_factor):
         first_idx = eachbin * rebin_factor
         last_idx = (eachbin * rebin_factor) + rebin_factor
 
-        new_i[eachbin] = np.sum(intensity[first_idx:last_idx]) / rebin_factor
-        new_q[eachbin] = np.sum(q[first_idx:last_idx]) / rebin_factor
-        new_err[eachbin] = np.sqrt(np.sum(np.power(err[first_idx:last_idx],2))) / np.sqrt(rebin_factor)
+        new_i[eachbin] = np.sum(i_roi[first_idx:last_idx]) / rebin_factor
+        new_q[eachbin] = np.sum(q_roi[first_idx:last_idx]) / rebin_factor
+        new_err[eachbin] = np.sqrt(np.sum(err_sqr[first_idx:last_idx])) / (last_idx-first_idx)
 
     assert all(rebinned.getQ() == new_q)
     assert all(rebinned.getI() == new_i)
@@ -134,7 +141,6 @@ def test_linear_rebin_npts(gi_sub_profile, npts):
     q = gi_sub_profile.getQ()
     err = gi_sub_profile.getErr()
     err_sqr = err**2
-    err_norm = np.sqrt(rebin_factor)
 
     no_of_bins = int(np.floor(len(intensity) / rebin_factor))
 
@@ -148,7 +154,7 @@ def test_linear_rebin_npts(gi_sub_profile, npts):
 
         new_i[eachbin] = np.sum(intensity[first_idx:last_idx]) / rebin_factor
         new_q[eachbin] = np.sum(q[first_idx:last_idx]) / rebin_factor
-        new_err[eachbin] = np.sqrt(np.sum(err_sqr[first_idx:last_idx])) / err_norm
+        new_err[eachbin] = np.sqrt(np.sum(err_sqr[first_idx:last_idx])) / rebin_factor
 
     assert all(rebinned.getQ() == new_q)
     assert all(rebinned.getI() == new_i)
@@ -158,10 +164,10 @@ def test_log_rebin_factor(gi_sub_profile, rebin_factor):
     rebinned = raw.rebin([gi_sub_profile], rebin_factor=rebin_factor,
         log_rebin=True)[0]
 
-    if rebin_factor == 0:
-        rebin_factor = 1
-
-    no_points = int(np.floor(len(gi_sub_profile.getQ())/rebin_factor))
+    if rebin_factor != 0:
+        no_points = int(np.floor(len(gi_sub_profile.getQ())/rebin_factor))
+    else:
+        no_points = len(gi_sub_profile.getQ())
 
     q = gi_sub_profile.getQ()
     i = gi_sub_profile.getI()
@@ -208,13 +214,13 @@ def test_log_rebin_factor(gi_sub_profile, rebin_factor):
             start_idx = log_bins[j]
             end_idx = log_bins[j+1]
 
-            binned_q[j] = np.mean(q[start_idx:end_idx])
-            binned_i[j] = np.mean(i[start_idx:end_idx])
-            binned_err[j] = np.sqrt(np.sum(err_sqr[start_idx:end_idx])/(end_idx-start_idx))
+            binned_q[j] = np.sum(q[start_idx:end_idx])/(end_idx-start_idx)
+            binned_i[j] = np.sum(i[start_idx:end_idx])/(end_idx-start_idx)
+            binned_err[j] = np.sqrt(np.sum(err_sqr[start_idx:end_idx]))/(end_idx-start_idx)
 
-    assert all(rebinned.getQ() == binned_q)
-    assert all(rebinned.getI() == binned_i)
-    assert all(rebinned.getErr() == binned_err)
+    assert np.allclose(rebinned.getQ(), binned_q)
+    assert np.allclose(rebinned.getI(), binned_i)
+    assert np.allclose(rebinned.getErr(), binned_err)
 
 def test_log_rebin_npts(gi_sub_profile, npts):
     rebinned = raw.rebin([gi_sub_profile], npts=npts, log_rebin=True)[0]
@@ -268,13 +274,13 @@ def test_log_rebin_npts(gi_sub_profile, npts):
             start_idx = log_bins[j]
             end_idx = log_bins[j+1]
 
-            binned_q[j] = np.mean(q[start_idx:end_idx])
-            binned_i[j] = np.mean(i[start_idx:end_idx])
-            binned_err[j] = np.sqrt(np.sum(err_sqr[start_idx:end_idx])/(end_idx-start_idx))
+            binned_q[j] = np.sum(q[start_idx:end_idx])/(end_idx-start_idx)
+            binned_i[j] = np.sum(i[start_idx:end_idx])/(end_idx-start_idx)
+            binned_err[j] = np.sqrt(np.sum(err_sqr[start_idx:end_idx]))/(end_idx-start_idx)
 
-    assert all(rebinned.getQ() == binned_q)
-    assert all(rebinned.getI() == binned_i)
-    assert all(rebinned.getErr() == binned_err)
+    assert np.allclose(rebinned.getQ(), binned_q)
+    assert np.allclose(rebinned.getI(), binned_i)
+    assert np.allclose(rebinned.getErr(), binned_err)
 
 def test_interpolate(gi_sub_profile):
     rebinned = raw.rebin([gi_sub_profile])[0]

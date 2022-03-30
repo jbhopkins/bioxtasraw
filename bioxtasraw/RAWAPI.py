@@ -2347,7 +2347,7 @@ def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
         analysis_dict = profile.getParameter('analysis')
         if 'guinier' in analysis_dict:
             guinier_dict = analysis_dict['guinier']
-            idx_min = max(0, int(analysis['guinier']['nStart']) - profile.getQrange()[0])
+            idx_min = max(0, int(guinier_dict['nStart']) - profile.getQrange()[0])
         else:
             idx_min = 0
 
@@ -2564,7 +2564,7 @@ def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
             analysis_dict = profile.getParameter('analysis')
             if 'guinier' in analysis_dict:
                 guinier_dict = analysis_dict['guinier']
-                idx_min = max(1, int(analysis['guinier']['nStart']) - profile.getQrange()[0] + 1)
+                idx_min = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
             else:
                 idx_min = 1
 

@@ -128,7 +128,7 @@ def test_datgnom(clean_gi_sub_profile):
     assert dmax == 100.8
     assert rg == 33.35
     assert i0 == 0.06118
-    assert total_est == 0.9708
+    assert round(total_est, 3) == 0.971
 
 @pytest.mark.atsas
 def test_gnom(clean_gi_sub_profile, gi_gnom_ift):

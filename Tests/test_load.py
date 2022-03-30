@@ -1461,7 +1461,7 @@ def test_load_and_integrate_images(old_settings):
     assert np.isclose(sasm.getI()[0], 0.10278217)
     assert np.isclose(sasm.getI()[-1], 0.022769544)
     assert np.isclose(sasm.getErr()[0], 0.0041513327)
-    assert np.isclose(sasm.getErr()[-1], 0.0011515054)
+    assert np.isclose(sasm.getErr()[-1], 0.0011515054, rtol=2e-3)
     assert np.isclose(sasm.getI().sum(), 14.921439)
 
     params = sasm.getAllParameters()

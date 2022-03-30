@@ -3700,7 +3700,7 @@ class MainWorkerThread(threading.Thread):
                 if file_ext == '.sec' or file_ext == '.hdf5':
                     try:
                         loaded_files = SASFileIO.loadSeriesFile(each_filename,
-                            self._raw_settings, return_all_images=False)
+                            self._raw_settings)
                     except Exception:
                         loaded_files, img = SASFileIO.loadFile(each_filename,
                             self._raw_settings, return_all_images=False)

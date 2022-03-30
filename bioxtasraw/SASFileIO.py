@@ -2676,7 +2676,7 @@ def loadDamselLogFile(filename):
                     vals = line.split('=')[-1].strip()
                     res, res_unit = vals.split()
                     res = res.strip()
-                    res_err = 0
+                    res_err = '0'
                     res_unit = res_unit.strip()
 
 
