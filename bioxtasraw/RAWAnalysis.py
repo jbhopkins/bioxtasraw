@@ -3552,10 +3552,10 @@ class MolWeightFrame(wx.Frame):
 
                 try:
                     #Plus one offset is because datmw has 1 as first point, not 0
-                    first = max(1, int(analysis['guinier']['nStart']) - profile.getQrange()[0] + 1)
+                    first = max(0, int(analysis['guinier']['nStart']) - profile.getQrange()[0])
 
                 except Exception:
-                    first = self.sasm.getQrange()[0]+1
+                    first = self.sasm.getQrange()[0]
 
             if i0 == -1 or rg == -1 or first == -1:
                 raise SASExceptions.NoATSASError('Datmw requires rg and i0.')
@@ -3644,7 +3644,7 @@ class MolWeightFrame(wx.Frame):
             if i0 == -1 or rg == -1:
                 raise SASExceptions.NoATSASError('Datclass requires rg and i0.')
 
-            first = max(1, int(analysis['guinier']['nStart']) - self.sasm.getQrange()[0] + 1)
+            first = max(0, int(analysis['guinier']['nStart']) - self.sasm.getQrange()[0])
 
             res = SASCalc.runDatclass(rg, i0, first, self.raw_settings.get('ATSASDir'),
                 path, datname)
@@ -4243,25 +4243,15 @@ class GNOMControlPanel(wx.Panel):
             self.old_analysis = copy.deepcopy(self.sasm.getParameter('analysis')['GNOM'])
 
         self.gnom_settings = {
-            'expert'        : self.raw_settings.get('gnomExpertFile'),
             'rmin_zero'     : self.raw_settings.get('gnomForceRminZero'),
             'rmax_zero'     : self.raw_settings.get('gnomForceRmaxZero'),
             'npts'          : self.raw_settings.get('gnomNPoints'),
             'alpha'         : self.raw_settings.get('gnomInitialAlpha'),
-            'first'         : 1,
-            'last'          : len(self.sasm.q) + 1,
-            'angular'       : self.raw_settings.get('gnomAngularScale'),
+            'first'         : 0,
+            'last'          : len(self.sasm.q),
             'system'        : self.raw_settings.get('gnomSystem'),
-            'form'          : self.raw_settings.get('gnomFormFactor'),
             'radius56'      : self.raw_settings.get('gnomRadius56'),
             'rmin'          : self.raw_settings.get('gnomRmin'),
-            'fwhm'          : self.raw_settings.get('gnomFWHM'),
-            'ah'            : self.raw_settings.get('gnomAH'),
-            'lh'            : self.raw_settings.get('gnomLH'),
-            'aw'            : self.raw_settings.get('gnomAW'),
-            'lw'            : self.raw_settings.get('gnomLW'),
-            'spot'          : self.raw_settings.get('gnomSpot'),
-            'expt'          : self.raw_settings.get('gnomExpt'),
             }
 
         self.out_list = {}
@@ -4632,6 +4622,7 @@ class GNOMControlPanel(wx.Panel):
                     self.alpha_ctrl.SetValue('0')
                 else:
                     self.alpha_ctrl.SetValue(str(alpha))
+                    self.updateGNOMSettings(update_plot=False)
                     self.calcGNOM(dmax)
 
             self.updateGNOMInfo(self.out_list[str(dmax)])
@@ -5016,8 +5007,8 @@ class GNOMControlPanel(wx.Panel):
     def findDmax(self):
         self.updateGNOMSettings(update_plot=False)
 
-        start = self.gnom_settings['first'] -1
-        end = self.gnom_settings['last'] -1
+        start = self.gnom_settings['first']
+        end = self.gnom_settings['last']
 
         save_sasm = copy.deepcopy(self.sasm)
 
@@ -5123,25 +5114,15 @@ class GNOMControlPanel(wx.Panel):
         self.old_settings = copy.deepcopy(self.gnom_settings)
 
         self.gnom_settings = {
-            'expert'    : self.raw_settings.get('gnomExpertFile'),
             'rmin_zero' : self.raw_settings.get('gnomForceRminZero'),
             'rmax_zero' : wx.FindWindowById(self.otherctrlIDs['force_dmax']).GetStringSelection(),
             'npts'      : self.raw_settings.get('gnomNPoints'),
             'alpha'     : wx.FindWindowById(self.staticTxtIDs['alpha']).GetValue(),
-            'first'     : int( wx.FindWindowById(self.spinctrlIDs['qstart'], self).GetValue())+1,
-            'last'      : int( wx.FindWindowById(self.spinctrlIDs['qend'], self).GetValue())+1,
-            'angular'   : self.raw_settings.get('gnomAngularScale'),
+            'first'     : int( wx.FindWindowById(self.spinctrlIDs['qstart'], self).GetValue()),
+            'last'      : int( wx.FindWindowById(self.spinctrlIDs['qend'], self).GetValue()),
             'system'    : self.raw_settings.get('gnomSystem'),
-            'form'      : self.raw_settings.get('gnomFormFactor'),
             'radius56'  : self.raw_settings.get('gnomRadius56'),
             'rmin'      : self.raw_settings.get('gnomRmin'),
-            'fwhm'      : self.raw_settings.get('gnomFWHM'),
-            'ah'        : self.raw_settings.get('gnomAH'),
-            'lh'        : self.raw_settings.get('gnomLH'),
-            'aw'        : self.raw_settings.get('gnomAW'),
-            'lw'        : self.raw_settings.get('gnomLW'),
-            'spot'      : self.raw_settings.get('gnomSpot'),
-            'expt'      : self.raw_settings.get('gnomExpt')
             }
 
         if self.old_settings != self.gnom_settings:

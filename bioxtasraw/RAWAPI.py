@@ -1737,7 +1737,7 @@ def mw_vc(profile, rg=None, i0=None, protein=True, cutoff='Manual', qmax=0.3,
     return mw, vcor, mw_err, qmax
 
 def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
-    use_i0_from='guinier', write_file=True, datadir=None, filename=None):
+    use_i0_from='guinier', write_profile=True, datadir=None, filename=None):
     """
     Calculates the M.W. of the input profile using the Bayesian inference
     method implemented in datmw in the ATSAS package. This requires a separate
@@ -1749,7 +1749,7 @@ def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
     Parameters
     ----------
     profile: :class:`bioxtasraw.SASM.SASM`
-        The profile to calculate the M.W. for. If using write_file false, you
+        The profile to calculate the M.W. for. If using write_profile false, you
         can pass None here. In that case you must pass values for rg, i0, and
         first.
     rg: float, optional
@@ -1764,8 +1764,7 @@ def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
         The first point in the q vector to be used in calculating the M.W.
         If not provided, then the first point is taken from the guinier analysis
         of the profile if available. If not available, then the first point
-        of the profile is used. Note that this must be 1 indexed, rather than
-        0 indexed, so the first point of the q vector is point 1.
+        of the profile is used.
     atsas_dir: str, optional
         The directory of the atsas programs (the bin directory). If not provided,
         the API uses the auto-detected directory.
@@ -1773,17 +1772,18 @@ def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
         Determines whether the Rg and I(0) value used for the M.W. calculation
         is from the Guinier fit, or the GNOM or BIFT P(r) function. Ignored if
         both rg and i0 parameters are provided.
-    write_file: bool, optional
+    write_profile: bool, optional
         If True, the input profile is written to file. If False, then the
         input profile is ignored, and the profile specified by datadir and
         filename is used. This is convenient if you are trying to process
         a lot of files that are already on disk, as it saves having to read
-        in each file and then save them again. Defaults to True.
+        in each file and then save them again. Defaults to True. In this case,
+        Rg and I(0) must be specified, as they are not read from the file on disk.
     datadir: str, optional
-        If write_file is False, this is used as the path to the scattering
+        If write_profile is False, this is used as the path to the scattering
         profile on disk.
     filename: str, optional
-        If write_file is False, this is used as the filename of the scattering
+        If write_profile is False, this is used as the filename of the scattering
         profile on disk.
 
     Returns
@@ -1805,7 +1805,7 @@ def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
     if atsas_dir is None:
         atsas_dir = settings.get('ATSASDir')
 
-    if write_file:
+    if write_profile:
         analysis_dict = profile.getParameter('analysis')
         if 'molecularWeight' in analysis_dict:
             mw_dict = analysis_dict['molecularWeight']
@@ -1817,32 +1817,33 @@ def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
                 guinier_dict = analysis_dict['guinier']
                 rg = float(guinier_dict['Rg'])
                 i0 = float(guinier_dict['I0'])
-                first = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
+
+                if first is None:
+                    first = max(0, int(guinier_dict['nStart']) - profile.getQrange()[0])
 
             elif use_i0_from == 'gnom':
                 gnom_dict = analysis_dict['GNOM']
                 rg = float(gnom_dict['Real_Space_Rg'])
                 i0 = float(gnom_dict['Real_Space_I0'])
 
-                if 'guinier' in analysis_dict:
-                    guinier_dict = analysis_dict['guinier']
-                    first = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
-                else:
-                    first = 1
+                if first is None:
+                    if 'guinier' in analysis_dict:
+                        guinier_dict = analysis_dict['guinier']
+                        first = max(0, int(guinier_dict['nStart']) - profile.getQrange()[0])
+                    else:
+                        first = 0
 
             elif use_i0_from == 'bift':
                 bift_dict = analysis_dict['BIFT']
                 rg = float(bift_dict['Real_Space_Rg'])
                 i0 = float(bift_dict['Real_Space_I0'])
 
-                if 'guinier' in analysis_dict:
-                    guinier_dict = analysis_dict['guinier']
-                    first = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
-                else:
-                    first = 1
-
-        if first is None:
-            first = 1
+                if first is None:
+                    if 'guinier' in analysis_dict:
+                        guinier_dict = analysis_dict['guinier']
+                        first = max(0, int(guinier_dict['nStart']) - profile.getQrange()[0])
+                    else:
+                        first = 0
 
         datadir = os.path.abspath(os.path.expanduser(tempfile.gettempdir()))
         filename = tempfile.NamedTemporaryFile(dir=datadir).name
@@ -1854,15 +1855,17 @@ def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
     else:
         datadir = os.path.abspath(os.path.expanduser(datadir))
 
+    if first is None:
+        first = 0
 
     res = SASCalc.runDatmw(rg, i0, first, 'bayes', atsas_dir, datadir, filename)
 
 
-    if write_file and os.path.isfile(os.path.join(datadir, filename)):
-            try:
-                os.remove(os.path.join(datadir, filename))
-            except Exception:
-                pass
+    if write_profile and os.path.isfile(os.path.join(datadir, filename)):
+        try:
+            os.remove(os.path.join(datadir, filename))
+        except Exception:
+            pass
 
     if len(res) > 0:
         mw, mw_score, ci_lower, ci_upper, ci_score = res
@@ -1870,7 +1873,7 @@ def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
         mw_prob = mw_score*100
         ci_prob = ci_score*100
 
-        if profile is not None:
+        if profile is not None and write_profile:
             mw_dict['DatmwBayes'] = {}
             mw_dict['DatmwBayes']['MW'] = str(mw)
             mw_dict['DatmwBayes']['ConfidenceIntervalLower'] = str(ci_lower)
@@ -1889,7 +1892,7 @@ def mw_bayes(profile, rg=None, i0=None, first=None, atsas_dir=None,
 
     return mw, mw_prob, ci_lower, ci_upper, ci_prob
 
-def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
+def mw_datclass(profile, rg=None, i0=None, first=None, atsas_dir=None,
     use_i0_from='guinier', write_profile=True, datadir=None, filename=None):
     """
     Calculates the M.W. of the input profile using the Bayesian inference
@@ -1913,6 +1916,11 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
         The I(0) to be used in calculating the M.W. If not provided, then the
         I(0) is taken from the analysis dictionary of the profile, in conjunction
         with the use_i0_from setting.
+    first: int, optional
+        The first point in the q vector to be used in calculating the M.W.
+        If not provided, then the first point is taken from the guinier analysis
+        of the profile if available. If not available, then the first point
+        of the profile is used.
     atsas_dir: str, optional
         The directory of the atsas programs (the bin directory). If not provided,
         the API uses the auto-detected directory.
@@ -1960,32 +1968,33 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
                 guinier_dict = analysis_dict['guinier']
                 rg = float(guinier_dict['Rg'])
                 i0 = float(guinier_dict['I0'])
-                first = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
+
+                if first is None:
+                    first = max(0, int(guinier_dict['nStart']) - profile.getQrange()[0])
 
             elif use_i0_from == 'gnom':
                 gnom_dict = analysis_dict['GNOM']
                 rg = float(gnom_dict['Real_Space_Rg'])
                 i0 = float(gnom_dict['Real_Space_I0'])
 
-                if 'guinier' in analysis_dict:
-                    guinier_dict = analysis_dict['guinier']
-                    first = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
-                else:
-                    first = 1
+                if first is None:
+                    if 'guinier' in analysis_dict:
+                        guinier_dict = analysis_dict['guinier']
+                        first = max(0, int(guinier_dict['nStart']) - profile.getQrange()[0])
+                    else:
+                        first = 0
 
             elif use_i0_from == 'bift':
                 bift_dict = analysis_dict['BIFT']
                 rg = float(bift_dict['Real_Space_Rg'])
                 i0 = float(bift_dict['Real_Space_I0'])
 
-                if 'guinier' in analysis_dict:
-                    guinier_dict = analysis_dict['guinier']
-                    first = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
-                else:
-                    first = 1
-
-        if first is None:
-            first = 1
+                if first is None:
+                    if 'guinier' in analysis_dict:
+                        guinier_dict = analysis_dict['guinier']
+                        first = max(0, int(guinier_dict['nStart']) - profile.getQrange()[0])
+                    else:
+                        first = 0
 
         datadir = os.path.abspath(os.path.expanduser(tempfile.gettempdir()))
         filename = tempfile.NamedTemporaryFile(dir=datadir).name
@@ -1996,8 +2005,9 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
 
     else:
         datadir = os.path.abspath(os.path.expanduser(datadir))
-        first = 1
 
+    if first is None:
+        first = 0
 
     res = SASCalc.runDatclass(rg, i0, first, atsas_dir, datadir, filename)
 
@@ -2011,7 +2021,7 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
     if len(res) > 0:
         shape, mw, dmax = res
 
-        if profile is not None:
+        if profile is not None and write_profile:
             mw_dict['ShapeAndSize'] = {}
             mw_dict['ShapeAndSize']['MW'] = str(mw)
             mw_dict['ShapeAndSize']['Shape'] = shape
@@ -2027,7 +2037,7 @@ def mw_datclass(profile, rg=None, i0=None,  atsas_dir=None,
     return mw, shape, dmax
 
 def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5,
-    settings=None, use_atsas=True, single_proc=False):
+    settings=None, use_atsas=True, single_proc=True):
     """
     Automatically calculate the maximum dimension (Dmax) value of a profile.
     By default uses BIFT, DATGNOM, and DATCLASS to find a starting value and
@@ -2061,7 +2071,7 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
         Whether to use ATSAS functions. If False, simply returns the Dmax
         found by BIFT. Default is True.
     single_proc: bool, optional
-        Whether to use one or multiple processors. Defaults to False.
+        Whether to use one or multiple processors. Defaults to True.
 
     Returns
     -------
@@ -2564,38 +2574,25 @@ def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
             analysis_dict = profile.getParameter('analysis')
             if 'guinier' in analysis_dict:
                 guinier_dict = analysis_dict['guinier']
-                idx_min = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
+                idx_min = max(0, int(guinier_dict['nStart']) - profile.getQrange()[0])
             else:
-                idx_min = 1
+                idx_min = 0
 
         elif idx_min is None:
-            idx_min = 1
+            idx_min = 0
 
         if idx_max is None:
             if cut_8rg:
                 q = save_profile.getQ()
-                idx_max = np.argmin(np.abs(q-(8/rg))) +1
+                idx_max = np.argmin(np.abs(q-(8/rg)))
             else:
-                idx_max = save_profile.getQrange()[1] + 1
+                idx_max = save_profile.getQrange()[1]
 
         SASFileIO.writeRadFile(save_profile, os.path.join(datadir, filename),
             False)
 
-    else:
-        if idx_min is None and use_guinier_start and profile is not None:
-            analysis_dict = profile.getParameter('analysis')
-            if 'guinier' in analysis_dict:
-                guinier_dict = analysis_dict['guinier']
-                idx_min = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
-            else:
-                idx_min = 1
-
-        elif idx_min is None:
-            idx_min=1
-
-        if idx_max is None and profile is not None:
-            idx_max = profile.getQrange()[1] + 1
-
+    if idx_min is None:
+        idx_min = 0
 
     if not save_ift:
         savename = tempfile.NamedTemporaryFile(dir=datadir).name
@@ -2643,7 +2640,7 @@ def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
         total_est = float(ift.getParameter('TE'))
         quality = ift.getParameter('quality')
 
-        if profile is not None:
+        if profile is not None and write_profile:
             results_dict = {}
             results_dict['Dmax'] = str(dmax)
             results_dict['Total_Estimate'] = str(total_est)
@@ -2676,8 +2673,7 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
     atsas_dir=None, use_rg_from='guinier', use_guinier_start=True,
     cut_dam=False, write_profile=True, datadir=None, filename=None,
     save_ift=False, savename=None, settings=None, dmin_zero=True, npts=0,
-    angular_scale=1, system=0, form_factor='', radius56=-1, rmin=-1, fwhm=-1,
-    ah=-1, lh=-1, aw=-1, lw=-1, spot=''):
+    system=0, radius56=-1, rmin=-1):
     """
     Calculates the IFT and resulting P(r) function using gnom from the
     ATSAS package. This requires a separate installation of the ATSAS package
@@ -2755,34 +2751,14 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
         If provided, fixes the number of points in the P(r) function. If 0
         (default), number of points in th P(r) function is automatically
         determined.
-    angular_scale: int, optional
-        Defines the angular scale of the data as given in the GNOM manual.
-        Default is 1/Angstrom.
     system: int, optional
         Defines the job type as in the GNOM manual. Default is 0, a
         monodisperse system.
-    form_factor: str, optional
-        Path to the form factor file for system type 2. Default is not used.
     radius56: float, optional
         The radius/thickness for system type 5/6. Default is not used.
     rmin: float, optional
         Minimum size for system types 1-6. Default is not used.
-    fwhm: float, optional
-        Beam FWHM. Default is not used.
-    ah: float, optional
-        Slit height parameter A as defined in the GNOM manual. Default is not
-        used.
-    lh: float, optional
-        Slit height parameter L as defined in the GNOM manual. Default is not
-        used.
-    aw: float, optional
-        Slit width parameter A as defined in the GNOM manual. Default is not
-        used.
-    lw: float, optional
-        Slit width parameter L as defined in the GNOM manual. Default is not
-        used.
-    spot: str, optional
-        Beam profile file. Default is not used.
+
 
 
     Returns
@@ -2859,12 +2835,12 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
         if idx_min is None and use_guinier_start:
             if 'guinier' in analysis_dict:
                 guinier_dict = analysis_dict['guinier']
-                idx_min = max(1, int(guinier_dict['nStart']) - save_profile.getQrange()[0] +1)
+                idx_min = max(0, int(guinier_dict['nStart']) - save_profile.getQrange()[0])
             else:
-                idx_min = 1
+                idx_min = 0
 
         elif idx_min is None:
-            idx_min = 1
+            idx_min = 0
 
         if idx_max is None:
             if cut_dam:
@@ -2881,12 +2857,12 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
         if idx_min is None and use_guinier_start and profile is not None:
             if 'guinier' in analysis_dict:
                 guinier_dict = analysis_dict['guinier']
-                idx_min = max(1, int(guinier_dict['nStart']) - profile.getQrange()[0] + 1)
+                idx_min = max(0, int(guinier_dict['nStart']) - profile.getQrange()[0] )
             else:
-                idx_min = 1
+                idx_min = 0
 
         elif idx_min is None:
-            idx_min = 1
+            idx_min = 0
 
         if idx_max is None and profile is not None:
             if cut_dam:
@@ -2900,25 +2876,15 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
     #Initialize settings
     if settings is not None:
         gnom_settings = {
-            'expert'        : settings.get('gnomExpertFile'),
             'rmin_zero'     : settings.get('gnomForceRminZero'),
             'rmax_zero'     : dmax_zero,
             'npts'          : settings.get('gnomNPoints'),
             'alpha'         : alpha,
             'first'         : idx_min,
             'last'          : idx_max,
-            'angular'       : settings.get('gnomAngularScale'),
             'system'        : settings.get('gnomSystem'),
-            'form'          : settings.get('gnomFormFactor'),
             'radius56'      : settings.get('gnomRadius56'),
             'rmin'          : settings.get('gnomRmin'),
-            'fwhm'          : settings.get('gnomFWHM'),
-            'ah'            : settings.get('gnomAH'),
-            'lh'            : settings.get('gnomLH'),
-            'aw'            : settings.get('gnomAW'),
-            'lw'            : settings.get('gnomLW'),
-            'spot'          : settings.get('gnomSpot'),
-            'expt'          : settings.get('gnomExpt')
             }
 
     else:
@@ -2935,7 +2901,6 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
             dmax_zero = 'N'
 
         gnom_settings = {
-            'expert'        : settings.get('gnomExpertFile'),
             'rmin_zero'     : dmin_zero,
             'rmax_zero'     : dmax_zero,
             'npts'          : npts,
@@ -2943,18 +2908,9 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
             'first'         : idx_min,
             'last'          : idx_max,
             'alpha'         : alpha,
-            'angular'       : angular_scale,
             'system'        : system,
-            'form'          : form_factor,
             'radius56'      : radius56,
             'rmin'          : rmin,
-            'fwhm'          : fwhm,
-            'ah'            : ah,
-            'lh'            : lh,
-            'aw'            : aw,
-            'lw'            : lw,
-            'spot'          : spot,
-            'expt'          : settings.get('gnomExpt')
             }
 
     # Run the IFT

@@ -1057,27 +1057,23 @@ def runGnom(fname, save_ift, dmax, args, path, atsasDir, outname=None,
     else:
         cfg = True
 
+    if args['first'] is not None:
+        args['first'] += 1
+    if args['last'] is not None:
+        args['last'] += 1
+
     if new_gnom:
         #Check whether everything can be set at the command line:
         fresh_settings = RAWSettings.RawGuiSettings().getAllParams()
 
-        key_ref = { 'gnomExpertFile'    : 'expert',
+        key_ref = {
                     'gnomForceRminZero' : 'rmin_zero',
                     'gnomForceRmaxZero' : 'rmax_zero',
                     'gnomNPoints'       : 'npts',
                     'gnomInitialAlpha'  : 'alpha',
-                    'gnomAngularScale'  : 'angular',
                     'gnomSystem'        : 'system',
-                    'gnomFormFactor'    : 'form',
                     'gnomRadius56'      : 'radius56',
                     'gnomRmin'          : 'rmin',
-                    'gnomFWHM'          : 'fwhm',
-                    'gnomAH'            : 'ah',
-                    'gnomLH'            : 'lh',
-                    'gnomAW'            : 'aw',
-                    'gnomLW'            : 'lw',
-                    'gnomSpot'          : 'spot',
-                    'gnomExpt'          : 'expt'
                     }
 
         cmd_line_keys = {'rmin_zero', 'rmax_zero', 'system', 'rmin',
@@ -1120,8 +1116,13 @@ def runGnom(fname, save_ift, dmax, args, path, atsasDir, outname=None,
                 os.remove(os.path.join(path, 'gnom.cfg'))
 
             if new_gnom and use_cmd_line:
-                cmd = ('"%s" --rmax=%s --first=%s --last=%s' %(gnomDir,
-                    str(dmax), str(args['first']), str(args['last'])))
+                cmd = ('"%s" --rmax=%s' %(gnomDir, str(dmax)))
+
+                if args['first'] is not None:
+                    cmd = cmd + (' --first=%s' %(str(args['first'])))
+
+                if args['last'] is not None:
+                    cmd = cmd + (' --last=%s' %(str(args['last'])))
 
                 if save_ift and outname is not None:
                     cmd = cmd + ' --output="{}"'.format(outname)
@@ -1168,6 +1169,8 @@ def runGnom(fname, save_ift, dmax, args, path, atsasDir, outname=None,
                         'following error:\n{}'.format(error)))
             else:
 
+                save_ift = True
+
                 gnom_q = queue.Queue()
 
                 proc = subprocess.Popen('"%s"' %(gnomDir), shell=shell,
@@ -1199,7 +1202,7 @@ def runGnom(fname, save_ift, dmax, args, path, atsasDir, outname=None,
                         elif data.find('Input data') > -1:
                             proc.stdin.write('%s\r\n' %(fname)) #Input data, first file. No default.
 
-                        elif data.find('Output file') > -1:
+                        elif data.find('Output file') > -1 and data.find('. :') > -1:
                             proc.stdin.write('%s\r\n' %(outname)) #Output file, default is gnom.out
 
                         elif data.find('No of start points to skip') > -1:
@@ -1352,7 +1355,7 @@ def runGnom(fname, save_ift, dmax, args, path, atsasDir, outname=None,
 
                         #Prompts from GNOM5
                         elif previous_line.find('(e) expert') > -1:
-                            proc.stdin.write('\r\n') #Default is user, good for now. Looks like setting weights is now done in expert mode rather than with a file, so eventually incorporate that.
+                            proc.stdin.write('e\r\n') #Default is user, good for now. Looks like setting weights is now done in expert mode rather than with a file, so eventually incorporate that.
 
                         elif previous_line.find('First point to use') > -1:
                             if 'first' in args and args['first'] != '':
@@ -1366,6 +1369,12 @@ def runGnom(fname, save_ift, dmax, args, path, atsasDir, outname=None,
                                 proc.stdin.write('%i\r\n' %(int(args['last'])))
                             else:
                                 proc.stdin.write('\r\n') #Number of start points to skip, plus one, default is 1
+
+                        elif previous_line.find('Output file') > -1:
+                            proc.stdin.write('%s\r\n' %(outname)) #Output file, default is gnom.out
+
+                        elif previous_line.find('Number of input files') > -1:
+                            proc.stdin.write('\r\n')
 
                         #Not implimented yet in RAW.
                         elif previous_line2.find('Slit height setup') > -1:
@@ -1385,6 +1394,7 @@ def runGnom(fname, save_ift, dmax, args, path, atsasDir, outname=None,
 
                         previous_line2 = previous_line
                         previous_line = current_line
+
 
                 gnom_t.join()
         try:
@@ -1581,7 +1591,7 @@ def runDatmw(rg, i0, first, method, atsasDir, path, datname):
         my_env = setATSASEnv(atsasDir)
 
         cmd = '"{}" --method={} --rg={} --i0={} --first={} {}'.format( datmwDir,
-            method, rg, i0, first, datname)
+            method, rg, i0, first+1, datname)
 
         process=subprocess.Popen(cmd, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, shell=True, cwd=path, env=my_env)
@@ -1641,7 +1651,8 @@ def runDatclass(rg, i0, first, atsasDir, path, datname):
         my_env = setATSASEnv(atsasDir)
 
         cmd = '"{}" --rg={} --i0={} --first={} {}'.format(datclassDir, rg, i0,
-            first, datname)
+            first+1, datname)
+
         process=subprocess.Popen(cmd, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, shell=True, cwd=path, env=my_env)
 

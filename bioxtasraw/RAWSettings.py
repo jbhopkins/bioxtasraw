@@ -304,23 +304,13 @@ class RawGuiSettings(object):
                 'ATSASDir'            : ['', get_id(), 'bool'],
 
                 #GNOM settings
-                'gnomExpertFile'        : ['', get_id(), 'text'],
                 'gnomForceRminZero'     : ['Y', get_id(), 'choice'],
                 'gnomForceRmaxZero'     : ['Y', get_id(), 'choice'],
                 'gnomNPoints'           : [0, get_id(), 'int'],
                 'gnomInitialAlpha'      : [0.0, get_id(), 'float'],
-                'gnomAngularScale'      : [1, get_id(), 'int'],
                 'gnomSystem'            : [0, get_id(), 'int'],
-                'gnomFormFactor'        : ['', get_id(), 'text'],
                 'gnomRadius56'          : [-1, get_id(), 'float'],
                 'gnomRmin'              : [-1, get_id(), 'float'],
-                'gnomFWHM'              : [-1, get_id(), 'float'],
-                'gnomAH'                : [-1, get_id(), 'float'],
-                'gnomLH'                : [-1, get_id(), 'float'],
-                'gnomAW'                : [-1, get_id(), 'float'],
-                'gnomLW'                : [-1, get_id(), 'float'],
-                'gnomSpot'              : ['', get_id(), 'text'],
-                'gnomExpt'              : [0, get_id(), 'int'],
                 'gnomCut8Rg'            : [False, get_id(), 'bool'],
 
                 #DAMMIF settings

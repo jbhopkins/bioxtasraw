@@ -3613,12 +3613,7 @@ class ATSASGnomAdvanced(scrolled.ScrolledPanel):
 
         self.raw_settings = raw_settings
 
-        self.update_keys = ['gnomAngularScale', 'gnomSystem', 'gnomExpertFile', 'gnomFormFactor',
-                            'gnomRadius56', 'gnomRmin']
-
-        self.button_ids = {'expert' : self.NewControlId(),
-                            'form': self.NewControlId(),
-                            'spot': self.NewControlId()}
+        self.update_keys = ['gnomSystem', 'gnomRadius56', 'gnomRmin']
 
 
         options_sizer = self.createGNOMOptions()
@@ -3633,28 +3628,6 @@ class ATSASGnomAdvanced(scrolled.ScrolledPanel):
             return size
 
     def createGNOMOptions(self):
-
-
-        angular_box = wx.StaticBox(self)
-        angular_text1 = wx.StaticText(angular_box, -1, 'Angular Scale :')
-        angular_text2 = wx.StaticText(angular_box, -1, ('1 - q=4pi*sin(theta)/lambda '
-            '[A^-1]\n2 - q=4pi*sin(theta)/lambda, convert [nm^-1] to [A^-1]\n3 '
-            '- q=2*sin(theta)/lambda [A^-1]\n4 - q=2*sin(theta)/lambda, convert '
-            '[nm^-1] to [A^-1]'), style = wx.TE_MULTILINE)
-        angular_ctrl = wx.TextCtrl(angular_box, self.raw_settings.getId('gnomAngularScale'),
-            '', size = self._FromDIP((60,-1)), style = wx.TE_PROCESS_ENTER)
-
-        angular_sizer = wx.StaticBoxSizer(angular_box, wx.VERTICAL)
-        angular_sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        angular_sizer2.Add(angular_text1, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM,
-            border=self._FromDIP(3))
-        angular_sizer2.Add(angular_ctrl, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM,
-            border=self._FromDIP(3))
-
-        angular_sizer.Add(angular_sizer2, 0)
-        angular_sizer.Add(angular_text2, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM,
-            border=self._FromDIP(3))
-
 
         system_box = wx.StaticBox(self)
         system_text1 = wx.StaticText(system_box, -1, 'Job Type :')
@@ -3680,37 +3653,6 @@ class ATSASGnomAdvanced(scrolled.ScrolledPanel):
         system_sizer.Add(system_sizer2, 0)
         system_sizer.Add(system_text2, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM,
             border=self._FromDIP(3))
-
-
-        expert_text = wx.StaticText(self, -1, 'Expert parameters file :',)
-        expert_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomExpertFile'),
-            '', size = self._FromDIP((325,-1)), style = wx.TE_PROCESS_ENTER)
-        expert_button = wx.Button(self, self.button_ids['expert'], 'Select')
-        expert_button.Bind(wx.EVT_BUTTON, self.onSelectButton)
-
-        expert_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        expert_sizer.Add(expert_text, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM,
-            border=self._FromDIP(3))
-        expert_sizer.Add(expert_ctrl, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM,
-            border=self._FromDIP(3))
-        expert_sizer.Add(expert_button, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM,
-            border=self._FromDIP(3))
-
-
-        form_text = wx.StaticText(self, -1, 'Form factor file (job 2) :',)
-        form_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomFormFactor'),
-            '', size = self._FromDIP((325,-1)), style = wx.TE_PROCESS_ENTER)
-        form_button = wx.Button(self, self.button_ids['form'], 'Select')
-        form_button.Bind(wx.EVT_BUTTON, self.onSelectButton)
-
-        form_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        form_sizer.Add(form_text, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM,
-            border=self._FromDIP(3))
-        form_sizer.Add(form_ctrl, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM,
-            border=self._FromDIP(3))
-        form_sizer.Add(form_button, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM,
-            border=self._FromDIP(3))
-
 
         radius_text = wx.StaticText(self, -1, 'Radius/thickness (job 5/6) :')
         radius_ctrl = wx.TextCtrl(self, self.raw_settings.getId('gnomRadius56'),
@@ -3743,10 +3685,7 @@ class ATSASGnomAdvanced(scrolled.ScrolledPanel):
 
         top_sizer.Add(advanced_text, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM,
             border=self._FromDIP(3))
-        top_sizer.Add(angular_sizer,0)
         top_sizer.Add(system_sizer, 0)
-        top_sizer.Add(expert_sizer, 0, wx.TOP, border=self._FromDIP(5))
-        top_sizer.Add(form_sizer, 0)
         top_sizer.Add(comb_sizer1, 0)
 
         return top_sizer
