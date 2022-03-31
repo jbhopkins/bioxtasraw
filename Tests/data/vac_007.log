@@ -1,0 +1,38 @@
+#Instrument:	BioCAT (Sector 18, APS)
+#Date:	2022-03-23 11:43:34.246618
+#File prefix:	vac_007
+#Save directory:	/nas_data/Eiger2xe9M/2022_Run1/20220323_Hopkins/calibration
+#Number of frames:	2
+#Exposure time/frame [s]:	0.5
+#Exposure period/frame [s]:	1.0
+#Wait for trigger:	False
+#Number of images per file:	100
+#Front end shutter open:	True
+#D hutch shutter open:	True
+#Collimator vacuum [mtorr]:	9.1
+#Guard slit vacuum [mtorr]:	18.0
+#Sample vacuum [mtorr]:	17.3
+#Flight tube vacuum [mtorr]:	16.8
+#Coflow on:	False
+#Experiment type:	SEC-SAXS
+#Sample:	
+#Buffer:	
+#Temperature [C]:	22
+#Loaded volume [uL]:	
+#Concentration [mg/ml]:	
+#Column:	Superdex 200 10/300 Increase
+#Notes:	
+#I0 gain:	1e+05
+#I1 gain:	1e+06
+#I2 gain:	1e+03
+#I3 gain:	1e+03
+#Attenuator, 1 foil:	Out
+#Attenuator, 2 foil:	Out
+#Attenuator, 4 foil:	Out
+#Attenuator, 8 foil:	Out
+#Attenuator, 16 foil:	Out
+#Attenuator, 32 foil:	Out
+#Nominal Transmission (12 keV):	1.0
+#Filename	start_time	exposure_time	I0	I1	Beam_current
+vac_007_000001	0.0	0.50000024	5416158.49623	11336834.494	100.237051886
+vac_007_000002	1.0	0.50000108	5413885.48304	11333022.4731	100.236883488
