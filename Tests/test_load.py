@@ -18,6 +18,11 @@ def saxslab_settings():
     settings = raw.load_settings(os.path.join('.', 'data', 'settings_saxslab.cfg'))
     return settings
 
+@pytest.fixture()
+def biocat_eiger_settings():
+    settings = raw.load_settings(os.path.join('.', 'data', 'biocat_eiger_settings.cfg'))
+    return settings
+
 def test_load_settings_old(old_settings):
     settings = old_settings
 
@@ -184,23 +189,13 @@ def test_load_settings_old(old_settings):
 
     assert settings.get('autoFindATSAS')
 
-    assert settings.get('gnomExpertFile') == ''
     assert settings.get('gnomForceRminZero') == 'Y'
     assert settings.get('gnomForceRmaxZero') == 'Y'
     assert settings.get('gnomNPoints') == 101
     assert settings.get('gnomInitialAlpha') == 0.0
-    assert settings.get('gnomAngularScale') == 1
     assert settings.get('gnomSystem') == 0
-    assert settings.get('gnomFormFactor') == ''
     assert settings.get('gnomRadius56') == -1.0
     assert settings.get('gnomRmin') == -1.0
-    assert settings.get('gnomFWHM') == -1.0
-    assert settings.get('gnomAH') == -1.0
-    assert settings.get('gnomLH') == -1.0
-    assert settings.get('gnomAW') == -1.0
-    assert settings.get('gnomLW') == -1.0
-    assert settings.get('gnomSpot') == ''
-    assert settings.get('gnomExpt') == 0
     assert not settings.get('gnomCut8Rg')
 
     assert settings.get('dammifMode') == 'Fast'
@@ -446,23 +441,13 @@ def test_load_settings_new():
 
     assert settings.get('autoFindATSAS')
 
-    assert settings.get('gnomExpertFile') == ''
     assert settings.get('gnomForceRminZero') == 'Y'
     assert settings.get('gnomForceRmaxZero') == 'Y'
     assert settings.get('gnomNPoints') == 0
     assert settings.get('gnomInitialAlpha') == 0.0
-    assert settings.get('gnomAngularScale') == 1
     assert settings.get('gnomSystem') == 0
-    assert settings.get('gnomFormFactor') == ''
     assert settings.get('gnomRadius56') == -1.0
     assert settings.get('gnomRmin') == -1.0
-    assert settings.get('gnomFWHM') == -1.0
-    assert settings.get('gnomAH') == -1.0
-    assert settings.get('gnomLH') == -1.0
-    assert settings.get('gnomAW') == -1.0
-    assert settings.get('gnomLW') == -1.0
-    assert settings.get('gnomSpot') == ''
-    assert settings.get('gnomExpt') == 0
     assert not settings.get('gnomCut8Rg')
 
     assert settings.get('dammifMode') == 'Slow'
@@ -701,23 +686,13 @@ def test_load_settings_saxslab():
 
     assert settings.get('autoFindATSAS')
 
-    assert settings.get('gnomExpertFile') == ''
     assert settings.get('gnomForceRminZero') == 'Y'
     assert settings.get('gnomForceRmaxZero') == 'Y'
     assert settings.get('gnomNPoints') == 0
     assert settings.get('gnomInitialAlpha') == 0.0
-    assert settings.get('gnomAngularScale') == 1
     assert settings.get('gnomSystem') == 0
-    assert settings.get('gnomFormFactor') == ''
     assert settings.get('gnomRadius56') == -1.0
     assert settings.get('gnomRmin') == -1.0
-    assert settings.get('gnomFWHM') == -1.0
-    assert settings.get('gnomAH') == -1.0
-    assert settings.get('gnomLH') == -1.0
-    assert settings.get('gnomAW') == -1.0
-    assert settings.get('gnomLW') == -1.0
-    assert settings.get('gnomSpot') == ''
-    assert settings.get('gnomExpt') == 0
     assert not settings.get('gnomCut8Rg')
 
     assert settings.get('dammifMode') == 'Slow'
@@ -1432,6 +1407,33 @@ def test_load_images_saxslab(saxslab_settings):
     assert img_hdr['det_exposure_time'] == 999.0
     assert img_hdr['saxsconf_wavelength'] == 1.5418
 
+def test_load_images_biocat_eiger(biocat_eiger_settings):
+    filenames = [os.path.join('.', 'data', 'vac_007_data_000001.h5')]
+
+    img_list, img_hdr_list = raw.load_images(filenames, biocat_eiger_settings)
+
+    assert len(img_list) == 2
+    assert len(img_hdr_list) == 2
+    assert isinstance(img_list[0], np.ndarray)
+    assert isinstance(img_hdr_list[0], dict)
+
+    img1 = img_list[0]
+    img2 = img_list[1]
+
+    assert img1.shape[0] == 3262
+    assert img1.shape[1] == 3108
+    assert img1.sum() == 2855315732690164
+    assert img1.max() == 4294967295
+    assert img1.min() == 0
+    assert img1[50, 50] == 0
+
+    assert img2.shape[0] == 3262
+    assert img2.shape[1] == 3108
+    assert img2.sum() == 2855315732689910
+    assert img2.max() == 4294967295
+    assert img2.min() == 0
+    assert img2[50, 50] == 0
+
 def test_load_and_integrate_images(old_settings):
     filenames = [os.path.join('.', 'data', 'GI2_A9_19_001_0000.tiff')]
 
@@ -1472,7 +1474,8 @@ def test_load_and_integrate_images(old_settings):
 def test_load_and_integrate_images_saxslab(saxslab_settings):
     filenames = [os.path.join('.', 'data', 'saxslab_image.tiff')]
 
-    profile_list, img_list = raw.load_and_integrate_images(filenames, saxslab_settings)
+    profile_list, img_list = raw.load_and_integrate_images(filenames,
+        saxslab_settings)
 
     assert len(img_list) == 1
 
@@ -1504,6 +1507,63 @@ def test_load_and_integrate_images_saxslab(saxslab_settings):
     assert params['imageHeader']['det_exposure_time'] == 999.0
     assert params['imageHeader']['saxsconf_wavelength'] == 1.5418
     assert 'calibration_params' in params
+
+@pytest.mark.new
+def test_load_ingegrate_images_biocat_eiger(biocat_eiger_settings):
+    filenames = [os.path.join('.', 'data', 'vac_007_data_000001.h5')]
+
+    profile_list, img_list = raw.load_and_integrate_images(filenames,
+        biocat_eiger_settings)
+
+    assert len(profile_list) == 2
+    assert len(img_list) == 1
+
+    img = img_list[0]
+
+    assert img.shape[0] == 3262
+    assert img.shape[1] == 3108
+    assert img.sum() == 2855315732690164
+    assert img.max() == 4294967295
+    assert img.min() == 0
+    assert img[50, 50] == 0
+
+    sasm1 = profile_list[0]
+
+    assert len(sasm1.getQ()) == 1695
+    assert len(sasm1.getI()) == 1695
+    assert len(sasm1.getErr()) == 1695
+    assert sasm1.getQ()[0] == 0.00266791935413895
+    assert sasm1.getQ()[-1] == 0.4206005884118126
+    assert sasm1.getI()[0] == 0.01895494945347309
+    assert np.isclose(sasm1.getI()[-1], 7.75145017541945e-05)
+    assert sasm1.getErr()[0] == 0.012636633589863777
+    assert np.isclose(sasm1.getErr()[-1], 0.0004958703182637691)
+    assert np.isclose(sasm1.getI().sum(), 0.5261776027264811)
+
+    sasm2 = profile_list[1]
+
+    assert len(sasm2.getQ()) == 1695
+    assert len(sasm2.getI()) == 1695
+    assert len(sasm2.getErr()) == 1695
+    assert sasm2.getQ()[0] == 0.00266791935413895
+    assert sasm2.getQ()[-1] == 0.4206005884118126
+    assert sasm2.getI()[0] == 0.06320442259311676
+    assert np.isclose(sasm2.getI()[-1], 7.859203615225851e-05)
+    assert sasm2.getErr()[0] == 0.019986992701888084
+    assert np.isclose(sasm2.getErr()[-1], 0.0004960371181368828)
+    assert np.isclose(sasm2.getI().sum(), 0.569043295137817)
+
+    params1 = sasm1.getAllParameters()
+
+    assert float(params1['counters']['I0']) == 5416158.49623
+    assert params1['counters']['Experiment_type'] == 'SEC-SAXS'
+    assert 'calibration_params' in params1
+
+    params2 = sasm2.getAllParameters()
+
+    assert float(params2['counters']['I0']) == 5413885.48304
+    assert params2['counters']['Experiment_type'] == 'SEC-SAXS'
+    assert 'calibration_params' in params2
 
 def test_profile_to_series():
     filenames = [os.path.join('.', 'data', 'series_dats',
