@@ -1417,8 +1417,8 @@ def test_load_images_biocat_eiger(biocat_eiger_settings):
     assert isinstance(img_list[0], np.ndarray)
     assert isinstance(img_hdr_list[0], dict)
 
-    img1 = img_list[0]
-    img2 = img_list[1]
+    img1 = img_list[0].astype(np.int64)
+    img2 = img_list[1].astype(np.int64)
 
     assert img1.shape[0] == 3262
     assert img1.shape[1] == 3108
@@ -1508,7 +1508,6 @@ def test_load_and_integrate_images_saxslab(saxslab_settings):
     assert params['imageHeader']['saxsconf_wavelength'] == 1.5418
     assert 'calibration_params' in params
 
-@pytest.mark.new
 def test_load_ingegrate_images_biocat_eiger(biocat_eiger_settings):
     filenames = [os.path.join('.', 'data', 'vac_007_data_000001.h5')]
 
@@ -1518,7 +1517,7 @@ def test_load_ingegrate_images_biocat_eiger(biocat_eiger_settings):
     assert len(profile_list) == 2
     assert len(img_list) == 1
 
-    img = img_list[0]
+    img = img_list[0].astype(np.int64)
 
     assert img.shape[0] == 3262
     assert img.shape[1] == 3108
