@@ -57,7 +57,35 @@ pyz = PYZ(
     cipher=None,
     )
 
-if opsys != 'Linux':
+if opsys == 'Darwin':
+    exe = EXE(
+        pyz,
+        a.scripts,
+        options,
+        exclude_binaries=True,
+        name='RAW',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        console=console,
+        icon=raw_icon,
+        disable_windowed_traceback=False,
+#        target_arch='arm64',
+        codesign_identity=None,
+        entitlements_file=None, 
+        )
+
+    coll = COLLECT(
+        exe,
+        a.binaries,
+        a.zipfiles,
+        a.datas,
+        strip=False,
+        upx=True,
+        name='RAW',
+        )
+elif opsys != 'Linux':
     exe = EXE(
         pyz,
         a.scripts,

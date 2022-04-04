@@ -40,6 +40,8 @@ gets really big (~750 MB). Can unlink it by install conda package nomkl if desir
 Note: In order to refresh the size of the RAW.app package you need to first delete the .DS_store file
 that is in the folder it is in, then relaunch Finder from the force quit menu.
 
+Note: To install on arm64 (as of 4/2022), install through conda as normal. You have to install wxpython, fabio, and pyfai through pip, and resolve some weird numpy dependency thing by downgrading it to 1.21.
+
 More info on disk images here:
 https://el-tramo.be/blog/fancy-dmg/
 

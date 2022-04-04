@@ -258,7 +258,7 @@ def test_validate_buffer_range_good(bsa_series):
     assert intI_results['intI_valid']
     assert intI_results['smoothed_intI_valid']
     assert intI_results['intI_pval'] == 0.33394404805178013
-    assert intI_results['smoothed_intI_pval'] == 0.02474248231802627
+    assert np.isclose(intI_results['smoothed_intI_pval'], 0.02474248231802627)
 
 def test_validate_buffer_region_bad(bsa_series):
     (valid, similarity_results, svd_results,
@@ -273,7 +273,7 @@ def test_validate_buffer_region_bad(bsa_series):
     assert svd_results['svals'] == 1
     assert not intI_results['intI_valid']
     assert not intI_results['smoothed_intI_valid']
-    assert intI_results['intI_pval'] == 0.0007815284021663028
+    assert np.isclose(intI_results['intI_pval'], 0.0007815284021663028)
     assert intI_results['smoothed_intI_pval'] == 2.8531443061690295e-19
 
 def test_validate_buffer_range_list(bsa_series):
@@ -290,7 +290,7 @@ def test_validate_buffer_range_list(bsa_series):
     assert intI_results['intI_valid']
     assert intI_results['smoothed_intI_valid']
     assert intI_results['intI_pval'] == 0.33394404805178013
-    assert intI_results['smoothed_intI_pval'] == 0.02474248231802627
+    assert np.isclose(intI_results['smoothed_intI_pval'], 0.02474248231802627)
 
 def test_set_buffer_range(clean_bsa_series):
     (sub_profiles, rg, rger, i0, i0er, vcmw, vcmwer,
@@ -435,7 +435,7 @@ def test_validate_baseline_range_integral_good(int_baseline_series):
     assert svd_results[0]['svals'] == 1
     assert intI_results[0]['intI_valid']
     assert intI_results[0]['smoothed_intI_valid']
-    assert intI_results[0]['intI_pval'] == 0.2388039563971044
+    assert np.isclose(intI_results[0]['intI_pval'], 0.2388039563971044)
     assert intI_results[0]['smoothed_intI_pval'] == 0.10656462177179266
     assert similarity_results[1]['all_similar']
     assert similarity_results[1]['low_q_similar']
@@ -482,7 +482,7 @@ def test_validate_baseline_range_list(int_baseline_series):
     assert svd_results[0]['svals'] == 1
     assert intI_results[0]['intI_valid']
     assert intI_results[0]['smoothed_intI_valid']
-    assert intI_results[0]['intI_pval'] == 0.2388039563971044
+    assert np.isclose(intI_results[0]['intI_pval'], 0.2388039563971044)
     assert intI_results[0]['smoothed_intI_pval'] == 0.10656462177179266
     assert similarity_results[1]['all_similar']
     assert similarity_results[1]['low_q_similar']
