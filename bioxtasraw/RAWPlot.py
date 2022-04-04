@@ -226,8 +226,16 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.parent.subplot1.set_visible(True)
         self.parent.subplot2.set_visible(True)
 
-        self.parent.subplot1.change_geometry(2,1,1)
-        self.parent.subplot2.change_geometry(2,1,2)
+        if ((int(matplotlib.__version__.split('.')[0]) == 3
+            and int(matplotlib.__version__.split('.')[1]) >= 4) or
+            int(matplotlib.__version__.split('.')[0]) > 3):
+            gs = matplotlib.gridspec.GridSpec(2,1)
+            self.parent.subplot1.set_subplotspec(gs.new_subplotspec((0,0)))
+            self.parent.subplot2.set_subplotspec(gs.new_subplotspec((1,0)))
+        else:
+            self.parent.subplot1.change_geometry(2,1,1)
+            self.parent.subplot2.change_geometry(2,1,2)
+
         self.parent._plot_shown = 0
         self.parent.canvas.draw()
 
@@ -245,7 +253,14 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.parent.subplot1.set_visible(True)
         self.parent.subplot2.set_visible(False)
 
-        self.parent.subplot1.change_geometry(1,1,1)
+
+        if ((int(matplotlib.__version__.split('.')[0]) == 3
+            and int(matplotlib.__version__.split('.')[1]) >= 4) or
+            int(matplotlib.__version__.split('.')[0]) > 3):
+            gs = matplotlib.gridspec.GridSpec(1,1)
+            self.parent.subplot1.set_subplotspec(gs.new_subplotspec((0,0)))
+        else:
+            self.parent.subplot1.change_geometry(1,1,1)
 
         self.parent.subplot1.set_zorder(2)
         self.parent.subplot2.set_zorder(1)
@@ -270,7 +285,14 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.parent.subplot1.set_zorder(1)
         self.parent.subplot2.set_zorder(2)
 
-        self.parent.subplot2.change_geometry(1,1,1)
+        if ((int(matplotlib.__version__.split('.')[0]) == 3
+            and int(matplotlib.__version__.split('.')[1]) >= 4) or
+            int(matplotlib.__version__.split('.')[0]) > 3):
+            gs = matplotlib.gridspec.GridSpec(1,1)
+            self.parent.subplot2.set_subplotspec(gs.new_subplotspec((0,0)))
+        else:
+            self.parent.subplot2.change_geometry(1,1,1)
+
         self.parent._plot_shown = 2
         self.parent.canvas.draw()
 
