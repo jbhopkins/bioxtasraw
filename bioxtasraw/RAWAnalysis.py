@@ -7546,7 +7546,7 @@ class DenssFrame(wx.Frame):
     def __init__(self, parent, title, iftm, manip_item):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(725, client_display.Width), min(900, client_display.Height))
+        size = (min(750, client_display.Width), min(900, client_display.Height))
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
@@ -7681,6 +7681,7 @@ class DenssRunPanel(wx.Panel):
                     'sym_on'        : self.NewControlId(),
                     'ncs'           : self.NewControlId(),
                     'ncsAxis'       : self.NewControlId(),
+                    'ncsType'       : self.NewControlId(),
                     'align'         : self.NewControlId(),
                     'align_file'    : self.NewControlId(),
                     'align_file_btn': self.NewControlId(),
@@ -7808,8 +7809,14 @@ class DenssRunPanel(wx.Panel):
         sym_val = wx.TextCtrl(settings_box, self.ids['ncs'],
             size=self._FromDIP((40, -1)), value='2',
             validator=RAWCustomCtrl.CharValidator('int'))
-        sym_axis = wx.Choice(settings_box, self.ids['ncsAxis'], choices=['X', 'Y', 'Z'])
+        sym_axis = wx.Choice(settings_box, self.ids['ncsAxis'],
+            choices=['X', 'Y', 'Z'])
         sym_axis.SetStringSelection('X')
+        sym_type = wx.Choice(settings_box, self.ids['ncsType'],
+            choices=['Cyclical', 'Dihedral'])
+
+        sym_axis.SetSelection(0)
+        sym_type.SetSelection(0)
 
         sym_chk.Bind(wx.EVT_CHECKBOX, self.onSymCheck)
 
@@ -7822,6 +7829,9 @@ class DenssRunPanel(wx.Panel):
         sym_sizer.Add(wx.StaticText(settings_box, label='Symmetry axis:'), (1,3),
             flag=wx.ALIGN_CENTER_VERTICAL)
         sym_sizer.Add(sym_axis, (1,4), flag=wx.ALIGN_CENTER_VERTICAL)
+        sym_sizer.Add(wx.StaticText(settings_box, label='Symmetry type:'), (1,5),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        sym_sizer.Add(sym_type, (1,6), flag=wx.ALIGN_CENTER_VERTICAL)
 
         self.align_result = wx.CheckBox(settings_box, self.ids['align'],
             label='Align output to PDB/MRC:')
@@ -7980,21 +7990,26 @@ class DenssRunPanel(wx.Panel):
         sym_on = wx.FindWindowById(self.ids['sym_on'])
         sym_val = wx.FindWindowById(self.ids['ncs'])
         sym_axis = wx.FindWindowById(self.ids['ncsAxis'])
+        sym_type = wx.FindWindowById(self.ids['ncsType'])
 
         sym = self.denss_settings['ncs']
         sym_axis_val = self.denss_settings['ncsAxis']
+        sym_type_val = self.denss_settings['ncsType']
 
         if int(sym) > 1:
             sym_on.SetValue(True)
             sym_val.SetValue(sym)
+            sym_type.SetStringSelection(sym_type_val)
 
             sym_val.Enable()
             sym_axis.Enable()
+            sym_type.Enable()
         else:
             sym_on.SetValue(False)
 
             sym_val.Disable()
             sym_axis.Disable()
+            sym_type.Disable()
 
         if int(sym_axis_val) == 1:
             sym_axis.SetStringSelection('X')
@@ -8363,7 +8378,7 @@ class DenssRunPanel(wx.Panel):
             if key in self.ids:
                 window = wx.FindWindowById(self.ids[key], self)
                 if window is not None:
-                    if key == 'runs' or key == 'mode' or key == 'ncsAxis':
+                    if key == 'runs' or key == 'mode' or key == 'ncsAxis' or key =='ncsType':
                         self.denss_settings[key] = window.GetStringSelection()
                     else:
                         self.denss_settings[key] = window.GetValue()
@@ -8375,14 +8390,21 @@ class DenssRunPanel(wx.Panel):
         if not sym.GetValue():
             self.denss_settings['ncs'] = 0
 
+        if self.denss_settings['ncsAxis'] == 1:
+            self.denss_settings['ncsAxis'] = 'X'
+        elif self.denss_settings['ncsAxis'] == 2:
+            self.denss_settings['ncsAxis'] = 'Y'
+        elif self.denss_settings['ncsAxis'] == 3:
+            self.denss_settings['ncsAxis'] = 'Z'
+
         if self.denss_settings['mode'] != 'Custom':
             #reset settings to default
             temp_settings = RAWSettings.RawGuiSettings()
             self.denss_settings['voxel'] = temp_settings.get('denssVoxel')
             self.denss_settings['oversample'] = temp_settings.get('denssOversampling')
             self.denss_settings['steps'] = temp_settings.get('denssSteps')
-            self.denss_settings['limitDmax'] = temp_settings.get('denssLimitDmax')
-            self.denss_settings['dmaxStep'] = temp_settings.get('denssLimitDmaxStep')
+            # self.denss_settings['limitDmax'] = temp_settings.get('denssLimitDmax')
+            # self.denss_settings['dmaxStep'] = temp_settings.get('denssLimitDmaxStep')
             self.denss_settings['recenter'] = temp_settings.get('denssRecenter')
             self.denss_settings['recenterStep'] = temp_settings.get('denssRecenterStep')
             self.denss_settings['positivity'] = temp_settings.get('denssPositivity')
@@ -8650,7 +8672,9 @@ class DenssRunPanel(wx.Panel):
             # wx.CallAfter(averWindow.AppendText, "%s, Score = %0.3f %s\n" % (ioutput,scores[i],filtered[i]))
             wx.CallAfter(averWindow.AppendText,'Correlation score to reference: %s.mrc %.3f %s\n' %(ioutput, scores[i], filtered[i]))
 
-        aligned = aligned[scores>threshold]
+        idx_keep = np.where(scores>threshold)
+        kept_ids = np.arange(nruns)[idx_keep]
+        aligned = aligned[idx_keep]
         average_rho = np.mean(aligned,axis=0)
 
         wx.CallAfter(averWindow.AppendText, "Mean of correlation scores: %.3f\n" % mean)
@@ -8660,28 +8684,37 @@ class DenssRunPanel(wx.Panel):
         wx.CallAfter(averWindow.AppendText,'Correlation score between average and reference: %.3f\n' % (-DENSS.rho_overlap_score(average_rho, refrho)))
         DENSS.write_mrc(average_rho, sides[0], os.path.join(path, prefix+'_average.mrc'))
 
-        """
-        #split maps into 2 halves--> enan, align, average independently with same refrho
-        avg_rho1 = np.mean(aligned[::2],axis=0)
-        avg_rho2 = np.mean(aligned[1::2],axis=0)
-        fsc = DENSS.calc_fsc(avg_rho1,avg_rho2,sides[0])
-        np.savetxt(output+'_fsc.dat',fsc,delimiter=" ",fmt="%.5e",header="qbins, FSC")
-        """
+
         #rather than compare two halves, average all fsc's to the reference
         fscs = []
+        resns = []
         for calc_map in range(len(aligned)):
-            fscs.append(DENSS.calc_fsc(aligned[calc_map],refrho,sides[0]))
-        fscs = np.array(fscs)
-        fsc = np.mean(fscs,axis=0)
-        x = np.linspace(fsc[0,0],fsc[-1,0],100)
-        y = np.interp(x, fsc[:,0], fsc[:,1])
-        resi = np.argmin(y>=0.5)
-        resx = np.interp(0.5,[y[resi+1],y[resi]],[x[resi+1],x[resi]])
-        resn = round(float(1./resx),1)
-        np.savetxt(os.path.join(path, prefix+'_fsc.dat'),fsc,delimiter=" ",
-            fmt="%.5e",header="1/resolution, FSC; Resolution=%.1f A" % resn)
+            fsc_map = DENSS.calc_fsc(aligned[calc_map],refrho,sides[0])
+            fscs.append(fsc_map)
+            resn_map = DENSS.fsc2res(fsc_map)
+            resns.append(resn_map)
 
-        res_str = "Resolution: %.1f " % resn + 'Angstrom\n'
+        fscs = np.array(fscs)
+
+        #save a file containing all fsc curves
+        fscs_header = ['res(1/A)']
+        for i in kept_ids:
+            ioutput = prefix+"_"+str(i)+"_aligned"
+            fscs_header.append(ioutput)
+        #add the resolution as the first column
+        fscs_for_file = np.vstack((fscs[0,:,0],fscs[:,:,1])).T
+        np.savetxt(os.path.join(path, prefix+'_allfscs.dat'), fscs_for_file,
+            delimiter=" ", fmt="%.5e", header=",".join(fscs_header))
+
+        resns = np.array(resns)
+        fsc = np.mean(fscs,axis=0)
+        resn, x, y, resx = DENSS.fsc2res(fsc, return_plot=True)
+        resn_sd = np.std(resns)
+
+        np.savetxt(os.path.join(path, prefix+'_fsc.dat'), fsc, delimiter=" ",
+            fmt="%.5e", header="1/resolution, FSC; Resolution=%.1f +- %.1f A" % (resn,resn_sd))
+
+        res_str = 'Resolution = %.1f +- %.1f A\n' % (resn,resn_sd)
         wx.CallAfter(averWindow.AppendText, res_str)
         wx.CallAfter(averWindow.AppendText,'END')
 
@@ -8697,7 +8730,7 @@ class DenssRunPanel(wx.Panel):
         self.threads_finished[-1] = True
         stop_event.set()
 
-        self.average_results = {'mean': mean, 'std': std,'res': resn,
+        self.average_results = {'mean': mean, 'std': std,'res': resn, 'res_sd': resn_sd,
             'scores': scores, 'fsc': fsc, 'total': allrhos.shape[0],
             'inc': aligned.shape[0], 'thresh': threshold, 'model': average_rho,
             'side': sides[0], 'fscs': fscs}
@@ -8965,7 +8998,8 @@ class DenssRunPanel(wx.Panel):
 
             np.savetxt(os.path.join(path, prefix+'_map.fit'), fit, delimiter=" ",
                 fmt="%.5e".encode('ascii'), header=" ".join(header))
-            chi_header, rg_header, supportV_header = list(zip(*[('chi_'+str(i), 'rg_'+str(i),'supportV_'+str(i)) for i in range(nruns)]))
+            chi_header, rg_header, supportV_header = list(zip(*[('chi_'+str(i),
+                'rg_'+str(i),'supportV_'+str(i)) for i in range(nruns)]))
             all_chis = np.array([denss_outputs[i][5] for i in np.arange(nruns)])
             all_rg = np.array([denss_outputs[i][6] for i in np.arange(nruns)])
             all_supportV = np.array([denss_outputs[i][7] for i in np.arange(nruns)])
@@ -9110,6 +9144,7 @@ class DenssRunPanel(wx.Panel):
         if not use_sym:
             wx.FindWindowById(self.ids['ncs']).Disable()
             wx.FindWindowById(self.ids['ncsAxis']).Disable()
+            wx.FindWindowById(self.ids['ncsType']).Disable()
 
         if not average_window.GetValue():
            refine_window.Disable()
@@ -9139,6 +9174,7 @@ class DenssRunPanel(wx.Panel):
 
         wx.FindWindowById(self.ids['ncs'], self).Enable(status)
         wx.FindWindowById(self.ids['ncsAxis'], self).Enable(status)
+        wx.FindWindowById(self.ids['ncsType'], self).Enable(status)
 
     def updateDenssSettings(self):
         self.denss_settings = {
@@ -9146,8 +9182,8 @@ class DenssRunPanel(wx.Panel):
             'oversample'        : self.raw_settings.get('denssOversampling'),
             'electrons'         : self.raw_settings.get('denssNElectrons'),
             'steps'             : self.raw_settings.get('denssSteps'),
-            'limitDmax'         : self.raw_settings.get('denssLimitDmax'),
-            'dmaxStep'          : self.raw_settings.get('denssLimitDmaxStep'),
+            # 'limitDmax'         : self.raw_settings.get('denssLimitDmax'),
+            # 'dmaxStep'          : self.raw_settings.get('denssLimitDmaxStep'),
             'recenter'          : self.raw_settings.get('denssRecenter'),
             'recenterStep'      : self.raw_settings.get('denssRecenterStep'),
             'positivity'        : self.raw_settings.get('denssPositivity'),
@@ -9174,6 +9210,7 @@ class DenssRunPanel(wx.Panel):
             'ncs'               : self.raw_settings.get('denssNCS'),
             'ncsSteps'          : self.raw_settings.get('denssNCSSteps'),
             'ncsAxis'           : self.raw_settings.get('denssNCSAxis'),
+            'ncsType'           : self.raw_settings.get('denssNCSType'),
             'refine'            : self.raw_settings.get('denssRefine'),
             'denssGPU'          : self.raw_settings.get('denssGPU'),
             }
@@ -9254,6 +9291,7 @@ class DenssResultsPanel(wx.Panel):
                     'ambiScore'     : self.NewControlId(),
                     'ambiEval'      : self.NewControlId(),
                     'res'           : self.NewControlId(),
+                    'res_sd'        : self.NewControlId(),
                     'models'        : self.NewControlId(),
                     'rscorMean'     : self.NewControlId(),
                     'rscorStd'      : self.NewControlId(),
@@ -9347,10 +9385,17 @@ class DenssResultsPanel(wx.Panel):
         res_ctrl = wx.TextCtrl(res_box, self.ids['res'], '',
             size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
 
+        res_sd_text = wx.StaticText(res_box, label='+/-')
+        res_sd_ctrl = wx.TextCtrl(res_box, self.ids['res_sd'], '',
+            size=self._FromDIP((60, -1)), style=wx.TE_READONLY)
+
         resunit_text = wx.StaticText(res_box, label='Angstrom')
 
         self.res_sizer.Add(res_text, 0, wx.ALIGN_CENTER_VERTICAL)
         self.res_sizer.Add(res_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(2))
+        self.res_sizer.Add(res_sd_text, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.res_sizer.Add(res_sd_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(2))
         self.res_sizer.Add(resunit_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(4))
@@ -9467,9 +9512,12 @@ class DenssResultsPanel(wx.Panel):
         eval_window = wx.FindWindowById(self.ids['ambiEval'], self)
         wx.CallAfter(eval_window.SetValue, output[2])
 
-    def getResolution(self, resolution):
+    def getResolution(self, resolution, resolution_sd):
         res_window = wx.FindWindowById(self.ids['res'], self)
         res_window.SetValue(str(resolution))
+
+        res_sd_window = wx.FindWindowById(self.ids['res_sd'], self)
+        res_sd_window.SetValue(str(resolution_sd))
 
     def getModels(self, settings, denss_results, denss_stats, average_results,
         refine_results):
@@ -9554,7 +9602,7 @@ class DenssResultsPanel(wx.Panel):
         self.topsizer.Hide(self.rscor_sizer, recursive=True)
 
         if settings['runs'] >= 4 and settings['average']:
-            self.getResolution(average_results['res'])
+            self.getResolution(average_results['res'], average_results['res_sd'])
             self.getAverage(average_results)
 
             self.topsizer.Show(self.rscor_sizer, recursive=True)
@@ -9609,7 +9657,9 @@ class DenssResultsPanel(wx.Panel):
 
         if self.topsizer.IsShown(self.res_sizer):
             res = wx.FindWindowById(self.ids['res']).GetValue()
-            res_data = [('Fourier Shell Correlation Resolution (Angstrom):', res)]
+            res_sd = wx.FindWindowById(self.ids['res_sd']).GetValue()
+            res_data = [('Fourier Shell Correlation Resolution (Angstrom): ', res,
+                '+/-', res_sd)]
 
         models_nb = wx.FindWindowById(self.ids['models'], self)
 
@@ -9662,9 +9712,11 @@ class DenssResultsPanel(wx.Panel):
         if symmetry:
             sym_val = wx.FindWindowById(self.run_panel.ids['ncs']).GetValue()
             sym_axis = wx.FindWindowById(self.run_panel.ids['ncsAxis']).GetStringSelection()
+            sym_type = wx.FindWindowById(self.run_panel.ids['ncsType']).GetStringSelection()
 
             setup_data.append(('N-fold rotational symmetry:', sym_val))
             setup_data.append(('Symmetry axis:', sym_axis))
+            setup_data.append(('Symmetry type:', sym_type))
 
         filename = output_prefix + '_denss_results.csv'
         save_path = os.path.join(output_directory, filename)
@@ -9896,7 +9948,7 @@ class DenssPlotPanel(wx.Panel):
         ax0.tick_params(labelbottom=False, labelsize='x-small')
 
         ax1 = fig.add_subplot(312)
-        ax1.plot(rg[rg>0])
+        ax1.plot(rg[rg!=0])
         ax1.set_ylabel('Rg', fontsize='small')
         ax1.tick_params(labelbottom=False, labelsize='x-small')
 

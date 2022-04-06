@@ -1,6 +1,77 @@
 Changes
 ============
 
+2.1.2
+-----------
+
+Release date: 2022-04-06
+
+Overview
+^^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 2.1.2. This
+version contains mostly minor bug fixes. Significant changes include:
+
+*   Added a prebuilt version for arm64 chips on MacOS (Apple Silicon).
+*   Removed Windows 7 and 8 support form the prebuilt version for Windows.
+*   Added support for Eiger2 images from BioCAT.
+*   Improved handling of multi-image files.
+
+There are also several other small bug fixes and new features.
+
+All changes:
+^^^^^^^^^^^^^
+
+*   Fixed a bug that prevented normalization by a BioCAT header counter if
+    it was the last counter in a line.
+*   Improved buffer region finding in the series analysis.
+*   Fixed a bug where the GNOM window raised an error if Dmax wasn't found
+    automatically.
+*   Fixed a bug where a series buffer region wasn't found if there were no peaks
+    present in the data set.
+*   Fixed a bug where REGALS results would show two lines for the same concentration
+    curve when it was supposed to.
+*   fixed a bug where validation of the REGALS settings could cause an error.
+*   Fixed a bug where changing the range for REGALS in the SVD plot when there
+    were previous REGALS results could cause an error.
+*   Fixed a bug where using the qmin or qmax boxes in the series adjustment
+    panel could cause an error.
+*   Fixed a validation issue in REGALS.
+*   Added ability to read in Eiger2 images from BioCAT and associated headers.
+*   Added log binning for azimuthal integration.
+*   Fixed a bug in error propagation on binning.
+*   Fixed a bug where auto centering in the calibration panel didn't work on Eiger
+    images.
+*   Fixed a bug were SASRES resolution couldn't be read out of the damsel.log
+    file in newer versions of ATSAS (>=3.0.4).
+*   Improved azimuthal integration speed.
+*   Image display for Eiger2 and Pilatus images now ignores bad pixels and
+    detector gaps when automatically setting min and max values.
+*   Fixed a bug where series buffer and sample ranges wouldn't print in the report
+    if there wasn't also EFA or REGALS data.
+*   Fixed a bug where moving a polygon or square mask wouldn't regenerate the mask
+    in RAW unless you saved and reloaded the settings.
+*   Fixed a bug where if a profile had a non-zero starting q index, autorg
+    would return the wrong start index, which could cause it to fail in the GUI.
+*   Fixed some off by one errors in the start and end points for some of the
+    ATSAS functions in the API.
+*   Improved speed of GNOM calculation in the GNOM window.
+*   Fixed a bug with the initial start point not getting set correctly for some
+    IFTs in GNOM.
+*   Added an option (on by default) where masked pixels are excluded from
+    automatic scaling in the image viewer.
+*   Improved file handling for multi-image files to significantly reduce
+    memory usage.
+*   Removed GNOM options not available in gnom5.
+*   Fixed a bug where if alpha wasn't the default value the GNOM window didn't
+    initialize with the correct alpha.
+*   Fixed a bug where the show plot buttons (1&2, 1, or 2) weren't working
+    correctly with matplotlib >=3.4.
+*   Dropped support for Windows 7 and 8 in the prebuilt version.
+*   Added a prebuilt version for arm64 chips on MacOS (Apple Silicon chips).
+*   Updated DENSS to the current version.
+
+
 2.1.1
 -----------
 
