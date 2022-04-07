@@ -3813,8 +3813,8 @@ def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
     return
 
 def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
-    initial_model=None, n_electrons=None, settings=None, voxel=5,
-    oversampling=3, steps=10000,
+    sym_type='Cyclical', initial_model=None, n_electrons=None, settings=None,
+    voxel=5, oversampling=3, steps=10000,
     recenter=True, recenter_step=list(range(1001,8002, 500)),
     recenter_mode='com', positivity=True, extrapolate=True, shrinkwrap=True,
     sw_sigma_start=3.0, sw_sigma_end=1.5, sw_sigma_decay=0.99,
@@ -3843,6 +3843,8 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     sym_axis: {'X', 'Y', 'Z'} str, optional
         The symmetry axis used if a symmetry is specified. Correspond to the
         xyz principal axes.
+    sym_type: {'Cyclical', 'Dihedral'}
+        The symmetry type to use, either cyclical or dihedral.
     initial_model: class:`numpy.array`, optional
         Initial electron density model as a numpy array. If input is provided,
         then the model will be refined.
@@ -3965,8 +3967,8 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
             'oversample'        : settings.get('denssOversampling'),
             'electrons'         : n_electrons,
             'steps'             : settings.get('denssSteps'),
-            'limitDmax'         : settings.get('denssLimitDmax'),
-            'dmaxStep'          : settings.get('denssLimitDmaxStep'),
+            # 'limitDmax'         : settings.get('denssLimitDmax'),
+            # 'dmaxStep'          : settings.get('denssLimitDmaxStep'),
             'recenter'          : settings.get('denssRecenter'),
             'recenterStep'      : settings.get('denssRecenterStep'),
             'positivity'        : settings.get('denssPositivity'),
@@ -3990,7 +3992,8 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
             # 'flattenLowDensity' : settings.get('denssFlattenLowDensity'),
             'ncs'               : symmetry,
             'ncsSteps'          : settings.get('denssNCSSteps'),
-            'ncsAxis'           : sym_axis,
+            'ncsAxis'           : str(sym_axis),
+            'ncsType'           : sym_type,
             'seed'              : seed,
             'denssGPU'          : settings.get('denssGPU')
             }
@@ -4001,8 +4004,8 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
             'oversample'        : oversampling,
             'electrons'         : n_electrons,
             'steps'             : steps,
-            'limitDmax'         : False,
-            'dmaxStep'          : '[500]',
+            # 'limitDmax'         : False,
+            # 'dmaxStep'          : '[500]',
             'recenter'          : recenter,
             'recenterStep'      : str(recenter_step),
             'positivity'        : positivity,
@@ -4026,6 +4029,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
             # 'flattenLowDensity' : flatten_low,
             'ncs'               : symmetry,
             'ncsSteps'          : str(sym_step),
+            'ncsType'           : sym_type,
             'ncsAxis'           : sym_axis,
             'seed'              : seed,
             'denssGPU'          : gpu,
@@ -4084,6 +4088,9 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
 
     denss_data = DENSS.runDenss(q, I, sigq, D, prefix, datadir, denss_settings,
         initial_model, gui=False, abort_event=abort_event)
+
+    if len(denss_data) == 0:
+        raise Exception('DENSS failed to run properly')
 
     if not abort_event.is_set():
         (qdata, I_extrap, err_extrap, q_fit, I_fit, chi_sq, rg, support_vol, rho,

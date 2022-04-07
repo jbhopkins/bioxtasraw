@@ -27,7 +27,7 @@ Much of the code is from the DENSS source code, released here:
     https://github.com/tdgrant1/denss
 That code was released under GPL V3. The original author is Thomas Grant.
 
-This code matches that as of 3/8/21, commit cce26a7, version 1.6.3
+This code matches that as of 4/6/21, commit 3efed760439f0fb7b9597f73c4174f237c4409ed, version 1.6.4
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
@@ -47,6 +47,7 @@ import traceback
 import sys
 from functools import reduce
 import platform
+from time import sleep
 
 import numpy as np
 from scipy import optimize, ndimage, spatial
@@ -151,7 +152,8 @@ def rho2rg(rho,side=None,r=None,support=None,dx=None):
     if dx is None:
         print("Error: To calculate Rg, must provide dx")
         sys.exit()
-    rhocom = (np.array(ndimage.measurements.center_of_mass(rho))-np.array(rho.shape)/2.)*dx
+    gridcenter = (np.array(rho.shape)-1.)/2.
+    rhocom = (np.array(ndimage.measurements.center_of_mass(np.abs(rho)))-gridcenter)*dx
     rg2 = np.sum(r[support]**2*rho[support])/np.sum(rho[support])
     rg2 = rg2 - np.linalg.norm(rhocom)**2
     rg = np.sign(rg2)*np.abs(rg2)**0.5
@@ -259,17 +261,23 @@ def write_xplor(rho,side,filename="map.xplor"):
         f.write("    -9999\n")
         f.write("  %.4E  %.4E" % (np.average(rho), np.std(rho)))
 
-def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False,
-    limit_dmax_steps=[500], recenter=True, recenter_steps=None,
+def calc_rg_by_guinier_first_2_points(q, I):
+    """calculate Rg using Guinier law, but only use the
+    first two data points. This is meant to be used with a
+    calculated scattering profile, such as Imean from denss()."""
+    m = (np.log(I[1])-np.log(I[0]))/(q[1]**2-q[0]**2)
+    rg = (-3*m)**(0.5)
+    return rg
+
+def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., recenter=True, recenter_steps=None,
     recenter_mode="com", positivity=True, extrapolate=True, output="map",
-    steps=None, seed=None,
-    flatten_low_density=True, rho_start=None, add_noise=None, shrinkwrap=True,
-    shrinkwrap_old_method=False,shrinkwrap_sigma_start=3, shrinkwrap_sigma_end=1.5,
-    shrinkwrap_sigma_decay=0.99, shrinkwrap_threshold_fraction=0.2,
+    steps=None, seed=None, flatten_low_density=True, rho_start=None, add_noise=None,
+    shrinkwrap=True, shrinkwrap_old_method=False,shrinkwrap_sigma_start=3,
+    shrinkwrap_sigma_end=1.5, shrinkwrap_sigma_decay=0.99, shrinkwrap_threshold_fraction=0.2,
     shrinkwrap_iter=20, shrinkwrap_minstep=100, chi_end_fraction=0.01,
     write_xplor_format=False, write_freq=100, enforce_connectivity=True,
     enforce_connectivity_steps=[500], cutout=True, quiet=False, ncs=0,
-    ncs_steps=[500],ncs_axis=1, abort_event=None, my_logger=logging.getLogger(),
+    ncs_steps=[500],ncs_axis=1, ncs_type="cyclical",abort_event=None, my_logger=logging.getLogger(),
     path='.', gui=False, DENSS_GPU=False):
     """Calculate electron density from scattering data."""
     if abort_event is not None:
@@ -410,8 +418,6 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False
     my_logger.info('Sampling ratio: %3.3f', oversampling)
     my_logger.info('Requested real space voxel size: %3.3f', voxel)
     my_logger.info('Number of electrons: %3.3f', ne)
-    my_logger.info('Limit Dmax: %s', limit_dmax)
-    my_logger.info('Limit Dmax Steps: %s', limit_dmax_steps)
     my_logger.info('Recenter: %s', recenter)
     my_logger.info('Recenter Steps: %s', recenter_steps)
     my_logger.info('Recenter Mode: %s', recenter_mode)
@@ -510,7 +516,15 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False
             except:
                 rg[j] = 1.0
         else:
-            rg[j] = rho2rg(rhoprime,r=r,support=support,dx=dx)
+            #rg[j] = rho2rg(rhoprime,r=r,support=support,dx=dx)
+            #use Guinier's law instead to approximate quickly?
+            #what if we just use the first two data points?
+            #since this is a calculated curve from a density map,
+            #we know exactly the values of the intensities, so we
+            #don't need as many data points as in real data that is noisy
+            #slope = (y2-y1)/(x2-x1) = (ln(I1)-ln(I0))/(q1**2-q0**2)
+            rg[j] = calc_rg_by_guinier_first_2_points(qbinsc, Imean)
+
 
         newrho = myzeros(rho.shape, DENSS_GPU=DENSS_GPU)
 
@@ -536,14 +550,57 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False
         if ncs != 0 and j in [stepi+1 for stepi in ncs_steps]:
             if DENSS_GPU:
                 newrho = cp.asnumpy(newrho)
+            if ncs_axis == 1:
+                axes=(1,2) #longest
+                axes2=(0,1) #shortest
+            if ncs_axis == 2:
+                axes=(0,2) #middle
+                axes2=(0,1) #shortest
+            if ncs_axis == 3:
+                axes=(0,1) #shortest
+                axes2=(1,2) #longest
             degrees = 360./ncs
-            if ncs_axis == 1: axes=(1,2)
-            if ncs_axis == 2: axes=(0,2)
-            if ncs_axis == 3: axes=(0,1)
-            newrhosym = newrho*0.0
-            for nrot in range(1,ncs+1):
-                newrhosym += ndimage.rotate(newrho,degrees*nrot,axes=axes,reshape=False)
-            newrho = newrhosym/ncs
+            newrho_total = np.copy(newrho)
+            if ncs_type == "dihedral":
+                #first, rotate original about perpendicular axis by 180
+                #then apply n-fold cyclical rotation
+                d2fold = ndimage.rotate(newrho,180,axes=axes2,reshape=False)
+                newrhosym = np.copy(newrho) + d2fold
+                newrhosym /= 2.0
+                newrho_total = np.copy(newrhosym)
+            else:
+                newrhosym = np.copy(newrho)
+            for nrot in range(1,ncs):
+                sym = ndimage.rotate(newrhosym,degrees*nrot,axes=axes,reshape=False)
+                newrho_total += np.copy(sym)
+            newrho = newrho_total / ncs
+
+            #run shrinkwrap after ncs averaging to get new support
+            if shrinkwrap_old_method:
+                #run the old method
+                if j>500:
+                    absv = True
+                else:
+                    absv = False
+                newrho, support = shrinkwrap_by_density_value(newrho,absv=absv,sigma=sigma,threshold=threshold,recenter=recenter,recenter_mode=recenter_mode)
+            else:
+                swN = int(swV/dV)
+                #end this stage of shrinkwrap when the volume is less than a sphere of radius D/2
+                if swbyvol and swV > swVend:
+                    newrho, support, threshold = shrinkwrap_by_volume(newrho,absv=True,sigma=sigma,N=swN,recenter=recenter,recenter_mode=recenter_mode)
+                    swV *= swV_decay
+                else:
+                    threshold = shrinkwrap_threshold_fraction
+                    if first_time_swdensity:
+                        if not quiet:
+                            if gui:
+                                my_logger.info("switched to shrinkwrap by density threshold = %.4f" %threshold)
+                            else:
+                                print("\nswitched to shrinkwrap by density threshold = %.4f" %threshold)
+                        first_time_swdensity = False
+                    newrho, support = shrinkwrap_by_density_value(newrho,absv=True,sigma=sigma,threshold=threshold,recenter=recenter,recenter_mode=recenter_mode)
+
+
             if DENSS_GPU:
                 newrho = cp.array(newrho)
 
@@ -557,10 +614,10 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False
             if recenter_mode == "max":
                 rhocom = np.unravel_index(newrho.argmax(), newrho.shape)
             else:
-                rhocom = np.array(ndimage.measurements.center_of_mass(newrho))
-            gridcenter = np.array(newrho.shape)/2.
+                rhocom = np.array(ndimage.measurements.center_of_mass(np.abs(newrho)))
+            gridcenter = (np.array(newrho.shape)-1.)/2.
             shift = gridcenter-rhocom
-            shift = shift.astype(int)
+            shift = np.rint(shift).astype(int)
             newrho = np.roll(np.roll(np.roll(newrho, shift[0], axis=0), shift[1], axis=1), shift[2], axis=2)
             support = np.roll(np.roll(np.roll(support, shift[0], axis=0), shift[1], axis=1), shift[2], axis=2)
 
@@ -679,8 +736,14 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False
         if j%500==0 and not gui:
             my_logger.info('Step % 5i: % 4.2e % 3.2f       % 5i          ', j, chi[j], rg[j], supportV[j])
 
-        if j > 101 + shrinkwrap_minstep and mystd(chi[j-100:j], DENSS_GPU=DENSS_GPU) < chi_end_fraction * mymean(chi[j-100:j], DENSS_GPU=DENSS_GPU):
-            break
+
+        if j > 101 + shrinkwrap_minstep:
+            if DENSS_GPU:
+                lesser = mystd(chi[j-100:j], DENSS_GPU=DENSS_GPU).get() < chi_end_fraction * mymean(chi[j-100:j], DENSS_GPU=DENSS_GPU).get()
+            else:
+                lesser = mystd(chi[j-100:j], DENSS_GPU=DENSS_GPU) < chi_end_fraction * mymean(chi[j-100:j], DENSS_GPU=DENSS_GPU)
+            if lesser:
+                break
 
         rho = newrho
 
@@ -724,7 +787,8 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False
     if ne is not None:
         rho *= ne / np.sum(rho)
 
-    rg[j+1] = rho2rg(rho=rho,r=r,support=support,dx=dx)
+    # rg[j+1] = rho2rg(rho=rho,r=r,support=support,dx=dx)
+    rg[j+1] = calc_rg_by_guinier_first_2_points(qbinsc, Imean)
     supportV[j+1] = supportV[j]
 
     #change rho to be the electron density in e-/angstroms^3, rather than number of electrons,
@@ -780,6 +844,13 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., limit_dmax=False
     my_logger.info('Final Chi2: %.3e', chi[j])
     my_logger.info('Final Rg: %3.3f', rg[j+1])
     my_logger.info('Final Support Volume: %3.3f', supportV[j+1])
+    my_logger.info('Mean Density (all voxels): %3.5f', np.mean(rho))
+    my_logger.info('Std. Dev. of Density (all voxels): %3.5f', np.std(rho))
+    my_logger.info('RMSD of Density (all voxels): %3.5f', np.sqrt(np.mean(np.square(rho))))
+    idx = np.where(np.abs(rho)>0.01*rho.max())
+    my_logger.info('Modified Mean Density (voxels >0.01*max): %3.5f', np.mean(rho[idx]))
+    my_logger.info('Modified Std. Dev. of Density (voxels >0.01*max): %3.5f', np.std(rho[idx]))
+    my_logger.info('Modified RMSD of Density (voxels >0.01*max): %3.5f', np.sqrt(np.mean(np.square(rho[idx]))))
     # my_logger.info('END')
 
     #return original unscaled values of Idata (and therefore Imean) for comparison with real data
@@ -854,8 +925,8 @@ def center_rho(rho, centering="com", return_shift=False):
     if centering == "max":
         rhocom = np.unravel_index(rho.argmax(), rho.shape)
     else:
-        rhocom = np.array(ndimage.measurements.center_of_mass(rho))
-    gridcenter = np.array(rho.shape)/2.
+        rhocom = np.array(ndimage.measurements.center_of_mass(np.abs(rho)))
+    gridcenter = (np.array(rho.shape)-1.)/2.
     shift = gridcenter-rhocom
     rho = ndimage.interpolation.shift(rho,shift,order=3,mode='wrap')
     rho = rho*ne_rho/np.sum(rho)
@@ -871,17 +942,18 @@ def center_rho_roll(rho, recenter_mode="com", return_shift=False):
     recenter_mode - a string either com (center of mass) or max (maximum density)
     """
     if recenter_mode == "max":
-        rhocom = np.unravel_index(rho.argmax(), rho.shape)
+        rhocom = np.unravel_index(np.abs(rho).argmax(), rho.shape)
     else:
-        rhocom = np.array(ndimage.measurements.center_of_mass(rho))
-    gridcenter = np.array(rho.shape)/2.
+        rhocom = np.array(ndimage.measurements.center_of_mass(np.abs(rho)))
+    gridcenter = (np.array(rho.shape)-1.)/2.
     shift = gridcenter-rhocom
-    shift = shift.astype(int)
+    shift = np.rint(shift).astype(int)
     rho = np.roll(np.roll(np.roll(rho, shift[0], axis=0), shift[1], axis=1), shift[2], axis=2)
     if return_shift:
         return rho, shift
     else:
         return rho
+
 def euler_grid_search(refrho, movrho, topn=1, abort_event=None):
     """Simple grid search on uniformly sampled sphere to optimize alignment.
         Return the topn candidate maps (default=1, i.e. the best candidate)."""
@@ -983,14 +1055,14 @@ def minimize_rho_score(T, refrho, movrho):
 def rho_overlap_score(rho1,rho2, threshold=None):
     """Scoring function for superposition of electron density maps."""
     if threshold is None:
-        n=2*np.sum(np.abs(rho1*rho2))
-        d=(2*np.sum(rho1**2)**0.5*np.sum(rho2**2)**0.5)
+        n=np.sum(rho1*rho2)
+        d=np.sum(rho1**2)**0.5*np.sum(rho2**2)**0.5
     else:
         #if there's a threshold, base it on only one map, then use
         #those indices for both maps to ensure the same pixels are compared
         idx = np.where(np.abs(rho1)>threshold*np.abs(rho1).max())
-        n=2*np.sum(np.abs(rho1[idx]*rho2[idx]))
-        d=(2*np.sum(rho1[idx]**2)**0.5*np.sum(rho2[idx]**2)**0.5)
+        n=np.sum(rho1[idx]*rho2[idx])
+        d=np.sum(rho1[idx]**2)**0.5*np.sum(rho2[idx]**2)**0.5
     score = n/d
     #-score for least squares minimization, i.e. want to minimize, not maximize score
     return -score
@@ -1003,7 +1075,7 @@ def transform_rho(rho, T, order=1):
     """
     ne_rho= np.sum((rho))
     R = euler2matrix(T[0],T[1],T[2])
-    c_in = np.array(ndimage.measurements.center_of_mass(rho))
+    c_in = np.array(ndimage.measurements.center_of_mass(np.abs(rho)))
     c_out = np.array(rho.shape)/2.
     offset = c_in-c_out.dot(R)
     offset += T[3:]
@@ -1069,8 +1141,8 @@ def principal_axis_alignment(refrho,movrho):
     side = 1.0
     ne_movrho = np.sum((movrho))
     #first center refrho and movrho, save refrho shift
-    rhocom = np.array(ndimage.measurements.center_of_mass(refrho))
-    gridcenter = np.array(refrho.shape)/2.
+    rhocom = np.array(ndimage.measurements.center_of_mass(np.abs(refrho)))
+    gridcenter = (np.array(rho.shape)-1.)/2.
     shift = gridcenter-rhocom
     refrho = ndimage.interpolation.shift(refrho,shift,order=3,mode='wrap')
     #calculate, save and perform rotation of refrho to xyz for later
@@ -1088,7 +1160,7 @@ def principal_axis_alignment(refrho,movrho):
     movrho = enans[np.argmax(scores)]
     #now rotate movrho by the inverse of the refrho rotation
     R = np.linalg.inv(refR)
-    c_in = np.array(ndimage.measurements.center_of_mass(movrho))
+    c_in = np.array(ndimage.measurements.center_of_mass(np.abs(movrho)))
     c_out = np.array(movrho.shape)/2.
     offset=c_in-c_out.dot(R)
     movrho = ndimage.interpolation.affine_transform(movrho,R.T,order=3,offset=offset,mode='wrap')
@@ -1102,8 +1174,8 @@ def align2xyz(rho, return_transform=False):
     side = 1.0
     ne_rho = np.sum(rho)
     #shift refrho to the center
-    rhocom = np.array(ndimage.measurements.center_of_mass(rho))
-    gridcenter = np.array(rho.shape)/2.
+    rhocom = np.array(ndimage.measurements.center_of_mass(np.abs(rho)))
+    gridcenter = (np.array(rho.shape)-1.)/2.
     shift = gridcenter-rhocom
     rho = ndimage.interpolation.shift(rho,shift,order=3,mode='wrap')
     #calculate, save and perform rotation of refrho to xyz for later
@@ -1118,11 +1190,16 @@ def align2xyz(rho, return_transform=False):
         I = inertia_tensor(rho, side)
         w,v = np.linalg.eigh(I) #principal axes
         R = v.T #rotation matrix
-        c_in = np.array(ndimage.measurements.center_of_mass(rho))
-        c_out = np.array(rho.shape)/2.
+        c_in = np.array(ndimage.measurements.center_of_mass(np.abs(rho)))
+        c_out = (np.array(rho.shape)-1.)/2.
         offset=c_in-c_out.dot(R)
         rho = ndimage.interpolation.affine_transform(rho, R.T, order=3,
             offset=offset, mode='wrap')
+    #also need to run recentering a few times
+    for i in range(3):
+        rhocom = np.array(ndimage.measurements.center_of_mass(np.abs(rho)))
+        shift = gridcenter-rhocom
+        rho = ndimage.interpolation.shift(rho,shift,order=3,mode='wrap')
     rho *= ne_rho/np.sum(rho)
     if return_transform:
         return rho, refR, refshift
@@ -1143,44 +1220,57 @@ def align(refrho, movrho, coarse=True, abort_event=None):
         if abort_event.is_set():
             return None, None
 
-    ne_rho = np.sum((movrho))
-    #movrho, score = minimize_rho(refrho, movrho)
-    movrho, score = coarse_then_fine_alignment(refrho=refrho, movrho=movrho, coarse=coarse, topn=5,
-        abort_event=abort_event)
+    try:
+        sleep(1)
+        ne_rho = np.sum((movrho))
+        #movrho, score = minimize_rho(refrho, movrho)
+        movrho, score = coarse_then_fine_alignment(refrho=refrho, movrho=movrho, coarse=coarse, topn=5,
+            abort_event=abort_event)
 
-    if movrho is not None:
-        movrho *= ne_rho/np.sum(movrho)
+        if movrho is not None:
+            movrho *= ne_rho/np.sum(movrho)
 
-    return movrho, score
+        return movrho, score
+
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt")
+        pass
 
 def select_best_enantiomer(refrho, rho, abort_event=None):
     """ Generate, align and select the enantiomer that best fits the reference map."""
     #translate refrho to center in case not already centered
     #just use roll to approximate translation to avoid interpolation, since
     #fine adjustments and interpolation will happen during alignment step
-    c_refrho = center_rho_roll(refrho)
-    #center rho in case it is not centered. use roll to get approximate location
-    #and avoid interpolation
-    c_rho = center_rho_roll(rho)
-    #generate an array of the enantiomers
-    enans = generate_enantiomers(c_rho)
-    #allow for abort
-    if abort_event is not None:
-        if abort_event.is_set():
-            return None, None
 
-    #align each enantiomer and store the aligned maps and scores in results list
-    results = [align(c_refrho, enan, abort_event=abort_event) for enan in enans]
+    try:
+        sleep(1)
+        c_refrho = center_rho_roll(refrho)
+        #center rho in case it is not centered. use roll to get approximate location
+        #and avoid interpolation
+        c_rho = center_rho_roll(rho)
+        #generate an array of the enantiomers
+        enans = generate_enantiomers(c_rho)
+        #allow for abort
+        if abort_event is not None:
+            if abort_event.is_set():
+                return None, None
 
-    #now select the best enantiomer
-    #rather than return the aligned and therefore interpolated enantiomer,
-    #instead just return the original enantiomer, flipped from the original map
-    #then no interpolation has taken place. So just dont overwrite enans essentially.
-    #enans = np.array([results[k][0] for k in range(len(results))])
-    enans_scores = np.array([results[k][1] for k in range(len(results))])
-    best_i = np.argmax(enans_scores)
-    best_enan, best_score = enans[best_i], enans_scores[best_i]
-    return best_enan, best_score
+        #align each enantiomer and store the aligned maps and scores in results list
+        results = [align(c_refrho, enan, abort_event=abort_event) for enan in enans]
+
+        #now select the best enantiomer
+        #rather than return the aligned and therefore interpolated enantiomer,
+        #instead just return the original enantiomer, flipped from the original map
+        #then no interpolation has taken place. So just dont overwrite enans essentially.
+        #enans = np.array([results[k][0] for k in range(len(results))])
+        enans_scores = np.array([results[k][1] for k in range(len(results))])
+        best_i = np.argmax(enans_scores)
+        best_enan, best_score = enans[best_i], enans_scores[best_i]
+        return best_enan, best_score
+
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt")
+        pass
 
 def select_best_enantiomers(rhos, refrho=None, cores=1, avg_queue=None,
     abort_event=None, single_proc=False):
@@ -1204,6 +1294,7 @@ def select_best_enantiomers(rhos, refrho=None, cores=1, avg_queue=None,
         except KeyboardInterrupt:
             pool.terminate()
             pool.close()
+            sys.exit(1)
             raise
 
     else:
@@ -1243,6 +1334,7 @@ def align_multiple(refrho, rhos, cores=1, abort_event=None, single_proc=False):
         except KeyboardInterrupt:
             pool.terminate()
             pool.close()
+            sys.exit(1)
             raise
     else:
         results = [align(refrho, rho, abort_event=abort_event) for rho in rhos]
@@ -1260,10 +1352,12 @@ def average_two(rho1, rho2, abort_event=None):
 
 def multi_average_two(niter, **kwargs):
     """ Wrapper script for averaging two maps for multiprocessing."""
-    #kwargs['rho1']=kwargs['rho1'][niter]
-    #kwargs['rho2']=kwargs['rho2'][niter]
-    time.sleep(1)
-    return average_two(kwargs['rho1'][niter],kwargs['rho2'][niter],abort_event=kwargs['abort_event'])
+    try:
+        sleep(1)
+        return average_two(kwargs['rho1'][niter],kwargs['rho2'][niter],abort_event=kwargs['abort_event'])
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt")
+        pass
 
 def average_pairs(rhos, cores=1, abort_event=None, single_proc=False):
     """ Average pairs of electron density maps, second half to first half."""
@@ -1280,11 +1374,8 @@ def average_pairs(rhos, cores=1, abort_event=None, single_proc=False):
         except KeyboardInterrupt:
             pool.terminate()
             pool.close()
+            sys.exit(1)
             raise
-        except Exception:
-            pool.close()
-            raise
-
     else:
         average_rhos = [multi_average_two(niter, **rho_args) for niter in
             range(rhos.shape[0]//2)]
@@ -1333,6 +1424,35 @@ def calc_fsc(rho1, rho2, side):
     qidx = np.where(qbins<qx_max)
     return  np.vstack((qbins[qidx],FSC[qidx])).T
 
+def fsc2res(fsc, cutoff=0.5, return_plot=False):
+    """Calculate resolution from the FSC curve using the cutoff given.
+
+    fsc - an Nx2 array, where the first column is the x axis given as
+          as 1/resolution (angstrom).
+    cutoff - the fsc value at which to estimate resolution, default=0.5.
+    return_plot - return additional arrays for plotting (x, y, resx)
+    """
+    x = np.linspace(fsc[0,0],fsc[-1,0],1000)
+    y = np.interp(x, fsc[:,0], fsc[:,1])
+    if np.min(fsc[:,1]) > 0.5:
+        #if the fsc curve never falls below zero, then
+        #set the resolution to be the maximum resolution
+        #value sampled by the fsc curve
+        resx = np.max(fsc[:,0])
+        resn = float(1./resx)
+        #print("Resolution: < %.1f A (maximum possible)" % resn)
+    else:
+        idx  = np.where(y>=0.5)
+        #resi = np.argmin(y>=0.5)
+        #resx = np.interp(0.5,[y[resi+1],y[resi]],[x[resi+1],x[resi]])
+        resx = np.max(x[idx])
+        resn = float(1./resx)
+        #print("Resolution: %.1f A" % resn)
+    if return_plot:
+        return resn, x, y, resx
+    else:
+        return resn
+
 electrons = {'H': 1,'HE': 2,'He': 2,'LI': 3,'Li': 3,'BE': 4,'Be': 4,'B': 5,
     'C': 6,'N': 7,'O': 8,'F': 9,'NE': 10,'Ne': 10,'NA': 11,'Na': 11,'MG': 12,
     'Mg': 12,'AL': 13,'Al': 13,'SI': 14,'Si': 14,'P': 15,'S': 16,'CL': 17,
@@ -1364,7 +1484,19 @@ electrons = {'H': 1,'HE': 2,'He': 2,'LI': 3,'Li': 3,'BE': 4,'Be': 4,'B': 5,
 
 class PDB(object):
     """Load pdb file."""
-    def __init__(self, filename, ignore_waters=False):
+    def __init__(self, filename=None, natoms=None, ignore_waters=False):
+        if isinstance(filename, int):
+            #if a user gives no keyword argument, but just an integer,
+            #assume the user means the argument is to be interpreted
+            #as natoms, rather than filename
+            natoms = filename
+            filename = None
+        if filename is not None:
+            self.read_pdb(filename, ignore_waters=ignore_waters)
+        elif natoms is not None:
+            self.generate_pdb_from_defaults(natoms)
+
+    def read_pdb(self, filename, ignore_waters=False):
         self.natoms = 0
         with open(filename) as f:
             for line in f:
@@ -1426,6 +1558,40 @@ class PDB(object):
                 self.charge[atom] = line[78:80].strip('\n')
                 self.nelectrons[atom] = electrons.get(self.atomtype[atom].upper(),6)
                 atom += 1
+
+    def generate_pdb_from_defaults(self, natoms):
+        self.natoms = natoms
+        #simple array of incrementing integers, starting from 1
+        self.atomnum = np.arange((self.natoms),dtype=int)+1
+        #all carbon atoms by default
+        self.atomname = np.full((self.natoms),"C",dtype=np.dtype((np.str,3)))
+        #no alternate conformations by default
+        self.atomalt = np.zeros((self.natoms),dtype=np.dtype((np.str,1)))
+        #all Alanines by default
+        self.resname = np.full((self.natoms),"ALA",dtype=np.dtype((np.str,3)))
+        #each atom belongs to a new residue by default
+        self.resnum = np.arange((self.natoms),dtype=int)
+        #chain A by default
+        self.chain = np.full((self.natoms),"A",dtype=np.dtype((np.str,1)))
+        #all atoms at (0,0,0) by default
+        self.coords = np.zeros((self.natoms, 3))
+        #all atoms 1.0 occupancy by default
+        self.occupancy = np.ones((self.natoms))
+        #all atoms 20 A^2 by default
+        self.b = np.ones((self.natoms))*20.0
+        #all atom types carbon by default
+        self.atomtype = np.full((self.natoms),"C",dtype=np.dtype((np.str,2)))
+        #all atoms neutral by default
+        self.charge = np.zeros((self.natoms),dtype=np.dtype((np.str,2)))
+        #all atoms carbon so have six electrons by default
+        self.nelectrons = np.ones((self.natoms),dtype=int)*6
+        #for CRYST1 card, use default defined by PDB, but 100 A side
+        self.cella = 100.0
+        self.cellb = 100.0
+        self.cellc = 100.0
+        self.cellalpha = 90.0
+        self.cellbeta = 90.0
+        self.cellgamma = 90.0
 
     def remove_waters(self):
         idx = np.where((self.resname=="HOH") | (self.resname=="TIP"))
@@ -1556,7 +1722,7 @@ def pdb2map_fastgauss(pdb,x,y,z,sigma,r=20.0,ignore_waters=True):
         dist *= dist
         tmpvalues = pdb.nelectrons[i]*1./np.sqrt(2*np.pi*sigma**2) * np.exp(-dist[0]/(2*sigma**2))
         values[slc] += tmpvalues.reshape(nx,ny,nz)
-    # print()
+    print()
     return values
 
 ######################
@@ -1653,8 +1819,8 @@ def runDenss(q, I, sigq, D, prefix, path, denss_settings, avg_model=None,
         denss_args = {
             'voxel'             : float(denss_settings['voxel']),
             'oversampling'      : float(denss_settings['oversample']),
-            'limit_dmax'        : float(denss_settings['limitDmax']),
-            'limit_dmax_steps'  : ast.literal_eval(denss_settings['dmaxStep']),
+            # 'limit_dmax'        : float(denss_settings['limitDmax']),
+            # 'limit_dmax_steps'  : ast.literal_eval(denss_settings['dmaxStep']),
             'recenter'          : denss_settings['recenter'],
             'recenter_steps'    : ast.literal_eval(denss_settings['recenterStep']),
             'recenter_mode'     : denss_settings['recenterMode'],
@@ -1676,6 +1842,7 @@ def runDenss(q, I, sigq, D, prefix, path, denss_settings, avg_model=None,
             'cutout'            : denss_settings['cutOutput'],
             'ncs'               : int(denss_settings['ncs']),
             'ncs_steps'         : ast.literal_eval(denss_settings['ncsSteps']),
+            'ncs_type'          : denss_settings['ncsType'].lower(),
             'abort_event'       : abort_event,
             'my_logger'         : my_logger,
             'path'              : path,

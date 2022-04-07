@@ -371,12 +371,12 @@ class RawGuiSettings(object):
                 'normalizedResiduals'   : [True, get_id(), 'bool'],
 
                 #Denss settings
-                'denssVoxel'            : [5, get_id(), 'float'],
+                'denssVoxel'            : ['None', get_id(), 'text'],
                 'denssOversampling'     : [3., get_id(), 'float'],
                 'denssNElectrons'       : ['10000', get_id(), 'text'],
                 'denssSteps'            : ['None', get_id(), 'text'],
-                'denssLimitDmax'        : [False, get_id(), 'bool'],
-                'denssLimitDmaxStep'    : ['[502]', get_id(), 'text'],
+                # 'denssLimitDmax'        : [False, get_id(), 'bool'],
+                # 'denssLimitDmaxStep'    : ['[502]', get_id(), 'text'],
                 'denssRecenter'         : [True, get_id(), 'bool'],
                 'denssRecenterStep'     : ['%s' %(list(range(501, 8002, 500))), get_id(), 'text'],
                 'denssPositivity'       : [True, get_id(), 'bool'],
@@ -403,6 +403,7 @@ class RawGuiSettings(object):
                 'denssNCS'              : [0, get_id(), 'int'],
                 'denssNCSSteps'         : ['[3000,5000,7000,9000]', get_id(), 'text'],
                 'denssNCSAxis'          : [1, get_id(), 'int'],
+                'denssNCSType'          : ['Cyclical', get_id(), 'choice'],
                 'denssRefine'           : [True, get_id(), 'bool'],
                 'denssGPU'              : [False, get_id(), 'bool'],
 
