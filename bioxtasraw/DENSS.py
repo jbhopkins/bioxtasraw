@@ -27,7 +27,7 @@ Much of the code is from the DENSS source code, released here:
     https://github.com/tdgrant1/denss
 That code was released under GPL V3. The original author is Thomas Grant.
 
-This code matches that as of 4/6/21, commit 3efed760439f0fb7b9597f73c4174f237c4409ed, version 1.6.4
+This code matches that as of 4/7/21, commit b3cad7bffa893e5a67aa95674db9655d3cf98a7e, version 1.6.5
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
@@ -964,10 +964,19 @@ def euler_grid_search(refrho, movrho, topn=1, abort_event=None):
     phi = np.arccos(1 - 2*indices/num_pts)
     theta = np.pi * (1 + 5**0.5) * indices
     scores = np.zeros((len(phi),len(theta)))
+    refrho2 = ndimage.gaussian_filter(refrho, sigma=1.0, mode='wrap')
+    movrho2 = ndimage.gaussian_filter(movrho, sigma=1.0, mode='wrap')
+    n = refrho2.shape[0]
+    b,e = (int(n/4),int(3*n/4))
+    refrho3 = refrho2[b:e,b:e,b:e]
+    movrho3 = movrho2[b:e,b:e,b:e]
     for p in range(len(phi)):
         for t in range(len(theta)):
+            scores[p,t] = -minimize_rho_score(T=[phi[p],theta[t],0,0,0,0],
+                                            refrho=refrho3,movrho=movrho3
+                                            )
             #scores[p,t] = -minimize_rho_score(T=[phi[p],theta[t],0,0,0,0],refrho=np.abs(refrho),movrho=np.abs(movrho))
-            scores[p,t] = -minimize_rho_score(T=[phi[p],theta[t],0,0,0,0],refrho=refrho,movrho=movrho)
+            # scores[p,t] = -minimize_rho_score(T=[phi[p],theta[t],0,0,0,0],refrho=refrho,movrho=movrho)
 
             if abort_event is not None:
                 if abort_event.is_set():
@@ -1031,13 +1040,20 @@ def minimize_rho(refrho, movrho, T = np.zeros(6)):
     bounds[3:,1] = 5
     save_movrho = np.copy(movrho)
     save_refrho = np.copy(refrho)
+    #for alignment only, run a low-pass filter to remove noise
+    refrho2 = ndimage.gaussian_filter(refrho, sigma=1.0, mode='wrap')
+    movrho2 = ndimage.gaussian_filter(movrho, sigma=1.0, mode='wrap')
+    n = refrho2.shape[0]
+    #to speed it up crop out the solvent
+    b,e = (int(n/4),int(3*n/4))
+    refrho3 = refrho2[b:e,b:e,b:e]
+    movrho3 = movrho2[b:e,b:e,b:e]
     result = optimize.fmin_l_bfgs_b(minimize_rho_score, T, factr= 0.1,
         maxiter=100, maxfun=200, epsilon=0.05,
-        #args=(np.abs(refrho),np.abs(movrho)), approx_grad=True)
-        args=(refrho,movrho), approx_grad=True)
+        args=(refrho3,movrho3), approx_grad=True)
     Topt = result[0]
     newrho = transform_rho(save_movrho, Topt)
-    finalscore = -rho_overlap_score(save_refrho,newrho)
+    finalscore = -1.*rho_overlap_score(save_refrho,newrho)
     return newrho, finalscore
 
 def minimize_rho_score(T, refrho, movrho):
@@ -1076,7 +1092,7 @@ def transform_rho(rho, T, order=1):
     ne_rho= np.sum((rho))
     R = euler2matrix(T[0],T[1],T[2])
     c_in = np.array(ndimage.measurements.center_of_mass(np.abs(rho)))
-    c_out = np.array(rho.shape)/2.
+    c_out = (np.array(rho.shape)-1.)/2.
     offset = c_in-c_out.dot(R)
     offset += T[3:]
     rho = ndimage.interpolation.affine_transform(rho,R.T, order=order,
@@ -1161,7 +1177,7 @@ def principal_axis_alignment(refrho,movrho):
     #now rotate movrho by the inverse of the refrho rotation
     R = np.linalg.inv(refR)
     c_in = np.array(ndimage.measurements.center_of_mass(np.abs(movrho)))
-    c_out = np.array(movrho.shape)/2.
+    c_out = (np.array(movrho.shape)-1.)/2.
     offset=c_in-c_out.dot(R)
     movrho = ndimage.interpolation.affine_transform(movrho,R.T,order=3,offset=offset,mode='wrap')
     #now shift it back to where refrho was originally
@@ -1722,7 +1738,7 @@ def pdb2map_fastgauss(pdb,x,y,z,sigma,r=20.0,ignore_waters=True):
         dist *= dist
         tmpvalues = pdb.nelectrons[i]*1./np.sqrt(2*np.pi*sigma**2) * np.exp(-dist[0]/(2*sigma**2))
         values[slc] += tmpvalues.reshape(nx,ny,nz)
-    print()
+    # print()
     return values
 
 ######################
