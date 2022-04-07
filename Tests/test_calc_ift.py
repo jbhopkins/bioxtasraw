@@ -87,7 +87,6 @@ def test_supcomb(temp_directory):
     assert os.path.exists(os.path.join(temp_directory,
         'glucose_isomerase_01-1_aligned.pdb'))
 
-@pytest.mark.new
 @pytest.mark.slow
 def test_denss(gi_gnom_ift, temp_directory):
     (rho, chi_sq, rg, support_vol, side, q_fit, I_fit, I_extrap,
@@ -117,9 +116,9 @@ def test_denss_average(temp_directory):
         temp_directory, n_proc=2)
 
     assert np.isclose(average_rho.sum(), 11.779369592666626)
-    assert np.isclose(mean_cor, 0.9583740196436534, rtol=1e-3)
-    assert np.isclose(std_cor, 0.012896514434237942, rtol=1e-3)
-    assert res == 29.0
+    assert np.isclose(mean_cor, 0.9558480944677593, rtol=1e-3)
+    assert np.isclose(std_cor, 0.010040825860950791, rtol=1e-3)
+    assert res == 35.1
     assert os.path.exists(os.path.join(temp_directory, 'denss_average.log'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_fsc.dat'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_average.mrc'))
@@ -137,9 +136,9 @@ def test_denss_average_single_proc(temp_directory):
         temp_directory, n_proc=1)
 
     assert np.isclose(average_rho.sum(), 11.779369592666626)
-    assert np.isclose(mean_cor, 0.9583740196436534, rtol=1e-3)
-    assert np.isclose(std_cor, 0.012896514434237942, rtol=1e-3)
-    assert res == 29.0
+    assert np.isclose(mean_cor, 0.9558480944677593, rtol=1e-3)
+    assert np.isclose(std_cor, 0.010040825860950791, rtol=1e-3)
+    assert res == 35.1
     assert os.path.exists(os.path.join(temp_directory, 'denss_average.log'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_fsc.dat'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_average.mrc'))
@@ -151,7 +150,7 @@ def test_denss_align(temp_directory):
     aligned_density, score = raw.denss_align(rhos[0], sides[0], '1XIB_4mer.pdb',
         './data/dammif_data/', save_datadir=temp_directory, n_proc=2)
 
-    assert np.isclose(score, 0.885860529365112)
+    assert np.isclose(score, 0.880398898847921)
     assert np.isclose(aligned_density.sum(), 11.779369354248047)
 
 @pytest.mark.very_slow
@@ -161,5 +160,5 @@ def test_denss_align_single_proc(temp_directory):
     aligned_density, score = raw.denss_align(rhos[0], sides[0], '1XIB_4mer.pdb',
         './data/dammif_data/', save_datadir=temp_directory, n_proc=1)
 
-    assert np.isclose(score, 0.885860529365112)
+    assert np.isclose(score, 0.880398898847921)
     assert np.isclose(aligned_density.sum(), 11.779369354248047)

@@ -244,12 +244,10 @@ def test_load_settings_old(old_settings):
     assert settings.get('errorWeight')
     assert settings.get('normalizedResiduals')
 
-    assert settings.get('denssVoxel') == 5.0
+    assert settings.get('denssVoxel') == 'None'
     assert settings.get('denssOversampling') == 3.0
     assert settings.get('denssNElectrons') == '10000'
     assert settings.get('denssSteps') == 'None'
-    assert not settings.get('denssLimitDmax')
-    assert settings.get('denssLimitDmaxStep') == '[502]'
     assert settings.get('denssRecenter')
     assert settings.get('denssRecenterStep') == '[501, 1001, 1501, 2001, 2501, 3001, 3501, 4001, 4501, 5001, 5501, 6001, 6501, 7001, 7501, 8001]'
     assert settings.get('denssPositivity')
@@ -500,8 +498,6 @@ def test_load_settings_new():
     assert settings.get('denssOversampling') == 3.0
     assert settings.get('denssNElectrons') == ''
     assert settings.get('denssSteps') == 10000
-    assert not settings.get('denssLimitDmax')
-    assert settings.get('denssLimitDmaxStep') == '[500]'
     assert settings.get('denssRecenter')
     assert settings.get('denssRecenterStep') == '[1001, 1501, 2001, 2501, 3001, 3501, 4001, 4501, 5001, 5501, 6001, 6501, 7001, 7501, 8001]'
     assert settings.get('denssPositivity')
@@ -745,8 +741,6 @@ def test_load_settings_saxslab():
     assert settings.get('denssOversampling') == 3.0
     assert settings.get('denssNElectrons') == ''
     assert settings.get('denssSteps') == 10000
-    assert not settings.get('denssLimitDmax')
-    assert settings.get('denssLimitDmaxStep') == '[500]'
     assert settings.get('denssRecenter')
     assert settings.get('denssRecenterStep') == '[1001, 1501, 2001, 2501, 3001, 3501, 4001, 4501, 5001, 5501, 6001, 6501, 7001, 7501, 8001]'
     assert settings.get('denssPositivity')
