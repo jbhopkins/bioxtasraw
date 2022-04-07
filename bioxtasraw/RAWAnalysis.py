@@ -381,6 +381,8 @@ class GuinierPlotPanel(wx.Panel):
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
 
+        SASUtils.update_mpl_style()
+
         self.fig = Figure((5,4), 75)
 
         self.data_line = None
@@ -412,12 +414,12 @@ class GuinierPlotPanel(wx.Panel):
             self.subplots[label] = subplot
 
         self.fig.subplots_adjust(left = 0.15, bottom = 0.08, right = 0.95, top = 0.95, hspace = 0.3)
-        self.fig.set_facecolor('white')
+        # self.fig.set_facecolor('white')
 
         self.subplots['Residual'].axhline(0, color='k', linewidth=1.0)
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-        self.canvas.SetBackgroundColour('white')
+        # self.canvas.SetBackgroundColour('white')
 
         self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
@@ -434,6 +436,11 @@ class GuinierPlotPanel(wx.Panel):
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
         self.canvas.callbacks.connect('button_release_event', self._onMouseButtonReleaseEvent)
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
+
+    def updateColors(self):
+        color = SASUtils.update_mpl_style()
+
+        self.ax_redraw()
 
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
@@ -1613,6 +1620,9 @@ class GuinierFrame(wx.Frame):
         except Exception:
             return size
 
+    def updateColors(self):
+        self.plotPanel.updateColors()
+
     def OnClose(self):
         self.controlPanel.showBusy(False)
         self.Destroy()
@@ -1823,6 +1833,10 @@ class MolWeightFrame(wx.Frame):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        vc_plot = wx.FindWindowById(vc_ids['sup_plot'])
+        vc_plot.updateColors()
 
     def _initSettings(self):
 
@@ -3736,6 +3750,8 @@ class MWPlotPanel(wx.Panel):
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
 
+        SASUtils.update_mpl_style()
+
         # self.fig = Figure((5,4), 75)
         self.fig = Figure((3.25,2.5))
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
@@ -3756,8 +3772,8 @@ class MWPlotPanel(wx.Panel):
         sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
 
         self.SetSizer(sizer)
-        self.canvas.SetBackgroundColour('white')
-        self.fig.set_facecolor('white')
+        # self.canvas.SetBackgroundColour('white')
+        # self.fig.set_facecolor('white')
         self.fig.tight_layout()
 
         font_size = 10
@@ -3775,6 +3791,11 @@ class MWPlotPanel(wx.Panel):
 
         for tick in a.yaxis.get_major_ticks():
             tick.label.set_fontsize(font_size)
+
+        self.canvas.draw()
+
+    def updateColors(self):
+        color = SASUtils.update_mpl_style()
 
         self.canvas.draw()
 
@@ -3916,6 +3937,9 @@ class GNOMFrame(wx.Frame):
         except Exception:
             return size
 
+    def updateColors(self):
+        self.plotPanel.updateColors()
+
     def initGNOM(self, sasm):
 
         self.saveGNOMProfile()
@@ -4023,6 +4047,8 @@ class IFTPlotPanel(wx.Panel):
 
         self.raw_settings = main_frame.raw_settings
 
+        SASUtils.update_mpl_style()
+
         self.fig = Figure((5,4), 75)
 
         self.ift = None
@@ -4056,13 +4082,26 @@ class IFTPlotPanel(wx.Panel):
 
         self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93,
             top = 0.93, hspace = 0.4)
-        self.fig.set_facecolor('white')
+        # self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-        self.canvas.SetBackgroundColour('white')
+        # self.canvas.SetBackgroundColour('white')
 
-        self.subplots['P(r)'].axhline(color = 'k', linewidth=1.0)
-        self.subplots['Residual'].axhline(color = 'k', linewidth=1.0)
+        system_settings = wx.SystemSettings()
+        
+        try:
+            system_appearance = system_settings.GetAppearance()
+            is_dark = system_appearance.IsDark()
+        except Exception:
+            is_dark = False
+            
+        if is_dark:
+            color = 'white'
+        else:
+            color = 'black'
+
+        self.pr_hline = self.subplots['P(r)'].axhline(color = color, linewidth=1.0)
+        self.res_hline = self.subplots['Residual'].axhline(color = color, linewidth=1.0)
 
         self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
@@ -4076,6 +4115,14 @@ class IFTPlotPanel(wx.Panel):
         # Connect the callback for the draw_event so that window resizing works:
         self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def updateColors(self):
+        color = SASUtils.update_mpl_style()
+
+        # self.pr_hline.set_color(color)
+        # self.res_hline.set_color(color)
+
+        self.canvas.draw()
 
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
@@ -5201,6 +5248,10 @@ class DammifFrame(wx.Frame):
         except Exception:
             return size
 
+    def updateColors(self):
+        self.ResultsPanel.updateColors()
+        self.ViewerPanel.updateColors()
+
     def _createLayout(self, parent):
         close_button = wx.Button(parent, -1, 'Close')
         close_button.Bind(wx.EVT_BUTTON, self._onCloseButton)
@@ -5306,6 +5357,9 @@ class DammifRunPanel(wx.Panel):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        self.logbook.SetActiveTabColour(RAWGlobals.tab_color)
 
     def _createLayout(self, parent):
 
@@ -5503,12 +5557,13 @@ class DammifRunPanel(wx.Panel):
 
         try:
             self.logbook = flatNB.FlatNotebook(log_box, self.ids['logbook'],
-                agwStyle = flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED | flatNB.FNB_NO_X_BUTTON)
+                agwStyle = flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED | flatNB.FNB_NO_X_BUTTON|flatNB.FNB_NODRAG)
         except AttributeError as e:
             print(e)
             self.logbook = flatNB.FlatNotebook(log_box, self.ids['logbook'])     #compatability for older versions of wxpython
-            self.logbook.SetWindowStyleFlag(flatNB.FNB_NO_X_BUTTON)
+            self.logbook.SetWindowStyleFlag(flatNB.FNB_NO_X_BUTTON|flatNB.FNB_NODRAG)
 
+        self.logbook.SetActiveTabColour(RAWGlobals.tab_color)
         self.logbook.DeleteAllPages()
 
         log_sizer = wx.StaticBoxSizer(log_box, wx.HORIZONTAL)
@@ -6821,6 +6876,15 @@ class DammifResultsPanel(wx.Panel):
         except Exception:
             return size
 
+    def updateColors(self):
+        for i in range(self.models.GetPageCount()):
+            page = self.models.GetPage(i)
+
+            if isinstance(page, DammifPlotPanel):
+                page.updateColors()
+
+        self.models.SetActiveTabColour(RAWGlobals.tab_color)
+
     def _createLayout(self, parent):
         ambi_box = wx.StaticBox(parent, wx.ID_ANY, 'Ambimeter')
         self.ambi_sizer = wx.StaticBoxSizer(ambi_box, wx.VERTICAL)
@@ -6954,11 +7018,12 @@ class DammifResultsPanel(wx.Panel):
 
         try:
             self.models = flatNB.FlatNotebook(models_box, self.ids['models'],
-                agwStyle=flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED|flatNB.FNB_NO_X_BUTTON)
+                agwStyle=flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED|flatNB.FNB_NO_X_BUTTON|flatNB.FNB_NODRAG)
         except AttributeError:
             self.models = flatNB.FlatNotebook(models_box, self.ids['models'])     #compatability for older versions of wxpython
-            self.models.SetWindowStyleFlag(flatNB.FNB_NO_X_BUTTON)
+            self.models.SetWindowStyleFlag(flatNB.FNB_NO_X_BUTTON|flatNB.FNB_NODRAG)
 
+        self.models.SetActiveTabColour(RAWGlobals.tab_color)
         self.models.DeleteAllPages()
 
         summary_panel = wx.Panel(self.models)
@@ -7387,14 +7452,21 @@ class DammifPlotPanel(wx.Panel):
         self.raw_settings = main_frame.raw_settings
         self.norm_residuals = self.raw_settings.get('normalizedResiduals')
 
-        canvas = self.createPlot()
+        self.canvas = self.createPlot()
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(canvas, 1, wx.GROW)
+        sizer.Add(self.canvas, 1, wx.GROW)
 
         self.SetSizer(sizer)
 
+    def updateColors(self):
+        color = SASUtils.update_mpl_style()
+        # self.ax1_hline.set_color(color)
+        self.canvas.draw()
+
     def createPlot(self):
+        color = SASUtils.update_mpl_style()
+
         fig = Figure((5,4), 75)
         self.figures.append(fig)
 
@@ -7418,7 +7490,7 @@ class DammifPlotPanel(wx.Panel):
         ax0.set_ylabel('I(q)')
 
         ax1 = fig.add_subplot(gridspec[1])
-        ax1.axhline(0, color='k', linewidth=1.0)
+        self.ax1_hline = ax1.axhline(0, color=color, linewidth=1.0)
         ax1.plot(q, residual, 'bo')
         ax1.set_xlabel('q')
         if self.norm_residuals:
@@ -7426,10 +7498,10 @@ class DammifPlotPanel(wx.Panel):
         else:
             ax1.set_ylabel('$\Delta I(q)$')
 
-        canvas.SetBackgroundColour('white')
+        # canvas.SetBackgroundColour('white')
         fig.subplots_adjust(left = 0.1, bottom = 0.12, right = 0.95, top = 0.95,
             hspace=0.25)
-        fig.set_facecolor('white')
+        # fig.set_facecolor('white')
 
         canvas.draw()
 
@@ -7463,6 +7535,10 @@ class DammifViewerPanel(wx.Panel):
         except Exception:
             return size
 
+    def updateColors(self):
+        color = SASUtils.update_mpl_style()
+        self.canvas.draw()
+
     def _createLayout(self, parent):
         ctrls_box = wx.StaticBox(parent, wx.ID_ANY, 'Viewer Controls')
 
@@ -7479,10 +7555,10 @@ class DammifViewerPanel(wx.Panel):
 
 
         self.fig = Figure(dpi=75, tight_layout=True)
-        self.fig.set_facecolor('white')
+        # self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-        self.canvas.SetBackgroundColour('white')
+        # self.canvas.SetBackgroundColour('white')
 
         self.subplot = self.fig.add_subplot(1,1,1, projection='3d')
         self.subplot.grid(False)
@@ -7508,7 +7584,7 @@ class DammifViewerPanel(wx.Panel):
 
         scale = (float(radius)/1.25)**2
 
-        self.subplot.scatter(atoms[:,0], atoms[:,1], atoms[:,2], s=250*scale, alpha=.95)
+        self.subplot.scatter(atoms[:,0], atoms[:,1], atoms[:,2], s=250*scale, alpha=.9)
 
         self.canvas.draw()
 
@@ -7605,6 +7681,10 @@ class DenssFrame(wx.Frame):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        self.ResultsPanel.updateColors()
+        # self.ViewerPanel.updateColors()
 
     def _createLayout(self, parent):
         close_button = wx.Button(parent, -1, 'Close')
@@ -7704,6 +7784,9 @@ class DenssRunPanel(wx.Panel):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        self.logbook.SetActiveTabColour(RAWGlobals.tab_color)
 
     def _createLayout(self, parent):
 
@@ -7904,12 +7987,13 @@ class DenssRunPanel(wx.Panel):
 
         try:
             self.logbook = flatNB.FlatNotebook(log_box, self.ids['logbook'],
-                agwStyle=flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED|flatNB.FNB_NO_X_BUTTON)
+                agwStyle=flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED|flatNB.FNB_NO_X_BUTTON|flatNB.FNB_NODRAG)
         except AttributeError as e:
             print(e)
             self.logbook = flatNB.FlatNotebook(log_box, self.ids['logbook'])     #compatability for older versions of wxpython
-            self.logbook.SetWindowStyleFlag(flatNB.FNB_NO_X_BUTTON)
+            self.logbook.SetWindowStyleFlag(flatNB.FNB_NO_X_BUTTON|flatNB.FNB_NODRAG)
 
+        self.logbook.SetActiveTabColour(RAWGlobals.tab_color)
         self.logbook.DeleteAllPages()
 
         log_sizer = wx.StaticBoxSizer(log_box, wx.HORIZONTAL)
@@ -9274,6 +9358,15 @@ class DenssResultsPanel(wx.Panel):
         except Exception:
             return size
 
+    def updateColors(self):
+        for i in range(self.models.GetPageCount()):
+            page = self.models.GetPage(i)
+
+            if isinstance(page, DenssPlotPanel) or isinstance(page, DenssAveragePlotPanel):
+                page.updateColors()
+
+        self.models.SetActiveTabColour(RAWGlobals.tab_color)
+
     def _createLayout(self, parent):
         ambi_box = wx.StaticBox(parent, wx.ID_ANY, 'Ambimeter')
         self.ambi_sizer = wx.StaticBoxSizer(ambi_box, wx.VERTICAL)
@@ -9359,11 +9452,12 @@ class DenssResultsPanel(wx.Panel):
 
         try:
             self.models = flatNB.FlatNotebook(model_box, self.ids['models'],
-                agwStyle=flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED|flatNB.FNB_NO_X_BUTTON)
+                agwStyle=flatNB.FNB_NAV_BUTTONS_WHEN_NEEDED|flatNB.FNB_NO_X_BUTTON|flatNB.FNB_NODRAG)
         except AttributeError:
             self.models = flatNB.FlatNotebook(model_box, self.ids['models'])     #compatability for older versions of wxpython
-            self.models.SetWindowStyleFlag(flatNB.FNB_NO_X_BUTTON)
+            self.models.SetWindowStyleFlag(flatNB.FNB_NO_X_BUTTON|flatNB.FNB_NODRAG)
 
+        self.models.SetActiveTabColour(RAWGlobals.tab_color)
         self.models.DeleteAllPages()
 
         summary_panel = wx.Panel(self.models)
@@ -9795,16 +9889,40 @@ class DenssPlotPanel(wx.Panel):
 
         self.figures = []
 
-        sc_canvas = self.createScatteringPlot()
-        stats_canvas = self.createStatsPlot()
+        self.sc_canvas = self.createScatteringPlot()
+        self.stats_canvas = self.createStatsPlot()
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(sc_canvas, 1, wx.GROW)
-        sizer.Add(stats_canvas, 1, wx.GROW)
+        sizer.Add(self.sc_canvas, 1, wx.GROW)
+        sizer.Add(self.stats_canvas, 1, wx.GROW)
 
         self.SetSizer(sizer)
 
+    def updateColors(self):
+        color = SASUtils.update_mpl_style()
+        
+        # self.ax1_hline.set_color(color)
+
+        # self.ax0_err[0].set_color(color)
+
+        # for each in self.ax0_err[1]:
+        #     each.set_color(color)
+
+        # for each in self.ax0_err[2]:
+        #     each.set_color(color)
+
+        # self.ax0_smooth.set_color(color)
+        self.sc_canvas.draw()
+        self.stats_canvas.draw()
+
     def createScatteringPlot(self):
+        color = SASUtils.update_mpl_style()
+
+        if color == 'black':
+            color_num = '0'
+        else:
+            color_num = '1'
+
         fig = Figure((3.25,2.5))
         canvas = FigureCanvasWxAgg(self, -1, fig)
 
@@ -9834,12 +9952,14 @@ class DenssPlotPanel(wx.Panel):
         gs = matplotlib.gridspec.GridSpec(2, 1, height_ratios=[3,1])
 
         ax0 = fig.add_subplot(gs[0])
-        ax0.errorbar(self.iftm.q_orig, self.iftm.i_orig, fmt='k.',
+        self.ax0_err = ax0.errorbar(self.iftm.q_orig, self.iftm.i_orig, color=color, marker='.',
             yerr=self.iftm.err_orig, mec='none', mew=0, ms=3, alpha=0.3,
-            capsize=0, elinewidth=0.1, ecolor=cc.to_rgba('0',alpha=0.5),
+            capsize=0, elinewidth=0.1, ecolor=cc.to_rgba(color_num,alpha=0.5),
             label='Exp. Data')
-        ax0.plot(q, I, 'k--',alpha=0.7, lw=1, label='Smoothed Exp. Data')
-        ax0.plot(qdata[qdata<=q[-1]], Idata[qdata<=q[-1]], 'bo',alpha=0.5,label='Interpolated')
+        self.ax0_smooth = ax0.plot(q, I, color=color, linestyle='--',alpha=0.7, lw=1, 
+            label='Smoothed Exp. Data')[0]
+        ax0.plot(qdata[qdata<=q[-1]], Idata[qdata<=q[-1]], 'bo',alpha=0.5,
+            label='Interpolated')
         ax0.plot(qbinsc[qdata<=q[-1]], Imean[qdata<=q[-1]],'r.',label='DENSS Map')
         handles,labels = ax0.get_legend_handles_labels()
         handles = [handles[3], handles[0], handles[1],handles[2]]
@@ -9856,7 +9976,7 @@ class DenssPlotPanel(wx.Panel):
 
         residuals = np.log10(Imean[np.in1d(qbinsc,qdata)])-np.log10(Idata)
         ax1 = fig.add_subplot(gs[1])
-        ax1.axhline(0, color='k', linewidth=1.0)
+        self.ax1_hline = ax1.axhline(0, color=color, linewidth=1.0)
         ax1.plot(qdata[qdata<=q[-1]], residuals[qdata<=q[-1]], 'ro-')
         ylim = ax1.get_ylim()
         ymax = np.max(np.abs(ylim))
@@ -9871,15 +9991,17 @@ class DenssPlotPanel(wx.Panel):
         ax1.tick_params(labelsize='x-small')
 
 
-        canvas.SetBackgroundColour('white')
+        # canvas.SetBackgroundColour('white')
         fig.subplots_adjust(left = 0.2, bottom = 0.15, right = 0.95, top = 0.95)
-        fig.set_facecolor('white')
+        # fig.set_facecolor('white')
 
         canvas.draw()
 
         return canvas
 
     def createStatsPlot(self):
+        color = SASUtils.update_mpl_style()
+
         fig = Figure((3.25,2.5))
         canvas = FigureCanvasWxAgg(self, -1, fig)
 
@@ -9907,9 +10029,9 @@ class DenssPlotPanel(wx.Panel):
         ax2.semilogy()
         ax2.tick_params(labelsize='x-small')
 
-        canvas.SetBackgroundColour('white')
+        # canvas.SetBackgroundColour('white')
         fig.subplots_adjust(left = 0.2, bottom = 0.15, right = 0.95, top = 0.95)
-        fig.set_facecolor('white')
+        # fig.set_facecolor('white')
 
         canvas.draw()
 
@@ -9927,14 +10049,23 @@ class DenssAveragePlotPanel(wx.Panel):
 
         self.figures = []
 
-        fsc_canvas = self.createFSCPlot()
+        self.fsc_canvas = self.createFSCPlot()
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(fsc_canvas, 1, wx.GROW)
+        sizer.Add(self.fsc_canvas, 1, wx.GROW)
 
         self.SetSizer(sizer)
 
+    def updateColors(self):
+        color = SASUtils.update_mpl_style()
+        # self.ax0_hline.set_color(color)
+        # for plot in self.fsc_plots:
+        #     plot.set_color(color)
+        self.fsc_canvas.draw()
+
     def createFSCPlot(self):
+        color = SASUtils.update_mpl_style()
+
         fig = Figure((3.25,2.5))
         canvas = FigureCanvasWxAgg(self, -1, fig)
 
@@ -9952,9 +10083,12 @@ class DenssAveragePlotPanel(wx.Panel):
         resx = np.interp(0.5,[y[resi+1],y[resi]],[x[resi+1],x[resi]])
 
         ax0 = fig.add_subplot(111)
-        ax0.axhline(0.5, color='k', linestyle='--')
+        self.ax0_hline = ax0.axhline(0.5, color=color, linestyle='--')
+        self.fsc_plots = []
         for i in range(fscs.shape[0]):
-            ax0.plot(fscs[i,:,0],fscs[i,:,1],'k--',alpha=0.1)
+            new_plot = ax0.plot(fscs[i,:,0],fscs[i,:,1],color=color, linestyle='--',alpha=0.1)[0]
+            self.fsc_plots.append(new_plot)
+
         ax0.plot(res, fsc, 'bo-')
         ax0.plot([resx],[0.5],'ro',label='Resolution = '+str(resn)+r'$\mathrm{\AA}$')
         ax0.set_xlabel('Resolution ($\\AA^{-1}$)', fontsize='small')
@@ -9962,9 +10096,9 @@ class DenssAveragePlotPanel(wx.Panel):
         ax0.tick_params(labelsize='x-small')
         ax0.legend(fontsize='small')
 
-        canvas.SetBackgroundColour('white')
+        # canvas.SetBackgroundColour('white')
         fig.subplots_adjust(left = 0.1, bottom = 0.12, right = 0.95, top = 0.95)
-        fig.set_facecolor('white')
+        # fig.set_facecolor('white')
 
         canvas.draw()
 
@@ -10418,6 +10552,9 @@ class BIFTFrame(wx.Frame):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        self.plotPanel.updateColors()
 
     def initBIFT(self):
         self.controlPanel.runBIFT()
@@ -11198,6 +11335,9 @@ class AmbimeterFrame(wx.Frame):
         except Exception:
             return size
 
+    def updateColors(self):
+        pass
+
     def _createLayout(self, parent):
         file_text = wx.StaticText(parent, -1, 'File :')
         file_ctrl = wx.TextCtrl(parent, self.ids['input'], '',
@@ -11973,6 +12113,10 @@ class SVDFrame(wx.Frame):
         except Exception:
             return size
 
+    def updateColors(self):
+        self.plotPanel.updateColors()
+        self.controlPanel.updateColors()
+
     def _Layout(self):
         panel = wx.Panel(self)
         splitter1 = wx.SplitterWindow(panel)
@@ -12071,6 +12215,8 @@ class SVDResultsPlotPanel(wx.Panel):
 
     def __init__(self, parent, panel_id):
 
+        SASUtils.update_mpl_style()
+
         wx.Panel.__init__(self, parent, panel_id,
             style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
@@ -12101,10 +12247,10 @@ class SVDResultsPlotPanel(wx.Panel):
 
         self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93,
             top = 0.93, hspace = 0.26)
-        self.fig.set_facecolor('white')
+        # self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-        self.canvas.SetBackgroundColour('white')
+        # self.canvas.SetBackgroundColour('white')
 
         self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
@@ -12118,6 +12264,10 @@ class SVDResultsPlotPanel(wx.Panel):
         # Connect the callback for the draw_event so that window resizing works:
         self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def updateColors(self):
+        SASUtils.update_mpl_style()
+        self.ax_redraw()
 
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
@@ -12239,6 +12389,8 @@ class SVDSECPlotPanel(wx.Panel):
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
 
+        SASUtils.update_mpl_style()
+
         if ((int(matplotlib.__version__.split('.')[0]) == 1
             and int(matplotlib.__version__.split('.')[1]) >= 5)
             or int(matplotlib.__version__.split('.')[0]) > 1):
@@ -12266,10 +12418,10 @@ class SVDSECPlotPanel(wx.Panel):
 
         self.fig.subplots_adjust(left = 0.18, bottom = 0.13, right = 0.93,
             top = 0.93, hspace = 0.26)
-        self.fig.set_facecolor('white')
+        # self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-        self.canvas.SetBackgroundColour('white')
+        # self.canvas.SetBackgroundColour('white')
 
         self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
@@ -12283,6 +12435,10 @@ class SVDSECPlotPanel(wx.Panel):
         # Connect the callback for the draw_event so that window resizing works:
         self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def updateColors(self):
+        SASUtils.update_mpl_style()
+        self.ax_redraw()
 
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
@@ -12447,6 +12603,9 @@ class SVDControlPanel(wx.Panel):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        self.sec_plot.updateColors()
 
     def _createLayout(self):
 
@@ -13158,6 +13317,13 @@ class EFAFrame(wx.Frame):
         except Exception:
             return size
 
+    def updateColors(self):
+        self.plotPanel1.updateColors()
+        self.controlPanel1.updateColors()
+        self.plotPanel2.updateColors()
+        self.plotPanel3.updateColors()
+        self.controlPanel3.updateColors()
+
     def _createLayout(self, parent):
 
         #Creating the first EFA analysis panel
@@ -13515,6 +13681,8 @@ class EFAControlPanel2(wx.Panel):
 
         self.SetSizer(control_sizer)
 
+        self.bkg_dialog = None
+
         self.results = {
             'start_points'   : [],
             'end_points'    : [],
@@ -13529,6 +13697,10 @@ class EFAControlPanel2(wx.Panel):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        if self.bkg_dialog is not None:
+            self.bkg_dialog.updateColors()
 
     def _createLayout(self):
 
@@ -13991,17 +14163,18 @@ class EFAControlPanel2(wx.Panel):
 
         svd_a = self.panel1_results['svd_int_norm']
 
-        bkg_dialog = REGALSBackground(self.efa_frame, start, end, series,
+        self.bkg_dialog = REGALSBackground(self.efa_frame, start, end, series,
             secm_choice, self.panel1_results['input'], int(self.bkg_components.GetValue()))
 
-        ret = bkg_dialog.ShowModal()
+        ret = self.bkg_dialog.ShowModal()
 
         if ret == wx.ID_OK:
-            bkg_comps = bkg_dialog.get_bkg_comps()
+            bkg_comps = self.bkg_dialog.get_bkg_comps()
 
             self.bkg_components.SetValue(bkg_comps)
 
-        bkg_dialog.Destroy()
+        self.bkg_dialog.Destroy()
+        self.bkg_dialog = None
 
 
 class EFAResultsPlotPanel2(wx.Panel):
@@ -14042,10 +14215,10 @@ class EFAResultsPlotPanel2(wx.Panel):
 
         self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93,
             top = 0.93, hspace = 0.26)
-        self.fig.set_facecolor('white')
+        # self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-        self.canvas.SetBackgroundColour('white')
+        # self.canvas.SetBackgroundColour('white')
 
         self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
@@ -14059,6 +14232,11 @@ class EFAResultsPlotPanel2(wx.Panel):
         # Connect the callback for the draw_event so that window resizing works:
         self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def updateColors(self):
+        SASUtils.update_mpl_style()
+
+        self.ax_redraw()
 
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
@@ -14288,6 +14466,9 @@ class EFAControlPanel3(wx.Panel):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        self.sec_plot.updateColors()
 
     def _createLayout(self):
 
@@ -14825,6 +15006,8 @@ class EFAResultsPlotPanel3(wx.Panel):
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
 
+        SASUtils.update_mpl_style()
+
         self.fig = Figure((5,4), 75)
 
         self.a_lines = []
@@ -14851,10 +15034,10 @@ class EFAResultsPlotPanel3(wx.Panel):
 
         self.fig.subplots_adjust(left=0.12, bottom=0.07, right=0.93, top=0.93,
             hspace=0.26, wspace=0.26)
-        self.fig.set_facecolor('white')
+        # self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-        self.canvas.SetBackgroundColour('white')
+        # self.canvas.SetBackgroundColour('white')
 
         self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
@@ -14871,6 +15054,10 @@ class EFAResultsPlotPanel3(wx.Panel):
 
         self.show_pr = False
         self.update_layout()
+
+    def updateColors(self):
+        SASUtils.update_mpl_style()
+        self.ax_redraw()
 
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
@@ -15161,6 +15348,8 @@ class EFARangePlotPanel(wx.Panel):
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
 
+        SASUtils.update_mpl_style()
+
         if ((int(matplotlib.__version__.split('.')[0]) ==1
             and int(matplotlib.__version__.split('.')[1]) >=5)
             or int(matplotlib.__version__.split('.')[0])) > 1:
@@ -15187,10 +15376,10 @@ class EFARangePlotPanel(wx.Panel):
 
         self.fig.subplots_adjust(left = 0.18, bottom = 0.13, right = 0.93,
             top = 0.93, hspace = 0.26)
-        self.fig.set_facecolor('white')
+        # self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-        self.canvas.SetBackgroundColour('white')
+        # self.canvas.SetBackgroundColour('white')
 
         self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
@@ -15211,6 +15400,13 @@ class EFARangePlotPanel(wx.Panel):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        color = SASUtils.update_mpl_style()
+        if self.cut_line is not None:
+            self.cut_line.set_color(color)
+
+        self.ax_redraw()
 
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
@@ -15259,6 +15455,7 @@ class EFARangePlotPanel(wx.Panel):
 
     def updateDataPlot(self, frame_list, intensity, framei, framef, ranges,
         xvals=None):
+        sec_color = SASUtils.update_mpl_style()
         #Save for resizing:
         self.orig_frame_list = frame_list
         self.orig_intensity = intensity
@@ -15273,8 +15470,8 @@ class EFARangePlotPanel(wx.Panel):
 
         if self.cut_line is None:
 
-            self.cut_line, = a.plot(xvals, intensity[framei:framef+1], 'k.-',
-                animated = True)
+            self.cut_line, = a.plot(xvals, intensity[framei:framef+1], color=sec_color,
+                marker='.', linestyle='-', animated = True)
 
             if ((int(matplotlib.__version__.split('.')[0]) ==1 and
                 int(matplotlib.__version__.split('.')[1]) >=5) or
@@ -15405,6 +15602,11 @@ class REGALSFrame(wx.Frame):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        self.svd_panel.updateColors()
+        self.efa_panel.updateColors()
+        self.run_panel.updateColors()
 
     def _layout(self):
 
@@ -15678,6 +15880,10 @@ class REGALSSVDPanel(wx.Panel):
         except Exception:
             return size
 
+    def updateColors(self):
+        self.plotPanel.updateColors()
+        self.controlPanel.updateColors()
+
     def _layout(self):
         self.splitter = wx.SplitterWindow(self)
 
@@ -15734,6 +15940,9 @@ class REGALSEFAPanel(wx.Panel):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        self.plotPanel.updateColors()
 
     def _layout(self):
         self.splitter = wx.SplitterWindow(self)
@@ -15870,6 +16079,10 @@ class REGALSRunPanel(wx.Panel):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        self.controls.updateColors()
+        self.results.updateColors()
 
     def _create_layout(self):
         parent = self
@@ -16424,6 +16637,9 @@ class REGALSControls(wx.Panel):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        self.range_plot.updateColors()
 
     def _initialize(self):
         self.conv_type.SetStringSelection('Chi^2')
@@ -17348,6 +17564,9 @@ class REGALSResults(wx.Panel):
         except Exception:
             return size
 
+    def updateColors(self):
+        self.results_plot.updateColors()
+
     def _create_layout(self):
 
         results_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, label='Results')
@@ -17614,6 +17833,10 @@ class REGALSBackground(wx.Dialog):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        self.svd_plot.updateColors()
+        self.series_plot.updateColors()
 
     def _create_layout(self):
         parent = self
@@ -17929,7 +18152,13 @@ class REGALSBackgroundSVDPlot(wx.Panel):
         # Connect the callback for the draw_event so that window resizing works:
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
+    def updateColors(self):
+        SASUtils.update_mpl_style()
+        self.canvas.ax_redraw()
+
     def create_layout(self):
+        SASUtils.update_mpl_style()
+
         self.fig = Figure((5,4), 75)
 
         self.sv_subplot = self.fig.add_subplot(2,1,1, title='Singular Values')
@@ -17941,10 +18170,10 @@ class REGALSBackgroundSVDPlot(wx.Panel):
         self.ac_subplot.set_ylabel('Index')
 
 
-        self.fig.set_facecolor('white')
+        # self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-        self.canvas.SetBackgroundColour('white')
+        # self.canvas.SetBackgroundColour('white')
 
         self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
@@ -18101,6 +18330,9 @@ class SimilarityFrame(wx.Frame):
         except Exception:
             return size
 
+    def updateColors(self):
+        self._highlight()
+
     def _createLayout(self, parent):
         method_text = wx.StaticText(parent, -1, 'Method:')
         method_choice = wx.Choice(parent, self.ids['method'], choices = ['CorMap'])
@@ -18218,6 +18450,8 @@ class SimilarityFrame(wx.Frame):
         hl_same_pval = wx.FindWindowById(self.ids['hl_same_val']).GetValue()
         correction = wx.FindWindowById(self.ids['correction']).GetStringSelection()
 
+        def_color = RAWGlobals.list_item_bkg_color
+
         if (hl_diff and hl_diff_pval != '') or (hl_same and hl_same_pval != ''):
             if hl_diff_pval != '':
                 try:
@@ -18246,7 +18480,7 @@ class SimilarityFrame(wx.Frame):
                     elif pval == -1:
                         self.listPanel.SetItemBackgroundColour(index, 'YELLOW')
                     else:
-                        self.listPanel.SetItemBackgroundColour(index, 'WHITE')
+                        self.listPanel.SetItemBackgroundColour(index, def_color)
 
                 elif hl_diff and hl_diff_pval != '':
                     if pval < hl_diff_pval and pval != -1:
@@ -18254,7 +18488,7 @@ class SimilarityFrame(wx.Frame):
                     elif pval == -1:
                         self.listPanel.SetItemBackgroundColour(index, 'YELLOW')
                     else:
-                        self.listPanel.SetItemBackgroundColour(index, 'WHITE')
+                        self.listPanel.SetItemBackgroundColour(index, def_color)
 
                 elif hl_same and hl_same_pval != '':
                     if pval > hl_same_pval and pval != -1:
@@ -18262,14 +18496,14 @@ class SimilarityFrame(wx.Frame):
                     elif pval == -1:
                         self.listPanel.SetItemBackgroundColour(index, 'YELLOW')
                     else:
-                        self.listPanel.SetItemBackgroundColour(index, 'WHITE')
+                        self.listPanel.SetItemBackgroundColour(index, def_color)
         else:
             for index in range(self.listPanel.GetItemCount()):
                 pval = float(self.listPanel.GetItemText(index,5))
                 if pval == -1:
                         self.listPanel.SetItemBackgroundColour(index, 'YELLOW')
                 else:
-                    self.listPanel.SetItemBackgroundColour(index, 'WHITE')
+                    self.listPanel.SetItemBackgroundColour(index, def_color)
 
     def _calcCorMapPval(self):
         correction_window = wx.FindWindowById(self.ids['correction'])
@@ -18495,6 +18729,9 @@ class NormKratkyFrame(wx.Frame):
         except Exception:
             return size
 
+    def updateColors(self):
+        self.plotPanel.updateColors()
+
     def OnClose(self):
 
         self.Destroy()
@@ -18511,6 +18748,8 @@ class NormKratkyPlotPanel(wx.Panel):
         self.main_frame = wx.FindWindowByName('MainFrame')
 
         self.raw_settings = self.main_frame.raw_settings
+
+        color = SASUtils.update_mpl_style()
 
         self.fig = Figure((5,4), 75)
 
@@ -18530,17 +18769,17 @@ class NormKratkyPlotPanel(wx.Panel):
             label=self.plot_labels[self.plot_type][0])
         self.subplot.set_xlabel(self.plot_labels[self.plot_type][1])
         self.subplot.set_ylabel(self.plot_labels[self.plot_type][2])
-        self.subplot.axhline(0, color='k', linewidth=1.0)
+        self.hline = self.subplot.axhline(0, color=color, linewidth=1.0)
 
         self.v_line = None
         self.h_line = None
 
         self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93,
             top = 0.93, hspace = 0.26)
-        self.fig.set_facecolor('white')
+        # self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-        self.canvas.SetBackgroundColour('white')
+        # self.canvas.SetBackgroundColour('white')
 
         self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
@@ -18556,6 +18795,13 @@ class NormKratkyPlotPanel(wx.Panel):
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
         self.canvas.callbacks.connect('button_release_event', self._onMouseButtonReleaseEvent)
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
+
+    def updateColors(self):
+        color = SASUtils.update_mpl_style()
+
+        # self.hline.set_color(color)
+
+        self.ax_redraw()
 
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
@@ -19166,6 +19412,10 @@ class LCSeriesFrame(wx.Frame):
         except Exception:
             return size
 
+    def updateColors(self):
+        self.plotPanel.updateColors()
+        self.controlPanel.updateColors()
+
     def initialize(self):
         self.secm = copy.deepcopy(self.original_secm)
         self.original_secm.releaseSemaphore()
@@ -19243,7 +19493,17 @@ class SeriesPlotPanel(wx.Panel):
         self.canvas.mpl_connect('motion_notify_event', self._onMouseMotionEvent)
         self.canvas.mpl_connect('button_press_event', self._onMousePressEvent)
 
+    def updateColors(self):
+        color = SASUtils.update_mpl_style()
+
+        # if self.plot_type != 'unsub':
+        #     self.axhline.set_color(color)
+
+        self.ax_redraw()
+
     def create_layout(self):
+        color = SASUtils.update_mpl_style()
+
         self.fig = Figure((5,4), 75)
 
         self.subplot = self.fig.add_subplot(1,1,1,
@@ -19254,15 +19514,15 @@ class SeriesPlotPanel(wx.Panel):
         if self.plot_type != 'unsub':
             self.ryaxis = self.subplot.twinx()
             self.ryaxis.set_ylabel(self.all_plot_types[self.plot_type]['right'])
-            self.subplot.axhline(0, color='k', linewidth=1.0)
+            self.axhline = self.subplot.axhline(0, color=color, linewidth=1.0)
 
         self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93,
             top = 0.93, hspace = 0.26)
 
-        self.fig.set_facecolor('white')
+        # self.fig.set_facecolor('white')
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-        self.canvas.SetBackgroundColour('white')
+        # self.canvas.SetBackgroundColour('white')
 
         self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
@@ -19600,6 +19860,11 @@ class LCSeriesPlotPage(wx.Panel):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        self.unsub_panel.updateColors()
+        self.sub_panel.updateColors()
+        self.baseline_panel.updateColors()
 
     def create_layout(self, secm_q_list):
 
@@ -20114,6 +20379,10 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        self.buffer_range_list.updateColors()
+        self.sample_range_list.updateColors()
 
     def _createLayout(self):
 
