@@ -67,3 +67,7 @@ save_in_progress = False
 
 if has_wx:
     highlight_color = wx.Colour(178, 215, 255)
+    general_text_color = 'black'
+    list_bkg_color = 'white'
+    list_item_bkg_color = 'white'
+    tab_color = 'white'

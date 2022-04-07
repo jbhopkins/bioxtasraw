@@ -1158,7 +1158,7 @@ class ItemList(wx.Panel):
         self.list_panel = wx.ScrolledWindow(self, style=wx.BORDER_SUNKEN)
         self.list_panel.SetScrollRate(20,20)
 
-        self.list_panel.SetBackgroundColour('white')
+        self.list_panel.SetBackgroundColour(RAWGlobals.list_bkg_color)
 
         self.list_panel_sizer = wx.BoxSizer(wx.VERTICAL)
         self.list_panel.SetSizer(self.list_panel_sizer)
@@ -1177,6 +1177,13 @@ class ItemList(wx.Panel):
                 flag=wx.EXPAND|wx.ALL)
 
         self.SetSizer(panel_sizer)
+
+    def updateColors(self):
+        self.list_panel.SetBackgroundColour(RAWGlobals.list_bkg_color)
+
+        for item in self.all_items:
+            item.updateColors()
+        self.Refresh()
 
     def _create_toolbar(self):
         return None
@@ -1322,6 +1329,9 @@ class ListItem(wx.Panel):
     def _create_layout(self):
         pass
 
+    def updateColors(self):
+        self.set_selected(self._selected)
+
     def get_selected(self):
         return self._selected
 
@@ -1336,9 +1346,9 @@ class ListItem(wx.Panel):
                 text_item.SetForegroundColour(self.text_color)
 
         else:
-            self.SetBackgroundColour(wx.Colour(250,250,250))
+            self.SetBackgroundColour(RAWGlobals.list_bkg_color)
             for text_item in self.text_list:
-                text_item.SetForegroundColour('black')
+                text_item.SetForegroundColour(RAWGlobals.general_text_color)
 
         self.Refresh()
 

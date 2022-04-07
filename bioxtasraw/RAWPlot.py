@@ -126,6 +126,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
 
         self.fig_axes = parent.fig.gca()
         self.parent = parent
+        self.series = series
 
         self._MTB_ERRBARS = self.NewControlId()
         self._MTB_LEGEND = self.NewControlId()
@@ -145,7 +146,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
 
         self.workdir = RAWGlobals.RAWWorkDir
 
-        if not series:
+        if not self.series:
             self._bitmaps = {}
             self._tool_ids = {'errbars': self._MTB_ERRBARS,
                 'showboth'  : self._MTB_SHOWBOTH,
@@ -153,50 +154,32 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
                 'showbottom': self._MTB_SHOWBOTTOM,
                 }
 
-            #Icon made by Freepik from www.flaticon.com
-            errbars = os.path.join(RAWGlobals.RAWResourcesDir, 'box-plot-graphic-24.png')
-            showboth = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-showboth-24.png')
-            showtop = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-1-24.png')
-            showbottom = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-2-24.png')
+            self.main_frame = wx.FindWindowByName('MainFrame')
 
-            errbars_toggled = os.path.join(RAWGlobals.RAWResourcesDir, 'box-plot-graphic-toggled-24.png')
-            showboth_toggled = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-showboth-toggled-24.png')
-            showtop_toggled = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-1-toggled-24.png')
-            showbottom_toggled = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-2-toggled-24.png')
-
-            errbars_icon = SASUtils.load_DIP_bitmap(errbars, wx.BITMAP_TYPE_PNG)
-            showboth_icon = SASUtils.load_DIP_bitmap(showboth, wx.BITMAP_TYPE_PNG)
-            showtop_icon = SASUtils.load_DIP_bitmap(showtop, wx.BITMAP_TYPE_PNG)
-            showbottom_icon = SASUtils.load_DIP_bitmap(showbottom, wx.BITMAP_TYPE_PNG)
-
-            errbars_icon_toggled = SASUtils.load_DIP_bitmap(errbars_toggled, wx.BITMAP_TYPE_PNG)
-            showboth_icon_toggled = SASUtils.load_DIP_bitmap(showboth_toggled, wx.BITMAP_TYPE_PNG)
-            showtop_icon_toggled = SASUtils.load_DIP_bitmap(showtop_toggled, wx.BITMAP_TYPE_PNG)
-            showbottom_icon_toggled = SASUtils.load_DIP_bitmap(showbottom_toggled, wx.BITMAP_TYPE_PNG)
-
-            self._bitmaps['errbars'] = {'Normal': errbars_icon,
-                'Toggled': errbars_icon_toggled}
-            self._bitmaps['showboth'] = {'Normal': showboth_icon,
-                'Toggled': showboth_icon_toggled}
-            self._bitmaps['showtop'] = {'Normal': showtop_icon,
-                'Toggled': showtop_icon_toggled}
-            self._bitmaps['showbottom'] = {'Normal': showbottom_icon,
-                'Toggled': showbottom_icon_toggled}
+            self._getIcons()
 
             if int(wx.version().split()[0].strip()[0]) >= 4:
                 self.AddSeparator()
-                self.AddCheckTool(self._MTB_ERRBARS, '', errbars_icon, shortHelp='Show Errorbars')
+                self.AddCheckTool(self._MTB_ERRBARS, '', self._bitmaps['errbars']['Normal'], 
+                    shortHelp='Show Errorbars')
                 self.AddSeparator()
-                self.AddCheckTool(self._MTB_SHOWBOTH, '', showboth_icon, shortHelp='Show Both Plots')
-                self.AddCheckTool(self._MTB_SHOWTOP, '', showtop_icon,  shortHelp='Show Top Plot')
-                self.AddCheckTool(self._MTB_SHOWBOTTOM, '', showbottom_icon, shortHelp='Show Bottom Plot')
+                self.AddCheckTool(self._MTB_SHOWBOTH, '', self._bitmaps['showboth']['Normal'], 
+                    shortHelp='Show Both Plots')
+                self.AddCheckTool(self._MTB_SHOWTOP, '', self._bitmaps['showtop']['Normal'],  
+                    shortHelp='Show Top Plot')
+                self.AddCheckTool(self._MTB_SHOWBOTTOM, '', self._bitmaps['showbottom']['Normal'], 
+                    shortHelp='Show Bottom Plot')
             else:
                 self.AddSeparator()
-                self.AddCheckTool(self._MTB_ERRBARS, errbars_icon, shortHelp='Show Errorbars')
+                self.AddCheckTool(self._MTB_ERRBARS, self._bitmaps['errbars']['Normal'], 
+                    shortHelp='Show Errorbars')
                 self.AddSeparator()
-                self.AddCheckTool(self._MTB_SHOWBOTH, showboth_icon, shortHelp='Show Both Plots')
-                self.AddCheckTool(self._MTB_SHOWTOP, showtop_icon,  shortHelp='Show Top Plot')
-                self.AddCheckTool(self._MTB_SHOWBOTTOM, showbottom_icon, shortHelp='Show Bottom Plot')
+                self.AddCheckTool(self._MTB_SHOWBOTH, self._bitmaps['showboth']['Normal'], 
+                    shortHelp='Show Both Plots')
+                self.AddCheckTool(self._MTB_SHOWTOP, self._bitmaps['showtop']['Normal'],  
+                    shortHelp='Show Top Plot')
+                self.AddCheckTool(self._MTB_SHOWBOTTOM, self._bitmaps['showbottom']['Normal'], 
+                    shortHelp='Show Bottom Plot')
 
             self.Bind(wx.EVT_TOOL, self.errbars, id = self._MTB_ERRBARS)
             self.Bind(wx.EVT_TOOL, self.showboth, id = self._MTB_SHOWBOTH)
@@ -214,6 +197,26 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
                 self._fake_toggle_group(["showboth", "showtop", "showbottom"], active)
 
         self.Realize()
+
+    def _getIcons(self):
+        errbars_icon = wx.Bitmap(self.main_frame.errbars_icon)
+        showboth_icon = wx.Bitmap(self.main_frame.showboth_icon)
+        showtop_icon = wx.Bitmap(self.main_frame.showtop_icon)
+        showbottom_icon = wx.Bitmap(self.main_frame.showbottom_icon)
+
+        errbars_icon_toggled = wx.Bitmap(self.main_frame.errbars_icon_toggled)
+        showboth_icon_toggled = wx.Bitmap(self.main_frame.showboth_icon_toggled)
+        showtop_icon_toggled = wx.Bitmap(self.main_frame.showtop_icon_toggled)
+        showbottom_icon_toggled = wx.Bitmap(self.main_frame.showbottom_icon_toggled)
+
+        self._bitmaps['errbars'] = {'Normal': errbars_icon,
+            'Toggled': errbars_icon_toggled}
+        self._bitmaps['showboth'] = {'Normal': showboth_icon,
+            'Toggled': showboth_icon_toggled}
+        self._bitmaps['showtop'] = {'Normal': showtop_icon,
+            'Toggled': showtop_icon_toggled}
+        self._bitmaps['showbottom'] = {'Normal': showbottom_icon,
+            'Toggled': showbottom_icon_toggled}
 
     def home(self, *args, **kwargs):
         self.parent.fitAxis(forced = True)
@@ -326,6 +329,20 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         for name in elements:
             self.SetToolNormalBitmap(self._tool_ids[name],
                 self._bitmaps[name]["Toggled" if name == active else "Normal"])
+
+    def updateColors(self):
+        if not self.series:
+            self._getIcons()
+
+            for name in ["errbars", "showboth", "showtop", "showbottom"]:
+                if ('wxMac' in wx.PlatformInfo and
+                    (int(wx.version().split()[0].strip()[0]) >= 4 and
+                    int(wx.version().split()[0].strip()[2]) < 1)):
+                    self.SetToolNormalBitmap(self._tool_ids[name],
+                        self._bitmaps[name]["Toggled" if name == active else "Normal"])
+                else:
+                    self.SetToolNormalBitmap(self._tool_ids[name],
+                        self._bitmaps[name]["Normal"])
 
 class PlotPanel(wx.Panel):
 
@@ -448,15 +465,24 @@ class PlotPanel(wx.Panel):
         # self._canvas_cursor.horizOn = False
 
     def _initFigure(self):
+        SASUtils.update_mpl_style()
+
         self.fig = matplotlib.figure.Figure((5,4), 75)
         self.subplot1 = self.fig.add_subplot(211)
         self.subplot2 = self.fig.add_subplot(212)
 
         self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
-        self.fig.set_facecolor('white')
+        # self.fig.set_facecolor('white')
 
         self.canvas = MyFigureCanvasWxAgg(self, -1, self.fig)
-        self.canvas.SetBackgroundColour('white')
+        # self.canvas.SetBackgroundColour('white')
+
+    def updateColors(self):
+        SASUtils.update_mpl_style()
+
+        self.canvas.draw()
+
+        self.toolbar.updateColors()
 
     def setParameter(self, param, value):
         self.plotparams[param] = value
@@ -483,26 +509,39 @@ class PlotPanel(wx.Panel):
 
     def setFrameStyle(self, axes, style):
 
+        system_settings = wx.SystemSettings()
+        
+        try:
+            system_appearance = system_settings.GetAppearance()
+            is_dark = system_appearance.IsDark()
+        except Exception:
+            is_dark = False
+            
+        if is_dark:
+            color = 'white'
+        else:
+            color = 'black'
+
         if style.find('l')>-1:
-            axes.spines['left'].set_color('black')
+            axes.spines['left'].set_color(color)
             axes.tick_params(left=True, which = 'both')
         else:
             axes.spines['left'].set_color('none')
             axes.tick_params(left=False, which = 'both')
         if style.find('r')>-1:
-            axes.spines['right'].set_color('black')
+            axes.spines['right'].set_color(color)
             axes.tick_params(right=True, which = 'both')
         else:
             axes.spines['right'].set_color('none')
             axes.tick_params(right=False, which = 'both')
         if style.find('t')>-1:
-            axes.spines['top'].set_color('black')
+            axes.spines['top'].set_color(color)
             axes.tick_params(top=True, which = 'both')
         else:
             axes.spines['top'].set_color('none')
             axes.tick_params(top=False, which = 'both')
         if style.find('b')>-1:
-            axes.spines['bottom'].set_color('black')
+            axes.spines['bottom'].set_color(color)
             axes.tick_params(bottom=True, which = 'both')
         else:
             axes.spines['bottom'].set_color('none')
@@ -1407,15 +1446,24 @@ class IftPlotPanel(PlotPanel):
 
 
     def _initFigure(self):
+        SASUtils.update_mpl_style()
+
         self.fig = matplotlib.figure.Figure((5,4), 75)
         self.subplot1 = self.fig.add_subplot(211)
         self.subplot2 = self.fig.add_subplot(212)
 
         self.fig.subplots_adjust(left = 0.14, bottom = 0.07, right = 0.93, top = 0.93, hspace = 0.26)
-        self.fig.set_facecolor('white')
+        # self.fig.set_facecolor('white')
 
         self.canvas = MyFigureCanvasWxAgg(self, -1, self.fig)
-        self.canvas.SetBackgroundColour('white')
+        # self.canvas.SetBackgroundColour('white')
+
+    def updateColors(self):
+        SASUtils.update_mpl_style()
+
+        self.canvas.draw()
+
+        self.toolbar.updateColors()
 
     def setParameter(self, param, value):
         self.plotparams[param] = value
@@ -1443,26 +1491,39 @@ class IftPlotPanel(PlotPanel):
 
     def setFrameStyle(self, axes, style):
 
+        system_settings = wx.SystemSettings()
+        
+        try:
+            system_appearance = system_settings.GetAppearance()
+            is_dark = system_appearance.IsDark()
+        except Exception:
+            is_dark = False
+            
+        if is_dark:
+            color = 'white'
+        else:
+            color = 'black'
+
         if style.find('l')>-1:
-            axes.spines['left'].set_color('black')
+            axes.spines['left'].set_color(color)
             axes.tick_params(left=True, which = 'both')
         else:
             axes.spines['left'].set_color('none')
             axes.tick_params(left=False, which = 'both')
         if style.find('r')>-1:
-            axes.spines['right'].set_color('black')
+            axes.spines['right'].set_color(color)
             axes.tick_params(right=True, which = 'both')
         else:
             axes.spines['right'].set_color('none')
             axes.tick_params(right=False, which = 'both')
         if style.find('t')>-1:
-            axes.spines['top'].set_color('black')
+            axes.spines['top'].set_color(color)
             axes.tick_params(top=True, which = 'both')
         else:
             axes.spines['top'].set_color('none')
             axes.tick_params(top=False, which = 'both')
         if style.find('b')>-1:
-            axes.spines['bottom'].set_color('black')
+            axes.spines['bottom'].set_color(color)
             axes.tick_params(bottom=True, which = 'both')
         else:
             axes.spines['bottom'].set_color('none')
@@ -2604,6 +2665,8 @@ class SeriesPlotPanel(wx.Panel):
         self.canvas.callbacks.connect('scroll_event', self._onMouseScrollEvent)
 
     def _initFigure(self):
+        SASUtils.update_mpl_style()
+
         self.fig = matplotlib.figure.Figure((5,4), 75)
         self.subplot1 = self.fig.add_subplot(111)
 
@@ -2612,10 +2675,17 @@ class SeriesPlotPanel(wx.Panel):
             self.ryaxis.axis('off')
 
         self.fig.subplots_adjust(left = 0.12, bottom = 0.07, right = .9, top = 0.93, hspace = 0.26)
-        self.fig.set_facecolor('white')
+        # self.fig.set_facecolor('white')
 
         self.canvas = MyFigureCanvasWxAgg(self, -1, self.fig)
-        self.canvas.SetBackgroundColour('white')
+        # self.canvas.SetBackgroundColour('white')
+
+    def updateColors(self):
+        SASUtils.update_mpl_style()
+
+        self.canvas.draw()
+
+        self.toolbar.updateColors()
 
     def setParameter(self, param, value):
         self.plotparams[param] = value
@@ -2643,27 +2713,40 @@ class SeriesPlotPanel(wx.Panel):
 
     def setFrameStyle(self, axes, style):
 
+        system_settings = wx.SystemSettings()
+        
+        try:
+            system_appearance = system_settings.GetAppearance()
+            is_dark = system_appearance.IsDark()
+        except Exception:
+            is_dark = False
+            
+        if is_dark:
+            color = 'white'
+        else:
+            color = 'black'
+
         if axes == self.subplot1:
             if style.find('l')>-1:
-                axes.spines['left'].set_color('black')
+                axes.spines['left'].set_color(color)
                 axes.tick_params(left=True, which = 'both')
             else:
                 axes.spines['left'].set_color('none')
                 axes.tick_params(left=False, which = 'both')
             if style.find('r')>-1:
-                axes.spines['right'].set_color('black')
+                axes.spines['right'].set_color(color)
                 axes.tick_params(right=True, which = 'both')
             else:
                 axes.spines['right'].set_color('none')
                 axes.tick_params(right=False, which = 'both')
             if style.find('t')>-1:
-                axes.spines['top'].set_color('black')
+                axes.spines['top'].set_color(color)
                 axes.tick_params(top=True, which = 'both')
             else:
                 axes.spines['top'].set_color('none')
                 axes.tick_params(top=False, which = 'both')
             if style.find('b')>-1:
-                axes.spines['bottom'].set_color('black')
+                axes.spines['bottom'].set_color(color)
                 axes.tick_params(bottom=True, which = 'both')
             else:
                 axes.spines['bottom'].set_color('none')
@@ -2680,7 +2763,7 @@ class SeriesPlotPanel(wx.Panel):
             axes.tick_params(bottom=False, which = 'both')
 
             if style.find('r')>-1:
-                axes.spines['right'].set_color('black')
+                axes.spines['right'].set_color(color)
                 axes.tick_params(right=True, which = 'both')
             else:
                 axes.spines['right'].set_color('none')

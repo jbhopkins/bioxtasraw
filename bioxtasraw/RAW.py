@@ -229,6 +229,11 @@ class MainFrame(wx.Frame):
 
         self.raw_settings = RAWSettings.RawGuiSettings()
 
+        self._getSystemColors()
+        self._getIcons()
+
+        self.Bind(wx.EVT_SYS_COLOUR_CHANGED, self._onColorChanged)
+
         self.OnlineControl = OnlineController(self, self.raw_settings)
         self.OnlineSECControl = OnlineSECController(self, self.raw_settings)
 
@@ -253,13 +258,13 @@ class MainFrame(wx.Frame):
             | aui.AUI_NB_TAB_SPLIT | aui.AUI_NB_SCROLL_BUTTONS)
 
         self.plot_panel = RAWPlot.PlotPanel(self.plot_notebook, -1, 'PlotPanel')
-        img_panel = RAWImage.ImagePanel(self.plot_notebook, -1, 'ImagePanel')
+        self.img_panel = RAWImage.ImagePanel(self.plot_notebook, -1, 'ImagePanel')
         self.ift_plot_panel = RAWPlot.IftPlotPanel(self.plot_notebook, -1, 'IFTPlotPanel')
         self.sec_plot_panel = RAWPlot.SeriesPlotPanel(self.plot_notebook,-1, 'SECPlotPanel')
 
         self.plot_notebook.AddPage(self.plot_panel, "Profiles", True)
         self.plot_notebook.AddPage(self.ift_plot_panel, "IFTs", False)
-        self.plot_notebook.AddPage(img_panel, "Image", False)
+        self.plot_notebook.AddPage(self.img_panel, "Image", False)
         self.plot_notebook.AddPage(self.sec_plot_panel, "Series", False)
 
         self.plot_notebook.Bind(aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.onPlotTabChange)
@@ -340,6 +345,8 @@ class MainFrame(wx.Frame):
         thread = threading.Thread(target= self._compileNumbaJits)
         thread.daemon = True
         thread.start()
+
+        
 
         wx.CallAfter(self._showWelcomeDialog)
 
@@ -478,6 +485,251 @@ class MainFrame(wx.Frame):
 
             if not firstfile.startswith('-psn'):
                 mainworker_cmd_queue.put(['plot', files_to_plot])
+
+    def _getSystemColors(self):
+        #Get system colors
+        system_settings = wx.SystemSettings()
+
+        RAWGlobals.general_text_color = system_settings.GetColour(wx.SYS_COLOUR_WINDOWTEXT)
+        RAWGlobals.highlight_color = system_settings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
+        
+        try:
+            system_appearance = system_settings.GetAppearance()
+            is_dark = system_appearance.IsDark()
+        except Exception:
+            is_dark = False
+
+        if is_dark:
+            RAWGlobals.list_bkg_color = system_settings.GetColour(wx.SYS_COLOUR_LISTBOX)
+            RAWGlobals.list_item_bkg_color = self.GetBackgroundColour()
+            RAWGlobals.tab_color = system_settings.GetColour(wx.SYS_COLOUR_BTNSHADOW)
+        else:
+            RAWGlobals.list_bkg_color = 'white'
+            RAWGlobals.list_item_bkg_color = 'white'
+            RAWGlobals.tab_color = 'white'
+
+    def _getIcons(self):
+        #Icons for ManipulationPanel (some shared with ManipItemPanel)
+        collapse_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-collapse-filled-16.png')
+        expand_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-expand-filled-16.png')
+        show_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-eye-16.png')
+        hide_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-hide-16.png')
+        select_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-select-all-16.png')
+
+        self.collapse_all = SASUtils.load_DIP_image(collapse_all, wx.BITMAP_TYPE_PNG)
+        self.expand_all = SASUtils.load_DIP_image(expand_all, wx.BITMAP_TYPE_PNG)
+        self.show_all = SASUtils.load_DIP_image(show_all, wx.BITMAP_TYPE_PNG)
+        self.hide_all = SASUtils.load_DIP_image(hide_all, wx.BITMAP_TYPE_PNG)
+        self.select_all = SASUtils.load_DIP_image(select_all, wx.BITMAP_TYPE_PNG)
+
+        #Items for ManipItemPanel
+        gray_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-gray-16.png')
+        orange_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-orange-16.png')
+        target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-16.png')
+        target_on = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-red-16.png')
+        info = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-info-16.png')
+        expand = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-down-filled-16.png')
+        collapse = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-up-filled-16.png')
+
+        self.gray = SASUtils.load_DIP_image(gray_star, wx.BITMAP_TYPE_PNG)
+        self.star = SASUtils.load_DIP_image(orange_star, wx.BITMAP_TYPE_PNG)
+        self.target = SASUtils.load_DIP_image(target, wx.BITMAP_TYPE_PNG)
+        self.target_on = SASUtils.load_DIP_image(target_on, wx.BITMAP_TYPE_PNG)
+        self.info = SASUtils.load_DIP_image(info, wx.BITMAP_TYPE_PNG)
+        self.expand = SASUtils.load_DIP_image(expand, wx.BITMAP_TYPE_PNG)
+        self.collapse = SASUtils.load_DIP_image(collapse, wx.BITMAP_TYPE_PNG)
+
+        #Plot icons
+        errbars = os.path.join(RAWGlobals.RAWResourcesDir, 'box-plot-graphic-24.png')
+        showboth = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-showboth-24.png')
+        showtop = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-1-24.png')
+        showbottom = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-2-24.png')
+
+        errbars_toggled = os.path.join(RAWGlobals.RAWResourcesDir, 'box-plot-graphic-toggled-24.png')
+        showboth_toggled = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-showboth-toggled-24.png')
+        showtop_toggled = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-1-toggled-24.png')
+        showbottom_toggled = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-2-toggled-24.png')
+
+        self.errbars_icon = SASUtils.load_DIP_image(errbars, wx.BITMAP_TYPE_PNG)
+        self.showboth_icon = SASUtils.load_DIP_image(showboth, wx.BITMAP_TYPE_PNG)
+        self.showtop_icon = SASUtils.load_DIP_image(showtop, wx.BITMAP_TYPE_PNG)
+        self.showbottom_icon = SASUtils.load_DIP_image(showbottom, wx.BITMAP_TYPE_PNG)
+
+        self.errbars_icon_toggled = SASUtils.load_DIP_image(errbars_toggled, wx.BITMAP_TYPE_PNG)
+        self.showboth_icon_toggled = SASUtils.load_DIP_image(showboth_toggled, wx.BITMAP_TYPE_PNG)
+        self.showtop_icon_toggled = SASUtils.load_DIP_image(showtop_toggled, wx.BITMAP_TYPE_PNG)
+        self.showbottom_icon_toggled = SASUtils.load_DIP_image(showbottom_toggled, wx.BITMAP_TYPE_PNG)
+
+        #Image plot icons
+        hdrinfo = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-view-details-24.png')
+        imgctrl = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-control-of-level-filled-24.png')
+        back = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-green-pointing-left-24.png')
+        forward = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-green-pointing-right-24.png')
+
+        self.hdrInfoIcon = SASUtils.load_DIP_image(hdrinfo, wx.BITMAP_TYPE_PNG)
+        self.ImgSetIcon = SASUtils.load_DIP_image(imgctrl, wx.BITMAP_TYPE_PNG)
+        self.prevImgIcon = SASUtils.load_DIP_image(back, wx.BITMAP_TYPE_PNG)
+        self.nextImgIcon = SASUtils.load_DIP_image(forward, wx.BITMAP_TYPE_PNG)
+
+        #Centering panel icons
+        up = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-up-32.png')
+        right = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-right-32.png')
+        down = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-down-32.png')
+        left = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-left-32.png')
+        target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-32.png')
+
+        self.up_arrow_bmp = SASUtils.load_DIP_image(up, wx.BITMAP_TYPE_PNG)
+        self.right_arrow_bmp = SASUtils.load_DIP_image(right, wx.BITMAP_TYPE_PNG)
+        self.down_arrow_bmp = SASUtils.load_DIP_image(down, wx.BITMAP_TYPE_PNG)
+        self.left_arrow_bmp = SASUtils.load_DIP_image(left, wx.BITMAP_TYPE_PNG)
+        self.center_target_bmp = SASUtils.load_DIP_image(target, wx.BITMAP_TYPE_PNG)
+
+        self._updateIconColors()
+
+    def _updateIconColors(self):
+        system_settings = wx.SystemSettings()
+
+        try:
+            system_appearance = system_settings.GetAppearance()
+            is_dark = system_appearance.IsDark()
+        except Exception:
+            is_dark = False
+            
+        if is_dark:
+            self.collapse_all.Replace(0,0,0,255,255,255)
+            self.expand_all.Replace(0,0,0,255,255,255)
+            self.show_all.Replace(0,0,0,255,255,255)
+            self.hide_all.Replace(0,0,0,255,255,255)
+            self.target.Replace(0,0,0,255,255,255)
+            self.expand.Replace(0,0,0,255,255,255)
+            self.collapse.Replace(0,0,0,255,255,255)
+
+            self.errbars_icon.Replace(0,0,0,255,255,255)
+            self.showboth_icon.Replace(0,0,0,255,255,255)
+            self.showtop_icon.Replace(0,0,0,255,255,255)
+            self.showbottom_icon.Replace(0,0,0,255,255,255)
+
+            self.hdrInfoIcon.Replace(0,0,0,255,255,255)
+            self.ImgSetIcon.Replace(0,0,0,255,255,255)
+
+            self.center_target_bmp.Replace(0,0,0,255,255,255)
+        else:
+            self.collapse_all.Replace(255,255,255,0,0,0)
+            self.expand_all.Replace(255,255,255,0,0,0)
+            self.show_all.Replace(255,255,255,0,0,0)
+            self.hide_all.Replace(255,255,255,0,0,0)
+            self.target.Replace(255,255,255,0,0,0)
+            self.expand.Replace(255,255,255,0,0,0)
+            self.collapse.Replace(255,255,255,0,0,0)
+
+            self.errbars_icon.Replace(255,255,255,0,0,0)
+            self.showboth_icon.Replace(255,255,255,0,0,0)
+            self.showtop_icon.Replace(255,255,255,0,0,0)
+            self.showbottom_icon.Replace(255,255,255,0,0,0)
+
+            self.hdrInfoIcon.Replace(255,255,255,0,0,0)
+            self.ImgSetIcon.Replace(255,255,255,0,0,0)
+
+            self.center_target_bmp.Replace(255,255,255,0,0,0)
+
+    def _onColorChanged(self, evt):
+        self._getSystemColors()
+        self._updateIconColors()
+
+        self.profile_panel.updateColors()
+        self.series_panel.updateColors()
+        self.ift_panel.updateColors()
+        self.file_panel.updateColors()
+        self.info_panel.updateColors()
+        self.plot_panel.updateColors()
+        self.ift_plot_panel.updateColors()
+        self.img_panel.updateColors()
+        self.centering_panel.updateColors()
+
+        try:
+            for frame in self.guinier_frames:
+                frame.updateColors()
+        except Exception:
+            pass
+
+        try:
+            for frame in self.mw_frames:
+                frame.updateColors()
+        except Exception:
+            pass
+
+        try:
+            for frame in self.gnom_frames:
+                frame.updateColors()
+        except Exception:
+            pass
+
+        try:
+            for frame in self.bift_frames:
+                frame.updateColors()
+        except Exception:
+            pass
+
+        try:
+            for frame in self.dammif_frames:
+                frame.updateColors()
+        except Exception:
+            pass
+
+        try:
+            for frame in self.ambimeter_frames:
+                frame.updateColors()
+        except Exception:
+            pass
+
+        # self.supcomb_frames = []
+        
+        try:
+            for frame in self.svd_frames:
+                frame.updateColors()
+        except Exception:
+            traceback.print_exc()
+            pass
+
+        try:
+            for frame in self.efa_frames:
+                frame.updateColors()
+        except Exception:
+            pass
+
+        try:
+            for frame in self.regals_frames:
+                frame.updateColors()
+        except Exception:
+            pass
+
+        try:
+            for frame in self.sim_frames:
+                frame.updateColors()
+        except Exception:
+            pass
+
+        try:
+            for frame in self.kratky_frames:
+                frame.updateColors()
+        except Exception:
+            pass
+
+        try:
+            for frame in self.denss_frames:
+                frame.updateColors()
+        except Exception:
+            pass
+
+        # self.denss_align_frames = []
+
+        try:
+            for frame in self.lc_series_frames:
+                frame.updateColors()
+        except Exception:
+            pass
+
+        # self.help_frames = []
 
     def getRawSettings(self):
         return self.raw_settings
@@ -3347,7 +3599,7 @@ class MainWorkerThread(threading.Thread):
         self._sendImageToDisplay(img, bogus_sasm, 0, num_frames)
 
 
-    def _sendIFTMToPlot(self, iftm, item_colour='black', line_color=None,
+    def _sendIFTMToPlot(self, iftm, item_colour=RAWGlobals.general_text_color, line_color=None,
         no_update=False, update_legend=False, notsaved=False):
         wx.CallAfter(self.ift_plot_panel.plotIFTM, iftm)
         wx.CallAfter(self.ift_item_panel.addItem, iftm, item_colour,
@@ -3361,7 +3613,7 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.ift_plot_panel.fitAxis)
 
 
-    def _sendSASMToPlot(self, sasm, axes_num=1, item_colour='black',
+    def _sendSASMToPlot(self, sasm, axes_num=1, item_colour=RAWGlobals.general_text_color,
         line_color=None, no_update=False, notsaved=False, update_legend=True):
 
         wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num,
@@ -3376,7 +3628,7 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.plot_panel.fitAxis)
 
 
-    def _sendSASMToPlotSEC(self, sasm, axes_num=1, item_colour='black',
+    def _sendSASMToPlotSEC(self, sasm, axes_num=1, item_colour=RAWGlobals.general_text_color,
         line_color=None, no_update=False, notsaved=False, update_legend=True):
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while plotting frames...')
 
@@ -3394,7 +3646,7 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
 
-    def _sendSECMToPlot(self, secm, item_colour='black', line_color=None,
+    def _sendSECMToPlot(self, secm, item_colour=RAWGlobals.general_text_color, line_color=None,
         no_update=False, notsaved=False, update_legend=True):
 
         wx.CallAfter(self.sec_plot_panel.plotSECM, secm, color = line_color)
@@ -3408,7 +3660,7 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.sec_plot_panel.fitAxis)
 
 
-    def _updateSECMPlot(self, secm, item_colour='black', line_color=None,
+    def _updateSECMPlot(self, secm, item_colour=RAWGlobals.general_text_color, line_color=None,
         no_update=False, notsaved=False):
         if isinstance(secm, list):
             wx.CallAfter(self.sec_plot_panel.updatePlotData, secm, draw=False)
@@ -3768,15 +4020,19 @@ class MainWorkerThread(threading.Thread):
                         no_update = True
 
                     if len(sasm_list) > 0:
-                        self._sendSASMToPlot(sasm_list, axes_num=axes_num, no_update=no_update, update_legend=False)
+                        self._sendSASMToPlot(sasm_list, axes_num=axes_num,
+                            item_colour = RAWGlobals.general_text_color,
+                            no_update=no_update, update_legend=False)
                         wx.CallAfter(self.plot_panel.canvas.draw_idle)
                         loaded_sasm = True
                     if len(secm_list) > 0:
-                        self._sendSECMToPlot(secm_list, no_update=no_update, update_legend = False)
+                        self._sendSECMToPlot(secm_list, no_update=no_update, update_legend = False,
+                            item_colour = RAWGlobals.general_text_color)
                         wx.CallAfter(self.sec_plot_panel.canvas.draw_idle)
                         loaded_secm = True
                     if len(iftm_list) > 0:
-                        self._sendIFTMToPlot(iftm_list, no_update=no_update, update_legend = False)
+                        self._sendIFTMToPlot(iftm_list, no_update=no_update, update_legend = False,
+                            item_colour = RAWGlobals.general_text_color,)
                         wx.CallAfter(self.ift_plot_panel.canvas.draw_idle)
                         loaded_iftm = True
 
@@ -3785,15 +4041,19 @@ class MainWorkerThread(threading.Thread):
                     secm_list = []
 
             if len(sasm_list) > 0:
-                self._sendSASMToPlot(sasm_list, axes_num=axes_num, no_update=True, update_legend=False)
+                self._sendSASMToPlot(sasm_list, axes_num=axes_num, 
+                    item_colour = RAWGlobals.general_text_color,
+                    no_update=True, update_legend=False)
                 loaded_sasm = True
 
             if len(iftm_list) > 0:
-                self._sendIFTMToPlot(iftm_list, no_update = True, update_legend = False)
+                self._sendIFTMToPlot(iftm_list, no_update = True, update_legend = False,
+                    item_colour = RAWGlobals.general_text_color,)
                 loaded_iftm = True
 
             if len(secm_list) > 0:
-                self._sendSECMToPlot(secm_list, no_update = True, update_legend = False)
+                self._sendSECMToPlot(secm_list, no_update = True, update_legend = False,
+                    item_colour = RAWGlobals.general_text_color,)
                 loaded_secm = True
 
         except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat) as msg:
@@ -3900,7 +4160,8 @@ class MainWorkerThread(threading.Thread):
 
                 secm_list.append(secm)
 
-            self._sendSECMToPlot(secm_list, no_update = True, update_legend = False)
+            self._sendSECMToPlot(secm_list, no_update = True, update_legend = False,
+                item_colour = RAWGlobals.general_text_color,)
 
         else:
             sasm_list=[]
@@ -3964,7 +4225,8 @@ class MainWorkerThread(threading.Thread):
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
 
-            self._sendSECMToPlot(secm, notsaved = True, no_update = True, update_legend = False)
+            self._sendSECMToPlot(secm, notsaved = True, no_update = True, update_legend = False,
+                item_colour = RAWGlobals.general_text_color,)
 
         if update_sec_object:
             wx.CallAfter(self.sec_control_panel.updateSECItem, secm)
@@ -4779,9 +5041,11 @@ class MainWorkerThread(threading.Thread):
             param = each.getAllParameters()
 
             if 'orig_sasm' in param:
-                self._sendSASMToPlot(each.getParameter('orig_sasm').copy())
+                self._sendSASMToPlot(each.getParameter('orig_sasm').copy(),
+                    item_colour=RAWGlobals.general_text_color)
             if 'fit_sasm' in param:
-                self._sendSASMToPlot(each.getParameter('fit_sasm').copy())
+                self._sendSASMToPlot(each.getParameter('fit_sasm').copy(),
+                    item_colour = RAWGlobals.general_text_color)
 
 
         wx.CallAfter(self.plot_panel.updateLegend, 1)
@@ -5324,7 +5588,8 @@ class MainWorkerThread(threading.Thread):
 
             self._insertSasmFilenamePrefix(rebin_sasm, 'R_')
 
-            self._sendSASMToPlot(rebin_sasm, axes_num = 1, notsaved = True)
+            self._sendSASMToPlot(rebin_sasm, axes_num = 1, notsaved = True,
+                item_colour = RAWGlobals.general_text_color,)
 
     def _insertSasmFilenamePrefix(self, sasm, prefix = '', extension = ''):
         filename = sasm.getParameter('filename')
@@ -5355,7 +5620,8 @@ class MainWorkerThread(threading.Thread):
         merged_sasm.setParameter('filename', filename)
         self._insertSasmFilenamePrefix(merged_sasm, 'M_')
 
-        self._sendSASMToPlot(merged_sasm, axes_num = 1, notsaved = True)
+        self._sendSASMToPlot(merged_sasm, axes_num = 1, notsaved = True,
+            item_colour = RAWGlobals.general_text_color,)
 
     def _interpolateItems(self, data):
         marked_item = data[0]
@@ -5384,7 +5650,8 @@ class MainWorkerThread(threading.Thread):
 
             sasm_list.append(interpolate_sasm)
 
-        self._sendSASMToPlot(sasm_list, axes_num = 1, notsaved = True)
+        self._sendSASMToPlot(sasm_list, axes_num = 1, notsaved = True,
+            item_colour = RAWGlobals.general_text_color,)
 
 
     def _saveSASM(self, sasm, filetype = 'dat', save_path = ''):
@@ -6379,6 +6646,9 @@ class FilePanel(wx.Panel):
 
         return button_sizer
 
+    def updateColors(self):
+        self.dir_panel.updateColors()
+
 
     def _fileTypeIsCompatible(self, path):
         root, ext = os.path.splitext(path)
@@ -6570,8 +6840,8 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
             self.attr1 = wx.ListItemAttr()
             self.attr2 = wx.ListItemAttr()
 
-        self.attr1.SetBackgroundColour('#e6f1f5')
-        self.attr2.SetBackgroundColour("White")
+        # self.attr1.SetBackgroundColour('#e6f1f5')
+        # self.attr2.SetBackgroundColour("White")
 
         ### Prepare list images:
         self.il = wx.ImageList(self._FromDIP(16), self._FromDIP(16))
@@ -6579,14 +6849,14 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         dir_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-folder-16.png')
         doc_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-document-16.png')
         up_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-blue-pointing-up-16.png')
-        sort_up_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-up-filled-16.png')
-        sort_down_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-down-filled-16.png')
+        sort_up_png = wx.Bitmap(self.mainframe.collapse)
+        sort_down_png = wx.Bitmap(self.mainframe.expand)
 
         self.documentimg = self.il.Add(SASUtils.load_DIP_bitmap(doc_png, wx.BITMAP_TYPE_PNG))
         self.folderimg = self.il.Add(SASUtils.load_DIP_bitmap(dir_png, wx.BITMAP_TYPE_PNG))
         self.upimg = self.il.Add(SASUtils.load_DIP_bitmap(up_png, wx.BITMAP_TYPE_PNG))
-        self.sm_up = self.il.Add(SASUtils.load_DIP_bitmap(sort_up_png, wx.BITMAP_TYPE_PNG))
-        self.sm_dn = self.il.Add(SASUtils.load_DIP_bitmap(sort_down_png, wx.BITMAP_TYPE_PNG))
+        self.sm_up = self.il.Add(sort_up_png)
+        self.sm_dn = self.il.Add(sort_down_png)
         self.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
         #Init the list:
@@ -6615,6 +6885,13 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        sort_up_png = wx.Bitmap(self.mainframe.collapse)
+        sort_down_png = wx.Bitmap(self.mainframe.expand)
+
+        self.il.Replace(self.sm_up, sort_up_png)
+        self.il.Replace(self.sm_dn, sort_down_png)
 
     def OnGetItemText(self, item, col):
         index=self.itemIndexMap[item]
@@ -7152,6 +7429,9 @@ class DirCtrlPanel(wx.Panel):
         except Exception:
             return size
 
+    def updateColors(self):
+        self.file_list_box.updateColors()
+
     def _useSavedPathIfExisits(self):
         path = None
 
@@ -7308,6 +7588,7 @@ class ManipulationPanel(wx.Panel):
         self.underpanel = scrolled.ScrolledPanel(self, -1, style = wx.BORDER_SUNKEN)
         self.underpanel.SetVirtualSize( self._FromDIP((200, 200)))
         self.underpanel.SetScrollRate(20,20)
+        self.underpanel.SetBackgroundColour(RAWGlobals.list_bkg_color)
 
         file_drop_target = RAWCustomCtrl.RawPanelFileDropTarget(self.underpanel, 'main')
         self.underpanel.SetDropTarget(file_drop_target)
@@ -7345,35 +7626,19 @@ class ManipulationPanel(wx.Panel):
 
     def _initializeIcons(self):
 
-        #Icons for ManipulationPanel (some shared with ManipItemPanel)
-        collapse_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-collapse-filled-16.png')
-        expand_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-expand-filled-16.png')
-        show_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-eye-16.png')
-        hide_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-hide-16.png')
-        select_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-select-all-16.png')
+        self.collapse_all_png = wx.Bitmap(self.main_frame.collapse_all)
+        self.expand_all_png = wx.Bitmap(self.main_frame.expand_all)
+        self.show_all_png = wx.Bitmap(self.main_frame.show_all)
+        self.hide_all_png = wx.Bitmap(self.main_frame.hide_all)
+        self.select_all_png = wx.Bitmap(self.main_frame.select_all)
 
-        self.collapse_all_png = SASUtils.load_DIP_bitmap(collapse_all, wx.BITMAP_TYPE_PNG)
-        self.expand_all_png = SASUtils.load_DIP_bitmap(expand_all, wx.BITMAP_TYPE_PNG)
-        self.show_all_png = SASUtils.load_DIP_bitmap(show_all, wx.BITMAP_TYPE_PNG)
-        self.hide_all_png = SASUtils.load_DIP_bitmap(hide_all, wx.BITMAP_TYPE_PNG)
-        self.select_all_png = SASUtils.load_DIP_bitmap(select_all, wx.BITMAP_TYPE_PNG)
-
-        #Items for ManipItemPanel
-        gray_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-gray-16.png')
-        orange_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-orange-16.png')
-        target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-16.png')
-        target_on = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-red-16.png')
-        info = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-info-16.png')
-        expand = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-down-filled-16.png')
-        collapse = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-up-filled-16.png')
-
-        self.gray_png = SASUtils.load_DIP_bitmap(gray_star, wx.BITMAP_TYPE_PNG)
-        self.star_png = SASUtils.load_DIP_bitmap(orange_star, wx.BITMAP_TYPE_PNG)
-        self.target_png = SASUtils.load_DIP_bitmap(target, wx.BITMAP_TYPE_PNG)
-        self.target_on_png = SASUtils.load_DIP_bitmap(target_on, wx.BITMAP_TYPE_PNG)
-        self.info_png = SASUtils.load_DIP_bitmap(info, wx.BITMAP_TYPE_PNG)
-        self.expand_png = SASUtils.load_DIP_bitmap(expand, wx.BITMAP_TYPE_PNG)
-        self.collapse_png = SASUtils.load_DIP_bitmap(collapse, wx.BITMAP_TYPE_PNG)
+        self.gray_png = wx.Bitmap(self.main_frame.gray)
+        self.star_png = wx.Bitmap(self.main_frame.star)
+        self.target_png = wx.Bitmap(self.main_frame.target)
+        self.target_on_png = wx.Bitmap(self.main_frame.target_on)
+        self.info_png = wx.Bitmap(self.main_frame.info)
+        self.expand_png = wx.Bitmap(self.main_frame.expand)
+        self.collapse_png = wx.Bitmap(self.main_frame.collapse)
 
     def _createToolbar(self):
 
@@ -7384,56 +7649,56 @@ class ManipulationPanel(wx.Panel):
         else:
             size = (-1, -1)
 
-        collapse_all = wx.BitmapButton(self, -1, self.collapse_all_png)
-        expand_all = wx.BitmapButton(self, -1, self.expand_all_png)
-        show_all = wx.BitmapButton(self, -1, self.show_all_png,
+        self.collapse_all_btn = wx.BitmapButton(self, -1, self.collapse_all_png)
+        self.expand_all_btn = wx.BitmapButton(self, -1, self.expand_all_png)
+        self.show_all_btn = wx.BitmapButton(self, -1, self.show_all_png,
             size=self._FromDIP(size))
-        hide_all = wx.BitmapButton(self, -1, self.hide_all_png,
+        self.hide_all_btn = wx.BitmapButton(self, -1, self.hide_all_png,
             size=self._FromDIP(size))
-        select_all= wx.BitmapButton(self, -1, self.select_all_png)
+        self.select_all_btn= wx.BitmapButton(self, -1, self.select_all_png)
 
-        select_all.Bind(wx.EVT_BUTTON, self._onSelectAllButton)
-        collapse_all.Bind(wx.EVT_BUTTON, self._onCollapseAllButton)
-        expand_all.Bind(wx.EVT_BUTTON, self._onExpandAllButton)
-        show_all.Bind(wx.EVT_BUTTON, self._onShowAllButton)
-        hide_all.Bind(wx.EVT_BUTTON, self._onHideAllButton)
+        self.select_all_btn.Bind(wx.EVT_BUTTON, self._onSelectAllButton)
+        self.collapse_all_btn.Bind(wx.EVT_BUTTON, self._onCollapseAllButton)
+        self.expand_all_btn.Bind(wx.EVT_BUTTON, self._onExpandAllButton)
+        self.show_all_btn.Bind(wx.EVT_BUTTON, self._onShowAllButton)
+        self.hide_all_btn.Bind(wx.EVT_BUTTON, self._onHideAllButton)
 
 
         if platform.system() == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
-            show_tip.SetTarget(show_all)
+            show_tip.SetTarget(self.show_all_btn)
             show_tip.ApplyStyle('Blue Glass')
 
             hide_tip = STT.SuperToolTip(" ", header = "Hide", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
-            hide_tip.SetTarget(hide_all)
+            hide_tip.SetTarget(self.hide_all_btn)
             hide_tip.ApplyStyle('Blue Glass')
 
             select_tip = STT.SuperToolTip(" ", header = "Select All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
-            select_tip.SetTarget(select_all)
+            select_tip.SetTarget(self.select_all_btn)
             select_tip.ApplyStyle('Blue Glass')
 
             collapse_tip = STT.SuperToolTip(" ", header = "Collapse", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
-            collapse_tip.SetTarget(collapse_all)
+            collapse_tip.SetTarget(self.collapse_all_btn)
             collapse_tip.ApplyStyle('Blue Glass')
 
             expand_tip = STT.SuperToolTip(" ", header = "Expand", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
-            expand_tip.SetTarget(expand_all)
+            expand_tip.SetTarget(self.expand_all_btn)
             expand_tip.ApplyStyle('Blue Glass')
 
         else:
-            select_all.SetToolTip(wx.ToolTip('Select All'))
-            show_all.SetToolTip(wx.ToolTip('Show'))
-            hide_all.SetToolTip(wx.ToolTip('Hide'))
-            collapse_all.SetToolTip(wx.ToolTip('Collapse'))
-            expand_all.SetToolTip(wx.ToolTip('Expand'))
+            self.select_all_btn.SetToolTip(wx.ToolTip('Select All'))
+            self.show_all_btn.SetToolTip(wx.ToolTip('Show'))
+            self.hide_all_btn.SetToolTip(wx.ToolTip('Hide'))
+            self.collapse_all_btn.SetToolTip(wx.ToolTip('Collapse'))
+            self.expand_all_btn.SetToolTip(wx.ToolTip('Expand'))
 
-        sizer.Add(show_all, 0, wx.LEFT, border=self._FromDIP(5))
-        sizer.Add(hide_all, 0, wx.LEFT, border=self._FromDIP(5))
+        sizer.Add(self.show_all_btn, 0, wx.LEFT, border=self._FromDIP(5))
+        sizer.Add(self.hide_all_btn, 0, wx.LEFT, border=self._FromDIP(5))
         sizer.Add((1,1), 1, wx.EXPAND)
-        sizer.Add(select_all, 0, wx.LEFT, border=self._FromDIP(5))
+        sizer.Add(self.select_all_btn, 0, wx.LEFT, border=self._FromDIP(5))
         sizer.Add((1,1), 1, wx.EXPAND)
-        sizer.Add(collapse_all, 0, wx.RIGHT, border=self._FromDIP(5))
-        sizer.Add(expand_all, 0, wx.RIGHT, border=self._FromDIP(3))
+        sizer.Add(self.collapse_all_btn, 0, wx.RIGHT, border=self._FromDIP(5))
+        sizer.Add(self.expand_all_btn, 0, wx.RIGHT, border=self._FromDIP(3))
 
         return sizer
 
@@ -7460,7 +7725,28 @@ class ManipulationPanel(wx.Panel):
 
         return sizer
 
-    def addItem(self, sasm, item_colour = 'black', item_visible = True,
+    def updateColors(self):
+        self.Freeze()
+
+        self._initializeIcons()
+
+        self.select_all_btn.SetBitmap(self.select_all_png)
+        self.collapse_all_btn.SetBitmap(self.collapse_all_png)
+        self.expand_all_btn.SetBitmap(self.expand_all_png)
+        self.show_all_btn.SetBitmap(self.show_all_png)
+        self.hide_all_btn.SetBitmap(self.hide_all_png)
+
+        self.underpanel.SetBackgroundColour(RAWGlobals.list_bkg_color)
+
+        for item in self.all_manipulation_items:
+            item.updateColors()
+
+        self.Layout()
+        self.Refresh()
+
+        self.Thaw()
+
+    def addItem(self, sasm, item_colour = RAWGlobals.general_text_color, item_visible = True,
         notsaved = False, legend_label=''):
 
         self.underpanel.Freeze()
@@ -8008,7 +8294,7 @@ class ManipulationPanel(wx.Panel):
 
 
 class ManipItemPanel(wx.Panel):
-    def __init__(self, parent, sasm, font_colour='BLACK', legend_label='',
+    def __init__(self, parent, sasm, font_colour=RAWGlobals.general_text_color, legend_label='',
         item_visible=True, modified=False):
 
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
@@ -8033,7 +8319,7 @@ class ManipItemPanel(wx.Panel):
         self._legend_label = legend_label
 
         self._font_colour = font_colour
-        self._bkg_color = wx.Colour(250,250,250)
+        self._bkg_color = RAWGlobals.list_item_bkg_color
         self.SetBackgroundColour(self._bkg_color)
 
         filename = sasm.getParameter('filename')
@@ -8219,6 +8505,34 @@ class ManipItemPanel(wx.Panel):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        self._bkg_color = RAWGlobals.list_item_bkg_color
+
+        self._initializeIcons()
+
+        if not self._selected:
+            self.SetBackgroundColour(self._bkg_color)
+            self.showitem_icon.SetBackgroundColour(self._bkg_color)
+            self.bg_star.SetBackgroundColour(self._bkg_color)
+            self.expand_collapse.SetBackgroundColour(self._bkg_color)
+            self.target_icon.SetBackgroundColour(self._bkg_color)
+            self.info_icon.SetBackgroundColour(self._bkg_color)
+
+        if not self._controls_visible:
+            self.expand_collapse.SetBitmap(self.expand_png)
+        else:
+            self.expand_collapse.SetBitmap(self.collapse_png)
+
+        if self.locator_on:
+            self.target_icon.SetBitmap(self.target_on_png)
+        else:
+            self.target_icon.SetBitmap(self.target_png)
+
+        if not self._selected_for_plot:
+            self.showitem_icon.SetBitmap(self.hide_png)
+        else:
+            self.showitem_icon.SetBitmap(self.show_png)
 
     def updateInfoTip(self, analysis_dict, fromGuinierDialog = False):
 
@@ -9264,6 +9578,7 @@ class IFTPanel(wx.Panel):
         self.underpanel = scrolled.ScrolledPanel(self, -1, style = wx.BORDER_SUNKEN)
         self.underpanel.SetVirtualSize(self._FromDIP((200, 200)))
         self.underpanel.SetScrollRate(20,20)
+        self.underpanel.SetBackgroundColour(RAWGlobals.list_bkg_color)
 
         file_drop_target = RAWCustomCtrl.RawPanelFileDropTarget(self.underpanel, 'ift')
         self.underpanel.SetDropTarget(file_drop_target)
@@ -9297,25 +9612,13 @@ class IFTPanel(wx.Panel):
             return size
 
     def _initializeIcons(self):
-
-        #Icons for the IFTPanel and IFTItemPanel
-        show_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-eye-16.png')
-        hide_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-hide-16.png')
-        select_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-select-all-16.png')
-
-        self.show_all_png = SASUtils.load_DIP_bitmap(show_all, wx.BITMAP_TYPE_PNG)
-        self.hide_all_png = SASUtils.load_DIP_bitmap(hide_all, wx.BITMAP_TYPE_PNG)
-        self.select_all_png = SASUtils.load_DIP_bitmap(select_all, wx.BITMAP_TYPE_PNG)
-
-        #Icons for the IFTItemPanel
-        target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-16.png')
-        target_on = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-red-16.png')
-        info = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-info-16.png')
-
-        self.info_png = SASUtils.load_DIP_bitmap(info, wx.BITMAP_TYPE_PNG)
-        self.target_png = SASUtils.load_DIP_bitmap(target, wx.BITMAP_TYPE_PNG)
-        self.target_on_png = SASUtils.load_DIP_bitmap(target_on, wx.BITMAP_TYPE_PNG)
-
+        self.show_all_png = wx.Bitmap(self.main_frame.show_all)
+        self.hide_all_png = wx.Bitmap(self.main_frame.hide_all)
+        self.select_all_png = wx.Bitmap(self.main_frame.select_all)
+        self.target_png = wx.Bitmap(self.main_frame.target)
+        self.target_on_png = wx.Bitmap(self.main_frame.target_on)
+        self.info_png = wx.Bitmap(self.main_frame.info)
+    
     def _createToolbar(self):
 
         sizer = wx.BoxSizer()
@@ -9325,45 +9628,63 @@ class IFTPanel(wx.Panel):
         else:
             size = (-1, -1)
 
-        show_all = wx.BitmapButton(self, -1, self.show_all_png,
+        self.show_all_btn = wx.BitmapButton(self, -1, self.show_all_png,
             size=self._FromDIP(size))
-        hide_all = wx.BitmapButton(self, -1, self.hide_all_png,
+        self.hide_all_btn = wx.BitmapButton(self, -1, self.hide_all_png,
             size=self._FromDIP(size))
-        select_all= wx.BitmapButton(self, -1, self.select_all_png)
+        self.select_all_btn = wx.BitmapButton(self, -1, self.select_all_png)
 
 
         if platform.system() == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
-            show_tip.SetTarget(show_all)
+            show_tip.SetTarget(self.show_all_btn)
             show_tip.ApplyStyle('Blue Glass')
 
             hide_tip = STT.SuperToolTip(" ", header = "Hide", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
-            hide_tip.SetTarget(hide_all)
+            hide_tip.SetTarget(self.hide_all_btn)
             hide_tip.ApplyStyle('Blue Glass')
 
             select_tip = STT.SuperToolTip(" ", header = "Select All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
-            select_tip.SetTarget(select_all)
+            select_tip.SetTarget(self.select_all_btn)
             select_tip.ApplyStyle('Blue Glass')
 
         else:
-            select_all.SetToolTip(wx.ToolTip('Select All'))
-            show_all.SetToolTip(wx.ToolTip('Show'))
-            hide_all.SetToolTip(wx.ToolTip('Hide'))
+            self.select_all_btn.SetToolTip(wx.ToolTip('Select All'))
+            self.show_all_btn.SetToolTip(wx.ToolTip('Show'))
+            self.hide_all_btn.SetToolTip(wx.ToolTip('Hide'))
 
-        show_all.Bind(wx.EVT_BUTTON, self._onShowAllButton)
-        hide_all.Bind(wx.EVT_BUTTON, self._onHideAllButton)
-        select_all.Bind(wx.EVT_BUTTON, self._onSelectAllButton)
+        self.show_all_btn.Bind(wx.EVT_BUTTON, self._onShowAllButton)
+        self.hide_all_btn.Bind(wx.EVT_BUTTON, self._onHideAllButton)
+        self.select_all_btn.Bind(wx.EVT_BUTTON, self._onSelectAllButton)
 
-        sizer.Add(show_all, 0, wx.LEFT, self._FromDIP(5))
-        sizer.Add(hide_all, 0, wx.LEFT, self._FromDIP(5))
+        sizer.Add(self.show_all_btn, 0, wx.LEFT, self._FromDIP(5))
+        sizer.Add(self.hide_all_btn, 0, wx.LEFT, self._FromDIP(5))
         sizer.Add((1,1), 1, wx.EXPAND)
-        sizer.Add(select_all, 0, wx.LEFT, self._FromDIP(5))
+        sizer.Add(self.select_all_btn, 0, wx.LEFT, self._FromDIP(5))
         sizer.Add((1,1), 1, wx.EXPAND)
 
         return sizer
 
+    def updateColors(self):
+        self.Freeze()
 
-    def addItem(self, iftm_list, item_colour='black', item_visible=True,
+        self.underpanel.SetBackgroundColour(RAWGlobals.list_bkg_color)
+
+        self._initializeIcons()
+
+        self.select_all_btn.SetBitmap(self.select_all_png)
+        self.show_all_btn.SetBitmap(self.show_all_png)
+        self.hide_all_btn.SetBitmap(self.hide_all_png)
+
+        for item in self.all_manipulation_items:
+            item.updateColors()
+
+        self.Refresh()
+        self.Layout()
+
+        self.Thaw()
+
+    def addItem(self, iftm_list, item_colour=RAWGlobals.general_text_color, item_visible=True,
         notsaved=False, legend_label=defaultdict(str)):
         self.underpanel.Freeze()
 
@@ -9701,7 +10022,7 @@ class IFTPanel(wx.Panel):
 
 
 class IFTItemPanel(wx.Panel):
-    def __init__(self, parent, iftm, font_colour='BLACK', legend_label=defaultdict(str),
+    def __init__(self, parent, iftm, font_colour=RAWGlobals.general_text_color, legend_label=defaultdict(str),
         ift_parameters = {}, item_visible = True, modified = False):
 
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
@@ -9729,7 +10050,7 @@ class IFTItemPanel(wx.Panel):
         self._legend_label = legend_label
 
         self._font_colour = font_colour
-        self._bkg_color = wx.Colour(250,250,250)
+        self._bkg_color = RAWGlobals.list_item_bkg_color
         self.SetBackgroundColour(self._bkg_color)
 
         filename = iftm.getParameter('filename')
@@ -9887,6 +10208,27 @@ class IFTItemPanel(wx.Panel):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        self._bkg_color = RAWGlobals.list_item_bkg_color
+
+        self._initializeIcons()
+        
+        if not self._selected:
+            self.SetBackgroundColour(self._bkg_color)
+            self.showitem_icon.SetBackgroundColour(self._bkg_color)
+            self.target_icon.SetBackgroundColour(self._bkg_color)
+            self.info_icon.SetBackgroundColour(self._bkg_color)
+
+        if self.locator_on:
+            self.target_icon.SetBitmap(self.target_on_png)
+        else:
+            self.target_icon.SetBitmap(self.target_png)
+
+        if not self._selected_for_plot:
+            self.showitem_icon.SetBitmap(self.hide_png)
+        else:
+            self.showitem_icon.SetBitmap(self.show_png)
 
     def setCurrentIFTParameters(self, ift_parameters):
         self.ift_parameters = ift_parameters
@@ -10471,6 +10813,7 @@ class SECPanel(wx.Panel):
         self.underpanel = scrolled.ScrolledPanel(self, -1, style = wx.BORDER_SUNKEN)
         self.underpanel.SetVirtualSize(self._FromDIP((200, 200)))
         self.underpanel.SetScrollRate(20,20)
+        self.underpanel.SetBackgroundColour(RAWGlobals.list_bkg_color)
 
         file_drop_target = RAWCustomCtrl.RawPanelFileDropTarget(self.underpanel, 'sec')
         self.underpanel.SetDropTarget(file_drop_target)
@@ -10514,27 +10857,15 @@ class SECPanel(wx.Panel):
 
     def _initializeIcons(self):
 
-        #Icons for the SECPanel
-        show_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-eye-16.png')
-        hide_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-hide-16.png')
-        select_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-select-all-16.png')
+        self.show_all_png = wx.Bitmap(self.main_frame.show_all)
+        self.hide_all_png = wx.Bitmap(self.main_frame.hide_all)
+        self.select_all_png = wx.Bitmap(self.main_frame.select_all)
 
-        self.show_all_png =SASUtils.load_DIP_bitmap(show_all, wx.BITMAP_TYPE_PNG)
-        self.hide_all_png = SASUtils.load_DIP_bitmap(hide_all, wx.BITMAP_TYPE_PNG)
-        self.select_all_png = SASUtils.load_DIP_bitmap(select_all, wx.BITMAP_TYPE_PNG)
-
-        #Icons for the SeriesItemPanel
-        gray_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-gray-16.png')
-        orange_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-orange-16.png')
-        target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-16.png')
-        target_on = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-red-16.png')
-        info = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-info-16.png')
-
-        self.gray_png = SASUtils.load_DIP_bitmap(gray_star, wx.BITMAP_TYPE_PNG)
-        self.star_png = SASUtils.load_DIP_bitmap(orange_star, wx.BITMAP_TYPE_PNG)
-        self.target_png = SASUtils.load_DIP_bitmap(target, wx.BITMAP_TYPE_PNG)
-        self.target_on_png = SASUtils.load_DIP_bitmap(target_on, wx.BITMAP_TYPE_PNG)
-        self.info_png = SASUtils.load_DIP_bitmap(info, wx.BITMAP_TYPE_PNG)
+        self.gray_png = wx.Bitmap(self.main_frame.gray)
+        self.star_png = wx.Bitmap(self.main_frame.star)
+        self.target_png = wx.Bitmap(self.main_frame.target)
+        self.target_on_png = wx.Bitmap(self.main_frame.target_on)
+        self.info_png = wx.Bitmap(self.main_frame.info)
 
 
     def _createToolbar(self):
@@ -10546,42 +10877,61 @@ class SECPanel(wx.Panel):
         else:
             size = (-1, -1)
 
-        select_all= wx.BitmapButton(self, -1, self.select_all_png)
-        show_all = wx.BitmapButton(self, -1, self.show_all_png,
+        self.select_all_btn = wx.BitmapButton(self, -1, self.select_all_png)
+        self.show_all_btn = wx.BitmapButton(self, -1, self.show_all_png,
             size=self._FromDIP(size))
-        hide_all = wx.BitmapButton(self, -1, self.hide_all_png,
+        self.hide_all_btn = wx.BitmapButton(self, -1, self.hide_all_png,
             size=self._FromDIP(size))
 
         if platform.system() == 'Darwin':
             show_tip = STT.SuperToolTip(" ", header = "Show", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
-            show_tip.SetTarget(show_all)
+            show_tip.SetTarget(self.show_all_btn)
             show_tip.ApplyStyle('Blue Glass')
 
             hide_tip = STT.SuperToolTip(" ", header = "Hide", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
-            hide_tip.SetTarget(hide_all)
+            hide_tip.SetTarget(self.hide_all_btn)
             hide_tip.ApplyStyle('Blue Glass')
 
             select_tip = STT.SuperToolTip(" ", header = "Select All", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
-            select_tip.SetTarget(select_all)
+            select_tip.SetTarget(self.select_all_btn)
             select_tip.ApplyStyle('Blue Glass')
 
         else:
-            select_all.SetToolTip(wx.ToolTip('Select All'))
-            show_all.SetToolTip(wx.ToolTip('Show'))
-            hide_all.SetToolTip(wx.ToolTip('Hide'))
+            self.select_all_btn.SetToolTip(wx.ToolTip('Select All'))
+            self.show_all_btn.SetToolTip(wx.ToolTip('Show'))
+            self.hide_all_btn.SetToolTip(wx.ToolTip('Hide'))
 
 
-        show_all.Bind(wx.EVT_BUTTON, self._onShowAllButton)
-        hide_all.Bind(wx.EVT_BUTTON, self._onHideAllButton)
-        select_all.Bind(wx.EVT_BUTTON, self._onSelectAllButton)
+        self.show_all_btn.Bind(wx.EVT_BUTTON, self._onShowAllButton)
+        self.hide_all_btn.Bind(wx.EVT_BUTTON, self._onHideAllButton)
+        self.select_all_btn.Bind(wx.EVT_BUTTON, self._onSelectAllButton)
 
-        sizer.Add(show_all, 0, wx.LEFT, border=self._FromDIP(5))
-        sizer.Add(hide_all, 0, wx.LEFT, border=self._FromDIP(5))
+        sizer.Add(self.show_all_btn, 0, wx.LEFT, border=self._FromDIP(5))
+        sizer.Add(self.hide_all_btn, 0, wx.LEFT, border=self._FromDIP(5))
         sizer.Add((1,1),1, wx.EXPAND)
-        sizer.Add(select_all, 0, wx.LEFT, border=self._FromDIP(5))
+        sizer.Add(self.select_all_btn, 0, wx.LEFT, border=self._FromDIP(5))
         sizer.Add((1,1),1, wx.EXPAND)
 
         return sizer
+
+    def updateColors(self):
+        self.Freeze()
+
+        self.underpanel.SetBackgroundColour(RAWGlobals.list_bkg_color)
+
+        self._initializeIcons()
+
+        self.select_all_btn.SetBitmap(self.select_all_png)
+        self.show_all_btn.SetBitmap(self.show_all_png)
+        self.hide_all_btn.SetBitmap(self.hide_all_png)
+
+        for item in self.all_manipulation_items:
+            item.updateColors()
+
+        self.Refresh()
+        self.Layout()
+
+        self.Thaw()
 
     def selectAll(self):
         self.underpanel.Freeze()
@@ -10736,7 +11086,7 @@ class SECPanel(wx.Panel):
         self.underpanel.Refresh()
         self.underpanel.Thaw()
 
-    def addItem(self, secm_list, item_colour = 'black', item_visible = True,
+    def addItem(self, secm_list, item_colour = RAWGlobals.general_text_color, item_visible = True,
         notsaved = False, legend_label=defaultdict(str)):
         self.underpanel.Freeze()
 
@@ -11027,7 +11377,7 @@ class SECPanel(wx.Panel):
 
 
 class SeriesItemPanel(wx.Panel):
-    def __init__(self, parent, secm, font_colour = 'BLACK',
+    def __init__(self, parent, secm, font_colour = RAWGlobals.general_text_color,
         legend_label = defaultdict(str), item_visible = True, modified = False):
 
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
@@ -11053,7 +11403,7 @@ class SeriesItemPanel(wx.Panel):
         self._legend_label = legend_label
 
         self._font_colour = font_colour
-        self._bkg_color = wx.Colour(250,250,250)
+        self._bkg_color = RAWGlobals.list_item_bkg_color
         self.SetBackgroundColour(self._bkg_color)
 
         filename = secm.getParameter('filename')
@@ -11210,6 +11560,28 @@ class SeriesItemPanel(wx.Panel):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def updateColors(self):
+        self._bkg_color = RAWGlobals.list_item_bkg_color
+
+        self._initializeIcons()
+
+        if not self._selected:
+            self.SetBackgroundColour(self._bkg_color)
+            self.showitem_icon.SetBackgroundColour(self._bkg_color)
+            self.bg_star.SetBackgroundColour(self._bkg_color)
+            self.target_icon.SetBackgroundColour(self._bkg_color)
+            self.info_icon.SetBackgroundColour(self._bkg_color)
+
+        if self.locator_on:
+            self.target_icon.SetBitmap(self.target_on_png)
+        else:
+            self.target_icon.SetBitmap(self.target_png)
+
+        if not self._selected_for_plot:
+            self.showitem_icon.SetBitmap(self.hide_png)
+        else:
+            self.showitem_icon.SetBitmap(self.show_png)
 
     def updateInfoTip(self):
 
@@ -13135,17 +13507,20 @@ class CenteringPanel(scrolled.ScrolledPanel):
             return size
 
     def _initBitmaps(self):
-        up = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-up-32.png')
-        right = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-right-32.png')
-        down = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-down-32.png')
-        left = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-left-32.png')
-        target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-32.png')
 
-        self.up_arrow_bmp = SASUtils.load_DIP_bitmap(up, wx.BITMAP_TYPE_PNG)
-        self.right_arrow_bmp = SASUtils.load_DIP_bitmap(right, wx.BITMAP_TYPE_PNG)
-        self.down_arrow_bmp = SASUtils.load_DIP_bitmap(down, wx.BITMAP_TYPE_PNG)
-        self.left_arrow_bmp = SASUtils.load_DIP_bitmap(left, wx.BITMAP_TYPE_PNG)
-        self.target_bmp = SASUtils.load_DIP_bitmap(target, wx.BITMAP_TYPE_PNG)
+        self.up_arrow_bmp = wx.Bitmap(self._main_frame.up_arrow_bmp)
+        self.right_arrow_bmp = wx.Bitmap(self._main_frame.right_arrow_bmp)
+        self.down_arrow_bmp = wx.Bitmap(self._main_frame.down_arrow_bmp)
+        self.left_arrow_bmp = wx.Bitmap(self._main_frame.left_arrow_bmp)
+        self.target_bmp = wx.Bitmap(self._main_frame.center_target_bmp)
+
+    def updateColors(self):
+        self._initBitmaps()
+
+        self.target_button.SetBitmap(self.target_bmp)
+
+        self.Refresh()
+        self.Layout()
 
     def _createAutoCenteringSizer(self, parent):
 
@@ -13233,7 +13608,7 @@ class CenteringPanel(scrolled.ScrolledPanel):
         down_button = wx.BitmapButton(parent,self.ID_DOWN, self.down_arrow_bmp)
         right_button = wx.BitmapButton(parent, self.ID_RIGHT , self.right_arrow_bmp)
         left_button = wx.BitmapButton(parent, self.ID_LEFT, self.left_arrow_bmp)
-        target_button = wx.BitmapButton(parent, self.ID_TARGET, self.target_bmp)
+        self.target_button = wx.BitmapButton(parent, self.ID_TARGET, self.target_bmp)
 
         up_button.Bind(wx.EVT_LEFT_DOWN, self._onCenteringButtons)
         down_button.Bind(wx.EVT_LEFT_DOWN, self._onCenteringButtons)
@@ -13251,13 +13626,13 @@ class CenteringPanel(scrolled.ScrolledPanel):
         left_button.Bind(wx.EVT_LEFT_UP, self._onCenteringButtonsUp)
 
 
-        target_button.Bind(wx.EVT_BUTTON, self._onTargetButton)
+        self.target_button.Bind(wx.EVT_BUTTON, self._onTargetButton)
 
         buttonsizer.Add((1,1))
         buttonsizer.Add(up_button, 0)
         buttonsizer.Add((1,1))
         buttonsizer.Add(left_button,0)
-        buttonsizer.Add(target_button, 0)
+        buttonsizer.Add(self.target_button, 0)
         buttonsizer.Add(right_button, 0)
         buttonsizer.Add((1,1))
         buttonsizer.Add(down_button, 0)
@@ -13267,7 +13642,7 @@ class CenteringPanel(scrolled.ScrolledPanel):
         self.manual_widget_list.append(down_button)
         self.manual_widget_list.append(left_button)
         self.manual_widget_list.append(right_button)
-        self.manual_widget_list.append(target_button)
+        self.manual_widget_list.append(self.target_button)
 
         return buttonsizer
 
@@ -13898,13 +14273,19 @@ class InformationPanel(scrolled.ScrolledPanel):
             return size
 
     def _getIcons(self):
-        expand = os.path.join(RAWGlobals.RAWResourcesDir,
-            'icons8-sort-down-filled-16.png')
-        collapse = os.path.join(RAWGlobals.RAWResourcesDir,
-            'icons8-sort-up-filled-16.png')
+        main_frame = wx.FindWindowByName('MainFrame')
 
-        self.expand_png = SASUtils.load_DIP_bitmap(expand, wx.BITMAP_TYPE_PNG)
-        self.collapse_png = SASUtils.load_DIP_bitmap(collapse, wx.BITMAP_TYPE_PNG)
+        self.expand_png = wx.Bitmap(main_frame.expand)
+        self.collapse_png = wx.Bitmap(main_frame.collapse)
+
+    def updateColors(self):
+        self._getIcons()
+
+        for item in self.shown_items:
+            self._showItem(item, update_top_panel=False)
+
+        self.Layout()
+        self.Refresh()
 
     def _createLayout(self):
 

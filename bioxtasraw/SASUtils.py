@@ -549,6 +549,42 @@ def load_DIP_bitmap(filepath, bitmap_type):
 
     return bmp
 
+def load_DIP_image(filepath, bitmap_type):
+
+    if platform.system() == 'Darwin':
+        img = wx.Image(filepath, bitmap_type)
+    else:
+
+        try:
+            content_scale = wx.GetApp().GetTopWindow().GetDPIScaleFactor()
+        except Exception:
+            content_scale = wx.GetApp().GetTopWindow().GetContentScaleFactor()
+
+        img_scale = math.ceil(content_scale)
+
+        img = None
+
+        current_scale = img_scale
+
+        while current_scale > 1:
+            path, ext = os.path.splitext(filepath)
+            imgpath = '{}@{}x{}'.format(path, current_scale, ext)
+            if os.path.isfile(imgpath):
+                img = wx.Image(imgpath, bitmap_type)
+                break
+            else:
+                current_scale = current_scale -1
+
+        if img is None:
+            img = wx.Image(filepath, bitmap_type)
+
+        # Should I rescale for intermediate resolutions? Or just have larger crisp icons?
+        w, h = img.GetSize()
+        extra_scale = content_scale/current_scale
+        img.Rescale(int(w*extra_scale), int(h*extra_scale))
+
+    return img
+
 def set_best_size(window):
 
     best_size = window.GetBestSize()
@@ -612,3 +648,24 @@ def get_mpl_fonts():
             default_plot_font = 'Arial'
 
         return fonts, default_plot_font
+
+def update_mpl_style():
+    system_settings = wx.SystemSettings()
+
+    try:
+        system_appearance = system_settings.GetAppearance()
+        is_dark = system_appearance.IsDark()
+    except Exception:
+        is_dark = False
+        
+    if is_dark:
+        mpl.style.use('dark_background')
+        color = 'white'
+    else:
+        mpl.style.use('default')
+        color = 'black'
+
+    if int(mpl.__version__.split('.')[0]) >= 2:
+        mpl.rcParams['errorbar.capsize'] = 3
+
+    return color

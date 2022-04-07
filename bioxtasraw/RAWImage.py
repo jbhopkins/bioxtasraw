@@ -53,6 +53,7 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
 
         self.fig_axes = parent.fig.gca()
         self.parent = parent
+        self.main_frame = wx.FindWindowByName('MainFrame')
 
         self._MTB_HDRINFO   = self.NewControlId()
         self._MTB_IMGSET    = self.NewControlId()
@@ -60,10 +61,10 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         self._MTB_NEXTIMG   = self.NewControlId()
 
 
-        self.allToolButtons = [self._MTB_HDRINFO,
-                               self._MTB_IMGSET,
-                               self._MTB_PREVIMG,
-                               self._MTB_NEXTIMG]
+        self._tool_ids = {'hdrinfo' : self._MTB_HDRINFO,
+                               'imgset' : self._MTB_IMGSET,
+                               'previmg' : self._MTB_PREVIMG,
+                               'nextimg' : self._MTB_NEXTIMG}
 
         if (float(matplotlib.__version__.split('.')[0]) == 3 and
             float(matplotlib.__version__.split('.')[1]) >= 3 and
@@ -73,31 +74,30 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         else:
             NavigationToolbar2WxAgg.__init__(self, canvas)
 
-        hdrinfo = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-view-details-24.png')
-        imgctrl = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-control-of-level-filled-24.png')
-        back = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-green-pointing-left-24.png')
-        forward = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-green-pointing-right-24.png')
+        self._getIcons()
 
-        hdrInfoIcon   = SASUtils.load_DIP_bitmap(hdrinfo, wx.BITMAP_TYPE_PNG)
-        ImgSetIcon    = SASUtils.load_DIP_bitmap(imgctrl, wx.BITMAP_TYPE_PNG)
-        prevImgIcon = SASUtils.load_DIP_bitmap(back, wx.BITMAP_TYPE_PNG)
-        nextImgIcon = SASUtils.load_DIP_bitmap(forward, wx.BITMAP_TYPE_PNG)
-
-
-        if wx.version().split()[0].strip()[0] == '4':
+        if wx.version().split()[0].strip()[0] >= '4':
             self.AddSeparator()
-            self.AddTool(self._MTB_HDRINFO, '', hdrInfoIcon, shortHelp='Show Header Information')
-            self.AddTool(self._MTB_IMGSET, '', ImgSetIcon, shortHelp='Image Display Settings')
+            self.AddTool(self._MTB_HDRINFO, '', self._bitmaps['hdrinfo'], 
+                shortHelp='Show Header Information')
+            self.AddTool(self._MTB_IMGSET, '', self._bitmaps['imgset'], 
+                shortHelp='Image Display Settings')
             self.AddSeparator()
-            self.AddTool(self._MTB_PREVIMG, '', prevImgIcon, shortHelp='Previous Image')
-            self.AddTool(self._MTB_NEXTIMG, '', nextImgIcon, shortHelp='Next Image')
+            self.AddTool(self._MTB_PREVIMG, '', self._bitmaps['previmg'], 
+                shortHelp='Previous Image')
+            self.AddTool(self._MTB_NEXTIMG, '', self._bitmaps['nextimg'], 
+                shortHelp='Next Image')
         else:
             self.AddSeparator()
-            self.AddSimpleTool(self._MTB_HDRINFO, hdrInfoIcon, 'Show Header Information')
-            self.AddSimpleTool(self._MTB_IMGSET, ImgSetIcon, 'Image Display Settings')
+            self.AddSimpleTool(self._MTB_HDRINFO, self._bitmaps['hdrinfo'], 
+                'Show Header Information')
+            self.AddSimpleTool(self._MTB_IMGSET, self._bitmaps['imgset'], 
+                'Image Display Settings')
             self.AddSeparator()
-            self.AddSimpleTool(self._MTB_PREVIMG, prevImgIcon, 'Previous Image')
-            self.AddSimpleTool(self._MTB_NEXTIMG, nextImgIcon, 'Next Image')
+            self.AddSimpleTool(self._MTB_PREVIMG, self._bitmaps['previmg'], 
+                'Previous Image')
+            self.AddSimpleTool(self._MTB_NEXTIMG, self._bitmaps['nextimg'], 
+                'Next Image')
 
 
         self.Bind(wx.EVT_TOOL, self.onHeaderInfoButton, id = self._MTB_HDRINFO)
@@ -111,6 +111,18 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
 
         self._current_tool = None
 
+    def _getIcons(self):
+        hdrInfoIcon = wx.Bitmap(self.main_frame.hdrInfoIcon)
+        ImgSetIcon = wx.Bitmap(self.main_frame.ImgSetIcon)
+        prevImgIcon = wx.Bitmap(self.main_frame.prevImgIcon)
+        nextImgIcon = wx.Bitmap(self.main_frame.nextImgIcon)
+
+        self._bitmaps = {
+            'hdrinfo'   : hdrInfoIcon,
+            'imgset'    : ImgSetIcon,
+            'previmg'   : prevImgIcon,
+            'nextimg'   : nextImgIcon,
+            }
 
     def getCurrentTool(self):
         return self._current_tool
@@ -206,6 +218,13 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         else:
             self._current_tool = None
 
+    def updateColors(self):
+        self._getIcons()
+
+        for name in ["hdrinfo", "imgset", "nextimg", "previmg"]:
+            self.SetToolNormalBitmap(self._tool_ids[name],
+                self._bitmaps[name])
+
 class ImagePanel(wx.Panel):
 
     def __init__(self, parent, panel_id, name, *args, **kwargs):
@@ -287,6 +306,24 @@ class ImagePanel(wx.Panel):
         self.canvas.mpl_connect('scroll_event', self._onMouseScroll)
 
         self.draw_cid = self.canvas.mpl_connect('draw_event', self.safe_draw)
+
+    def updateColors(self):
+        system_settings = wx.SystemSettings()
+        
+        try:
+            system_appearance = system_settings.GetAppearance()
+            is_dark = system_appearance.IsDark()
+        except Exception:
+            is_dark = False
+            
+        if is_dark:
+            matplotlib.style.use('dark_background')
+        else:
+            matplotlib.style.use('default')
+
+        self.canvas.draw()
+
+        self.toolbar.updateColors()
 
     def showHdrInfo(self):
 
