@@ -4614,16 +4614,18 @@ class DenssPanel(scrolled.ScrolledPanel):
             'denssShrinkwrapSigmaEnd', 'denssShrinkwrapSigmaDecay',
             'denssShrinkwrapThresFrac', 'denssShrinkwrapIter', 'denssChiEndFrac',
             'denssMode', 'denssSteps', 'denssVoxel', 'denssOversampling',
-            'denssLimitDmax', 'denssLimitDmaxStep', 'denssRecenter',
+            'denssRecenter',
             'denssRecenterStep', 'denssPositivity', 'denssShrinkwrap',
             'denssShrinkwrapMinStep', 'denssConnected', 'denssConnectivitySteps',
             'denssWriteXplor', 'denssCutOut', 'denssRecenterMode',
             'denssAverage', 'denssReconstruct', 'denssRefine',
             'denssNCS', 'denssNCSAxis', 'denssNCSSteps', 'denssGPU',
+            'denssNCSType',
             ]
 
         modeChoices = ['Fast', 'Slow', 'Membrane', 'Custom']
         recenterChoices = ['com', 'max']
+        symChoices = ['Cyclical', 'Dihedral']
 
         self.default_options = (('Default mode:', raw_settings.getId('denssMode'), 'choice', modeChoices),
             ('Number of runs:', raw_settings.getId('denssReconstruct'), 'int'),
@@ -4662,8 +4664,8 @@ class DenssPanel(scrolled.ScrolledPanel):
         self.custom_options_short = (('Number of iterations:', raw_settings.getId('denssSteps'), 'int'),
             ('Voxel size [A]:', raw_settings.getId('denssVoxel'), 'float'),
             ('Oversampling:', raw_settings.getId('denssOversampling'), 'float'),
-            ("Limit vol. to 0.6*Dmax", raw_settings.getId('denssLimitDmax'), 'bool'),
-            ('Dmax limit at steps:', raw_settings.getId('denssLimitDmaxStep'), 'text'),
+            # ("Limit vol. to 0.6*Dmax", raw_settings.getId('denssLimitDmax'), 'bool'),
+            # ('Dmax limit at steps:', raw_settings.getId('denssLimitDmaxStep'), 'text'),
             ('Recenter density', raw_settings.getId('denssRecenter'), 'bool'),
             ('Recenter density at steps:', raw_settings.getId('denssRecenterStep'), 'text'),
             ('Enforce positivity', raw_settings.getId('denssPositivity'), 'bool'),
@@ -4675,7 +4677,8 @@ class DenssPanel(scrolled.ScrolledPanel):
             ('Reduce size of output map', raw_settings.getId('denssCutOut'), 'bool'),
             ('N-fold symmetry:', raw_settings.getId('denssNCS'), 'int'),
             ('Enforce symmetry at steps:', raw_settings.getId('denssNCSSteps'), 'text'),
-            ('Symmetry Axis:', raw_settings.getId('denssNCSAxis'), 'int')
+            ('Symmetry Axis:', raw_settings.getId('denssNCSAxis'), 'int'),
+            ('Symmetry type:', raw_settings.getId('denssNCSType'), 'choice', symChoices),
             )
 
         layoutSizer = self._createLayout(self)
