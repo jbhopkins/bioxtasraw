@@ -657,7 +657,7 @@ def update_mpl_style():
         is_dark = system_appearance.IsDark()
     except Exception:
         is_dark = False
-        
+
     if is_dark:
         mpl.style.use('dark_background')
         color = 'white'
@@ -667,5 +667,8 @@ def update_mpl_style():
 
     if int(mpl.__version__.split('.')[0]) >= 2:
         mpl.rcParams['errorbar.capsize'] = 3
+
+    mpl.rc('image', origin = 'lower')
+    mpl.rcParams['backend'] = 'WxAgg'
 
     return color
