@@ -8082,7 +8082,7 @@ class DenssRunPanel(wx.Panel):
 
         if int(sym) > 1:
             sym_on.SetValue(True)
-            sym_val.SetValue(sym)
+            sym_val.SetValue(str(sym))
             sym_type.SetStringSelection(sym_type_val)
 
             sym_val.Enable()

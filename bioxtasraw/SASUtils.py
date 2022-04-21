@@ -668,6 +668,7 @@ def update_mpl_style():
     if int(mpl.__version__.split('.')[0]) >= 2:
         mpl.rcParams['errorbar.capsize'] = 3
 
+    mpl.rc('mathtext', default='regular')
     mpl.rc('image', origin = 'lower')
     mpl.rcParams['backend'] = 'WxAgg'
 
