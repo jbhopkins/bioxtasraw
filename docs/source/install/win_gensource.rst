@@ -33,6 +33,8 @@ General instructions for installing from source (advanced users)
 
     *   reportlab
 
+    *   mmcif_pdbx
+
 #.  Download the RAW source file (:file:`RAW-{x}.{y}.{z}-Source` where :file:`{x}.{y}.{z}` is the version number)
     from sourceforge (
     `https://sourceforge.net/projects/bioxtasraw <https://sourceforge.net/projects/bioxtasraw>`_)

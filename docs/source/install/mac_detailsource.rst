@@ -39,7 +39,7 @@ OS X and macOS install from source instructions
     *   Type ``conda install numpy scipy matplotlib pillow numba h5py cython numexpr reportlab`` and hit enter.
         Agree to all the prompts.
 
-    *   Type ``conda install -c conda-forge wxpython hdf5plugin fabio pyfai`` and hit enter. Agree
+    *   Type ``conda install -c conda-forge wxpython hdf5plugin fabio pyfai mmcif_pdbx`` and hit enter. Agree
         to all prompts.
 
 #.  Download RAW from sourceforge

@@ -4088,13 +4088,13 @@ class IFTPlotPanel(wx.Panel):
         # self.canvas.SetBackgroundColour('white')
 
         system_settings = wx.SystemSettings()
-        
+
         try:
             system_appearance = system_settings.GetAppearance()
             is_dark = system_appearance.IsDark()
         except Exception:
             is_dark = False
-            
+
         if is_dark:
             color = 'white'
         else:
@@ -5201,6 +5201,8 @@ class DammifFrame(wx.Frame):
 
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
+        self._getATSASVersion()
+
         self.panel = wx.Panel(self)
         self.notebook = wx.Notebook(self.panel, wx.ID_ANY)
         self.RunPanel = DammifRunPanel(self.notebook, self.iftm, self.manip_item)
@@ -5267,6 +5269,15 @@ class DammifFrame(wx.Frame):
 
     def updateDAMMIFSettings(self):
         self.RunPanel.updateDAMMIFSettings()
+
+    def _getATSASVersion(self):
+        version = SASCalc.getATSASVersion(self.raw_settings.get('ATSASDir'))
+
+        if ((int(version.split('.')[0]) == 3 and int(version.split('.')[1]) >= 1)
+            or int(version.split('.')[0]) > 3):
+            self.model_ext = '.cif'
+        else:
+            self.model_ext = '.pdb'
 
     def _onCloseButton(self, evt):
         self.Close()
@@ -5668,6 +5679,7 @@ class DammifRunPanel(wx.Panel):
 
         self.align_file_name = None
 
+        self.model_ext = self.dammif_frame.model_ext
 
     def onStartButton(self, evt):
         #Set the dammif settings
@@ -5751,8 +5763,8 @@ class DammifRunPanel(wx.Panel):
             InName = os.path.join(path, dammif_names[key]+'.in')
             FitName = os.path.join(path, dammif_names[key]+'.fit')
             FirName = os.path.join(path, dammif_names[key]+'.fir')
-            EnvelopeName = os.path.join(path, dammif_names[key]+'-1.pdb')
-            SolventName = os.path.join(path, dammif_names[key]+'-0.pdb')
+            EnvelopeName = os.path.join(path, dammif_names[key]+'-1' + self.model_ext)
+            SolventName = os.path.join(path, dammif_names[key]+'-0' + self.model_ext)
 
             if ((os.path.exists(LogName) or os.path.exists(InName)
                 or os.path.exists(FitName) or os.path.exists(FirName)
@@ -5791,8 +5803,18 @@ class DammifRunPanel(wx.Panel):
 
         if nruns > 1 and damaver:
 
-            damaver_names = [prefix+'_damfilt.pdb', prefix+'_damsel.log', prefix+'_damstart.pdb', prefix+'_damsup.log',
-                        prefix+'_damaver.pdb', 'damfilt.pdb', 'damsel.log', 'damstart.pdb', 'damsup.log', 'damaver.pdb']
+            damaver_names = [
+                prefix+'_damfilt' + self.model_ext,
+                prefix+'_damsel.log',
+                prefix+'_damstart' + self.model_ext,
+                prefix+'_damsup.log',
+                prefix+'_damaver' + self.model_ext,
+                'damfilt' + self.model_ext,
+                'damsel.log',
+                'damstart' + self.model_ext,
+                'damsup.log',
+                'damaver' + self.model_ext
+                ]
 
             for item in damaver_names:
 
@@ -5856,14 +5878,15 @@ class DammifRunPanel(wx.Panel):
         if align and self.align_file_name != '':
             filenames = [os.path.split(self.align_file_name)[1]]
 
-            filenames.extend(['{}-1_aligned.pdb'.format(key) for key in dammif_names])
+            filenames.extend(['{}-1_aligned{}'.format(key, self.model_ext)
+                for key in dammif_names])
 
             if nruns > 1 and damaver:
-                filenames.extend(['{}_damfilt_aligned.pdb'.format(prefix),
-                    '{}_damaver_aligned.pdb'.format(prefix)])
+                filenames.extend(['{}_damfilt_aligned{}'.format(prefix, self.model_ext),
+                    '{}_damaver_aligned{}'.format(prefix, self.model_ext)])
 
             if nruns > 1 and refine:
-                filenames.append('{}_refined-1.pdb'.format(prefix))
+                filenames.append('{}_refined-1{}'.format(prefix, self.model_ext))
 
             for item in filenames:
                 if os.path.exists(os.path.join(path, item)) and not yes_to_all:
@@ -5980,7 +6003,7 @@ class DammifRunPanel(wx.Panel):
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
         load_path = dirctrl_panel.getDirLabel()
 
-        filters = 'PDB files (*.pdb)|*.pdb|All files (*.*)|*.*'
+        filters = 'PDB and CIF files (*.pdb;*.cif)|*.pdb;*.cif|All files (*.*)|*.*'
 
         dialog = wx.FileDialog(self, 'Select a file', load_path, style=wx.FD_OPEN,
             wildcard=filters)
@@ -6063,9 +6086,9 @@ class DammifRunPanel(wx.Panel):
                 os.path.join(path, dam_prefix+'.in'),
                 os.path.join(path, dam_prefix+'.fit'),
                 os.path.join(path, dam_prefix+'.fir'),
-                os.path.join(path, dam_prefix+'-1.pdb'),
-                os.path.join(path, dam_prefix+'-1_aligned.pdb'),
-                os.path.join(path, dam_prefix+'-0.pdb'),
+                os.path.join(path, dam_prefix+'-1'+self.model_ext),
+                os.path.join(path, dam_prefix+'-1_aligned'+self.model_ext),
+                os.path.join(path, dam_prefix+'-0'+self.model_ext),
                 ]
 
             for item in old_files:
@@ -6077,7 +6100,7 @@ class DammifRunPanel(wx.Panel):
 
             if refine:
                 self.dammif_settings['mode'] = 'Refine'
-                self.dammif_settings['initialDAM'] = prefix+'_damstart.pdb'
+                self.dammif_settings['initialDAM'] = prefix+'_damstart'+self.model_ext
 
             if refine:
                 wx.CallAfter(self.status.AppendText, 'Starting Refinement\n')
@@ -6177,13 +6200,13 @@ class DammifRunPanel(wx.Panel):
                 return
 
             #Remove old files, so they don't mess up the program
-            old_files = [os.path.join(path, prefix+'_damfilt.pdb'),
+            old_files = [os.path.join(path, prefix+'_damfilt'+self.model_ext),
                 os.path.join(path, prefix+'_damsel.log'),
-                os.path.join(path, prefix+'_damstart.pdb'),
+                os.path.join(path, prefix+'_damstart'+self.model_ext),
                 os.path.join(path, prefix+'_damsup.log'),
-                os.path.join(path, prefix+'_damaver.pdb'),
-                os.path.join(path, prefix+'_damfilt_aligned.pdb'),
-                os.path.join(path, prefix+'_damaver_aligned.pdb'),
+                os.path.join(path, prefix+'_damaver'+self.model_ext),
+                os.path.join(path, prefix+'_damfilt_aligned'+self.model_ext),
+                os.path.join(path, prefix+'_damaver_aligned'+self.model_ext),
                 ]
 
             for item in old_files:
@@ -6196,7 +6219,8 @@ class DammifRunPanel(wx.Panel):
             nruns_window = wx.FindWindowById(self.ids['runs'], self)
             nruns = int(nruns_window.GetValue())
 
-            dam_filelist = [prefix+'_%s-1.pdb' %(str(i).zfill(2)) for i in range(1, nruns+1)]
+            dam_filelist = [prefix+'_%s-1%s' %(str(i).zfill(2), self.model_ext)
+                for i in range(1, nruns+1)]
 
             symmetry = self.dammif_settings['sym']
 
@@ -6247,11 +6271,17 @@ class DammifRunPanel(wx.Panel):
                 if new_text != '':
                     wx.CallAfter(damWindow.AppendText, new_text)
 
-            new_files = [(os.path.join(path, 'damfilt.pdb'), os.path.join(path, prefix+'_damfilt.pdb')),
-                        (os.path.join(path, 'damsel.log'), os.path.join(path, prefix+'_damsel.log')),
-                        (os.path.join(path, 'damstart.pdb'), os.path.join(path, prefix+'_damstart.pdb')),
-                        (os.path.join(path, 'damsup.log'), os.path.join(path, prefix+'_damsup.log')),
-                        (os.path.join(path, 'damaver.pdb'), os.path.join(path, prefix+'_damaver.pdb'))]
+            new_files = [
+                (os.path.join(path, 'damfilt'+self.model_ext),
+                    os.path.join(path, prefix+'_damfilt'+self.model_ext)),
+                (os.path.join(path, 'damsel.log'),
+                    os.path.join(path, prefix+'_damsel.log')),
+                (os.path.join(path, 'damstart'+self.model_ext),
+                    os.path.join(path, prefix+'_damstart'+self.model_ext)),
+                (os.path.join(path, 'damsup.log'),
+                    os.path.join(path, prefix+'_damsup.log')),
+                (os.path.join(path, 'damaver'+self.model_ext),
+                    os.path.join(path, prefix+'_damaver'+self.model_ext))]
 
             for item in new_files:
                 os.rename(item[0], item[1])
@@ -6312,8 +6342,10 @@ class DammifRunPanel(wx.Panel):
             old_files = [os.path.join(path, prefix+'_damclust.log')]
 
             for i in range(1, nruns+1):
-                old_files.append(os.path.join(path, '{}-1-avr.pdb'.format(prefix)))
-                old_files.append(os.path.join(path, '{}-1-flt.pdb'.format(prefix)))
+                old_files.append(os.path.join(path, '{}-1-avr{}'.format(prefix,
+                    self.model_ext)))
+                old_files.append(os.path.join(path, '{}-1-flt{}'.format(prefix,
+                    self.model_ext)))
 
             for item in old_files:
                 if os.path.exists(item):
@@ -6322,7 +6354,8 @@ class DammifRunPanel(wx.Panel):
             wx.CallAfter(self.status.AppendText, 'Starting DAMCLUST\n')
 
 
-            dam_filelist = [prefix+'_%s-1.pdb' %(str(i).zfill(2)) for i in range(1, nruns+1)]
+            dam_filelist = [prefix+'_%s-1%s' %(str(i).zfill(2), self.model_ext)
+                for i in range(1, nruns+1)]
 
             symmetry = self.dammif_settings['sym']
 
@@ -6423,11 +6456,11 @@ class DammifRunPanel(wx.Panel):
                 filename = os.path.join(path, name)
                 _, rep_model = SASFileIO.loadDamsupLogFile(filename)
 
-                target_filenames.extend(['{}_damaver.pdb'.format(prefix),
-                    '{}_damfilt.pdb'.format(prefix), rep_model])
+                target_filenames.extend(['{}_damaver{}'.format(prefix, self.model_ext),
+                    '{}_damfilt{}'.format(prefix, self.model_ext), rep_model])
 
             if 'refine' in self.dammif_ids:
-                target_filenames.append('refine_{}-1.pdb'.format(prefix))
+                target_filenames.append('refine_{}-1{}'.format(prefix, self.model_ext))
 
             if 'damclust' in self.dammif_ids:
                 name = '{}_damclust.log'.format(prefix)
@@ -6438,12 +6471,13 @@ class DammifRunPanel(wx.Panel):
                     if cluster.rep_model not in target_filenames:
                         name, ext = os.path.splitext(cluster.rep_model)
                         target_filenames.append(cluster.rep_model)
-                        target_filenames.append('{}-avr.pdb'.format(name))
-                        target_filenames.append('{}-flt.pdb'.format(name))
+                        target_filenames.append('{}-avr{}'.format(name, self.model_ext))
+                        target_filenames.append('{}-flt{}'.format(name, self.model_ext))
 
             if ('damaver' not in self.dammif_ids and 'refine' not in self.dammif_ids
                 and 'damclust' not in self.dammif_ids):
-                target_filenames.extend(['{}_{:02d}-1.pdb'.format(prefix, run) for run in range(1, nruns+1)])
+                target_filenames.extend(['{}_{:02d}-1{}'.format(prefix, run, self.model_ext)
+                    for run in range(1, nruns+1)])
 
             supcomb_q = queue.Queue()
             read_semaphore = threading.BoundedSemaphore(1)
@@ -7069,6 +7103,8 @@ class DammifResultsPanel(wx.Panel):
         path_window = wx.FindWindowById(run_window.ids['save'], run_window)
         # path = path_window.GetValue()
 
+        self.model_ext = self.dammif_frame.model_ext
+
         opsys = platform.system()
         if opsys == 'Windows':
             if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter.exe')):
@@ -7212,14 +7248,14 @@ class DammifResultsPanel(wx.Panel):
 
         for num in range(1,int(settings['runs'])+1):
             fprefix = '%s_%s' %(prefix, str(num).zfill(2))
-            dam_name = os.path.join(path, fprefix+'-1.pdb')
+            dam_name = os.path.join(path, fprefix+'-1'+self.model_ext)
             fir_name = os.path.join(path, fprefix+'.fir')
 
             sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
 
             chisq = sasm.getParameter('counters')['Chi_squared']
 
-            atoms, header, model_data = SASFileIO.loadPDBFile(dam_name)
+            atoms, header, model_data = self._loadModelFile(dam_name)
             model_data['chisq'] = chisq
 
             if settings['damaver'] and int(settings['runs']) > 1:
@@ -7237,22 +7273,22 @@ class DammifResultsPanel(wx.Panel):
             self.models.AddPage(plot_panel, str(num))
 
         if settings['damaver'] and int(settings['runs']) > 1:
-            damaver_name = os.path.join(path, prefix+'_damaver.pdb')
-            damfilt_name = os.path.join(path, prefix+'_damfilt.pdb')
+            damaver_name = os.path.join(path, prefix+'_damaver'+self.model_ext)
+            damfilt_name = os.path.join(path, prefix+'_damfilt'+self.model_ext)
 
-            atoms, header, model_data = SASFileIO.loadPDBFile(damaver_name)
+            atoms, header, model_data = self._loadModelFile(damaver_name)
             model_list.append(['damaver', model_data, atoms])
 
-            atoms, header, model_data = SASFileIO.loadPDBFile(damfilt_name)
+            atoms, header, model_data = self._loadModelFile(damfilt_name)
             model_list.append(['damfilt', model_data, atoms])
 
         if settings['refine'] and int(settings['runs']) > 1:
-            dam_name = os.path.join(path, 'refine_'+prefix+'-1.pdb')
+            dam_name = os.path.join(path, 'refine_'+prefix+'-1'+self.model_ext)
             fir_name = os.path.join(path, 'refine_'+prefix+'.fir')
             sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
             chisq = sasm.getParameter('counters')['Chi_squared']
 
-            atoms, header, model_data = SASFileIO.loadPDBFile(dam_name)
+            atoms, header, model_data = self._loadModelFile(dam_name)
             model_data['chisq'] = chisq
 
             model_list.append(['refine', model_data, atoms])
@@ -7436,6 +7472,14 @@ class DammifResultsPanel(wx.Panel):
         RAWGlobals.save_in_progress = False
         self.main_frame.setStatus('', 0)
 
+    def _loadModelFile(self, filename):
+        if self.model_ext == '.pdb':
+            results = SASFileIO.loadPDBFile(filename)
+        elif self.model_ext == '.cif':
+            results = SASFileIO.loadmmCIFFile(filename)
+
+        return results
+
 class DammifPlotPanel(wx.Panel):
 
     def __init__(self, parent, sasm, fit_sasm, chisq):
@@ -7584,7 +7628,8 @@ class DammifViewerPanel(wx.Panel):
 
         scale = (float(radius)/1.25)**2
 
-        self.subplot.scatter(atoms[:,0], atoms[:,1], atoms[:,2], s=250*scale, alpha=.9)
+        self.subplot.scatter(atoms[:,0], atoms[:,1], atoms[:,2], s=20*scale,
+            alpha=.9, edgecolors='k')
 
         self.canvas.draw()
 
@@ -9952,7 +9997,7 @@ class DenssPlotPanel(wx.Panel):
 
     def updateColors(self):
         color = SASUtils.update_mpl_style()
-        
+
         # self.ax1_hline.set_color(color)
 
         # self.ax0_err[0].set_color(color)
@@ -10008,7 +10053,7 @@ class DenssPlotPanel(wx.Panel):
             yerr=self.iftm.err_orig, mec='none', mew=0, ms=3, alpha=0.3,
             capsize=0, elinewidth=0.1, ecolor=cc.to_rgba(color_num,alpha=0.5),
             label='Exp. Data')
-        self.ax0_smooth = ax0.plot(q, I, color=color, linestyle='--',alpha=0.7, lw=1, 
+        self.ax0_smooth = ax0.plot(q, I, color=color, linestyle='--',alpha=0.7, lw=1,
             label='Smoothed Exp. Data')[0]
         ax0.plot(qdata[qdata<=q[-1]], Idata[qdata<=q[-1]], 'bo',alpha=0.5,
             label='Interpolated')
@@ -11946,7 +11991,7 @@ class SupcombFrame(wx.Frame):
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
         load_path = dirctrl_panel.getDirLabel()
 
-        filters = 'PDB files (*.pdb)|*.pdb|All files (*.*)|*.*'
+        filters = 'PDB and CIF files (*.pdb;*.cif)|*.pdb;*.cif|All files (*.*)|*.*'
 
         dialog = wx.FileDialog(self, 'Select a file', load_path, style=wx.FD_OPEN,
             wildcard=filters)

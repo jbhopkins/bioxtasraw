@@ -16,8 +16,15 @@ version contains mostly minor bug fixes. Significant changes include:
 *   Removed Windows 7 and 8 support form the prebuilt version for Windows.
 *   Added support for Eiger2 images from BioCAT.
 *   Improved handling of multi-image files.
+*   Adds a new dependency on mmcif_pdbx to read mmcif files.
 
 There are also several other small bug fixes and new features.
+
+NOTE: As of now, RAW is not compatible with ATSAS 3.1.0, which is currently
+available for download as a pre-release. This is because ATSAS 3.1.0 is currently
+missing several important programs, such as some of the DAMAVER set of tools,
+so we can't test against that. Once ATSAS 3.1.0 is officially released we will update
+RAW to support it.
 
 All changes:
 ^^^^^^^^^^^^^
@@ -70,6 +77,13 @@ All changes:
 *   Dropped support for Windows 7 and 8 in the prebuilt version.
 *   Added a prebuilt version for arm64 chips on MacOS (Apple Silicon chips).
 *   Updated DENSS to the current version.
+*   Made RAW mostly dark mode compatible on MacOS (requires wxpython>=4.1.1)
+*   Fixed a bug where DENSS symmetry settings other than 0 would cause an error
+    when the DENSS window was opened.
+*   Added some initial compatibility with ATSAS 3.1.0, but this is not finished
+    because the pre-release version of ATSAS doesn't have several of the necessary
+    programs for testing. Main change is mmcif compatibility for dammif outputs.
+*   Added a new dependency on mmcif_pdbx for reading mmcif files.
 
 
 2.1.1

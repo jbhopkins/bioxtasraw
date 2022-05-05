@@ -34,7 +34,7 @@ Linux install from source instructions
 
     *   ``conda install numpy scipy matplotlib pillow numba h5py cython numexpr reportlab``
 
-    *  ``conda install -c conda-forge wxpython dbus-python fabio pyfai hdf5plugin``
+    *  ``conda install -c conda-forge wxpython dbus-python fabio pyfai hdf5plugin mmcif_pdbx``
 
 #.  Download RAW source code from sourceforge
 

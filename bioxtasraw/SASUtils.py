@@ -353,6 +353,8 @@ def findATSASDirectory():
 
     elif opsys== 'Windows':
         dirs = glob.glob(os.path.expanduser('C:\\Program Files (x86)\\ATSAS*'))
+        dirs2 = glob.glob(os.path.expanduser('C:\\Program Files\\ATSAS*'))
+        dirs += dirs2
 
         if len(dirs) > 0:
             try:

@@ -47,6 +47,7 @@ import fabio
 from PIL import Image
 import matplotlib.backends.backend_pdf
 import h5py
+import pdbx.reader
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -2785,6 +2786,55 @@ def loadPDBFile(filename):
 
     return np.array(atoms), header, useful_params
 
+def loadmmCIFFile(filename):
+    header = []
+    atoms = []
+    useful_params = collections.defaultdict(str)
+
+    data = []
+    with open(filename, 'r') as f:
+        pRd = pdbx.reader.PdbxReader(ifh)
+        pRd.read(data)
+
+    block = data[0]
+
+    sections = block.get_object_name_list()
+
+    if 'atsas_dummy_atom_model' in sections:
+        model_data = block.get_object('atsas_dummy_atom_model')
+        attributes = model_data.attribute_list
+        desc_idx = attributes.find('description')
+        val_idx = attributes.find('value')
+
+        for item in model_data.row_list:
+            if 'maximum distance' in item[desc_idx].lower():
+                useful_params['dmax'] = str(float(item[val_idx].strip()))
+
+            elif 'radius of gyration' in item[desc_idx].lower():
+                useful_params['rg'] = str(float(item[val_idx].strip()))
+
+            elif 'dummy atom radius' in item[desc_idx].lower():
+                useful_params['atom_radius'] = str(float(item[val_idx].strip()))
+
+            elif 'total exluded dam volume' in item[desc_idx].lower():
+                useful_params['excluded_volume'] = str(float(item[val_idx].strip()))
+
+    if 'excluded_volume' in useful_params:
+        useful_params['mw'] = str(round(float(useful_params['excluded_volume'])/1.66/1000.,2))
+
+    if 'atom_site' in sections:
+        atom_data = block.get_object('atom_site')
+        attributes = atom_data.attribute_list
+        x_idx = attributes.find('Cartn_x')
+        y_idx = attributes.find('Cartn_y')
+        z_idx = attributes.find('Cartn_z')
+
+        for item in atom_data.row_list:
+            atoms.append([float(item[x_idx]), float(item[y_idx]), float(item[z_idx])])
+
+    atoms = np.array(atoms)
+
+    return atoms, header, useful_params
 
 def loadDatFile(filename):
     ''' Loads a .dat format file '''
