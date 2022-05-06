@@ -2114,7 +2114,7 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
                 dc_mw, dc_shape, dc_dmax = mw_datclass(profile, rg, i0,
                     write_profile=False, datadir=datadir, filename=filename)
             except Exception:
-                traceback.print_exc()
+                # traceback.print_exc()
                 dc_dmax = -1
 
         if dc_dmax != -1:

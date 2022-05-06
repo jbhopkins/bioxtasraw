@@ -19,3 +19,6 @@ To make a .exe installer, use Inno (simple).
 
 To make a .msi installer (preferred), use Advanced Installer (free for open source projects).
 The wizard is pretty straightforward.
+
+5/6/22 notes:
+Currently requires numba <= 0.53.0.1, newer versions of llvmlite have an issue
