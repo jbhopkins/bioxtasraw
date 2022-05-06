@@ -146,7 +146,7 @@ if opsys == 'Darwin':
                     'CFBundleTypeName' : 'SAXS data file',
                     'LSHandlerRank' : 'Default',
                     'CFBundleTypeExtensions': ['out', 'fit', 'fir', 'rad',
-                        'int', 'dat', 'csv', 'sub', 'txt'],
+                        'int', 'dat', 'csv', 'sub', 'txt', 'ift'],
                     'CFBundleTypeRole' : 'Viewer'
                 },
                 {

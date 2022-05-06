@@ -15729,11 +15729,11 @@ class MyApp(wx.App):
     #currently pyinstaller doesn't actually forward these vents to the
     #program, so there is not way of testing whether they actually work.
     # #Mac specific
-    # def MacOpenFiles(self, filenames):
-    #     """Called for files droped on dock icon, or opened via finders context menu"""
-    #     if not isinstance(filenames, list):
-    #         filenames = [filenames]
-    #     mainworker_cmd_queue.put(['plot', filenames])
+    def MacOpenFiles(self, filenames):
+        """Called for files droped on dock icon, or opened via finders context menu"""
+        if not isinstance(filenames, list):
+            filenames = [filenames]
+        mainworker_cmd_queue.put(['plot', filenames])
 
     # #Mac specific
     # def MacReopenApp(self):

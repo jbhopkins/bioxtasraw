@@ -21,6 +21,8 @@ Steps:
     (note, the disk image must be ejected for this to work
 
 
+5/6/22 notes:
+- Don't need to do the wxpython thing below on arm64
 
 Need to use wxpython >=4.1 to eliminate some weird GUI glitches on MacOS 11 (conda's wx env on 10.11 build machine).
 To do so at the moment with pyinstaller 4.2 requires some manual modification
