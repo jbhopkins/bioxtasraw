@@ -298,7 +298,7 @@ def loadSAXSLAB300Image(filename):
 #--- ## Parse Counter Files and Headers ##
 ##########################################
 
-def parseCSVHeaderFile(filename):
+def parseCSVHeaderFile(filename, new_filename=None):
     counters = {}
 
     return counters
@@ -387,7 +387,7 @@ def parseSAXSLAB300Header(tag_with_data):
 
 
 
-def parseCHESSF2CTSfile(filename):
+def parseCHESSF2CTSfile(filename, new_filename=None):
 
     timeMonitorPattern = re.compile('\d*-second\s[a-z]*\s[()A-Z,]*\s\d*\s\d*')
     closedShutterCountPattern = re.compile('closed\s\d*')
@@ -428,7 +428,7 @@ def parseCHESSF2CTSfile(filename):
 
     return counters
 
-def parseCHESSEIGER4MCountFile(filename):
+def parseCHESSEIGER4MCountFile(filename, new_filename=None):
     ''' Loads information from the counter file at CHESS, id7a from
     the image filename. EIGER .h5 files with 1-based frame numbers '''
     dir, file = os.path.split(filename)
@@ -498,7 +498,7 @@ def parseCHESSEIGER4MCountFile(filename):
 
 
 
-def parseCHESSG1CountFile(filename):
+def parseCHESSG1CountFile(filename, new_filename=None):
     ''' Loads information from the counter file at CHESS, G1 from
     the image filename '''
     dir, file = os.path.split(filename)
@@ -563,7 +563,7 @@ def parseCHESSG1CountFile(filename):
 
     return counters
 
-def parseCHESSG1CountFileWAXS(filename):
+def parseCHESSG1CountFileWAXS(filename, new_filename=None):
     ''' Loads information from the counter file at CHESS, G1 from
     the image filename '''
 
@@ -630,7 +630,7 @@ def parseCHESSG1CountFileWAXS(filename):
 
     return counters
 
-def parseCHESSG1CountFileEiger(filename):
+def parseCHESSG1CountFileEiger(filename, new_filename=None):
     ''' Loads information from the counter file at CHESS, G1 from
     the image filename '''
 
@@ -699,7 +699,7 @@ def parseCHESSG1CountFileEiger(filename):
 
     return counters
 
-def parseMAXLABI911HeaderFile(filename):
+def parseMAXLABI911HeaderFile(filename, new_filename=None):
 
     filepath, ext = os.path.splitext(filename)
     hdr_file = filename + '.hdr'
@@ -717,7 +717,7 @@ def parseMAXLABI911HeaderFile(filename):
     return counters
 
 
-def parseMAXLABI77HeaderFile(filename):
+def parseMAXLABI77HeaderFile(filename, new_filename=None):
 
     filepath, ext = os.path.splitext(filename)
     hdr_file = filename + '.hdr'
@@ -896,7 +896,7 @@ def parseCHESSEigerFilename(filename):
 
     return (countFilename, filenumber, frame_number)
 
-def parseBL19U2HeaderFile(filename):
+def parseBL19U2HeaderFile(filename, new_filename=None):
     fname, ext = os.path.splitext(filename)
 
     countFilename=fname + '.txt'

@@ -23,6 +23,7 @@ Steps:
 
 5/6/22 notes:
 - Don't need to do the wxpython thing below on arm64
+- Have to use nomkl on my laptop (x86_64, macos 11.6)
 
 Need to use wxpython >=4.1 to eliminate some weird GUI glitches on MacOS 11 (conda's wx env on 10.11 build machine).
 To do so at the moment with pyinstaller 4.2 requires some manual modification

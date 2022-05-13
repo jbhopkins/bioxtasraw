@@ -4063,6 +4063,7 @@ class MainWorkerThread(threading.Thread):
         except SASExceptions.HeaderLoadError as msg:
             wx.CallAfter(self._showHeaderError, msg)
             wx.CallAfter(self.main_frame.closeBusyDialog)
+            # traceback.print_exc()
             return
         except SASExceptions.MaskSizeError as msg:
             wx.CallAfter(self._showGenericError, str(msg), 'Saved mask does not fit loaded image')
