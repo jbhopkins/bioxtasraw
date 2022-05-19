@@ -19,8 +19,8 @@ def saxslab_settings():
     return settings
 
 @pytest.fixture()
-def biocat_eiger_settings():
-    settings = raw.load_settings(os.path.join('.', 'data', 'biocat_eiger_settings.cfg'))
+def settings_biocat_eiger():
+    settings = raw.load_settings(os.path.join('.', 'data', 'settings_biocat_eiger.cfg'))
     return settings
 
 def test_load_settings_old(old_settings):
@@ -1401,10 +1401,10 @@ def test_load_images_saxslab(saxslab_settings):
     assert img_hdr['det_exposure_time'] == 999.0
     assert img_hdr['saxsconf_wavelength'] == 1.5418
 
-def test_load_images_biocat_eiger(biocat_eiger_settings):
+def test_load_images_biocat_eiger(settings_biocat_eiger):
     filenames = [os.path.join('.', 'data', 'vac_007_data_000001.h5')]
 
-    img_list, img_hdr_list = raw.load_images(filenames, biocat_eiger_settings)
+    img_list, img_hdr_list = raw.load_images(filenames, settings_biocat_eiger)
 
     assert len(img_list) == 2
     assert len(img_hdr_list) == 2
@@ -1502,11 +1502,11 @@ def test_load_and_integrate_images_saxslab(saxslab_settings):
     assert params['imageHeader']['saxsconf_wavelength'] == 1.5418
     assert 'calibration_params' in params
 
-def test_load_ingegrate_images_biocat_eiger(biocat_eiger_settings):
+def test_load_ingegrate_images_biocat_eiger(settings_biocat_eiger):
     filenames = [os.path.join('.', 'data', 'vac_007_data_000001.h5')]
 
     profile_list, img_list = raw.load_and_integrate_images(filenames,
-        biocat_eiger_settings)
+        settings_biocat_eiger)
 
     assert len(profile_list) == 2
     assert len(img_list) == 1

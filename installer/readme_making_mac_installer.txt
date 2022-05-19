@@ -23,12 +23,18 @@ Steps:
 
 5/6/22 notes:
 - Don't need to do the wxpython thing below on arm64
-- Have to use nomkl on my laptop (x86_64, macos 11.6)
+- Have to use nomkl on >=10.14 for x86_64 with most recent versions of numpy, scipy
+- Building on 10.14 so that codesigning in pyinstaller works correctly (fails on earlier versions)
 
 Need to use wxpython >=4.1 to eliminate some weird GUI glitches on MacOS 11 (conda's wx env on 10.11 build machine).
 To do so at the moment with pyinstaller 4.2 requires some manual modification
 to the app package, as described here:
 https://github.com/pyinstaller/pyinstaller/issues/5710
+Commands from that:
+cd dist/program.app/Contents/MacOS/
+rm -f libwx_osx_cocoau_core-3.1.5.0.0.dylib libwx_baseu-3.1.5.0.0.dylib
+ln -s libwx_osx_cocoau_core-3.1.dylib libwx_osx_cocoau_core-3.1.5.0.0.dylib
+ln -s libwx_baseu-3.1.dylib libwx_baseu-3.1.5.0.0.dylib
 
 Note: For RAW to work on macbooks older than 2011 need to install all packages
 through conda forge. The new ones through conda have some weird error. See:
