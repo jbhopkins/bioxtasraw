@@ -86,6 +86,7 @@ All changes:
     because the pre-release version of ATSAS doesn't have several of the necessary
     programs for testing. Main change is mmcif compatibility for dammif outputs.
 *   Added a new dependency on mmcif_pdbx for reading mmcif files.
+*   Fixed an issue with spin controller display sizes in GTK3 (some linux installs).
 
 
 2.1.1
