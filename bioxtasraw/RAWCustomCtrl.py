@@ -263,7 +263,7 @@ EVT_MY_SPIN = wx.PyEventBinder(myEVT_MY_SPIN, 1)
 class FloatSpinCtrl(wx.Panel):
 
     def __init__(self, parent, id, initValue=None, min_val=None, max_val=None,
-        button_style = wx.SP_VERTICAL, TextLength=40, never_negative=False,
+        button_style = wx.SP_VERTICAL, TextLength=45, never_negative=False,
         **kwargs):
 
         wx.Panel.__init__(self, parent, id, **kwargs)
@@ -492,7 +492,7 @@ class FloatSpinCtrl(wx.Panel):
 class FloatSpinCtrlList(wx.Panel):
 
     def __init__(self, parent, value_list, id=wx.ID_ANY, initIndex=None,
-        button_style=wx.SP_VERTICAL, TextLength=40, min_idx=0, max_idx=-1,
+        button_style=wx.SP_VERTICAL, TextLength=45, min_idx=0, max_idx=-1,
          **kwargs):
 
         wx.Panel.__init__(self, parent, id, **kwargs)
@@ -658,7 +658,8 @@ class FloatSpinCtrlList(wx.Panel):
 
 class IntSpinCtrl(wx.Panel):
 
-    def __init__(self, parent, id=wx.ID_ANY, min_val = None, max_val = None, TextLength = 40, **kwargs):
+    def __init__(self, parent, id=wx.ID_ANY, min_val=None, max_val=None,
+        TextLength=45, **kwargs):
 
         wx.Panel.__init__(self, parent, id, **kwargs)
 
@@ -827,7 +828,7 @@ class IntSpinCtrl(wx.Panel):
 class MagnitudeSpinCtrl(wx.Panel):
 
     def __init__(self, parent, id, initValue=None, min_val=None, max_val=None,
-        button_style = wx.SP_VERTICAL, TextLength=40, never_negative=False,
+        button_style = wx.SP_VERTICAL, TextLength=45, never_negative=False,
         **kwargs):
 
         wx.Panel.__init__(self, parent, id, **kwargs)
@@ -927,7 +928,10 @@ class MagnitudeSpinCtrl(wx.Panel):
                 self.Scale.SetValue(str(self.min))
 
         try:
-            self.num_of_digits = len(val.split('.')[1].lower().split('e')[0])
+            if '.' in val:
+                self.num_of_digits = len(val.split('.')[1].lower().split('e')[0])
+            else:
+                self.num_of_digits = 0
 
         except IndexError:
             self.num_of_digits = None
@@ -1030,7 +1034,10 @@ class MagnitudeSpinCtrl(wx.Panel):
                 self.Scale.SetValue(str(self.min))
 
         try:
-            self.num_of_digits = len(val.split('.')[1].lower().split('e')[0])
+            if '.' in val:
+                self.num_of_digits = len(val.split('.')[1].lower().split('e')[0])
+            else:
+                self.num_of_digits = 0
 
         except IndexError:
             self.num_of_digits = None
@@ -1054,7 +1061,10 @@ class MagnitudeSpinCtrl(wx.Panel):
                 self.Scale.SetValue(str(self.min))
 
         try:
-            self.num_of_digits = len(val.split('.')[1].lower().split('e')[0])
+            if '.' in val:
+                self.num_of_digits = len(val.split('.')[1].lower().split('e')[0])
+            else:
+                self.num_of_digits = 0
 
         except IndexError:
             self.num_of_digits = None
