@@ -11,6 +11,7 @@ hdf5plugin
 silx
 fabio
 reportlab
+mmcif_pdbx
 pyfai ; python_version > '2.7'
 pyfai == 0.17; python_version == '2.7'
 future; python_version == '2.7'
