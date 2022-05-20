@@ -346,7 +346,7 @@ class MainFrame(wx.Frame):
         thread.daemon = True
         thread.start()
 
-        
+
 
         wx.CallAfter(self._showWelcomeDialog)
 
@@ -492,7 +492,7 @@ class MainFrame(wx.Frame):
 
         RAWGlobals.general_text_color = system_settings.GetColour(wx.SYS_COLOUR_WINDOWTEXT)
         RAWGlobals.highlight_color = system_settings.GetColour(wx.SYS_COLOUR_HIGHLIGHT)
-        
+
         try:
             system_appearance = system_settings.GetAppearance()
             is_dark = system_appearance.IsDark()
@@ -596,7 +596,7 @@ class MainFrame(wx.Frame):
             is_dark = system_appearance.IsDark()
         except Exception:
             is_dark = False
-            
+
         if is_dark:
             self.collapse_all.Replace(0,0,0,255,255,255)
             self.expand_all.Replace(0,0,0,255,255,255)
@@ -685,7 +685,7 @@ class MainFrame(wx.Frame):
             pass
 
         # self.supcomb_frames = []
-        
+
         try:
             for frame in self.svd_frames:
                 frame.updateColors()
@@ -4047,7 +4047,7 @@ class MainWorkerThread(threading.Thread):
                     secm_list = []
 
             if len(sasm_list) > 0:
-                self._sendSASMToPlot(sasm_list, axes_num=axes_num, 
+                self._sendSASMToPlot(sasm_list, axes_num=axes_num,
                     item_colour = RAWGlobals.general_text_color,
                     no_update=True, update_legend=False)
                 loaded_sasm = True
@@ -4065,6 +4065,7 @@ class MainWorkerThread(threading.Thread):
         except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat) as msg:
             wx.CallAfter(self._showDataFormatError, os.path.split(each_filename)[1])
             wx.CallAfter(self.main_frame.closeBusyDialog)
+            # traceback.print_exc()
             return
         except SASExceptions.HeaderLoadError as msg:
             wx.CallAfter(self._showHeaderError, msg)
@@ -9625,7 +9626,7 @@ class IFTPanel(wx.Panel):
         self.target_png = wx.Bitmap(self.main_frame.target)
         self.target_on_png = wx.Bitmap(self.main_frame.target_on)
         self.info_png = wx.Bitmap(self.main_frame.info)
-    
+
     def _createToolbar(self):
 
         sizer = wx.BoxSizer()
@@ -10220,7 +10221,7 @@ class IFTItemPanel(wx.Panel):
         self._bkg_color = RAWGlobals.list_item_bkg_color
 
         self._initializeIcons()
-        
+
         if not self._selected:
             self.SetBackgroundColour(self._bkg_color)
             self.showitem_icon.SetBackgroundColour(self._bkg_color)

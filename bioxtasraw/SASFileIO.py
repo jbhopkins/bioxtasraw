@@ -1097,6 +1097,7 @@ def loadImage(filename, raw_settings, hdf5_file=None, next_image=None):
         else:
             img, imghdr = all_image_types[image_type](filename)
     except (ValueError, TypeError, KeyError, fabio.fabioutils.NotGoodReader, Exception) as msg:
+        # traceback.print_exc()
         raise SASExceptions.WrongImageFormat('Error loading image, ' + str(msg))
 
     if not isinstance(img, list):
@@ -1304,7 +1305,7 @@ def loadImageFile(filename, raw_settings, hdf5_file=None, return_all_images=True
                 base_hdr = hdrfile_info = loadHeader(filename, new_filename, hdr_fmt)
 
                 if not filename.endswith('master.h5'):
-                    sname_offset = int(filename.split('.')[0].split('_')[-1])-1
+                    sname_offset = int(os.path.splitext(filename)[0].split('_')[-1])-1
                 else:
                     sname_offset = 0
 
