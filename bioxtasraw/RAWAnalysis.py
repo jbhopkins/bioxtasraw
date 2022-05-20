@@ -4800,7 +4800,8 @@ class GNOMControlPanel(wx.Panel):
                 self.raw_settings.set('GnomFilePath', False)
                 wx.CallAfter(wx.MessageBox, 'The folder:\n' +self.raw_settings.get('GNOMFilePath')+ '\ncould not be found. Autosave of GNOM files has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
-        RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [iftm, 'black', None, not self.raw_settings.get('AutoSaveOnGnom')]])
+        RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [iftm, RAWGlobals.general_text_color, 
+            None, not self.raw_settings.get('AutoSaveOnGnom')]])
 
 
         self.gnom_frame.OnClose()
@@ -11179,7 +11180,8 @@ class BIFTControlPanel(wx.Panel):
                 wx.CallAfter(wx.MessageBox, 'The folder:\n' +self.raw_settings.get('BiftFilePath')+ '\ncould not be found. Autosave of BIFT files has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
         if self.iftm is not None:
-            RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [self.iftm, 'blue', None, not self.raw_settings.get('AutoSaveOnBift')]])
+            RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [self.iftm, RAWGlobals.bift_item_color, 
+                None, not self.raw_settings.get('AutoSaveOnBift')]])
 
         self.bift_frame.close()
 

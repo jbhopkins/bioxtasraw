@@ -503,10 +503,12 @@ class MainFrame(wx.Frame):
             RAWGlobals.list_bkg_color = system_settings.GetColour(wx.SYS_COLOUR_LISTBOX)
             RAWGlobals.list_item_bkg_color = self.GetBackgroundColour()
             RAWGlobals.tab_color = system_settings.GetColour(wx.SYS_COLOUR_BTNSHADOW)
+            RAWGlobals.bift_item_color = 'sky blue'
         else:
             RAWGlobals.list_bkg_color = 'white'
             RAWGlobals.list_item_bkg_color = 'white'
             RAWGlobals.tab_color = 'white'
+            RAWGlobals.bift_item_color = 'blue'
 
     def _getIcons(self):
         #Icons for ManipulationPanel (some shared with ManipItemPanel)
@@ -3628,8 +3630,12 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.plot_panel.fitAxis)
 
 
-    def _sendSASMToPlotSEC(self, sasm, axes_num=1, item_colour=RAWGlobals.general_text_color,
+    def _sendSASMToPlotSEC(self, sasm, axes_num=1, item_colour=None,
         line_color=None, no_update=False, notsaved=False, update_legend=True):
+
+        if item_colour is None:
+            item_color = RAWGlobals.general_text_color
+
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while plotting frames...')
 
         wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num,
