@@ -17,9 +17,17 @@ Steps:
 8)  In the installer/linux directory run "python make_deb_installer.py"
 9)  Rename the package appropriate (e.g. RAW-2.0.0-linux-amd64.deb)
 
+Current build notes:
+- Using Ubuntu 14.04 LTS
+- On linux requires wxpython 4.0.4 (later versions don't package right with pyinstaller)
+- With conda on linux, 4.0.4 requires python 3.7
+- Requires pyinstaller 4.1 or earlier?
+- Using raw_build environment on the virtualbox machine.
+
 Note: If installer is built on Ubuntu 14.04 LTS it works on Debian 8-10 and Ubuntu 14-18.
-If installer is built on Debian 8 it works on Debian 8-10 and Ubuntu 16-18. Currently
-building on Ubuntu 14.04 using conda 'revert_test' env (some broke in the base env)
+If installer is built on Debian 8 it works on Debian 8-10 and Ubuntu 16-18.
+
+Need wxpython < 4.1 on Ubuntu 16.04?
 
 Useful resources for building .deb package:
 https://plashless.wordpress.com/2013/08/25/a-short-debian-packaging-case-gui-apps-gpl-pyinstaller/

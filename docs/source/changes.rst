@@ -14,13 +14,13 @@ version contains mostly minor bug fixes. Significant changes include:
 
 *   Added a prebuilt version for arm64 chips on MacOS (Apple Silicon).
 *   Removed Windows 7 and 8 support form the prebuilt version for Windows.
-*   Removed support for MacOS <10.14 from the prebuilt vresion for MacOS
+*   Removed support for MacOS <10.14 from the prebuilt version for MacOS
     (required for codesigning for newer versions).
 *   Added support for Eiger2 images from BioCAT.
 *   Improved handling of multi-image files.
 *   Adds a new dependency on mmcif_pdbx to read mmcif files.
 
-There are also several other small bug fixes and new features.
+There are also numerous other small bug fixes and new features.
 
 NOTE: As of now, RAW is not compatible with ATSAS 3.1.0, which is currently
 available for download as a pre-release. This is because ATSAS 3.1.0 is currently
@@ -39,8 +39,8 @@ All changes:
 *   Fixed a bug where a series buffer region wasn't found if there were no peaks
     present in the data set.
 *   Fixed a bug where REGALS results would show two lines for the same concentration
-    curve when it was supposed to.
-*   fixed a bug where validation of the REGALS settings could cause an error.
+    curve when it wasn't supposed to.
+*   Fixed a bug where validation of the REGALS settings could cause an error.
 *   Fixed a bug where changing the range for REGALS in the SVD plot when there
     were previous REGALS results could cause an error.
 *   Fixed a bug where using the qmin or qmax boxes in the series adjustment

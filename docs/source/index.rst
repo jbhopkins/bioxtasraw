@@ -59,7 +59,7 @@ at CHESS and the `BioCAT <https://www.bio.aps.anl.gov/>`_  (18-ID) beamline at t
 also used at various other beamlines, including:
 
 *   BL19U2 (SSRF)
-*   I911-4 (aka I911-SAXS) beamline at MAX-LAB
+*   LiX (NSLS II)
 
 `SAXSLAB <http://saxslab.com/>`_ distributes RAW with some of its homesources,
 and RAW is used at various other homesources around the world.

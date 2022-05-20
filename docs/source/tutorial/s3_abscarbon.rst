@@ -3,8 +3,8 @@ Setting absolute scale with glassy carbon
 .. _s3p6:
 
 This section teaches you how to set up absolute scale using glassy carbon (NIST SRM 3600)
-as a reference. It assumes you have completed :ref:`Parts 1 <s3p1>`,
-:ref:`2 <s3p3>` and :ref:`3 <s3p4>`\ . Note that you can use water (:ref:`Part 4 <s3p5>`) or
+as a reference. It assumes you have completed :ref:`Parts 1 <s3p3>`,
+:ref:`2 <s3p1>` and :ref:`3 <s3p4>`\ . Note that you can use water (:ref:`Part 4 <s3p5>`) or
 glassy carbon for absolute scale calibration in RAW. Glassy carbon is the more accurate approach,
 if available.
 

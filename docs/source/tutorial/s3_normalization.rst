@@ -3,7 +3,7 @@ Setting normalization and other options
 .. _s3p4:
 
 This section teaches you how to set up normalization by a beamstop counter, and
-other options. It assumes you have completed :ref:`Parts 1 <s3p1>` and :ref:`2 <s3p3>`\ .
+other options. It assumes you have completed :ref:`Parts 1 <s3p3>` and :ref:`2 <s3p1>`\ .
 
 A video version of this tutorial is available:
 

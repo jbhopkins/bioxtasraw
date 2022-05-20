@@ -144,7 +144,7 @@ The written version of the tutorial follows.
         where there are minor elution components that you should exclude from
         your buffer selection.
 
-#.  Zoom back out on the plot. Reset the buffer range to 539 to 568 by typing
+#.  Zoom back out on the plot. Reset the buffer range to 434 to 492 by typing
     those values in the Start/End range boxes and hitting enter.
 
 #.  To set the buffer region, create a set of subtracted profiles, and calculate
@@ -212,7 +212,7 @@ The written version of the tutorial follows.
     *   *Tip:* You can manually adjust the sample region range in the same way
         as the buffer range, using the controls in the Start/End boxes.
 
-#.  Once you are satisfied with the region picked (should be 690-719), click the
+#.  Once you are satisfied with the region picked (should be 697-711), click the
     'To Profiles Plot' button. This averages the selected region and sends the resulting
     average to RAW's Profiles Plot.
 
@@ -225,15 +225,15 @@ The written version of the tutorial follows.
 #.  If you adjust the sample or buffer region in a way that could be problematic,
     RAW will warn you. Try this.
 
-    *   Adjust the Buffer end to include some of the leading edge peaks, such as
-        ending at 600. You will want to click on the 'Unsubtracted' plot to
+    *   Adjust the Buffer end to include more of the elution range, such as
+        ending at 520. You will want to click on the 'Unsubtracted' plot to
         see the buffer range. Then click 'Set Buffer'. You will see a warning window
         telling you what might be wrong with the selected region. Click 'Cancel'.
 
         |lc_analysis_buffer_range_warning_png|
 
-    *   Adjust the Sample start to include some of the non-flat region, such as
-        starting at 681. Then click 'To Profiles Plot'. You will see a warning window
+    *   Adjust the Sample start to include some of the non-flat Rg region, such as
+        starting at 680. Then click 'To Profiles Plot'. You will see a warning window
         telling you what might be wrong with the selected region. Click 'Cancel'.
 
         |lc_analysis_sample_range_warning_png|
@@ -286,7 +286,7 @@ The written version of the tutorial follows.
     |lc_analysis_two_buffers_png|
 
 #.  Once you are happy with the second buffer region, click 'Set buffer'. A range like
-    ~840-870 is reasonable.
+    ~840-896 is reasonable.
 
 #.  A warning window will pop up. In this case, we have purposefully chosen two
     buffer regions because they are different, so ignore the warning and click

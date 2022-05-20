@@ -3,15 +3,18 @@ Using a prebuilt app package
 .. _macprebuilt:
 
 The recommended way to install RAW on Mac is using a prebuilt app package. To install
-from a prebuilt app package simply download the :file:`RAW-{x}.{y}.{z}-mac.dmg` (where :file:`{x}.{y}.{z}` is the
-version number) file from sourceforge (
+from a prebuilt app package simply download the :file:`RAW-{x}.{y}.{z}-mac-{platform}.dmg`
+(where :file:`{x}.{y}.{z}` is the version number and :file:`{platform}` is x86_64 for
+Intel macs and arm64 for Apple Silicon macs) file from sourceforge (
 `https://sourceforge.net/projects/bioxtasraw <https://sourceforge.net/projects/bioxtasraw>`_),
 double click it to open the dmg, and drag the :file:`RAW.app` file to your Applications folder
 (or wherever you want to install RAW).
 
-.. raw:: html
+Direct links fo the downloads:
 
-    <a href="https://sourceforge.net/projects/bioxtasraw/files/latest/download"><img alt="Download BioXTAS RAW" src="https://a.fsdn.com/con/app/sf-download-button" width=276 height=48 srcset="https://a.fsdn.com/con/app/sf-download-button?button_size=2x 2x"></a>
+*   `Apple Silicon macs (M1 or newer chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.1.2-mac-arm64.dmg/download>`_)
+
+*   `Intel macs (pre-M1 chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.1.2-mac-x86_64.dmg/download>`_)
 
 
 **Important Notes:**

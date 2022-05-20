@@ -2,10 +2,11 @@ Centering and calibration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _s3p1:
 
-The first step is to set the beam center, x-ray wavelength, and sample to detector distance.
+The next step is to set the beam center, x-ray wavelength, and sample to detector distance.
 Before this can be done, you have to set the image and file header type in the Options window.
 The best way to find the beam center and sample to detector distance is using the automated
-method in RAW.
+method in RAW. This tutorial assumes you have just done :ref:`Part 1 <s3p3>`.
+If not, open RAW as in Step 1 and set your data folder as in Step 8 of :ref:`Part 1 <s3p3>`.
 
 A video version of this tutorial is available:
 
@@ -14,34 +15,6 @@ A video version of this tutorial is available:
     <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube.com/embed/v7-CROk8oqM' frameborder='0' allowfullscreen></iframe></div>
 
 The written version of the tutorial follows.
-
-#.  Open RAW. The install instructions contain information on installing and running RAW.
-
-#.  Open the Options window by going to the Options menu (top of the RAW window or in the
-    system bar, depending on your OS) and selecting “Advanced Options”
-
-#.  In the options window, select the Image/Header Format section on the left.
-
-#.  In the area on the right, set the Image format drop-down menu to “Pilatus” and the
-    Header file format to “BioCAT, APS”.
-
-    |options_header_png|
-
-#.  Go to the "General Settings" section. If necessary, uncheck both of the Flip Image
-    checkboxes. These allow you to control the orientation of the displayed image,
-    and make it match the physical layout of the instrument. For this beamline and
-    image type, no modification is necessary.
-
-    |options_general_png|
-
-#.  Go to the "Radial Averaging" section. Set the Detector to "pilatus_1m"
-
-    |options_radial_1_png|
-
-#.  Click the OK button in the bottom right to close the window and save the
-    changes to the settings.
-
-#.  In the files tab, navigate to the **Tutorial_Data/calibration_data** folder.
 
 #.  We will use silver behenate to calibrate the sample to detector distance,
     the beam center on the detector, and the detector rotation. Show the silver
@@ -101,11 +74,12 @@ The written version of the tutorial follows.
     *   *Tip:* If it didn’t find very many points, try clicking again on another
         part of the ring, and it will add more points to your selection.
 
-#.  Click on the other portions of the same ring that are on different detector
+#.  If needed, click on the other portions of the same ring that are on different detector
     panels to find out the rest of the points in this calibration ring.
 
     *   *Note:* The autofind algorithm will only find peaks in contiguous
-        regions.
+        regions. However, masked regions don't count, so if you've masked the
+        panel gaps before calibration it should find points in all of the panels.
 
     *   *Tip:* Due to the color map selected, the points may be hard to see. Try changing
         to the heat map or grayscale to see the selected points,.
@@ -163,15 +137,6 @@ The written version of the tutorial follows.
 #.  Click the OK button in the Centering/Calibration panel to save your settings and
     exit the panel.
 
-
-.. |options_header_png| image:: images/options_header.png
-    :target: ../_images/options_header.png
-
-.. |options_general_png| image:: images/options_general.png
-    :target: ../_images/options_general.png
-
-.. |options_radial_1_png| image:: images/options_radial_1.png
-    :target: ../_images/options_radial_1.png
 
 .. |calibration_image_png| image:: images/calibration_image.png
     :target: ../_images/calibration_image.png

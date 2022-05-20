@@ -2,17 +2,46 @@ Masking
 ^^^^^^^^^^^^^^^
 .. _s3p3:
 
-This section teaches you how to mask out unwanted portions of your image, such as the
-beamstop and bad detector pixels. It assumes you have just done :ref:`Part 1 <s3p1>`.
-If not, open RAW as in Step 1 and set your data folder as in Step 8 of :ref:`Part 1 <s3p1>`.
+The first step in creating a calibraiton file is to to mask out unwanted
+portions of your image, such as the beamstop and bad detector pixels. Before
+this can be done, you have to set the image and file header type in the Options window.
 
-A video version of this tutorial is available:
+A video version of this tutorial is available (please see the first part of the centering
+and calibration video for how to set the initial options):
 
 .. raw:: html
 
     <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube.com/embed/JiacpOC4FJE' frameborder='0' allowfullscreen></iframe></div>
 
 The written version of the tutorial follows.
+
+#.  Open RAW. The install instructions contain information on installing and running RAW.
+
+#.  Open the Options window by going to the Options menu (top of the RAW window or in the
+    system bar, depending on your OS) and selecting “Advanced Options”
+
+#.  In the options window, select the Image/Header Format section on the left.
+
+#.  In the area on the right, set the Image format drop-down menu to “Pilatus” and the
+    Header file format to “BioCAT, APS”.
+
+    |options_header_png|
+
+#.  Go to the "General Settings" section. If necessary, uncheck both of the Flip Image
+    checkboxes. These allow you to control the orientation of the displayed image,
+    and make it match the physical layout of the instrument. For this beamline and
+    image type, no modification is necessary.
+
+    |options_general_png|
+
+#.  Go to the "Radial Averaging" section. Set the Detector to "pilatus_1m"
+
+    |options_radial_1_png|
+
+#.  Click the OK button in the bottom right to close the window and save the
+    changes to the settings.
+
+#.  In the files tab, navigate to the **Tutorial_Data/calibration_data** folder.
 
 #.  In the Files tab, select the **water1_014_0001.tif** file and click the show image button.
 
@@ -71,7 +100,7 @@ The written version of the tutorial follows.
     *   *Tip:* Each click in a polygon mask adds a new point, which defines a
         line segment between it and the previous point.
 
-    |masking_circle_png|
+    |masking_polygon_png|
 
 #.  Zoom back out to the full extent of the image.
 
@@ -112,6 +141,16 @@ The written version of the tutorial follows.
     These save the mask to a separate file or load a mask from a separate file.
     These do not save or set the mask in RAW. To do that you need to use the
     "Set" button as described above. The mask is then saved with the settings.
+
+
+.. |options_header_png| image:: images/options_header.png
+    :target: ../_images/options_header.png
+
+.. |options_general_png| image:: images/options_general.png
+    :target: ../_images/options_general.png
+
+.. |options_radial_1_png| image:: images/options_radial_1.png
+    :target: ../_images/options_radial_1.png
 
 .. |masking_image_1_png| image:: images/masking_image_1.png
     :target: ../_images/masking_image_1.png

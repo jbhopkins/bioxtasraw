@@ -1502,7 +1502,7 @@ def test_load_and_integrate_images_saxslab(saxslab_settings):
     assert params['imageHeader']['saxsconf_wavelength'] == 1.5418
     assert 'calibration_params' in params
 
-def test_load_ingegrate_images_biocat_eiger(settings_biocat_eiger):
+def test_load_integrate_images_biocat_eiger(settings_biocat_eiger):
     filenames = [os.path.join('.', 'data', 'vac_007_data_000001.h5')]
 
     profile_list, img_list = raw.load_and_integrate_images(filenames,

@@ -7,17 +7,7 @@ OS X and macOS install from source instructions
     *   Download the free miniconda python 3.x, e.g. 3.8, installer from:
         `https://docs.conda.io/en/latest/miniconda.html <https://docs.conda.io/en/latest/miniconda.html>`_
 
-        *   Make sure you get the python 3.x version!
-
-    *   Open a Terminal window by starting the Terminal app.
-
-        *   Using the Launcher, it is located in the Other section.
-
-        |10000201000006900000041A52DBF3453A0EEDE9_png|
-
-        |10000201000007800000043899D84AD76212B4C9_png|
-
-        *   Browsing the Applications folder in Finder, Terminal is in the Utilities folder.
+    *   Open a Terminal window.
 
     *   In the terminal window type ``cd ~\Downloads`` and hit enter.
 
@@ -88,10 +78,3 @@ OS X and macOS install from source instructions
     *   In the future, you can start RAW as in the previous step.
 
     *   If RAW doesn’t work, check out the :ref:`solutions to common problems <mactrb>`
-
-
-
-.. |10000201000007800000043899D84AD76212B4C9_png| image:: images/mac_install/10000201000007800000043899D84AD76212B4C9.png
-
-
-.. |10000201000006900000041A52DBF3453A0EEDE9_png| image:: images/mac_install/10000201000006900000041A52DBF3453A0EEDE9.png

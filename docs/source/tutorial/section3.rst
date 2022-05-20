@@ -16,8 +16,8 @@ Sections 1 and 2.
 .. toctree::
    :maxdepth: 2
 
-   s3_autocenter
    s3_masking
+   s3_autocenter
    s3_normalization
    s3_abswater
    s3_abscarbon
