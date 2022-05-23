@@ -14,8 +14,6 @@ version contains mostly minor bug fixes. Significant changes include:
 
 *   Added a prebuilt version for arm64 chips on MacOS (Apple Silicon).
 *   Removed Windows 7 and 8 support form the prebuilt version for Windows.
-*   Removed support for MacOS <10.14 from the prebuilt version for MacOS
-    (required for codesigning for newer versions).
 *   Added support for Eiger2 images from BioCAT.
 *   Improved handling of multi-image files.
 *   Adds a new dependency on mmcif_pdbx to read mmcif files.
@@ -79,7 +77,8 @@ All changes:
 *   Dropped support for Windows 7 and 8 in the prebuilt version.
 *   Added a prebuilt version for arm64 chips on MacOS (Apple Silicon chips).
 *   Updated DENSS to the current version.
-*   Made RAW mostly dark mode compatible on MacOS (requires wxpython>=4.1.1)
+*   Made RAW mostly dark mode compatible on MacOS (requires wxpython>=4.1.1).
+    May not work in the pre-built version for Intel macs.
 *   Fixed a bug where DENSS symmetry settings other than 0 would cause an error
     when the DENSS window was opened.
 *   Added some initial compatibility with ATSAS 3.1.0, but this is not finished

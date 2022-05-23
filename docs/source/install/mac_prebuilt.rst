@@ -14,7 +14,7 @@ Direct links fo the downloads:
 
 *   `Apple Silicon macs (M1 or newer chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.1.2-mac-arm64.dmg/download>`_)
 
-*   `Intel macs (pre-M1 chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.1.1-mac.dmg/download>`_)
+*   `Intel macs (pre-M1 chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.1.2-mac-x86_64.dmg/download>`_)
 
 
 **Important Notes:**
