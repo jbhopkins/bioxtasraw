@@ -24,7 +24,8 @@ Steps:
 5/6/22 notes:
 - Don't need to do the wxpython thing below on arm64
 - Have to use nomkl on >=10.14 for x86_64 with most recent versions of numpy, scipy
-- Building on 10.14 so that codesigning in pyinstaller works correctly (fails on earlier versions)
+- To use the nweer versions of pyisntaller, you have to build on 10.14 so that codesigning in pyinstaller works correctly (fails on earlier versions). That's still failing by giving a file is damaged error once you upload to sourceforg then download and trying to run the .app.
+- Still building on 10.11, using pyinstaller 4.3 (conda env py37)
 
 Need to use wxpython >=4.1 to eliminate some weird GUI glitches on MacOS 11 (conda's wx env on 10.11 build machine).
 To do so at the moment with pyinstaller 4.2 requires some manual modification
