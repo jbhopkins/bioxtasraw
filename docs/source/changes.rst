@@ -4,7 +4,7 @@ Changes
 2.1.2
 -----------
 
-Release date: 2022-05-20
+Release date: 2022-05-23
 
 Overview
 ^^^^^^^^^^^
