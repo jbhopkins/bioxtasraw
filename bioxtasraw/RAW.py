@@ -57,6 +57,7 @@ import ctypes
 import hdf5plugin #HAS TO BE FIRST
 import numpy as np
 import scipy.constants
+import matplotlib as mpl
 import matplotlib.colors as mplcol
 import pyFAI, pyFAI.calibrant, pyFAI.control_points
 import wx
@@ -233,6 +234,11 @@ class MainFrame(wx.Frame):
         self._getIcons()
 
         self.Bind(wx.EVT_SYS_COLOUR_CHANGED, self._onColorChanged)
+
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
 
         self.OnlineControl = OnlineController(self, self.raw_settings)
         self.OnlineSECControl = OnlineSECController(self, self.raw_settings)
@@ -645,6 +651,7 @@ class MainFrame(wx.Frame):
         self.info_panel.updateColors()
         self.plot_panel.updateColors()
         self.ift_plot_panel.updateColors()
+        self.sec_plot_panel.updateColors()
         self.img_panel.updateColors()
         self.centering_panel.updateColors()
 
@@ -732,6 +739,10 @@ class MainFrame(wx.Frame):
             pass
 
         # self.help_frames = []
+
+
+    def _onDPIChanged(self, evt):
+        SASUtils.update_mpl_style()
 
     def getRawSettings(self):
         return self.raw_settings

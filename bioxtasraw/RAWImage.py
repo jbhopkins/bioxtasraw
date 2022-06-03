@@ -308,18 +308,7 @@ class ImagePanel(wx.Panel):
         self.draw_cid = self.canvas.mpl_connect('draw_event', self.safe_draw)
 
     def updateColors(self):
-        system_settings = wx.SystemSettings()
-        
-        try:
-            system_appearance = system_settings.GetAppearance()
-            is_dark = system_appearance.IsDark()
-        except Exception:
-            is_dark = False
-            
-        if is_dark:
-            matplotlib.style.use('dark_background')
-        else:
-            matplotlib.style.use('default')
+        SASUtils.update_mpl_style()
 
         self.canvas.draw()
 
