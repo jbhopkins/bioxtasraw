@@ -331,11 +331,11 @@ The written version of the tutorial follows.
     |series_star_png|
 
 #.  In the ‘Data to Profiles plot’ section enter the frame range of interest.
-    For this dataset, try the buffer range you selected: 539 to 568. Then click
+    For this dataset, try the buffer range you selected: 434 to 492. Then click
     the ‘Average’ button. That will send the average buffer to the Profiles plot.
 
     *   *Try:* Send the average of the sample range you selected to the main
-        plot (699 to 713), carry out the subtraction, and verify it’s the same as
+        plot (697 to 711), carry out the subtraction, and verify it’s the same as
         the curve produced by the ‘To Profiles Plot’ button in the LC Series Analysis
         panel.
 
