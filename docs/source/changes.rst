@@ -16,7 +16,7 @@ version contains a single bug fix:
     was dragged between two monitors.
 
 It's not clear how prevalent this bug was, but given the potential severity
-it warrented a quick fix/release.
+it warranted a quick fix/release.
 
 NOTE: As of now, RAW is not compatible with ATSAS 3.1.0, which is currently
 available for download as a pre-release. This is because ATSAS 3.1.0 is currently
