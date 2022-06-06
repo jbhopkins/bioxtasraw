@@ -22,7 +22,8 @@ NOTE: As of now, RAW is not compatible with ATSAS 3.1.0, which is currently
 available for download as a pre-release. This is because ATSAS 3.1.0 is currently
 missing several important programs, such as some of the DAMAVER set of tools,
 so we can't test against that. Once ATSAS 3.1.0 is officially released we will update
-RAW to support it.
+RAW to support it. The same may apply to the 3.2.0 pre-release, we haven't been
+able to test that yet.
 
 All changes:
 ^^^^^^^^^^^^^
