@@ -12,8 +12,8 @@ Overview
 The RAW team is pleased to announce the release of RAW version 2.1.3. This
 version contains a single bug fix:
 
-*   Fixed a that could prevent data from loading into RAW when the RAW window
-    was dragged between two monitors.
+*   Fixed a bug that could prevent data from loading into RAW after the RAW
+    window was dragged between two monitors.
 
 It's not clear how prevalent this bug was, but given the potential severity
 it warranted a quick fix/release.
@@ -28,8 +28,8 @@ able to test that yet.
 All changes:
 ^^^^^^^^^^^^^
 
-*   Fixed a that could prevent data from loading into RAW when the RAW window
-    was dragged between two monitors.
+*   Fixed a bug that could prevent data from loading into RAW after the RAW
+    window was dragged between two monitors.
 
 2.1.2
 -----------
