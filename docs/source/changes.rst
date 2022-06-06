@@ -1,6 +1,35 @@
 Changes
 ============
 
+2.1.3
+-----------
+
+Release date: 2022-06-06
+
+Overview
+^^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 2.1.3. This
+version contains a single bug fix:
+
+*   Fixed a that could prevent data from loading into RAW when the RAW window
+    was dragged between two monitors.
+
+It's not clear how prevalent this bug was, but given the potential severity
+it warrented a quick fix/release.
+
+NOTE: As of now, RAW is not compatible with ATSAS 3.1.0, which is currently
+available for download as a pre-release. This is because ATSAS 3.1.0 is currently
+missing several important programs, such as some of the DAMAVER set of tools,
+so we can't test against that. Once ATSAS 3.1.0 is officially released we will update
+RAW to support it.
+
+All changes:
+^^^^^^^^^^^^^
+
+*   Fixed a that could prevent data from loading into RAW when the RAW window
+    was dragged between two monitors.
+
 2.1.2
 -----------
 
