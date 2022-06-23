@@ -941,19 +941,23 @@ def rebin(profiles, npts=100, rebin_factor=1, log_rebin=False):
 
         if rebin_factor != 1:
             if rebin_factor != 0:
-                npts = int(np.floor(len(profile.getQ())/rebin_factor))
+                rb_pts = int(np.floor(len(profile.getQ())/rebin_factor))
             else:
-                npts = len(profile.getQ())
+                rb_pts = len(profile.getQ())
+
+            rb_fac = rebin_factor
         else:
             if npts >= 1:
-                rebin_factor = int(np.floor(len(profile.getQ())/float(npts)))
+                rb_fac = int(np.floor(len(profile.getQ())/float(npts)))
             else:
-                rebin_factor = 1
+                rb_fac = 1
+
+            rb_pts = npts
 
         if log_rebin:
-            rebin_profile = SASProc.logBinning(profile, npts)
+            rebin_profile = SASProc.logBinning(profile, rb_pts)
         else:
-            rebin_profile = SASProc.rebin(profile, rebin_factor)
+            rebin_profile = SASProc.rebin(profile, rb_fac)
 
         rebin_profile.setParameter('filename',
             'R_{}'.format(rebin_profile.getParameter('filename')))
