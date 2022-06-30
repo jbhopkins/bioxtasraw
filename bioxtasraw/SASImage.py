@@ -307,7 +307,7 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
 
     maxlen = int(max(diag1, diag2, diag3, diag4, maxlen1))
 
-    if bin_type == 'Linear':
+    if bin_type == 'Linear' and bin_size != 1:
         npts = maxlen//bin_size
     else:
         npts = maxlen
@@ -459,17 +459,23 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
         integrate_func = ai.integrate1d
 
     else:
-        integrate_func = ai.sigma_clip
+        integrate_func = ai.sigma_clip_ng
 
         integration_kwargs['thres'] = zinger_thres
         integration_kwargs['max_iter'] = zinger_iter
 
         #Necessary for the legacy version, hopefully the ng will be available soon
-        del integration_kwargs['variance']
-        del integration_kwargs['radial_range']
-        del integration_kwargs['error_model']
+        # del integration_kwargs['variance']
+        # del integration_kwargs['radial_range']
+        # del integration_kwargs['error_model']
+
+        del integration_kwargs['normalization_factor'] #Work around a bug that should be fixed in pyFAI 0.22
 
     q, iq, errorbars = integrate_func(img, npts, **integration_kwargs)
+
+    if zinger_removal:
+        iq /= norm_factor
+        errorbars /= norm_factor
 
     errorbars = np.nan_to_num(errorbars)
 
@@ -507,7 +513,7 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
             elif op == '-':
                 sasm.offsetRawIntensity(-val)
 
-    if bin_type == 'Log10':
+    if bin_type == 'Log10' and bin_size != 1:
         sasm = SASProc.logBinning(sasm, len(q)//bin_size)
 
     return sasm
