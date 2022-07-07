@@ -12045,19 +12045,14 @@ class SupcombFrame(wx.Frame):
         adv_win = adv_panel.GetPane()
 
         self.mode = wx.Choice(adv_win, choices=['fast', 'slow'])
-        self.mode.SetSelection(0)
 
         self.superposition = wx.Choice(adv_win, choices=['ALL', 'BACKBONE'])
-        self.superposition.SetSelection(0)
 
         self.enantiomorphs = wx.Choice(adv_win, choices=['YES', 'NO'])
-        self.enantiomorphs.SetSelection(0)
 
         self.proximity = wx.Choice(adv_win, choices=['NSD', 'VOL'])
-        self.proximity.SetSelection(0)
 
         self.fraction = wx.TextCtrl(adv_win, validator=RAWCustomCtrl.CharValidator('float'))
-        self.fraction.SetValue('1.0')
 
         sym_choices = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9',
             'P10', 'P11', 'P12', 'P13', 'P14', 'P15', 'P16', 'P17', 'P18',
@@ -12065,6 +12060,18 @@ class SupcombFrame(wx.Frame):
             'P102', 'P112', 'P122', 'P23', 'P432', 'PICO']
         self.symmetry = wx.Choice(adv_win, choices=sym_choices)
         self.symmetry.SetSelection(0)
+
+        method = self.raw_settings.get('supcombMethod')
+        superpos = self.raw_settings.get('supcombSuperpositon')
+        mode = self.raw_settings.get('supcombMode')
+        fraction = self.raw_settings.get('supcombFraction')
+        enants = self.raw_settings.get('supEnantiomorphs')
+
+        self.mode.SetStringSelection(mode)
+        self.superposition.SetStringSelection(superpos)
+        self.enantiomorphs.SetStringSelection(enants)
+        self.proximity.SetStringSelection(method)
+        self.fraction.SetValue(str(fraction))
 
         adv_settings_sizer = wx.FlexGridSizer(cols=4, vgap=self._FromDIP(5),
             hgap=self._FromDIP(5))
@@ -12232,7 +12239,7 @@ class SupcombFrame(wx.Frame):
             self.abort_button.Enable()
             self.status.SetValue('')
 
-            self.supcomb_thread = threading.Thread(target=self.runSuperimpose)
+            self.supcomb_thread = threading.Thread(target=self.runSupcomb)
             self.supcomb_thread.daemon = True
             self.supcomb_thread.start()
 
@@ -12370,6 +12377,340 @@ class SupcombFrame(wx.Frame):
         self.Destroy()
 
 
+class CifsupFrame(wx.Frame):
+
+    def __init__(self, parent, title):
+        client_display = wx.GetClientDisplayRect()
+        size = (min(450, client_display.Width), min(450, client_display.Height))
+
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.SetSize(self._FromDIP(size))
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+        self.template_file_name = None
+        self.target_file_name = None
+
+        self.standard_paths = wx.StandardPaths.Get()
+
+        self._createLayout()
+
+        SASUtils.set_best_size(self)
+        self.SendSizeEvent()
+
+        self.CenterOnParent()
+
+        self.Raise()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _createLayout(self):
+
+        panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        self.template_file = wx.TextCtrl(panel)
+        self.target_file = wx.TextCtrl(panel)
+
+        self.template_select = wx.Button(panel, label='Select', style=wx.TE_READONLY)
+        self.target_select = wx.Button(panel, label='Select', style=wx.TE_READONLY)
+
+        self.template_select.Bind(wx.EVT_BUTTON, self._onSelectFile)
+        self.target_select.Bind(wx.EVT_BUTTON, self._onSelectFile)
+
+        file_sizer = wx.FlexGridSizer(cols=3, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(5))
+        file_sizer.Add(wx.StaticText(panel, label='Reference (pdb/mmCIF):'), flag=wx.ALIGN_CENTER_VERTICAL)
+        file_sizer.Add(self.template_file, flag=wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+        file_sizer.Add(self.template_select, flag=wx.ALIGN_CENTER_VERTICAL)
+        file_sizer.Add(wx.StaticText(panel, label='Target (pdb/mmCIF):'), flag=wx.ALIGN_CENTER_VERTICAL)
+        file_sizer.Add(self.target_file, flag=wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+        file_sizer.Add(self.target_select)
+        file_sizer.AddGrowableCol(1)
+
+        adv_panel = wx.CollapsiblePane(panel, label="Advanced Settings",
+            style=wx.CP_NO_TLW_RESIZE)
+        adv_panel.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
+        adv_win = adv_panel.GetPane()
+
+        self.method = wx.Choice(adv_win, choices=['ICP', 'NCC', 'NSD', 'RMSD'])
+
+        self.selection = wx.Choice(adv_win, choices=['ALL', 'BACKBONE',
+            'REGRID', 'SHELL'])
+
+        self.enantiomorphs = wx.Choice(adv_win, choices=['YES', 'NO'])
+
+        self.lm = wx.TextCtrl(adv_win, validator=RAWCustomCtrl.CharValidator('int'))
+        self.ns = wx.TextCtrl(adv_win, validator=RAWCustomCtrl.CharValidator('int'))
+        self.smax = wx.TextCtrl(adv_win, validator=RAWCustomCtrl.CharValidator('float'))
+        self.beads = wx.TextCtrl(adv_win, validator=RAWCustomCtrl.CharValidator('int'))
+        self.target_id = wx.TextCtrl(adv_win, validator=RAWCustomCtrl.CharValidator('int'))
+        self.ref_id = wx.TextCtrl(adv_win, validator=RAWCustomCtrl.CharValidator('int'))
+
+        method = self.raw_settings.get('cifsupMethod')
+        selection = self.raw_settings.get('cifsupSelection')
+        enants = self.raw_settings.get('supEnantiomorphs')
+        lm =  self.raw_settings.get('cifsupHarmonics')
+        smax = self.raw_settings.get('cifsupQmax')
+        ns = self.raw_settings.get('cifsupPoints')
+        beads = self.raw_settings.get('cifsupBeads')
+        target_model_id = self.raw_settings.get('cifsupTargetID')
+        ref_model_id = self.raw_settings.get('cifsupRefID')
+
+        self.method.SetStringSelection(method)
+        self.selection.SetStringSelection(selection)
+        self.enantiomorphs.SetStringSelection(enants)
+        self.lm.SetValue(str(lm))
+        self.ns.SetValue(str(ns))
+        self.smax.SetValue(str(smax))
+        self.beads.SetValue(str(beads))
+        self.target_id.SetValue(str(target_model_id))
+        self.ref_model_id.SetValue(str(ref_model_id))
+
+
+        adv_settings_sizer = wx.FlexGridSizer(cols=4, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(5))
+        adv_settings_sizer.Add(wx.StaticText(adv_win, label='Method:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(self.method, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(wx.StaticText(adv_win, label='Selection:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(self.selection, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(wx.StaticText(adv_win, label='Enantiomorphs:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(self.enantiomorphs, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(wx.StaticText(adv_win, label='Harmonics:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(self.lm, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(wx.StaticText(adv_win, label='Points:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(self.ns, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(wx.StaticText(adv_win, label='Max. q:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(self.smax, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(wx.StaticText(adv_win, label='Beads:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(self.beads, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(wx.StaticText(adv_win, label='Target model ID:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(self.target_id, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(wx.StaticText(adv_win, label='Ref. model ID:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(self.target_id, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        adv_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        adv_sizer.Add(adv_settings_sizer, border=self._FromDIP(5), flag=wx.ALL)
+        adv_sizer.AddStretchSpacer(1)
+
+        adv_win.SetSizer(adv_sizer)
+
+        self.start_button = wx.Button(panel, label='Start')
+        self.abort_button = wx.Button(panel, label='Abort')
+
+        self.start_button.Bind(wx.EVT_BUTTON, self.onStartButton)
+        self.abort_button.Bind(wx.EVT_BUTTON, self.onAbortButton)
+        self.abort_button.Disable()
+
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(self.start_button, flag=wx.ALL)
+        button_sizer.Add(self.abort_button, flag=wx.ALL)
+
+        self.status = wx.StaticText(panel)
+
+        info_button = wx.Button(panel, -1, 'How To Cite')
+        info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
+
+        savebutton = wx.Button(panel, wx.ID_OK, 'OK')
+        savebutton.Bind(wx.EVT_BUTTON, self._onCloseButton)
+
+        bottom_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        bottom_button_sizer.Add(info_button,1,wx.RIGHT, border=self._FromDIP(5))
+        bottom_button_sizer.Add(savebutton, 1)
+
+        panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        panel_sizer.Add(file_sizer, border=self._FromDIP(5), flag=wx.ALL|wx.EXPAND)
+        panel_sizer.Add(adv_panel, border=self._FromDIP(5), flag=wx.ALL|wx.EXPAND)
+        panel_sizer.Add(button_sizer, flag=wx.ALIGN_CENTER_HORIZONTAL)
+        panel_sizer.Add(self.status, proportion=1, border=self._FromDIP(5),
+            flag=wx.TOP|wx.LEFT|wx.RIGHT|wx.EXPAND)
+        panel_sizer.Add(bottom_button_sizer, 0, wx.TOP|wx.BOTTOM|wx.LEFT|wx.RIGHT
+            |wx.ALIGN_CENTER_HORIZONTAL, border=self._FromDIP(5))
+
+        panel.SetSizer(panel_sizer)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
+
+        return top_sizer
+
+    def onCollapse(self, event):
+        self.Layout()
+        self.Refresh()
+        self.SendSizeEvent()
+
+    def _getSettings(self):
+        method = self.method.GetStringSelection()
+        selection = self.selection.GetStringSelection()
+        enant = self.enantiomorphs.GetStringSelection()
+        lm = self.lm.GetValue()
+        ns = self.ns.GetValue()
+        smax = self.smax.GetValue()
+        beads = self.beads.GetValue()
+        target_id = self.target_id.GetValue()
+        ref_id = self.ref_id.GetValue()
+
+        error = False
+        try:
+            smax = float(smax.GetValue())
+        except Exception:
+            smax = None
+            error = True
+            msg = ('Q max must be a number greater than 0')
+
+        if isinstance(smax, float):
+            if smax < 0
+                error = True
+                msg = ('Q max must be a number greater than 0')
+
+        if not error:
+            settings = {
+                'method'            : method,
+                'selection'         : selection,
+                'enantiomorphs'     : enantiomorphs,
+                'target_model_id'   : int(target_model_id),
+                'ref_model_id'      : int(ref_model_id),
+                'lm'                : int(lm),
+                'ns'                : int(ns),
+                'smax'              : smax,
+                'beads'             : int(beads),
+                }
+
+        else:
+            dialog = wx.MessageDialog(self, msg, 'Error in CIFSUP parameters')
+            dialog.ShowModal()
+            settings = None
+            dialog.Destroy()
+
+        return settings
+
+    def _onSelectFile(self, evt):
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        load_path = dirctrl_panel.getDirLabel()
+
+        filters = 'PDB and mmCIF files (*.pdb;*.cif)|*.pdb;*.cif|All files (*.*)|*.*'
+
+        dialog = wx.FileDialog(self, 'Select a file', load_path, style=wx.FD_OPEN,
+            wildcard=filters)
+
+        if dialog.ShowModal() == wx.ID_OK:
+            file = dialog.GetPath()
+        else:
+            file = None
+
+        # Destroy the dialog
+        dialog.Destroy()
+
+        if file is not None:
+            if evt.GetEventObject() == self.template_select:
+                self.template_file_name = file
+                self.template_file.SetValue(os.path.split(file)[1])
+                self.template_file.SetToolTip(wx.ToolTip(file))
+            else:
+                self.target_file_name = file
+                self.target_file.SetValue(os.path.split(file)[1])
+                self.target_file.SetToolTip(wx.ToolTip(file))
+
+    def onStartButton(self, evt):
+        self.abort_event.clear()
+
+        name, ext = os.path.splitext(self.target_file_name)
+        outname = '{}_aligned{}'.format(name, ext)
+
+        run_align = True
+
+        if os.path.exists(outname):
+            msg = ('A file already exists in the target directory with the '
+                'name {}. This will be replaced with the aligned file. '
+                'Continue?'.format(os.path.split(outname)[1]))
+            dialog = wx.MessageDialog(self, msg, "File will be overwritten",
+                style=wx.YES_NO)
+
+            result = dialog.ShowModal()
+
+            if result == wx.ID_NO:
+                run_align = False
+
+            dialog.Destroy()
+
+        if run_align:
+            self.start_button.Disable()
+            self.abort_button.Enable()
+            self.status.SetLabel('')
+
+            self.runCifsup()
+
+    def runCifsup(self, prefix, path):
+
+        tempdir = self.standard_paths.GetTempDir()
+        template_tempname = os.path.join(tempdir, os.path.split(self.template_file_name)[1])
+        target_tempname = os.path.join(tempdir, os.path.split(self.target_file_name)[1])
+
+        shutil.copy(self.template_file_name, template_tempname)
+        shutil.copy(self.target_file_name, target_tempname)
+
+        path, template = os.path.split(template_tempname)
+        target = os.path.split(target_tempname)[1]
+
+        settings = self._getSettings()
+
+        wx.CallAfter(self.status.SetLabel, 'Starting Alignment\n')
+
+        if self.abort_event.is_set():
+            wx.CallAfter(self.sup_window.SetLabel, 'Aborted!\n')
+            return
+
+        RAWAPI.cifsup(target, template, path, abort_event=self.abort_event,
+            atsas_dir=self.raw_settings.get('ATSASDir'), **settings)
+
+        name, ext = os.path.splitext(target)
+        sup_name = '{}_aligned{}'.format(name, ext)
+
+        if os.path.exists(os.path.join(path, sup_name)):
+            msg = 'Alignment finished'
+            wx.CallAfter(status.SetLabel, msg)
+        else:
+            msg = 'Alignment failed'
+            wx.CallAfter(status.SetLabel, msg)
+
+        self.cleanupAlign()
+
+    def onAbortButton(self, evt):
+        self.abort_event.set()
+
+    def cleanupAlign(self):
+        self.start_button.Enable()
+        self.abort_button.Disable()
+
+    def _onCloseButton(self, evt):
+        self.Close()
+
+    def _onInfoButton(self, evt):
+        msg = ('If you use CIFSUP in your work please cite the paper given here:\n'
+        'https://www.embl-hamburg.de/biosaxs/manuals/cifsup.html')
+        wx.MessageBox(str(msg), "How to cite CIFSUP", style=wx.ICON_INFORMATION|wx.OK)
+
+    def OnClose(self, event):
+
+        self.Destroy()
 
 class SVDFrame(wx.Frame):
 

@@ -192,7 +192,7 @@ class MainFrame(wx.Frame):
             'rundammif'             : self.NewControlId(),
             'bift'                  : self.NewControlId(),
             'runambimeter'          : self.NewControlId(),
-            'runsupcomb'            : self.NewControlId(),
+            'runatsasalign'         : self.NewControlId(),
             'rundenssalign'         : self.NewControlId(),
             'runsvd'                : self.NewControlId(),
             'runefa'                : self.NewControlId(),
@@ -217,7 +217,7 @@ class MainFrame(wx.Frame):
         self.bift_frames = []
         self.dammif_frames = []
         self.ambimeter_frames = []
-        self.supcomb_frames = []
+        self.atsasalign_frames = []
         self.svd_frames = []
         self.efa_frames = []
         self.regals_frames = []
@@ -691,7 +691,7 @@ class MainFrame(wx.Frame):
         except Exception:
             pass
 
-        # self.supcomb_frames = []
+        # self.atsasalign_frames = []
 
         try:
             for frame in self.svd_frames:
@@ -1174,51 +1174,72 @@ class MainFrame(wx.Frame):
             dial2.ShowModal()
             dial2.Destroy()
 
-    def showSupcombFrame(self):
+    def showATSASAlignFrame(self):
         atsasPath = self.raw_settings.get('ATSASDir')
 
-        opsys = platform.system()
-        if opsys == 'Windows':
-            supcombPath = os.path.join(atsasPath, 'supcomb.exe')
-        else:
-            supcombPath = os.path.join(atsasPath, 'supcomb')
+        if atsasPath != '':
+            atsas_version = SASCalc.getATSASVersion(self.raw_settings.get('ATSASDir'))
 
-        if os.path.exists(supcombPath):
+            if ((int(atsas_version.split('.')[0]) == 3
+                and int(atsas_version.split('.')[1]) >= 1)
+                or int(atsas_version.split('.')[0]) > 3):
+                program = 'cifsup'
+
+            else:
+                program = 'supcomb'
+
+            opsys = platform.system()
+            if opsys == 'Windows':
+                alignPath = os.path.join(atsasPath, '{}.exe'.format(program))
+            else:
+                alignPath = os.path.join(atsasPath, program)
+
+        if os.path.exists(alignPath):
             remove = []
             proceed = True
 
-            for supcomb_frame in self.supcomb_frames:
-                if supcomb_frame:
-                    msg = ('There is already a SUPCOMB window. Do you want to '
-                        'open another?')
-                    answer = wx.MessageBox(msg, 'Open duplicate SUPCOMB window?',
+            for align_frame in self.atsasalign_frames:
+                if align_frame:
+                    msg = ('There is already a {} window. Do you want to '
+                        'open another?'.format(program.upper()))
+                    answer = wx.MessageBox(msg,
+                        'Open duplicate {} window?'.format(program.upper()),
                         style=wx.YES_NO)
 
                     if answer == wx.NO:
                         proceed = False
-                        supcomb_frame.Raise()
-                        supcomb_frame.RequestUserAttention()
+                        align_frame.Raise()
+                        align_frame.RequestUserAttention()
 
                     break
 
                 else:
-                    remove.append(supcomb_frame)
+                    remove.append(align_frame)
 
             if remove:
-                for supcomb_frame in remove:
-                    self.supcomb_frames.remove(supcomb_frame)
+                for align_frame in remove:
+                    self.atsasalign_frames.remove(align_frame)
 
             if proceed:
-                supcombframe = RAWAnalysis.SupcombFrame(self, 'SUPCOMB')
-                supcombframe.SetIcon(self.GetIcon())
-                supcombframe.Show(True)
 
-                self.supcomb_frames.append(supcombframe)
+                if program == 'cifsup':
+                    alignframe = RAWAnalysis.CifsupFrame(self, 'CIFSUP')
+                    alignframe.SetIcon(self.GetIcon())
+                    alignframe.Show(True)
+
+                    self.atsasalign_frames.append(alignframe)
+                else:
+                    alignframe = RAWAnalysis.SupcombFrame(self, 'SUPCOMB')
+                    alignframe.SetIcon(self.GetIcon())
+                    alignframe.Show(True)
+
+                    self.atsasalign_frames.append(alignframe)
 
         else:
-            msg = ('The SUPCOMB program in the ATSAS package could not be '
+            msg = ('The {} program in the ATSAS package could not be '
                 'found. Please make sure that ATSAS is installed, and that you '
-                'have defined the ATSAS directory in the RAW Advanced Options.')
+                'have defined the ATSAS directory in the RAW Advanced Options.'
+                ''.format(program.upper()))
             dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS",
                                     wx.OK | wx.ICON_INFORMATION)
             dial2.ShowModal()
@@ -1762,7 +1783,7 @@ class MainFrame(wx.Frame):
                 ('GNOM', self.MenuIDs['rungnom'], self._onToolsMenu, 'normal'),
                 ('DAMMIF/N', self.MenuIDs['rundammif'], self._onToolsMenu, 'normal'),
                 ('AMBIMETER', self.MenuIDs['runambimeter'], self._onToolsMenu, 'normal'),
-                ('SUPCOMB', self.MenuIDs['runsupcomb'], self._onToolsMenu, 'normal'),
+                ('Align (SUPCOMB/CIFSUP)', self.MenuIDs['runatsasalign'], self._onToolsMenu, 'normal'),
                 ],
         }
 
@@ -2116,8 +2137,8 @@ class MainFrame(wx.Frame):
             else:
                 wx.MessageBox("Please select an IFT from the list on the IFTs page.", "No IFT selected")
 
-        elif id == self.MenuIDs['runsupcomb']:
-            self.showSupcombFrame()
+        elif id == self.MenuIDs['runatsasalign']:
+            self.showATSASAlignFrame()
 
         elif id == self.MenuIDs['rundenssalign']:
             self.showDenssAlignFrame()
