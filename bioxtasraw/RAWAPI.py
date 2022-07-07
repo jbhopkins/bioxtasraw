@@ -3566,8 +3566,9 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
 
     return chi_sq, rg, dmax, mw, excluded_volume
 
-def damaver(files, prefix, datadir, symmetry='P1', atsas_dir=None,
-    abort_event=threading.Event()):
+def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
+    nbeads=5000, method='NSD', lm=5, ns=51, smax=0.5, atsas_dir=None,
+    settings=None, abort_event=threading.Event()):
     """
     Runs DAMAVER from the ATSAS package on a set of files. Requires a
     separate installation of the ATSAS package. Function blocks until
@@ -3586,10 +3587,31 @@ def damaver(files, prefix, datadir, symmetry='P1', atsas_dir=None,
         Also the location of the DAMAVER output.
     symmetry: str, optional
         The symmetry that DAMAVER will use during alignment. Accepts any
-        symmetry that DAMAVEr will accept. Defaults to 'P1'.
+        symmetry that DAMAVER will accept. Defaults to 'P1'. Note, not used
+        in ATSAS version >= 3.1.0
+    enantiomorphs: str, optional
+        Search enantiomorphs. Can be YES or NO. Default YES.
+    nbeads: int, optional
+        Number of beads within the resulting DAM. Default 5000.
+    method: str, optional
+        The method used by damaver. May be NSD, NCC, or ICP. Only used in ATSAS
+        version >= 3.1.0. Default NSD.
+    lm: int, optional
+        Number of spherical harmonics used in NCC mode. Only used in ATSAS
+        version >=3.1.0. Default 5.
+    ns: int, optional
+        Number of data points used in NCC mode. Only used in ATSAS version
+        >=3.1.0. Default 51.
+    smax: float, optional
+        Maximum scattering angle in 1/A used in NCC mode. Only used in ATSAS
+        version >=3.1.0. Default 0.5.
     atsas_dir: str, optional
         The directory of the atsas programs (the bin directory). If not provided,
         the API uses the auto-detected directory.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, every
+        parameter except symmetry is overridden with the value in the settings
+        file. Default is None.
     abort_event: :class:`threading.Event`, optional
         A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
         event is set it will abort the damaver run.
@@ -3604,7 +3626,7 @@ def damaver(files, prefix, datadir, symmetry='P1', atsas_dir=None,
         The name of the representative model determined by DAMAVER.
     result_dict: dict
         A dictionary of the model specific results. The keys are the input
-        filenames. The values are lists of the form ['Include' mean_model_nsd]
+        filenames. The values are lists of the form ['Include', mean_model_nsd]
         where 'Include' indicates the model was in the average whereas a
         different value indicates the model was excluded from the average.
     res: float
@@ -3619,9 +3641,30 @@ def damaver(files, prefix, datadir, symmetry='P1', atsas_dir=None,
     if atsas_dir is None:
         atsas_dir = __default_settings.get('ATSASDir')
 
+    if settings is None:
+        damaver_settings = {
+            'symmetry'      : symmetry,
+            'enantiomorphs' : enantiomorphs,
+            'nbeads'        : nbeads,
+            'method'        : method,
+            'lm'            : lm,
+            'ns'            : ns,
+            'smax'          : smax,
+            }
+    else:
+        damaver_settings = {
+            'symmetry'      : symmetry,
+            'enantiomorphs' : settings.get('damaverEnantiomers'),
+            'nbeads'        : settings.get('damaverNbeads'),
+            'method'        : settings.get('damaverMethod'),
+            'lm'            : settings.get('damaverHarmonics'),
+            'ns'            : settings.get('damaverPoints'),
+            'smax'          : settings.get('damaverQmax'),
+            }
+
     datadir = os.path.abspath(os.path.expanduser(datadir))
 
-    proc = SASCalc.runDamaver(files, datadir, atsas_dir, symmetry)
+    proc = SASCalc.runDamaver(files, datadir, atsas_dir, prefix, **damaver_settings)
 
     if proc is not None:
         while proc.poll() is None:
@@ -3632,42 +3675,77 @@ def damaver(files, prefix, datadir, symmetry='P1', atsas_dir=None,
             if proc.stdout is not None:
                 proc.stdout.read(1)
 
-    damsel_path = os.path.join(datadir, prefix+'_damsel.log')
-    damsup_path = os.path.join(datadir, prefix+'_damsup.log')
+    version = SASCalc.getATSASVersion(atsas_dir).split('.')
 
-    new_files = [
-        (os.path.join(datadir, 'damfilt.pdb'),
-            os.path.join(datadir, prefix+'_damfilt.pdb')),
-        (os.path.join(datadir, 'damsel.log'), damsel_path),
-        (os.path.join(datadir, 'damstart.pdb'),
-            os.path.join(datadir, prefix+'_damstart.pdb')),
-        (os.path.join(datadir, 'damsup.log'), damsup_path),
-        (os.path.join(datadir, 'damaver.pdb'),
-            os.path.join(datadir, prefix+'_damaver.pdb'))
-        ]
+    if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+        damsel_path = os.path.join(datadir, prefix+'_damsel.log')
+        damsup_path = os.path.join(datadir, prefix+'_damsup.log')
 
-    for item in new_files:
-        if os.path.isfile(item[0]):
-            os.rename(item[0], item[1])
+        new_files = [
+            (os.path.join(datadir, 'damfilt.pdb'),
+                os.path.join(datadir, prefix+'_damfilt.pdb')),
+            (os.path.join(datadir, 'damsel.log'), damsel_path),
+            (os.path.join(datadir, 'damstart.pdb'),
+                os.path.join(datadir, prefix+'_damstart.pdb')),
+            (os.path.join(datadir, 'damsup.log'), damsup_path),
+            (os.path.join(datadir, 'damaver.pdb'),
+                os.path.join(datadir, prefix+'_damaver.pdb'))
+            ]
 
-    if not abort_event.is_set():
-        (mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err,
-            res_unit) = SASFileIO.loadDamselLogFile(damsel_path)
+        for item in new_files:
+            if os.path.isfile(item[0]):
+                os.rename(item[0], item[1])
 
-        mean_nsd = float(mean_nsd)
-        stdev_nsd = float(stdev_nsd)
-        res = float(res)
-        res_err = float(res_err)
+        if not abort_event.is_set():
+            (mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err,
+                res_unit) = SASFileIO.loadDamselLogFile(damsel_path)
 
-        model_data, rep_model = SASFileIO.loadDamsupLogFile(damsup_path)
+            mean_nsd = float(mean_nsd)
+            stdev_nsd = float(stdev_nsd)
+            res = float(res)
+            res_err = float(res_err)
+
+            model_data, rep_model = SASFileIO.loadDamsupLogFile(damsup_path)
+        else:
+            mean_nsd = -1
+            stdev_nsd = -1
+            rep_model = ''
+            result_dict = {}
+            res = -1
+            res_err = -1
+            res_unit = ''
+
     else:
-        mean_nsd = -1
-        stdev_nsd = -1
-        rep_model = ''
-        result_dict = {}
-        res = -1
-        res_err = -1
-        res_unit = ''
+        if not abort_event.is_set():
+            dist_path = os.path.join(datadir, prefix+'-distances.txt')
+            summary_path = os.path.join(datadir, prefix+'-global-summary.txt')
+
+            mean_nsd, stdev_nsd, model_nsds = SASFileIO.loadDamaverDistancesFile(dist_path)
+            rep_model, model_includes = SASFileIO.loadDamaverGlobalSummaryFile(summary_path)
+
+            mean_nsd = float(mean_nsd)
+            stdev_nsd = float(stdev_nsd)
+            res = -1
+            res_err = -1
+            res_unit = ''
+
+            result_dict = {}
+
+            for model_name in model_nsds:
+                if model_includes[model_name]:
+                    inc = 'Include'
+                else:
+                    inc = 'Not'
+                result_dict[model_name] = [inc, float(model_nsds[model_name])]
+
+        else:
+            mean_nsd = -1
+            stdev_nsd = -1
+            rep_model = ''
+            result_dict = {}
+            res = -1
+            res_err = -1
+            res_unit = ''
 
     return mean_nsd, stdev_nsd, rep_model, result_dict, res, res_err, res_unit
 
@@ -3747,14 +3825,14 @@ def damclust(files, prefix, datadir, symmetry='P1', atsas_dir=None,
 
 def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
         enantiomorphs='YES', proximity='NSD', symmetry='P1', fraction='1.0',
-        atsas_dir=None, abort_event=threading.Event()):
+        atsas_dir=None, settings=None, abort_event=threading.Event()):
     """
     Aligns the target to the reference file using SUPCOMB from the ATSAS
     package. Require a separate installation of ATSAS. Both files must be
     in the same folder, and the aligned file is output in the folder. The
     aligned file will have the same name as the target file with _aligned
     appended to the end of the name. This function blocks until SUPCOMB is
-    done.
+    done. SUPCOMB is only available in ATSAS <3.1.0.
 
     Parameters
     ----------
@@ -3786,6 +3864,10 @@ def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
     atsas_dir: str, optional
         The directory of the atsas programs (the bin directory). If not provided,
         the API uses the auto-detected directory.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, every
+        parameter except symmetry is overridden with the value in the settings
+        file. Default is None.
     abort_event: :class:`threading.Event`, optional
         A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
         event is set it will abort the supcomb run.
@@ -3794,16 +3876,124 @@ def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
     if atsas_dir is None:
         atsas_dir = __default_settings.get('ATSASDir')
 
-    settings = {
-        'mode'          : mode,
-        'superposition' : superposition,
-        'enantiomorphs' : enantiomorphs,
-        'proximity'     : proximity,
-        'symmetry'      : symmetry,
-        'fraction'      : fraction,
-        }
+    if settings is None:
+        supcomb_settings = {
+            'mode'          : mode,
+            'superposition' : superposition,
+            'enantiomorphs' : enantiomorphs,
+            'proximity'     : proximity,
+            'symmetry'      : symmetry,
+            'fraction'      : fraction,
+            }
+    else:
+        supcomb_settings = {
+            'mode'          : settings.get('supcombMode'),
+            'superposition' : settings.get('supcombSuperpositon'),
+            'enantiomorphs' : settings.get('supEnantiomorphs'),
+            'proximity'     : settings.get('supcombMethod'),
+            'symmetry'      : symmetry,
+            'fraction'      : settings.get('supcombFraction'),
+            }
 
-    proc = SASCalc.runSupcomb(ref_file, target, datadir, atsas_dir, **settings)
+
+    proc = SASCalc.runSupcomb(ref_file, target, datadir, atsas_dir, **supcomb_settings)
+
+    if proc is not None:
+        while proc.poll() is None:
+            if abort_event.is_set():
+                proc.terminate()
+                break
+
+            if proc.stdout is not None:
+                proc.stdout.read(1)
+
+    return
+
+def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
+        enantiomorphs='YES', target_model_id=1, ref_model_id=1, lm=5, ns=51,
+        smax=0.5, beads=2000, atsas_dir=None, settings=None,
+        abort_event=threading.Event()):
+    """
+    Aligns the target to the reference file using CIFSUP from the ATSAS
+    package. Require a separate installation of ATSAS. Both files must be
+    in the same folder, and the aligned file is output in the folder. The
+    aligned file will have the same name as the target file with _aligned
+    appended to the end of the name. This function blocks until CIFSUP is
+    done. CIFSUP is only available in ATSAS >=3.1.0.
+
+    Parameters
+    ----------
+    target: str
+        The target file name, without path. This file is aligned to the
+        reference file, and must be in the same folder as the reference file.
+        Called the movable file in the CIFSUP manual.
+    ref_file: str
+        The reference file name, without path. Called the static or template
+        file in the CIFSUP manual.
+    datadir: str
+        The directory containing both the target and ref_file. It is also the
+        directory for the output file.
+   method: {'NSD, 'NCC', 'ICP', 'RMSD'} str, optional
+        What method to use to determine distance between two models. Default
+        is ICP.
+    selection: {'ALL', 'BACKBONE', 'REGRID', 'SHELL'} str, optional
+        What portion of the molecule to use for alignment. Default is ALL.
+    enantiomorphs: {'YES', 'NO'} str, optional
+        Whether to generate enantiomorphs during alignment. Default is YES.
+    target_model_id: int, optional
+        Model ID in the target file. Default is 1.
+    ref_model_id: int, optional
+        Model ID in the reference file. Default is 1.
+    lm: int, optional
+        Number of spherical harmonics used in NCC mode. Default 5.
+    ns: int, optional
+        Number of data points used in NCC mode. Default 51.
+    smax: float, optional
+        Maximum scattering angle in 1/A used in NCC mode. Default 0.5.
+    beads: int, optional
+        Number of beads used for the REGRID method. Default 2000.
+    atsas_dir: str, optional
+        The directory of the atsas programs (the bin directory). If not provided,
+        the API uses the auto-detected directory.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, every
+        parameter is overridden with the value in the settings file. Default is None.
+    abort_event: :class:`threading.Event`, optional
+        A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
+        event is set it will abort the CIFSUP run.
+    """
+
+    if atsas_dir is None:
+        atsas_dir = __default_settings.get('ATSASDir')
+
+    if settings is None:
+        cifsup_settings = {
+            'method'            : method,
+            'selection'         : selection,
+            'enantiomorphs'     : enantiomorphs,
+            'target_model_id'   : target_model_id,
+            'ref_model_id'      : ref_model_id,
+            'lm'                : lm,
+            'ns'                : ns,
+            'smax'              : smax,
+            'beads'             : beads,
+            }
+    else:
+        cifsup_settings = {
+            'method'            : settings.get('cifsupMethod'),
+            'selection'         : settings.get('cifsupSelection'),
+            'enantiomorphs'     : settings.get('supEnantiomorphs'),
+            'target_model_id'   : settings.get('cifsupTargetID'),
+            'ref_model_id'      : settings.get('cifsupRefID'),
+            'lm'                : settings.get('cifsupHarmonics'),
+            'ns'                : settings.get('cifsupPoints'),
+            'smax'              : settings.get('cifsupQmax'),
+            'beads'             : settings.get('cifsupBeads'),
+            }
+
+
+
+    proc = SASCalc.runCifsup(ref_file, target, datadir, atsas_dir, **cifsup_settings)
 
     if proc is not None:
         while proc.poll() is None:

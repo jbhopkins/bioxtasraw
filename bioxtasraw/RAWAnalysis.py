@@ -5270,10 +5270,10 @@ class DammifFrame(wx.Frame):
         self.RunPanel.updateDAMMIFSettings()
 
     def _getATSASVersion(self):
-        version = SASCalc.getATSASVersion(self.raw_settings.get('ATSASDir'))
+        self.atsas_version = SASCalc.getATSASVersion(self.raw_settings.get('ATSASDir'))
 
-        if ((int(version.split('.')[0]) == 3 and int(version.split('.')[1]) >= 1)
-            or int(version.split('.')[0]) > 3):
+        if ((int(self.atsas_version.split('.')[0]) == 3 and int(self.atsas_version.split('.')[1]) >= 1)
+            or int(self.atsas_version.split('.')[0]) > 3):
             self.model_ext = '.cif'
         else:
             self.model_ext = '.pdb'
@@ -5296,8 +5296,11 @@ class DammifFrame(wx.Frame):
         'If you use SASRES in your work please cite the paper given here:\n'
         'https://www.embl-hamburg.de/biosaxs/manuals/sasres.html\n\n'
         'If you use SUPCOMB in your work please cite the paper given here:\n'
-        'https://www.embl-hamburg.de/biosaxs/supcomb.html')
-        wx.MessageBox(str(msg), "How to cite AMBIMETER/DAMMIF/DAMMIN/DAMAVER/DAMCLUST/SASRES", style = wx.ICON_INFORMATION | wx.OK)
+        'https://www.embl-hamburg.de/biosaxs/supcomb.html'
+        'If you use CIFSUP in your work please cite the paper given here:\n'
+        'https://www.embl-hamburg.de/biosaxs/manuals/cifsup.html')
+        wx.MessageBox(str(msg), "How to cite AMBIMETER/DAMMIF/DAMMIN/DAMAVER/DAMCLUST/SASRES/SUPCOMB/CIFSUP",
+            style = wx.ICON_INFORMATION | wx.OK)
 
 
     def OnClose(self, event):
@@ -5527,6 +5530,11 @@ class DammifRunPanel(wx.Panel):
         settings_sizer.Add(advancedButton, 0, wx.LEFT | wx.RIGHT | wx.TOP
             |wx.ALIGN_CENTER, self._FromDIP(2))
 
+        if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
+            and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
+            or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+            settings_sizer.Hide(damclust_chk)
+
 
         start_button = wx.Button(parent, self.ids['start'], 'Start')
         start_button.Bind(wx.EVT_BUTTON, self.onStartButton)
@@ -5597,80 +5605,7 @@ class DammifRunPanel(wx.Panel):
 
 
     def _initSettings(self):
-        self.dammif_settings = {'mode'              : self.raw_settings.get('dammifMode'),
-                                'unit'              : self.raw_settings.get('dammifUnit'),
-                                'sym'               : self.raw_settings.get('dammifSymmetry'),
-                                'anisometry'        : self.raw_settings.get('dammifAnisometry'),
-                                'omitSolvent'       : self.raw_settings.get('dammifOmitSolvent'),
-                                'chained'           : self.raw_settings.get('dammifChained'),
-                                'constant'          : self.raw_settings.get('dammifConstant'),
-                                'maxBead'           : self.raw_settings.get('dammifMaxBeadCount'),
-                                'radius'            : self.raw_settings.get('dammifDummyRadius'),
-                                'harmonics'         : self.raw_settings.get('dammifSH'),
-                                'propFit'           : self.raw_settings.get('dammifPropToFit'),
-                                'curveWeight'       : self.raw_settings.get('dammifCurveWeight'),
-                                'seed'              : self.raw_settings.get('dammifRandomSeed'),
-                                'maxSteps'          : self.raw_settings.get('dammifMaxSteps'),
-                                'maxIters'          : self.raw_settings.get('dammifMaxIters'),
-                                'maxSuccess'        : self.raw_settings.get('dammifMaxStepSuccess'),
-                                'minSuccess'        : self.raw_settings.get('dammifMinStepSuccess'),
-                                'TFactor'           : self.raw_settings.get('dammifTFactor'),
-                                'RgWeight'          : self.raw_settings.get('dammifRgPen'),
-                                'cenWeight'         : self.raw_settings.get('dammifCenPen'),
-                                'looseWeight'       : self.raw_settings.get('dammifLoosePen'),
-                                'initialDAM'        : self.raw_settings.get('damminInitial'),
-                                'knots'             : self.raw_settings.get('damminKnots'),
-                                'damminConstant'    : self.raw_settings.get('damminConstant'),
-                                'diameter'          : self.raw_settings.get('damminDiameter'),
-                                'packing'           : self.raw_settings.get('damminPacking'),
-                                'coordination'      : self.raw_settings.get('damminCoordination'),
-                                'disconWeight'      : self.raw_settings.get('damminDisconPen'),
-                                'periphWeight'      : self.raw_settings.get('damminPeriphPen'),
-                                'damminCurveWeight' : self.raw_settings.get('damminCurveWeight'),
-                                'annealSched'       : self.raw_settings.get('damminAnealSched'),
-                                'shape'             : self.raw_settings.get('dammifExpectedShape')
-                                }
-
-        mode = wx.FindWindowById(self.ids['mode'], self)
-        mode.SetStringSelection(self.dammif_settings['mode'])
-
-        sym = wx.FindWindowById(self.ids['sym'], self)
-        sym.SetStringSelection(self.dammif_settings['sym'])
-
-        anisometry = wx.FindWindowById(self.ids['anisometry'], self)
-        anisometry.SetStringSelection(self.dammif_settings['anisometry'])
-
-        procs = wx.FindWindowById(self.ids['procs'], self)
-        if procs.GetCount()>1:
-            procs.SetSelection(1)
-        else:
-            procs.SetSelection(0)
-
-        damaver = wx.FindWindowById(self.ids['damaver'], self)
-        damaver.SetValue(self.raw_settings.get('dammifDamaver'))
-
-        damclust = wx.FindWindowById(self.ids['damclust'], self)
-        damclust.SetValue(self.raw_settings.get('dammifDamclust'))
-
-        prefix = wx.FindWindowById(self.ids['prefix'], self)
-        prefix.SetValue(os.path.splitext(self.filename)[0])
-
-        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
-        path = dirctrl_panel.getDirLabel()
-
-        save = wx.FindWindowById(self.ids['save'], self)
-        save.SetValue(path)
-
-        nruns = wx.FindWindowById(self.ids['runs'], self)
-        nruns.SetValue(str(self.raw_settings.get('dammifReconstruct')))
-
-        refine = wx.FindWindowById(self.ids['refine'], self)
-
-        if refine.IsEnabled:
-            refine.SetValue(self.raw_settings.get('dammifRefine'))
-
-        program = wx.FindWindowById(self.ids['program'], self)
-        program.SetStringSelection(self.raw_settings.get('dammifProgram'))
+        self.updateDAMMIFSettings()
 
         wx.FindWindowById(self.ids['abort'], self).Disable()
 
@@ -5802,18 +5737,29 @@ class DammifRunPanel(wx.Panel):
 
         if nruns > 1 and damaver:
 
-            damaver_names = [
-                prefix+'_damfilt' + self.model_ext,
-                prefix+'_damsel.log',
-                prefix+'_damstart' + self.model_ext,
-                prefix+'_damsup.log',
-                prefix+'_damaver' + self.model_ext,
-                'damfilt' + self.model_ext,
-                'damsel.log',
-                'damstart' + self.model_ext,
-                'damsup.log',
-                'damaver' + self.model_ext
-                ]
+            if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
+                and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
+                or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+                damaver_names = [
+                    prefix+'-global-damfilt' + self.model_ext,
+                    prefix+'-global-damstart' + self.model_ext,
+                    prefix+'-global-damaver' + self.model_ext,
+                    prefix+'-distances.txt',
+                    prefix+'-global-summary.txt',
+                    ]
+            else:
+                damaver_names = [
+                    prefix+'_damfilt' + self.model_ext,
+                    prefix+'_damsel.log',
+                    prefix+'_damstart' + self.model_ext,
+                    prefix+'_damsup.log',
+                    prefix+'_damaver' + self.model_ext,
+                    'damfilt' + self.model_ext,
+                    'damsel.log',
+                    'damstart' + self.model_ext,
+                    'damsup.log',
+                    'damaver' + self.model_ext
+                    ]
 
             for item in damaver_names:
 
@@ -5880,12 +5826,22 @@ class DammifRunPanel(wx.Panel):
             filenames.extend(['{}-1_aligned{}'.format(key, self.model_ext)
                 for key in dammif_names])
 
-            if nruns > 1 and damaver:
-                filenames.extend(['{}_damfilt_aligned{}'.format(prefix, self.model_ext),
-                    '{}_damaver_aligned{}'.format(prefix, self.model_ext)])
+            if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
+                and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
+                or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+                if nruns > 1 and damaver:
+                    filenames.extend(['{}-global-damfilt_aligned{}'.format(prefix, self.model_ext),
+                        '{}-global-damaver_aligned{}'.format(prefix, self.model_ext)])
 
-            if nruns > 1 and refine:
-                filenames.append('{}_refined-1{}'.format(prefix, self.model_ext))
+                if nruns > 1 and refine:
+                    filenames.append('{}_refined-1_aligned{}'.format(prefix, self.model_ext))
+            else:
+                if nruns > 1 and damaver:
+                    filenames.extend(['{}_damfilt_aligned{}'.format(prefix, self.model_ext),
+                        '{}_damaver_aligned{}'.format(prefix, self.model_ext)])
+
+                if nruns > 1 and refine:
+                    filenames.append('{}_refined-1_aligned{}'.format(prefix, self.model_ext))
 
             for item in filenames:
                 if os.path.exists(os.path.join(path, item)) and not yes_to_all:
@@ -6099,7 +6055,12 @@ class DammifRunPanel(wx.Panel):
 
             if refine:
                 self.dammif_settings['mode'] = 'Refine'
-                self.dammif_settings['initialDAM'] = prefix+'_damstart'+self.model_ext
+                if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
+                    and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
+                    or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+                    self.dammif_settings['initialDAM'] = prefix+'-global-damstart'+self.model_ext
+                else:
+                    self.dammif_settings['initialDAM'] = prefix+'damstart'+self.model_ext
 
             if refine:
                 wx.CallAfter(self.status.AppendText, 'Starting Refinement\n')
@@ -6175,7 +6136,7 @@ class DammifRunPanel(wx.Panel):
                     self.threads.append(t)
 
                 elif 'align' in self.dammif_ids:
-                    t = threading.Thread(target = self.runSupcomb, args = (prefix, path))
+                    t = threading.Thread(target = self.runSuperimpose, args = (prefix, path))
                     t.daemon = True
                     t.start()
                     self.threads.append(t)
@@ -6199,14 +6160,27 @@ class DammifRunPanel(wx.Panel):
                 return
 
             #Remove old files, so they don't mess up the program
-            old_files = [os.path.join(path, prefix+'_damfilt'+self.model_ext),
-                os.path.join(path, prefix+'_damsel.log'),
-                os.path.join(path, prefix+'_damstart'+self.model_ext),
-                os.path.join(path, prefix+'_damsup.log'),
-                os.path.join(path, prefix+'_damaver'+self.model_ext),
-                os.path.join(path, prefix+'_damfilt_aligned'+self.model_ext),
-                os.path.join(path, prefix+'_damaver_aligned'+self.model_ext),
-                ]
+
+            if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
+                and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
+                or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+                old_files = [os.path.join(path, prefix+'-global-damfilt'+self.model_ext),
+                    os.path.join(path, prefix+'-global-damstart'+self.model_ext),
+                    os.path.join(path, prefix+'-global-damaver'+self.model_ext),
+                    os.path.join(path, prefix+'-global-damfilt_aligned'+self.model_ext),
+                    os.path.join(path, prefix+'-global-damaver_aligned'+self.model_ext),
+                    os.path.join(path, prefix+'-distances.txt'),
+                    os.path.join(path, prefix+'-global-summary.txt'),
+                    ]
+            else:
+                old_files = [os.path.join(path, prefix+'_damfilt'+self.model_ext),
+                    os.path.join(path, prefix+'_damsel.log'),
+                    os.path.join(path, prefix+'_damstart'+self.model_ext),
+                    os.path.join(path, prefix+'_damsup.log'),
+                    os.path.join(path, prefix+'_damaver'+self.model_ext),
+                    os.path.join(path, prefix+'_damfilt_aligned'+self.model_ext),
+                    os.path.join(path, prefix+'_damaver_aligned'+self.model_ext),
+                    ]
 
             for item in old_files:
                 if os.path.exists(item):
@@ -6222,68 +6196,95 @@ class DammifRunPanel(wx.Panel):
                 for i in range(1, nruns+1)]
 
             symmetry = self.dammif_settings['sym']
+            enants = self.dammif_settings['damaver_enants']
+            nbeads = self.dammif_settings['damaver_nbeads']
+            method = self.dammif_settings['damaver_method']
+            lm = self.dammif_settings['damaver_lm']
+            ns = self.dammif_settings['damaver_ns']
+            smax = self.dammif_settings['damaver_smax']
+            atsas_dir = self.raw_settings.get('ATSASDir')
 
-            damaver_proc = SASCalc.runDamaver(dam_filelist, path,
-                self.raw_settings.get('ATSASDir'), symmetry)
+            if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
+                and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
+                or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
 
-            damaver_q = queue.Queue()
-            readout_t = threading.Thread(target=self.enqueue_output,
-                args=(damaver_proc, damaver_q, read_semaphore))
-            readout_t.daemon = True
-            readout_t.start()
+                wx.CallAfter(damWindow.AppendText, 'DAMAVER starting\n')
 
+                RAWAPI.damaver(dam_filelist, prefix, path, symmetry=symmetry,
+                    enantiomorphs=enants, nbeads=nbeads, method=method, lm=lm,
+                    ns=ns, smax=smax, atsas_dir=atsas_dir,
+                    abort_event=self.abort_event)
 
-            #Send the damaver output to the screen.
-            while damaver_proc.poll() is None:
                 if self.abort_event.isSet():
                     damaver_proc.terminate()
                     wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
                     return
+                else:
+                    wx.CallAfter(damWindow.AppendText, 'DAMAVER finished\n')
 
-                try:
-                    new_text = damaver_q.get_nowait()
-                    new_text = new_text[0]
+            else:
+                damaver_proc = SASCalc.runDamaver(dam_filelist, path,
+                    atsas_dir, prefix, symmetry=symmetry, enantiomorphs=enants,
+                    nbeads=nbeads, method=method, lm=lm, ns=ns, smax=smax)
 
-                    wx.CallAfter(damWindow.AppendText, new_text)
-                except queue.Empty:
-                    pass
-                time.sleep(0.001)
+                damaver_q = queue.Queue()
+                readout_t = threading.Thread(target=self.enqueue_output,
+                    args=(damaver_proc, damaver_q, read_semaphore))
+                readout_t.daemon = True
+                readout_t.start()
 
-            time.sleep(2)
-            with read_semaphore: #see if there's any last data that we missed
-                while True:
+
+                #Send the damaver output to the screen.
+                while damaver_proc.poll() is None:
+                    if self.abort_event.isSet():
+                        damaver_proc.terminate()
+                        wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
+                        return
+
                     try:
                         new_text = damaver_q.get_nowait()
                         new_text = new_text[0]
 
-                        if new_text != '':
-                            wx.CallAfter(damWindow.AppendText, new_text)
-
+                        wx.CallAfter(damWindow.AppendText, new_text)
                     except queue.Empty:
-                        break
+                        pass
+                    time.sleep(0.001)
 
-                new_text = damaver_proc.stdout.read()
+                time.sleep(2)
+                with read_semaphore: #see if there's any last data that we missed
+                    while True:
+                        try:
+                            new_text = damaver_q.get_nowait()
+                            new_text = new_text[0]
 
-                if not isinstance(new_text, str):
-                    new_text = str(new_text, encoding='UTF-8')
+                            if new_text != '':
+                                wx.CallAfter(damWindow.AppendText, new_text)
 
-                if new_text != '':
-                    wx.CallAfter(damWindow.AppendText, new_text)
+                        except queue.Empty:
+                            break
 
-            new_files = [
-                (os.path.join(path, 'damfilt'+self.model_ext),
-                    os.path.join(path, prefix+'_damfilt'+self.model_ext)),
-                (os.path.join(path, 'damsel.log'),
-                    os.path.join(path, prefix+'_damsel.log')),
-                (os.path.join(path, 'damstart'+self.model_ext),
-                    os.path.join(path, prefix+'_damstart'+self.model_ext)),
-                (os.path.join(path, 'damsup.log'),
-                    os.path.join(path, prefix+'_damsup.log')),
-                (os.path.join(path, 'damaver'+self.model_ext),
-                    os.path.join(path, prefix+'_damaver'+self.model_ext))]
+                    new_text = damaver_proc.stdout.read()
 
-            for item in new_files:
-                os.rename(item[0], item[1])
+                    if not isinstance(new_text, str):
+                        new_text = str(new_text, encoding='UTF-8')
+
+                    if new_text != '':
+                        wx.CallAfter(damWindow.AppendText, new_text)
+
+                new_files = [
+                    (os.path.join(path, 'damfilt'+self.model_ext),
+                        os.path.join(path, prefix+'_damfilt'+self.model_ext)),
+                    (os.path.join(path, 'damsel.log'),
+                        os.path.join(path, prefix+'_damsel.log')),
+                    (os.path.join(path, 'damstart'+self.model_ext),
+                        os.path.join(path, prefix+'_damstart'+self.model_ext)),
+                    (os.path.join(path, 'damsup.log'),
+                        os.path.join(path, prefix+'_damsup.log')),
+                    (os.path.join(path, 'damaver'+self.model_ext),
+                        os.path.join(path, prefix+'_damaver'+self.model_ext))]
+
+                for item in new_files:
+                    os.rename(item[0], item[1])
 
 
             wx.CallAfter(self.status.AppendText, 'Finished DAMAVER\n')
@@ -6312,7 +6313,7 @@ class DammifRunPanel(wx.Panel):
                 self.threads.append(t)
 
             elif 'align' in self.dammif_ids:
-                t = threading.Thread(target = self.runSupcomb, args = (prefix, path))
+                t = threading.Thread(target = self.runSuperimpose, args = (prefix, path))
                 t.daemon = True
                 t.start()
                 self.threads.append(t)
@@ -6416,7 +6417,7 @@ class DammifRunPanel(wx.Panel):
             wx.CallAfter(self.status.AppendText, 'Finished DAMCLUST\n')
 
             if 'align' in self.dammif_ids:
-                t = threading.Thread(target = self.runSupcomb, args = (prefix, path))
+                t = threading.Thread(target = self.runSuperimpose, args = (prefix, path))
                 t.daemon = True
                 t.start()
                 self.threads.append(t)
@@ -6424,6 +6425,16 @@ class DammifRunPanel(wx.Panel):
             else:
                 wx.CallAfter(self.finishedProcessing)
 
+
+    def runSuperimpose(self, prefix, path):
+        if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
+            and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
+            or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+
+            self.runCifsup(prefix, path)
+
+        else:
+            self.runSupcomb(prefix, path)
 
     def runSupcomb(self, prefix, path):
 
@@ -6443,11 +6454,6 @@ class DammifRunPanel(wx.Panel):
 
             nruns = int(wx.FindWindowById(self.ids['runs'], self).GetValue())
             symmetry = self.dammif_settings['sym']
-
-            if symmetry == 'P1':
-                mode = 'fast'
-            else:
-                mode = 'slow'
 
             target_filenames = []
             if 'damaver' in self.dammif_ids:
@@ -6478,6 +6484,17 @@ class DammifRunPanel(wx.Panel):
                 target_filenames.extend(['{}_{:02d}-1{}'.format(prefix, run, self.model_ext)
                     for run in range(1, nruns+1)])
 
+
+            enants = self.dammif_settings['sup_enants']
+            method = self.dammif_settings['supcomb_method']
+            superposition = self.dammif_settings['supcomb_superpos']
+            mode = self.dammif_settings['supbcomb_mode']
+            fraction = self.dammif_settings['subcomb_fraction']
+            atsas_dir = self.raw_settings.get('ATSASDir')
+
+            if symmetry != 'P1':
+                mode = 'slow'
+
             supcomb_q = queue.Queue()
             read_semaphore = threading.BoundedSemaphore(1)
 
@@ -6493,7 +6510,8 @@ class DammifRunPanel(wx.Panel):
 
                 sup_proc = SASCalc.runSupcomb(template, target, path,
                     self.raw_settings.get('ATSASDir'), symmetry=symmetry,
-                    mode=mode)
+                    mode=mode, superposition=superposition, enantiomorphs=enants,
+                    proximity=method, fraction=fraction)
 
                 if sup_proc is None:
                     msg  = ('SUPCOMB failed to start for target file '
@@ -6553,6 +6571,89 @@ class DammifRunPanel(wx.Panel):
                         else:
                             msg = '\nSUPCOMB failed for {}\n\n'.format(target)
                             wx.CallAfter(sup_window.AppendText, msg)
+
+            wx.CallAfter(self.status.AppendText, 'Finished Alignment\n')
+            wx.CallAfter(self.finishedProcessing)
+
+    def runCifsup(self, prefix, path):
+
+        if self.align_file_name != os.path.join(path, os.path.split(self.align_file_name)[-1]):
+            shutil.copy(self.align_file_name, path)
+
+        template = os.path.split(self.align_file_name)[-1]
+
+        with self.my_semaphore:
+            #Check to see if things have been aborted
+            sup_id = self.dammif_ids['align']
+            sup_window = wx.FindWindowById(sup_id, self)
+
+            if self.abort_event.is_set():
+                wx.CallAfter(sup_window.AppendText, 'Aborted!\n')
+                return
+
+            nruns = int(wx.FindWindowById(self.ids['runs'], self).GetValue())
+
+            target_filenames = []
+            if 'damaver' in self.dammif_ids:
+                summary_path = os.path.join(path, prefix+'-global-summary.txt')
+                rep_model, _ = SASFileIO.loadDamaverGlobalSummaryFile(summary_path)
+
+                target_filenames.extend(['{}-global-damaver{}'.format(prefix, self.model_ext),
+                    '{}-global-damfilt{}'.format(prefix, self.model_ext), rep_model])
+
+            if 'refine' in self.dammif_ids:
+                target_filenames.append('refine_{}-1{}'.format(prefix, self.model_ext))
+
+            if 'damclust' in self.dammif_ids:
+                name = '{}_damclust.log'.format(prefix)
+                filename = os.path.join(path, name)
+                cluster_list, distance_list = SASFileIO.loadDamclustLogFile(filename)
+
+                for cluster in cluster_list:
+                    if cluster.rep_model not in target_filenames:
+                        name, ext = os.path.splitext(cluster.rep_model)
+                        target_filenames.append(cluster.rep_model)
+                        target_filenames.append('{}-avr{}'.format(name, self.model_ext))
+                        target_filenames.append('{}-flt{}'.format(name, self.model_ext))
+
+            if ('damaver' not in self.dammif_ids and 'refine' not in self.dammif_ids
+                and 'damclust' not in self.dammif_ids):
+                target_filenames.extend(['{}_{:02d}-1{}'.format(prefix, run, self.model_ext)
+                    for run in range(1, nruns+1)])
+
+            enants = self.dammif_settings['sup_enants']
+            nbeads = self.dammif_settings['cifsup_nbeads']
+            method = self.dammif_settings['cifsup_method']
+            lm = self.dammif_settings['cifsup_lm']
+            ns = self.dammif_settings['cifsup_ns']
+            smax = self.dammif_settings['cifsup_smax']
+            selection = self.dammif_settings['cifsup_selection']
+            atsas_dir = self.raw_settings.get('ATSASDir')
+
+            wx.CallAfter(self.status.AppendText, 'Starting Alignment\n')
+
+            for target in target_filenames:
+                if self.abort_event.is_set():
+                    wx.CallAfter(self.sup_window.AppendText, 'Aborted!\n')
+                    return
+
+                msg = 'CIFSUP started for {}\n'.format(target)
+                wx.CallAfter(sup_window.AppendText, msg)
+
+                RAWAPI.cifsup(target, template, path, method=method,
+                    selection=selection, enantiomorphs=enants,
+                    lm=lm, ns=ns, smax=smax, beads=nbeads, atsas_dir=atsas_dir,
+                    abort_event=self.abort_event)
+
+                name, ext = os.path.splitext(target)
+                sup_name = '{}_aligned{}'.format(name, ext)
+
+                if os.path.exists(os.path.join(path, sup_name)):
+                    msg = 'CIFSUP finished for {}\n\n'.format(target)
+                    wx.CallAfter(sup_window.AppendText, msg)
+                else:
+                    msg = 'CIFSUP failed for {}\n\n'.format(target)
+                    wx.CallAfter(sup_window.AppendText, msg)
 
             wx.CallAfter(self.status.AppendText, 'Finished Alignment\n')
             wx.CallAfter(self.finishedProcessing)
@@ -6633,7 +6734,7 @@ class DammifRunPanel(wx.Panel):
                 prefix = prefix_window.GetValue()
                 prefix = prefix.replace(' ', '_')
 
-                t = threading.Thread(target = self.runSupcomb, args = (prefix, path))
+                t = threading.Thread(target = self.runSuperimpose, args = (prefix, path))
                 t.daemon = True
                 t.start()
                 self.threads.append(t)
@@ -6703,39 +6804,59 @@ class DammifRunPanel(wx.Panel):
 
 
     def updateDAMMIFSettings(self):
-        self.dammif_settings = {'mode'              : self.raw_settings.get('dammifMode'),
-                                'unit'              : self.raw_settings.get('dammifUnit'),
-                                'sym'               : self.raw_settings.get('dammifSymmetry'),
-                                'anisometry'        : self.raw_settings.get('dammifAnisometry'),
-                                'omitSolvent'       : self.raw_settings.get('dammifOmitSolvent'),
-                                'chained'           : self.raw_settings.get('dammifChained'),
-                                'constant'          : self.raw_settings.get('dammifConstant'),
-                                'maxBead'           : self.raw_settings.get('dammifMaxBeadCount'),
-                                'radius'            : self.raw_settings.get('dammifDummyRadius'),
-                                'harmonics'         : self.raw_settings.get('dammifSH'),
-                                'propFit'           : self.raw_settings.get('dammifPropToFit'),
-                                'curveWeight'       : self.raw_settings.get('dammifCurveWeight'),
-                                'seed'              : self.raw_settings.get('dammifRandomSeed'),
-                                'maxSteps'          : self.raw_settings.get('dammifMaxSteps'),
-                                'maxIters'          : self.raw_settings.get('dammifMaxIters'),
-                                'maxSuccess'        : self.raw_settings.get('dammifMaxStepSuccess'),
-                                'minSuccess'        : self.raw_settings.get('dammifMinStepSuccess'),
-                                'TFactor'           : self.raw_settings.get('dammifTFactor'),
-                                'RgWeight'          : self.raw_settings.get('dammifRgPen'),
-                                'cenWeight'         : self.raw_settings.get('dammifCenPen'),
-                                'looseWeight'       : self.raw_settings.get('dammifLoosePen'),
-                                'initialDAM'        : self.raw_settings.get('damminInitial'),
-                                'knots'             : self.raw_settings.get('damminKnots'),
-                                'damminConstant'    : self.raw_settings.get('damminConstant'),
-                                'diameter'          : self.raw_settings.get('damminDiameter'),
-                                'packing'           : self.raw_settings.get('damminPacking'),
-                                'coordination'      : self.raw_settings.get('damminCoordination'),
-                                'disconWeight'      : self.raw_settings.get('damminDisconPen'),
-                                'periphWeight'      : self.raw_settings.get('damminPeriphPen'),
-                                'damminCurveWeight' : self.raw_settings.get('damminCurveWeight'),
-                                'annealSched'       : self.raw_settings.get('damminAnealSched'),
-                                'shape'             : self.raw_settings.get('dammifExpectedShape'),
-                                }
+        self.dammif_settings = {
+            'mode'              : self.raw_settings.get('dammifMode'),
+            'unit'              : self.raw_settings.get('dammifUnit'),
+            'sym'               : self.raw_settings.get('dammifSymmetry'),
+            'anisometry'        : self.raw_settings.get('dammifAnisometry'),
+            'omitSolvent'       : self.raw_settings.get('dammifOmitSolvent'),
+            'chained'           : self.raw_settings.get('dammifChained'),
+            'constant'          : self.raw_settings.get('dammifConstant'),
+            'maxBead'           : self.raw_settings.get('dammifMaxBeadCount'),
+            'radius'            : self.raw_settings.get('dammifDummyRadius'),
+            'harmonics'         : self.raw_settings.get('dammifSH'),
+            'propFit'           : self.raw_settings.get('dammifPropToFit'),
+            'curveWeight'       : self.raw_settings.get('dammifCurveWeight'),
+            'seed'              : self.raw_settings.get('dammifRandomSeed'),
+            'maxSteps'          : self.raw_settings.get('dammifMaxSteps'),
+            'maxIters'          : self.raw_settings.get('dammifMaxIters'),
+            'maxSuccess'        : self.raw_settings.get('dammifMaxStepSuccess'),
+            'minSuccess'        : self.raw_settings.get('dammifMinStepSuccess'),
+            'TFactor'           : self.raw_settings.get('dammifTFactor'),
+            'RgWeight'          : self.raw_settings.get('dammifRgPen'),
+            'cenWeight'         : self.raw_settings.get('dammifCenPen'),
+            'looseWeight'       : self.raw_settings.get('dammifLoosePen'),
+            'initialDAM'        : self.raw_settings.get('damminInitial'),
+            'knots'             : self.raw_settings.get('damminKnots'),
+            'damminConstant'    : self.raw_settings.get('damminConstant'),
+            'diameter'          : self.raw_settings.get('damminDiameter'),
+            'packing'           : self.raw_settings.get('damminPacking'),
+            'coordination'      : self.raw_settings.get('damminCoordination'),
+            'disconWeight'      : self.raw_settings.get('damminDisconPen'),
+            'periphWeight'      : self.raw_settings.get('damminPeriphPen'),
+            'damminCurveWeight' : self.raw_settings.get('damminCurveWeight'),
+            'annealSched'       : self.raw_settings.get('damminAnealSched'),
+            'shape'             : self.raw_settings.get('dammifExpectedShape'),
+            'damaver_enants'    : self.raw_settings.get('damaverEnantiomers'),
+            'damaver_nbeads'    : self.raw_settings.get('damaverNbeads'),
+            'damaver_method'    : self.raw_settings.get('damaverMethod'),
+            'damaver_lm'        : self.raw_settings.get('damaverHarmonics'),
+            'damaver_ns'        : self.raw_settings.get('damaverPoints'),
+            'damaver_smax'      : self.raw_settings.get('damaverQmax'),
+            'cifsup_method'     : self.raw_settings.get('cifsupMethod'),
+            'cifsup_selection'  : self.raw_settings.get('cifsupSelection'),
+            'cifsup_lm'         : self.raw_settings.get('cifsupHarmonics'),
+            'cifsup_smax'       : self.raw_settings.get('cifsupQmax'),
+            'cifsup_ns'         : self.raw_settings.get('cifsupPoints'),
+            'cifsup_nbeads'     : self.raw_settings.get('cifsupBeads'),
+            'cifsup_target_id'  : self.raw_settings.get('cifsupTargetID'),
+            'cifsup_ref_id'     : self.raw_settings.get('cifsupRefID'),
+            'supbcomb_method'   : self.raw_settings.get('supcombMethod'),
+            'supcomb_superpos'  : self.raw_settings.get('supcombSuperpositon'),
+            'supcomb_mode'      : self.raw_settings.get('supcombMode'),
+            'supcomb_fraction'  : self.raw_settings.get('supcombFraction'),
+            'sup_enants'        : self.raw_settings.get('supEnantiomorphs'),
+            }
 
         mode = wx.FindWindowById(self.ids['mode'], self)
         mode.SetStringSelection(self.dammif_settings['mode'])
@@ -6747,13 +6868,22 @@ class DammifRunPanel(wx.Panel):
         anisometry.SetStringSelection(self.dammif_settings['anisometry'])
 
         procs = wx.FindWindowById(self.ids['procs'], self)
-        procs.SetSelection(1)
+        if procs.GetCount()>1:
+            procs.SetSelection(1)
+        else:
+            procs.SetSelection(0)
 
         damaver = wx.FindWindowById(self.ids['damaver'], self)
         damaver.SetValue(self.raw_settings.get('dammifDamaver'))
 
-        damclust = wx.FindWindowById(self.ids['damclust'], self)
-        damclust.SetValue(self.raw_settings.get('dammifDamclust'))
+        if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
+            and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
+            or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+            damclust = wx.FindWindowById(self.ids['damclust'], self)
+            damclust.SetValue(False)
+        else:
+            damclust = wx.FindWindowById(self.ids['damclust'], self)
+            damclust.SetValue(self.raw_settings.get('dammifDamclust'))
 
         prefix = wx.FindWindowById(self.ids['prefix'], self)
         prefix.SetValue(os.path.splitext(self.filename)[0])
@@ -7173,20 +7303,18 @@ class DammifResultsPanel(wx.Panel):
         eval_window = wx.FindWindowById(self.ids['ambiEval'], self)
         wx.CallAfter(eval_window.SetValue, output[2])
 
-    def getNSD(self, filename):
-        mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit = SASFileIO.loadDamselLogFile(filename)
+    def setNSD(self, mean_nsd, stdev_nsd, inc_val, total):
 
         mean_window = wx.FindWindowById(self.ids['nsdMean'], self)
         mean_window.SetValue(mean_nsd)
         stdev_window = wx.FindWindowById(self.ids['nsdStdev'], self)
         stdev_window.SetValue(stdev_nsd)
         inc_window = wx.FindWindowById(self.ids['nsdInc'], self)
-        inc_window.SetValue(str(len(include_list)))
+        inc_window.SetValue(str(inc_val))
         tot_window = wx.FindWindowById(self.ids['nsdTot'], self)
-        tot_window.SetValue(str(len(result_dict)))
+        tot_window.SetValue(str(total))
 
-    def getResolution(self, filename):
-        mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit = SASFileIO.loadDamselLogFile(filename)
+    def setResolution(self, res, res_err, res_unit):
 
         res_window = wx.FindWindowById(self.ids['res'], self)
         res_window.SetValue(res)
@@ -7194,8 +7322,6 @@ class DammifResultsPanel(wx.Panel):
         reserr_window.SetValue(res_err)
         unit_window = wx.FindWindowById(self.ids['resUnit'], self)
         unit_window.SetValue(res_unit)
-        tot_window = wx.FindWindowById(self.ids['nsdTot'], self)
-        tot_window.SetValue(str(len(result_dict)))
 
     def getClust(self, filename):
         cluster_list, distance_list = SASFileIO.loadDamclustLogFile(filename)
@@ -7220,7 +7346,7 @@ class DammifResultsPanel(wx.Panel):
         for dist_data in distance_list:
             dlist.Append(list(map(str, dist_data)))
 
-    def getModels(self, settings):
+    def getModels(self, settings, result_dict, rep_model):
         while self.models.GetPageCount() > 1:
             last_page = self.models.GetPageText(self.models.GetPageCount()-1)
             if last_page != 'Summary':
@@ -7235,15 +7361,6 @@ class DammifResultsPanel(wx.Panel):
         prefix = settings['prefix']
 
         model_list = []
-
-        if settings['damaver'] and int(settings['runs']) > 1:
-            name = prefix+'_damsel.log'
-            filename = os.path.join(path, name)
-            mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res, res_err, res_unit = SASFileIO.loadDamselLogFile(filename)
-
-            name = prefix+'_damsup.log'
-            filename = os.path.join(path, name)
-            model_data, rep_model = SASFileIO.loadDamsupLogFile(filename)
 
         for num in range(1,int(settings['runs'])+1):
             fprefix = '%s_%s' %(prefix, str(num).zfill(2))
@@ -7272,13 +7389,36 @@ class DammifResultsPanel(wx.Panel):
             self.models.AddPage(plot_panel, str(num))
 
         if settings['damaver'] and int(settings['runs']) > 1:
-            damaver_name = os.path.join(path, prefix+'_damaver'+self.model_ext)
-            damfilt_name = os.path.join(path, prefix+'_damfilt'+self.model_ext)
+            if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
+                and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
+                or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+                damaver_name = os.path.join(path, prefix+'-global-damaver'+self.model_ext)
+                damfilt_name = os.path.join(path, prefix+'-global-damfilt'+self.model_ext)
+
+            else:
+                damaver_name = os.path.join(path, prefix+'_damaver'+self.model_ext)
+                damfilt_name = os.path.join(path, prefix+'_damfilt'+self.model_ext)
 
             atoms, header, model_data = self._loadModelFile(damaver_name)
+
+            if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
+                and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
+                or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+                model_data['dmax'] = ''
+                model_data['rg'] = ''
+                model_data['mw'] = ''
+
             model_list.append(['damaver', model_data, atoms])
 
             atoms, header, model_data = self._loadModelFile(damfilt_name)
+
+            if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
+                and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
+                or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+                model_data['dmax'] = ''
+                model_data['rg'] = ''
+                model_data['mw'] = ''
+
             model_list.append(['damfilt', model_data, atoms])
 
         if settings['refine'] and int(settings['runs']) > 1:
@@ -7311,6 +7451,58 @@ class DammifResultsPanel(wx.Panel):
 
         return model_list
 
+    def getDamaverResults(self, settings):
+        """
+        Gets damaver results
+        """
+
+        if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
+            and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
+            or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+            dist_path = os.path.join(settings['path'],
+                settings['prefix']+'-distances.txt')
+            summary_path = os.path.join(settings['path'],
+                settings['prefix']+'-global-summary.txt')
+
+            mean_nsd, stdev_nsd, model_nsds = SASFileIO.loadDamaverDistancesFile(dist_path)
+            rep_model, model_includes = SASFileIO.loadDamaverGlobalSummaryFile(summary_path)
+
+            inc_val = 0
+            result_dict = {}
+
+            for model_name in model_nsds:
+                if model_includes[model_name]:
+                    inc = 'Include'
+                    inc_val += 1
+                else:
+                    inc = 'Not'
+
+                result_dict[model_name] = [inc, float(model_nsds[model_name])]
+
+            total = len(result_dict)
+            res = ''
+            res_err = ''
+            res_unit = ''
+
+        else:
+            name = settings['prefix']+'_damsel.log'
+            filename = os.path.join(settings['path'],name)
+
+            (mean_nsd, stdev_nsd, include_list, discard_list, result_dict, res,
+                res_err, res_unit) = SASFileIO.loadDamselLogFile(filename)
+
+            inc_val = len(include_list)
+            total = len(result_dict)
+
+            name = settings['prefix']+'_damsup.log'
+            filename = os.path.join(path, name)
+            model_data, rep_model = SASFileIO.loadDamsupLogFile(filename)
+
+        self.setNSD(mean_nsd, stdev_nsd, inc_val, total)
+        self.setResolution(res, res_err, res_unit)
+
+        return result_dict, rep_model
+
     def updateResults(self, settings):
         #In case we ran a different setting a second time, without closing the window
         self.topsizer.Hide(self.nsd_sizer, recursive=True)
@@ -7319,13 +7511,14 @@ class DammifResultsPanel(wx.Panel):
 
         if settings['damaver'] and int(settings['runs']) > 1:
             self.topsizer.Show(self.nsd_sizer, recursive=True)
-            name = settings['prefix']+'_damsel.log'
-            filename = os.path.join(settings['path'],name)
-            self.getNSD(filename)
-            self.getResolution(filename)
+            result_dict, rep_model = self.getDamaverResults(settings)
 
             if wx.FindWindowById(self.ids['res'], self).GetValue():
                 self.topsizer.Show(self.res_sizer, recursive=True)
+
+        else:
+            result_dict = {}
+            rep_model = ''
 
         if settings['damclust'] and int(settings['runs']) > 1:
             self.topsizer.Show(self.clust_sizer, recursive=True)
@@ -7333,7 +7526,7 @@ class DammifResultsPanel(wx.Panel):
             filename = os.path.join(settings['path'],name)
             self.getClust(filename)
 
-        model_list = self.getModels(settings)
+        model_list = self.getModels(settings, result_dict, rep_model)
 
         self.Layout()
 
@@ -12039,7 +12232,7 @@ class SupcombFrame(wx.Frame):
             self.abort_button.Enable()
             self.status.SetValue('')
 
-            self.supcomb_thread = threading.Thread(target=self.runSupcomb)
+            self.supcomb_thread = threading.Thread(target=self.runSuperimpose)
             self.supcomb_thread.daemon = True
             self.supcomb_thread.start()
 

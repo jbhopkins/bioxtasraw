@@ -2745,6 +2745,65 @@ def loadDamclustLogFile(filename):
 
     return cluster_list, distance_list
 
+def loadDamaverDistancesFile(filename):
+    """
+    Loads damaver distances in ATSAS 3.1.0
+    """
+    model_nsds = {}
+
+    process_model_name = False
+
+    with open(filename, 'r') as f:
+        for line in f:
+
+            if process_model_name:
+                if len(line.split()) >= 2:
+                    fnum = line.split()[0]
+                    fname = ' '.join(line.split()[1:])
+                    model_nsds[fname] = nsd_data[int(fnum)-1]
+
+            if 'Mean' in line and 'Standard' not in line:
+                mean_nsd = line.strip().split()[-1]
+
+            elif 'Mean' not in line and 'Standard' in line:
+                stdev_nsd = line.strip().split()[-1]
+
+            elif 'aver' in line.lower() and 'file' not in line.lower():
+                nsd_data = line.split()[2:]
+
+            elif 'file' in line.lower() and 'file name' in line.lower():
+                process_model_name = True
+
+    return mean_nsd, stdev_nsd, model_nsds
+
+def loadDamaverGlobalSummaryFile(filename):
+    """
+    Loads damaver global summary file in ATSAS 3.1.0
+    """
+    model_includes = {}
+
+    process_model_name = True
+
+    with open(filename, 'r') as f:
+        for line in f:
+            if 'most representative' in line.lower():
+                representative_model = ' '.join(line.split()[2:])
+                process_model_name = False
+
+            if process_model_name:
+                if len(line.split()) >= 3 and 'file' not in line.lower():
+                    include = line.split()[1]
+                    fname = ' '.join(line.split()[2:])
+
+                    if include.lower() == 'included':
+                        inc = True
+                    else:
+                        inc = False
+
+                    model_includes[fname] = inc
+
+    return representative_model, model_includes
+
 def loadPDBFile(filename):
     """
     Read the PDB file,
@@ -2794,7 +2853,7 @@ def loadmmCIFFile(filename):
 
     data = []
     with open(filename, 'r') as f:
-        pRd = pdbx.reader.PdbxReader(ifh)
+        pRd = pdbx.reader.PdbxReader(f)
         pRd.read(data)
 
     block = data[0]
@@ -2804,8 +2863,8 @@ def loadmmCIFFile(filename):
     if 'atsas_dummy_atom_model' in sections:
         model_data = block.get_object('atsas_dummy_atom_model')
         attributes = model_data.attribute_list
-        desc_idx = attributes.find('description')
-        val_idx = attributes.find('value')
+        desc_idx = attributes.index('description')
+        val_idx = attributes.index('value')
 
         for item in model_data.row_list:
             if 'maximum distance' in item[desc_idx].lower():
@@ -2817,7 +2876,7 @@ def loadmmCIFFile(filename):
             elif 'dummy atom radius' in item[desc_idx].lower():
                 useful_params['atom_radius'] = str(float(item[val_idx].strip()))
 
-            elif 'total exluded dam volume' in item[desc_idx].lower():
+            elif 'total excluded dam volume' in item[desc_idx].lower():
                 useful_params['excluded_volume'] = str(float(item[val_idx].strip()))
 
     if 'excluded_volume' in useful_params:
@@ -2826,9 +2885,9 @@ def loadmmCIFFile(filename):
     if 'atom_site' in sections:
         atom_data = block.get_object('atom_site')
         attributes = atom_data.attribute_list
-        x_idx = attributes.find('Cartn_x')
-        y_idx = attributes.find('Cartn_y')
-        z_idx = attributes.find('Cartn_z')
+        x_idx = attributes.index('Cartn_x')
+        y_idx = attributes.index('Cartn_y')
+        z_idx = attributes.index('Cartn_z')
 
         for item in atom_data.row_list:
             atoms.append([float(item[x_idx]), float(item[y_idx]), float(item[z_idx])])

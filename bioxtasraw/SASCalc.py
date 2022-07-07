@@ -1704,6 +1704,7 @@ def runDammif(fname, prefix, args, path, atsasDir):
     else:
         dammifDir = os.path.join(atsasDir, 'dammif')
 
+    version = getATSASVersion(atsasDir).split('.')
 
     if os.path.exists(dammifDir):
         my_env = setATSASEnv(atsasDir)
@@ -1711,8 +1712,11 @@ def runDammif(fname, prefix, args, path, atsasDir):
         if args['mode'].lower() == 'fast' or args['mode'].lower() == 'slow':
 
             command = '"%s" --quiet --mode=%s --prefix="%s" --unit=%s --symmetry=%s --anisometry=%s' %(dammifDir, args['mode'], prefix, args['unit'], args['sym'], args['anisometry'])
-            if args['omitSolvent']:
-                command = command + ' --omit-solvent'
+
+            if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+                if args['omitSolvent']:
+                    command = command + ' --omit-solvent'
+
             if args['chained']:
                 command = command + ' --chained'
             if args['constant'] != '':
@@ -1915,7 +1919,8 @@ def runDammif(fname, prefix, args, path, atsasDir):
         return None
 
 
-def runDamaver(flist, path, atsasDir, symmetry='P1'):
+def runDamaver(flist, path, atsasDir, prefix, symmetry='P1', enantiomorphs='YES',
+   nbeads=5000, method='NSD', lm=5, ns=51, smax=0.5):
 
     opsys = platform.system()
 
@@ -1924,11 +1929,20 @@ def runDamaver(flist, path, atsasDir, symmetry='P1'):
     else:
         damaverDir = os.path.join(atsasDir, 'damaver')
 
+    version = getATSASVersion(atsasDir).split('.')
 
     if os.path.exists(damaverDir):
         my_env = setATSASEnv(atsasDir)
 
-        command = '"%s" --symmetry=%s --automatic' %(damaverDir, symmetry)
+        command = '"{}" --nbeads={} --enantiomorphs={}'.format(damaverDir, nbeads,
+            enantiomorphs)
+
+        if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+            command += ' --symmetry=%s --automatic' %(symmetry)
+
+        if (int(version[0]) == 3 and int(version[1]) >= 1) or int(version[0]) > 3:
+            command += ' --method={} --prefix={} --lm={} --ns={} --smax={}'.format(method,
+                prefix, lm, ns, smax)
 
         for item in flist:
             command = command + ' "%s"' %(item)
@@ -1963,6 +1977,41 @@ def runSupcomb(file1, file2, path, atsasDir, symmetry='P1', mode='slow',
             '--enantiomorphs={} --proximity={} --fraction={} "{}" "{}" '
             '-o "{}"'.format(supcombDir, symmetry, mode, superposition,
                 enantiomorphs, proximity, fraction, file1, file2, outname))
+
+        if opsys == 'Windows':
+            process=subprocess.Popen(command, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, cwd=path, env=my_env)
+        else:
+            process=subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, cwd=path, env=my_env)
+
+    else:
+        process = None
+
+    return process
+
+def runCifsup(file1, file2, path, atsasDir, method='NSD', selection='ALL',
+    enantiomorphs='YES', target_model_id=1, ref_model_id=1, lm=5, ns=51,
+    smax=0.5, beads=2000):
+
+    opsys = platform.system()
+
+    if opsys == 'Windows':
+        cifsupDir = os.path.join(atsasDir, 'cifsup.exe')
+    else:
+        cifsupDir = os.path.join(atsasDir, 'cifsup')
+
+    name, ext = os.path.splitext(file2)
+    outname = '{}_aligned{}'.format(name, ext)
+
+    if os.path.exists(cifsupDir):
+        my_env = setATSASEnv(atsasDir)
+
+        command = ('"{}" --method={} --selection={} -e={} -lm={} -ns={} '
+            '-smax="{}" --beads={} --template-model={} --movable-model={} '
+            '-o "{}" "{}" "{}"'.format(cifsupDir, method, selection, enantiomorphs,
+                lm, ns, smax, beads, target_model_id, ref_model_id, outname,
+                file1, file2))
 
         if opsys == 'Windows':
             process=subprocess.Popen(command, stdout=subprocess.PIPE,

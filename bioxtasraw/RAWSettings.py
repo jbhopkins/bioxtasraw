@@ -356,6 +356,29 @@ class RawGuiSettings(object):
                 'damminCurveWeight'     : ['1', get_id(), 'choice'],
                 'damminAnealSched'      : [-1, get_id(), 'float'],
 
+                #DAMAVER settings
+                'damaverEnantiomers'    : ['Yes', get_id(), 'chioce'],
+                'damaverNbeads'         : [5000, get_id(), 'int'],
+                'damaverMethod'         : ['NSD', get_id(), 'choice'],
+                'damaverHarmonics'      : [5, get_id(), 'int'],
+                'damaverPoints'         : [51, get_id(), 'int'],
+                'damaverQmax'           : [0.51, get_id(), 'float'],
+
+                #CIFSUP and SUPCOMB settings
+                'cifsupMethod'          : ['ICP', get_id(), 'choice'],
+                'cifsupSelection'       : ['ALL', get_id(), 'choice'],
+                'supEnantiomorphs'      : ['YES', get_id(), 'choice'],
+                'cifsupHarmonics'       : [5, get_id(), 'int'],
+                'cifsupPoints'          : [51, get_id(), 'int'],
+                'cifsupQmax'            : [0.51, get_id(), 'float'],
+                'cifsupBeads'           : [2000, get_id(), 'int'],
+                'cifsupTargetID'        : [1, get_id(), 'int'],
+                'cifsupRefID'           : [1, get_id(), 'int'],
+                'supcombMethod'         : ['NSD', get_id(), 'choice'],
+                'supcombSuperpositon'   : ['ALL', get_id(), 'choice'],
+                'supcombMode'           : ['fast', get_id(), 'choice'],
+                'supcombFraction'       : [1.0, get_id(), 'float'],
+
                 #Weighted Average Settings
                 'weightCounter'         : ['', get_id(), 'choice'],
                 'weightByError'         : [True, get_id(), 'bool'],
