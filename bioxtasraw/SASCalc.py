@@ -2109,12 +2109,10 @@ def runDammin(fname, prefix, args, path, atsasDir):
     else:
         dammifDir = os.path.join(atsasDir, 'dammin')
 
-
     if os.path.exists(dammifDir):
         my_env = setATSASEnv(atsasDir)
 
         if args['mode'].lower() == 'fast' or args['mode'].lower() == 'slow':
-
             if args['unit'] == 'Angstrom':
                 unit = '1'
             elif args['unit'] == 'Nanometer':

@@ -6060,7 +6060,7 @@ class DammifRunPanel(wx.Panel):
                     or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
                     self.dammif_settings['initialDAM'] = prefix+'-global-damstart'+self.model_ext
                 else:
-                    self.dammif_settings['initialDAM'] = prefix+'damstart'+self.model_ext
+                    self.dammif_settings['initialDAM'] = prefix+'_damstart'+self.model_ext
 
             if refine:
                 wx.CallAfter(self.status.AppendText, 'Starting Refinement\n')
@@ -6216,7 +6216,6 @@ class DammifRunPanel(wx.Panel):
                     abort_event=self.abort_event)
 
                 if self.abort_event.isSet():
-                    damaver_proc.terminate()
                     wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
                     return
                 else:
@@ -6488,8 +6487,8 @@ class DammifRunPanel(wx.Panel):
             enants = self.dammif_settings['sup_enants']
             method = self.dammif_settings['supcomb_method']
             superposition = self.dammif_settings['supcomb_superpos']
-            mode = self.dammif_settings['supbcomb_mode']
-            fraction = self.dammif_settings['subcomb_fraction']
+            mode = self.dammif_settings['supcomb_mode']
+            fraction = self.dammif_settings['supcomb_fraction']
             atsas_dir = self.raw_settings.get('ATSASDir')
 
             if symmetry != 'P1':
@@ -6634,7 +6633,7 @@ class DammifRunPanel(wx.Panel):
 
             for target in target_filenames:
                 if self.abort_event.is_set():
-                    wx.CallAfter(self.sup_window.AppendText, 'Aborted!\n')
+                    wx.CallAfter(sup_window.AppendText, 'Aborted!\n')
                     return
 
                 msg = 'CIFSUP started for {}\n'.format(target)
@@ -6648,10 +6647,11 @@ class DammifRunPanel(wx.Panel):
                 name, ext = os.path.splitext(target)
                 sup_name = '{}_aligned{}'.format(name, ext)
 
-                if os.path.exists(os.path.join(path, sup_name)):
+                if (os.path.exists(os.path.join(path, sup_name))
+                    and not self.abort_event.is_set()):
                     msg = 'CIFSUP finished for {}\n\n'.format(target)
                     wx.CallAfter(sup_window.AppendText, msg)
-                else:
+                elif not self.abort_event.is_set():
                     msg = 'CIFSUP failed for {}\n\n'.format(target)
                     wx.CallAfter(sup_window.AppendText, msg)
 
@@ -6851,7 +6851,7 @@ class DammifRunPanel(wx.Panel):
             'cifsup_nbeads'     : self.raw_settings.get('cifsupBeads'),
             'cifsup_target_id'  : self.raw_settings.get('cifsupTargetID'),
             'cifsup_ref_id'     : self.raw_settings.get('cifsupRefID'),
-            'supbcomb_method'   : self.raw_settings.get('supcombMethod'),
+            'supcomb_method'   : self.raw_settings.get('supcombMethod'),
             'supcomb_superpos'  : self.raw_settings.get('supcombSuperpositon'),
             'supcomb_mode'      : self.raw_settings.get('supcombMode'),
             'supcomb_fraction'  : self.raw_settings.get('supcombFraction'),
@@ -7495,7 +7495,7 @@ class DammifResultsPanel(wx.Panel):
             total = len(result_dict)
 
             name = settings['prefix']+'_damsup.log'
-            filename = os.path.join(path, name)
+            filename = os.path.join(settings['path'], name)
             model_data, rep_model = SASFileIO.loadDamsupLogFile(filename)
 
         self.setNSD(mean_nsd, stdev_nsd, inc_val, total)

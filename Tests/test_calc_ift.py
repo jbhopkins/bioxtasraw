@@ -9,6 +9,7 @@ if raw_path not in os.sys.path:
     os.sys.path.append(raw_path)
 
 import bioxtasraw.RAWAPI as raw
+import bioxtasraw.SASCalc as SASCalc
 
 @pytest.mark.atsas
 def test_ambimeter(gi_gnom_ift):
@@ -24,7 +25,14 @@ def test_dammif(gi_gnom_ift, temp_directory):
     chi_sq, rg, dmax, mw, excluded_volume = raw.dammif(gi_gnom_ift, 'dammif',
         temp_directory, 'Fast')
 
-    assert os.path.exists(os.path.join(temp_directory, 'dammif-1.pdb'))
+    atsas_dir = raw.__default_settings.get('ATSASDir')
+    version = SASCalc.getATSASVersion(atsas_dir).split('.')
+
+    if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+        assert os.path.exists(os.path.join(temp_directory, 'dammif-1.pdb'))
+    else:
+        assert os.path.exists(os.path.join(temp_directory, 'dammif-1.cif'))
+
     assert os.path.exists(os.path.join(temp_directory, 'dammif.fit'))
     assert os.path.exists(os.path.join(temp_directory, 'dammif.fir'))
     assert os.path.exists(os.path.join(temp_directory, 'dammif.in'))
@@ -36,13 +44,20 @@ def test_dammin(gi_gnom_ift, temp_directory):
     chi_sq, rg, dmax, mw, excluded_volume = raw.dammin(gi_gnom_ift, 'dammin',
         temp_directory, 'Fast')
 
-    assert os.path.exists(os.path.join(temp_directory, 'dammin-0.pdb'))
-    assert os.path.exists(os.path.join(temp_directory, 'dammin-1.pdb'))
+    atsas_dir = raw.__default_settings.get('ATSASDir')
+    version = SASCalc.getATSASVersion(atsas_dir).split('.')
+
+    if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+        assert os.path.exists(os.path.join(temp_directory, 'dammin-0.pdb'))
+        assert os.path.exists(os.path.join(temp_directory, 'dammin-1.pdb'))
+    else:
+        assert os.path.exists(os.path.join(temp_directory, 'dammin-1.cif'))
+
     assert os.path.exists(os.path.join(temp_directory, 'dammin.fit'))
     assert os.path.exists(os.path.join(temp_directory, 'dammin.fir'))
 
 @pytest.mark.atsas
-@pytest.mark.very_slow
+@pytest.mark.slow
 def test_damaver(temp_directory):
     fnames = ['glucose_isomerase_{:02d}-1.pdb'.format(i) for i in range(1, 4)]
 
@@ -54,38 +69,83 @@ def test_damaver(temp_directory):
         res_unit) = raw.damaver(fnames, 'damaver', temp_directory)
 
     assert np.allclose(mean_nsd, 0.443, rtol=1e-2)
-    assert stdev_nsd == 0.014
-    assert res == 20
-    assert res_err == 0
+
+    atsas_dir = raw.__default_settings.get('ATSASDir')
+    version = SASCalc.getATSASVersion(atsas_dir).split('.')
+
+    if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+        assert stdev_nsd == 0.014
+        assert res == 20
+        assert res_err == 0
+    else:
+        assert stdev_nsd == 0.03
+        assert res == -1
+        assert res_err == -1
 
 @pytest.mark.atsas
 @pytest.mark.very_slow
 def test_damclust(temp_directory):
-    fnames = ['glucose_isomerase_{:02d}-1.pdb'.format(i) for i in range(1, 4)]
+    atsas_dir = raw.__default_settings.get('ATSASDir')
+    version = SASCalc.getATSASVersion(atsas_dir).split('.')
 
-    for fname in fnames:
-        shutil.copy2(os.path.join('./data/dammif_data', fname),
-            os.path.join(temp_directory, fname))
+    if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+        fnames = ['glucose_isomerase_{:02d}-1.pdb'.format(i) for i in range(1, 4)]
 
-    cluster_list, distance_list = raw.damclust(fnames, 'damaver', temp_directory)
+        for fname in fnames:
+            shutil.copy2(os.path.join('./data/dammif_data', fname),
+                os.path.join(temp_directory, fname))
 
-    assert len(cluster_list) == 1
-    assert len(distance_list) == 0
-    assert np.isclose(float(cluster_list[0].dev), 0.43326809411161260, rtol=1e-2)
+        cluster_list, distance_list = raw.damclust(fnames, 'damaver', temp_directory)
+
+        assert len(cluster_list) == 1
+        assert len(distance_list) == 0
+        assert np.isclose(float(cluster_list[0].dev), 0.43326809411161260, rtol=1e-2)
+    else:
+        pass
+        #DAMCLUST was removed in ATSAS 3.1.0
 
 @pytest.mark.atsas
 @pytest.mark.slow
 def test_supcomb(temp_directory):
-    shutil.copy2(os.path.join('./data/dammif_data', 'glucose_isomerase_01-1.pdb'),
-        os.path.join(temp_directory, 'glucose_isomerase_01-1.pdb'))
+    atsas_dir = raw.__default_settings.get('ATSASDir')
+    version = SASCalc.getATSASVersion(atsas_dir).split('.')
 
-    shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
-        os.path.join(temp_directory, '1XIB_4mer.pdb'))
+    if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+        shutil.copy2(os.path.join('./data/dammif_data', 'glucose_isomerase_01-1.pdb'),
+            os.path.join(temp_directory, 'glucose_isomerase_01-1.pdb'))
 
-    raw.supcomb('glucose_isomerase_01-1.pdb', '1XIB_4mer.pdb', temp_directory)
+        shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
+            os.path.join(temp_directory, '1XIB_4mer.pdb'))
 
-    assert os.path.exists(os.path.join(temp_directory,
-        'glucose_isomerase_01-1_aligned.pdb'))
+        raw.supcomb('glucose_isomerase_01-1.pdb', '1XIB_4mer.pdb', temp_directory)
+
+        assert os.path.exists(os.path.join(temp_directory,
+            'glucose_isomerase_01-1_aligned.pdb'))
+
+    else:
+        pass
+        #SUPCOMB was removed in ATSAS 3.1.0
+
+@pytest.mark.atsas
+def test_cifsup(temp_directory):
+    atsas_dir = raw.__default_settings.get('ATSASDir')
+    version = SASCalc.getATSASVersion(atsas_dir).split('.')
+
+    if (int(version[0]) == 3 and int(version[1]) >= 1) or int(version[0]) > 3:
+        shutil.copy2(os.path.join('./data/dammif_data', 'glucose_isomerase_01-1.pdb'),
+            os.path.join(temp_directory, 'glucose_isomerase_01-1.pdb'))
+
+        shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
+            os.path.join(temp_directory, '1XIB_4mer.pdb'))
+
+        raw.cifsup('glucose_isomerase_01-1.pdb', '1XIB_4mer.pdb', temp_directory)
+
+        assert os.path.exists(os.path.join(temp_directory,
+            'glucose_isomerase_01-1_aligned.pdb'))
+
+    else:
+        pass
+        #CIFSUP was added in ATSAS 3.1.0
 
 @pytest.mark.slow
 def test_denss(gi_gnom_ift, temp_directory):

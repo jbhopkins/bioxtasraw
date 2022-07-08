@@ -3350,11 +3350,17 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
             pass
 
     if not abort_event.is_set():
-        dam_name = os.path.join(datadir, prefix+'-1.pdb')
+        version = SASCalc.getATSASVersion(atsas_dir).split('.')
+
+        if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+            dam_name = os.path.join(datadir, prefix+'-1.pdb')
+            _, _, model_data = SASFileIO.loadPDBFile(dam_name)
+
+        else:
+            dam_name = os.path.join(datadir, prefix+'-1.cif')
+            _, _, model_data = SASFileIO.loadmmCIFFile(dam_name)
+
         fir_name = os.path.join(datadir, prefix+'.fir')
-
-        _, _, model_data = SASFileIO.loadPDBFile(dam_name)
-
         sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
         chi_sq = float(sasm.getParameter('counters')['Chi_squared'])
 
@@ -3567,19 +3573,44 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
         except Exception:
             pass
 
-    dam_name = os.path.join(datadir, prefix+'-1.pdb')
+    version = SASCalc.getATSASVersion(atsas_dir).split('.')
+
+
+
     fir_name = os.path.join(datadir, prefix+'.fir')
 
     if not abort_event.is_set():
-        _, _, model_data = SASFileIO.loadPDBFile(dam_name)
+        if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+            dam_name = os.path.join(datadir, prefix+'-1.pdb')
+            _, _, model_data = SASFileIO.loadPDBFile(dam_name)
+        else:
+            dam_name = os.path.join(datadir, prefix+'-1.cif')
+            _, _, model_data = SASFileIO.loadmmCIFFile(dam_name)
+
 
         sasm, fit_sasm = SASFileIO.loadFitFile(fir_name)
         chi_sq = float(sasm.getParameter('counters')['Chi_squared'])
 
-        rg = float(model_data['rg'])
-        dmax = float(model_data['dmax'])
-        excluded_volume=float(model_data['excluded_volume'])
-        mw = float(model_data['mw'])
+        try:
+            rg = float(model_data['rg'])
+        except Exception:
+            rg = -1
+
+        try:
+            dmax = float(model_data['dmax'])
+        except Exception:
+            dmax = -1
+
+        try:
+            excluded_volume=float(model_data['excluded_volume'])
+        except Exception:
+            excluded_volume = -1
+
+        try:
+            mw = float(model_data['mw'])
+        except Exception:
+            mw = -1
+
     else:
         chi_sq = -1
         rg = -1
