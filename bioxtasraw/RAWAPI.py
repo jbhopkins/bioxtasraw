@@ -39,6 +39,7 @@ import tempfile
 import traceback
 import copy
 import threading
+import queue
 import logging
 
 import numpy as np
@@ -3912,7 +3913,7 @@ def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
 def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
         enantiomorphs='YES', target_model_id=1, ref_model_id=1, lm=5, ns=51,
         smax=0.5, beads=2000, atsas_dir=None, settings=None,
-        abort_event=threading.Event()):
+        abort_event=None, readback_q=None):
     """
     Aligns the target to the reference file using CIFSUP from the ATSAS
     package. Require a separate installation of ATSAS. Both files must be
@@ -3961,10 +3962,18 @@ def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
     abort_event: :class:`threading.Event`, optional
         A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
         event is set it will abort the CIFSUP run.
+    readback_q: :class:`queue.Queue`, optional
+        If provided, any command line output (STDIN, STDERR) is placed in the
+        queue.
     """
 
     if atsas_dir is None:
         atsas_dir = __default_settings.get('ATSASDir')
+
+    if abort_event is None:
+        abort_event = threading.Event()
+    if readback_q is None:
+        readback_q = queue.Queue()
 
     if settings is None:
         cifsup_settings = {
@@ -3995,14 +4004,19 @@ def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
 
     proc = SASCalc.runCifsup(ref_file, target, datadir, atsas_dir, **cifsup_settings)
 
+    read_semaphore = threading.BoundedSemaphore(1)
+
+    readout_t = threading.Thread(target=SASUtils.enqueue_output,
+        args=(proc, readback_q, read_semaphore))
+    readout_t.daemon = True
+    readout_t.start()
+
     if proc is not None:
         while proc.poll() is None:
             if abort_event.is_set():
                 proc.terminate()
+                print('aborted')
                 break
-
-            if proc.stdout is not None:
-                proc.stdout.read(1)
 
     return
 

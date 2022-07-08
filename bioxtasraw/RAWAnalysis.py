@@ -12353,7 +12353,7 @@ class SupcombFrame(wx.Frame):
                 except Exception:
                     pass
 
-        self.cleanupSupcomb()
+        wx.CallAfter(self.cleanupSupcomb)
 
     def onAbortButton(self, evt):
         self.abort_event.set()
@@ -12381,10 +12381,11 @@ class CifsupFrame(wx.Frame):
 
     def __init__(self, parent, title):
         client_display = wx.GetClientDisplayRect()
-        size = (min(450, client_display.Width), min(450, client_display.Height))
+        size = (min(500, client_display.Width), min(250, client_display.Height))
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
+        self.SetMinSize(self._FromDIP((min(500, client_display.Width), -1)))
 
         self.main_frame = wx.FindWindowByName('MainFrame')
 
@@ -12396,10 +12397,12 @@ class CifsupFrame(wx.Frame):
         self.target_file_name = None
 
         self.standard_paths = wx.StandardPaths.Get()
+        self.abort_event = threading.Event()
+        self.align_thread = None
 
         self._createLayout()
 
-        SASUtils.set_best_size(self)
+        SASUtils.set_best_size(self, True)
         self.SendSizeEvent()
 
         self.CenterOnParent()
@@ -12473,7 +12476,7 @@ class CifsupFrame(wx.Frame):
         self.smax.SetValue(str(smax))
         self.beads.SetValue(str(beads))
         self.target_id.SetValue(str(target_model_id))
-        self.ref_model_id.SetValue(str(ref_model_id))
+        self.ref_id.SetValue(str(ref_model_id))
 
 
         adv_settings_sizer = wx.FlexGridSizer(cols=4, vgap=self._FromDIP(5),
@@ -12504,7 +12507,7 @@ class CifsupFrame(wx.Frame):
         adv_settings_sizer.Add(self.target_id, flag=wx.ALIGN_CENTER_VERTICAL)
         adv_settings_sizer.Add(wx.StaticText(adv_win, label='Ref. model ID:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_settings_sizer.Add(self.target_id, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_settings_sizer.Add(self.ref_id, flag=wx.ALIGN_CENTER_VERTICAL)
 
         adv_sizer = wx.BoxSizer(wx.HORIZONTAL)
         adv_sizer.Add(adv_settings_sizer, border=self._FromDIP(5), flag=wx.ALL)
@@ -12524,6 +12527,13 @@ class CifsupFrame(wx.Frame):
         button_sizer.Add(self.abort_button, flag=wx.ALL)
 
         self.status = wx.StaticText(panel)
+        self.status.SetForegroundColour('Red')
+
+        status_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        status_sizer.Add(wx.StaticText(panel, label='Status:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        status_sizer.Add(self.status, border=self._FromDIP(5),
+            flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
 
         info_button = wx.Button(panel, -1, 'How To Cite')
         info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
@@ -12538,9 +12548,9 @@ class CifsupFrame(wx.Frame):
         panel_sizer = wx.BoxSizer(wx.VERTICAL)
         panel_sizer.Add(file_sizer, border=self._FromDIP(5), flag=wx.ALL|wx.EXPAND)
         panel_sizer.Add(adv_panel, border=self._FromDIP(5), flag=wx.ALL|wx.EXPAND)
+        panel_sizer.Add(status_sizer, border=self._FromDIP(5),
+            flag=wx.ALL|wx.EXPAND)
         panel_sizer.Add(button_sizer, flag=wx.ALIGN_CENTER_HORIZONTAL)
-        panel_sizer.Add(self.status, proportion=1, border=self._FromDIP(5),
-            flag=wx.TOP|wx.LEFT|wx.RIGHT|wx.EXPAND)
         panel_sizer.Add(bottom_button_sizer, 0, wx.TOP|wx.BOTTOM|wx.LEFT|wx.RIGHT
             |wx.ALIGN_CENTER_HORIZONTAL, border=self._FromDIP(5))
 
@@ -12556,6 +12566,8 @@ class CifsupFrame(wx.Frame):
         self.Layout()
         self.Refresh()
         self.SendSizeEvent()
+        # self.Fit()
+        SASUtils.set_best_size(self, True)
 
     def _getSettings(self):
         method = self.method.GetStringSelection()
@@ -12570,14 +12582,14 @@ class CifsupFrame(wx.Frame):
 
         error = False
         try:
-            smax = float(smax.GetValue())
+            smax = float(smax)
         except Exception:
             smax = None
             error = True
             msg = ('Q max must be a number greater than 0')
 
         if isinstance(smax, float):
-            if smax < 0
+            if smax < 0:
                 error = True
                 msg = ('Q max must be a number greater than 0')
 
@@ -12585,9 +12597,9 @@ class CifsupFrame(wx.Frame):
             settings = {
                 'method'            : method,
                 'selection'         : selection,
-                'enantiomorphs'     : enantiomorphs,
-                'target_model_id'   : int(target_model_id),
-                'ref_model_id'      : int(ref_model_id),
+                'enantiomorphs'     : enant,
+                'target_model_id'   : int(target_id),
+                'ref_model_id'      : int(ref_id),
                 'lm'                : int(lm),
                 'ns'                : int(ns),
                 'smax'              : smax,
@@ -12655,10 +12667,13 @@ class CifsupFrame(wx.Frame):
             self.start_button.Disable()
             self.abort_button.Enable()
             self.status.SetLabel('')
+            self.abort_event.clear()
 
-            self.runCifsup()
+            self.align_thread = threading.Thread(target=self.runCifsup)
+            self.align_thread.daemon = True
+            self.align_thread.start()
 
-    def runCifsup(self, prefix, path):
+    def runCifsup(self):
 
         tempdir = self.standard_paths.GetTempDir()
         template_tempname = os.path.join(tempdir, os.path.split(self.template_file_name)[1])
@@ -12675,23 +12690,31 @@ class CifsupFrame(wx.Frame):
         wx.CallAfter(self.status.SetLabel, 'Starting Alignment\n')
 
         if self.abort_event.is_set():
-            wx.CallAfter(self.sup_window.SetLabel, 'Aborted!\n')
+            wx.CallAfter(self.status.SetLabel, 'Alignment aborted')
             return
 
         RAWAPI.cifsup(target, template, path, abort_event=self.abort_event,
             atsas_dir=self.raw_settings.get('ATSASDir'), **settings)
 
-        name, ext = os.path.splitext(target)
-        sup_name = '{}_aligned{}'.format(name, ext)
+        name, ext = os.path.splitext(target_tempname)
+        temp_outname = '{}_aligned{}'.format(name, ext)
 
-        if os.path.exists(os.path.join(path, sup_name)):
+        name, ext = os.path.splitext(self.target_file_name)
+        outname = '{}_aligned{}'.format(name, ext)
+
+        if os.path.exists(temp_outname) and not self.abort_event.is_set():
+            shutil.copy(temp_outname, outname)
+
             msg = 'Alignment finished'
-            wx.CallAfter(status.SetLabel, msg)
+            wx.CallAfter(self.status.SetLabel, msg)
+        elif self.abort_event.is_set():
+            msg = 'Alignment aborted'
+            wx.CallAfter(self.status.SetLabel, msg)
         else:
             msg = 'Alignment failed'
-            wx.CallAfter(status.SetLabel, msg)
+            wx.CallAfter(self.status.SetLabel, msg)
 
-        self.cleanupAlign()
+        wx.CallAfter(self.cleanupAlign)
 
     def onAbortButton(self, evt):
         self.abort_event.set()
@@ -12699,6 +12722,8 @@ class CifsupFrame(wx.Frame):
     def cleanupAlign(self):
         self.start_button.Enable()
         self.abort_button.Disable()
+        self.abort_event.clear()
+        self.align_thread = None
 
     def _onCloseButton(self, evt):
         self.Close()
@@ -12709,6 +12734,9 @@ class CifsupFrame(wx.Frame):
         wx.MessageBox(str(msg), "How to cite CIFSUP", style=wx.ICON_INFORMATION|wx.OK)
 
     def OnClose(self, event):
+        if self.align_thread is not None:
+            self.abort_event.set()
+            self.align_thread.join()
 
         self.Destroy()
 

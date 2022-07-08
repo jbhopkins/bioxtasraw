@@ -42,6 +42,7 @@ import glob
 import json
 import sys
 import math
+import time
 
 import numpy as np
 import matplotlib as mpl
@@ -587,23 +588,31 @@ def load_DIP_image(filepath, bitmap_type):
 
     return img
 
-def set_best_size(window):
+def set_best_size(window, shrink=False):
 
     best_size = window.GetBestSize()
     current_size = window.GetSize()
 
     client_display = wx.GetClientDisplayRect()
+
+    best_width = min(best_size.GetWidth(), client_display.Width)
+    best_height = min(best_size.GetHeight(), client_display.Height)
+
     if best_size.GetWidth() > current_size.GetWidth():
-        best_width = min(best_size.GetWidth(), client_display.Width)
         best_size.SetWidth(best_width)
     else:
-        best_size.SetWidth(current_size.GetWidth())
+        if not shrink:
+            best_size.SetWidth(current_size.GetWidth())
+        else:
+            best_size.SetWidth(best_width)
 
     if best_size.GetHeight() > current_size.GetHeight():
-        best_height = min(best_size.GetHeight(), client_display.Height)
         best_size.SetHeight(best_height)
     else:
-        best_size.SetHeight(current_size.GetHeight())
+        if not shrink:
+            best_size.SetHeight(current_size.GetHeight())
+        else:
+            best_size.SetHeight(best_height)
 
     window.SetSize(best_size)
 
@@ -675,3 +684,31 @@ def update_mpl_style():
     mpl.rcParams['backend'] = 'WxAgg'
 
     return color
+
+def enqueue_output(proc, queue, read_semaphore):
+    #Solution for non-blocking reads adapted from stack overflow
+    #http://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
+
+    with read_semaphore:
+        out = proc.stdout
+        line = ''
+        line2=''
+        while proc.poll() is None:
+            line = out.read(1)
+
+            if not isinstance(line, str):
+                line = str(line, encoding='UTF-8')
+
+            line2+=line
+            if line == '\n':
+                queue.put_nowait([line2])
+                line2=''
+            time.sleep(0.00001)
+
+        line = out.read(1)
+
+        if not isinstance(line, str):
+            line = str(line, encoding='UTF-8')
+
+        line2 += line
+        queue.put_nowait([line2])
