@@ -3154,7 +3154,7 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
     constant='', max_bead_count=-1, dam_radius=-1, harmonics=-1, prop_to_fit=-1,
     curve_weight='e', max_steps=-1, max_iters=-1, max_success=-1,
     min_success=-1, T_factor=-1, rg_penalty=-1, center_penalty=-1,
-    loose_penalty=-1, abort_event=threading.Event()):
+    loose_penalty=-1, abort_event=None, readback_queue=None):
     """
     Creates a bead model (dummy atom) reconstruction using DAMMIF from the ATSAS
     package. Requires a separate installation of the ATSAS package. Function
@@ -3245,6 +3245,9 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
     abort_event: :class:`threading.Event`, optional
         A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
         event is set it will abort the dammin run.
+    readback_queue: :class:`queue.Queue`, optional
+        If provided, any command line output (STDIN, STDERR) is placed in the
+        queue.
 
     Returns
     -------
@@ -3263,6 +3266,12 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
 
     if atsas_dir is None:
         atsas_dir = __default_settings.get('ATSASDir')
+
+    if abort_event is None:
+        abort_event = threading.Event()
+    if readback_queue is None:
+        readback_queue = queue.Queue()
+    read_semaphore = threading.BoundedSemaphore(1)
 
     datadir = os.path.abspath(os.path.expanduser(datadir))
 
@@ -3323,14 +3332,16 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
 
     proc = SASCalc.runDammif(ift_name, prefix, dam_settings, datadir, atsas_dir)
 
+    readout_t = threading.Thread(target=SASUtils.enqueue_output,
+        args=(proc, readback_queue, read_semaphore))
+    readout_t.daemon = True
+    readout_t.start()
+
     if proc is not None:
         while proc.poll() is None:
             if abort_event.is_set():
                 proc.terminate()
                 break
-
-            if proc.stdout is not None:
-                proc.stdout.read(1)
 
     if write_ift and os.path.isfile(os.path.join(datadir, ift_name)):
         try:
@@ -3367,7 +3378,7 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
     prop_to_fit=-1, curve_weight='1', max_steps=-1, max_iters=-1, max_success=-1,
     min_success=-1, T_factor=-1, loose_penalty=-1, knots=20, sphere_diam=-1,
     coord_sphere=-1, disconnect_penalty=-1, periph_penalty=1,
-    abort_event=threading.Event()):
+    abort_event=None, readback_queue=None):
     """
     Creates a bead model (dummy atom) reconstruction using DAMMIN from the ATSAS
     package. Requires a separate installation of the ATSAS package. Function
@@ -3452,6 +3463,9 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
     abort_event: :class:`threading.Event`, optional
         A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
         event is set it will abort the dammif run.
+    readback_queue: :class:`queue.Queue`, optional
+        If provided, any command line output (STDIN, STDERR) is placed in the
+        queue.
 
     Returns
     -------
@@ -3470,6 +3484,12 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
 
     if atsas_dir is None:
         atsas_dir = __default_settings.get('ATSASDir')
+
+    if abort_event is None:
+        abort_event = threading.Event()
+    if readback_queue is None:
+        readback_queue = queue.Queue()
+    read_semaphore = threading.BoundedSemaphore(1)
 
     datadir = os.path.abspath(os.path.expanduser(datadir))
 
@@ -3530,14 +3550,16 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
 
     proc = SASCalc.runDammin(ift_name, prefix, dam_settings, datadir, atsas_dir)
 
+    readout_t = threading.Thread(target=SASUtils.enqueue_output,
+        args=(proc, readback_queue, read_semaphore))
+    readout_t.daemon = True
+    readout_t.start()
+
     if proc is not None:
         while proc.poll() is None:
             if abort_event.is_set():
                 proc.terminate()
                 break
-
-            if proc.stdout is not None:
-                proc.stdout.read(1)
 
     if write_ift and os.path.isfile(os.path.join(datadir, ift_name)):
         try:
@@ -3569,7 +3591,7 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
 
 def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
     nbeads=5000, method='NSD', lm=5, ns=51, smax=0.5, atsas_dir=None,
-    settings=None, abort_event=threading.Event()):
+    settings=None, abort_event=None, readback_queue=None):
     """
     Runs DAMAVER from the ATSAS package on a set of files. Requires a
     separate installation of the ATSAS package. Function blocks until
@@ -3616,6 +3638,9 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
     abort_event: :class:`threading.Event`, optional
         A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
         event is set it will abort the damaver run.
+    readback_queue: :class:`queue.Queue`, optional
+        If provided, any command line output (STDIN, STDERR) is placed in the
+        queue.
 
     Returns
     -------
@@ -3642,6 +3667,12 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
     if atsas_dir is None:
         atsas_dir = __default_settings.get('ATSASDir')
 
+    if abort_event is None:
+        abort_event = threading.Event()
+    if readback_queue is None:
+        readback_queue = queue.Queue()
+    read_semaphore = threading.BoundedSemaphore(1)
+
     if settings is None:
         damaver_settings = {
             'symmetry'      : symmetry,
@@ -3667,14 +3698,16 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
 
     proc = SASCalc.runDamaver(files, datadir, atsas_dir, prefix, **damaver_settings)
 
+    readout_t = threading.Thread(target=SASUtils.enqueue_output,
+        args=(proc, readback_queue, read_semaphore))
+    readout_t.daemon = True
+    readout_t.start()
+
     if proc is not None:
         while proc.poll() is None:
             if abort_event.is_set():
                 proc.terminate()
                 break
-
-            if proc.stdout is not None:
-                proc.stdout.read(1)
 
     version = SASCalc.getATSASVersion(atsas_dir).split('.')
 
@@ -3751,7 +3784,7 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
     return mean_nsd, stdev_nsd, rep_model, result_dict, res, res_err, res_unit
 
 def damclust(files, prefix, datadir, symmetry='P1', atsas_dir=None,
-    abort_event=threading.Event()):
+    abort_event=None, readback_queue=None):
     """
     Runs DAMCLUST from the ATSAS package on a set of files. Requires a
     separate installation of the ATSAS package. Function blocks until
@@ -3777,6 +3810,9 @@ def damclust(files, prefix, datadir, symmetry='P1', atsas_dir=None,
     abort_event: :class:`threading.Event`, optional
         A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
         event is set it will abort the damclust run.
+    readback_queue: :class:`queue.Queue`, optional
+        If provided, any command line output (STDIN, STDERR) is placed in the
+        queue.
 
     Returns
     -------
@@ -3796,18 +3832,26 @@ def damclust(files, prefix, datadir, symmetry='P1', atsas_dir=None,
     if atsas_dir is None:
         atsas_dir = __default_settings.get('ATSASDir')
 
+    if abort_event is None:
+        abort_event = threading.Event()
+    if readback_queue is None:
+        readback_queue = queue.Queue()
+    read_semaphore = threading.BoundedSemaphore(1)
+
     datadir = os.path.abspath(os.path.expanduser(datadir))
 
     proc = SASCalc.runDamclust(files, datadir, atsas_dir, symmetry)
+
+    readout_t = threading.Thread(target=SASUtils.enqueue_output,
+        args=(proc, readback_queue, read_semaphore))
+    readout_t.daemon = True
+    readout_t.start()
 
     if proc is not None:
         while proc.poll() is None:
             if abort_event.is_set():
                 proc.terminate()
                 break
-
-            if proc.stdout is not None:
-                proc.stdout.read(1)
 
     damclust_log = os.path.join(datadir, prefix+'_damclust.log')
     new_files = [(os.path.join(datadir, 'damclust.log'), damclust_log)]
@@ -3826,7 +3870,7 @@ def damclust(files, prefix, datadir, symmetry='P1', atsas_dir=None,
 
 def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
         enantiomorphs='YES', proximity='NSD', symmetry='P1', fraction='1.0',
-        atsas_dir=None, settings=None, abort_event=threading.Event()):
+        atsas_dir=None, settings=None, abort_event=None, readback_queue=None):
     """
     Aligns the target to the reference file using SUPCOMB from the ATSAS
     package. Require a separate installation of ATSAS. Both files must be
@@ -3872,10 +3916,19 @@ def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
     abort_event: :class:`threading.Event`, optional
         A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
         event is set it will abort the supcomb run.
+    readback_queue: :class:`queue.Queue`, optional
+        If provided, any command line output (STDIN, STDERR) is placed in the
+        queue.
     """
 
     if atsas_dir is None:
         atsas_dir = __default_settings.get('ATSASDir')
+
+    if abort_event is None:
+        abort_event = threading.Event()
+    if readback_queue is None:
+        readback_queue = queue.Queue()
+    read_semaphore = threading.BoundedSemaphore(1)
 
     if settings is None:
         supcomb_settings = {
@@ -3899,6 +3952,11 @@ def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
 
     proc = SASCalc.runSupcomb(ref_file, target, datadir, atsas_dir, **supcomb_settings)
 
+    readout_t = threading.Thread(target=SASUtils.enqueue_output,
+        args=(proc, readback_queue, read_semaphore))
+    readout_t.daemon = True
+    readout_t.start()
+
     if proc is not None:
         while proc.poll() is None:
             if abort_event.is_set():
@@ -3913,7 +3971,7 @@ def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
 def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
         enantiomorphs='YES', target_model_id=1, ref_model_id=1, lm=5, ns=51,
         smax=0.5, beads=2000, atsas_dir=None, settings=None,
-        abort_event=None, readback_q=None):
+        abort_event=None, readback_queue=None):
     """
     Aligns the target to the reference file using CIFSUP from the ATSAS
     package. Require a separate installation of ATSAS. Both files must be
@@ -3962,7 +4020,7 @@ def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
     abort_event: :class:`threading.Event`, optional
         A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
         event is set it will abort the CIFSUP run.
-    readback_q: :class:`queue.Queue`, optional
+    readback_queue: :class:`queue.Queue`, optional
         If provided, any command line output (STDIN, STDERR) is placed in the
         queue.
     """
@@ -3972,8 +4030,9 @@ def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
 
     if abort_event is None:
         abort_event = threading.Event()
-    if readback_q is None:
-        readback_q = queue.Queue()
+    if readback_queue is None:
+        readback_queue = queue.Queue()
+    read_semaphore = threading.BoundedSemaphore(1)
 
     if settings is None:
         cifsup_settings = {
@@ -4004,10 +4063,8 @@ def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
 
     proc = SASCalc.runCifsup(ref_file, target, datadir, atsas_dir, **cifsup_settings)
 
-    read_semaphore = threading.BoundedSemaphore(1)
-
     readout_t = threading.Thread(target=SASUtils.enqueue_output,
-        args=(proc, readback_q, read_semaphore))
+        args=(proc, readback_queue, read_semaphore))
     readout_t.daemon = True
     readout_t.start()
 
@@ -4015,7 +4072,6 @@ def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
         while proc.poll() is None:
             if abort_event.is_set():
                 proc.terminate()
-                print('aborted')
                 break
 
     return
@@ -4029,7 +4085,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     sw_sigma_thresh=0.2, sw_iter=20, sw_min_step=5000, connected=True,
     connectivity_step=[7500], chi_end_frac=0.001, cut_output=False,
     write_xplor=False, sym_step=[3000, 5000, 7000, 9000], seed=None,
-    abort_event=threading.Event(), gpu=False):
+    abort_event=None, gpu=False):
     """
     Generates an electron density reconstruction using DENSS. Function blocks
     until DENSS finishes. Can be used to refine an existing model.
@@ -4168,6 +4224,9 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     """
 
     datadir = os.path.abspath(os.path.expanduser(datadir))
+
+    if abort_event is None:
+        abort_event = threading.Event()
 
     if settings is not None:
         denss_settings = {
