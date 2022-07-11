@@ -6051,16 +6051,16 @@ class DammifRunPanel(wx.Panel):
                     os.remove(item)
 
             #Run DAMMIF
-            dam_args = self.dammif_settings
+            dam_args = copy.deepcopy(self.dammif_settings)
 
             if refine:
-                self.dammif_settings['mode'] = 'Refine'
+                # self.dammif_settings['mode'] = 'Refine'
                 if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
                     and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
                     or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
-                    self.dammif_settings['initialDAM'] = prefix+'-global-damstart'+self.model_ext
+                    dam_args['initialDAM'] = prefix+'-global-damstart'+self.model_ext
                 else:
-                    self.dammif_settings['initialDAM'] = prefix+'_damstart'+self.model_ext
+                    dam_args['initialDAM'] = prefix+'_damstart'+self.model_ext
 
             if refine:
                 wx.CallAfter(self.status.AppendText, 'Starting Refinement\n')

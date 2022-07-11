@@ -39,6 +39,24 @@ def test_dammif(gi_gnom_ift, temp_directory):
 
 @pytest.mark.atsas
 @pytest.mark.very_slow
+def test_dammif_interactive(gi_gnom_ift, temp_directory):
+    chi_sq, rg, dmax, mw, excluded_volume = raw.dammif(gi_gnom_ift, 'dammif_inter',
+        temp_directory, 'Custom')
+
+    atsas_dir = raw.__default_settings.get('ATSASDir')
+    version = SASCalc.getATSASVersion(atsas_dir).split('.')
+
+    if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+        assert os.path.exists(os.path.join(temp_directory, 'dammif_inter-1.pdb'))
+    else:
+        assert os.path.exists(os.path.join(temp_directory, 'dammif_inter-1.cif'))
+
+    assert os.path.exists(os.path.join(temp_directory, 'dammif_inter.fit'))
+    assert os.path.exists(os.path.join(temp_directory, 'dammif_inter.fir'))
+    assert os.path.exists(os.path.join(temp_directory, 'dammif_inter.in'))
+
+@pytest.mark.atsas
+@pytest.mark.very_slow
 def test_dammin(gi_gnom_ift, temp_directory):
 
     chi_sq, rg, dmax, mw, excluded_volume = raw.dammin(gi_gnom_ift, 'dammin',
@@ -55,6 +73,45 @@ def test_dammin(gi_gnom_ift, temp_directory):
 
     assert os.path.exists(os.path.join(temp_directory, 'dammin.fit'))
     assert os.path.exists(os.path.join(temp_directory, 'dammin.fir'))
+
+@pytest.mark.atsas
+@pytest.mark.very_slow
+def test_dammin_refine(gi_gnom_ift, temp_directory):
+    shutil.copy2(os.path.join('./data/dammif_data', 'glucose_isomerase_damstart.pdb'),
+            os.path.join(temp_directory, 'glucose_isomerase_damstart.pdb'))
+
+    chi_sq, rg, dmax, mw, excluded_volume = raw.dammin(gi_gnom_ift, 'dammin_refine',
+        temp_directory, 'Fast', initial_dam='glucose_isomerase_damstart.pdb')
+
+    atsas_dir = raw.__default_settings.get('ATSASDir')
+    version = SASCalc.getATSASVersion(atsas_dir).split('.')
+
+    if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+        assert os.path.exists(os.path.join(temp_directory, 'dammin_refine-0.pdb'))
+        assert os.path.exists(os.path.join(temp_directory, 'dammin_refine-1.pdb'))
+    else:
+        assert os.path.exists(os.path.join(temp_directory, 'dammin_refine-1.cif'))
+
+    assert os.path.exists(os.path.join(temp_directory, 'dammin_refine.fit'))
+    assert os.path.exists(os.path.join(temp_directory, 'dammin_refine.fir'))
+
+@pytest.mark.atsas
+@pytest.mark.very_slow
+def test_dammin_interative(gi_gnom_ift, temp_directory):
+    chi_sq, rg, dmax, mw, excluded_volume = raw.dammin(gi_gnom_ift, 'dammin_inter',
+        temp_directory, 'Custom')
+
+    atsas_dir = raw.__default_settings.get('ATSASDir')
+    version = SASCalc.getATSASVersion(atsas_dir).split('.')
+
+    if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+        assert os.path.exists(os.path.join(temp_directory, 'dammin_inter-0.pdb'))
+        assert os.path.exists(os.path.join(temp_directory, 'dammin_inter-1.pdb'))
+    else:
+        assert os.path.exists(os.path.join(temp_directory, 'dammin_inter-1.cif'))
+
+    assert os.path.exists(os.path.join(temp_directory, 'dammin_inter.fit'))
+    assert os.path.exists(os.path.join(temp_directory, 'dammin_inter.fir'))
 
 @pytest.mark.atsas
 @pytest.mark.slow

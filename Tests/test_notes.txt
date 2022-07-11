@@ -18,3 +18,5 @@ pytest -m "new"
 
 To run just the new tests, instead of having to rerun the entire set of tests
 every time you add/modify one.
+
+use -s to allow things to print to screen

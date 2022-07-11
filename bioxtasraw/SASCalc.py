@@ -1769,7 +1769,7 @@ def runDammif(fname, prefix, args, path, atsasDir):
             dammif_t.start()
             previous_line = ''
 
-
+            previous_data = []
 
             while proc.poll() is None and not dammifStarted:
                 data = None
@@ -1908,6 +1908,11 @@ def runDammif(fname, prefix, args, path, atsasDir):
                         dammifStarted = True
 
                     previous_line = current_line
+
+                    if previous_data.count(data) > 20:
+                        raise SASExceptions.ATSASError('Interactive mode not running correctly')
+
+                    previous_data.append(data)
 
             # proc.stdout.close()
             # proc.stdin.close()
@@ -2123,7 +2128,12 @@ def runDammin(fname, prefix, args, path, atsasDir):
             command = '"%s" --mo=%s --lo="%s" --un=%s --sy=%s' %(dammifDir, args['mode'], prefix, unit, args['sym'])
 
             if args['anisometry'] != 'Unknown':
-                command = command + ' --an=%s' %(args['anisometry'])
+                command += command + ' --an=%s' %(args['anisometry'])
+
+            if args['initialDAM'].lower() in ['s', 'e', 'c', 'p']:
+                command += ' --sv={}'.format(args['initialDAM'].lower())
+            else:
+                command += ' --svfile={}'.format(args['initialDAM'])
 
             command = command + ' "%s"' %(fname)
 
@@ -2176,9 +2186,11 @@ def runDammin(fname, prefix, args, path, atsasDir):
             dammif_t.daemon = True
             dammif_t.start()
 
+            previous_data = []
 
             while proc.poll() is None and not dammifStarted:
                 data = None
+
                 try:
                     data = dammif_q.get_nowait()
                     data = data[0]
@@ -2336,13 +2348,18 @@ def runDammin(fname, prefix, args, path, atsasDir):
                     elif data.find('annealing procedure started') > -1:
                         dammifStarted = True
 
+
+                    if previous_data.count(data) > 20:
+                        raise SASExceptions.ATSASError('Interactive mode not running correctly')
+
+                    previous_data.append(data)
+
             # proc.stdout.close()
             # proc.stdin.close()
             # proc.wait()
 
         return proc
     else:
-        print('Cannot find ATSAS')
         raise SASExceptions.NoATSASError('Cannot find dammif.')
         return None
 

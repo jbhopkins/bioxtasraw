@@ -41,6 +41,7 @@ import copy
 import threading
 import queue
 import logging
+import time
 
 import numpy as np
 
@@ -3342,6 +3343,7 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
             if abort_event.is_set():
                 proc.terminate()
                 break
+            time.sleep(0.1)
 
     if write_ift and os.path.isfile(os.path.join(datadir, ift_name)):
         try:
@@ -3400,17 +3402,19 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
     datadir: str
         The output directory for the DAMMIN model. If using an IFT on disk, then
         the IFT must be in this directory.
-    mode: {'Fast', 'Slow' 'Custom', 'Refine'} str, optional
+    mode: {'Fast', 'Slow' 'Custom'} str, optional
         The DAMMIN mode. Note that most of the advanced settings require that
-        DAMMIN be in 'Custom' mode to use. Defaults to slow. If using 'Refine'
-        mode then initial_dam must be specified.
+        DAMMIN be in 'Custom' mode to use. Defaults to slow.
     symmetry: str, optional
         The symmetry applied to the reconstruction. Accepts any symmetry
         known to DAMMIN. Defaults to P1.
     anisometry: {'Unknown', 'Prolate', 'Oblate'} str, optional
         The anisometry applied to the reconstruction. Defaults to Unknown.
     initial_dam: str, optional
-        Name of the input model file for refinement. Must be in datadir.
+        Argument for initial search volume. Maybe be either s/e/c/p for
+        sphere, ellipsoid, cylinder, or parallelepiped or the name of the input
+        model, i.e. a damstart model, file for refinement. If it is an input
+        model, it must be in datadir.
     write_ift: bool, optional
         If True, the input IFT is written to disk. If False, an IFT already
         on disk used, as defined by ift_name (directory must be datadir).
@@ -3503,6 +3507,9 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
         ift_name = os.path.join(datadir, ift.getParameter('filename'))
         SASFileIO.writeOutFile(ift, os.path.join(datadir, ift_name))
 
+    if initial_dam is None:
+            initial_dam = 's'
+
     if settings is None:
         dam_settings = {
             'mode'              : mode,
@@ -3566,6 +3573,7 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
             if abort_event.is_set():
                 proc.terminate()
                 break
+            time.sleep(0.1)
 
     if write_ift and os.path.isfile(os.path.join(datadir, ift_name)):
         try:
@@ -3739,6 +3747,7 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
             if abort_event.is_set():
                 proc.terminate()
                 break
+            time.sleep(0.1)
 
     version = SASCalc.getATSASVersion(atsas_dir).split('.')
 
@@ -3883,6 +3892,7 @@ def damclust(files, prefix, datadir, symmetry='P1', atsas_dir=None,
             if abort_event.is_set():
                 proc.terminate()
                 break
+            time.sleep(0.1)
 
     damclust_log = os.path.join(datadir, prefix+'_damclust.log')
     new_files = [(os.path.join(datadir, 'damclust.log'), damclust_log)]
@@ -3996,6 +4006,8 @@ def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
 
             if proc.stdout is not None:
                 proc.stdout.read(1)
+            else:
+                time.sleep(0.1)
 
     return
 
@@ -4104,6 +4116,7 @@ def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
             if abort_event.is_set():
                 proc.terminate()
                 break
+            time.sleep(0.1)
 
     return
 
