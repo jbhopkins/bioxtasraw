@@ -1711,7 +1711,7 @@ def runDammif(fname, prefix, args, path, atsasDir):
 
         if args['mode'].lower() == 'fast' or args['mode'].lower() == 'slow':
 
-            command = '"%s" --quiet --mode=%s --prefix="%s" --unit=%s --symmetry=%s --anisometry=%s' %(dammifDir, args['mode'], prefix, args['unit'], args['sym'], args['anisometry'])
+            command = '"%s" --mode=%s --prefix="%s" --unit=%s --symmetry=%s --anisometry=%s' %(dammifDir, args['mode'], prefix, args['unit'], args['sym'], args['anisometry'])
 
             if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
                 if args['omitSolvent']:
@@ -1726,10 +1726,10 @@ def runDammif(fname, prefix, args, path, atsasDir):
 
             if opsys == 'Windows':
                 proc = subprocess.Popen(command, cwd=path, env=my_env,
-                    stderr=subprocess.PIPE)
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             else:
                 proc = subprocess.Popen(command, shell=True, cwd=path,
-                    env=my_env, stderr=subprocess.PIPE)
+                    env=my_env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
         else:
             #Solution for non-blocking reads adapted from stack overflow
@@ -1757,12 +1757,12 @@ def runDammif(fname, prefix, args, path, atsasDir):
 
             if opsys == 'Windows':
                 proc = subprocess.Popen('"%s"' %(dammifDir), stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=path,
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=path,
                     universal_newlines=True, bufsize=1, env=my_env)
             else:
                 proc = subprocess.Popen('"%s"' %(dammifDir), shell=True,
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE, cwd=path, universal_newlines=True,
+                    stderr=subprocess.STDOUT, cwd=path, universal_newlines=True,
                     bufsize=1, env=my_env)
             dammif_t = threading.Thread(target=enqueue_output, args=(proc.stdout, dammif_q))
             dammif_t.daemon = True
@@ -2135,14 +2135,17 @@ def runDammin(fname, prefix, args, path, atsasDir):
             else:
                 command += ' --svfile={}'.format(args['initialDAM'])
 
+            if args['seed'] != '':
+                command = command + ' --seed={}'.format(args['seed'])
+
             command = command + ' "%s"' %(fname)
 
             if opsys == 'Windows':
                 proc = subprocess.Popen(command, cwd=path, env=my_env,
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             else:
                 proc = subprocess.Popen(command, shell=True, cwd=path,
-                    env=my_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    env=my_env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
         else:
             #Solution for non-blocking reads adapted from stack overflow
@@ -2175,12 +2178,12 @@ def runDammin(fname, prefix, args, path, atsasDir):
             if opsys == 'Windows':
                 proc = subprocess.Popen('%s' %(dammifDir),
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE, cwd=path, universal_newlines=True,
+                    stderr=subprocess.STDOUT, cwd=path, universal_newlines=True,
                     bufsize=1, env=my_env)
             else:
                 proc = subprocess.Popen('%s' %(dammifDir), shell=True,
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE, cwd=path, universal_newlines=True,
+                    stderr=subprocess.STDOUT, cwd=path, universal_newlines=True,
                     bufsize=1, env=my_env)
             dammif_t = threading.Thread(target=enqueue_output, args=(proc.stdout, dammif_q))
             dammif_t.daemon = True

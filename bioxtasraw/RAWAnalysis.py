@@ -6070,58 +6070,89 @@ class DammifRunPanel(wx.Panel):
             if refine:
                 program = 'DAMMIN'
 
+            readback_queue = queue.Queue()
+
+            api_settings = {
+                    'mode'          : dam_args['mode'],
+                    'unit'          : dam_args['unit'],
+                    'symmetry'      : dam_args['sym'],
+                    'anisometry'    : dam_args['anisometry'],
+                    'dam_radius'    : dam_args['radius'],
+                    'harmonics'     : dam_args['harmonics'],
+                    'prop_to_fit'   : dam_args['propFit'],
+                    'random_seed'   : dam_args['seed'],
+                    'max_steps'     : dam_args['maxSteps'],
+                    'max_iters'     : dam_args['maxIters'],
+                    'max_success'   : dam_args['maxSuccess'],
+                    'min_success'   : dam_args['minSuccess'],
+                    'loose_penalty' : dam_args['looseWeight'],
+                    'atsas_dir'     : self.raw_settings.get('ATSASDir'),
+                    'abort_event'   : self.abort_event,
+                    'readback_queue': readback_queue,
+                    'write_ift'     : False,
+                    'ift_name'      : os.path.join(path, outname),
+                    }
+
             if program == 'DAMMIF':
-                dammif_proc = SASCalc.runDammif(outname, dam_prefix, dam_args,
-                    path, self.raw_settings.get('ATSASDir'))
+                api_settings['omit_solvent'] = dam_args['omitSolvent']
+                api_settings['chained'] = dam_args['chained']
+                api_settings['constant'] = dam_args['constant']
+                api_settings['max_bead_count'] = dam_args['maxBead']
+                api_settings['curve_weight'] = dam_args['curveWeight'],
+                api_settings['T_factor'] = dam_args['TFactor']
+                api_settings['rg_penalty'] = dam_args['RgWeight']
+                api_settings['center_penalty'] = dam_args['cenWeight']
+                api_settings['loose_penalty'] = dam_args['looseWeight']
+                api_settings['expected_shape'] = dam_args['shape']
+
+                dammif_thread = threading.Thread(target=RAWAPI.dammif,
+                    args=(None, dam_prefix, path), kwargs=api_settings)
+                dammif_thread.daemon = True
+                dammif_thread.start()
+
             else:
-                dammif_proc = SASCalc.runDammin(outname, dam_prefix, dam_args,
-                    path, self.raw_settings.get('ATSASDir'))
+                api_settings['initial_dam'] = dam_args['initialDAM']
+                api_settings['knots'] = dam_args['knots']
+                api_settings['constant'] = dam_args['damminConstant']
+                api_settings['sphere_diam'] = dam_args['diameter']
+                api_settings['coord_sphere'] = dam_args['coordination']
+                api_settings['disconnect_penalty'] = dam_args['disconWeight']
+                api_settings['periph_penalty'] = dam_args['periphWeight']
+                api_settings['initial_dam'] = dam_args['initialDAM']
+                api_settings['curve_weight'] = dam_args['damminCurveWeight']
+                api_settings['T_factor'] = dam_args['annealSched']
 
-            #Hackey, but necessary to prevent the process output buffer
-            # from filling up and stalling the process
-            if dammif_proc.stdout is not None:
-                read_thread = threading.Thread(target=read_output, args=(dammif_proc,))
-                read_thread.daemon = True
-                read_thread.start()
+                dammif_thread = threading.Thread(target=RAWAPI.dammin,
+                    args=(None, dam_prefix, path), kwargs=api_settings)
+                dammif_thread.daemon = True
+                dammif_thread.start()
 
-            logname = os.path.join(path,dam_prefix)+'.log'
 
-            while not os.path.exists(logname):
+            while dammif_thread.is_alive():
+                try:
+                    new_text = readback_queue.get_nowait()
+                    new_text = new_text[0]
+
+                    wx.CallAfter(damWindow.AppendText, new_text)
+                except queue.Empty:
+                    pass
                 time.sleep(0.01)
 
-            pos = 0
 
-            #Send the DAMMIF log output to the screen.
-            while dammif_proc.poll() is None:
-                if self.abort_event.isSet():
-                    dammif_proc.terminate()
-                    wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
-                    return
+            while True:
+                try:
+                    new_text = readback_queue.get_nowait()
+                    new_text = new_text[0]
 
-                with open(logname, 'rb') as logfile:
-                    logfile.seek(pos)
-                    newtext = logfile.read()
-                    pos = logfile.tell()
+                    if new_text != '':
+                        wx.CallAfter(damWindow.AppendText, new_text)
 
-                if newtext != '':
-                    wx.CallAfter(damWindow.AppendText, newtext)
+                except queue.Empty:
+                    break
 
-                time.sleep(.1)
-
-            with open(logname, 'rb') as logfile:
-                logfile.seek(pos)
-                final_status = logfile.read()
-
-            wx.CallAfter(damWindow.AppendText, final_status)
-
-            if dammif_proc.stderr is not None:
-                error = dammif_proc.stderr.read()
-
-                if not isinstance(error, str):
-                    error = str(error, encoding='UTF-8')
-
-                if error != '':
-                    wx.CallAfter(damWindow.AppendText, error)
+            if self.abort_event.isSet():
+                wx.CallAfter(damWindow.AppendText, '\nAborted!\n')
+                return
 
             if refine:
                 wx.CallAfter(self.status.AppendText, 'Finished Refinement\n')
@@ -6195,97 +6226,55 @@ class DammifRunPanel(wx.Panel):
             dam_filelist = [prefix+'_%s-1%s' %(str(i).zfill(2), self.model_ext)
                 for i in range(1, nruns+1)]
 
-            symmetry = self.dammif_settings['sym']
-            enants = self.dammif_settings['damaver_enants']
-            nbeads = self.dammif_settings['damaver_nbeads']
-            method = self.dammif_settings['damaver_method']
-            lm = self.dammif_settings['damaver_lm']
-            ns = self.dammif_settings['damaver_ns']
-            smax = self.dammif_settings['damaver_smax']
-            atsas_dir = self.raw_settings.get('ATSASDir')
+            readback_queue = queue.Queue()
 
-            if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
-                and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
-                or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+            damaver_args = {
+                'symmetry'          : self.dammif_settings['sym'],
+                'enantiomorphs'     : self.dammif_settings['damaver_enants'],
+                'nbeads'            : self.dammif_settings['damaver_nbeads'],
+                'method'            : self.dammif_settings['damaver_method'],
+                'lm'                : self.dammif_settings['damaver_lm'],
+                'ns'                : self.dammif_settings['damaver_ns'],
+                'smax'              : self.dammif_settings['damaver_smax'],
+                'atsas_dir'         : self.raw_settings.get('ATSASDir'),
+                'readback_queue'    : readback_queue,
+                'abort_event'       : self.abort_event,
+                }
 
-                wx.CallAfter(damWindow.AppendText, 'DAMAVER starting\n')
+            wx.CallAfter(damWindow.AppendText, 'DAMAVER starting\n')
 
-                RAWAPI.damaver(dam_filelist, prefix, path, symmetry=symmetry,
-                    enantiomorphs=enants, nbeads=nbeads, method=method, lm=lm,
-                    ns=ns, smax=smax, atsas_dir=atsas_dir,
-                    abort_event=self.abort_event)
+            damaver_thread = threading.Thread(target=RAWAPI.damaver,
+                args=(dam_filelist, prefix, path), kwargs=damaver_args)
+            damaver_thread.daemon = True
+            damaver_thread.start()
 
-                if self.abort_event.isSet():
-                    wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
-                    return
-                else:
-                    wx.CallAfter(damWindow.AppendText, 'DAMAVER finished\n')
+            while damaver_thread.is_alive():
+                try:
+                    new_text = readback_queue.get_nowait()
+                    new_text = new_text[0]
 
-            else:
-                damaver_proc = SASCalc.runDamaver(dam_filelist, path,
-                    atsas_dir, prefix, symmetry=symmetry, enantiomorphs=enants,
-                    nbeads=nbeads, method=method, lm=lm, ns=ns, smax=smax)
-
-                damaver_q = queue.Queue()
-                readout_t = threading.Thread(target=self.enqueue_output,
-                    args=(damaver_proc, damaver_q, read_semaphore))
-                readout_t.daemon = True
-                readout_t.start()
+                    wx.CallAfter(damWindow.AppendText, new_text)
+                except queue.Empty:
+                    pass
+                time.sleep(0.01)
 
 
-                #Send the damaver output to the screen.
-                while damaver_proc.poll() is None:
-                    if self.abort_event.isSet():
-                        damaver_proc.terminate()
-                        wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
-                        return
-
-                    try:
-                        new_text = damaver_q.get_nowait()
-                        new_text = new_text[0]
-
-                        wx.CallAfter(damWindow.AppendText, new_text)
-                    except queue.Empty:
-                        pass
-                    time.sleep(0.001)
-
-                time.sleep(2)
-                with read_semaphore: #see if there's any last data that we missed
-                    while True:
-                        try:
-                            new_text = damaver_q.get_nowait()
-                            new_text = new_text[0]
-
-                            if new_text != '':
-                                wx.CallAfter(damWindow.AppendText, new_text)
-
-                        except queue.Empty:
-                            break
-
-                    new_text = damaver_proc.stdout.read()
-
-                    if not isinstance(new_text, str):
-                        new_text = str(new_text, encoding='UTF-8')
+            while True:
+                try:
+                    new_text = readback_queue.get_nowait()
+                    new_text = new_text[0]
 
                     if new_text != '':
                         wx.CallAfter(damWindow.AppendText, new_text)
 
-                new_files = [
-                    (os.path.join(path, 'damfilt'+self.model_ext),
-                        os.path.join(path, prefix+'_damfilt'+self.model_ext)),
-                    (os.path.join(path, 'damsel.log'),
-                        os.path.join(path, prefix+'_damsel.log')),
-                    (os.path.join(path, 'damstart'+self.model_ext),
-                        os.path.join(path, prefix+'_damstart'+self.model_ext)),
-                    (os.path.join(path, 'damsup.log'),
-                        os.path.join(path, prefix+'_damsup.log')),
-                    (os.path.join(path, 'damaver'+self.model_ext),
-                        os.path.join(path, prefix+'_damaver'+self.model_ext))]
+                except queue.Empty:
+                    break
 
-                for item in new_files:
-                    os.rename(item[0], item[1])
+            if self.abort_event.isSet():
+                wx.CallAfter(damWindow.AppendText, '\nAborted!\n')
+                return
 
-
+            wx.CallAfter(damWindow.AppendText, '\nDAMAVER finished\n')
             wx.CallAfter(self.status.AppendText, 'Finished DAMAVER\n')
 
             refine_window = wx.FindWindowById(self.ids['refine'], self)

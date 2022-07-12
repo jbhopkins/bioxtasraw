@@ -3345,6 +3345,15 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
                 break
             time.sleep(0.1)
 
+        with read_semaphore: #see if there's any last data that we missed
+            new_text = proc.stdout.read()
+
+            if not isinstance(new_text, str):
+                new_text = str(new_text, encoding='UTF-8')
+
+            if new_text != '':
+                readback_queue.put_nowait([new_text])
+
     if write_ift and os.path.isfile(os.path.join(datadir, ift_name)):
         try:
             os.remove(os.path.join(datadir, ift_name))
@@ -3382,10 +3391,10 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
 
 def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown',
     initial_dam=None, write_ift=True, ift_name=None, atsas_dir=None,
-    settings=None, unit='Unknown', constant=0, dam_radius=-1, harmonics=-1,
-    prop_to_fit=-1, curve_weight='1', max_steps=-1, max_iters=-1, max_success=-1,
-    min_success=-1, T_factor=-1, loose_penalty=-1, knots=20, sphere_diam=-1,
-    coord_sphere=-1, disconnect_penalty=-1, periph_penalty=1,
+    settings=None, unit='Unknown', constant=0, random_seed='', dam_radius=-1,
+    harmonics=-1, prop_to_fit=-1, curve_weight='1', max_steps=-1, max_iters=-1,
+    max_success=-1, min_success=-1, T_factor=-1, loose_penalty=-1, knots=20,
+    sphere_diam=-1, coord_sphere=-1, disconnect_penalty=-1, periph_penalty=1,
     abort_event=None, readback_queue=None):
     """
     Creates a bead model (dummy atom) reconstruction using DAMMIN from the ATSAS
@@ -3429,6 +3438,9 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
         the value in the settings file. Default is None.
     unit: {'Unknown', 'Angstrom', 'Nanometer'} str, optional
         The unit of the P(r) function. Defaults to 'Unknown'.
+    random_seed: str, optional
+        Random seed for the reconstruction. Default is to let DAMMIF generate
+        the seed.
     constant: str, optional
         Constant offset for reconstruction. Default is to let DAMMIN determine
         the offset.
@@ -3527,13 +3539,14 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
             'initialDAM'        : initial_dam,
             'knots'             : knots,
             'damminConstant'    : constant,
-            'diameter'          : dam_radius,
+            'diameter'          : sphere_diam,
             'packing'           : dam_radius,
             'coordination'      : coord_sphere,
             'disconWeight'      : disconnect_penalty,
             'periphWeight'      : periph_penalty,
             'damminCurveWeight' : curve_weight,
             'annealSched'       : T_factor,
+            'seed'              : random_seed,
             }
     else:
         dam_settings = {
@@ -3559,6 +3572,7 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
             'periphWeight'      : settings.get('damminPeriphPen'),
             'damminCurveWeight' : settings.get('damminCurveWeight'),
             'annealSched'       : settings.get('damminAnealSched'),
+            'seed'              : random_seed,
             }
 
     proc = SASCalc.runDammin(ift_name, prefix, dam_settings, datadir, atsas_dir)
@@ -3575,6 +3589,15 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
                 break
             time.sleep(0.1)
 
+        with read_semaphore: #see if there's any last data that we missed
+            new_text = proc.stdout.read()
+
+            if not isinstance(new_text, str):
+                new_text = str(new_text, encoding='UTF-8')
+
+            if new_text != '':
+                readback_queue.put_nowait([new_text])
+
     if write_ift and os.path.isfile(os.path.join(datadir, ift_name)):
         try:
             os.remove(os.path.join(datadir, ift_name))
@@ -3582,8 +3605,6 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
             pass
 
     version = SASCalc.getATSASVersion(atsas_dir).split('.')
-
-
 
     fir_name = os.path.join(datadir, prefix+'.fir')
 
@@ -3749,6 +3770,15 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
                 break
             time.sleep(0.1)
 
+        with read_semaphore: #see if there's any last data that we missed
+            new_text = proc.stdout.read()
+
+            if not isinstance(new_text, str):
+                new_text = str(new_text, encoding='UTF-8')
+
+            if new_text != '':
+                readback_queue.put_nowait([new_text])
+
     version = SASCalc.getATSASVersion(atsas_dir).split('.')
 
     if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
@@ -3894,6 +3924,15 @@ def damclust(files, prefix, datadir, symmetry='P1', atsas_dir=None,
                 break
             time.sleep(0.1)
 
+        with read_semaphore: #see if there's any last data that we missed
+            new_text = proc.stdout.read()
+
+            if not isinstance(new_text, str):
+                new_text = str(new_text, encoding='UTF-8')
+
+            if new_text != '':
+                readback_queue.put_nowait([new_text])
+
     damclust_log = os.path.join(datadir, prefix+'_damclust.log')
     new_files = [(os.path.join(datadir, 'damclust.log'), damclust_log)]
 
@@ -4004,10 +4043,16 @@ def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
                 proc.terminate()
                 break
 
-            if proc.stdout is not None:
-                proc.stdout.read(1)
-            else:
-                time.sleep(0.1)
+            time.sleep(0.1)
+
+        with read_semaphore: #see if there's any last data that we missed
+            new_text = proc.stdout.read()
+
+            if not isinstance(new_text, str):
+                new_text = str(new_text, encoding='UTF-8')
+
+            if new_text != '':
+                readback_queue.put_nowait([new_text])
 
     return
 
@@ -4117,6 +4162,15 @@ def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
                 proc.terminate()
                 break
             time.sleep(0.1)
+
+        with read_semaphore: #see if there's any last data that we missed
+            new_text = proc.stdout.read()
+
+            if not isinstance(new_text, str):
+                new_text = str(new_text, encoding='UTF-8')
+
+            if new_text != '':
+                readback_queue.put_nowait([new_text])
 
     return
 
