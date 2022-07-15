@@ -3858,7 +3858,8 @@ def damclust(files, prefix, datadir, symmetry='P1', atsas_dir=None,
     """
     Runs DAMCLUST from the ATSAS package on a set of files. Requires a
     separate installation of the ATSAS package. Function blocks until
-    DAMCLUST finishes.
+    DAMCLUST finishes. Note that as of ATSAS 3.1.0 damclust has been
+    incorporated into damaver.
 
     Parameters
     ----------

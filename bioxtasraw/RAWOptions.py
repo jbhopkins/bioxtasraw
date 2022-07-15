@@ -4360,6 +4360,247 @@ class ATSASDamminAdvanced(scrolled.ScrolledPanel):
 
         return customSizer
 
+
+class ATSASDamaver(scrolled.ScrolledPanel):
+
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
+
+        self.raw_settings = raw_settings
+
+        self.update_keys = [
+            'damaverEnantiomers',
+            'damaverNbeads',
+            'damaverMethod',
+            'damaverHarmonics',
+            'damaverPoints',
+            'damaverQmax',
+            ]
+
+        layout_settings = (
+            (("Method (ATSAS >=3.1.0):"), raw_settings.getId('damaverMethod'),
+                'choice', ['ICP', 'NCC', 'NSD']),
+            ("Search for enantiomorphs:", raw_settings.getId('damaverEnantiomers'),
+                'choice', ['YES', 'NO']),
+            ("Number of beads in resulting DAM:",
+                raw_settings.getId('damaverNbeads'), 'int'),
+            ('Number of harmonics (NCC method):',
+                raw_settings.getId('damaverHarmonics'), 'int'),
+            ('Number of points (NCC method):',
+                raw_settings.getId('damaverPoints'), 'int'),
+            ('Maximum q (NCC method):',
+                raw_settings.getId('damaverQmax'), 'float')
+            )
+
+        options_sizer = self.createDAMAVEROptions(layout_settings)
+
+        self.SetSizer(options_sizer)
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def createDAMAVEROptions(self, layout_settings):
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        parent = self
+
+        for item in layout_settings:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.Choice(parent, myId, choices = item[3])
+
+                sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(2))
+                sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
+
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((60,-1)),
+                    style = wx.TE_PROCESS_ENTER)
+
+                sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(2))
+                sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(parent, myId, label)
+                sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
+
+            top_sizer.Add(sizer, 0)
+
+        return top_sizer
+
+
+class ATSASAlign(scrolled.ScrolledPanel):
+
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
+
+        self.raw_settings = raw_settings
+
+        self.update_keys = [
+            'supcombMethod',
+            'supcombSuperpositon',
+            'supcombMode',
+            'supcombFraction',
+            'cifsupMethod',
+            'cifsupSelection',
+            'cifsupHarmonics',
+            'cifsupPoints',
+            'cifsupQmax',
+            'cifsupBeads',
+            'cifsupTargetID',
+            'cifsupRefID',
+            'supEnantiomorphs',
+            ]
+
+        both_settings = (
+            ("Search for enantiomorphs:", raw_settings.getId('supEnantiomorphs'),
+                'choice', ['YES', 'NO']),
+            )
+
+        supcomb_layout_settings = (
+            (("Mode:"), raw_settings.getId('supcombMode'),
+                'choice', ['FAST', 'SLOW']),
+            (("Proximity metric:"), raw_settings.getId('supcombMethod'),
+                'choice', ['NSD', 'VOL']),
+            (("Selection of atoms to superimpose:"),
+                raw_settings.getId('supcombSuperpositon'), 'choice',
+                ['ALL', 'BACKBONE']),
+            (("Fraction of structure to use (NSD, 0-1):"),
+                raw_settings.getId('supcombFraction'), 'float'),
+            )
+
+        cifsup_layout_settings = (
+            (("Method:"), raw_settings.getId('cifsupMethod'),
+                'choice', ['ICP', 'NCC', 'NSD', 'RMSD']),
+            (("Selection of atoms to superimpose:"),
+                raw_settings.getId('cifsupSelection'), 'choice',
+                ['ALL', 'BACKBONE', 'REGRID', 'SHELL']),
+            ("Number of beads in DAM (Regrid):",
+                raw_settings.getId('cifsupBeads'), 'int'),
+            ('Number of harmonics (NCC method):',
+                raw_settings.getId('cifsupHarmonics'), 'int'),
+            ('Number of points (NCC method):',
+                raw_settings.getId('cifsupPoints'), 'int'),
+            ('Maximum q (NCC method):',
+                raw_settings.getId('cifsupQmax'), 'float'),
+            ('Model ID in the reference (template) file:',
+                raw_settings.getId('cifsupRefID'), 'int'),
+            ('Model ID in the target (movable) file:',
+                raw_settings.getId('cifsupTargetID'), 'int'),
+            )
+
+        options_sizer = self.createAlignOptions(both_settings,
+            cifsup_layout_settings, supcomb_layout_settings)
+
+        self.SetSizer(options_sizer)
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def createAlignOptions(self, both_layout_settings, cifsup_layout_settings,
+        supcomb_layout_settings):
+        both_box = wx.StaticBox(self, -1, 'Shared settings')
+        both_sizer = wx.StaticBoxSizer(both_box, wx.HORIZONTAL)
+
+        both_sub_sizer = self._createItemsSizer(both_layout_settings, both_box)
+
+        both_sizer.Add(both_sub_sizer, 0, flag=wx.ALL|wx.EXPAND,
+            border=self._FromDIP(3))
+        both_sizer.AddStretchSpacer(1)
+
+        cifsup_box = wx.StaticBox(self, -1, 'CIFSUP settings')
+        cifsup_sizer = wx.StaticBoxSizer(cifsup_box, wx.HORIZONTAL)
+
+        cifsup_sub_sizer = self._createItemsSizer(cifsup_layout_settings, cifsup_box)
+
+        cifsup_sizer.Add(cifsup_sub_sizer, 0, flag=wx.ALL|wx.EXPAND,
+            border=self._FromDIP(3))
+        cifsup_sizer.AddStretchSpacer(1)
+
+        supcomb_box = wx.StaticBox(self, -1, 'SUPCOMB settings')
+        supcomb_sizer = wx.StaticBoxSizer(supcomb_box, wx.HORIZONTAL)
+
+        supcomb_sub_sizer = self._createItemsSizer(supcomb_layout_settings, supcomb_box)
+
+        supcomb_sizer.Add(supcomb_sub_sizer, 0, flag=wx.ALL|wx.EXPAND,
+            border=self._FromDIP(3))
+        supcomb_sizer.AddStretchSpacer(1)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        top_sizer.Add(wx.StaticText(self, label=('Settings for ATSAS model '
+            'alignment tools. Note that CIFSUP is only available in ATSAS '
+            '>=3.1.0\n and SUPCOMB is only available in ATSAS <3.1.0.')),
+            border=self._FromDIP(3), flag=wx.ALL)
+
+        top_sizer.Add(both_sizer, flag=wx.EXPAND|wx.BOTTOM|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(3))
+        top_sizer.Add(cifsup_sizer, flag=wx.EXPAND|wx.BOTTOM|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(3))
+        top_sizer.Add(supcomb_sizer, flag=wx.EXPAND|wx.BOTTOM|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(3))
+
+        return top_sizer
+
+    def _createItemsSizer(self, layout_settings, parent):
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        for item in layout_settings:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.Choice(parent, myId, choices = item[3])
+
+                sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(2))
+                sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
+
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((60,-1)),
+                    style = wx.TE_PROCESS_ENTER)
+
+                sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(2))
+                sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(parent, myId, label)
+                sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
+
+            top_sizer.Add(sizer, 0)
+
+        return top_sizer
+
+
 class WeightedAveragePanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
@@ -5122,10 +5363,12 @@ class OptionsDialog(wx.Dialog):
             [ (9,0,0), wx.Window.NewControlId(), "ATSAS", ATSASGeneralPanel],
             [ (9,1,1), wx.Window.NewControlId(), "GNOM", ATSASGnom],
             [ (9,1,2), wx.Window.NewControlId(), "GNOM Advanced", ATSASGnomAdvanced],
-            [ (9,5,1), wx.Window.NewControlId(), "DAMMIF/N", ATSASDammix],
-            [ (9,5,2), wx.Window.NewControlId(), "DAMMIF/N Advanced", ATSASDammixAdvanced],
-            [ (9,5,2), wx.Window.NewControlId(), "DAMMIF Advanced", ATSASDammifAdvanced],
-            [ (9,5,2), wx.Window.NewControlId(), "DAMMIN Advanced", ATSASDamminAdvanced],
+            [ (9,2,1), wx.Window.NewControlId(), "DAMMIF/N", ATSASDammix],
+            [ (9,2,2), wx.Window.NewControlId(), "DAMMIF/N Advanced", ATSASDammixAdvanced],
+            [ (9,2,2), wx.Window.NewControlId(), "DAMMIF Advanced", ATSASDammifAdvanced],
+            [ (9,2,2), wx.Window.NewControlId(), "DAMMIN Advanced", ATSASDamminAdvanced],
+            [ (9,3,1), wx.Window.NewControlId(), "DAMAVER", ATSASDamaver],
+            [ (9,4,1), wx.Window.NewControlId(), "CIFSUP/SUPCOMB", ATSASAlign],
             [ (10,0,0), wx.Window.NewControlId(), "Weighted Average", WeightedAveragePanel],
             [ (11,0,0), wx.Window.NewControlId(), "Similarity Testing", SimilarityPanel],
             [ (12,0,0), wx.Window.NewControlId(), "Fitting", FittingPanel],

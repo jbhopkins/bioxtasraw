@@ -376,7 +376,7 @@ class RawGuiSettings(object):
                 'cifsupRefID'           : [1, get_id(), 'int'],
                 'supcombMethod'         : ['NSD', get_id(), 'choice'],
                 'supcombSuperpositon'   : ['ALL', get_id(), 'choice'],
-                'supcombMode'           : ['fast', get_id(), 'choice'],
+                'supcombMode'           : ['FAST', get_id(), 'choice'],
                 'supcombFraction'       : [1.0, get_id(), 'float'],
 
                 #Weighted Average Settings

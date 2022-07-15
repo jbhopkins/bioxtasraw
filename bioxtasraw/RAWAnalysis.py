@@ -6345,62 +6345,49 @@ class DammifRunPanel(wx.Panel):
             dam_filelist = [prefix+'_%s-1%s' %(str(i).zfill(2), self.model_ext)
                 for i in range(1, nruns+1)]
 
-            symmetry = self.dammif_settings['sym']
+            readback_queue = queue.Queue()
 
-            damclust_proc = SASCalc.runDamclust(dam_filelist, path,
-                self.raw_settings.get('ATSASDir'), symmetry)
+            damclust_args = {
+                'symmetry'          : self.dammif_settings['sym'],
+                'atsas_dir'         : self.raw_settings.get('ATSASDir'),
+                'readback_queue'    : readback_queue,
+                'abort_event'       : self.abort_event,
+                }
 
+            wx.CallAfter(damWindow.AppendText, 'DAMCLUST starting\n')
 
-            damclust_q = queue.Queue()
-            readout_t = threading.Thread(target=self.enqueue_output,
-                args=(damclust_proc, damclust_q, read_semaphore))
-            readout_t.daemon = True
-            readout_t.start()
+            damclust_thread = threading.Thread(target=RAWAPI.damclust,
+                args=(dam_filelist, prefix, path), kwargs=damclust_args)
+            damclust_thread.daemon = True
+            damclust_thread.start()
 
-
-            #Send the damclust output to the screen.
-            while damclust_proc.poll() is None:
-                if self.abort_event.isSet():
-                    damclust_proc.terminate()
-                    wx.CallAfter(damWindow.AppendText, 'Aborted!\n')
-                    return
-
+            while damclust_thread.is_alive():
                 try:
-                    new_text = damclust_q.get_nowait()
+                    new_text = readback_queue.get_nowait()
                     new_text = new_text[0]
 
                     wx.CallAfter(damWindow.AppendText, new_text)
                 except queue.Empty:
                     pass
-                time.sleep(0.001)
-
-            time.sleep(2)
-
-            with read_semaphore: #see if there's any last data that we missed
-                while True:
-                    try:
-                        new_text = damclust_q.get_nowait()
-                        new_text = new_text[0]
-
-                        if new_text != '':
-                            wx.CallAfter(damWindow.AppendText, new_text)
-
-                    except queue.Empty:
-                        break
-
-                new_text = damclust_proc.stdout.read()
-
-                if not isinstance(new_text, str):
-                    new_text = str(new_text, encoding='UTF-8')
-
-                if new_text != '':
-                    wx.CallAfter(damWindow.AppendText, new_text)
+                time.sleep(0.01)
 
 
-            new_files = [(os.path.join(path, 'damclust.log'), os.path.join(path, prefix+'_damclust.log'))]
+            while True:
+                try:
+                    new_text = readback_queue.get_nowait()
+                    new_text = new_text[0]
 
-            for item in new_files:
-                os.rename(item[0], item[1])
+                    if new_text != '':
+                        wx.CallAfter(damWindow.AppendText, new_text)
+
+                except queue.Empty:
+                    break
+
+            if self.abort_event.isSet():
+                wx.CallAfter(damWindow.AppendText, '\nAborted!\n')
+                return
+
+            wx.CallAfter(damWindow.AppendText, '\nDAMCLUST finished\n')
 
             wx.CallAfter(self.status.AppendText, 'Finished DAMCLUST\n')
 
@@ -6472,93 +6459,73 @@ class DammifRunPanel(wx.Panel):
                 target_filenames.extend(['{}_{:02d}-1{}'.format(prefix, run, self.model_ext)
                     for run in range(1, nruns+1)])
 
+            readback_queue = queue.Queue()
 
-            enants = self.dammif_settings['sup_enants']
-            method = self.dammif_settings['supcomb_method']
-            superposition = self.dammif_settings['supcomb_superpos']
-            mode = self.dammif_settings['supcomb_mode']
-            fraction = self.dammif_settings['supcomb_fraction']
-            atsas_dir = self.raw_settings.get('ATSASDir')
+            supcomb_args = {
+                'enantiomorphs'     : self.dammif_settings['sup_enants'],
+                'proximity'         : self.dammif_settings['supcomb_method'],
+                'superposition'     : self.dammif_settings['supcomb_superpos'],
+                'mode'              : self.dammif_settings['supcomb_mode'],
+                'fraction'          : self.dammif_settings['supcomb_fraction'],
+                'atsas_dir'         : self.raw_settings.get('ATSASDir'),
+                'readback_queue'    : readback_queue,
+                'abort_event'       : self.abort_event,
+                }
+
 
             if symmetry != 'P1':
-                mode = 'slow'
-
-            supcomb_q = queue.Queue()
-            read_semaphore = threading.BoundedSemaphore(1)
+                supcomb_args['mode'] = 'slow'
 
             wx.CallAfter(self.status.AppendText, 'Starting Alignment\n')
 
             for target in target_filenames:
                 if self.abort_event.is_set():
-                    wx.CallAfter(self.sup_window.AppendText, 'Aborted!\n')
+                    wx.CallAfter(sup_window.AppendText, 'Aborted!\n')
                     return
 
                 msg = 'SUPCOMB started for {}\n\n'.format(target)
                 wx.CallAfter(sup_window.AppendText, msg)
 
-                sup_proc = SASCalc.runSupcomb(template, target, path,
-                    self.raw_settings.get('ATSASDir'), symmetry=symmetry,
-                    mode=mode, superposition=superposition, enantiomorphs=enants,
-                    proximity=method, fraction=fraction)
+                supcomb_thread = threading.Thread(target=RAWAPI.supcomb,
+                    args=(target, template, path), kwargs=supcomb_args)
+                supcomb_thread.daemon = True
+                supcomb_thread.start()
 
-                if sup_proc is None:
-                    msg  = ('SUPCOMB failed to start for target file '
-                        '{}'.format(target))
-                    wx.CallAfter(sup_window.AppendText, msg)
+                while supcomb_thread.is_alive():
+                    try:
+                        new_text = readback_queue.get_nowait()
+                        new_text = new_text[0]
 
-                else:
-                    readout_t = threading.Thread(target=self.enqueue_output,
-                        args=(sup_proc, supcomb_q, read_semaphore))
-                    readout_t.daemon = True
-                    readout_t.start()
+                        wx.CallAfter(sup_window.AppendText, new_text)
+                    except queue.Empty:
+                        pass
+                    time.sleep(0.01)
 
 
-                    #Send the damaver output to the screen.
-                    while sup_proc.poll() is None:
-                        if self.abort_event.is_set():
-                            sup_proc.terminate()
-                            wx.CallAfter(sup_window.AppendText, '\nAborted!')
-                        try:
-                            new_text = supcomb_q.get_nowait()
-                            new_text = new_text[0]
+                while True:
+                    try:
+                        new_text = readback_queue.get_nowait()
+                        new_text = new_text[0]
 
+                        if new_text != '':
                             wx.CallAfter(sup_window.AppendText, new_text)
 
-                        except queue.Empty:
-                            pass
-                        time.sleep(0.001)
+                    except queue.Empty:
+                        break
 
-                    if not self.abort_event.is_set():
-                        time.sleep(2)
-                        with read_semaphore: #see if there's any last data that we missed
-                            while True:
-                                try:
-                                    new_text = supcomb_q.get_nowait()
-                                    new_text = new_text[0]
+                if self.abort_event.isSet():
+                    wx.CallAfter(sup_window.AppendText, '\nAborted!\n')
+                    return
 
-                                    if new_text != '':
-                                        wx.CallAfter(sup_window.AppendText, new_text)
+                name, ext = os.path.splitext(target)
+                sup_name = '{}_aligned{}'.format(name, ext)
 
-                                except queue.Empty:
-                                    break
-
-                            new_text = sup_proc.stdout.read()
-
-                            if not isinstance(new_text, str):
-                                new_text = str(new_text, encoding='UTF-8')
-
-                            if new_text != '':
-                                wx.CallAfter(sup_window.AppendText, new_text)
-
-                        name, ext = os.path.splitext(target)
-                        sup_name = '{}_aligned{}'.format(name, ext)
-
-                        if os.path.exists(os.path.join(path, sup_name)):
-                            msg = '\nSUPCOMB finished for {}\n\n'.format(target)
-                            wx.CallAfter(sup_window.AppendText, msg)
-                        else:
-                            msg = '\nSUPCOMB failed for {}\n\n'.format(target)
-                            wx.CallAfter(sup_window.AppendText, msg)
+                if os.path.exists(os.path.join(path, sup_name)):
+                    msg = '\nSUPCOMB finished for {}\n\n'.format(target)
+                    wx.CallAfter(sup_window.AppendText, msg)
+                else:
+                    msg = '\nSUPCOMB failed for {}\n\n'.format(target)
+                    wx.CallAfter(sup_window.AppendText, msg)
 
             wx.CallAfter(self.status.AppendText, 'Finished Alignment\n')
             wx.CallAfter(self.finishedProcessing)
@@ -6646,34 +6613,6 @@ class DammifRunPanel(wx.Panel):
 
             wx.CallAfter(self.status.AppendText, 'Finished Alignment\n')
             wx.CallAfter(self.finishedProcessing)
-
-    def enqueue_output(self, proc, queue, read_semaphore):
-        #Solution for non-blocking reads adapted from stack overflow
-        #http://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
-
-        with read_semaphore:
-            out = proc.stdout
-            line = ''
-            line2=''
-            while proc.poll() is None:
-                line = out.read(1)
-
-                if not isinstance(line, str):
-                    line = str(line, encoding='UTF-8')
-
-                line2+=line
-                if line == '\n':
-                    queue.put_nowait([line2])
-                    line2=''
-                time.sleep(0.00001)
-
-            line = out.read(1)
-
-            if not isinstance(line, str):
-                line = str(line, encoding='UTF-8')
-
-            line2 += line
-            queue.put_nowait([line2])
 
     def onDammifTimer(self, evt):
         dammif_finished = False
@@ -12232,30 +12171,6 @@ class SupcombFrame(wx.Frame):
             self.supcomb_thread.daemon = True
             self.supcomb_thread.start()
 
-    def enqueue_output(self, out, queue):
-        with self.read_semaphore:
-            line = 'test'
-            line2=''
-            while line != '':
-                line = out.read(1)
-
-                if not isinstance(line, str):
-                    line = str(line, encoding='UTF-8')
-
-                line2 += line
-                if line == '\n':
-                    queue.put_nowait([line2])
-                    line2=''
-                time.sleep(0.00001)
-
-            line = out.read()
-
-            if not isinstance(line, str):
-                line = str(line, encoding='UTF-8')
-
-            line2 += line
-            queue.put_nowait([line2])
-
     def runSupcomb(self):
         tempdir = self.standard_paths.GetTempDir()
         template_tempname = os.path.join(tempdir, os.path.split(self.template_file_name)[1])
@@ -12273,28 +12188,29 @@ class SupcombFrame(wx.Frame):
             wx.CallAfter(self.status.AppendText, 'Aborted!\n')
 
         if settings is not None and not self.abort_event.is_set():
-            sup_proc = SASCalc.runSupcomb(template, target, path,
-                self.raw_settings.get('ATSASDir'), **settings)
-        else:
-            sup_proc = None
+            readback_queue = queue.Queue()
 
-        if sup_proc is None and not self.abort_event.is_set() and settings is not None:
-            wx.CallAfter(self.status.AppendText, 'SUPCOMB failed to start')
+            settings['atsas_dir'] = self.raw_settings.get('ATSASDir')
+            settings['readback_queue'] = readback_queue
+            settings['abort_event'] = self.abort_event
 
-        else:
-            readout_t = threading.Thread(target=self.enqueue_output,
-                args=(sup_proc.stdout, self.out_queue))
-            readout_t.daemon = True
-            readout_t.start()
+            wx.CallAfter(self.status.AppendText, 'Starting Alignment\n')
 
+            if self.abort_event.is_set():
+                wx.CallAfter(self.status.AppendText, 'Aborted!\n')
+                return
 
-            #Send the damaver output to the screen.
-            while sup_proc.poll() is None:
-                if self.abort_event.is_set():
-                    sup_proc.terminate()
-                    wx.CallAfter(self.status.AppendText, '\nAborted!')
+            msg = 'SUPCOMB started for {}\n\n'.format(target)
+            wx.CallAfter(self.status.AppendText, msg)
+
+            supcomb_thread = threading.Thread(target=RAWAPI.supcomb,
+                args=(target, template, path), kwargs=settings)
+            supcomb_thread.daemon = True
+            supcomb_thread.start()
+
+            while supcomb_thread.is_alive():
                 try:
-                    new_text = self.out_queue.get_nowait()
+                    new_text = readback_queue.get_nowait()
                     new_text = new_text[0]
 
                     wx.CallAfter(self.status.AppendText, new_text)
@@ -12302,45 +12218,39 @@ class SupcombFrame(wx.Frame):
                     pass
                 time.sleep(0.01)
 
-            if not self.abort_event.is_set():
-                time.sleep(2)
-                with self.read_semaphore: #see if there's any last data that we missed
-                    while True:
-                        try:
-                            new_text = self.out_queue.get_nowait()
-                            new_text = new_text[0]
 
-                            if new_text != '':
-                                wx.CallAfter(self.status.AppendText, new_text)
-
-                        except queue.Empty:
-                            break
-
-                    new_text = sup_proc.stdout.read()
-
-                    if not isinstance(new_text, str):
-                        new_text = str(new_text, encoding='UTF-8')
+            while True:
+                try:
+                    new_text = readback_queue.get_nowait()
+                    new_text = new_text[0]
 
                     if new_text != '':
                         wx.CallAfter(self.status.AppendText, new_text)
 
-                name, ext = os.path.splitext(target_tempname)
-                temp_outname = '{}_aligned{}'.format(name, ext)
+                except queue.Empty:
+                    break
 
-                name, ext = os.path.splitext(self.target_file_name)
-                outname = '{}_aligned{}'.format(name, ext)
+            if self.abort_event.isSet():
+                wx.CallAfter(self.status.AppendText, '\nAborted!\n')
+                return
 
-                if os.path.exists(temp_outname):
-                    shutil.copy(temp_outname, outname)
-                    wx.CallAfter(self.status.AppendText, '\nSUPCOMB finished')
-                else:
-                    wx.CallAfter(self.status.AppendText, '\nSUPCOMB failed')
+            name, ext = os.path.splitext(target_tempname)
+            temp_outname = '{}_aligned{}'.format(name, ext)
 
-                try:
-                    os.remove(template_tempname)
-                    os.remove(target_tempname)
-                except Exception:
-                    pass
+            name, ext = os.path.splitext(self.target_file_name)
+            outname = '{}_aligned{}'.format(name, ext)
+
+            if os.path.exists(temp_outname):
+                shutil.copy(temp_outname, outname)
+                wx.CallAfter(self.status.AppendText, '\nSUPCOMB finished')
+            else:
+                wx.CallAfter(self.status.AppendText, '\nSUPCOMB failed')
+
+            try:
+                os.remove(template_tempname)
+                os.remove(target_tempname)
+            except Exception:
+                pass
 
         wx.CallAfter(self.cleanupSupcomb)
 

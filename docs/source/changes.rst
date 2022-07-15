@@ -1,6 +1,54 @@
 Changes
 ============
 
+2.1.4
+-----------
+
+Release date: 2022-07-15
+
+Overview
+^^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 2.1.4. Significant
+changes include:
+
+*   Compatibility with ATSAS 3.1.0
+
+Due to some changes in ATSAS, you may notice some differences in the associated
+RAW tools:
+
+*   SUPCOMB has been replaced with CIFSUP
+*   DAMCLUST is now included in DAMAVER, and so is no longer an option in the
+    DAMMIF/N GUI
+*   SASRES is currently not included in DAMAVER output, so it is not included
+    in the RAW summary page for reconstructions
+*   Output formats for DAMMIF/N are now .cif files
+*   DAMAVER is now multi-core. This greatly improves the speed, but as of now
+    I don't see any way to restrict the number of cores it uses, so the number
+    of processesors specification in the DAMMIF/N window only applies to the
+    reconstructions, not the averaging.
+
+All changes:
+^^^^^^^^^^^^^
+
+*   Support for now .cif output format for DAMMIF/N.
+*   Support for CIFSUP for alignment, including standalone GUI.
+*   Auto detection of availability of CIFSUP/SUPCOMB.
+*   Support for the new DAMAVER.
+*   Extended support for SUPCOMB and DAMAVER to include all possible options.
+*   Removed standalone call to DAMCLUST when using ATSAS 3.1.0.
+*   DAMMIN refinement is now run in the same mode as the rest of the
+    reconstructions (Fast/Slow).
+*   Updated the sigma_clip integrator to use the pyFAI ng integrator
+    (requires pyFAI>=0.21)
+*   Added new ATSAS functions to the API, and updated API for changes to
+    existing ATSAS functions.
+*   Addd ability to set DAMMIN random seed in the API.
+*   Fixed a bug in the API rebinning that could result in the wrong number of
+    points if multiple profiles were input at once.
+
+
+
 2.1.3
 -----------
 
@@ -30,6 +78,7 @@ All changes:
 
 *   Fixed a bug that could prevent data from loading into RAW after the RAW
     window was dragged between two monitors.
+
 
 2.1.2
 -----------
