@@ -5496,7 +5496,7 @@ class DammifRunPanel(wx.Panel):
         damclust_chk.Bind(wx.EVT_CHECKBOX, self.onCheckBox)
 
         self.align_result = wx.CheckBox(settings_box, self.ids['align'],
-            label='Align output to PDB:')
+            label='Align output to PDB/mmCIF:')
         self.align_result.SetValue(False)
         self.align_file_ctrl = wx.TextCtrl(settings_box, self.ids['align_file'],
             style=wx.TE_READONLY)
@@ -5981,7 +5981,7 @@ class DammifRunPanel(wx.Panel):
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
         load_path = dirctrl_panel.getDirLabel()
 
-        filters = 'PDB and CIF files (*.pdb;*.cif)|*.pdb;*.cif|All files (*.*)|*.*'
+        filters = 'PDB and mmCIF files (*.pdb;*.cif)|*.pdb;*.cif|All files (*.*)|*.*'
 
         dialog = wx.FileDialog(self, 'Select a file', load_path, style=wx.FD_OPEN,
             wildcard=filters)
@@ -12167,7 +12167,7 @@ class SupcombFrame(wx.Frame):
         dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
         load_path = dirctrl_panel.getDirLabel()
 
-        filters = 'PDB and CIF files (*.pdb;*.cif)|*.pdb;*.cif|All files (*.*)|*.*'
+        filters = 'PDB and mmCIF files (*.pdb;*.cif)|*.pdb;*.cif|All files (*.*)|*.*'
 
         dialog = wx.FileDialog(self, 'Select a file', load_path, style=wx.FD_OPEN,
             wildcard=filters)
@@ -12636,7 +12636,7 @@ class CifsupFrame(wx.Frame):
 
         settings = self._getSettings()
 
-        wx.CallAfter(self.status.SetLabel, 'Starting Alignment\n')
+        wx.CallAfter(self.status.SetLabel, 'Running alignment\n')
 
         if self.abort_event.is_set():
             wx.CallAfter(self.status.SetLabel, 'Alignment aborted')

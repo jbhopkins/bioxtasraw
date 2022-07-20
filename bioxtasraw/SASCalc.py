@@ -2269,13 +2269,13 @@ def runDammin(fname, prefix, args, path, atsasDir):
 
                     elif data.find('Packing radius') > -1 and args['mode'] != 'Refine':
                         if args['packing'] > -1:
-                            proc.stdin.write('%i\r\n' %(args['packing']))
+                            proc.stdin.write('%f\r\n' %(args['packing']))
                         else:
                             proc.stdin.write('\r\n')
 
                     elif data.find('coordination sphere') > -1 and args['mode'] != 'Refine':
                         if args['coordination'] > -1:
-                            proc.stdin.write('%i\r\n' %(args['coordination']))
+                            proc.stdin.write('%f\r\n' %(args['coordination']))
                         else:
                             proc.stdin.write('\r\n')
 
@@ -2287,7 +2287,7 @@ def runDammin(fname, prefix, args, path, atsasDir):
 
                     elif data.find('Disconnectivity penalty') > -1 and args['mode'] != 'Refine':
                         if args['disconWeight'] > -1:
-                            proc.stdin.write('%i\r\n' %(args['disconWeight']))
+                            proc.stdin.write('%f\r\n' %(args['disconWeight']))
                         else:
                             proc.stdin.write('\r\n')
 

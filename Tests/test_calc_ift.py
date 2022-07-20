@@ -37,11 +37,14 @@ def test_dammif(gi_gnom_ift, temp_directory):
     assert os.path.exists(os.path.join(temp_directory, 'dammif.fir'))
     assert os.path.exists(os.path.join(temp_directory, 'dammif.in'))
 
+
 @pytest.mark.atsas
-@pytest.mark.very_slow
+@pytest.mark.slow
 def test_dammif_interactive(gi_gnom_ift, temp_directory):
     chi_sq, rg, dmax, mw, excluded_volume = raw.dammif(gi_gnom_ift, 'dammif_inter',
-        temp_directory, 'Custom')
+        temp_directory, 'Custom', dam_radius=3.1, harmonics=15, max_steps=200,
+        max_iters=20000, max_success=2000, min_success=20, T_factor=0.9,
+        rg_penalty=0.1e-2, center_penalty=0.1e-4, loose_penalty=0.1e-1)
 
     atsas_dir = raw.__default_settings.get('ATSASDir')
     version = SASCalc.getATSASVersion(atsas_dir).split('.')
@@ -99,7 +102,10 @@ def test_dammin_refine(gi_gnom_ift, temp_directory):
 @pytest.mark.very_slow
 def test_dammin_interative(gi_gnom_ift, temp_directory):
     chi_sq, rg, dmax, mw, excluded_volume = raw.dammin(gi_gnom_ift, 'dammin_inter',
-        temp_directory, 'Custom')
+        temp_directory, 'Custom', dam_radius=3.7, harmonics=10, max_steps=200,
+        max_iters=134820, max_success=13482, min_success=44, T_factor=0.9,
+        loose_penalty=6.000E-03, knots=20, sphere_diam=102, coord_sphere=10.43,
+        disconnect_penalty=6.000E-03, periph_penalty=0.3000)
 
     atsas_dir = raw.__default_settings.get('ATSASDir')
     version = SASCalc.getATSASVersion(atsas_dir).split('.')

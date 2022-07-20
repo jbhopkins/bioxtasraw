@@ -8,7 +8,9 @@ degree, DAMMIN) from the ATSAS package. We will use RAW to run DAMMIF/N. Because
 reconstruction is not unique, a number of distinct reconstructions are generated, and then a
 consensus shape is made from the average of these reconstructions. The program DAMAVER from
 the ATSAS package is the most commonly used program for building consensus shapes. Note that you need
-:ref:`ATSAS installed <atsas>` to do this part of the tutorial.
+:ref:`ATSAS installed <atsas>` to do this part of the tutorial. Also, this tutorial
+uses ATSAS 3.1.1, some pieces may be slightly diferent on older versions of ATSAS,
+please see previous versions of this tutorial in that case.
 
 This is not a tutorial on basic principles and best practices for doing bead
 model reconstructions. For that, please see the :ref:`SAXS tutorial <saxs_bead_models>`.
@@ -19,11 +21,10 @@ RAW paper, please cite the papers given in the:
     *    `DAMMIF manual <https://www.embl-hamburg.de/biosaxs/manuals/dammif.html>`_
     *    `DAMMIN manual <https://www.embl-hamburg.de/biosaxs/manuals/dammin.html>`_
     *    `DAMAVER manual <https://www.embl-hamburg.de/biosaxs/manuals/damaver.html>`_
-    *    `DAMCLUST manual <https://www.embl-hamburg.de/biosaxs/manuals/damclust.html>`_
     *    `SASRES manual <https://www.embl-hamburg.de/biosaxs/manuals/sasres.html>`_
-    *    `SUPCOMB manual <https://www.embl-hamburg.de/biosaxs/manuals/supcomb.html>`_
+    *    `CIFSUP manual <https://www.embl-hamburg.de/biosaxs/manuals/cifsup.html>`_
 
-as appropriate
+as appropriate.
 
 A video version of this tutorial is available:
 
@@ -59,11 +60,9 @@ The written version of the tutorial follows.
     *   *Note:* For final reconstructions for a paper, DAMMIN refinement should be done. However, it
         is quite slow, so for the purposes of this tutorial we won't do it.
 
-#.  If it's not already checked, check the "Align and cluster envelopes (damclust)"
-    checkbox.
 
-#.  RAW can align the DAMMIF/N output with a PDB structure using SUPCOMB from the
-    ATSAS package. To do so, check the 'Align output to PDB' box and select
+#.  RAW can align the DAMMIF/N output with a PDB/mmCIF structure using CIFSUP from the
+    ATSAS package. To do so, check the 'Align output to PDB/mmCIF' box and select
     the **1XIB_4mer.pdb** file in the **reconstruction_data/gi_complete** folder.
 
     *   *Tip:* If you're not sure if you selected the correct file, hovering
@@ -77,18 +76,17 @@ The written version of the tutorial follows.
         You can look at the detailed status of each run by clicking the appropriate tab in
         the log panel.
 
-#.  Note that by default the envelopes are aligned and averaged using DAMAVER, and then the
-    aligned and averaged profile is refined using DAMMIN. Clustering analysis is also
-    done by default.
+#.  Note that by default the envelopes are aligned, clustered, and averaged using DAMAVER,
+    and then the aligned and averaged profile is refined using DAMMIN.
 
     *   Some settings are accessible in the panel, and all settings can be changed in the
         advanced settings panel.
 
-#.  Wait for all of the DAMMIF runs, DAMAVER, DAMCLUST, and alignment to finish.
+#.  Wait for all of the DAMMIF runs, DAMAVER, and alignment to finish.
     Depending on the speed of your computer this could take a bit.
 
 #.  Once the reconstructions are finished, the window should automatically switch to the
-    results tab. If it doesn’t, click on the results tab.
+    results tab. If it doesn't, click on the results tab.
 
     |dammif_results_png|
 
@@ -98,9 +96,10 @@ The written version of the tutorial follows.
     spatial discrepancy (NSD), showing the mean and standard deviation of the NSD, as well as
     how many of the reconstructions were included in the average. If DAMAVER was run on 3 or
     more reconstructions, and ATSAS >=2.8.0 is installed, there will be the output of SASRES
-    which provides information on the resolution of the reconstruction. If DAMCLUST was run
-    the number of clusters, information on each cluster, and the distance between each
-    cluster is shown.
+    which provides information on the resolution of the reconstruction. If DAMAVER
+    found more than one cluster, he number of clusters and information
+    on each cluster is shown. Note that DAMCLUST (ATSAS <=3.1.0) provided more information
+    about the clusters, so some fields will be blank with ATSAS >=3.1.1.
 
 #.  Information on each individual model is shown at the bottom. The summary tab
     gives the model chi squared, |Rg|, |Dmax|, excluded volume, molecular
@@ -113,6 +112,9 @@ The written version of the tutorial follows.
     *   *Tip:* The model highlighted in blue in the summary tab is the 'most
         probable' model, this can be used as your final bead model instead of
         doing a dammin refinement.
+
+    *   *Note:* DAMMIN in ATSAS >=3.1.0 doesn't provide the |Dmax| value for
+        the model.
 
 #.  Also, each individual model has a tab which shows the data, the model fit,
     and the residuals.
@@ -147,55 +149,49 @@ The written version of the tutorial follows.
     this tutorial, that would be **glucose_isomerase_01**, **glucose_isomerase_02**, and so on. The
     different files produced are described in the `DAMMIF manual <https://www.embl-hamburg.de/biosaxs/manuals/dammif.html#output>`_.
 
-    *   *Note:* Generally, the file of interest is the **-1.pdb** file, in this case
-        **glucose_isomerase_01-1.pdb**, **glucose_isomerase_02-1.pdb**, etc.
+    *   *Note:* Generally, the file of interest is the **-1.cif** file, in this case
+        **glucose_isomerase_01-1.cif**, **glucose_isomerase_02-1.cif**, etc.
 
 #.  If averaging was done with DAMAVER, the results are saved in the selected output
     folder with the given prefix, in this case **glucose_isomerase**. The output
     files generated are described in the `DAMAVER manual <https://www.embl-hamburg.de/biosaxs/manuals/damaver.html>`_.
 
-    *   *Note:* Generally, the files of interest are the generated pdbs:
-        **<prefix>_damaver.pdb** and **<prefix>_damfilt.pdb**. For this tutorial, those
-        would be **glucose_isomerase_damaver.pdb** and **glucose_isomerase_damfilt.pdb**.
+    *   *Note:* Generally, the file of interest is the generated damfilt mmCIF:
+        **<prefix>_damfilt.cif**. For this tutorial, that would be
+        **glucose_isomerase_damfilt.cif**.
 
-#.  If clustering was done with DAMCLUST, the results are saved in the selected output
+#.  If multiple clusters were found, the results are saved in the selected output
     folder with the given prefix (for this tutorial, **glucose_isomerase**). The files generated
-    are described in the `DAMCLUST manual <https://www.embl-hamburg.de/biosaxs/manuals/damclust.html#output>`_.
+    are described in the `DAMAVER manual <https://www.embl-hamburg.de/biosaxs/manuals/damaver.html#output>`_.
 
 #.  If refinement was done with DAMMIN, the results are saved in the selected output
     folder as **refine_<prefix>**, e.g. for this tutorial **refine_glucose_isomerase**. The files
     generated are described in the `DAMMIN manual <https://www.embl-hamburg.de/biosaxs/manuals/dammin.html#output>`_.
 
-    *   *Note:* Generally, the file of interest is the **-1.pdb** file, in this case
-        **refine_glucose_isomerase-1.pdb**.
+    *   *Note:* Generally, the file of interest is the **-1.cif** file, in this case
+        **refine_glucose_isomerase-1.cif**.
 
-#.  If alignment to a reference PDB was done with SUPCOMB, the files aligned
+#.  If alignment to a reference PDB/mmCIF was done with CIFSUP, the files aligned
     depend on what other processing was done.
 
     *   If refinement was done, then there will be a single file named
-        **refine_<prefix>_-1_aligned.pdb**. For this tutorial,
-        **refine_glucose_isomerase-1_aligned.pdb**.
+        **refine_<prefix>_-1_aligned.cif**. For this tutorial,
+        **refine_glucose_isomerase-1_aligned.cif**.
 
     *   If no refinement is done but averaging is done, then the
         damaver and damfilt results are aligned, as well as the most
         probable model (the blue highlighted model in the summary panel).
-        The associated filenames would be **<prefix>_damaver_aligned.pdb**,
-        **<prefix>_damfilt_aligned.pdb**, and **<prefix>_##_-1_aligned.pdb**
-        where ## is the model number of the most probable model. For
-        this tutorial, **glucose_isomerase_damaver_aligned.pdb**,
-        **glucose_isomerase_damfilt_aligned.pdb**, and
-        **glucose_isomerase_##-1_aligned.pdb**.
+        The associated filenames would be **<prefix>_damaver_aligned.cif**,
+        **<prefix>_damfilt_aligned.cif**, and **<prefix>_##_-1_aligned.cif**
+        where ## is the model number of the most probable model. For this tutorial,
+        **glucose_isomerase_damaver_aligned.cif**,
+        **glucose_isomerase_damfilt_aligned.cif**, and
+        **glucose_isomerase_##-1_aligned.cif**.
 
-    *   If no refinement is done but clustering is done, then the representative
-        models of each cluster is aligned. The associated filenames would be
-        **<prefix>_##-1_aligned.pdb** where ## is the model number of the
-        representative model. For this tutorial, that is
-        **glucose_isomerase_##-1_aligned.pdb**.
-
-    *   If no refinement, averaging, or clustering is done, then every calculated
+    *   If no refinement or averaging is done, then every calculated
         model is aligned. The associated filenames would be
-        **<prefix>_##-1_aligned.pdb** where ## is the model number of a model.
-        For this tutorial, that is **glucose_isomerase_##-1_aligned.pdb**.
+        **<prefix>_##-1_aligned.cif** where ## is the model number of a model.
+        For this tutorial, that is **glucose_isomerase_##-1_aligned.cif**.
 
 
 

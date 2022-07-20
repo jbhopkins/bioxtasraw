@@ -4,7 +4,7 @@ Changes
 2.1.4
 -----------
 
-Release date: 2022-07-15
+Release date: 2022-07-20
 
 Overview
 ^^^^^^^^^^^
@@ -24,13 +24,16 @@ RAW tools:
 *   Output formats for DAMMIF/N are now .cif files.
 *   DAMAVER is now multi-core. This greatly improves the speed, but as of now
     we don't see any way to restrict the number of cores it uses, so the number
-    of processesors specification in the DAMMIF/N window only applies to the
+    of processors specification in the DAMMIF/N window only applies to the
     reconstructions, not the averaging.
 *   Clustering results from DAMAVER no longer include average cluster deviation
     or distance between clusters, so that is not reported. Eventually the GUI
     may be updated to remove those values, but since we suspect many people will
     keep using the older version of DAMCLUST for a while we will leave those
     fields in the GUI for now.
+*   Note that the tutorials have been updated for ATSAS 3.1, but if you have
+    an older version of ATSAS installed you will see the options appropriate
+    for that version.
 
 All changes:
 ^^^^^^^^^^^^^
@@ -45,11 +48,16 @@ All changes:
     reconstructions (Fast/Slow).
 *   Updated the sigma_clip integrator to use the pyFAI ng integrator
     (requires pyFAI>=0.21)
+*   Added a feature to go to a particular image in a multi image file displayed
+    in the Image plot panel.
+*   Fixed a bug where certain values were set incorrectly when running DAMMIN in
+    expert mode.
 *   Added new ATSAS functions to the API, and updated API for changes to
     existing ATSAS functions.
-*   Addd ability to set DAMMIN random seed in the API.
+*   Added ability to set DAMMIN random seed in the API.
 *   Fixed a bug in the API rebinning that could result in the wrong number of
     points if multiple profiles were input at once.
+
 
 
 

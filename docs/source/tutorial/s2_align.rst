@@ -13,8 +13,11 @@ If you use DENSS alignment in RAW, in addition to citing the RAW paper, please c
 DENSS paper: T. D. Grant. Nature Methods (2018) 15, 191–193.
 DOI: `10.1038/nmeth.4581 <https://doi.org/10.1038/nmeth.4581>`_
 
-If you use RAW to run SUPCOMB, in addition to citing the RAW paper, please
-cite the paper given in the `SUPCOMB manual. <https://www.embl-hamburg.de/biosaxs/manuals/supcomb.html>`_
+If you use RAW to run CIFSUP, in addition to citing the RAW paper, please
+cite the paper given in the `CIFSUP manual. <https://www.embl-hamburg.de/biosaxs/manuals/cifsup.html>`_
+Note that CIFSUP is only available in ATSAS >=3.1.0. For older versions of ATSAS
+a similar SUPCOMB window is available, the full tutorial for that can be found
+in previous versions of this tutorial.
 
 A video version of this tutorial is available:
 
@@ -24,17 +27,17 @@ A video version of this tutorial is available:
 
 The written version of the tutorial follows.
 
-Bead models - SUPCOMB
+Bead models - CIFSUP
 *************************
 .. _raw_supcomb:
 
-SUPCOMB from the ATSAS suite can be used to align two PDB files. In this context,
+CIFSUP from the ATSAS suite can be used to align two PDB files. In this context,
 one model (the reference) is the high resolution structure while the other
 (the target) is the bead model reconstruction.
 
-#.  Open the SUPCOMB window by selecting Tools->ATSAS->SUPCOMB from the menu bar
+#.  Open the CIFSUP window by selecting Tools->ATSAS->CIFSUP from the menu bar
 
-    |align_supcomb_menu_png|
+    |align_atsas_menu_png|
 
 #.  In the window that opens, 'Target' is the model that is aligned, where
     as 'Reference' is the model that the target is aligned to. In other words,
@@ -51,21 +54,22 @@ one model (the reference) is the high resolution structure while the other
 #.  Use the Target 'Select' button to select
     **reconstruction_data/gi_complete/gi_dammif/refine_glucose_isomerase-1.pdb**
 
-    |align_supcomb_select_png|
+    |align_atsas_select_png|
 
-#.  Click the start button. SUPCOMB will run.
+#.  Click the start button. CIFSUP will run, and you should see the 'Status' update
+    to 'Running alignment' and then 'Alignment finished'.
 
-    |align_supcomb_start_png|
+    |align_atsas_start_png|
 
-#.  When SUPCOMB is finished, in the same folder as the target file you will
+#.  When CIFSUP is finished, in the same folder as the target file you will
     see a **<target_name>_aligned.pdb** file, which is the target model
     aligned with the reference file.
 
 #.  Advanced settings can be accessed by clicking on the 'Advanced Settings' text
-    to expand the section. These settings are described in the `SUPCOMB manual
-    <https://www.embl-hamburg.de/biosaxs/manuals/supcomb.html>`_.
+    to expand the section. These settings are described in the `CIFSUP manual
+    <https://www.embl-hamburg.de/biosaxs/manuals/cifsup.html>`_.
 
-    |align_supcomb_advanced_png|
+    |align_atsas_advanced_png|
 
 
 Electron density
@@ -129,21 +133,21 @@ is the high resolution
 
     |align_denss_advanced_png|
 
-.. |align_supcomb_menu_png| image:: images/align_supcomb_menu.png
+.. |align_atsas_menu_png| image:: images/align_atsas_menu.png
     :width: 400 px
-    :target: ../_images/align_supcomb_menu.png
+    :target: ../_images/align_atsas_menu.png
 
-.. |align_supcomb_select_png| image:: images/align_supcomb_select.png
+.. |align_atsas_select_png| image:: images/align_atsas_select.png
     :width: 400 px
-    :target: ../_images/align_supcomb_select.png
+    :target: ../_images/align_atsas_select.png
 
-.. |align_supcomb_start_png| image:: images/align_supcomb_start.png
+.. |align_atsas_start_png| image:: images/align_atsas_start.png
     :width: 400 px
-    :target: ../_images/align_supcomb_start.png
+    :target: ../_images/align_atsas_start.png
 
-.. |align_supcomb_advanced_png| image:: images/align_supcomb_advanced.png
+.. |align_atsas_advanced_png| image:: images/align_atsas_advanced.png
     :width: 400 px
-    :target: ../_images/align_supcomb_advanced.png
+    :target: ../_images/align_atsas_advanced.png
 
 
 .. |align_denss_menu_png| image:: images/align_denss_menu.png

@@ -35,7 +35,8 @@ If you use RAW to control any of the ATSAS programs (
 `DATCLASS <https://www.embl-hamburg.de/biosaxs/manuals/datclass.html>`_,
 `GNOM <https://www.embl-hamburg.de/biosaxs/manuals/gnom.html>`_,
 `SASRES <https://www.embl-hamburg.de/biosaxs/manuals/sasres.html>`_,
-`SUPCOMB <https://www.embl-hamburg.de/biosaxs/manuals/supcomb.html>`_),
+`SUPCOMB <https://www.embl-hamburg.de/biosaxs/manuals/supcomb.html>`_,
+`CIFSUP <https://www.embl-hamburg.de/biosaxs/manuals/cifsup.html>`_),
 in addition to the RAW paper, please cite the appropriate paper given on their
 `documentation pages <https://www.embl-hamburg.de/biosaxs/manuals/>`_.
 
@@ -69,8 +70,6 @@ DOI: `10.1021/jacs.6b01563 <https://doi.org/10.1021/jacs.6b01563>`_
 
 Electron Density (DENSS)
 -------------------------------
-DENSS
-^^^^^^^^
 
 If you used the electron density (DENSS) function in RAW to calculate electron density,
 in addition to the RAW paper please cite the following paper:
@@ -94,6 +93,7 @@ IUCrJ (2021). 8(2), 225-237.
 DOI: `10.1107/S2052252521000555 <https://doi.org/10.1107/S2052252521000555>`_
 
 REGALS source code is available here: `https://github.com/ando-lab/regals <https://github.com/ando-lab/regals>`_
+
 
 Molecular Weight
 -------------------------------
