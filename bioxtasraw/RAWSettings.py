@@ -357,7 +357,7 @@ class RawGuiSettings(object):
                 'damminAnealSched'      : [-1, get_id(), 'float'],
 
                 #DAMAVER settings
-                'damaverEnantiomers'    : ['Yes', get_id(), 'chioce'],
+                'damaverEnantiomers'    : ['YES', get_id(), 'choice'],
                 'damaverNbeads'         : [5000, get_id(), 'int'],
                 'damaverMethod'         : ['NSD', get_id(), 'choice'],
                 'damaverHarmonics'      : [5, get_id(), 'int'],

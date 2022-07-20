@@ -17,16 +17,20 @@ changes include:
 Due to some changes in ATSAS, you may notice some differences in the associated
 RAW tools:
 
-*   SUPCOMB has been replaced with CIFSUP
+*   SUPCOMB has been replaced with CIFSUP.
 *   DAMCLUST is now included in DAMAVER, and so is no longer an option in the
-    DAMMIF/N GUI
-*   SASRES is currently not included in DAMAVER output, so it is not included
-    in the RAW summary page for reconstructions
-*   Output formats for DAMMIF/N are now .cif files
+    DAMMIF/N GUI.
+*   SASRES is  not included in DAMAVER 3.1.0 output, but is in 3.1.1.
+*   Output formats for DAMMIF/N are now .cif files.
 *   DAMAVER is now multi-core. This greatly improves the speed, but as of now
-    I don't see any way to restrict the number of cores it uses, so the number
+    we don't see any way to restrict the number of cores it uses, so the number
     of processesors specification in the DAMMIF/N window only applies to the
     reconstructions, not the averaging.
+*   Clustering results from DAMAVER no longer include average cluster deviation
+    or distance between clusters, so that is not reported. Eventually the GUI
+    may be updated to remove those values, but since we suspect many people will
+    keep using the older version of DAMCLUST for a while we will leave those
+    fields in the GUI for now.
 
 All changes:
 ^^^^^^^^^^^^^

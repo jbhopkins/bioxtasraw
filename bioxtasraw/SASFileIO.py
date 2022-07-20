@@ -2804,6 +2804,71 @@ def loadDamaverGlobalSummaryFile(filename):
 
     return representative_model, model_includes
 
+def loadDamaverFSCFile(filename):
+    """
+    Loads damaver fsc (resolution) file in ATSAS 3.1.1
+    """
+    res = ''
+    res_unit = ''
+    with open(filename, 'r') as f:
+        for line in f:
+            if 'resolution' in line.lower():
+                res = line.strip().split()[-1]
+                res_unit = line.split(':')[0].split()[-1].strip('[]')
+                break
+
+    return res, res_unit
+
+def loadDamaverClusterFiles(clust_files):
+    """
+    Loads damaver cluster files in ATSAS 3.1.1
+    """
+    cluster_tuple = collections.namedtuple('Clusters', ['num', 'rep_model',
+        'dev', 'included_models', 'discarded_models'])
+
+    cluster_list = []
+
+    clust_files.sort(key=lambda x: int(x.split('-')[-2].strip('cluster)')))
+
+
+
+    for clust in clust_files:
+        file_list = False
+        included_list = []
+        discarded_list = []
+        rep_model = ''
+
+        with open(clust, 'r') as f:
+            cluster_num = int(clust.split('-')[-2].strip('cluster'))
+
+            for line in f:
+                if line.lower().startswith('most representative:'):
+                    file_list = False
+
+                    data = line.split()
+                    rep_model = ' '.join(data[2:])
+
+                if file_list:
+                    if len(line) > 1:
+                        data = line.split()
+                        file_num = data[0]
+                        action = data[1]
+                        model_name = ' '.join(data[2:])
+
+                        if action.lower() == 'included':
+                            included_list.append(model_name)
+                        else:
+                            discarded_list.append(model_name)
+
+                if len(line) > 1 and (line.split()[0].lower() == 'file' and
+                    line.split()[1].lower() == 'action'):
+                    file_list = True
+
+        cluster_list.append(cluster_tuple(cluster_num, rep_model, None,
+            included_list, discarded_list))
+
+    return cluster_list
+
 def loadPDBFile(filename):
     """
     Read the PDB file,

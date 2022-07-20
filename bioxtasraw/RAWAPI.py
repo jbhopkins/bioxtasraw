@@ -42,6 +42,7 @@ import threading
 import queue
 import logging
 import time
+import glob
 
 import numpy as np
 
@@ -3722,6 +3723,13 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
         The uncertainty in the resolution.
     res_unit: str
         The unit of the resolution.
+    cluster_list: list
+        A list of clusters in the data. Each item in the list is a named tuple
+        with names num (cluster number), rep_model (representative model),
+        dev (deviation between clusters - not used), included models (models
+        included in the cluster average), and discarded models (models not included
+        in the cluster average). Only available in ATSAS >=3.1.1, otherwise returns
+        an empty list.
 
     """
     if atsas_dir is None:
@@ -3810,6 +3818,9 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
             res_err = float(res_err)
 
             model_data, rep_model = SASFileIO.loadDamsupLogFile(damsup_path)
+
+            cluster_list = []
+
         else:
             mean_nsd = -1
             stdev_nsd = -1
@@ -3818,20 +3829,38 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
             res = -1
             res_err = -1
             res_unit = ''
+            cluster_list = []
 
     else:
         if not abort_event.is_set():
             dist_path = os.path.join(datadir, prefix+'-distances.txt')
             summary_path = os.path.join(datadir, prefix+'-global-summary.txt')
+            res_path = os.path.join(datadir, prefix+'-global-fsc.dat')
+            clust_path = os.path.join(datadir, prefix+'-cluster*-summary.txt')
 
             mean_nsd, stdev_nsd, model_nsds = SASFileIO.loadDamaverDistancesFile(dist_path)
             rep_model, model_includes = SASFileIO.loadDamaverGlobalSummaryFile(summary_path)
 
+            if os.path.exists(res_path):
+                res, res_unit = SASFileIO.loadDamaverFSCFile(res_path)
+
+                res = float(res)
+
+            else:
+                res = -1
+                res_unit = ''
+
+            clust_files = glob.glob(clust_path)
+
+            if len(clust_files) > 0:
+                cluster_list = SASFileIO.loadDamaverClusterFiles(clust_files)
+            else:
+                cluster_list = []
+
+
             mean_nsd = float(mean_nsd)
             stdev_nsd = float(stdev_nsd)
-            res = -1
             res_err = -1
-            res_unit = ''
 
             result_dict = {}
 
@@ -3850,8 +3879,10 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
             res = -1
             res_err = -1
             res_unit = ''
+            cluster_list = []
 
-    return mean_nsd, stdev_nsd, rep_model, result_dict, res, res_err, res_unit
+    return (mean_nsd, stdev_nsd, rep_model, result_dict, res, res_err,
+        res_unit, cluster_list)
 
 def damclust(files, prefix, datadir, symmetry='P1', atsas_dir=None,
     abort_event=None, readback_queue=None):

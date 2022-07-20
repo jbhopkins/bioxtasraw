@@ -42,6 +42,7 @@ import collections
 import traceback
 import tempfile
 import shutil
+import glob
 
 import numpy as np
 import wx
@@ -5693,23 +5694,22 @@ class DammifRunPanel(wx.Panel):
 
         yes_to_all = False
         for key in dammif_names:
-            LogName = os.path.join(path, dammif_names[key]+'.log')
-            InName = os.path.join(path, dammif_names[key]+'.in')
-            FitName = os.path.join(path, dammif_names[key]+'.fit')
-            FirName = os.path.join(path, dammif_names[key]+'.fir')
-            EnvelopeName = os.path.join(path, dammif_names[key]+'-1' + self.model_ext)
-            SolventName = os.path.join(path, dammif_names[key]+'-0' + self.model_ext)
+            file_names = [
+                os.path.join(path, dammif_names[key]+'.log'),
+                os.path.join(path, dammif_names[key]+'.in'),
+                os.path.join(path, dammif_names[key]+'.fit'),
+                os.path.join(path, dammif_names[key]+'.fir'),
+                os.path.join(path, dammif_names[key]+'-1' + self.model_ext),
+                os.path.join(path, dammif_names[key]+'-0' + self.model_ext),
+                ]
 
-            if ((os.path.exists(LogName) or os.path.exists(InName)
-                or os.path.exists(FitName) or os.path.exists(FirName)
-                or os.path.exists(EnvelopeName) or os.path.exists(SolventName))
-                and not yes_to_all):
+            if any(map(os.path.exists, file_names)) and not yes_to_all:
                 button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
                 question = ('Warning: selected directory contains DAMMIF/N '
                     'output files with the prefix:\n"%s".\nRunning DAMMIF/N '
-                    'will overwrite these files.\nDo you wish to continue?'
+                    'will remove and replace these files.\nDo you wish to continue?'
                     %(dammif_names[key]))
-                label = 'Overwrite existing files?'
+                label = 'Remove and replace existing files?'
                 icon = wx.ART_WARNING
 
                 question_dialog = RAWCustomDialogs.CustomQuestionDialog(self,
@@ -5722,6 +5722,16 @@ class DammifRunPanel(wx.Panel):
                     return
                 elif result == wx.ID_YESTOALL:
                     yes_to_all = True
+
+                for fname in file_names:
+                    if os.path.exists(fname):
+                        os.remove(fname)
+
+            elif any(map(os.path.exists, file_names)) and yes_to_all:
+                for fname in file_names:
+                    if os.path.exists(fname):
+                        os.remove(fname)
+
 
         #Set up the various bits of information the threads will need. Set up the status windows.
         self.dammif_ids = {key: value for (key, value) in [(str(i), self.NewControlId()) for i in range(1, nruns+1)]}
@@ -5741,12 +5751,18 @@ class DammifRunPanel(wx.Panel):
                 and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
                 or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
                 damaver_names = [
-                    prefix+'-global-damfilt' + self.model_ext,
-                    prefix+'-global-damstart' + self.model_ext,
-                    prefix+'-global-damaver' + self.model_ext,
                     prefix+'-distances.txt',
-                    prefix+'-global-summary.txt',
                     ]
+
+                global_names = glob.glob(os.path.join(path, prefix+'-global*'))
+
+                for name in global_names:
+                    damaver_names.append(os.path.split(name)[1])
+
+                clust_names = glob.glob(os.path.join(path, prefix+'-cluster*'))
+
+                for name in clust_names:
+                    damaver_names.append(os.path.split(name)[1])
             else:
                 damaver_names = [
                     prefix+'_damfilt' + self.model_ext,
@@ -5765,7 +5781,9 @@ class DammifRunPanel(wx.Panel):
 
                 if os.path.exists(os.path.join(path, item)) and not yes_to_all:
                     button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO)]
-                    question = 'Warning: selected directory contains the DAMAVER output file\n"%s". Running DAMAVER will overwrite this file.\nDo you wish to continue?' %(item)
+                    question = ('Warning: selected directory contains the '
+                        'DAMAVER output file\n"%s". Running DAMAVER will '
+                        'remove and replace this file.\nDo you wish to continue?' %(item))
                     label = 'Overwrite existing files?'
                     icon = wx.ART_WARNING
 
@@ -5779,6 +5797,11 @@ class DammifRunPanel(wx.Panel):
                         return
                     elif result == wx.ID_YESTOALL:
                         yes_to_all = True
+
+                    os.remove(os.path.join(path, item))
+
+                elif os.path.exists(os.path.join(path, item)) and yes_to_all:
+                    os.remove(os.path.join(path, item))
 
             self.dammif_ids['damaver'] = self.NewControlId()
             text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['damaver'], '', style = wx.TE_MULTILINE | wx.TE_READONLY)
@@ -6559,20 +6582,7 @@ class DammifRunPanel(wx.Panel):
             if 'refine' in self.dammif_ids:
                 target_filenames.append('refine_{}-1{}'.format(prefix, self.model_ext))
 
-            if 'damclust' in self.dammif_ids:
-                name = '{}_damclust.log'.format(prefix)
-                filename = os.path.join(path, name)
-                cluster_list, distance_list = SASFileIO.loadDamclustLogFile(filename)
-
-                for cluster in cluster_list:
-                    if cluster.rep_model not in target_filenames:
-                        name, ext = os.path.splitext(cluster.rep_model)
-                        target_filenames.append(cluster.rep_model)
-                        target_filenames.append('{}-avr{}'.format(name, self.model_ext))
-                        target_filenames.append('{}-flt{}'.format(name, self.model_ext))
-
-            if ('damaver' not in self.dammif_ids and 'refine' not in self.dammif_ids
-                and 'damclust' not in self.dammif_ids):
+            if ('damaver' not in self.dammif_ids and 'refine' not in self.dammif_ids):
                 target_filenames.extend(['{}_{:02d}-1{}'.format(prefix, run, self.model_ext)
                     for run in range(1, nruns+1)])
 
@@ -7052,9 +7062,9 @@ class DammifResultsPanel(wx.Panel):
         res_ctrl = wx.TextCtrl(res_box, self.ids['res'], '',
             size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
 
-        reserr_text = wx.StaticText(res_box, wx.ID_ANY, '+/-')
-        reserr_ctrl = wx.TextCtrl(res_box, self.ids['resErr'], '',
-            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
+        # reserr_text = wx.StaticText(res_box, wx.ID_ANY, '+/-')
+        # reserr_ctrl = wx.TextCtrl(res_box, self.ids['resErr'], '',
+        #     size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
 
         resunit_ctrl = wx.TextCtrl(res_box, self.ids['resUnit'], '',
             size=self._FromDIP((100,-1)), style=wx.TE_READONLY)
@@ -7062,10 +7072,10 @@ class DammifResultsPanel(wx.Panel):
         self.res_sizer.Add(res_text, 0, wx.ALIGN_CENTER_VERTICAL)
         self.res_sizer.Add(res_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(2))
-        self.res_sizer.Add(reserr_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL,
-            border=self._FromDIP(2))
-        self.res_sizer.Add(reserr_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL,
-            border=self._FromDIP(2))
+        # self.res_sizer.Add(reserr_text, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL,
+        #     border=self._FromDIP(2))
+        # self.res_sizer.Add(reserr_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL,
+        #     border=self._FromDIP(2))
         self.res_sizer.Add(resunit_ctrl, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(4))
 
@@ -7246,14 +7256,12 @@ class DammifResultsPanel(wx.Panel):
 
         res_window = wx.FindWindowById(self.ids['res'], self)
         res_window.SetValue(res)
-        reserr_window = wx.FindWindowById(self.ids['resErr'], self)
-        reserr_window.SetValue(res_err)
+        # reserr_window = wx.FindWindowById(self.ids['resErr'], self)
+        # reserr_window.SetValue(res_err)
         unit_window = wx.FindWindowById(self.ids['resUnit'], self)
         unit_window.SetValue(res_unit)
 
-    def getClust(self, filename):
-        cluster_list, distance_list = SASFileIO.loadDamclustLogFile(filename)
-
+    def setClusters(self, cluster_list, distance_list):
         num_window = wx.FindWindowById(self.ids['clustNum'], self)
         num_window.SetValue(str(len(cluster_list)))
 
@@ -7263,6 +7271,14 @@ class DammifResultsPanel(wx.Panel):
             if cluster.dev == -1:
                 isolated = 'Y'
                 dev = ''
+            elif cluster.dev is None:
+                if len(cluster.included_models) + len(cluster.discarded_models) > 1:
+                    isolated = 'N'
+                else:
+                    isolated = 'Y'
+
+                dev = ''
+
             else:
                 isolated = 'N'
                 dev = str(cluster.dev)
@@ -7273,6 +7289,24 @@ class DammifResultsPanel(wx.Panel):
         dlist.DeleteAllItems()
         for dist_data in distance_list:
             dlist.Append(list(map(str, dist_data)))
+
+        hide_clust = False
+
+        if len(cluster_list) <= 1:
+            if len(cluster_list) == 1 and cluster_list[0].dev is None:
+                hide_clust = True
+            elif len(cluster_list) == 0:
+                hide_clust = True
+
+        if hide_clust:
+            self.topsizer.Hide(self.clust_sizer, recursive=True)
+        else:
+            self.topsizer.Show(self.clust_sizer, recursive=True)
+
+    def getClust(self, filename):
+        cluster_list, distance_list = SASFileIO.loadDamclustLogFile(filename)
+
+        self.setClusters(cluster_list, distance_list)
 
     def getModels(self, settings, result_dict, rep_model):
         while self.models.GetPageCount() > 1:
@@ -7391,9 +7425,29 @@ class DammifResultsPanel(wx.Panel):
                 settings['prefix']+'-distances.txt')
             summary_path = os.path.join(settings['path'],
                 settings['prefix']+'-global-summary.txt')
+            res_path = os.path.join(settings['path'],
+                settings['prefix']+'-global-fsc.dat')
+            clust_path = os.path.join(settings['path'],
+                settings['prefix']+'-cluster*-summary.txt')
+            clust_files = glob.glob(clust_path)
+
+            if os.path.exists(res_path):
+                res, res_unit = SASFileIO.loadDamaverFSCFile(res_path)
+                res_err = ''
+            else:
+                res = ''
+                res_err = ''
+                res_unit = ''
 
             mean_nsd, stdev_nsd, model_nsds = SASFileIO.loadDamaverDistancesFile(dist_path)
             rep_model, model_includes = SASFileIO.loadDamaverGlobalSummaryFile(summary_path)
+
+            if len(clust_files) > 0:
+                cluster_list = SASFileIO.loadDamaverClusterFiles(clust_files)
+            else:
+                cluster_list = []
+
+            self.setClusters(cluster_list, [])
 
             inc_val = 0
             result_dict = {}
@@ -7408,9 +7462,6 @@ class DammifResultsPanel(wx.Panel):
                 result_dict[model_name] = [inc, float(model_nsds[model_name])]
 
             total = len(result_dict)
-            res = ''
-            res_err = ''
-            res_unit = ''
 
         else:
             name = settings['prefix']+'_damsel.log'
@@ -7449,7 +7500,6 @@ class DammifResultsPanel(wx.Panel):
             rep_model = ''
 
         if settings['damclust'] and int(settings['runs']) > 1:
-            self.topsizer.Show(self.clust_sizer, recursive=True)
             name = settings['prefix']+'_damclust.log'
             filename = os.path.join(settings['path'],name)
             self.getClust(filename)
@@ -7501,9 +7551,9 @@ class DammifResultsPanel(wx.Panel):
 
         if self.topsizer.IsShown(self.res_sizer):
             res = wx.FindWindowById(self.ids['res']).GetValue()
-            res_err = wx.FindWindowById(self.ids['resErr']).GetValue()
+            # res_err = wx.FindWindowById(self.ids['resErr']).GetValue()
             res_unit = wx.FindWindowById(self.ids['resUnit']).GetValue()
-            res_data = [('Ensemble resolution:', res, '+/-', res_err, res_unit)]
+            res_data = [('Ensemble resolution:', res, res_unit)]
 
         if self.topsizer.IsShown(self.clust_sizer):
             clust_num = ('Number of clusters:', wx.FindWindowById(self.ids['clustNum']).GetValue())

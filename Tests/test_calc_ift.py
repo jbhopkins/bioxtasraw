@@ -123,7 +123,7 @@ def test_damaver(temp_directory):
             os.path.join(temp_directory, fname))
 
     (mean_nsd, stdev_nsd, rep_model, result_dict, res, res_err,
-        res_unit) = raw.damaver(fnames, 'damaver', temp_directory)
+        res_unit, cluster_list) = raw.damaver(fnames, 'damaver', temp_directory)
 
     assert np.allclose(mean_nsd, 0.443, rtol=1e-2)
 
@@ -136,8 +136,9 @@ def test_damaver(temp_directory):
         assert res_err == 0
     else:
         assert stdev_nsd == 0.03
-        assert res == -1
+        assert res == 18.5339
         assert res_err == -1
+        assert len(cluster_list) == 2
 
 @pytest.mark.atsas
 @pytest.mark.very_slow
