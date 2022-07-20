@@ -109,7 +109,7 @@ Create a bead model reconstruction
     mw_vals = []
     ev_vals = []
 
-    for i in range(5):
+    for i in range(3):
         chi_sq, rg, dmax, mw, ev = raw.dammif(gi_gnom_ift,
             'gi_{:02d}'.format(i+1), './api_results/gi_dammif', mode='Fast')
 
@@ -121,29 +121,23 @@ Create a bead model reconstruction
 
 
     #Average the bead model reconstructions
-    damaver_files = ['gi_{:02d}-1.pdb'.format(i+1) for i in range(5)]
+    damaver_files = ['gi_{:02d}-1.cif'.format(i+1) for i in range(3)]
 
     (mean_nsd, stdev_nsd, rep_model, result_dict, res, res_err,
-        res_unit) = raw.damaver(damaver_files, 'gi',
+        res_unit, cluster_list) = raw.damaver(damaver_files, 'gi',
         './api_results/gi_dammif')
-
-
-    #Cluster the bead model reconstructions
-    cluster_list, distance_list = raw.damclust(damaver_files, 'gi',
-        './api_results/gi_dammif')
-
 
     #Refine the bead model
     chi_sq, rg, dmax, mw, ev = raw.dammin(gi_gnom_ift, 'refine_gi',
-        './api_results/gi_dammif', 'Refine',
-        initial_dam='gi_damstart.pdb')
+        './api_results/gi_dammif', 'Fast',
+        initial_dam='gi-global-damstart.cif')
 
 
     #Align the refined bead model with a high resolution structure
     shutil.copy('./reconstruction_data/gi_complete/1XIB_4mer.pdb',
         './api_results/gi_dammif')
 
-    raw.supcomb('refine_gi-1.pdb', '1XIB_4mer.pdb', './api_results/gi_dammif')
+    raw.cifsup('refine_gi-1.cif', '1XIB_4mer.pdb', './api_results/gi_dammif')
 
 
 Create an electron density reconstruction
