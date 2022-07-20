@@ -573,11 +573,13 @@ class MainFrame(wx.Frame):
         imgctrl = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-control-of-level-filled-24.png')
         back = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-green-pointing-left-24.png')
         forward = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-green-pointing-right-24.png')
+        go_to = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-arrow_mod_go_to-24.png')
 
         self.hdrInfoIcon = SASUtils.load_DIP_image(hdrinfo, wx.BITMAP_TYPE_PNG)
         self.ImgSetIcon = SASUtils.load_DIP_image(imgctrl, wx.BITMAP_TYPE_PNG)
         self.prevImgIcon = SASUtils.load_DIP_image(back, wx.BITMAP_TYPE_PNG)
         self.nextImgIcon = SASUtils.load_DIP_image(forward, wx.BITMAP_TYPE_PNG)
+        self.goToIcon = SASUtils.load_DIP_image(go_to, wx.BITMAP_TYPE_PNG)
 
         #Centering panel icons
         up = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-up-32.png')
@@ -619,6 +621,7 @@ class MainFrame(wx.Frame):
 
             self.hdrInfoIcon.Replace(0,0,0,255,255,255)
             self.ImgSetIcon.Replace(0,0,0,255,255,255)
+            self.goToIcon.Replace(0,0,0,255,255,255)
 
             self.center_target_bmp.Replace(0,0,0,255,255,255)
         else:
@@ -637,6 +640,7 @@ class MainFrame(wx.Frame):
 
             self.hdrInfoIcon.Replace(255,255,255,0,0,0)
             self.ImgSetIcon.Replace(255,255,255,0,0,0)
+            self.goToIcon.Replace(255,255,255,0,0,0)
 
             self.center_target_bmp.Replace(255,255,255,0,0,0)
 
@@ -3539,6 +3543,7 @@ class MainWorkerThread(threading.Thread):
         self._commands = {'plot'                        : self._loadAndPlot,
                         'online_mode_update_data'       : self._onlineModeUpdate,
                         'show_nextprev_img'             : self._loadAndShowNextImage,
+                        'show_goto_img'                 : self._loadAndShowGoToImage,
                         'show_image'                    : self._loadAndShowImage,
                         'subtract_items'                : self._subtractItems,
                         'average_items'                 : self._averageItems,
@@ -4814,6 +4819,34 @@ class MainWorkerThread(threading.Thread):
                     break
             except Exception:
                 pass
+
+        wx.CallAfter(self.main_frame.closeBusyDialog)
+
+    def _loadAndShowGoToImage(self, data):
+
+        current_file = data[0]
+        fnum = data[1]
+
+        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading image...')
+
+        path = self.dir_panel.file_list_box.path
+
+        file_path = os.path.join(path, current_file)
+
+        try:
+            img, imghdr, num_frames = SASFileIO.loadImage(file_path,
+                self._raw_settings, next_image=fnum)
+
+            if img is not None:
+                parameters = {'filename' : os.path.split(file_path)[1],
+                              'imageHeader' : imghdr[-1]}
+
+                bogus_sasm = SASM.SASM([0,1], [0,1], [0,1], parameters)
+
+                self._sendImageToDisplay(img, bogus_sasm, fnum, num_frames)
+
+        except Exception:
+            pass
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
 

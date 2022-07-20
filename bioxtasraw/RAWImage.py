@@ -55,16 +55,20 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         self.parent = parent
         self.main_frame = wx.FindWindowByName('MainFrame')
 
-        self._MTB_HDRINFO   = self.NewControlId()
-        self._MTB_IMGSET    = self.NewControlId()
-        self._MTB_PREVIMG   = self.NewControlId()
-        self._MTB_NEXTIMG   = self.NewControlId()
+        self._MTB_HDRINFO = self.NewControlId()
+        self._MTB_IMGSET = self.NewControlId()
+        self._MTB_PREVIMG = self.NewControlId()
+        self._MTB_NEXTIMG = self.NewControlId()
+        self._MTB_GOTO = self.NewControlId()
 
 
-        self._tool_ids = {'hdrinfo' : self._MTB_HDRINFO,
-                               'imgset' : self._MTB_IMGSET,
-                               'previmg' : self._MTB_PREVIMG,
-                               'nextimg' : self._MTB_NEXTIMG}
+        self._tool_ids = {
+            'hdrinfo'   : self._MTB_HDRINFO,
+            'imgset'    : self._MTB_IMGSET,
+            'previmg'   : self._MTB_PREVIMG,
+            'nextimg'   : self._MTB_NEXTIMG,
+            'goto'      : self._MTB_GOTO,
+            }
 
         if (float(matplotlib.__version__.split('.')[0]) == 3 and
             float(matplotlib.__version__.split('.')[1]) >= 3 and
@@ -87,6 +91,8 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
                 shortHelp='Previous Image')
             self.AddTool(self._MTB_NEXTIMG, '', self._bitmaps['nextimg'], 
                 shortHelp='Next Image')
+            self.AddTool(self._MTB_GOTO, '', self._bitmaps['goto'],
+                shortHelp='Go To Image')
         else:
             self.AddSeparator()
             self.AddSimpleTool(self._MTB_HDRINFO, self._bitmaps['hdrinfo'], 
@@ -98,6 +104,8 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
                 'Previous Image')
             self.AddSimpleTool(self._MTB_NEXTIMG, self._bitmaps['nextimg'], 
                 'Next Image')
+            self.AddSimpleTool(self._MTB_GOTO, '', self._bitmaps['goto'],
+                'Go To Image')
 
 
         self.Bind(wx.EVT_TOOL, self.onHeaderInfoButton, id = self._MTB_HDRINFO)
@@ -105,6 +113,7 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
 
         self.Bind(wx.EVT_TOOL, self.onPreviousImgButton, id = self._MTB_PREVIMG)
         self.Bind(wx.EVT_TOOL, self.onNextImgButton, id = self._MTB_NEXTIMG)
+        self.Bind(wx.EVT_TOOL, self.onGoToImgButton, id = self._MTB_GOTO)
 
 
         self.Realize()
@@ -116,12 +125,14 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         ImgSetIcon = wx.Bitmap(self.main_frame.ImgSetIcon)
         prevImgIcon = wx.Bitmap(self.main_frame.prevImgIcon)
         nextImgIcon = wx.Bitmap(self.main_frame.nextImgIcon)
+        goToIcon = wx.Bitmap(self.main_frame.goToIcon)
 
         self._bitmaps = {
             'hdrinfo'   : hdrInfoIcon,
             'imgset'    : ImgSetIcon,
             'previmg'   : prevImgIcon,
             'nextimg'   : nextImgIcon,
+            'goto'      : goToIcon,
             }
 
     def getCurrentTool(self):
@@ -142,6 +153,22 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
             current_file = None
         RAWGlobals.mainworker_cmd_queue.put(['show_nextprev_img', [current_file,
             1, self.parent.current_index, self.parent.total_frames]])
+
+    def onGoToImgButton(self, event):
+        if self.parent.img is not None and self.parent.multi_image_file:
+            frame = wx.GetNumberFromUser("Select an image in the current multi-image file",
+                "Image #:", "Select Image", self.parent.current_index+1,
+                min=1, max=self.parent.total_frames, parent=self.parent)
+
+            if frame != -1:
+                try:
+                    current_file = self.parent.current_sasm.getParameter('filename')
+                except AttributeError:
+                    current_file = None
+
+                if current_file is not None:
+                    RAWGlobals.mainworker_cmd_queue.put(['show_goto_img', [current_file,
+                        frame-1]])
 
     def onImageSettingsButton(self, event):
         self.parent.showImageSetDialog()
@@ -282,6 +309,10 @@ class ImagePanel(wx.Panel):
         self.pyfai_cent_mode = False
         self.pyfai_ring_num = 0
 
+        self.multi_image_file = False
+        self.current_index = 0
+        self.total_frames = 1
+
         self.pyfai_color_cycle = ['y', 'c', 'g', 'b', 'k', 'w']
 
         self.plot_parameters = {'axesscale'         : 'linlin',
@@ -374,10 +405,6 @@ class ImagePanel(wx.Panel):
     def showImage(self, img, sasm, fnum=0, num_frames=1):
         ''' This function is the one that gets called when a new
         image is to be displayed '''
-
-        # print(len(img))
-        # print(len(sasm))
-        # print(fnum)
 
         if num_frames > 1:
             self.multi_image_file = True
