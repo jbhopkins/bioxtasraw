@@ -35,7 +35,7 @@ CIFSUP from the ATSAS suite can be used to align two PDB files. In this context,
 one model (the reference) is the high resolution structure while the other
 (the target) is the bead model reconstruction.
 
-#.  Open the CIFSUP window by selecting Tools->ATSAS->CIFSUP from the menu bar
+#.  Open the CIFSUP window by selecting Tools->ATSAS->Align (SUPCOMB/CIFSUP) from the menu bar
 
     |align_atsas_menu_png|
 
