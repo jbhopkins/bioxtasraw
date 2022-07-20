@@ -119,6 +119,7 @@ def test_dammin_interative(gi_gnom_ift, temp_directory):
     assert os.path.exists(os.path.join(temp_directory, 'dammin_inter.fit'))
     assert os.path.exists(os.path.join(temp_directory, 'dammin_inter.fir'))
 
+@pytest.mark.new
 @pytest.mark.atsas
 @pytest.mark.slow
 def test_damaver(temp_directory):
@@ -142,7 +143,7 @@ def test_damaver(temp_directory):
         assert res_err == 0
     else:
         assert stdev_nsd == 0.03
-        assert res == 18.5339
+        assert round(res, 2) == 18.53
         assert res_err == -1
         assert len(cluster_list) == 2
 
