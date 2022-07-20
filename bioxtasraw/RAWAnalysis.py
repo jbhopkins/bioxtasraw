@@ -382,7 +382,7 @@ class GuinierPlotPanel(wx.Panel):
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
 
-        SASUtils.update_mpl_style()
+        color = SASUtils.update_mpl_style()
 
         self.fig = Figure((5,4), 75)
 
@@ -417,7 +417,7 @@ class GuinierPlotPanel(wx.Panel):
         self.fig.subplots_adjust(left = 0.15, bottom = 0.08, right = 0.95, top = 0.95, hspace = 0.3)
         # self.fig.set_facecolor('white')
 
-        self.subplots['Residual'].axhline(0, color='k', linewidth=1.0)
+        self.subplots['Residual'].axhline(0, color=color, linewidth=1.0)
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
         # self.canvas.SetBackgroundColour('white')
