@@ -171,9 +171,11 @@ The P(r) function goes to zero at :math:`\mathbf{r=0}` and :math:`\mathbf{r=D_{m
 ****************************************************************************************
 
 The reason for this criterion is straightforward. The P(r) function
-should go to zero at r=0 because it is the r\ :sup:`2` weighted number
-of electron pairs in the macromolecule. As r goes to zero, so does r\ :sup:`2`,
-and thus so must P(r). The P(r) function should go to zero at :math:`r=D_{max}`
+should go to zero at r=0 because it is the number of electron pairs in the
+macromolecule. As r decreases, the number of electron pairs
+decreases until you reach an r smaller than the size of an electron,
+at which point there are no pairs left and thus P(r) must go to zero at
+:math:`r=0`. The P(r) function should go to zero at :math:`r=D_{max}`
 because |Dmax| is the maximum dimension of the particle. Beyond that distance
 there should be no electron pairs in the particle. This criterion is usually
 enforced by conditions in the IFT calculation.
