@@ -2471,8 +2471,8 @@ def run_ambimeter_from_ift(ift, atsas_dir, qRg_max=4, save_models='none',
 
     return score, categories, evaluation
 
-def run_crysol(fnames, path, atsasDir, exp_fnames=None, lm=20,
-    fb=17, ns=101, smax=0.5, units=None, dns=0.334, dro=0.03, constant='no',
+def run_crysol(fnames, path, atsasDir, exp_fnames=None, prefix=None, lm=20,
+    fb=17, ns=101, smax=0.5, units=None, dns=0.334, dro=0.03, constant=False,
     fit_solvent=True, energy=None, shell='directional', explicit_hydrogen=False,
     implicit_hydrogen=None, sub_element=None, model=None, chain=None,
     alternative_names=False):
@@ -2490,40 +2490,45 @@ def run_crysol(fnames, path, atsasDir, exp_fnames=None, lm=20,
         my_env = setATSASEnv(atsasDir)
 
         cmd = ('"{}" --lm={} --fb={} --ns={} --smax={} --dns={} --dro={} '
-                '--shell={} --constant={}'.format(crysolDir, lm, fb, ns, smax,
-                dns, dro, shell, constant))
+                '--shell={} '.format(crysolDir, lm, fb, ns, smax, dns, dro, shell))
+
+        if constant:
+            cmd += ' --constant'
 
         if units is not None:
-            cmd = cmd + ' --units={}'.format(units)
+            cmd += ' --units={}'.format(units)
 
         if not fit_solvent:
-            cmd = cmd + ' --skip-minimization'
+            cmd += ' --skip-minimization'
 
         if explicit_hydrogen:
-            cmd = cmd + ' --explicit-hydrogens'
+            cmd += ' --explicit-hydrogens'
 
         if energy is not None:
-            cmd = cmd + ' --energy={}'.format(energy)
+            cmd += ' --energy={}'.format(energy)
 
         if implicit_hydrogen is not None:
-            cmd = cmd + ' --implicit-hydrogen={}'.format(implicit_hydrogen)
+            cmd += ' --implicit-hydrogen={}'.format(implicit_hydrogen)
 
         if sub_element is not None:
-            cmd = cmd + ' --sub-element={}'.format(sub_element)
+            cmd += ' --sub-element={}'.format(sub_element)
 
         if model is not None:
-            cmd = cmd + ' --model={}'.format(model)
+            cmd += ' --model={}'.format(model)
 
         if model is not None:
-            cmd = cmd + ' --chain={}'.format(chain)
+            cmd += ' --chain={}'.format(chain)
 
         if alternative_names:
-            cmd = cmd + ' --alternative-names'
+            cmd += ' --alternative-names'
 
-        cmd = cmd + ' '.join(fnames)
+        if prefix is not None:
+            cmd += ' -p "{}"'.format(prefix)
+
+        cmd += '"' + '" "'.join(fnames) + '"'
 
         if exp_fnames is not None:
-            cmd = cmd + ' '.join(exp_fnames)
+            cmd += '"' + '"" "'.join(exp_fnames) + '"'
 
         process=subprocess.Popen(cmd, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, shell=True, cwd=path, env=my_env)
@@ -2539,29 +2544,43 @@ def run_crysol(fnames, path, atsasDir, exp_fnames=None, lm=20,
         error = error.strip()
 
         if error != '':
-            raise SASExceptions.NoATSASError('Error running datclass.')
+            raise SASExceptions.NoATSASError('Error running crysol:\n{}'.format(error))
 
-        ret_values = ()
 
-        if output != '':
-            shape, mw, dmax, _ = output.split()
+        if exp_fnames is not None:
+            crysol_results = []
+            if prefix:
+                data, fit = SASFileIO.loadFitFile(os.path.join(path,
+                    '{}.fit'.format(prefix)))
 
-            shape=shape.strip()
-            try:
-                mw = float(mw.strip())/1000.
-            except ValueError:
-                mw = -1
-            try:
-                dmax = float(dmax.strip())
-            except ValueError:
-                dmax = -1
+                crysol_results.append(fit)
 
-            ret_values = (shape, mw, dmax)
+            else:
+                for name in exp_names:
+                    for fname in fnames:
+                        data, fit = SASFileIO.loadFitFile(os.path.join(path,
+                            '{}_{}.fit'.format(os.path.splitext(fname)[0],
+                                os.path.splitext(name)[0])))
 
-        return ret_values
+                        crysol_results.append(fit)
+        else:
+            if prefix:
+                fit = SASFileIO.loadFitFile(os.path.join(path,
+                    '{}.int'.format(prefix)))
+
+                crysol_results.append(fit)
+
+            else:
+                for fname in fnames:
+                    fit = SASFileIO.loadIntFile(os.path.join(path,
+                        '{}.int'.format(os.path.splitext(fname))))
+
+                    crysol_results.append(fit)
+
+        return crysol_results
 
     else:
-        raise SASExceptions.NoATSASError('Cannot find datclass.')
+        raise SASExceptions.NoATSASError('Cannot find crysol.')
 
 
 def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,

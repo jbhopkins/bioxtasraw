@@ -1612,6 +1612,9 @@ def test_load_crysol_int():
     assert len(profile.getI()) == 51
     assert len(profile.getErr()) == 51
     assert profile.getI().sum() == 2522896411.0
+    assert profile.getParameter('counters')['Rg'] == 33.04
+    assert profile.getParameter('counters')['Hydration_shell_contrast'] == 0.03
+    assert profile.getParameter('counters')['Excluded_volume'] == 194335
 
 def test_load_crysol_fit():
     filenames = [os.path.join('.', 'data', 'crysol.fit')]
@@ -1630,6 +1633,10 @@ def test_load_crysol_fit():
     assert len(data.getI()) == 409
     assert len(data.getErr()) == 409
     assert data.getI().sum() == 150.841626209
+    assert data.getParameter('counters')['Rg'] == 32.92
+    assert data.getParameter('counters')['Hydration_shell_contrast'] == 0.052
+    assert data.getParameter('counters')['Excluded_volume'] == 93680
+    assert data.getParameter('counters')['Chi_squared'] == 1.468
 
     assert fit.getQ()[0] == 0
     assert fit.getQ()[-1] == 0.240054
@@ -1641,6 +1648,61 @@ def test_load_crysol_fit():
     assert len(fit.getI()) == 409
     assert len(fit.getErr()) == 409
     assert fit.getI().sum() == 160.75817242999997
+
+def test_load_crysol_int_new():
+    """ATSAS 3.1.1 crysol output"""
+    filenames = [os.path.join('.', 'data', 'crysol_new.int')]
+
+    profile = raw.load_profiles(filenames)[0]
+
+    assert profile.getQ()[0] == 0
+    assert profile.getQ()[-1] == 0.5
+    assert profile.getI()[0] == 0.489032E+09
+    assert profile.getI()[-1] == 245333.
+    assert profile.getErr()[0] == np.sqrt(0.489032E+09)
+    assert profile.getErr()[-1] == np.sqrt(245333.)
+    assert len(profile.getQ()) == 101
+    assert len(profile.getI()) == 101
+    assert len(profile.getErr()) == 101
+    assert profile.getI().sum() == 4664787255.0
+    assert profile.getParameter('counters')['Rg'] == 33.22
+    assert profile.getParameter('counters')['Hydration_shell_contrast'] == 0.03
+    assert profile.getParameter('counters')['Excluded_volume'] == 213838
+
+def test_load_crysol_fit_new():
+    """ATSAS 3.1.1 crysol output"""
+    filenames = [os.path.join('.', 'data', 'crysol_new.fit')]
+
+    profiles = raw.load_profiles(filenames)
+    data = profiles[0]
+    fit = profiles[1]
+
+    assert data.getQ()[0] == 1.009673e-02
+    assert data.getQ()[-1] == 2.829968e-01
+    assert data.getI()[0] == 5.853254e-02
+    assert data.getI()[-1] == 6.455406e-04
+    assert data.getErr()[0] == 1.598555e-03
+    assert data.getErr()[-1] == 5.141176e-04
+    assert len(data.getQ()) == 474
+    assert len(data.getI()) == 474
+    assert len(data.getErr()) == 474
+    assert data.getI().sum() == 3.7220911851
+    assert data.getParameter('counters')['Rg'] == 33.22
+    assert data.getParameter('counters')['Hydration_shell_contrast'] == 0.019
+    assert data.getParameter('counters')['Excluded_volume'] == 213838
+    assert data.getParameter('counters')['Chi_squared'] == 1.089
+
+    assert fit.getQ()[0] == 1.009673e-02
+    assert fit.getQ()[-1] == 2.829968e-01
+    assert fit.getI()[0] == 5.860733e-02
+    assert fit.getI()[-1] == 3.854805e-05
+    assert fit.getErr()[0] == 1.598555e-03
+    assert fit.getErr()[-1] == 5.141176e-04
+    assert len(fit.getQ()) == 474
+    assert len(fit.getI()) == 474
+    assert len(fit.getErr()) == 474
+    assert fit.getI().sum() == 3.7260993174399997
+
 
 def test_load_foxs_dat():
     filenames = [os.path.join('.', 'data', 'foxs.dat')]
@@ -1723,23 +1785,23 @@ def test_load_dammif_fit():
     fit1 = profiles[0]
     fit2 = profiles[1]
 
-    assert fit1.getQ()[0] == 0.0005609
+    assert fit1.getQ()[0] == 0
     assert fit1.getQ()[-1] == 0.2374
-    assert fit1.getI()[0] == 0.0612
+    assert fit1.getI()[0] == 0.6117E-01
     assert fit1.getI()[-1] == 1.18e-7
-    assert len(fit1.getQ()) == 412
-    assert len(fit1.getI()) == 412
-    assert len(fit1.getErr()) == 412
-    assert fit1.getI().sum() == 4.741580228799999
+    assert len(fit1.getQ()) == 413
+    assert len(fit1.getI()) == 413
+    assert len(fit1.getErr()) == 413
+    assert fit1.getI().sum() == 4.8027502288
 
-    assert fit2.getQ()[0] == 0.0005609
+    assert fit2.getQ()[0] == 0
     assert fit2.getQ()[-1] == 0.2374
-    assert fit2.getI()[0] == 0.06119
+    assert fit2.getI()[0] == 0.6116E-01
     assert fit2.getI()[-1] == 1.945e-5
-    assert len(fit2.getQ()) == 412
-    assert len(fit2.getI()) == 412
-    assert len(fit2.getErr()) == 412
-    assert fit2.getI().sum() == 4.7433277
+    assert len(fit2.getQ()) == 413
+    assert len(fit2.getI()) == 413
+    assert len(fit2.getErr()) == 413
+    assert fit2.getI().sum() == 4.804487699999999
 
 def test_load_waxsis_dat():
     filenames = [os.path.join('.', 'data', 'waxsis.dat')]
@@ -1772,6 +1834,70 @@ def test_load_csv_dat():
     assert profile.getErr()[0] == 1.59855527E-03
     assert profile.getErr()[-1] == 5.14117602E-04
     assert profile.getI().sum() == 3.7220912003
+
+def test_load_csv_3col():
+    filenames = [os.path.join('.', 'data', 'csv_3col.csv')]
+
+    profile = raw.load_profiles(filenames)[0]
+
+    assert profile.getQ()[0] == 1.00967275E-02
+    assert profile.getQ()[-1] == 2.82996847E-01
+    assert profile.getI()[0] == 5.85325362E-02
+    assert profile.getI()[-1] == 6.45540600E-04
+    assert profile.getErr()[0] == 1.59855527E-03
+    assert profile.getErr()[-1] == 5.14117602E-04
+    assert profile.getI().sum() == 3.7220912003
+    assert len(profile.getQ()) == 474
+    assert len(profile.getI()) == 474
+    assert len(profile.getErr()) == 474
+
+def test_load_csv_2col():
+    filenames = [os.path.join('.', 'data', 'csv_2col.csv')]
+
+    profile = raw.load_profiles(filenames)[0]
+
+    assert profile.getQ()[0] == 1.00967275E-02
+    assert profile.getQ()[-1] == 2.82996847E-01
+    assert profile.getI()[0] == 5.85325362E-02
+    assert profile.getI()[-1] == 6.45540600E-04
+    assert profile.getErr()[0] == np.sqrt(5.85325362E-02)
+    assert profile.getErr()[-1] == np.sqrt(6.45540600E-04)
+    assert profile.getI().sum() == 3.7220912003
+    assert len(profile.getQ()) == 474
+    assert len(profile.getI()) == 474
+    assert len(profile.getErr()) == 474
+
+def test_load_tab_3col():
+    filenames = [os.path.join('.', 'data', 'tab_3col.txt')]
+
+    profile = raw.load_profiles(filenames)[0]
+
+    assert profile.getQ()[0] == 1.00967275E-02
+    assert profile.getQ()[-1] == 2.82996847E-01
+    assert profile.getI()[0] == 5.85325362E-02
+    assert profile.getI()[-1] == 6.45540600E-04
+    assert profile.getErr()[0] == 1.59855527E-03
+    assert profile.getErr()[-1] == 5.14117602E-04
+    assert profile.getI().sum() == 3.7220912003
+    assert len(profile.getQ()) == 474
+    assert len(profile.getI()) == 474
+    assert len(profile.getErr()) == 474
+
+def test_load_tab_2col():
+    filenames = [os.path.join('.', 'data', 'tab_2col.txt')]
+
+    profile = raw.load_profiles(filenames)[0]
+
+    assert profile.getQ()[0] == 1.00967275E-02
+    assert profile.getQ()[-1] == 2.82996847E-01
+    assert profile.getI()[0] == 5.85325362E-02
+    assert profile.getI()[-1] == 6.45540600E-04
+    assert profile.getErr()[0] == np.sqrt(5.85325362E-02)
+    assert profile.getErr()[-1] == np.sqrt(6.45540600E-04)
+    assert profile.getI().sum() == 3.7220912003
+    assert len(profile.getQ()) == 474
+    assert len(profile.getI()) == 474
+    assert len(profile.getErr()) == 474
 
 def test_load_counter_values(old_settings):
     filenames = [os.path.join('.', 'data', 'GI2_A9_19_001_0000.tiff')]

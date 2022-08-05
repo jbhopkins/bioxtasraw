@@ -1211,18 +1211,36 @@ def postProcessProfile(sasm, raw_settings, no_processing):
         except SASExceptions.AbsScaleNormFailed:
             raise
 
+# Define regular expressions for ascii files
+start_match = '\s*'
+end_match = '\s*$'
+num_match = '[\+-]?\d+\.?\d*[+eE-]*\d*'
+sep_match = '\s*[\s,]\s*'
+alt_sep_match = '\s*[\s,]?\s*'
+
+two_col_fit = re.compile(start_match + (num_match+sep_match)*1 + num_match + end_match)
+i_q_match = re.compile(start_match + (num_match+sep_match)*1 + num_match + alt_sep_match)
+three_col_fit = re.compile(start_match + (num_match+sep_match)*2 + num_match + end_match)
+i_q_err_match = re.compile(start_match + (num_match+sep_match)*2 + num_match + alt_sep_match)
+four_col_fit = re.compile(start_match + (num_match+sep_match)*3 + num_match + end_match)
+five_col_fit = re.compile(start_match + (num_match+sep_match)*4 + num_match + end_match)
+seven_col_fit = re.compile(start_match + (num_match+sep_match)*6 + num_match + end_match)
+
+
 def loadAsciiFile(filename, file_type):
-    ascii_formats = {'rad'        : loadRadFile,
-                     'new_rad'    : loadNewRadFile,
-                     'primus'     : loadDatFile,
+    ascii_formats = {'rad'          : loadRadFile,
+                     'new_rad'      : loadNewRadFile,
+                     'primus'       : loadDatFile,
                      # 'bift'       : loadBiftFile, #'ift' is used instead
-                     '2col'       : load2ColFile,
-                     'int'        : loadIntFile,
-                     'fit'        : loadFitFile,
-                     'fir'        : loadFitFile,
-                     'ift'        : loadIftFile,
-                     'csv'        : loadCsvFile,
-                     'out'        : loadOutFile}
+                     'int'          : loadIntFile,
+                     'abs'          : loadIntFile,
+                     'fit'          : loadFitFile,
+                     'fir'          : loadFitFile,
+                     'ift'          : loadIftFile,
+                     'csv'          : loadTxtFile,
+                     'out'          : loadOutFile,
+                     'txt'          : loadTxtFile,
+                     }
 
     if file_type is None:
         return None
@@ -1244,7 +1262,7 @@ def loadAsciiFile(filename, file_type):
             sasm = ascii_formats['primus'](filename)
 
     if file_type == 'primus' and sasm is None:
-        sasm = ascii_formats['2col'](filename)
+        sasm = ascii_formats['txt'](filename)
 
     if sasm is not None and not isinstance(sasm, list):
         sasm.setParameter('filename', os.path.split(filename)[1])
@@ -1730,10 +1748,6 @@ def loadOutFile(filename):
     return [iftm]
 
 def parse_out_file(lines):
-    five_col_fit = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
-    three_col_fit = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
-    two_col_fit = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
-
     results_fit = re.compile('\s*Current\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s*\d*[.]?\d*[+eE-]*\d*\s*$')
 
     te_fit = re.compile('\s*Total\s+[Ee]stimate\s*:\s+\d*[.]\d+\s*\(?[A-Za-z\s]+\)?\s*$')
@@ -2441,9 +2455,9 @@ def makeSeriesFile(secm_data, settings):
 
 def loadIftFile(filename):
     #Loads RAW BIFT .ift files into IFTM objects
-    iq_pattern = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
-    pr_pattern = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
-    extrap_pattern = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
+    iq_pattern = four_col_fit
+    pr_pattern = three_col_fit
+    extrap_pattern = two_col_fit
 
     r = []
     p = []
@@ -2538,11 +2552,6 @@ def loadIftFile(filename):
 
 
 def loadFitFile(filename):
-
-    iq_pattern = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
-    three_col_fit = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
-    five_col_fit = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*$')
-
     i = []
     q = []
     err = []
@@ -2553,14 +2562,13 @@ def loadFitFile(filename):
         firstLine = f.readline()
 
         three_col_match = three_col_fit.match(firstLine)
-        if three_col_match:
+        four_col_match = four_col_fit.match(firstLine)
+        five_col_match = five_col_fit.match(firstLine)
+        if three_col_match or four_col_match or five_col_match:
             fileHeader = {}
-        else:
-            fileHeader = {'comment':firstLine}
-            if 'Chi^2' in firstLine:
-                chisq = firstLine.split('Chi^2')[-1].strip('= ').strip()
-                fileHeader['Chi_squared'] = chisq
 
+        else:
+            fileHeader = _parse_header_line(firstLine)
 
         if "Experimental" in firstLine:
             sasref = True      #SASREFMX Fit file (Damn those hamburg boys and their 50 different formats!)
@@ -2575,55 +2583,18 @@ def loadFitFile(filename):
         fit_parameters = {'filename'  : os.path.split(path_noext)[1] + '_FIT',
                           'counters' : {}}
 
+        if len(fileHeader) == 0:
+            q, i, err, fit = _match_fit_lines(firstLine, q, i, err, fit, sasref)
+
         for line in f:
-
-            three_col_match = three_col_fit.match(line)
-            five_col_match = five_col_fit.match(line)
-
-            if three_col_match:
-                iq_match = three_col_fit.match(line)
-
-                if iq_match:
-
-                    if not sasref:
-                        found = iq_match.group().split()
-                        q.append(float(found[0]))
-                        i.append(float(found[1]))
-                        fit.append(float(found[2]))
-
-                        err = np.ones(len(i))
-                    else: #SASREF fit file
-                        found = line.split()
-                        q.append(float(found[0]))
-                        i.append(float(found[1]))
-                        fit.append(float(found[3]))
-                        err.append(float(found[2]))
-
-            elif five_col_match:
-                #iq_match = five_col_fit.match(line)
-                found = line.split()
-                q.append(float(found[0]))
-                i.append(float(found[1]))
-                fit.append(float(found[2]))
-                err.append(float(found[3]))
-
-            else:
-
-                iq_match = iq_pattern.match(line)
-
-                if iq_match:
-                    found = iq_match.group().split()
-                    q.append(float(found[0]))
-                    i.append(float(found[1]))
-                    err.append(float(found[2]))
-                    fit.append(float(found[3]))
+            q, i, err, fit = _match_fit_lines(line, q, i, err, fit, sasref)
 
 
     if len(i) == 0:
         raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
 
-    i = np.array(i)
     q = np.array(q)
+    i = np.array(i)
     err = np.array(err)
     fit = np.array(fit)
 
@@ -2633,6 +2604,50 @@ def loadFitFile(filename):
     sasm = SASM.SASM(i, q, err, parameters)
 
     return [sasm, fit_sasm]
+
+def _match_fit_lines(line, q, i, err, fit, sasref):
+    three_col_match = three_col_fit.match(line)
+    five_col_match = five_col_fit.match(line)
+
+    if three_col_match:
+        iq_match = three_col_fit.match(line)
+
+        if iq_match:
+
+            if not sasref:
+                found = iq_match.group().split()
+                q.append(float(found[0]))
+                i.append(float(found[1]))
+                fit.append(float(found[2]))
+
+                err = np.ones(len(i))
+            else: #SASREF fit file
+                found = line.split()
+                q.append(float(found[0]))
+                i.append(float(found[1]))
+                fit.append(float(found[3]))
+                err.append(float(found[2]))
+
+    elif five_col_match:
+        #iq_match = five_col_fit.match(line)
+        found = line.split()
+        q.append(float(found[0]))
+        i.append(float(found[1]))
+        fit.append(float(found[2]))
+        err.append(float(found[3]))
+
+    else:
+
+        iq_match = four_col_fit.match(line)
+
+        if iq_match:
+            found = iq_match.group().split()
+            q.append(float(found[0]))
+            i.append(float(found[1]))
+            err.append(float(found[2]))
+            fit.append(float(found[3]))
+
+    return q, i, err, fit
 
 def loadDamselLogFile(filename):
     """Loads data from a damsel log file"""
@@ -2975,7 +2990,7 @@ def loadDatFile(filename):
     return sasm
 
 def makeDatFile(lines, filename):
-    iq_pattern = re.compile('\s*-?\d*\.?\d*[+eE-]*\d+\s*[\s,]\s*-?\d*\.?\d*[+eE-]*\d+\s*[\s,]\s*-?\d*\.?\d*[+eE-]*\d+\s*')
+    iq_pattern = i_q_err_match
 
     i = []
     q = []
@@ -3116,7 +3131,7 @@ def loadRadFile(filename):
     ''' NOTE : THIS IS THE OLD RAD FORMAT..     '''
     ''' Loads a .rad file into a SASM object and attaches the filename and header into the parameters  '''
 
-    iq_pattern = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*\n')
+    iq_pattern = four_col_fit
     param_pattern = re.compile('[a-zA-Z0-9_]*\s*[:]\s+.*')
 
     i = []
@@ -3181,7 +3196,7 @@ def loadNewRadFile(filename):
     ''' NOTE : This is a load function for the new rad format '''
     ''' Loads a .rad file into a SASM object and attaches the filename and header into the parameters  '''
 
-    iq_pattern = re.compile('\s*-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s+-?\d*[.]\d*[+eE-]*\d+\s*\n')
+    iq_pattern = three_col_fit
     param_pattern = re.compile('[a-zA-Z0-9_]*\s*[:]\s+.*')
 
     i = []
@@ -3243,22 +3258,32 @@ def loadNewRadFile(filename):
 
 
 def loadIntFile(filename):
-    ''' Loads a simulated SAXS data curve .int file '''
+    ''' Loads a simulated SAXS data curve .int or .abs file '''
+    fit_list = [two_col_fit, three_col_fit, four_col_fit, five_col_fit, seven_col_fit]
 
     i = []
     q = []
     err = []
-    parameters = {'filename' : os.path.split(filename)[1]}
 
     with open(filename, 'rU') as f:
-        all_lines = f.readlines()
 
-    for each_line in all_lines:
-        split_line = each_line.split()
+        firstLine = f.readline()
 
-        if len(split_line) == 5 or len(split_line) == 7:
-            q.append(float(split_line[0]))
-            i.append(float(split_line[1]))
+        match = [fit.match(firstLine) for fit in fit_list]
+
+        if any(match):
+            fileHeader = {}
+        else:
+            fileHeader = _parse_header_line(firstLine)
+
+        parameters = {'filename' : os.path.split(filename)[1],
+                      'counters' : fileHeader}
+
+        if len(fileHeader) == 0:
+            q, i = _match_int_lines(firstLine, q, i, fit_list)
+
+        for line in f:
+            q, i = _match_int_lines(line, q, i, fit_list)
 
     i = np.array(i)
     q = np.array(q)
@@ -3266,98 +3291,120 @@ def loadIntFile(filename):
 
     return SASM.SASM(i, q, err, parameters)
 
+def _match_int_lines(line, q, i, fit_list):
+    for fit in fit_list:
+        match = fit.match(line)
 
-def loadCsvFile(filename):
-    ''' Loads a comma separated file, ignores everything except a three column line'''
+        if match:
+            data = match.group().split()
+            q.append(float(data[0]))
+            i.append(float(data[1]))
+            break
 
+    return q, i
 
-    iq_pattern = re.compile('\s*-?\d*[.]?\d*[+eE-]*\d+[,]\s*-?\d*[.]?\d*[+eE-]*\d+[,]\s*-?\d*[.]?\d*[+eE-]*\d*\s*')
-    param_pattern = re.compile('[a-zA-Z0-9_]*\s*[=].*')
+def _parse_header_line(firstLine):
+    fileHeader = {'comment':firstLine}
+    firstline_l = firstLine.lower()
+    if 'chi^2' in firstline_l:
+        chisq = firstline_l.split('chi^2')[-1].strip(':= ').split()[0].strip()
+        fileHeader['Chi_squared'] = float(chisq)
 
-    i = []
-    q = []
-    err = []
+    if 'rg' in firstline_l:
+        rg = firstline_l.split('rg')[-1].strip('t:= ').split()[0].strip()
+        fileHeader['Rg'] = float(rg)
 
-    fileheader = {}
+    if 'dro' in firstline_l:
+        dro = firstline_l.split('dro')[-1].strip(':= ').split()[0].strip()
+        fileHeader['Hydration_shell_contrast'] = float(dro)
 
-    with open(filename, 'rU') as f:
+    if 'vol' in firstline_l:
+        vol = firstline_l.split('vol')[-1].strip(':= ').split()[0].strip()
+        fileHeader['Excluded_volume'] = float(vol)
 
-        for line in f:
+    if 'vtot' in firstline_l:
+        vol = firstline_l.split('vtot')[-1].strip(':= ').split()[0].strip()
+        fileHeader['Excluded_volume'] = float(vol)
 
-            iq_match = iq_pattern.match(line)
-            param_match = param_pattern.match(line)
+    return fileHeader
 
-            if iq_match:
-                found = iq_match.group().split(',')
-
-                q.append(float(found[0].rstrip('\r\n')))
-
-                i.append(float(found[1].rstrip('\r\n')))
-
-                err.append(float(found[2].rstrip('\r\n')))
-
-            elif param_match:
-                found = param_match.group().split('=')
-
-                if len(found) == 2:
-                    try:
-                        val = float(found[1].rstrip('\r\n'))
-                    except ValueError:
-                        val = found[1].rstrip('\r\n')
-
-                    fileheader[found[0]] = val
-
-
-    parameters = {'filename' : os.path.split(filename)[1],
-                  'counters' : fileheader}
-
-    return SASM.SASM(i, q, err, parameters)
-
-
-
-def load2ColFile(filename):
-    ''' Loads a two column file (q I) separated by whitespaces '''
-
-    iq_pattern = re.compile('\s*-?\d*[.]\d*\s+-?\d*[.]\d*.*\n')
-    param_pattern = re.compile('[a-zA-Z0-9_]*\s*[=].*')
+def loadTxtFile(filename):
+    ''' Loads a generic two or three column text file with space, tab, or comma separated values'''
+    fit_list = [three_col_fit, i_q_err_match, two_col_fit, i_q_match]
 
     i = []
     q = []
     err = []
-    fileheader = {}
 
     with open(filename, 'rU') as f:
 
+        firstLine = f.readline()
+
+        match = [fit.match(firstLine) for fit in fit_list]
+
+        if any(match):
+            fileHeader = {}
+        else:
+            fileHeader = {'comment':firstLine}
+            firstline_l = firstLine.lower()
+            if 'chi^2' in firstline_l:
+                chisq = firstline_l.split('chi^2')[-1].strip(':= ').split()[0].strip()
+                fileHeader['Chi_squared'] = float(chisq)
+
+            if 'rg' in firstline_l:
+                rg = firstline_l.split('rg')[-1].strip('t:= ').split()[0].strip()
+                fileHeader['Rg'] = float(rg)
+
+            if 'dro' in firstline_l:
+                dro = firstline_l.split('dro')[-1].strip(':= ').split()[0].strip()
+                fileHeader['Hydration_shell_contrast'] = float(dro)
+
+            if 'vol' in firstline_l:
+                vol = firstline_l.split('vol')[-1].strip(':= ').split()[0].strip()
+                fileHeader['Excluded_volume'] = float(vol)
+
+        parameters = {'filename' : os.path.split(filename)[1],
+                      'counters' : fileHeader}
+
+        if len(fileHeader) == 0:
+            q, i, err = _match_txt_lines(firstLine, q, i, err, fit_list)
+
         for line in f:
-            iq_match = iq_pattern.match(line)
-            param_match = param_pattern.match(line)
-
-            if iq_match:
-                found = iq_match.group().split()
-                q.append(float(found[0]))
-                i.append(float(found[1]))
-
-            elif param_match:
-                found = param_match.group().split('=')
-
-                if len(found) == 2:
-                    try:
-                        val = float(found[1].rstrip('\r\n'))
-                    except ValueError:
-                        val = found[1].rstrip('\r\n')
-
-                    fileheader[found[0]] = val
-#
+            q, i, err = _match_txt_lines(line, q, i, err, fit_list)
 
     i = np.array(i)
     q = np.array(q)
-    err = np.sqrt(abs(i))
 
-    parameters = {'filename' : os.path.split(filename)[1],
-                  'counters' : fileheader}
+    if len(err) == len(i):
+        err = np.array(err)
+    else:
+        err = np.sqrt(abs(i))
 
     return SASM.SASM(i, q, err, parameters)
 
+def _match_txt_lines(line, q, i, err, fit_list):
+    for fit in fit_list:
+        match = fit.match(line)
+
+        if match:
+            data = match.group()
+            if ',' in data:
+                data = data.split(',')
+            else:
+                data = data.split()
+
+            q.append(float(data[0]))
+            i.append(float(data[1]))
+
+            if len(data) == 3:
+                try:
+                    err.append(float(data[2]))
+                except Exception:
+                    pass
+
+            break
+
+    return q, i, err
 
 #####################################
 #--- ## Write RAW Generated Files: ##
@@ -4936,6 +4983,8 @@ def checkFileType(filename):
         return 'fit'
     elif ext == '.fir':
         return 'fir'
+    elif ext == '.abs':
+        return 'abs'
     elif ext == '.out':
         return 'out'
     elif ext == '.nxs': #Nexus file
@@ -4959,16 +5008,16 @@ def checkFileType(filename):
     elif ext == '.ift':
         return 'ift'
     elif ext == '.csv':
-        return 'csv'
+        return 'txt'
     elif ext == '.h5':
         return 'hdf5'
     else:
         try:
-            fabio.open(filename)
+            f = fabio.open(filename)
             return 'image'
         except Exception:
             try:
                 float(ext.strip('.'))
             except Exception:
-                return 'rad'
+                return 'txt'
             return 'csv'
