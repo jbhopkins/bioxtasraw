@@ -2471,6 +2471,98 @@ def run_ambimeter_from_ift(ift, atsas_dir, qRg_max=4, save_models='none',
 
     return score, categories, evaluation
 
+def run_crysol(fnames, path, atsasDir, exp_fnames=None, lm=20,
+    fb=17, ns=101, smax=0.5, units=None, dns=0.334, dro=0.03, constant='no',
+    fit_solvent=True, energy=None, shell='directional', explicit_hydrogen=False,
+    implicit_hydrogen=None, sub_element=None, model=None, chain=None,
+    alternative_names=False):
+    #This runs the ATSAS package CRYSOL program,
+
+    opsys = platform.system()
+
+    if opsys == 'Windows':
+        crysolDir = os.path.join(atsasDir, 'crysol.exe')
+    else:
+        crysolDir = os.path.join(atsasDir, 'crysol')
+
+    if os.path.exists(crysolDir):
+
+        my_env = setATSASEnv(atsasDir)
+
+        cmd = ('"{}" --lm={} --fb={} --ns={} --smax={} --dns={} --dro={} '
+                '--shell={} --constant={}'.format(crysolDir, lm, fb, ns, smax,
+                dns, dro, shell, constant))
+
+        if units is not None:
+            cmd = cmd + ' --units={}'.format(units)
+
+        if not fit_solvent:
+            cmd = cmd + ' --skip-minimization'
+
+        if explicit_hydrogen:
+            cmd = cmd + ' --explicit-hydrogens'
+
+        if energy is not None:
+            cmd = cmd + ' --energy={}'.format(energy)
+
+        if implicit_hydrogen is not None:
+            cmd = cmd + ' --implicit-hydrogen={}'.format(implicit_hydrogen)
+
+        if sub_element is not None:
+            cmd = cmd + ' --sub-element={}'.format(sub_element)
+
+        if model is not None:
+            cmd = cmd + ' --model={}'.format(model)
+
+        if model is not None:
+            cmd = cmd + ' --chain={}'.format(chain)
+
+        if alternative_names:
+            cmd = cmd + ' --alternative-names'
+
+        cmd = cmd + ' '.join(fnames)
+
+        if exp_fnames is not None:
+            cmd = cmd + ' '.join(exp_fnames)
+
+        process=subprocess.Popen(cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, shell=True, cwd=path, env=my_env)
+
+        output, error = process.communicate()
+
+        if not isinstance(output, str):
+            output = str(output, encoding='UTF-8')
+
+        if not isinstance(error, str):
+            error = str(error, encoding='UTF-8')
+
+        error = error.strip()
+
+        if error != '':
+            raise SASExceptions.NoATSASError('Error running datclass.')
+
+        ret_values = ()
+
+        if output != '':
+            shape, mw, dmax, _ = output.split()
+
+            shape=shape.strip()
+            try:
+                mw = float(mw.strip())/1000.
+            except ValueError:
+                mw = -1
+            try:
+                dmax = float(dmax.strip())
+            except ValueError:
+                dmax = -1
+
+            ret_values = (shape, mw, dmax)
+
+        return ret_values
+
+    else:
+        raise SASExceptions.NoATSASError('Cannot find datclass.')
+
 
 def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
     is_protein, error_weight, vp_density, vp_cutoff, vp_qmax, vc_cutoff,
