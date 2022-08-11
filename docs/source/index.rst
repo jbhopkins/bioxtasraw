@@ -60,6 +60,7 @@ also used at various other beamlines, including:
 
 *   BL19U2 (SSRF)
 *   LiX (NSLS II)
+*   SIBYLS (ALS)
 
 `SAXSLAB <http://saxslab.com/>`_ distributes RAW with some of its homesources,
 and RAW is used at various other homesources around the world.

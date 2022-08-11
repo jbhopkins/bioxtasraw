@@ -289,8 +289,11 @@ class RawGuiSettings(object):
 
                 #Series Settings:
                 'secCalcThreshold'      : [1.02, get_id(), 'float'],
-                'IBaselineMinIter'    : [100, get_id(), 'int'],
-                'IBaselineMaxIter'    : [2000, get_id(), 'int'],
+                'IBaselineMinIter'      : [100, get_id(), 'int'],
+                'IBaselineMaxIter'      : [2000, get_id(), 'int'],
+                'doSVDBinning'          : [True, get_id(), 'bool'],
+                'numSVDBins'            : [150, get_id(), 'int'],
+                'SVDCheckShannonBins'   : [True, get_id(), 'bool'],
 
                 #GUI Settings:
                 'csvIncludeData'      : [None],

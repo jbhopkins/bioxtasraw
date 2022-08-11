@@ -13418,6 +13418,8 @@ class SVDControlPanel(wx.Panel):
         if self.ctrl_type == 'EFA' or self.ctrl_type == 'REGALS':
             user_input_window = wx.FindWindowById(self.control_ids['input'], self)
 
+        profile_window = wx.FindWindowById(self.control_ids['profile'], self)
+
 
         framei = self.secm.plot_frame_list[0]
         framef = self.secm.plot_frame_list[-1]
@@ -13490,7 +13492,6 @@ class SVDControlPanel(wx.Panel):
                 self.secm.subtracted_sasm_list, [],
                 self.secm.getAllParameters(), self.raw_settings)
 
-            profile_window = wx.FindWindowById(self.control_ids['profile'], self)
             profile_window.SetStringSelection('Unsubtracted')
 
         if self.secm.baseline_subtracted_sasm_list:
@@ -13519,6 +13520,14 @@ class SVDControlPanel(wx.Panel):
 
         self.updateSECPlot()
 
+        self._full_svd_vals = {}
+
+        self._do_svd_binning = self.raw_settings.get('doSVDBinning')
+        self._num_svd_bins = self.raw_settings.get('numSVDBins')
+        self._check_shannon_bins = self.raw_settings.get('SVDCheckShannonBins')
+
+        self._prepareForSVD()
+
         self.runSVD()
 
         if self.ctrl_type == 'EFA' or self.ctrl_type == 'REGALS':
@@ -13531,9 +13540,65 @@ class SVDControlPanel(wx.Panel):
                     user_input_window.SetValue(svals)
 
 
+    def _prepareForSVD(self):
+        profile_window = wx.FindWindowById(self.control_ids['profile'], self)
+        framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
+        framef_window = wx.FindWindowById(self.control_ids['fend'], self)
+
+        framei = framei_window.GetValue()
+        framef = framef_window.GetValue()
+
+        profile_type = profile_window.GetStringSelection()
+
+        if profile_type == 'Unsubtracted':
+            secm = self.secm
+        elif profile_type == 'Subtracted':
+            secm = self.subtracted_secm
+        elif profile_type == 'Baseline Corrected':
+            secm = self.bl_subtracted_secm
+
+        if self.ctrl_type == 'SVD':
+            err_norm = wx.FindWindowById(self.control_ids['norm_data'], self).GetValue()
+        else:
+            err_norm = True
+
+        svd_val_key = '{}_{}'.format(profile_type, err_norm)
+
+        if self._check_shannon_bins and self._do_svd_binning:
+            sasm = secm.getSASM()
+            qmin = sasm.getQ()[0]
+            qmax = sasm.getQ()[-1]
+
+            if qmin != 0:
+                n_shannon_bins = qmax/qmin
+            else:
+                n_shannon_bins = 1
+
+        else:
+            n_shannon_bins = 1
+
+        n_bins = max(n_shannon_bins, self._num_svd_bins)
+
+        if svd_val_key in self._full_svd_vals:
+            self.svd_a_full, self.i_full, self.err_full = self._full_svd_vals[svd_val_key]
+
+        else:
+            sasms = secm.getAllSASMs()
+
+            svd_a_full, i_full, err_full = SASCalc.prepareSASMsforSVD(sasms,
+                err_norm, do_binning=self._do_svd_binning, bin_to=n_bins)
+
+            self._full_svd_vals[svd_val_key] = (svd_a_full, i_full, err_full)
+
+            self.svd_a_full = svd_a_full
+            self.i_full = i_full
+            self.err_full = err_full
+
     #This function is called when the profiles used are changed between subtracted and unsubtracted.
     def _onProfileChoice(self, evt):
         wx.CallAfter(self.updateSECPlot)
+
+        self._prepareForSVD()
         self.runSVD()
 
     #This function is called when the start and end frame range spin controls are modified
@@ -13622,9 +13687,11 @@ class SVDControlPanel(wx.Panel):
         wx.CallAfter(self.updateSVDPlot)
 
     def _onNormChoice(self, evt):
+        self._prepareForSVD()
         wx.CallAfter(self.runSVD)
 
     def runSVD(self):
+
         profile_window = wx.FindWindowById(self.control_ids['profile'], self)
 
         framei_window = wx.FindWindowById(self.control_ids['fstart'], self)
@@ -13646,15 +13713,17 @@ class SVDControlPanel(wx.Panel):
             secm = self.bl_subtracted_secm
 
         try:
-            sasm_list = secm.getSASMList(framei, framef)
+            self.svd_a = self.svd_a_full[:, framei:framef+1]
+            self.i = self.i_full[:, framei:framef+1]
+            self.err = self.err_full[:, framei:framef+1]
         except SASExceptions.DataNotCompatible as e:
             msg = e.parameter
             wx.CallAfter(wx.MessageBox, msg, "Invalid frame range", style = wx.ICON_ERROR | wx.OK)
-            sasm_list = []
+            self.svd_a = None
 
-        (self.svd_U, self.svd_s, self.svd_V, self.svd_U_autocor,
-            self.svd_V_autocor, self.i, self.err, self.svd_a,
-            success) = SASCalc.SVDOnSASMs(sasm_list, err_norm)
+        if self.svd_a is not None:
+            (self.svd_U, self.svd_s, self.svd_V, self.svd_U_autocor,
+                self.svd_V_autocor, success) = SASCalc.doSVDonSASMs(self.svd_a)
 
         if not success:
             if self.ctrl_type == 'EFA' or self.ctrl_type == 'REGALS':
@@ -13875,7 +13944,6 @@ class SVDControlPanel(wx.Panel):
 class EFAFrame(wx.Frame):
 
     def __init__(self, parent, title, secm, manip_item):
-
         client_display = wx.GetClientDisplayRect()
         size = (min(950, client_display.Width), min(800, client_display.Height))
 
@@ -13886,7 +13954,8 @@ class EFAFrame(wx.Frame):
 
         self.orig_secm = secm
 
-        self.secm = copy.deepcopy(secm)
+
+        self.secm = secm.copy_no_history()
         self.manip_item = manip_item
 
         self.panel = wx.Panel(self, wx.ID_ANY, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
@@ -13898,6 +13967,8 @@ class EFAFrame(wx.Frame):
         self.old_svd_input = -1
 
         self.current_panel = 1
+
+
 
         self._createLayout(self.panel)
 
@@ -13926,7 +13997,6 @@ class EFAFrame(wx.Frame):
         self.controlPanel3.updateColors()
 
     def _createLayout(self, parent):
-
         #Creating the first EFA analysis panel
         self.splitter1 = wx.SplitterWindow(parent, self.splitter_ids[1])
 
@@ -13948,7 +14018,6 @@ class EFAFrame(wx.Frame):
                 size[1] = size[1] + self._FromDIP(20)
                 self.SetSize(self._FromDIP(size))
 
-
         self.splitter2 = wx.SplitterWindow(parent, self.splitter_ids[2])
 
         self.plotPanel2 = EFAResultsPlotPanel2(self.splitter2, -1)
@@ -13965,7 +14034,6 @@ class EFAFrame(wx.Frame):
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
             self.splitter2.Fit()
 
-
         self.splitter3 = wx.SplitterWindow(parent, self.splitter_ids[3])
 
         self.plotPanel3 = EFAResultsPlotPanel3(self.splitter3, -1)
@@ -13980,7 +14048,6 @@ class EFAFrame(wx.Frame):
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
             self.splitter3.Fit()
-
 
         #Creating the fixed buttons
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -14760,7 +14827,8 @@ class EFAControlPanel2(wx.Panel):
         svd_a = self.panel1_results['svd_int_norm']
 
         self.bkg_dialog = REGALSBackground(self.efa_frame, start, end, series,
-            secm_choice, self.panel1_results['input'], int(self.bkg_components.GetValue()))
+            secm_choice, self.panel1_results['input'],
+            int(self.bkg_components.GetValue()), self.panel1_results['svd_int_norm'])
 
         ret = self.bkg_dialog.ShowModal()
 
@@ -15025,11 +15093,14 @@ class EFAControlPanel3(wx.Panel):
 
         self.raw_settings = self.main_frame.raw_settings
 
-        self.control_ids = {'n_iter'        : self.NewControlId(),
-                            'tol'           : self.NewControlId(),
-                            'method'        : self.NewControlId(),
-                            'status'        : self.NewControlId(),
-                            'save_results'  : self.NewControlId()}
+        self.control_ids = {
+            'n_iter'            : self.NewControlId(),
+            'tol'               : self.NewControlId(),
+            'method'            : self.NewControlId(),
+            'status'            : self.NewControlId(),
+            'save_results'      : self.NewControlId(),
+            'previous_results'  : self.NewControlId(),
+                            }
 
         self.control_values = {'n_iter' : 1000,
                                 'tol'   : 1e-12}
@@ -15119,7 +15190,15 @@ class EFAControlPanel3(wx.Panel):
         grid_sizer.Add(tol_label, 0)
         grid_sizer.Add(tol_control, 1)
 
-        iter_control_sizer.Add(grid_sizer, 1, wx.TOP | wx.BOTTOM | wx.EXPAND,
+
+        use_previous_results_control = wx.CheckBox(rot_box,
+            self.control_ids['previous_results'], label='Start with previous results')
+        use_previous_results_control.SetValue(False)
+        use_previous_results_control.Bind(wx.EVT_CHECKBOX, self._onIterControl)
+
+        iter_control_sizer.Add(grid_sizer, flag=wx.TOP|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(3))
+        iter_control_sizer.Add(use_previous_results_control, flag=wx.BOTTOM|wx.EXPAND,
             border=self._FromDIP(3))
 
 
@@ -15239,6 +15318,35 @@ class EFAControlPanel3(wx.Panel):
             window = wx.FindWindowById(self.control_ids['method'], self)
             window.SetStringSelection('Iterative')
 
+        if self.panel1_results['profile'] == 'Unsubtracted':
+            int_type = 'unsub'
+        elif self.panel1_results['profile'] == 'Subtracted':
+             int_type = 'sub'
+        elif self.panel1_results['profile'] == 'Baseline Corrected':
+             int_type = 'baseline'
+
+        if (len(self.secm.getSASM(int_type=int_type).getQ())
+            != len(self.panel1_results['int'].T[0])):
+            sasms = self.secm.getSASMList(start, end, int_type=int_type)
+
+            (svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, i, err,
+                svd_a, success) = SASCalc.SVDonSASMs(sasms, err_norm=True,
+                do_binning=False, do_autocorr=False)
+            self.efa_input_D = svd_a
+            self.efa_input_intensity = i
+            self.efa_input_err = err
+            self.efa_input_svd_v = svd_V
+
+            self.binned_inputs_available = True
+
+        else:
+            self.efa_input_D = self.panel1_results['svd_int_norm']
+            self.efa_input_intensity = self.panel1_results['int']
+            self.efa_input_err = self.panel1_results['err']
+            self.efa_input_svd_v = self.panel1_results['svd_v']
+
+            self.binned_inputs_available = True
+
         self.initialized = True
 
         wx.CallAfter(self.runRotation)
@@ -15325,6 +15433,35 @@ class EFAControlPanel3(wx.Panel):
         self.efa_frame.plotPanel3.refresh()
 
         self.sec_plot.refresh()
+
+        if self.panel1_results['profile'] == 'Unsubtracted':
+            int_type = 'unsub'
+        elif self.panel1_results['profile'] == 'Subtracted':
+             int_type = 'sub'
+        elif self.panel1_results['profile'] == 'Baseline Corrected':
+             int_type = 'baseline'
+
+        if (len(self.secm.getSASM(int_type=int_type).getQ())
+            != len(self.panel1_results['int'].T[0])):
+            sasms = self.secm.getSASMList(start, end, int_type=int_type)
+
+            (svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, i, err,
+                svd_a, success) = SASCalc.SVDonSASMs(sasms, err_norm=True,
+                do_binning=False)
+            self.efa_input_D = svd_a
+            self.efa_input_intensity = i
+            self.efa_input_err = err
+            self.efa_input_svd_v = svd_V
+
+            self.binned_inputs_available = True
+
+        else:
+            self.efa_input_D = self.panel1_results['svd_int_norm']
+            self.efa_input_intensity = self.panel1_results['int']
+            self.efa_input_err = self.panel1_results['err']
+            self.efa_input_svd_v = self.panel1_results['svd_v']
+
+            self.binned_inputs_available = True
 
         wx.CallAfter(self.runRotation)
         wx.CallAfter(self.updateRangePlot)
@@ -15421,21 +15558,33 @@ class EFAControlPanel3(wx.Panel):
         niter = int(wx.FindWindowById(self.control_ids['n_iter'], self).GetValue())
         tol = float(wx.FindWindowById(self.control_ids['tol'], self).GetValue())
         method = wx.FindWindowById(self.control_ids['method'], self).GetStringSelection()
+        use_previous = wx.FindWindowById(self.control_ids['previous_results']).GetValue()
 
         force_positive = []
         for i in range(len(self.range_ids)):
             window = wx.FindWindowById(self.range_ids[i][2], self)
             force_positive.append(window.GetValue())
 
-        D = self.panel1_results['svd_int_norm']
-        intensity = self.panel1_results['int']
-        err = self.panel1_results['err']
+        if use_previous:
+            previous_results = (self.converged, self.rotation_data)
+        else:
+            previous_results = None
 
-        svd_v = self.panel1_results['svd_v']
+        # if self.binned_inputs_available:
+        #     efa_input_D = self.panel1_results['svd_int_norm']
+        #     efa_input_intensity = self.panel1_results['int']
+        #     efa_input_err = self.panel1_results['err']
+        #     efa_input_svd_v = self.panel1_results['svd_v']
 
-        converged, conv_data, rotation_data = SASCalc.runRotation(D, intensity,
-            err, ranges, force_positive, svd_v, previous_results=(self.converged,
-            self.rotation_data), method=method, niter=niter, tol=tol)
+        # converged, conv_data, rotation_data = SASCalc.runRotation(efa_input_D,
+        #     efa_input_intensity, efa_input_err, ranges, force_positive,
+        #     efa_input_svd_v, previous_results=previous_results, method=method,
+        #     niter=niter, tol=tol)
+
+        converged, conv_data, rotation_data = SASCalc.runRotation(self.efa_input_D,
+            self.efa_input_intensity, self.efa_input_err, ranges, force_positive,
+            self.efa_input_svd_v, previous_results=previous_results,
+            method=method, niter=niter, tol=tol)
 
         self.converged = converged
         self.conv_data = conv_data
@@ -15527,7 +15676,6 @@ class EFAControlPanel3(wx.Panel):
             history['EFA'] = history_dict
 
             self.sasms[i] = sasm
-
 
     def updateRangePlot(self):
         ydata_type = self.panel1_results['ydata_type']
@@ -16173,7 +16321,7 @@ class REGALSFrame(wx.Frame):
         self.main_frame = wx.FindWindowByName('MainFrame')
 
         self.orig_secm = secm
-        self.secm = copy.copy(secm)
+        self.secm = secm.copy_no_history()
         self.manip_item = manip_item
 
         self.current_panel = 0
@@ -16361,7 +16509,7 @@ class REGALSFrame(wx.Frame):
                 RAWGlobals.mainworker_cmd_queue.put(['to_plot_sasm', [profiles, 'black', None, True, 2]])
 
                 if self.manip_item is not None:
-                    analysis_dict = self.secm.getParameter('analysis')
+                    analysis_dict = self.orig_secm.getParameter('analysis')
 
                     regals_dict = {}
 
@@ -17112,9 +17260,6 @@ class REGALSRunPanel(wx.Panel):
     def on_regals_finished(self, *args, **kwargs):
         mixture, params, resid = args
 
-        intensity = self.svd_results['int']
-        sigma = self.svd_results['err']
-
         self.regals_results = {
             'mixture'   : mixture,
             'params'    : params,
@@ -17122,7 +17267,7 @@ class REGALSRunPanel(wx.Panel):
             'chisq'     : np.mean(resid ** 2, 0),
             'settings'  : self.regals_settings,
             'x'         : mixture.components[0].concentration._regularizer.x,
-            'conc'      : SASCalc.make_regals_concs(mixture, intensity, sigma),
+            'conc'      : SASCalc.make_regals_concs(mixture, self.intensity, self.sigma),
             'reg_conc'  : SASCalc.make_regals_regularized_concs(mixture),
             }
 
@@ -17139,11 +17284,11 @@ class REGALSRunPanel(wx.Panel):
         ref_q = regals_secm.getSASMList(start, end)[0].getQ()
         ref_q_err = regals_secm.getSASMList(start, end)[0].getQErr()
 
-        self.sasms = SASCalc.make_regals_sasms(mixture, ref_q, intensity, sigma,
-            self.secm, start, end, ref_q_err)
+        self.sasms = SASCalc.make_regals_sasms(mixture, ref_q, self.intensity,
+            self.sigma, self.secm, start, end, ref_q_err)
 
-        self.ifts = SASCalc.make_regals_ifts(mixture, ref_q, intensity, sigma,
-            self.secm, start, end)
+        self.ifts = SASCalc.make_regals_ifts(mixture, ref_q, self.intensity,
+            self.sigma, self.secm, start, end)
 
         self.controls.on_regals_finished()
 
@@ -18396,7 +18541,7 @@ class REGALSXCalibration(wx.Dialog):
 class REGALSBackground(wx.Dialog):
 
     def __init__(self, parent, start, end, series, plot_type, max_comps, bkg_comps,
-        *args, **kwargs):
+        svd_a_binned, *args, **kwargs):
         wx.Dialog.__init__(self, parent, wx.ID_ANY, 'REGALS Background Components', *args,
             style = wx.RESIZE_BORDER|wx.CAPTION, **kwargs)
 
@@ -18404,6 +18549,7 @@ class REGALSBackground(wx.Dialog):
         self.start = start
         self.end = end
         self.plot_type = plot_type
+        self.svd_a_binned = svd_a_binned
 
         if self.plot_type == 'usub':
             self.plot_type = 'unsub'
@@ -18679,10 +18825,10 @@ class REGALSBackground(wx.Dialog):
         self.end_svd.SetRange((start_svd+1, end_range[1]))
 
     def do_svd(self, start, end, index):
-        sasm_list = self.series.getSASMList(start, end)
+        svd_a = self.svd_a_binned[:, start-self.start:end-self.start+1]
 
-        (svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, i, err, svd_a,
-            success) = SASCalc.SVDOnSASMs(sasm_list, True)
+        (svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor,
+            success) = SASCalc.doSVDonSASMs(svd_a)
 
         if index not in self.svd_results:
             self.svd_results[index] = {}
@@ -21577,21 +21723,22 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
 
                     parameters = copy.deepcopy(sasm.getAllParameters())
-                    newSASM = SASM.SASM(i, q, err, {}, copy.deepcopy(sasm.getQErr()))
-                    newSASM.setParameter('filename', parameters['filename'])
 
-                    history = newSASM.getParameter('history')
-
-                    history = {}
+                    old_history = parameters['history']
 
                     history1 = []
                     history1.append(copy.deepcopy(sasm.getParameter('filename')))
-                    for key in sasm.getParameter('history'):
-                        history1.append({ key : copy.deepcopy(sasm.getParameter('history')[key])})
 
-                    history['baseline_correction'] = {'initial_file':history1, 'type':bl_type}
+                    for key in old_history:
+                        history1.append({key:old_history[key]})
 
-                    newSASM.setParameter('history', history)
+                    history = {}
+                    history['baseline_correction'] = {'initial_file':history1,
+                        'type':bl_type}
+
+                    parameters['history'] = history
+
+                    newSASM = SASM.SASM(i, q, err, parameters, copy.deepcopy(sasm.getQErr()))
 
                     bl_sasms.append(newSASM)
 
@@ -21600,7 +21747,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 buffer_sub_sasms = self.results['buffer']['sub_sasms']
                 start_sasms = [buffer_sub_sasms[k] for k in range(r1_start, r1_end+1)]
 
-                start_avg_sasm = SASProc.average(start_sasms, forced=True)
+                start_avg_sasm = SASProc.average(start_sasms, forced=True, copy_params=False)
                 int_type = self.plot_page.intensity
                 if  int_type == 'total':
                     ref_intensity = start_avg_sasm.getTotalI()
@@ -22802,9 +22949,11 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                             else:
                                 bkg_sasm = zeroSASM
 
-                    bl_unsub_sasms.append(SASProc.subtract(unsub_sasms[j], bkg_sasm, forced = True))
+                    bl_unsub_sasms.append(SASProc.subtract(unsub_sasms[j],
+                        bkg_sasm, forced=True, copy_params=False))
 
-                bl_unsub_ref_sasm = SASProc.average([bl_unsub_sasms[j] for j in range(r1[0], r1[1]+1)], forced=True)
+                bl_unsub_ref_sasm = SASProc.average([bl_unsub_sasms[j] for j in range(r1[0], r1[1]+1)],
+                    forced=True, copy_params=False)
 
                 int_type = self.plot_page.intensity
                 if  int_type == 'total':

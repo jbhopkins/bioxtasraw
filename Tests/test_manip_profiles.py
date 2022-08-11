@@ -120,9 +120,9 @@ def test_linear_rebin_factor(gi_sub_profile, rebin_factor):
         new_q[eachbin] = np.sum(q_roi[first_idx:last_idx]) / rebin_factor
         new_err[eachbin] = np.sqrt(np.sum(err_sqr[first_idx:last_idx])) / (last_idx-first_idx)
 
-    assert all(rebinned.getQ() == new_q)
-    assert all(rebinned.getI() == new_i)
-    assert all(rebinned.getErr() == new_err)
+    assert np.allclose(rebinned.getQ(), new_q)
+    assert np.allclose(rebinned.getI(), new_i)
+    assert np.allclose(rebinned.getErr(), new_err)
 
 def test_linear_rebin_npts(gi_sub_profile, npts):
     rebinned = raw.rebin([gi_sub_profile], npts=npts)[0]
@@ -156,9 +156,9 @@ def test_linear_rebin_npts(gi_sub_profile, npts):
         new_q[eachbin] = np.sum(q[first_idx:last_idx]) / rebin_factor
         new_err[eachbin] = np.sqrt(np.sum(err_sqr[first_idx:last_idx])) / rebin_factor
 
-    assert all(rebinned.getQ() == new_q)
-    assert all(rebinned.getI() == new_i)
-    assert all(rebinned.getErr() == new_err)
+    assert np.allclose(rebinned.getQ(), new_q)
+    assert np.allclose(rebinned.getI(), new_i)
+    assert np.allclose(rebinned.getErr(), new_err)
 
 def test_log_rebin_factor(gi_sub_profile, rebin_factor):
     rebinned = raw.rebin([gi_sub_profile], rebin_factor=rebin_factor,

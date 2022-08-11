@@ -980,6 +980,76 @@ class SECM(object):
 
         return copy_secm
 
+
+    def copy_no_history(self):
+        """
+        Does a deep copy of the SECM without the SASM history, which will usually
+        be faster.
+        """
+        copy_secm = SECM(copy.deepcopy(self._file_list),
+            [sasm.copy_no_metadata() for sasm in self._sasm_list],
+            copy.deepcopy(self.frame_list), copy.deepcopy(self._parameters),
+            copy.deepcopy(self.hdr_format))
+
+        copy_secm.qref = copy.deepcopy(self.qref)
+        copy_secm.I_of_q = copy.deepcopy(self.I_of_q)
+        copy_secm.qrange = copy.deepcopy(self.qrange)
+        copy_secm.qrange_I = copy.deepcopy(self.qrange_I)
+
+        copy_secm.time = copy.deepcopy(self.time)
+
+        ####### Parameters for autocalculating rg, MW for SEC plot
+        copy_secm.buffer_range = copy.deepcopy(self.buffer_range)
+        copy_secm.window_size = copy.deepcopy(self.window_size)
+        copy_secm.mol_type = copy.deepcopy(self.mol_type)
+        copy_secm.mol_density = copy.deepcopy(self.mol_density)
+        copy_secm.already_subtracted = copy.deepcopy(self.already_subtracted)
+        copy_secm.calc_has_data = copy.deepcopy(self.calc_has_data)
+
+        copy_secm.intensity_change = copy.deepcopy(self.intensity_change)
+
+        copy_secm.average_buffer_sasm = self.average_buffer_sasm.copy_no_metadata()
+        copy_secm.subtracted_sasm_list = [sasm.copy_no_metadata() for sasm in self.subtracted_sasm_list]
+        copy_secm.use_subtracted_sasm = copy.deepcopy(self.use_subtracted_sasm)
+        copy_secm.mean_i_sub = copy.deepcopy(self.mean_i_sub)
+        copy_secm.total_i_sub = copy.deepcopy(self.total_i_sub)
+        copy_secm.I_of_q_sub = copy.deepcopy(self.I_of_q_sub)
+        copy_secm.qrange_I_sub = copy.deepcopy(self.qrange_I_sub)
+
+        copy_secm.baseline_start_range = copy.deepcopy(self.baseline_start_range)
+        copy_secm.baseline_end_range = copy.deepcopy(self.baseline_end_range)
+        copy_secm.baseline_corr = copy.deepcopy(self.baseline_corr)
+        copy_secm.baseline_type = copy.deepcopy(self.baseline_type)
+        copy_secm.baseline_extrap = copy.deepcopy(self.baseline_extrap)
+        copy_secm.baseline_fit_results = copy.deepcopy(self.baseline_fit_results)
+
+        copy_secm.baseline_subtracted_sasm_list = [sasm.copy_no_metadata() for sasm in self.baseline_subtracted_sasm_list]
+        copy_secm.use_baseline_subtracted_sasm = copy.deepcopy(self.use_baseline_subtracted_sasm)
+        copy_secm.mean_i_bcsub = copy.deepcopy(self.mean_i_bcsub)
+        copy_secm.total_i_bcsub = copy.deepcopy(self.total_i_bcsub)
+        copy_secm.I_of_q_bcsub = copy.deepcopy(self.I_of_q_bcsub)
+        copy_secm.qrange_I_bcsub = copy.deepcopy(self.qrange_I_bcsub)
+
+        copy_secm.sample_range = copy.deepcopy(self.sample_range)
+
+        copy_secm.rg_list = copy.deepcopy(self.rg_list)
+        copy_secm.rger_list = copy.deepcopy(self.rger_list)
+        copy_secm.i0_list = copy.deepcopy(self.i0_list)
+        copy_secm.i0er_list = copy.deepcopy(self.i0er_list)
+        copy_secm.vpmw_list = copy.deepcopy(self.vpmw_list)
+        copy_secm.vcmw_list = copy.deepcopy(self.vcmw_list)
+        copy_secm.vcmwer_list = copy.deepcopy(self.vcmwer_list)
+
+        copy_secm._scale_factor = copy.deepcopy(self._scale_factor)
+        copy_secm._offset_value = copy.deepcopy(self._offset_value)
+        copy_secm._q_range = copy.deepcopy(self._q_range)
+        copy_secm._sub_q_range = copy.deepcopy(self._sub_q_range)
+        copy_secm._bc_sub_q_range = copy.deepcopy(self._bc_sub_q_range)
+
+        copy_secm.series_type = copy.deepcopy(self.series_type)
+
+        return copy_secm
+
     def getSASM(self, index=0, int_type='unsub'):
         """
         Gets the profile at a given frame number.

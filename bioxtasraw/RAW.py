@@ -3752,13 +3752,13 @@ class MainWorkerThread(threading.Thread):
             if len(water_sasm) == 1:
                 water_sasm = water_sasm[0]
             else:
-                water_sasm = SASProc.average(water_sasm)
+                water_sasm = SASProc.average(water_sasm, copy_params=False)
 
         if isinstance(empty_sasm, list):
             if len(empty_sasm) == 1:
                 empty_sasm = empty_sasm[0]
             else:
-                empty_sasm = SASProc.average(empty_sasm)
+                empty_sasm = SASProc.average(empty_sasm, copy_params=False)
         try:
             abs_scale_constant = SASCalib.calcAbsoluteScaleWaterConst(water_sasm,
                 empty_sasm, waterI0, self._raw_settings)
@@ -3813,7 +3813,7 @@ class MainWorkerThread(threading.Thread):
                 if len(carbon_sasm) == 1:
                     carbon_sasm = carbon_sasm[0]
                 else:
-                    carbon_sasm = SASProc.average(carbon_sasm)
+                    carbon_sasm = SASProc.average(carbon_sasm, copy_params=False)
 
             carbon_ctr_ups_val = -1
             carbon_ctr_dns_val = -1
@@ -4653,21 +4653,22 @@ class MainWorkerThread(threading.Thread):
                             baseline = np.zeros_like(i)
 
                 parameters = copy.deepcopy(sasm.getAllParameters())
-                newSASM = SASM.SASM(i, q, err, {}, copy.deepcopy(sasm.getQErr()))
-                newSASM.setParameter('filename', parameters['filename'])
 
-                history = newSASM.getParameter('history')
-
-                history = {}
+                old_history = parameters['history']
 
                 history1 = []
                 history1.append(copy.deepcopy(sasm.getParameter('filename')))
-                for key in sasm.getParameter('history'):
-                    history1.append({ key : copy.deepcopy(sasm.getParameter('history')[key])})
 
-                history['baseline_correction'] = {'initial_file':history1, 'type':bl_type}
+                for key in old_history:
+                    history1.append({key:old_history[key]})
 
-                newSASM.setParameter('history', history)
+                history = {}
+                history['baseline_correction'] = {'initial_file':history1,
+                    'type':bl_type}
+
+                parameters['history'] = history
+
+                newSASM = SASM.SASM(i, q, err, parameters, copy.deepcopy(sasm.getQErr()))
 
                 bl_sasms.append(newSASM)
 
@@ -4684,7 +4685,8 @@ class MainWorkerThread(threading.Thread):
             buffer_sub_sasms = secm.subtracted_sasm_list
             start_sasms = [buffer_sub_sasms[k] for k in range(r1_start, r1_end+1)]
 
-            start_avg_sasm = SASProc.average(start_sasms, forced=True)
+            start_avg_sasm = SASProc.average(start_sasms, forced=True,
+                copy_params=False)
 
             if  plot_y == 'total':
                 ref_intensity = start_avg_sasm.getTotalI()

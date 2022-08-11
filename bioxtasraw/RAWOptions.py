@@ -3280,24 +3280,43 @@ class SeriesPanel(scrolled.ScrolledPanel):
 
         self.raw_settings = raw_settings
 
-        self.update_keys = ['secCalcThreshold', 'IBaselineMinIter', 'IBaselineMaxIter']
+        self.update_keys = ['secCalcThreshold', 'IBaselineMinIter',
+            'IBaselineMaxIter', 'doSVDBinning', 'numSVDBins',
+            'SVDCheckShannonBins']
 
 
-        self.settings = [(('Intensity ratio (to background) threshold for '
-            'calculating Rg, MW, I0:'),
-            raw_settings.getId('secCalcThreshold')),
+        # self.settings = [(('Intensity ratio (to background) threshold for '
+        #     'calculating Rg, MW, I0:'),
+        #     raw_settings.getId('secCalcThreshold')),
+        #     ('Integral baseline minimum iterations:',
+        #         raw_settings.getId('IBaselineMinIter')),
+        #     ('Integral baseline maximum iterations:',
+        #         raw_settings.getId('IBaselineMaxIter')),
+        # ]
+
+        # sizer = self.createOptions()
+
+        # top_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # top_sizer.Add(sizer, 1, wx.EXPAND|wx.ALL, border=self._FromDIP(5))
+        # self.SetSizer(top_sizer)
+
+        layout_settings = (
+            (('Intensity ratio (to background) threshold for calculating Rg, MW, I0:'),
+            raw_settings.getId('secCalcThreshold'), 'float'),
             ('Integral baseline minimum iterations:',
-                raw_settings.getId('IBaselineMinIter')),
+                raw_settings.getId('IBaselineMinIter'), 'int'),
             ('Integral baseline maximum iterations:',
-                raw_settings.getId('IBaselineMaxIter')),
-        ]
+                raw_settings.getId('IBaselineMaxIter'), 'int'),
+            ('Bin data for SVD', raw_settings.getId('doSVDBinning'), 'bool'),
+            ('Number of bins for SVD', raw_settings.getId('numSVDBins'), 'int'),
+            ('Adjust bins for maximum number of Shannon channels in the data',
+                raw_settings.getId('SVDCheckShannonBins'), 'bool'),
+            )
 
-        sizer = self.createOptions()
+        options_sizer = self.createOptions(layout_settings)
 
-        top_sizer = wx.BoxSizer(wx.VERTICAL)
-
-        top_sizer.Add(sizer, 1, wx.EXPAND|wx.ALL, border=self._FromDIP(5))
-        self.SetSizer(top_sizer)
+        self.SetSizer(options_sizer)
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -3306,22 +3325,37 @@ class SeriesPanel(scrolled.ScrolledPanel):
         except Exception:
             return size
 
-    def createOptions(self):
-
+    def createOptions(self, layout_settings):
         top_sizer = wx.BoxSizer(wx.VERTICAL)
+        parent = self
 
-        for item in self.settings:
+        for item in layout_settings:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
             sizer = wx.BoxSizer(wx.HORIZONTAL)
-            label = wx.StaticText(self, -1, item[0])
-            value = wx.TextCtrl(self, item[1], '', size=self._FromDIP((60, -1)))
 
-            sizer.Add(label, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.ALIGN_CENTER_VERTICAL,
-                border=self._FromDIP(5))
-            sizer.Add(value, 0, wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.ALIGN_CENTER_VERTICAL,
-                border=self._FromDIP(5))
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.Choice(parent, myId, choices = item[3])
 
-            top_sizer.Add(sizer, flag=wx.TOP, border=self._FromDIP(5))
+                sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(2))
+                sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
 
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((60,-1)),
+                    style = wx.TE_PROCESS_ENTER)
+
+                sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(2))
+                sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(parent, myId, label)
+                sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
+
+            top_sizer.Add(sizer, 0)
 
         return top_sizer
 

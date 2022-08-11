@@ -45,7 +45,7 @@ import bioxtasraw.SASM as SASM
 import bioxtasraw.sascalc_exts as sascalc_exts
 
 
-def subtract(sasm1, sasm2, forced = False, full = False):
+def subtract(sasm1, sasm2, forced=False, full=False, copy_params=True):
     ''' Subtract one SASM object from another and propagate errors '''
     if not full:
         q1_min, q1_max = sasm1.getQrange()
@@ -56,8 +56,11 @@ def subtract(sasm1, sasm2, forced = False, full = False):
         q2_min = 0
         q2_max = len(sasm2.q)+1
 
-    if not np.all(np.round(sasm1.q[q1_min:q1_max],5) == np.round(sasm2.q[q2_min:q2_max],5)) and not forced:
-        raise SASExceptions.DataNotCompatible('The curves does not have the same q vectors.')
+    if np.all(np.round(sasm1.q[q1_min:q1_max],5) == np.round(sasm2.q[q2_min:q2_max],5)):
+        i = sasm1.i[q1_min:q1_max] - sasm2.i[q2_min:q2_max]
+
+        q = copy.deepcopy(sasm1.q)[q1_min:q1_max]
+        err = np.sqrt( np.power(sasm1.err[q1_min:q1_max], 2) + np.power(sasm2.err[q2_min:q2_max],2))
 
     elif not np.all(np.round(sasm1.q[q1_min:q1_max],5) == np.round(sasm2.q[q2_min:q2_max],5)) and forced:
         q1 = np.round(sasm1.q[q1_min:q1_max],5)
@@ -121,71 +124,55 @@ def subtract(sasm1, sasm2, forced = False, full = False):
             q = refq
 
     else:
-        i = sasm1.i[q1_min:q1_max] - sasm2.i[q2_min:q2_max]
+        raise SASExceptions.DataNotCompatible('The curves does not have the same q vectors.')
 
-        q = copy.deepcopy(sasm1.q)[q1_min:q1_max]
-        err = np.sqrt( np.power(sasm1.err[q1_min:q1_max], 2) + np.power(sasm2.err[q2_min:q2_max],2))
+    if copy_params:
+        sub_parameters = get_shared_header([sasm1, sasm2])
 
-    parameters = copy.deepcopy(sasm1.getAllParameters())
-    sub_parameters = get_shared_header([sasm1, sasm2])
+        sub_parameters['filename'] = copy.deepcopy(sasm1.getParameter('filename'))
+
+        history = {}
+
+        history1 = []
+        history1.append(copy.deepcopy(sasm1.getParameter('filename')))
+        for key in sasm1.getParameter('history'):
+            history1.append({ key : copy.deepcopy(sasm1.getParameter('history')[key])})
+
+        history2 = []
+        history2.append(copy.deepcopy(sasm2.getParameter('filename')))
+        for key in sasm2.getParameter('history'):
+            history2.append({key : copy.deepcopy(sasm2.getParameter('history')[key])})
+
+        history['subtraction'] = {'initial_file':history1, 'subtracted_file':history2}
+
+        sub_parameters['history'] = history
+
+    else:
+        sub_parameters = {'filename': copy.deepcopy(sasm1.getParameter('filename'))}
+
     newSASM = SASM.SASM(i, q, err, sub_parameters, copy.deepcopy(sasm1.getQErr()))
-    newSASM.setParameter('filename', parameters['filename'])
-
-    history = newSASM.getParameter('history')
-
-    history = {}
-
-    history1 = []
-    history1.append(copy.deepcopy(sasm1.getParameter('filename')))
-    for key in sasm1.getParameter('history'):
-        history1.append({ key : copy.deepcopy(sasm1.getParameter('history')[key])})
-
-    history2 = []
-    history2.append(copy.deepcopy(sasm2.getParameter('filename')))
-    for key in sasm2.getParameter('history'):
-        history2.append({key : copy.deepcopy(sasm2.getParameter('history')[key])})
-
-    history['subtraction'] = {'initial_file':history1, 'subtracted_file':history2}
-
-    newSASM.setParameter('history', history)
 
     return newSASM
 
-def average(sasm_list, forced = False):
+def average(sasm_list, forced=False, copy_params=True):
     ''' Average the intensity of a list of sasm objects '''
+
+    first_sasm = sasm_list[0]
 
     if len(sasm_list) == 1:
         #Useful for where all but the first profile are rejected due to similarity
         #testing. Otherwise we should never have just than one profile to average
-        sasm = sasm_list[0]
-        q_min, q_max = sasm.getQrange()
 
-        avg_q = copy.deepcopy(sasm.q[q_min:q_max])
-        avg_i = copy.deepcopy(sasm.i[q_min:q_max])
-        avg_err = copy.deepcopy(sasm.err[q_min:q_max])
-        avg_parameters = copy.deepcopy(sasm.getAllParameters())
-        avg_q_err = copy.deepcopy(sasm.getQErr())
+        q_min, q_max = first_sasm.getQrange()
 
-        avgSASM = SASM.SASM(avg_i, avg_q, avg_err, avg_parameters, avg_q_err)
-
-        history = {}
-        history_list = []
-        for eachsasm in sasm_list:
-            each_history = []
-            each_history.append(copy.deepcopy(eachsasm.getParameter('filename')))
-
-            for key in eachsasm.getParameter('history'):
-                each_history.append({key : copy.deepcopy(eachsasm.getParameter('history')[key])})
-
-            history_list.append(each_history)
-
-
-        history['averaged_files'] = history_list
-        avgSASM.setParameter('history', history)
+        avg_q = copy.deepcopy(first_sasm.q[q_min:q_max])
+        avg_i = copy.deepcopy(first_sasm.i[q_min:q_max])
+        avg_err = copy.deepcopy(first_sasm.err[q_min:q_max])
+        avg_parameters = copy.deepcopy(first_sasm.getAllParameters())
+        avg_q_err = copy.deepcopy(first_sasm.getQErr())
 
     else:
         #Check average is possible with provided curves:
-        first_sasm = sasm_list[0]
         first_q_min, first_q_max = first_sasm.getQrange()
 
         for each in sasm_list:
@@ -214,13 +201,13 @@ def average(sasm_list, forced = False):
         avg_err = copy.deepcopy(avg_err)
 
         avg_q = copy.deepcopy(first_sasm.q)[first_q_min:first_q_max]
-        avg1_parameters = copy.deepcopy(sasm_list[0].getAllParameters())
 
+        avg_q_err = copy.deepcopy(first_sasm.getQErr())
+
+    if copy_params:
         avg_parameters = get_shared_header(sasm_list)
 
-        avgSASM = SASM.SASM(avg_i, avg_q, avg_err, avg_parameters,
-            copy.deepcopy(first_sasm.getQErr()))
-        avgSASM.setParameter('filename', avg1_parameters['filename'])
+        avg_parameters['filename'] = copy.deepcopy(first_sasm.getParameter('filename'))
 
         history = {}
 
@@ -236,44 +223,35 @@ def average(sasm_list, forced = False):
             history_list.append(each_history)
 
         history['averaged_files'] = history_list
-        avgSASM.setParameter('history', history)
+        avg_parameters['history'] = history
+
+    else:
+        avg_parameters = {'filename': copy.deepcopy(first_sasm.getParameter('filename'))}
+
+    avgSASM = SASM.SASM(avg_i, avg_q, avg_err, avg_parameters, avg_q_err)
 
     return avgSASM
 
-def weightedAverage(sasm_list, weightByError, weightCounter, forced = False):
+def weightedAverage(sasm_list, weightByError, weightCounter, forced=False,
+    copy_params=True):
     ''' Weighted average of the intensity of a list of sasm objects '''
+
+    first_sasm = sasm_list[0]
+
     if len(sasm_list) == 1:
         #Useful for where all but the first profile are rejected due to similarity
         #testing. Otherwise we should never have less than one profile to average
-        sasm = sasm_list[0]
-        q_min, q_max = sasm.getQrange()
+        q_min, q_max = first_sasm.getQrange()
 
-        avg_q = copy.deepcopy(sasm.q[q_min:q_max])
-        avg_i = copy.deepcopy(sasm.i[q_min:q_max])
-        avg_err = copy.deepcopy(sasm.err[q_min:q_max])
-        avg_parameters = copy.deepcopy(sasm.getAllParameters())
-        avg_q_err = copy.deepcopy(sasm.getQErr())
-
-        avgSASM = SASM.SASM(avg_i, avg_q, avg_err, avg_parameters, avg_q_err)
-
-        history = {}
-        history_list = []
-        for eachsasm in sasm_list:
-            each_history = []
-            each_history.append(copy.deepcopy(eachsasm.getParameter('filename')))
-
-            for key in eachsasm.getParameter('history'):
-                each_history.append({key : copy.deepcopy(eachsasm.getParameter('history')[key])})
-
-            history_list.append(each_history)
-
-
-        history['averaged_files'] = history_list
-        avgSASM.setParameter('history', history)
+        avg_q = copy.deepcopy(first_sasm.q[q_min:q_max])
+        avg_i = copy.deepcopy(first_sasm.i[q_min:q_max])
+        avg_err = copy.deepcopy(first_sasm.err[q_min:q_max])
+        avg_parameters = copy.deepcopy(first_sasm.getAllParameters())
+        avg_q_err = copy.deepcopy(first_sasm.getQErr())
 
     else:
         #Check average is possible with provided curves:
-        first_sasm = sasm_list[0]
+
         first_q_min, first_q_max = first_sasm.getQrange()
 
         for each in sasm_list:
@@ -342,14 +320,12 @@ def weightedAverage(sasm_list, weightByError, weightCounter, forced = False):
         avg_err = copy.deepcopy(avg_err)
 
         avg_q = copy.deepcopy(first_sasm.q)[first_q_min:first_q_max]
-        avg1_parameters = copy.deepcopy(sasm_list[0].getAllParameters())
+        avg_q_err = copy.deepcopy(first_sasm.getQErr())
 
+    if copy_params:
         avg_parameters = get_shared_header(sasm_list)
 
-        avgSASM = SASM.SASM(avg_i, avg_q, avg_err, avg_parameters,
-            copy.deepcopy(first_sasm.getQErr()))
-        avgSASM.setParameter('filename', avg1_parameters['filename'])
-        history = avgSASM.getParameter('history')
+        avg_parameters['filename'] = copy.deepcopy(first_sasm.getParameter('filename'))
 
         history = {}
 
@@ -364,9 +340,13 @@ def weightedAverage(sasm_list, weightByError, weightCounter, forced = False):
 
             history_list.append(each_history)
 
+        history['averaged_files'] = history_list
+        avg_parameters['history'] = history
 
-        history['weighted_averaged_files'] = history_list
-        avgSASM.setParameter('history', history)
+    else:
+        avg_parameters = {'filename': copy.deepcopy(first_sasm.getParameter('filename'))}
+
+    avgSASM = SASM.SASM(avg_i, avg_q, avg_err, avg_parameters, avg_q_err)
 
     return avgSASM
 
@@ -426,7 +406,7 @@ def superimpose(sasm_star, sasm_list, choice):
             each_sasm.offset(offset)
 
 
-def merge(sasm_star, sasm_list):
+def merge(sasm_star, sasm_list, copy_params=True):
 
     """ Merge one or more sasms by averaging and possibly interpolating
     points if all values are not on the same q scale """
@@ -514,37 +494,38 @@ def merge(sasm_star, sasm_list):
     newq = np.append(newq, tmp_s2q[qmin:qmax])
     newerr = np.append(newerr, tmp_s2err[qmin:qmax])
 
-    #create a new SASM object with the merged parts.
-    merge1_parameters = copy.deepcopy(s1.getAllParameters())
+    if copy_params:
+        merge_parameters = get_shared_header([s1, s2])
 
-    merge_parameters = get_shared_header([s1, s2])
+        merge_parameters['filename'] = copy.deepcopy(s1.getParameter('filename'))
+
+        history = {}
+
+        history_list = []
+
+        for eachsasm in [s1, s2]:
+            each_history = []
+            each_history.append(copy.deepcopy(eachsasm.getParameter('filename')))
+
+            for key in eachsasm.getParameter('history'):
+                each_history.append({key : copy.deepcopy(eachsasm.getParameter('history')[key])})
+
+            history_list.append(each_history)
+
+        history['merged_files'] = history_list
+        merge_parameters['history'] = history
+
+    else:
+        merge_parameters = {'filename': copy.deepcopy(s1.getParameter('filename'))}
 
     newSASM = SASM.SASM(newi, newq, newerr, merge_parameters)
-    newSASM.setParameter('filename', merge1_parameters['filename'])
-
-    history = newSASM.getParameter('history')
-
-    history = {}
-
-    history_list = []
-
-    for eachsasm in [s1, s2]:
-        each_history = []
-        each_history.append(copy.deepcopy(eachsasm.getParameter('filename')))
-        for key in eachsasm.getParameter('history'):
-            each_history.append({key : copy.deepcopy(eachsasm.getParameter('history')[key])})
-
-        history_list.append(each_history)
-
-    history['merged_files'] = history_list
-    newSASM.setParameter('history', history)
 
     if len(sasm_list) == 0:
         return newSASM
     else:
         return merge(newSASM, sasm_list)
 
-def interpolateToFit(sasm_star, sasm):
+def interpolateToFit(sasm_star, sasm, copy_params=True):
     s1 = sasm_star
     s2 = sasm
 
@@ -581,35 +562,46 @@ def interpolateToFit(sasm_star, sasm):
     #interpolate find the I's that fits the q vector of s1:
     f = interp.interp1d(s2.q[q2_indexs], s2.i[q2_indexs])
     f_err = interp.interp1d(s2.q[q2_indexs], s2.err[q2_indexs])
-
     intp_i_s2 = f(s1.q[q1_indexs])
     intp_q_s2 = s1.q[q1_indexs].copy()
     newerr = f_err(s1.q[q1_indexs])
 
-    parameters = copy.deepcopy(s1.getAllParameters())
+    if s2.q_err is not None:
+        f_q_err = interp.interp1d(s2.q[q2_indexs], s2.q_err[q2_indexs])
+        new_q_err = f_q_err(s1.q[q1_indexs])
 
-    newSASM = SASM.SASM(intp_i_s2, intp_q_s2, newerr, parameters)
+    else:
+        new_q_err = None
 
-    history = newSASM.getParameter('history')
+    if copy_params:
+        parameters = get_shared_header([s1, s2])
 
-    history = {}
+        parameters['filename'] = copy.deepcopy(s1.getParameter('filename'))
 
-    history1 = []
-    history1.append(copy.deepcopy(s1.getParameter('filename')))
-    for key in s1.getParameter('history'):
-        history1.append({key:copy.deepcopy(s1.getParameter('history')[key])})
+        history = {}
 
-    history2 = []
-    history2.append(copy.deepcopy(s2.getParameter('filename')))
-    for key in s2.getParameter('history'):
-        history2.append({key:copy.deepcopy(s2.getParameter('history')[key])})
+        history1 = []
+        history1.append(copy.deepcopy(s1.getParameter('filename')))
+        for key in s1.getParameter('history'):
+            history1.append({ key : copy.deepcopy(s1.getParameter('history')[key])})
 
-    history['interpolation'] = {'initial_file':history1, 'interpolated_to_q_of':history2}
-    newSASM.setParameter('history', history)
+        history2 = []
+        history2.append(copy.deepcopy(s2.getParameter('filename')))
+        for key in s2.getParameter('history'):
+            history2.append({key : copy.deepcopy(s2.getParameter('history')[key])})
+
+        history['interpolation'] = {'initial_file':history1, 'interpolated_to_q_of':history2}
+
+        parameters['history'] = history
+
+    else:
+        parameters = {'filename': copy.deepcopy(s1.getParameter('filename'))}
+
+    newSASM = SASM.SASM(intp_i_s2, intp_q_s2, newerr, parameters, new_q_err)
 
     return newSASM
 
-def logBinning(sasm, no_points):
+def logBinning(sasm, no_points, copy_params=True):
     no_points = int(no_points)
 
     q = sasm.getQ()
@@ -664,31 +656,35 @@ def logBinning(sasm, no_points):
         else:
             binned_q_err = None
 
-        binned_q, binned_i, binned_err, binned_q_err = sub_log_bin(q, i, err_sqr,
+        binned_q, binned_i, binned_err, binned_q_err = inner_log_bin(q, i, err_sqr,
             q_err, binned_q, binned_i, binned_err, binned_q_err, log_bins)
 
-    parameters = copy.deepcopy(sasm.getAllParameters())
+    if copy_params:
+        parameters = copy.deepcopy(sasm.getAllParameters())
+
+        old_history = parameters['history']
+
+        history1 = []
+        history1.append(copy.deepcopy(sasm.getParameter('filename')))
+
+        for key in old_history:
+            history1.append({key:old_history[key]})
+
+        history = {}
+        history['log_binning'] = {'initial_file' : history1,
+            'initial_points' : total_pts, 'final_points': len(binned_q)}
+
+        parameters['history'] = history
+
+    else:
+        parameters = {'filename' : copy.deepcopy(sasm.getParameter('filename'))}
 
     newSASM = SASM.SASM(binned_i, binned_q, binned_err, parameters, binned_q_err)
-
-    history = newSASM.getParameter('history')
-
-    history = {}
-
-    history1 = []
-    history1.append(copy.deepcopy(sasm.getParameter('filename')))
-
-    for key in sasm.getParameter('history'):
-        history1.append({key:copy.deepcopy(sasm.getParameter('history')[key])})
-
-    history['log_binning'] = {'initial_file' : history1, 'initial_points' : len(q), 'final_points': len(bins)}
-
-    newSASM.setParameter('history', history)
 
     return newSASM
 
 @numba.jit(nopython=True, cache=True)
-def sub_log_bin(q, i, err_sqr, q_err, binned_q, binned_i, 
+def inner_log_bin(q, i, err_sqr, q_err, binned_q, binned_i,
     binned_err, binned_q_err, log_bins):
     for j in range(log_bins.shape[0]-1):
         start_idx = log_bins[j]
@@ -703,7 +699,7 @@ def sub_log_bin(q, i, err_sqr, q_err, binned_q, binned_i,
 
     return binned_q, binned_i, binned_err, binned_q_err
 
-def rebin(sasm, rebin_factor):
+def rebin(sasm, rebin_factor, copy_params=True):
     ''' Sets the bin size of the I_q plot
         end_idx will be lowered to fit the bin_size
         if needed.
@@ -732,17 +728,46 @@ def rebin(sasm, rebin_factor):
 
     if sasm.q_err is not None:
         q_err_roi = sasm.getQErr()[start_idx:end_idx]
+        q_err_sqr = q_err_roi**2
     else:
         q_err_roi = None
+        q_err_sqr = None
 
-    if q_err_roi is not None:
-        q_err_sqr = q_err_roi**2
+    new_i, new_q, new_err, new_q_err = inner_bin(i_roi, q_roi, err_sqr,
+        q_err_sqr, no_of_bins, rebin_factor)
 
+
+    if copy_params:
+        parameters = copy.deepcopy(sasm.getAllParameters())
+
+        old_history = parameters['history']
+
+        history1 = []
+        history1.append(copy.deepcopy(sasm.getParameter('filename')))
+
+        for key in old_history:
+            history1.append({key:old_history[key]})
+
+        history = {}
+        history['linear_binning'] = {'initial_file' : history1,
+            'initial_points' : len_iq, 'final_points': no_of_bins}
+
+        parameters['history'] = history
+
+    else:
+        parameters = {'filename' : copy.deepcopy(sasm.getParameter('filename'))}
+
+    newSASM = SASM.SASM(new_i, new_q, new_err, parameters, new_q_err)
+
+    return newSASM
+
+@numba.jit(nopython=True, cache=True)
+def inner_bin(i_roi, q_roi, err_sqr, q_err_sqr, no_of_bins, rebin_factor):
     new_i = np.zeros(no_of_bins)
     new_q = np.zeros(no_of_bins)
     new_err = np.zeros(no_of_bins)
 
-    if q_err_roi is not None:
+    if q_err_sqr is not None:
         new_q_err = np.zeros(no_of_bins)
     else:
         new_q_err = None
@@ -755,37 +780,10 @@ def rebin(sasm, rebin_factor):
         new_q[eachbin] = np.sum(q_roi[first_idx:last_idx]) / rebin_factor
         new_err[eachbin] = np.sqrt(np.sum(err_sqr[first_idx:last_idx])) / (last_idx-first_idx)
 
-        if q_err_roi is not None:
+        if q_err_sqr is not None:
             new_q_err[eachbin] = np.sqrt(np.sum(q_err_sqr[first_idx:last_idx])) / (last_idx-first_idx)
 
-
-    parameters = copy.deepcopy(sasm.getAllParameters())
-
-    newSASM = SASM.SASM(new_i, new_q, new_err, parameters, new_q_err)
-
-    qstart, qend = sasm.getQrange()
-
-    # new_qstart = int(qstart/float(rebin_factor)+.5)
-    # new_qend = int(qend/float(rebin_factor))
-
-    # newSASM.setQrange([new_qstart, new_qend])
-
-    history = newSASM.getParameter('history')
-
-    history = {}
-
-    history1 = []
-    history1.append(copy.deepcopy(sasm.getParameter('filename')))
-
-    for key in sasm.getParameter('history'):
-        history1.append({key:copy.deepcopy(sasm.getParameter('history')[key])})
-
-    history['log_binning'] = {'initial_file' : history1, 'initial_points' : len_iq, 'final_points': no_of_bins}
-
-    newSASM.setParameter('history', history)
-
-    return newSASM
-
+    return new_i, new_q, new_err, new_q_err
 
 def binfixed(q, I, er, refq):
     """

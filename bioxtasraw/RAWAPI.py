@@ -783,7 +783,7 @@ def save_report(fname, datadir='.', profiles=[], ifts=[], series=[],
     RAWReport.make_report_from_raw(fname, datadir, profiles, ifts, series,
         __default_settings, dammif_data)
 
-def average(profiles, forced=False):
+def average(profiles, forced=False, copy_metadata=True):
     """
     Averages the input profiles into a single averaged profile. Note that
     unlike in the RAW GUI there is no automatic testing for similarity in
@@ -796,6 +796,11 @@ def average(profiles, forced=False):
     forced: bool, optional
         If True, RAW will attempt to average profiles even if the q vectors
         do not agree. Defaults to False.
+    copy_metadata: bool, optional
+        If True, RAW will copy add add to the metadata for the averaged file.
+        In some cases this can significantly slow down the processing, so if you
+        don't need the metadata, such as a profile generated as an intermediate
+        in a calculation but not saved, set this to false. Defaults to True.
 
     Returns
     -------
@@ -809,14 +814,14 @@ def average(profiles, forced=False):
         not forced (or if it fails to find a solution even if forced).
     """
 
-    avg_profile = SASProc.average(profiles, forced)
+    avg_profile = SASProc.average(profiles, forced, copy_params=copy_metadata)
     avg_profile.setParameter('filename',
         'A_{}'.format(avg_profile.getParameter('filename')))
 
     return avg_profile
 
 def weighted_average(profiles, weight_by_error=True, weight_counter='',
-    forced=False, settings=None):
+    forced=False, settings=None, copy_metadata=True):
     """
     Averages the input profiles into a single averaged profile, using a
     weighted average. Note that unlike in the RAW GUI there is no automatic
@@ -844,6 +849,11 @@ def weighted_average(profiles, weight_by_error=True, weight_counter='',
         RAW settings containing relevant parameters. If provided, the
         weight_by_error and weight_counter parameters will be overridden
         with the values in the settings. Default is None.
+    copy_metadata: bool, optional
+        If True, RAW will copy add add to the metadata for the averaged file.
+        In some cases this can significantly slow down the processing, so if you
+        don't need the metadata, such as a profile generated as an intermediate
+        in a calculation but not saved, set this to false. Defaults to True.
 
     Returns
     -------
@@ -862,14 +872,14 @@ def weighted_average(profiles, weight_by_error=True, weight_counter='',
         weight_counter = settings.get('weightCounter')
 
     avg_profile = SASProc.weightedAverage(profiles, weight_by_error,
-        weight_counter, forced = False)
+        weight_counter, forced = False, copy_params=copy_metadata)
 
     avg_profile.setParameter('filename',
         'A_{}'.format(avg_profile.getParameter('filename')))
 
     return avg_profile
 
-def subtract(profiles, bkg_profile, forced=False, full=False):
+def subtract(profiles, bkg_profile, forced=False, full=False, copy_metadata=True):
     """
     Subtracts a background profile from the other input profiles.
 
@@ -887,6 +897,11 @@ def subtract(profiles, bkg_profile, forced=False, full=False):
         defined q start and q end indices. If True, RAW will use the full q
         range of the profile, regardless of the defined q start and end indices.
         Defaults to False.
+    copy_metadata: bool, optional
+        If True, RAW will copy add add to the metadata for the averaged file.
+        In some cases this can significantly slow down the processing, so if you
+        don't need the metadata, such as a profile generated as an intermediate
+        in a calculation but not saved, set this to false. Defaults to True.
 
     Returns
     -------
@@ -899,7 +914,8 @@ def subtract(profiles, bkg_profile, forced=False, full=False):
     if not isinstance(profiles, list):
         profiles = [profiles]
 
-    sub_profiles = [SASProc.subtract(profile, bkg_profile, forced, full)
+    sub_profiles = [SASProc.subtract(profile, bkg_profile, forced, full,
+        copy_params=copy_metadata)
         for profile in profiles]
 
     for profile in sub_profiles:
@@ -908,7 +924,7 @@ def subtract(profiles, bkg_profile, forced=False, full=False):
 
     return sub_profiles
 
-def rebin(profiles, npts=100, rebin_factor=1, log_rebin=False):
+def rebin(profiles, npts=100, rebin_factor=1, log_rebin=False, copy_metadata=True):
     """
     Rebins the input profiles to either the given number of points or
     by the specified factor.
@@ -928,6 +944,11 @@ def rebin(profiles, npts=100, rebin_factor=1, log_rebin=False):
     log_rebin: bool, option.
         Specifies whether the rebinning should be done in linear (False) or
         logarithmic (True) space. Defaults to linear (False).
+    copy_metadata: bool, optional
+        If True, RAW will copy add add to the metadata for the averaged file.
+        In some cases this can significantly slow down the processing, so if you
+        don't need the metadata, such as a profile generated as an intermediate
+        in a calculation but not saved, set this to false. Defaults to True.
 
     Returns
     -------
@@ -958,9 +979,11 @@ def rebin(profiles, npts=100, rebin_factor=1, log_rebin=False):
             rb_pts = npts
 
         if log_rebin:
-            rebin_profile = SASProc.logBinning(profile, rb_pts)
+            rebin_profile = SASProc.logBinning(profile, rb_pts,
+                copy_params=copy_metadata)
         else:
-            rebin_profile = SASProc.rebin(profile, rb_fac)
+            rebin_profile = SASProc.rebin(profile, rb_fac,
+                copy_params=copy_metadata)
 
         rebin_profile.setParameter('filename',
             'R_{}'.format(rebin_profile.getParameter('filename')))
@@ -969,7 +992,7 @@ def rebin(profiles, npts=100, rebin_factor=1, log_rebin=False):
 
     return rebinned_profiles
 
-def interpolate(profiles, ref_profile):
+def interpolate(profiles, ref_profile, copy_metadata=True):
     """
     Interpolates the input profiles onto the reference profile's q vector.
 
@@ -979,6 +1002,11 @@ def interpolate(profiles, ref_profile):
         A list of profiles (:class:`bioxtasraw.SASM.SASM`) to be interpolated.
     ref_profile: :class:`bioxtasraw.SASM.SASM`
         The reference profile the profiles are interpolated onto.
+    copy_metadata: bool, optional
+        If True, RAW will copy add add to the metadata for the averaged file.
+        In some cases this can significantly slow down the processing, so if you
+        don't need the metadata, such as a profile generated as an intermediate
+        in a calculation but not saved, set this to false. Defaults to True.
 
     Returns
     -------
@@ -988,8 +1016,8 @@ def interpolate(profiles, ref_profile):
         profile.
     """
 
-    interpolated_profiles = [SASProc.interpolateToFit(ref_profile, profile)
-        for profile in profiles]
+    interpolated_profiles = [SASProc.interpolateToFit(ref_profile, profile,
+        copy_params=copy_metadata) for profile in profiles]
 
     for profile in interpolated_profiles:
         profile.setParameter('filename',
@@ -997,7 +1025,7 @@ def interpolate(profiles, ref_profile):
 
     return interpolated_profiles
 
-def merge(profiles):
+def merge(profiles, copy_metadata=True):
     """
     Merges the input profiles onto a single profile. Overlapping regions
     are averaged. Merging is done by sorting profiles by q range, then merging
@@ -1009,6 +1037,11 @@ def merge(profiles):
     ----------
     profiles: list
         A list of profiles (:class:`bioxtasraw.SASM.SASM`) to be merged.
+    copy_metadata: bool, optional
+        If True, RAW will copy add add to the metadata for the averaged file.
+        In some cases this can significantly slow down the processing, so if you
+        don't need the metadata, such as a profile generated as an intermediate
+        in a calculation but not saved, set this to false. Defaults to True.
 
     Returns
     -------
@@ -1016,7 +1049,8 @@ def merge(profiles):
         A single merged profile.
     """
 
-    merged_profile = SASProc.merge(profiles[0], profiles[1:])
+    merged_profile = SASProc.merge(profiles[0], profiles[1:],
+        copy_params=copy_metadata)
 
     merged_profile.setParameter('filename',
             'M_{}'.format(merged_profile.getParameter('filename')))

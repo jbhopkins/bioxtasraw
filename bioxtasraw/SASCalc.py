@@ -2643,7 +2643,7 @@ def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
 
             if np.all(truth_test):
                 try:
-                    current_sasm = SASProc.average(current_sasm_list)
+                    current_sasm = SASProc.average(current_sasm_list, copy_params=False)
                 except SASExceptions.DataNotCompatible:
                     return False, {}
 
@@ -2720,7 +2720,7 @@ def integral_baseline(sasms, start_range, end_range, max_iter, min_iter):
     end_frames = list(range(end_range[0], end_range[1]+1))
     end_sasms = [sasms[j] for j in end_frames]
 
-    sasm_bl = SASProc.average(end_sasms, forced=True)
+    sasm_bl = SASProc.average(end_sasms, forced=True, copy_params=False)
     i_bl = sasm_bl.getI()
 
     win_len = len(sasms)//2
@@ -2793,6 +2793,23 @@ def linear_baseline(sasms, start_range, end_range):
 
 ###############################################################################
 #EFA below here
+def runEFA(A, forward=True):
+    """Runs the forward or backward evolving factor calculations."""
+    slist = np.zeros_like(A)
+
+    jmax = A.shape[1]
+
+    if not forward:
+        A = A[:,::-1]
+
+    for j in range(jmax):
+        s = np.linalg.svd(A[:, :j+1], full_matrices = False, compute_uv = False)
+        slist[:s.size, j] = s
+
+        if j > 0:
+            slist[s.size-1:, j-1] = s[-1]
+
+    return slist
 
 def runRotation(D, intensity, err, ranges, force_positive, svd_v, previous_results=None,
     method='Hybrid', niter=1000, tol=1e-12):
@@ -2932,23 +2949,6 @@ def runRotation(D, intensity, err, ranges, force_positive, svd_v, previous_resul
             'chisq' : chisq}
 
     return converged, conv_data, rotation_data
-
-def runEFA(A, forward=True):
-    slist = np.zeros_like(A)
-
-    jmax = A.shape[1]
-
-    if not forward:
-        A = A[:,::-1]
-
-    for j in range(jmax):
-        s = np.linalg.svd(A[:, :j+1], full_matrices = False, compute_uv = False)
-        slist[:s.size, j] = s
-
-        if j > 0:
-            slist[s.size-1:, j-1] = s[-1]
-
-    return slist
 
 def runExplicitEFARotation(M, D, failed, C, V_bar, T, niter, tol, force_pos):
     num_sv = M.shape[1]
@@ -3195,7 +3195,7 @@ def run_full_efa(series, ranges, profile_type='sub', framei=None, framef=None,
         ranges = np.array(ranges)
 
     (svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, intensity, err, svd_a,
-        success) = SVDOnSASMs(sasm_list)
+        success) = SVDonSASMs(sasm_list, do_binning=False, do_autocorr=False)
 
     converged, conv_data, rotation_data = runRotation(svd_a, intensity,
         err, ranges, force_positive, svd_V, previous_results=previous_results,
@@ -3398,7 +3398,7 @@ def significantSingularValues(sasms):
     """
 
     (svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, i, err, svd_a,
-        continue_svd_analysis) = SVDOnSASMs(sasms)
+        continue_svd_analysis) = SVDonSASMs(sasms, do_binning=False)
 
     if continue_svd_analysis:
         svals = findSignificantSingularValues(svd_s, svd_U_autocor, svd_V_autocor)
@@ -3418,9 +3418,24 @@ def significantSingularValues(sasms):
 
     return svd_results
 
-def SVDOnSASMs(sasms, err_norm=True):
-    i = np.array([sasm.getI() for sasm in sasms])
-    err = np.array([sasm.getErr() for sasm in sasms])
+def prepareSASMsforSVD(sasms, err_norm=True, do_binning=True, bin_to=100):
+    if do_binning:
+        rebinned_sasms = []
+        for sasm in sasms:
+            rb_fac = int(np.floor(len(sasm.getQ())/float(bin_to)))
+
+            if rb_fac > 1:
+                rb_sasm = SASProc.rebin(sasm, rb_fac, copy_params=False)
+            else:
+                rb_sasm = sasm
+
+            rebinned_sasms.append(rb_sasm)
+
+    else:
+        rebinned_sasms = sasms
+
+    i = np.array([sasm.getI() for sasm in rebinned_sasms])
+    err = np.array([sasm.getErr() for sasm in rebinned_sasms])
 
     i = i.T #Because of how numpy does the SVD, to get U to be the scattering vectors and V to be the other, we have to transpose
     err = err.T
@@ -3436,6 +3451,9 @@ def SVDOnSASMs(sasms, err_norm=True):
     else:
         svd_a = i
 
+    return svd_a, i, err
+
+def doSVDonSASMs(svd_a, do_autocorr=True):
     if np.all(np.isfinite(svd_a)):
         try:
             svd_U, svd_s, svd_Vt = np.linalg.svd(svd_a, full_matrices = True)
@@ -3443,12 +3461,17 @@ def SVDOnSASMs(sasms, err_norm=True):
         except Exception:
             success = False
 
-        if success:
+        if success and do_autocorr:
             svd_V = svd_Vt.T
             svd_U_autocor = np.abs(np.array([np.correlate(svd_U[:,k],
                 svd_U[:,k], mode = 'full')[-svd_U.shape[0]+1] for k in range(svd_U.shape[1])]))
             svd_V_autocor = np.abs(np.array([np.correlate(svd_V[:,k],
                 svd_V[:,k], mode = 'full')[-svd_V.shape[0]+1] for k in range(svd_V.shape[1])]))
+
+        elif success:
+            svd_V = svd_Vt.T
+            svd_U_autocor = []
+            svd_V_autocor = []
         else:
             svd_U = []
             svd_s = []
@@ -3462,6 +3485,14 @@ def SVDOnSASMs(sasms, err_norm=True):
         svd_U_autocor = []
         svd_V_autocor = []
         success = False
+
+    return svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, success
+
+
+def SVDonSASMs(sasms, err_norm=True, do_binning=True, bin_to=100, do_autocorr=True):
+    svd_a, i, err = prepareSASMsforSVD(sasms, err_norm, do_binning, bin_to)
+
+    svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, success = doSVDonSASMs(svd_a, do_autocorr)
 
     return svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, i, err, svd_a, success
 
@@ -3854,7 +3885,8 @@ def validateSample(sub_sasms, frame_idx, intensity, rg, vcmw, vpmw,
             idxs = sort_idx[:i+1]
             avg_list = [sub_sasms[idx] for idx in idxs]
 
-            average_sasm = SASProc.average(avg_list, forced=True)
+            average_sasm = SASProc.average(avg_list, forced=True,
+                copy_params=False)
             avg_i = average_sasm.getI()
             avg_err = average_sasm.getErr()
 
@@ -4036,10 +4068,11 @@ def validateBaseline(sasms, frame_idx, intensity, bl_type, ref_sasms, start,
         #     return valid, similarity_results, svd_results, intI_results, other_results
 
         if not start:
-            start_avg_sasm = SASProc.average(ref_sasms, forced=True)
-            end_avg_sasm = SASProc.average(sasms, forced=True)
+            start_avg_sasm = SASProc.average(ref_sasms, forced=True, copy_params=False)
+            end_avg_sasm = SASProc.average(sasms, forced=True, copy_params=False)
 
-            diff_sasm = SASProc.subtract(end_avg_sasm, start_avg_sasm, forced=True)
+            diff_sasm = SASProc.subtract(end_avg_sasm, start_avg_sasm, forced=True,
+                copy_params=False)
 
             diff_i = diff_sasm.getI()
             end_err = end_avg_sasm.getErr()
@@ -4300,22 +4333,22 @@ def processBaseline(unsub_sasms, sub_sasms, r1, r2, bl_type, min_iter, max_iter,
 
 
             parameters = copy.deepcopy(sasm.getAllParameters())
-            newSASM = SASM.SASM(i, q, err, {}, copy.deepcopy(sasm.getQErr()))
-            newSASM.setParameter('filename', parameters['filename'])
 
-            history = newSASM.getParameter('history')
-
-            history = {}
+            old_history = parameters['history']
 
             history1 = []
             history1.append(copy.deepcopy(sasm.getParameter('filename')))
-            for key in sasm.getParameter('history'):
-                history1.append({ key : copy.deepcopy(sasm.getParameter('history')[key])})
 
+            for key in old_history:
+                history1.append({key:old_history[key]})
+
+            history = {}
             history['baseline_correction'] = {'initial_file':history1,
                 'type':bl_type}
 
-            newSASM.setParameter('history', history)
+            parameters['history'] = history
+
+            newSASM = SASM.SASM(i, q, err, parameters, copy.deepcopy(sasm.getQErr()))
 
             bl_sasms.append(newSASM)
 
@@ -4355,22 +4388,22 @@ def processBaseline(unsub_sasms, sub_sasms, r1, r2, bl_type, min_iter, max_iter,
 
 
             parameters = copy.deepcopy(sasm.getAllParameters())
-            newSASM = SASM.SASM(i, q, err, {}, copy.deepcopy(sasm.getQErr()))
-            newSASM.setParameter('filename', parameters['filename'])
 
-            history = newSASM.getParameter('history')
-
-            history = {}
+            old_history = parameters['history']
 
             history1 = []
             history1.append(copy.deepcopy(sasm.getParameter('filename')))
-            for key in sasm.getParameter('history'):
-                history1.append({ key : copy.deepcopy(sasm.getParameter('history')[key])})
 
+            for key in old_history:
+                history1.append({key:old_history[key]})
+
+            history = {}
             history['baseline_correction'] = {'initial_file':history1,
                 'type':bl_type}
 
-            newSASM.setParameter('history', history)
+            parameters['history'] = history
+
+            newSASM = SASM.SASM(i, q, err, parameters, copy.deepcopy(sasm.getQErr()))
 
             bl_sasms.append(newSASM)
 
@@ -4402,10 +4435,12 @@ def processBaseline(unsub_sasms, sub_sasms, r1, r2, bl_type, min_iter, max_iter,
                 else:
                     bkg_sasm = zeroSASM
 
-        bl_unsub_sasms.append(SASProc.subtract(unsub_sasms[j], bkg_sasm, forced = True))
+        bl_unsub_sasms.append(SASProc.subtract(unsub_sasms[j], bkg_sasm,
+            forced=True, copy_params=False))
 
     start_frames = list(range(r1[0], r1[1]+1))
-    bl_unsub_ref_sasm = SASProc.average([bl_unsub_sasms[j] for j in start_frames], forced=True)
+    bl_unsub_ref_sasm = SASProc.average([bl_unsub_sasms[j] for j in start_frames],
+        forced=True, copy_params=False)
 
     if  int_type == 'total':
         ref_intensity = bl_unsub_ref_sasm.getTotalI()

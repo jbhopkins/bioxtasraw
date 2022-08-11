@@ -1200,7 +1200,7 @@ def postProcessProfile(sasm, raw_settings, no_processing):
                 bkg_sasm, junk_img = loadFile(bkg_filename, raw_settings, no_processing=True)
                 if isinstance(bkg_sasm,list):
                     if len(bkg_sasm) > 1:
-                        bkg_sasm = SASProc.average(bkg_sasm)
+                        bkg_sasm = SASProc.average(bkg_sasm, copy_params=False)
                     else:
                         bkg_sasm = bkg_sasm[0]
                 raw_settings.set('NormAbsCarbonSamEmptySASM', bkg_sasm)
@@ -1700,7 +1700,8 @@ def loadHdf5File(filename, raw_settings):
                                         for start, end in br_range:
                                             buf_sasms = buf_sasms + unsub_sasms[start:end+1]
 
-                                        avg_buf_sasm = SASProc.average(buf_sasms)
+                                        avg_buf_sasm = SASProc.average(buf_sasms,
+                                            copy_params=False)
 
                                         ref_int = avg_buf_sasm.getTotalI()
 

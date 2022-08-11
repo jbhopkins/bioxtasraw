@@ -161,6 +161,29 @@ class SASM(object):
 
         return newsasm
 
+    def copy_no_metadata(self):
+        """
+        Creates a deep copy of the SAMS without the metadata, which will usually
+        be faster.
+        """
+        i_raw = copy.deepcopy(self._i_raw)
+        q_raw = copy.deepcopy(self._q_raw)
+        err_raw = copy.deepcopy(self._err_raw)
+        parameters = {}
+
+        newsasm = SASM(i_raw, q_raw, err_raw, parameters)
+
+        newsasm.setQrange(copy.deepcopy(self.getQrange()))
+        newsasm.setRawQErr(copy.deepcopy(self._q_err_raw))
+
+        newsasm.scale(copy.deepcopy(self.getScale()))
+        newsasm.offset(copy.deepcopy(self.getOffset()))
+        newsasm._q_scale_factor = copy.deepcopy(self._q_scale_factor)
+
+        newsasm._update()
+
+        return newsasm
+
     def _update(self):
         ''' updates modified intensity after scale, normalization and offset changes '''
 

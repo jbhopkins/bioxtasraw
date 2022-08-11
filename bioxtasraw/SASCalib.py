@@ -210,7 +210,7 @@ def calcAbsoluteScaleWaterConst(water_sasm, emptycell_sasm, I0_water, raw_settin
     if emptycell_sasm is None or emptycell_sasm == 'None' or water_sasm == 'None' or water_sasm is None:
         raise SASExceptions.AbsScaleNormFailed('Empty cell file or water file was not found. Open options to set these files.')
 
-    water_bgsub_sasm = SASProc.subtract(water_sasm, emptycell_sasm)
+    water_bgsub_sasm = SASProc.subtract(water_sasm, emptycell_sasm, copy_params=False)
 
     water_avg_end_idx = int( len(water_bgsub_sasm.i) * 0.666 )
     water_avg_start_idx = int( len(water_bgsub_sasm.i) * 0.333 )
@@ -239,7 +239,7 @@ def calcAbsoluteScaleCarbonConst(carbon_sasm, carbon_thickness,
         carbon_sasm.scale(1./carbon_ctr_ups_val)
         bkg_sasm.scale((1./bkg_ctr_ups_val)*carbon_trans)
 
-        exp_sasm = SASProc.subtract(carbon_sasm, bkg_sasm)
+        exp_sasm = SASProc.subtract(carbon_sasm, bkg_sas, copy_params=False)
 
         exp_sasm.scale(1./(carbon_trans)/carbon_thickness)
 
@@ -287,7 +287,8 @@ def normalizeAbsoluteScaleCarbon(sasm, raw_settings):
     bkg_sasm.scale((1./bkg_ctr_ups_val)*sample_trans)
 
     try:
-        sub_sasm = SASProc.subtract(sasm, bkg_sasm, forced = True, full = True)
+        sub_sasm = SASProc.subtract(sasm, bkg_sasm, forced=True, full=True,
+            copy_params=False)
     except SASExceptions.DataNotCompatible:
         sasm.scaleRawIntensity(sample_ctr_ups_val)
         raise SASExceptions.AbsScaleNormFailed('Absolute scale failed because empty scattering could not be subtracted')
