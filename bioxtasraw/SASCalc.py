@@ -3260,10 +3260,11 @@ def run_full_efa(series, ranges, profile_type='sub', framei=None, framef=None,
 
 def validateBuffer(sasms, frame_idx, intensity, sim_test, sim_cor, sim_thresh,
     fast):
-    max_i_idx = np.argmax(intensity)
+    median = np.median(intensity)
+    median_i_idx = (np.absolute(intensity-median)).argmin()
 
-    ref_sasm = copy.deepcopy(sasms[max_i_idx])
-    buffer_sasms = copy.deepcopy(sasms)
+    ref_sasm = sasms[median_i_idx].copy_no_metadata()
+    buffer_sasms = [sasm.copy_no_metadata() for sasm in sasms]
     qi, qf = ref_sasm.getQrange()
 
     #Test for frame correlation
@@ -3366,7 +3367,7 @@ def validateBuffer(sasms, frame_idx, intensity, sim_test, sim_cor, sim_thresh,
     similarity_results = {'all_similar'     : all_similar,
         'low_q_similar'     : low_q_similar,
         'high_q_similar'    : high_q_similar,
-        'max_idx'           : max_i_idx,
+        'median_idx'        : median_i_idx,
         'all_outliers'      : all_outliers,
         'low_q_outliers'    : low_q_outliers,
         'high_q_outliers'   : high_q_outliers,
@@ -3750,8 +3751,8 @@ def validateSample(sub_sasms, frame_idx, intensity, rg, vcmw, vpmw,
     sim_test, sim_cor, sim_thresh, fast):
     max_i_idx = np.argmax(intensity)
 
-    ref_sasm = copy.deepcopy(sub_sasms[max_i_idx])
-    superimpose_sub_sasms = copy.deepcopy(sub_sasms)
+    ref_sasm = sub_sasms[max_i_idx].copy_no_metadata()
+    superimpose_sub_sasms = [sasm.copy_no_metadata() for sasm in sub_sasms]
     SASProc.superimpose(ref_sasm, superimpose_sub_sasms, 'Scale')
     qi, qf = ref_sasm.getQrange()
 

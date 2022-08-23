@@ -5211,7 +5211,7 @@ def validate_buffer_range(series, buf_range, profile_type='unsub',
         are similar over the entire profile. 'low_q_similar' - whether all
         profiles in the selected range are similar over the low q region
         of the profile. 'high_q_similar' - whether all profiles in the
-        selected range are similar over the high q region. 'max_idx' -
+        selected range are similar over the high q region. 'median_idx' -
         The index of the profile used as the reference for the similarity test,
         corresponding to the profile with the highest intensity in the region.
         'all_outliers' - Indices of the outlier profiles of the similarity

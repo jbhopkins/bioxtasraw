@@ -8757,12 +8757,19 @@ class DenssRunPanel(wx.Panel):
             shrinkwrap_sigma_start_in_A *= 2.0
             shrinkwrap_sigma_end_in_A *= 2.0
 
+        elif self.denss_settings['mode'] == 'Custom':
+            if self.denss_settings['voxel'] == 'None':
+                self.denss_settings['voxel'] = dmax * self.denss_settings['oversample']/64
+
+            if self.denss_settings['swMinStep'] == 'None':
+                self.denss_settings['swMinStep'] = 1000
+
         if self.denss_settings['swSigmaStart'] == 'None':
-            shrinkwrap_sigma_start_in_vox = shrinkwrap_sigma_start_in_A / self.denss_settings['voxel']
+            shrinkwrap_sigma_start_in_vox = shrinkwrap_sigma_start_in_A / float(self.denss_settings['voxel'])
             self.denss_settings['swSigmaStart'] = shrinkwrap_sigma_start_in_vox
 
         if self.denss_settings['swSigmaEnd'] == 'None':
-            shrinkwrap_sigma_end_in_vox = shrinkwrap_sigma_end_in_A / self.denss_settings['voxel']
+            shrinkwrap_sigma_end_in_vox = shrinkwrap_sigma_end_in_A / float(self.denss_settings['voxel'])
             self.denss_settings['swSigmaEnd'] = shrinkwrap_sigma_end_in_vox
 
     def get_multi_output(self, out_queue, den_window, stop_event, nmsg=100):
@@ -22355,7 +22362,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
             msg = msg + ('\nStatistical tests were performed using the {} test '
                 'and a p-value\nthreshold of {}. Frame {} was chosen as the '
-                'reference frame.\n'.format(sim_test, sim_threshold, frame_idx[similarity_results['max_idx']]))
+                'reference frame.\n'.format(sim_test, sim_threshold, frame_idx[similarity_results['median_idx']]))
 
             all_outlier_set = set(frame_idx[similarity_results['all_outliers']])
             low_outlier_set = set(frame_idx[similarity_results['low_q_outliers']])
