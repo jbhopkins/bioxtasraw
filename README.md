@@ -2,10 +2,10 @@
 
 BioXTAS RAW is a program for analysis of Small-Angle X-ray Scattering (SAXS) data. The software enables: creation of 1D scattering profiles from 2D detector images, standard data operations such as averaging and subtraction, analysis of radius of gyration (Rg) and molecular weight, and advanced analysis using GNOM and DAMMIF as well as electron density reconstructions using DENSS. It also allows easy processing of inline SEC-SAXS data and data deconvolution using the evolving factor analysis (EFA) or the regularized alternating least squares (REGALS) methods.
 
-Install instructions: http://bioxtas-raw.readthedocs.io/en/latest/install.html and in the Files tab.
+Install instructions: http://bioxtas-raw.readthedocs.io/en/latest/install.html
 
 User guides:
-http://bioxtas-raw.readthedocs.io/ and in the Files tab.
+http://bioxtas-raw.readthedocs.io/
 
 To contact:
 https://bioxtas-raw.readthedocs.io/en/latest/help.html
