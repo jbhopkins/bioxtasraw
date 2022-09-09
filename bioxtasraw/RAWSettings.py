@@ -382,6 +382,25 @@ class RawGuiSettings(object):
                 'supcombMode'           : ['FAST', get_id(), 'choice'],
                 'supcombFraction'       : [1.0, get_id(), 'float'],
 
+                #CRYSOL settings
+                'crysolHarmonics'       : [20, get_id(), 'int'],
+                'crysolFibGrid'         : [17, get_id(), 'int'],
+                'crysolPoints'          : [101, get_id(), 'int'],
+                'crysolQmax'            : [0.5, get_id(), 'float'],
+                'crysolUnit'            : ['Unknown', get_id(), 'choice'],
+                'crysolSolvDensity'     : [0.334, get_id(), 'float'],
+                'crysolHydrDensity'     : [0.03, get_id(), 'float'],
+                'crysolConstant'        : [False, get_id(), 'bool'],
+                'crysolFitSolvent'      : [True, get_id(), 'bool'],
+                'crysolEnergy'          : ['None', get_id(), 'str'],
+                'crysolShell'           : ['directional', get_id(), 'choice'],
+                'crysolExplicitH'       : [False, get_id(), 'bool'],
+                'crysolImplicitH'       : ['None', get_id(), 'str'],
+                'crysolSubElement'      : ['None', get_id(), 'str'],
+                'crysolModelID'         : ['None', get_id(), 'str'],
+                'crysolChainId'         : ['None', get_id(), 'str'],
+                'crysolAltNames'        : [False, get_id(), 'bool'],
+
                 #Weighted Average Settings
                 'weightCounter'         : ['', get_id(), 'choice'],
                 'weightByError'         : [True, get_id(), 'bool'],

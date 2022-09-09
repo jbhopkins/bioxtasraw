@@ -2582,7 +2582,7 @@ def loadFitFile(filename):
         path_noext, ext = os.path.splitext(filename)
 
         fit_parameters = {'filename'  : os.path.split(path_noext)[1] + '_FIT',
-                          'counters' : {}}
+                          'counters' : fileHeader}
 
         if len(fileHeader) == 0:
             q, i, err, fit = _match_fit_lines(firstLine, q, i, err, fit, sasref)
@@ -2884,6 +2884,51 @@ def loadDamaverClusterFiles(clust_files):
             included_list, discarded_list))
 
     return cluster_list
+
+def loadCrysolLogFile(filename):
+    sd = -1
+    chisq = -1
+    prob = -1
+    dro = -1
+
+    with open(filename, 'r') as f:
+        for line in f:
+            if 'solvent density' in line.lower():
+                try:
+                    sd = float(line.split(':')[-1].strip())
+                except Exception:
+                    pass
+
+            if 'chi-square' in line.lower():
+                try:
+                    chisq = float(line.split(':')[-1].strip())
+                except Exception:
+                    pass
+
+            if 'probability of fit' in line.lower():
+                try:
+                    prob = float(line.split(':')[-1].strip())
+                except Exception:
+                    pass
+
+            if 'adjusted contrast of the solvation' in line.lower():
+                try:
+                    dro = float(line.split(':')[-1].strip())
+                except Exception:
+                    pass
+
+    results = {'Solvent_density' : sd}
+
+    if chisq != -1:
+        results['Chi_squared'] = chisq
+
+    if prob != -1:
+        results['Probability_of_fit'] = prob
+
+    if dro != -1:
+        results['Hydration_shell_contrast'] = dro
+
+    return results
 
 def loadPDBFile(filename):
     """
@@ -3309,23 +3354,38 @@ def _parse_header_line(firstLine):
     firstline_l = firstLine.lower()
     if 'chi^2' in firstline_l:
         chisq = firstline_l.split('chi^2')[-1].strip(':= ').split()[0].strip()
-        fileHeader['Chi_squared'] = float(chisq)
+        try:
+            fileHeader['Chi_squared'] = float(chisq)
+        except ValueError:
+            fileHeader['Chi_squared'] = -1
 
     if 'rg' in firstline_l:
         rg = firstline_l.split('rg')[-1].strip('t:= ').split()[0].strip()
-        fileHeader['Rg'] = float(rg)
+        try:
+            fileHeader['Rg'] = float(rg)
+        except ValueError:
+            fileHeader['Rg'] = -1
 
     if 'dro' in firstline_l:
         dro = firstline_l.split('dro')[-1].strip(':= ').split()[0].strip()
-        fileHeader['Hydration_shell_contrast'] = float(dro)
+        try:
+            fileHeader['Hydration_shell_contrast'] = float(dro)
+        except ValueError:
+            fileHeader['Hydration_shell_contrast'] = -1
 
     if 'vol' in firstline_l:
         vol = firstline_l.split('vol')[-1].strip(':= ').split()[0].strip()
-        fileHeader['Excluded_volume'] = float(vol)
+        try:
+            fileHeader['Excluded_volume'] = float(vol)
+        except Exception:
+            fileHeader['Excluded_volume'] = -1
 
     if 'vtot' in firstline_l:
         vol = firstline_l.split('vtot')[-1].strip(':= ').split()[0].strip()
-        fileHeader['Excluded_volume'] = float(vol)
+        try:
+            fileHeader['Excluded_volume'] = float(vol)
+        except Exception:
+            fileHeader['Excluded_volume'] = -1
 
     return fileHeader
 

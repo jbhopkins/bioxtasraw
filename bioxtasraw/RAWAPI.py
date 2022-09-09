@@ -4240,6 +4240,379 @@ def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
 
     return
 
+def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
+    prefix=None, fb=17, units=None,  constant=False, fit_solvent=True,
+    energy=None, shell='directional', explicit_hydrogen=False,
+    implicit_hydrogen=None, sub_element=None, model_id=None, chain_id=None,
+    alternative_names=False, atsas_dir=None, settings=None, save_output=False,
+    output_dir=None, abort_event=None, readback_queue=None):
+    """
+    Calculates the theoretical scattering profile from an atomic or bead model
+    using CRYSOL from the ATSAS package (requires ATSAS >=3.1.0). Can be used
+    to fit theoretical scattering profiles to experimental profiles. Note that
+    if multiple models and profiles are supplied they are run in a single CRYSOL
+    command. If you want to use multiple processors, you should supply a single
+    model/profile, and instead multithread the function call.
+
+    Parameters
+    ----------
+    models: list
+        A list of names of atomic models (pdb, cif) for input into crysol.
+        Should include the full path to the model.
+    profiles: list, optional
+        A list of `bioxtasraw.SASM.SASM` profiles to be fit by the theoretical
+        scattering profiles of the models. Alternatively a list of names of
+        experimental profiles on disk, including the full path to the profile.
+    lm: int, optional
+        Number of spherical harmonics used in NCC mode. Default 5.
+    ns: int, optional
+        Number of data points used in NCC mode. Default 51.
+    smax: float, optional
+        Maximum scattering angle in 1/A used in NCC mode. Default 0.5.
+    dns: float, optional
+        Solvent density. Default is 0.334 e/A^3, the electron density of pure
+        water. Note that fit_solvent must be False to use the provided parameter.
+    dro: float, optional
+        Contrast of the hydration shell. Default 0.03 e/A^3. Note that
+        fit_solvent must be False to use the provided parameter.
+    prefix: str, optional
+        The prefix perpended to the output files. Should only be used if a single
+        model (or single model and profile) are supplied.
+    fb: int, optional
+        Order of Fibonacci grid. Default 17. Only used if shell='directional'.
+    units: int, optional
+        Values 1 - 1/A (4pi*sin(th)/lm). 2 - 1/nm (4pi*sin(th)/lm). 3 - 1/A
+        ((2pi*sin(th)/lm)). 4 - 1/nm (2pi*sin(th)/lm). By default, units are
+        estimated.
+    constant: bool, optional
+        If True, a constant is subtracted to better fit the data. Default False.
+    fit_solvent: bool, optional
+        If False, input dns and dro parameters are used, otherwise they are fit
+        to the data. Default True.
+    energy: float, optional
+        X-ray energy in eV, used for calculating anomalous SAXS signals.
+    shell: str, optional
+        Hydration shell type, either 'directional' (classic CRYSOL) or 'water'
+        (previously CRYSOL3).
+    explicit_hydrogen: bool, optional
+        Use explicit hydrogens provided in the model file. Default False.
+    implicit_hydrogen: int, optional
+        Set this to >0 to override 'unable to determine number of hydrogens' errors.
+    sub_element: str, optional
+        Set this to a valid element to override 'unable to determine element' errors.
+    model_id: int, optional
+        Select a specific model ID from the model file. Deafult is all model IDs.
+    chain_id: str, optional
+        Select a specific chain ID from the model file. Default is all chain IDs.
+    alternative_names: bool, optional
+        Enable alternative (old) atom naming for all model files. Default is False.
+    atsas_dir: str, optional
+        The directory of the atsas programs (the bin directory). If not provided,
+        the API uses the auto-detected directory.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, every
+        parameter is overridden with the value in the settings file. Default is None.
+    save_output: bool, optional
+        Saves the CRYSOL output in output_dir. Default False.
+    output_dir: str, optional
+        Directory to save the CRYSOL output. Default None.
+    abort_event: :class:`threading.Event`, optional
+        A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
+        event is set it will abort the dammin run.
+    readback_queue: :class:`queue.Queue`, optional
+        If provided, any command line output (STDIN, STDERR) is placed in the
+        queue.
+
+    Returns
+    -------
+    crysol_results
+        If no more than one model and no more than one profile are provided,
+        a list of the calculated profiles (`bioxtasraw.SASM.SASM`) is returned.
+        Otherwise, a dictionary is returned, where the keys of the dictionary
+        are the names returned by CRYSOL (by default the model name or
+        model_profile name) and the values are a list of the calculated profiles
+        for each model/profile combination. If only a model is provided, two
+        results are returned, the first is the calculated profile on an absolute
+        scale (.abs file from CRYSOL) and the second is the calculated profile
+        unscaled (.int file from CRYSOL). If a model and a profile are provided,
+        one result is returned, the fit of the model to the profile (.fit file
+        from CRYSOL). Note that in the SASM parameters dictionary there is a
+        'crysol' item with values for Rg, chi^2, hydration, and other calculated
+        parameters.
+    """
+
+    if settings is None:
+        use_settings = __default_settings
+    else:
+        use_settings = settings
+
+    if atsas_dir is None:
+        atsas_dir = use_settings.get('ATSASDir')
+
+    if abort_event is None:
+        abort_event = threading.Event()
+    if readback_queue is None:
+        readback_queue = queue.Queue()
+    read_semaphore = threading.BoundedSemaphore(1)
+
+
+    if output_dir is not None:
+        output_dir = os.path.abspath(os.path.expanduser(output_dir))
+    else:
+        output_dir = os.path.abspath(os.path.expanduser(tempfile.gettempdir()))
+
+    for i in range(len(models)):
+        models[i] = os.path.abspath(os.path.expanduser(models[i]))
+
+    if profiles is not None:
+        exp_fnames = []
+        for i in range(len(profiles)):
+            if isinstance(profiles[i], SASM.SASM):
+                save_profile(profiles[i], datadir=output_dir, settings=use_settings)
+                exp_fnames.append(os.path.join(output_dir,
+                    profiles[i].getParameter('filename')))
+            else:
+                profiles[i] = os.path.abspath(os.path.expanduser(profiles[i]))
+
+                exp_fnames.append(profiles[i])
+    else:
+        exp_fnames = None
+
+    if settings is None:
+        crysol_settings = {
+            'prefix'            : prefix,
+            'lm'                : lm,
+            'fb'                : fb,
+            'ns'                : ns,
+            'smax'              : smax,
+            'units'             : units,
+            'dns'               : dns,
+            'dro'               : dro,
+            'constant'          : constant,
+            'fit_solvent'       : fit_solvent,
+            'energy'            : energy,
+            'shell'             : shell,
+            'explicit_hydrogen' : explicit_hydrogen,
+            'implicit_hydrogen' : implicit_hydrogen,
+            'sub_element'       : sub_element,
+            'model'             : model_id,
+            'chain'             : chain_id,
+            'alternative_names' : alternative_names,
+            }
+    else:
+        crysol_settings = {
+            'prefix'            : prefix,
+            'lm'                : settings.get('crysolHarmonics'),
+            'fb'                : settings.get('crysolFibGrid'),
+            'ns'                : settings.get('crysolPoints'),
+            'smax'              : settings.get('crysolQmax'),
+            'units'             : settings.get('crysolUnit'),
+            'dns'               : settings.get('crysolSolvDensity'),
+            'dro'               : settings.get('crysolHydrDensity'),
+            'constant'          : settings.get('crysolConstant'),
+            'fit_solvent'       : settings.get('crysolFitSolvent'),
+            'energy'            : settings.get('crysolEnergy'),
+            'shell'             : settings.get('crysolShell'),
+            'explicit_hydrogen' : settings.get('crysolExplicitH'),
+            'implicit_hydrogen' : settings.get('crysolImplicitH'),
+            'sub_element'       : settings.get('crysolSubElement'),
+            'model'             : settings.get('crysolModelID'),
+            'chain'             : settings.get('crysolChainId'),
+            'alternative_names' : settings.get('crysolAltNames'),
+            }
+
+        if crysol_settings['units'] == 'Unknown':
+            crysol_settings['units'] = None
+
+        if crysol_settings['energy'] == 'None':
+            crysol_settings['energy'] = None
+
+        if crysol_settings['explicit_hydrogen'] == 'None':
+            crysol_settings['explicit_hydrogen'] = None
+
+        if crysol_settings['implicit_hydrogen'] == 'None':
+            crysol_settings['implicit_hydrogen'] = None
+
+        if crysol_settings['model'] == 'None':
+            crysol_settings['model'] = None
+
+        if crysol_settings['chain'] == 'None':
+            crysol_settings['chain'] = None
+
+    proc = SASCalc.run_crysol(models, output_dir, atsas_dir, exp_fnames,
+        **crysol_settings)
+
+    readout_t = threading.Thread(target=SASUtils.enqueue_output,
+        args=(proc, readback_queue, read_semaphore))
+    readout_t.daemon = True
+    readout_t.start()
+
+    if proc is not None:
+        while proc.poll() is None:
+            if abort_event.is_set():
+                proc.terminate()
+                break
+            time.sleep(0.1)
+
+        with read_semaphore: #see if there's any last data that we missed
+            new_text = proc.stdout.read()
+
+            if not isinstance(new_text, str):
+                new_text = str(new_text, encoding='UTF-8')
+
+            if new_text != '':
+                readback_queue.put_nowait([new_text])
+
+    crysol_output_exts = ['.abs', '.alm', '.int', '.log']
+
+    if not abort_event.is_set():
+        crysol_results = {}
+
+        print(exp_fnames)
+        if exp_fnames is not None:
+            if prefix is not None:
+                data, fit = SASFileIO.loadFitFile(os.path.join(output_dir,
+                    '{}.fit'.format(prefix)))
+
+                log_results = SASFileIO.loadCrysolLogFile(os.path.join(output_dir,
+                        '{}.log'.format(prefix)))
+
+                counters = fit.getParameter('counters')
+                counters.update(log_results)
+
+                fit.setParameter('crysol', counters)
+
+                crysol_results[prefix] = [fit]
+
+                if not save_output:
+                    for ext in crysol_output_exts:
+                        tname = os.path.join(output_dir, '{}{}'.format(
+                            prefix, ext))
+
+                        if os.path.exists(tname):
+                            os.remove(tname)
+
+                    if os.path.exists(os.path.join(output_dir, '{}{}'.format(
+                        prefix, '.fit'))):
+                        os.remove(os.path.join(output_dir, '{}{}'.format(
+                            prefix, '.fit')))
+            else:
+                for exp_name in exp_fnames:
+
+                    for fname in models:
+                        name = '{}_{}'.format(os.path.split(os.path.splitext(fname)[0])[1],
+                            os.path.split(os.path.splitext(exp_name)[0])[1])
+
+                        data, fit = SASFileIO.loadFitFile(os.path.join(output_dir,
+                            '{}.fit'.format(name)))
+
+                        log_results = SASFileIO.loadCrysolLogFile(os.path.join(output_dir,
+                            '{}.log'.format(name)))
+
+                        counters = fit.getParameter('counters')
+                        counters.update(log_results)
+
+                        fit.setParameter('crysol', counters)
+
+                        crysol_results[name] = [fit]
+
+                        if not save_output:
+                            for ext in crysol_output_exts:
+                                tname = os.path.join(output_dir, '{}{}'.format(
+                                    os.path.split(os.path.splitext(fname)[0])[1],
+                                    ext))
+
+                                if os.path.exists(tname):
+                                    os.remove(tname)
+
+                            if os.path.exists(os.path.join(output_dir, '{}{}'.format(
+                                name, '.fit'))):
+                                os.remove(os.path.join(output_dir, '{}{}'.format(
+                                    name, '.fit')))
+
+                            if os.path.exists(os.path.join(output_dir, '{}{}'.format(
+                                name, '.log'))):
+                                os.remove(os.path.join(output_dir, '{}{}'.format(
+                                    name, '.log')))
+        else:
+            if prefix is not None:
+                fit = SASFileIO.loadFitFile(os.path.join(output_dir,
+                    '{}.int'.format(prefix)))
+
+                log_results = SASFileIO.loadCrysolLogFile(os.path.join(output_dir,
+                        '{}.log'.format(prefix)))
+
+                counters = fit.getParameter('counters')
+                counters.update(log_results)
+
+                fit.setParameter('crysol', counters)
+
+                abs_prof = SASFileIO.loadIntFile(os.path.join(output_dir,
+                    '{}.abs'.format(prefix)))
+
+                abs_prof.setParameter('crysol',
+                    copy.deepcopy(fit.getParameter('counters')))
+
+                crysol_results[name] = [abs_prof, fit]
+
+                crysol_results[prefix] = [fit]
+
+                if not save_output:
+                    for ext in crysol_output_exts:
+                        tname = os.path.join(output_dir, '{}{}'.format(
+                            prefix, ext))
+
+                        if os.path.exists(tname):
+                            os.remove(tname)
+
+            else:
+                for fname in models:
+                    name = os.path.split(os.path.splitext(fname)[0])[1]
+
+                    fit = SASFileIO.loadIntFile(os.path.join(output_dir,
+                        '{}.int'.format(name)))
+
+                    log_results = SASFileIO.loadCrysolLogFile(os.path.join(output_dir,
+                        '{}.log'.format(name)))
+
+                    counters = fit.getParameter('counters')
+                    counters.update(log_results)
+
+                    fit.setParameter('crysol', counters)
+
+                    abs_prof = SASFileIO.loadIntFile(os.path.join(output_dir,
+                        '{}.abs'.format(name)))
+
+                    abs_prof.setParameter('crysol',
+                        copy.deepcopy(fit.getParameter('counters')))
+
+                    crysol_results[name] = [abs_prof, fit]
+
+                    if not save_output:
+                        for ext in crysol_output_exts:
+                            tname = os.path.join(output_dir, '{}{}'.format(
+                                name, ext))
+
+                            if os.path.exists(tname):
+                                os.remove(tname)
+    else:
+        crysol_results = {}
+
+
+    if len(models) == 1 and (profiles is None or
+        (profiles is not None and len(profiles) <= 1)):
+        crysol_results = list(crysol_results.values())[0]
+
+    if profiles is not None:
+        for prof in profiles:
+            if isinstance(prof, SASM.SASM):
+                name = os.path.exists(os.path.join(output_dir,
+                    prof.getParameter('filename')))
+                if os.path.exists(name):
+                    os.remove(name)
+
+    return crysol_results
+
 def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     sym_type='Cyclical', initial_model=None, n_electrons=None, settings=None,
     voxel=5, oversampling=3, steps=10000,
@@ -4742,6 +5115,7 @@ def denss_align(density, side, ref_file, ref_datadir='.',  prefix='',
     return aligned_density, score
 
 # Operations on series
+
 
 def svd(series, profile_type='sub', framei=None, framef=None, norm=True):
     """

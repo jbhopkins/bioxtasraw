@@ -2490,7 +2490,7 @@ def run_crysol(fnames, path, atsasDir, exp_fnames=None, prefix=None, lm=20,
         my_env = setATSASEnv(atsasDir)
 
         cmd = ('"{}" --lm={} --fb={} --ns={} --smax={} --dns={} --dro={} '
-                '--shell={} '.format(crysolDir, lm, fb, ns, smax, dns, dro, shell))
+                '--shell={}'.format(crysolDir, lm, fb, ns, smax, dns, dro, shell))
 
         if constant:
             cmd += ' --constant'
@@ -2525,59 +2525,15 @@ def run_crysol(fnames, path, atsasDir, exp_fnames=None, prefix=None, lm=20,
         if prefix is not None:
             cmd += ' -p "{}"'.format(prefix)
 
-        cmd += '"' + '" "'.join(fnames) + '"'
+        cmd += ' "' + '" "'.join(fnames) + '"'
 
         if exp_fnames is not None:
-            cmd += '"' + '"" "'.join(exp_fnames) + '"'
+            cmd += ' "' + '" "'.join(exp_fnames) + '"'
 
-        process=subprocess.Popen(cmd, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, shell=True, cwd=path, env=my_env)
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, shell=True, cwd=path, env=my_env)
 
-        output, error = process.communicate()
-
-        if not isinstance(output, str):
-            output = str(output, encoding='UTF-8')
-
-        if not isinstance(error, str):
-            error = str(error, encoding='UTF-8')
-
-        error = error.strip()
-
-        if error != '':
-            raise SASExceptions.NoATSASError('Error running crysol:\n{}'.format(error))
-
-
-        if exp_fnames is not None:
-            crysol_results = []
-            if prefix:
-                data, fit = SASFileIO.loadFitFile(os.path.join(path,
-                    '{}.fit'.format(prefix)))
-
-                crysol_results.append(fit)
-
-            else:
-                for name in exp_names:
-                    for fname in fnames:
-                        data, fit = SASFileIO.loadFitFile(os.path.join(path,
-                            '{}_{}.fit'.format(os.path.splitext(fname)[0],
-                                os.path.splitext(name)[0])))
-
-                        crysol_results.append(fit)
-        else:
-            if prefix:
-                fit = SASFileIO.loadFitFile(os.path.join(path,
-                    '{}.int'.format(prefix)))
-
-                crysol_results.append(fit)
-
-            else:
-                for fname in fnames:
-                    fit = SASFileIO.loadIntFile(os.path.join(path,
-                        '{}.int'.format(os.path.splitext(fname))))
-
-                    crysol_results.append(fit)
-
-        return crysol_results
+        return process
 
     else:
         raise SASExceptions.NoATSASError('Cannot find crysol.')
