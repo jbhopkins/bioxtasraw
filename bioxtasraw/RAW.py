@@ -67,6 +67,7 @@ import wx.lib.buttons as wxbutton
 import wx.lib.agw.supertooltip as STT
 import wx.aui as aui
 import wx.lib.dialogs
+import wx.lib.agw.persist as PM
 
 if wx.version().split()[0].strip()[0] >= '4':
     import wx.adv
@@ -115,6 +116,22 @@ class MainFrame(wx.Frame):
 
     def __init__(self, title, frame_id):
         wx.Frame.__init__(self, None, frame_id, title, name = 'MainFrame')
+
+        # *************** Set minimum frame size ***************
+        client_display = wx.GetClientDisplayRect()
+        minsize = (min(800, client_display.Width), min(600, client_display.Height))
+        self.SetMinSize(self._FromDIP(minsize))
+
+        # Restore previous window position and size if available
+        self._persistMgr = PM.PersistenceManager.Get()
+        persist_file = os.path.join(RAWGlobals.RAWWorkDir, 'raw_persist_settings')
+        self._persistMgr.SetPersistenceFile(persist_file)
+
+        if not self._persistMgr.RegisterAndRestoreAll(self):
+            size = (min(1200, client_display.Width), min(900, client_display.Height))
+            self.SetSize(self._FromDIP(size))
+            self.CenterOnScreen()
+
 
         self.MenuIDs = {
             'exit'                  : self.NewControlId(),
@@ -249,10 +266,7 @@ class MainFrame(wx.Frame):
         self.statusbar.SetStatusText('Mode: OFFLINE', 2)
         self.Bind(wx.EVT_CLOSE, self._onCloseWindow)
 
-        # *************** Set minimum frame size ***************
-        client_display = wx.GetClientDisplayRect()
-        minsize = (min(800, client_display.Width), min(600, client_display.Height))
-        self.SetMinSize(self._FromDIP(minsize))
+
 
         # /* CREATE PLOT NOTEBOOK */
         self._closing = False #A hack for what seems to be an AUI bug
@@ -343,9 +357,10 @@ class MainFrame(wx.Frame):
         self.SetIcon(icon)
         app.SetTopWindow(self)
 
-        size = (min(1200, client_display.Width), min(900, client_display.Height))
-        self.SetSize(self._FromDIP(size))
-        self.CenterOnScreen()
+        # if not self._persistMgr.RegisterAndRestoreAll(self):
+        #     size = (min(1200, client_display.Width), min(900, client_display.Height))
+        #     self.SetSize(self._FromDIP(size))
+        #     self.CenterOnScreen()
         self.Show(True)
 
         thread = threading.Thread(target= self._compileNumbaJits)
@@ -419,7 +434,6 @@ class MainFrame(wx.Frame):
             BIFT.doBift(q, i, err, 'test', **bift_settings)
         except Exception:
             pass
-            traceback.print_exc()
 
     def _showWelcomeDialog(self):
         dlg = WelcomeDialog(self, name = "WelcomeDialog")
@@ -3133,8 +3147,10 @@ class MainFrame(wx.Frame):
             self._mgr.UnInit()
             self.sleep_inhibit.force_off()
 
+            self._persistMgr.SaveAndUnregister(self)
+
         except Exception:
-            pass
+            traceback.print_exc()
 
         finally:
             self.tbIcon.RemoveIcon()
