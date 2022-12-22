@@ -357,10 +357,6 @@ class MainFrame(wx.Frame):
         self.SetIcon(icon)
         app.SetTopWindow(self)
 
-        # if not self._persistMgr.RegisterAndRestoreAll(self):
-        #     size = (min(1200, client_display.Width), min(900, client_display.Height))
-        #     self.SetSize(self._FromDIP(size))
-        #     self.CenterOnScreen()
         self.Show(True)
 
         thread = threading.Thread(target= self._compileNumbaJits)
@@ -715,7 +711,6 @@ class MainFrame(wx.Frame):
             for frame in self.svd_frames:
                 frame.updateColors()
         except Exception:
-            traceback.print_exc()
             pass
 
         try:
@@ -4897,7 +4892,6 @@ class MainWorkerThread(threading.Thread):
         except SASExceptions.WrongImageFormat:
             wx.CallAfter(self._showDataFormatError, os.path.split(filename)[1], include_ascii = False)
             wx.CallAfter(self.main_frame.closeBusyDialog)
-            traceback.print_exc()
             return
 
         parameters = {'filename' : os.path.split(filename)[1],
@@ -6378,7 +6372,6 @@ class MainWorkerThread(threading.Thread):
                     wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [os.path.split(save_path[b])[1]])
 
         except Exception as e:
-            traceback.print_exc()
             msg = 'Unexpected error while saving series data:\n{}'.format(e)
             self._showSaveError('generic', msg)
 

@@ -4531,7 +4531,6 @@ class GNOMControlPanel(wx.Panel):
             min_val = 0.1)
         self.dmaxSpin.SetValue(1)
         self.dmaxSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
-        # self.dmaxSpin.Bind(wx.EVT_TEXT, self.onDmaxText)
 
         self.alpha_ctrl = wx.TextCtrl(parent, self.staticTxtIDs['alpha'],
             size=self._FromDIP((40,-1)), style=wx.TE_PROCESS_ENTER,
@@ -4853,19 +4852,6 @@ class GNOMControlPanel(wx.Panel):
         t = threading.Thread(target=self.findDmax)
         t.daemon=True
         t.start()
-
-    # def onDmaxText(self,evt):
-    #     self.dmaxSpin.Unbind(wx.EVT_TEXT) #Avoid infinite recursion
-
-
-    #     dmax = str(self.dmaxSpin.GetValue())
-    #     try:
-    #         dmax = float(dmax.replace(',', '.'))
-    #         self.dmaxSpin.SetValue(dmax)
-    #     except ValueError:
-    #         pass
-
-    #     self.dmaxSpin.Bind(wx.EVT_TEXT, self.onDmaxText)
 
     def onAlpha(self, evt):
         alpha = str(self.alpha_ctrl.GetValue())
