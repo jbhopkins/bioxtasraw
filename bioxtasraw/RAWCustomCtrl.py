@@ -262,11 +262,11 @@ EVT_MY_SPIN = wx.PyEventBinder(myEVT_MY_SPIN, 1)
 
 class FloatSpinCtrl(wx.Panel):
 
-    def __init__(self, parent, id, initValue=None, min_val=None, max_val=None,
+    def __init__(self, parent, my_id=-1, initValue=None, min_val=None, max_val=None,
         button_style = wx.SP_VERTICAL, TextLength=45, never_negative=False,
         **kwargs):
 
-        wx.Panel.__init__(self, parent, id, **kwargs)
+        wx.Panel.__init__(self, parent, my_id, **kwargs)
 
         if initValue is None:
             initValue = '1.00'

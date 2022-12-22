@@ -225,18 +225,32 @@ def vpB(q_max):
     B = 12.09*q_max**3 - 9.39*q_max**2 + 3.03*q_max+0.29
     return B
 
-def calcVqmax(q, i, rg, i0, choice='8/Rg', qmax=None):
+def calcVqmax(q, i, rg, i0, choice='8/Rg', qmax=None, unit=''):
     vpqmax = None
 
+    if unit == '1/nm':
+        temp_q = q/10
+        temp_rg = rg*10
+
+        if qmax is not None:
+            temp_qmax = qmax/10
+        else:
+            temp_qmax = qmax
+
+    else:
+        temp_q = q
+        temp_rg = rg
+        temp_qmax = qmax
+
     if choice == 'Default':
-        if rg != 0:
-            vpqmax = 8./rg
+        if temp_rg != 0:
+            vpqmax = 8./temp_rg
 
             if vpqmax > 0.5 or vpqmax < 0.1:
                 iratio = np.abs(np.log10(i0/i) - 2.25)
                 idx = np.argmin(iratio)
 
-                vpqmax = q[idx]
+                vpqmax = temp_q[idx]
 
             if vpqmax > 0.5:
                 vpqmax = 0.5
@@ -244,8 +258,8 @@ def calcVqmax(q, i, rg, i0, choice='8/Rg', qmax=None):
                 vpqmax = 0.1
 
     elif choice == '8/Rg':
-        if rg != 0:
-            vpqmax = 8./rg
+        if temp_rg != 0:
+            vpqmax = 8./temp_rg
 
             if vpqmax > 0.5:
                 vpqmax = 0.5
@@ -259,7 +273,7 @@ def calcVqmax(q, i, rg, i0, choice='8/Rg', qmax=None):
             iratio = np.abs(np.log10(i0/i) - 2.25)
             idx = np.argmin(iratio)
 
-            vpqmax = q[idx]
+            vpqmax = temp_q[idx]
 
             if vpqmax > 0.5:
                 vpqmax = 0.5
@@ -267,10 +281,10 @@ def calcVqmax(q, i, rg, i0, choice='8/Rg', qmax=None):
                 vpqmax = 0.1
 
     elif choice == 'Manual':
-        vpqmax = qmax
+        vpqmax = temp_qmax
 
     if vpqmax is None:
-        vpqmax = min(q[-1], 0.5)
+        vpqmax = min(temp_q[-1], 0.5)
 
     else:
         if vpqmax > q[-1]:
@@ -278,41 +292,52 @@ def calcVqmax(q, i, rg, i0, choice='8/Rg', qmax=None):
         elif vpqmax < q[0]:
             vpqmax = q[0]
         else:
-            idx = np.argmin(np.abs(q-vpqmax))
-            vpqmax = q[idx]
+            idx = np.argmin(np.abs(temp_q-vpqmax))
+            vpqmax = temp_q[idx]
 
             if choice != 'Manual':
                 if vpqmax < 0.1:
-                    vpqmax = q[idx+1]
+                    vpqmax = temp_q[idx+1]
                 elif vpqmax > 0.5:
-                    vpqmax = q[idx-1]
+                    vpqmax = temp_q[idx-1]
+
+    if unit == '1/nm':
+        vpqmax *= 10
 
     return vpqmax
 
 
-def calcVpMW(q, i, err, rg, i0, rg_qmin, vp_density, qmax):
+def calcVpMW(q, i, err, rg, i0, rg_qmin, vp_density, qmax, unit=''):
     #These functions are used to correct the porod volume for the length of the q vector
+    if unit == '1/nm':
+        temp_q = q/10
+        temp_rg = rg*10
+        temp_qmax = qmax/10
 
-    if qmax not in q:
-        idx = np.argmin(np.abs(q-qmax))
-        qmax = q[idx]
     else:
-        idx = np.argwhere(q == qmax)[0][0]
+        temp_q = q
+        temp_rg = rg
+        temp_qmax = qmax
 
-    q = q[:idx+1]
+    if temp_qmax not in temp_q:
+        idx = np.argmin(np.abs(temp_q-temp_qmax))
+    else:
+        idx = np.argwhere(temp_q == temp_qmax)[0][0]
+
+    temp_q = temp_q[:idx+1]
     i = i[:idx+1]
     err = err[:idx+1]
 
-    if q[-1] <= 0.5 and q[-1] >= 0.1:
-        A = vpA(q[-1])
-        B = vpB(q[-1])
+    if temp_q[-1] <= 0.5 and temp_q[-1] >= 0.1:
+        A = vpA(temp_q[-1])
+        B = vpB(temp_q[-1])
     else:
         A = 0
         B = 1
 
     if i0 > 0:
         #Calculate the Porod Volume
-        pVolume = porodVolume(q, i, err, rg, i0, interp = True, rg_qmin=rg_qmin)
+        pVolume = porodVolume(temp_q, i, err, temp_rg, i0, interp = True, rg_qmin=rg_qmin)
 
         if pVolume == -1:
             mw = -1
@@ -927,13 +952,22 @@ def spearmanr(array1, array2):
     return rho
 
 
-def calcVcMW(sasm, rg, i0, qmax, a_prot, b_prot, a_rna, b_rna, protein=True,
-    interp=True):
+def calcVcMW(sasm, temp_rg, i0, temp_qmax, a_prot, b_prot, a_rna, b_rna,
+    protein=True, interp=True, unit=''):
     #using the rambo tainer 2013 method for molecular mass.
 
-    q = sasm.getQ()
+    temp_q = sasm.getQ()
     i = sasm.getI()
     err = sasm.getErr()
+
+    if unit == '1/nm':
+        q = temp_q/10
+        rg = temp_rg*10
+        qmax = temp_qmax/10
+    else:
+        q = temp_q
+        rg = temp_rg
+        qmax = temp_qmax
 
     if qmax not in q:
         idx = np.argmin(np.abs(q-qmax))

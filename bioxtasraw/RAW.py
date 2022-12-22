@@ -9021,6 +9021,7 @@ class ManipItemPanel(wx.Panel):
         other_ops_menu.Append(39, 'Sync')
         other_ops_menu.Append(40, 'Superimpose')
         other_ops_menu.Append(27, 'Use as MW standard')
+        other_ops_menu.Append(43, 'Set q units')
 
         other_an_menu = wx.Menu()
         other_an_menu.Append(34, 'SVD')
@@ -9284,6 +9285,23 @@ class ManipItemPanel(wx.Panel):
         elif evt.GetId() == 42:
             #Run EFA on the selected profiles
             self._runREGALS()
+
+        elif evt.GetId() == 43:
+            #Set the profile q units
+            dialog = wx.SingleChoiceDialog(self, 'Select Unit', 'Select q units',
+                ['1/A', '1/nm'])
+
+            if self.sasm.getParameter('unit') != '':
+                if self.sasm.getParameter('unit') == '1/A':
+                    dialog.SetSelection(0)
+                else:
+                    dialog.SetSelection(1)
+
+            ret = dialog.ShowModal()
+
+            if ret == wx.ID_OK:
+                unit = dialog.GetStringSelection()
+                self.sasm.setParameter('unit', unit)
 
 
     def _saveAllAnalysisInfo(self):
