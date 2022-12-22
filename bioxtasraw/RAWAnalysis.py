@@ -11114,8 +11114,13 @@ class BIFTControlPanel(wx.Panel):
         self.startSpin = RAWCustomCtrl.IntSpinCtrl(parent, min_val=0)
         self.endSpin = RAWCustomCtrl.IntSpinCtrl(parent, min_val=0)
 
-        self.startSpin.SetValue(0)
-        self.endSpin.SetValue(0)
+        sp_min, sp_max = self.sasm.getQrange()
+
+        self.startSpin.SetRange((sp_min, sp_max-2))
+        self.endSpin.SetRange((sp_min+1, sp_max-1))
+
+        self.startSpin.SetValue(sp_min)
+        self.endSpin.SetValue(sp_max-1)
 
         self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
@@ -11191,22 +11196,20 @@ class BIFTControlPanel(wx.Panel):
             except Exception:
                 self.guinierI0Err.SetValue('')
 
-        self.startSpin.SetRange((0, len(self.sasm.q)-2))
-        self.endSpin.SetRange((1, len(self.sasm.q)-1))
-
         if 'BIFT' in analysis and 'qStart' in analysis['BIFT']:
             try:
-                qmin = analysis['BIFT']['qStart']
-                qmax = analysis['BIFT']['qEnd']
+                qmin = float(analysis['BIFT']['qStart'])
+                qmax = float(analysis['BIFT']['qEnd'])
 
-                findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
-                closest_qmin = findClosest(qmin, self.sasm.q)
-                closest_qmax = findClosest(qmax, self.sasm.q)
+                self.sasm.q - qmin
 
-                nmin = np.where(self.sasm.q == closest_qmin)[0][0]
-                nmax = np.where(self.sasm.q == closest_qmax)[0][0]+1
+                _, nmin = SASUtils.find_closest(qmin, self.sasm.q)
+                _, nmax = SASUtils.find_closest(qmax, self.sasm.q)
+
+                nmax += 1
             except Exception:
                 nmin, nmax = self.sasm.getQrange()
+                traceback.print_exc()
 
         elif 'guinier' in analysis:
             guinier = analysis['guinier']
@@ -11219,6 +11222,14 @@ class BIFTControlPanel(wx.Panel):
 
         else:
             nmin, nmax = self.sasm.getQrange()
+
+        sp_min, sp_max = self.sasm.getQrange()
+
+        if nmin < sp_min:
+            nmin = sp_min
+
+        if nmax > sp_max:
+            nmax = sp_max
 
         i = self.sasm.i
 
