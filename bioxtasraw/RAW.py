@@ -3150,7 +3150,7 @@ class MainFrame(wx.Frame):
             self._persistMgr.SaveAndUnregister(self)
 
         except Exception:
-            traceback.print_exc()
+            pass
 
         finally:
             self.tbIcon.RemoveIcon()
