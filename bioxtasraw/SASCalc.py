@@ -281,6 +281,12 @@ def calcVqmax(q, i, rg, i0, choice='8/Rg', qmax=None):
             idx = np.argmin(np.abs(q-vpqmax))
             vpqmax = q[idx]
 
+            if choice != 'Manual':
+                if vpqmax < 0.1:
+                    vpqmax = q[idx+1]
+                elif vpqmax > 0.5:
+                    vpqmax = q[idx-1]
+
     return vpqmax
 
 
