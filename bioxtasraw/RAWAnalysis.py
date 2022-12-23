@@ -4389,7 +4389,7 @@ class GNOMControlPanel(wx.Panel):
 
         sizer.Add((0,0))
 
-        rglabel = wx.StaticText(parent, -1, 'Rg (A)')
+        rglabel = wx.StaticText(parent, -1, 'Rg')
         i0label = wx.StaticText(parent, -1, 'I(0)')
 
         sizer.Add(rglabel, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
@@ -10990,7 +10990,7 @@ class BIFTControlPanel(wx.Panel):
 
     def createInfoBox(self, parent):
 
-        rglabel = wx.StaticText(parent, -1, 'Rg (A)')
+        rglabel = wx.StaticText(parent, -1, 'Rg')
         i0label = wx.StaticText(parent, -1, 'I0')
 
         guinierlabel = wx.StaticText(parent, -1, 'Guinier :')

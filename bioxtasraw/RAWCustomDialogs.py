@@ -1035,9 +1035,9 @@ class SeriesDataDialog(wx.Dialog):
             self.data_grid.SetColLabelValue(index, 'Time (s)')
             index = index +1
         if self.showcalc:
-            self.data_grid.SetColLabelValue(index, 'Rg (A)')
+            self.data_grid.SetColLabelValue(index, 'Rg')
             index = index +1
-            self.data_grid.SetColLabelValue(index, 'Rg error (A)')
+            self.data_grid.SetColLabelValue(index, 'Rg error')
             index = index +1
             self.data_grid.SetColLabelValue(index, 'I0')
             index = index +1

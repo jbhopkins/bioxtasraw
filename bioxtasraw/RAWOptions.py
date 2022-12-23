@@ -3029,7 +3029,7 @@ class IftOptionsPanel(scrolled.ScrolledPanel):
 
     def createBiftOptions(self, parent):
 
-        no_of_rows = ceil(int(len(self.bift_options_data))/2.0)
+        no_of_rows = int(ceil(int(len(self.bift_options_data))/2.0))  # ceil can be a float
         grid_sizer = wx.FlexGridSizer(cols=4, rows=no_of_rows,
             vgap=self._FromDIP(5), hgap=self._FromDIP(5))
 
