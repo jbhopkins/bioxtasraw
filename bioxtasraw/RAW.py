@@ -67,6 +67,7 @@ import wx.lib.buttons as wxbutton
 import wx.lib.agw.supertooltip as STT
 import wx.aui as aui
 import wx.lib.dialogs
+import wx.lib.agw.persist as PM
 
 if wx.version().split()[0].strip()[0] >= '4':
     import wx.adv
@@ -115,6 +116,22 @@ class MainFrame(wx.Frame):
 
     def __init__(self, title, frame_id):
         wx.Frame.__init__(self, None, frame_id, title, name = 'MainFrame')
+
+        # *************** Set minimum frame size ***************
+        client_display = wx.GetClientDisplayRect()
+        minsize = (min(800, client_display.Width), min(600, client_display.Height))
+        self.SetMinSize(self._FromDIP(minsize))
+
+        # Restore previous window position and size if available
+        self._persistMgr = PM.PersistenceManager.Get()
+        persist_file = os.path.join(RAWGlobals.RAWWorkDir, 'raw_persist_settings')
+        self._persistMgr.SetPersistenceFile(persist_file)
+
+        if not self._persistMgr.RegisterAndRestoreAll(self):
+            size = (min(1200, client_display.Width), min(900, client_display.Height))
+            self.SetSize(self._FromDIP(size))
+            self.CenterOnScreen()
+
 
         self.MenuIDs = {
             'exit'                  : self.NewControlId(),
@@ -249,10 +266,7 @@ class MainFrame(wx.Frame):
         self.statusbar.SetStatusText('Mode: OFFLINE', 2)
         self.Bind(wx.EVT_CLOSE, self._onCloseWindow)
 
-        # *************** Set minimum frame size ***************
-        client_display = wx.GetClientDisplayRect()
-        minsize = (min(800, client_display.Width), min(600, client_display.Height))
-        self.SetMinSize(self._FromDIP(minsize))
+
 
         # /* CREATE PLOT NOTEBOOK */
         self._closing = False #A hack for what seems to be an AUI bug
@@ -343,9 +357,6 @@ class MainFrame(wx.Frame):
         self.SetIcon(icon)
         app.SetTopWindow(self)
 
-        size = (min(1200, client_display.Width), min(900, client_display.Height))
-        self.SetSize(self._FromDIP(size))
-        self.CenterOnScreen()
         self.Show(True)
 
         thread = threading.Thread(target= self._compileNumbaJits)
@@ -419,7 +430,6 @@ class MainFrame(wx.Frame):
             BIFT.doBift(q, i, err, 'test', **bift_settings)
         except Exception:
             pass
-            traceback.print_exc()
 
     def _showWelcomeDialog(self):
         dlg = WelcomeDialog(self, name = "WelcomeDialog")
@@ -701,7 +711,6 @@ class MainFrame(wx.Frame):
             for frame in self.svd_frames:
                 frame.updateColors()
         except Exception:
-            traceback.print_exc()
             pass
 
         try:
@@ -3133,6 +3142,8 @@ class MainFrame(wx.Frame):
             self._mgr.UnInit()
             self.sleep_inhibit.force_off()
 
+            self._persistMgr.SaveAndUnregister(self)
+
         except Exception:
             pass
 
@@ -4881,7 +4892,6 @@ class MainWorkerThread(threading.Thread):
         except SASExceptions.WrongImageFormat:
             wx.CallAfter(self._showDataFormatError, os.path.split(filename)[1], include_ascii = False)
             wx.CallAfter(self.main_frame.closeBusyDialog)
-            traceback.print_exc()
             return
 
         parameters = {'filename' : os.path.split(filename)[1],
@@ -6362,7 +6372,6 @@ class MainWorkerThread(threading.Thread):
                     wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [os.path.split(save_path[b])[1]])
 
         except Exception as e:
-            traceback.print_exc()
             msg = 'Unexpected error while saving series data:\n{}'.format(e)
             self._showSaveError('generic', msg)
 
@@ -9005,6 +9014,7 @@ class ManipItemPanel(wx.Panel):
         other_ops_menu.Append(39, 'Sync')
         other_ops_menu.Append(40, 'Superimpose')
         other_ops_menu.Append(27, 'Use as MW standard')
+        other_ops_menu.Append(43, 'Set q units')
 
         other_an_menu = wx.Menu()
         other_an_menu.Append(34, 'SVD')
@@ -9268,6 +9278,23 @@ class ManipItemPanel(wx.Panel):
         elif evt.GetId() == 42:
             #Run EFA on the selected profiles
             self._runREGALS()
+
+        elif evt.GetId() == 43:
+            #Set the profile q units
+            dialog = wx.SingleChoiceDialog(self, 'Select Unit', 'Select q units',
+                ['1/A', '1/nm'])
+
+            if self.sasm.getParameter('unit') != '':
+                if self.sasm.getParameter('unit') == '1/A':
+                    dialog.SetSelection(0)
+                else:
+                    dialog.SetSelection(1)
+
+            ret = dialog.ShowModal()
+
+            if ret == wx.ID_OK:
+                unit = dialog.GetStringSelection()
+                self.sasm.setParameter('unit', unit)
 
 
     def _saveAllAnalysisInfo(self):
