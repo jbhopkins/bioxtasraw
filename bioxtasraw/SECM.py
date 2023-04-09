@@ -1008,7 +1008,9 @@ class SECM(object):
 
         copy_secm.intensity_change = copy.deepcopy(self.intensity_change)
 
-        copy_secm.average_buffer_sasm = self.average_buffer_sasm.copy_no_metadata()
+        if self.average_buffer_sasm is not None:
+            copy_secm.average_buffer_sasm = self.average_buffer_sasm.copy_no_metadata()
+
         copy_secm.subtracted_sasm_list = [sasm.copy_no_metadata() for sasm in self.subtracted_sasm_list]
         copy_secm.use_subtracted_sasm = copy.deepcopy(self.use_subtracted_sasm)
         copy_secm.mean_i_sub = copy.deepcopy(self.mean_i_sub)
