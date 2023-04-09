@@ -1531,7 +1531,9 @@ def mw_vp(profile, rg=None, i0=None, density=0.83*10**(-3), cutoff='Default',
     method. The input profile needs to have calculated Rg and I(0) values,
     either from a Guinier fit or from a IFT P(r) function, so the Rg and I(0)
     values are known. You must supply either density, cutoff, and qmax,
-    settings.
+    settings. Note that calculation of Vc depends on the units of q,
+    which can be set by setting the 'unit' parameter of the profile to 1/A
+    or 1/nm
 
     Parameters
     ----------
@@ -1627,8 +1629,10 @@ def mw_vp(profile, rg=None, i0=None, density=0.83*10**(-3), cutoff='Default',
         if qmin is None:
             qmin = q[0]
 
+    unit = profile.getParameter('unit')
+
     if cutoff != 'Manual':
-        qmax = SASCalc.calcVqmax(q, i, rg, i0, cutoff, qmax)
+        qmax = SASCalc.calcVqmax(q, i, rg, i0, cutoff, qmax, unit)
 
     if qmax > q[-1]:
         qmax = q[-1]
@@ -1636,7 +1640,7 @@ def mw_vp(profile, rg=None, i0=None, density=0.83*10**(-3), cutoff='Default',
         qmax = q[0]
 
     mw, pvol, pvol_cor = SASCalc.calcVpMW(q, i, err, rg, i0, qmin, density,
-        qmax)
+        qmax, unit)
 
     mw_dict['PorodVolume'] = {}
     mw_dict['PorodVolume']['MW'] = str(mw)
@@ -1658,7 +1662,9 @@ def mw_vc(profile, rg=None, i0=None, protein=True, cutoff='Manual', qmax=0.3,
     method. The input profile needs to have calculated Rg and I(0) values,
     either from a Guinier fit or from a IFT P(r) function, so the Rg and I(0)
     values are known. You must supply either protein, cutoff, and qmax,
-    or settings.
+    or settings. Note that calculation of Vc depends on the units of q,
+    which can be set by setting the 'unit' parameter of the profile to 1/A
+    or 1/nm
 
     Parameters
     ----------
@@ -1749,8 +1755,10 @@ def mw_vc(profile, rg=None, i0=None, protein=True, cutoff='Manual', qmax=0.3,
     q = profile.getQ()
     i = profile.getI()
 
+    unit = profile.getParameter('unit')
+
     if cutoff != 'Manual':
-        qmax = SASCalc.calcVqmax(q, i, rg, i0, cutoff, qmax)
+        qmax = SASCalc.calcVqmax(q, i, rg, i0, cutoff, qmax, unit)
 
     if qmax > q[-1]:
         qmax = q[-1]
@@ -1759,7 +1767,7 @@ def mw_vc(profile, rg=None, i0=None, protein=True, cutoff='Manual', qmax=0.3,
 
 
     mw, mw_err, vcor, qr = SASCalc.calcVcMW(profile, rg, i0, qmax,
-        A_prot, B_prot, A_rna, B_rna, protein)
+        A_prot, B_prot, A_rna, B_rna, protein, unit)
 
     if protein:
         vc_type = 'Protein'
@@ -2131,6 +2139,8 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
         rg = -1
         i0 = -1
 
+    units = profile.getParameter('unit')
+
     datadir = os.path.abspath(os.path.expanduser(tempfile.gettempdir()))
 
     filename = tempfile.NamedTemporaryFile(dir=datadir).name
@@ -2159,7 +2169,14 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
                 dc_dmax = -1
 
         if dc_dmax != -1:
-            dmax = int(round(dc_dmax))
+
+            if units == '':
+                units = SASUtils.guess_units(profile.getQ())
+
+            if units == '1/A':
+                dmax = round(dc_dmax)
+            else:
+                dmax = round(dc_dmax/10., 1)
 
         else:
             #Calculate the IFT using BIFT
@@ -2204,7 +2221,18 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
                 dmax = -1
 
             if dmax != -1:
-                dmax = round(dmax)
+                if units == '':
+                    units = SASUtils.guess_units(profile.getQ(), dmax)
+
+                if units == '1/A':
+                    dmax = round(dmax)
+                else:
+                    dmax = round(dmax, 1)
+
+        if units == '1/A':
+            increm = 1
+        else:
+            increm = 0.1
 
         if dmax != -1 and use_atsas:
             # Refine if Dmax is too long
@@ -2215,7 +2243,7 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
             dmax_start = dmax
 
             while dmax > dmax_start*dmax_low_bound and np.any(ift.p[-20:] < 0):
-                dmax = dmax -1
+                dmax -= increm
                 ift_results = gnom(profile, dmax, use_guinier_start=False,
                     settings=settings, write_profile=False, datadir=datadir,
                     filename=filename)
@@ -2231,7 +2259,7 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
 
             while (dmax > dmax_start*dmax_low_bound
                 and ift_unforced.p[-1]<dmax_thresh*ift_unforced.p.max()):
-                dmax = dmax -1
+                dmax -= increm
                 ift_results = gnom(profile, dmax, dmax_zero=False,
                     use_guinier_start=False, settings=settings,
                     write_profile=False, datadir=datadir, filename=filename)
@@ -2240,7 +2268,7 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
                 refined_shorter = True
 
             if refined_shorter:
-                dmax = dmax +1
+                dmax += increm
 
             if dmax_start == dmax:
                 #Refine if Dmax is too short
@@ -2252,7 +2280,7 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
 
                 while (dmax < dmax_start*dmax_high_bound
                     and ift_unforced.p[-1]>dmax_thresh*ift_unforced.p.max()):
-                    dmax = dmax +1
+                    dmax += increm
                     ift_results = gnom(profile, dmax, dmax_zero=False,
                         use_guinier_start=False, settings=settings,
                         write_profile=False, datadir=datadir, filename=filename)
@@ -2267,7 +2295,14 @@ def auto_dmax(profile, dmax_thresh=0.01, dmax_low_bound=0.5, dmax_high_bound=1.5
         except Exception:
             pass
 
-    dmax = int(round(dmax))
+    if dmax != -1:
+        if units == '':
+            units = SASUtils.guess_units(profile.getQ(), dmax)
+
+        if units == '1/A':
+            dmax = int(round(dmax))
+        else:
+            dmax = round(dmax, 1)
 
     return dmax
 
@@ -5229,7 +5264,7 @@ def regals(series, comp_settings, profile_type='sub', framei=None,
                     'Nw'    : 50, #Number of control points (smooth/realspace)
                     'dmax'  : 100, #Maximum dimension (realspace)
                     'is_zero_at_r0' : True, #realspace
-                    'is_zero_at_damx': True, #realspace
+                    'is_zero_at_dmax': True, #realspace
                 },
             }
 

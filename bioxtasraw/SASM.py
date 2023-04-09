@@ -96,6 +96,8 @@ class SASM(object):
             self._parameters['analysis'] = {}
         if 'history' not in self._parameters:
             self._parameters['history'] = {}
+        if 'unit' not in self._parameters:
+            self._parameters['unit'] = ''
 
         #Modified intensity variables
         self.i = self._i_raw.copy()

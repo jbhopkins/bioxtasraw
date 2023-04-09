@@ -1839,6 +1839,11 @@ class MolWeightFrame(wx.Frame):
 
     def _initSettings(self):
 
+        self.unit = self.sasm.getParameter('unit')
+
+        if self.unit == '':
+            self.unit = SASUtils.guess_units(self.sasm.getQ())
+
         analysis = self.sasm.getParameter('analysis')
 
         if 'guinier' in analysis:
@@ -1903,6 +1908,9 @@ class MolWeightFrame(wx.Frame):
                 vc_cutoff = self.raw_settings.get('MWVcCutoff')
                 vc_qmax = self.raw_settings.get('MWVcQmax')
 
+                if  self.unit == '1/nm':
+                    vc_qmax = copy.copy(vc_qmax)*10
+
         except Exception:
             vc_type = self.raw_settings.get('MWVcType')
             vc_cutoff = self.raw_settings.get('MWVcCutoff')
@@ -1923,7 +1931,7 @@ class MolWeightFrame(wx.Frame):
         if vc_cutoff == 'Manual':
             wx.FindWindowById(self.ids['VC']['sup_qmax'], self).ChangeValue(str(vc_qmax))
         else:
-            vc_qmax = self._calcVcqmax(vc_cutoff)
+            vc_qmax = self._calcVcqmax(vc_cutoff, False)
 
         wx.FindWindowById(self.ids['VC']['sup_plot'], self).plotSASM(self.sasm, vc_qmax)
 
@@ -1951,7 +1959,7 @@ class MolWeightFrame(wx.Frame):
         if vp_cutoff == 'Manual':
             wx.FindWindowById(self.ids['VP']['sup_qmax'], self).ChangeValue(str(vp_qmax))
         else:
-            self._calcVpqmax(vp_cutoff)
+            self._calcVpqmax(vp_cutoff, False)
 
         #Initialize Absolute scattering MW settings.
 
@@ -2218,8 +2226,6 @@ class MolWeightFrame(wx.Frame):
         sup_sizer2.Add(wx.StaticText(vcbox, label='q_max:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         sup_sizer2.Add(sup_qmax, flag=wx.ALIGN_CENTER_VERTICAL)
-        sup_sizer2.Add(wx.StaticText(vcbox, label='1/A'),
-            flag=wx.ALIGN_CENTER_VERTICAL)
 
         vc_plot = MWPlotPanel(vcbox, vc_ids['sup_plot'], '')
 
@@ -2287,7 +2293,6 @@ class MolWeightFrame(wx.Frame):
         sup_txt6 = wx.StaticText(vpbox, -1, 'kDa/A^3')
         sup_txt7 = wx.StaticText(vpbox, wx.ID_ANY, 'q cutoff:')
         sup_txt8 = wx.StaticText(vpbox, wx.ID_ANY, 'q_max:')
-        sup_txt9 = wx.StaticText(vpbox, wx.ID_ANY, '1/A')
 
         sup_vp = wx.TextCtrl(vpbox, vp_ids['sup_vp'], '',
             size = self._FromDIP((80, -1)), style = wx.TE_READONLY)
@@ -2338,7 +2343,6 @@ class MolWeightFrame(wx.Frame):
             border=self._FromDIP(5))
         sup_sizer5.Add(sup_qmax, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT,
             border=self._FromDIP(5))
-        sup_sizer5.Add(sup_txt9, 0, wx.ALIGN_CENTER_VERTICAL)
 
         self.vp_sup_sizer = wx.BoxSizer(wx.VERTICAL)
         self.vp_sup_sizer.Add(sup_sizer4, 0, wx.BOTTOM, border=self._FromDIP(5))
@@ -2587,7 +2591,7 @@ class MolWeightFrame(wx.Frame):
             flag=wx.ALIGN_CENTER_VERTICAL)
         self.datclass_sup_sizer.Add(shape, flag=wx.ALIGN_CENTER_VERTICAL)
         self.datclass_sup_sizer.Add(wx.StaticText(ctrl_parent,
-            label='DATCLASS Dmax:'))
+            label='DATCLASS Dmax (A):'))
         self.datclass_sup_sizer.Add(dmax, flag=wx.ALIGN_CENTER_VERTICAL)
 
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -2670,10 +2674,10 @@ class MolWeightFrame(wx.Frame):
             wx.FindWindowById(self.ids['abs']['conc'], self).ChangeValue(conc)
 
         vp_cutoff = wx.FindWindowById(self.ids['VP']['sup_cutoff']).GetStringSelection()
-        self._calcVpqmax(vp_cutoff)
+        self._calcVpqmax(vp_cutoff, False)
 
         vc_cutoff = wx.FindWindowById(self.ids['VC']['sup_cutoff']).GetStringSelection()
-        qmax = self._calcVcqmax(vc_cutoff)
+        qmax = self._calcVcqmax(vc_cutoff, False)
 
         wx.FindWindowById(self.ids['VC']['sup_plot'], self).plotSASM(self.sasm, qmax)
 
@@ -2729,7 +2733,7 @@ class MolWeightFrame(wx.Frame):
         if vc_cutoff == 'Manual':
             wx.FindWindowById(self.ids['VC']['sup_qmax'], self).ChangeValue(str(vc_qmax_manual))
 
-        self._calcVpqmax(vc_cutoff)
+        self._calcVcqmax(vc_cutoff, False)
 
         #Initialize Vp MW settings
         vp_rho = self.raw_settings.get('MWVpRho')
@@ -2742,6 +2746,8 @@ class MolWeightFrame(wx.Frame):
         if vp_cutoff == 'Manual':
             wx.FindWindowById(self.ids['VP']['sup_qmax'], self).ChangeValue(str(vp_qmax_manual))
 
+        self._calcVpqmax(vp_cutoff, False)
+
 
         #Initialize Absolute scattering MW settings.
         rho_Mprot = self.raw_settings.get('MWAbsRhoMprot') # electrons per dry mass of protein
@@ -2753,8 +2759,6 @@ class MolWeightFrame(wx.Frame):
         wx.FindWindowById(self.ids['abs']['sup_ps'], self).ChangeValue('%.2E' %(rho_solv))
         wx.FindWindowById(self.ids['abs']['sup_pv'], self).ChangeValue('%.4f' %(nu_bar))
         wx.FindWindowById(self.ids['abs']['sup_sc'], self).ChangeValue('%.2E' %(d_rho))
-
-        self._calcVpqmax(vp_cutoff)
 
         self.calcMW()
 
@@ -3005,7 +3009,7 @@ class MolWeightFrame(wx.Frame):
 
         self._calcVpqmax(choice)
 
-    def _calcVpqmax(self, choice):
+    def _calcVpqmax(self, choice, update_mw=True):
         q_max_ctrl = wx.FindWindowById(self.ids['VP']['sup_qmax'], self)
 
         q = self.sasm.getQ()
@@ -3032,11 +3036,12 @@ class MolWeightFrame(wx.Frame):
         except Exception:
             qmax = None
 
-        qmax = SASCalc.calcVqmax(q, i, rg, i0, choice, qmax)
+        qmax = SASCalc.calcVqmax(q, i, rg, i0, choice, qmax, self.unit)
 
         q_max_ctrl.ChangeValue(str(qmax))
 
-        self.calcVpMW()
+        if update_mw:
+            self.calcVpMW()
 
     def _onVcCutoff(self, evt):
         choice = evt.GetString()
@@ -3045,7 +3050,7 @@ class MolWeightFrame(wx.Frame):
 
         wx.FindWindowById(self.ids['VC']['sup_plot'], self).plotSASM(self.sasm, qmax)
 
-    def _calcVcqmax(self, choice):
+    def _calcVcqmax(self, choice, update_mw=True):
         q_max_ctrl = wx.FindWindowById(self.ids['VC']['sup_qmax'], self)
 
         q = self.sasm.getQ()
@@ -3072,16 +3077,16 @@ class MolWeightFrame(wx.Frame):
         except Exception:
             qmax = None
 
-        qmax = SASCalc.calcVqmax(q, i, rg, i0, choice, qmax)
+        qmax = SASCalc.calcVqmax(q, i, rg, i0, choice, qmax, self.unit)
 
         q_max_ctrl.ChangeValue(str(qmax))
 
-        self.calcVcMW()
+        if update_mw:
+            self.calcVcMW()
 
         return qmax
 
     def _updateVpmwParam(self, evt):
-
         try:
             float(evt.GetEventObject().GetValue())
             self.calcVpMW()
@@ -3288,7 +3293,6 @@ class MolWeightFrame(wx.Frame):
                 wx.CallAfter(mwCtrl.ChangeValue, '')
 
     def calcVcMW(self):
-
         vc_ids = self.ids['VC']
         molecule = wx.FindWindowById(vc_ids['mol_type'], self).GetStringSelection()
 
@@ -3328,7 +3332,7 @@ class MolWeightFrame(wx.Frame):
                 self.raw_settings.get('MWVcAProtein'),
                 self.raw_settings.get('MWVcBProtein'),
                 self.raw_settings.get('MWVcARna'),
-                self.raw_settings.get('MWVcBRna'), is_protein)
+                self.raw_settings.get('MWVcBRna'), is_protein, unit=self.unit)
 
             self.mws['vc']['mw'] = str(mw)
             self.mws['vc']['vc'] = str(vc)
@@ -3385,7 +3389,6 @@ class MolWeightFrame(wx.Frame):
 
     def calcVpMW(self):
         #This is calculated using the method in Fischer et al. J. App. Crys. 2009
-
         vp_ids = self.ids['VP']
         vp_cutoff = wx.FindWindowById(vp_ids['sup_cutoff'], self).GetStringSelection()
 
@@ -3417,8 +3420,14 @@ class MolWeightFrame(wx.Frame):
         elif qmax < q[0]:
             qmax = q[0]
 
+        if self.unit == '1/nm':
+            low_bound = 1
+            high_bound = 5
+        else:
+            low_bound = 0.1
+            high_bound = 0.5
 
-        if qmax<=0.5 and qmax>=0.1:
+        if qmax<=high_bound and qmax>=low_bound:
             wx.CallAfter(self._showVpMWWarning, False)
         else:
             wx.CallAfter(self._showVpMWWarning, True)
@@ -3429,7 +3438,7 @@ class MolWeightFrame(wx.Frame):
             qmin = float(guinier_analysis['qStart'])
 
             mw, pVolume, pv_cor = SASCalc.calcVpMW(q, i, err, rg, i0, qmin,
-                density, qmax)
+                density, qmax, self.unit)
 
             self.mws['vp']['mw'] = str(mw)
             self.mws['vp']['pVolume'] = str(pVolume)
@@ -3752,12 +3761,12 @@ class MWPlotPanel(wx.Panel):
         SASUtils.update_mpl_style()
 
         # self.fig = Figure((5,4), 75)
-        self.fig = Figure((3.25,2.5))
+        self.fig = Figure((3.25,2.5), tight_layout=True)
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
 
         self.data_line = None
 
-        subplotLabels = [('Integrated Area of q*I(q)', 'q [1/A]', '$\int q \cdot I(q) dq$', 'VC')]
+        subplotLabels = [('Integrated Area of q*I(q)', 'q', '$\int q \cdot I(q) dq$', 'VC')]
 
         self.subplots = {}
 
@@ -3773,7 +3782,6 @@ class MWPlotPanel(wx.Panel):
         self.SetSizer(sizer)
         # self.canvas.SetBackgroundColour('white')
         # self.fig.set_facecolor('white')
-        self.fig.tight_layout()
 
         font_size = 10
         a = self.subplots['VC']
@@ -3790,6 +3798,8 @@ class MWPlotPanel(wx.Panel):
 
         for tick in a.yaxis.get_major_ticks():
             tick.label.set_fontsize(font_size)
+
+        self.fig.tight_layout(pad=0.4)
 
         self.canvas.draw()
 
@@ -3863,7 +3873,7 @@ class MWPlotPanel(wx.Panel):
         a = self.subplots['VC']
 
         if self.data_line is None:
-            self.data_line, = a.plot(q, intI, 'r.')
+            self.data_line, = a.plot(q, intI, 'r-')
         else:
             self.data_line.set_xdata(q)
             self.data_line.set_ydata(intI)
@@ -3945,9 +3955,9 @@ class GNOMFrame(wx.Frame):
 
         analysis_dict = sasm.getParameter('analysis')
         if 'GNOM' in analysis_dict:
-            wx.CallAfter(self.controlPanel.initGnomValues, sasm)
+            wx.CallAfter(self.controlPanel.initGnomValues, sasm, 'gnom')
         else:
-            wx.CallAfter(self.controlPanel.initAutoValues, sasm)
+            wx.CallAfter(self.controlPanel.initGnomValues, sasm, 'auto')
 
     def getGnomVersion(self):
         #Checks if we have gnom4 or gnom5
@@ -4389,7 +4399,7 @@ class GNOMControlPanel(wx.Panel):
 
         sizer.Add((0,0))
 
-        rglabel = wx.StaticText(parent, -1, 'Rg (A)')
+        rglabel = wx.StaticText(parent, -1, 'Rg')
         i0label = wx.StaticText(parent, -1, 'I(0)')
 
         sizer.Add(rglabel, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
@@ -4486,16 +4496,25 @@ class GNOMControlPanel(wx.Panel):
         self.endSpin = RAWCustomCtrl.IntSpinCtrl(parent, self.spinctrlIDs['qend'],
             min_val=0)
 
-        self.startSpin.SetValue(0)
-        self.endSpin.SetValue(0)
+        sp_min, sp_max = self.sasm.getQrange()
+
+        self.startSpin.SetRange((sp_min, sp_max-1))
+        self.endSpin.SetRange((sp_min, sp_max-1))
+
+        self.startSpin.SetValue(sp_min)
+        self.endSpin.SetValue(sp_max-1)
 
         self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
 
-        self.qstartTxt = wx.TextCtrl(parent, self.staticTxtIDs['qstart'], 'q: ',
-            size = self._FromDIP((55, 22)), style = wx.TE_PROCESS_ENTER)
-        self.qendTxt = wx.TextCtrl(parent, self.staticTxtIDs['qend'], 'q: ',
-            size = self._FromDIP((55, 22)), style = wx.TE_PROCESS_ENTER)
+        self.qstartTxt = wx.TextCtrl(parent, self.staticTxtIDs['qstart'],
+            str(round(self.sasm.q[sp_min],4)), size = self._FromDIP((55, 22)),
+            style = wx.TE_PROCESS_ENTER,
+            validator=RAWCustomCtrl.CharValidator('float_te'))
+        self.qendTxt = wx.TextCtrl(parent, self.staticTxtIDs['qend'],
+            str(round(self.sasm.q[sp_max-1],4)), size = self._FromDIP((55, 22)),
+            style = wx.TE_PROCESS_ENTER,
+            validator=RAWCustomCtrl.CharValidator('float_te'))
 
         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
         self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
@@ -4508,14 +4527,14 @@ class GNOMControlPanel(wx.Panel):
 
         ctrl2_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.dmaxSpin = RAWCustomCtrl.IntSpinCtrl(parent, self.spinctrlIDs['dmax'],
-            min_val = 1)
-        self.dmaxSpin.SetValue(0)
+        self.dmaxSpin = RAWCustomCtrl.FloatSpinCtrl(parent, self.spinctrlIDs['dmax'],
+            min_val = 0.1)
+        self.dmaxSpin.SetValue(1)
         self.dmaxSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
-        self.dmaxSpin.Bind(wx.EVT_TEXT, self.onDmaxText)
 
         self.alpha_ctrl = wx.TextCtrl(parent, self.staticTxtIDs['alpha'],
-            size=self._FromDIP((40,-1)), style=wx.TE_PROCESS_ENTER)
+            size=self._FromDIP((40,-1)), style=wx.TE_PROCESS_ENTER,
+            validator=RAWCustomCtrl.CharValidator('float_te'))
         self.alpha_ctrl.Bind(wx.EVT_TEXT_ENTER, self.onAlpha)
 
         self.cut_qrg = wx.CheckBox(parent, label='Truncate for DAMMIF/N')
@@ -4539,6 +4558,7 @@ class GNOMControlPanel(wx.Panel):
         rmax_sizer.Add(rmax_text, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL,
             self._FromDIP(3))
         rmax_sizer.Add(rmax_choice, 0, wx.ALIGN_CENTER_VERTICAL)
+        # rmax_sizer.Add(RAWCustomCtrl.FloatSpinCtrl(parent, -1))
 
 
         advancedParams = wx.Button(parent, -1, 'Change Advanced Parameters')
@@ -4559,126 +4579,110 @@ class GNOMControlPanel(wx.Panel):
 
         return top_sizer
 
-
-    def initAutoValues(self, sasm):
+    def initGnomValues(self, sasm, mode='auto'):
         self.setGuinierInfo(sasm)
 
-        if 'guinier' in sasm.getParameter('analysis'):
-            guinier = sasm.getParameter('analysis')['guinier']
+        if mode == 'auto':
+            if 'guinier' in sasm.getParameter('analysis'):
+                guinier = sasm.getParameter('analysis')['guinier']
+
+                try:
+                    nmin = guinier['nStart']
+                    nmax = sasm.getQrange()[1]
+                except Exception:
+                    nmin, nmax = sasm.getQrange()
+            else:
+                nmin, nmax = sasm.getQrange()
+
+        else:
+            gnom_analysis = sasm.getParameter('analysis')['GNOM']
 
             try:
-                nmin = guinier['nStart']
-                nmax = sasm.getQrange()[1]
-            except Exception:
-                nmin, nmax = sasm.getQrange()
-        else:
-            nmin, nmax = sasm.getQrange()
+                qmin = gnom_analysis['qStart']
+                qmax = gnom_analysis['qEnd']
 
-        self.startSpin.SetRange((0, len(sasm.q)-1))
-        self.endSpin.SetRange((0, len(sasm.q)-1))
+                _, nmin = SASUtils.find_closest(qmin, sasm.q)
+                _, nmax = SASUtils.find_closest(qmax, sasm.q)
+
+                nmax += 1
+
+            except Exception:
+                traceback.print_exc()
+                nmin, nmax = sasm.getQrange()
+
+        sp_min, sp_max = sasm.getQrange()
+
+        if nmin < sp_min:
+            nmin = sp_min
+
+        if nmax > sp_max:
+            nmax = sp_max
 
         self.endSpin.SetValue(nmax-1)
         self.startSpin.SetValue(nmin)
         txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
-        txt.SetValue(str(round(sasm.q[nmax-1],4)))
+        txt.ChangeValue(str(round(sasm.q[nmax-1],4)))
         txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
-        txt.SetValue(str(round(sasm.q[nmin],4)))
+        txt.ChangeValue(str(round(sasm.q[nmin],4)))
 
         self.old_nstart = nmin
-        self.old_nend = nmax-1
+        self.old_nend = nmax
         self.previous_qmax = sasm.q[nmax-1]
 
-        self.cutQrg()
-
-        self.setFilename(os.path.basename(sasm.getParameter('filename')))
-        self.alpha_ctrl.SetValue(str(self.gnom_settings['alpha']))
-
-        self._runFindDmax()
-
-        # wx.CallAfter(self.gnom_frame.showBusy, False)
-
-    def initGnomValues(self, sasm):
-        self.setGuinierInfo(sasm)
-
-        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-
-        gnom_analysis = sasm.getParameter('analysis')['GNOM']
-
-        try:
-            dmax = int(round(float(gnom_analysis['Dmax'])))
-        except Exception:
-            dmax = -1
-
-        try:
-            qmin = gnom_analysis['qStart']
-            qmax = gnom_analysis['qEnd']
-
-            findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
-            closest_qmin = findClosest(qmin, sasm.q)
-            closest_qmax = findClosest(qmax, sasm.q)
-
-            new_nmin = np.where(sasm.q == closest_qmin)[0][0]
-            new_nmax = np.where(sasm.q == closest_qmax)[0][0]
-
-        except Exception:
-            new_nmin, new_nmax = sasm.getQrange()
-
-        self.startSpin.SetRange((0, len(sasm.q)-1))
-        self.endSpin.SetRange((0, len(sasm.q)-1))
-
-        self.endSpin.SetValue(new_nmax)
-        self.startSpin.SetValue(new_nmin)
-        txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
-        txt.SetValue(str(round(sasm.q[new_nmax],4)))
-        txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
-        txt.SetValue(str(round(sasm.q[new_nmin],4)))
-
-        self.old_nstart = new_nmin
-        self.old_nend = new_nmax
-        self.previous_qmax = sasm.q[new_nmax]
-
-        self.cutQrg()
+        self.cutQrg(update_plot=False)
 
         self.setFilename(os.path.basename(sasm.getParameter('filename')))
 
-        try:
-            alpha = gnom_analysis['Alpha']
-        except Exception:
-            alpha = self.gnom_settings['alpha']
-
-        if alpha == self.gnom_settings['alpha']:
-            self.alpha_ctrl.SetValue(str(self.gnom_settings['alpha']))
-        else:
-            self.alpha_ctrl.SetValue('0')
-
-        self.updateGNOMSettings(update_plot=False)
-
-        if dmax != -1:
-            self.old_dmax = dmax
-
-            self.calcGNOM(dmax)
-
-            dmaxWindow.SetValue(dmax)
-
-            if alpha != 0 and alpha != self.gnom_settings['alpha']:
-
-                ift = self.out_list[str(dmax)]
-
-                if float(ift.getParameter('alpha')) == float(alpha):
-                    self.alpha_ctrl.SetValue('0')
-                else:
-                    self.alpha_ctrl.SetValue(str(alpha))
-                    self.updateGNOMSettings(update_plot=False)
-                    self.calcGNOM(dmax)
-
-            self.updateGNOMInfo(self.out_list[str(dmax)])
-
-            self.updatePlot()
-
-            wx.CallAfter(self.gnom_frame.showBusy, False)
-
-        else:
+        if mode == 'auto':
+            self.alpha_ctrl.ChangeValue(str(self.gnom_settings['alpha']))
             self._runFindDmax()
+
+        else:
+            dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
+
+            try:
+                dmax = float(gnom_analysis['Dmax'])
+            except Exception:
+                dmax = -1
+
+            try:
+                alpha = gnom_analysis['Alpha']
+            except Exception:
+                alpha = self.gnom_settings['alpha']
+
+            if alpha == self.gnom_settings['alpha']:
+                self.alpha_ctrl.ChangeValue(str(self.gnom_settings['alpha']))
+            else:
+                self.alpha_ctrl.ChangeValue('0')
+
+            self.updateGNOMSettings(update_plot=False)
+
+            if dmax != -1:
+                self.old_dmax = dmax
+
+                self.calcGNOM(dmax)
+
+                dmaxWindow.SetValue(dmax)
+
+                if alpha != 0 and alpha != self.gnom_settings['alpha']:
+
+                    ift = self.out_list[str(dmax)]
+
+                    if float(ift.getParameter('alpha')) == float(alpha):
+                        self.alpha_ctrl.ChangeValue('0')
+                    else:
+                        self.alpha_ctrl.ChangeValue(str(alpha))
+                        self.updateGNOMSettings(update_plot=False)
+                        self.calcGNOM(dmax)
+
+                self.updateGNOMInfo(self.out_list[str(dmax)])
+
+                self.updatePlot()
+
+                wx.CallAfter(self.gnom_frame.showBusy, False)
+
+            else:
+                self._runFindDmax()
 
 
     def setGuinierInfo(self, sasm):
@@ -4731,15 +4735,38 @@ class GNOMControlPanel(wx.Panel):
         gnomChisqWindow = wx.FindWindowById(self.infodata['chisq'][1], self)
         gnomAlphaWindow = wx.FindWindowById(self.infodata['alpha'][1], self)
 
-        gnomRgWindow.SetValue(self.formatNumStr(iftm.getParameter('rg')))
-        gnomI0Window.SetValue(self.formatNumStr(iftm.getParameter('i0')))
-        gnomRgerrWindow.SetValue(self.formatNumStr(iftm.getParameter('rger')))
-        gnomI0errWindow.SetValue(self.formatNumStr(iftm.getParameter('i0er')))
-        gnomTEWindow.SetValue(str(iftm.getParameter('TE')))
-        gnomChisqWindow.SetValue(self.formatNumStr(iftm.getParameter('chisq')))
-        gnomQualityWindow.SetValue(str(iftm.getParameter('quality')))
-        gnomAlphaWindow.SetValue(str(iftm.getParameter('alpha')))
-
+        try:
+            gnomRgWindow.SetValue(self.formatNumStr(iftm.getParameter('rg')))
+        except Exception:
+            gnomRgWindow.SetValue('')
+        try:
+            gnomI0Window.SetValue(self.formatNumStr(iftm.getParameter('i0')))
+        except Exception:
+            gnomI0Window.SetValue('')
+        try:
+            gnomRgerrWindow.SetValue(self.formatNumStr(iftm.getParameter('rger')))
+        except Exception:
+            gnomRgerrWindow.SetValue('')
+        try:
+            gnomI0errWindow.SetValue(self.formatNumStr(iftm.getParameter('i0er')))
+        except Exception:
+            gnomI0errWindow.SetValue('')
+        try:
+            gnomTEWindow.SetValue(str(iftm.getParameter('TE')))
+        except Exception:
+            gnomTEWindow.SetValue('')
+        try:
+            gnomChisqWindow.SetValue(self.formatNumStr(iftm.getParameter('chisq')))
+        except Exception:
+            gnomTEWgnomChisqWindowindow.SetValue('')
+        try:
+            gnomQualityWindow.SetValue(str(iftm.getParameter('quality')))
+        except Exception:
+            gnomQualityWindow.SetValue('')
+        try:
+            gnomAlphaWindow.SetValue(str(iftm.getParameter('alpha')))
+        except Exception:
+            gnomAlphaWindow.SetValue('')
 
     def setFilename(self, filename):
         self.filenameTxtCtrl.SetValue(str(filename))
@@ -4801,7 +4828,7 @@ class GNOMControlPanel(wx.Panel):
                 self.raw_settings.set('GnomFilePath', False)
                 wx.CallAfter(wx.MessageBox, 'The folder:\n' +self.raw_settings.get('GNOMFilePath')+ '\ncould not be found. Autosave of GNOM files has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
-        RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [iftm, RAWGlobals.general_text_color, 
+        RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [iftm, RAWGlobals.general_text_color,
             None, not self.raw_settings.get('AutoSaveOnGnom')]])
 
 
@@ -4826,19 +4853,6 @@ class GNOMControlPanel(wx.Panel):
         t.daemon=True
         t.start()
 
-    def onDmaxText(self,evt):
-        self.dmaxSpin.Unbind(wx.EVT_TEXT) #Avoid infinite recursion
-
-
-        dmax = str(self.dmaxSpin.GetValue())
-        try:
-            dmax = float(dmax.replace(',', '.'))
-            self.dmaxSpin.SetValue(int(dmax))
-        except ValueError:
-            pass
-
-        self.dmaxSpin.Bind(wx.EVT_TEXT, self.onDmaxText)
-
     def onAlpha(self, evt):
         alpha = str(self.alpha_ctrl.GetValue())
 
@@ -4857,7 +4871,7 @@ class GNOMControlPanel(wx.Panel):
     def onCutQRg(self, evt):
         self.cutQrg()
 
-    def cutQrg(self):
+    def cutQrg(self, update_plot=True):
         is_checked = self.cut_qrg.IsChecked()
 
         guinier_rg = wx.FindWindowById(self.infodata['guinierRg'][1], self)
@@ -4887,11 +4901,14 @@ class GNOMControlPanel(wx.Panel):
         else:
             q_max = self.previous_qmax
 
-        self.setQVal(q_max, 'qend')
+        self.setQVal(q_max, 'qend', False)
+
+        if update_plot:
+            wx.CallAfter(self.updatePlot)
 
     def onEnterInQlimits(self, evt):
 
-        id = evt.GetId()
+        my_id = evt.GetId()
 
         txtctrl = wx.FindWindowById(id, self)
 
@@ -4899,14 +4916,14 @@ class GNOMControlPanel(wx.Panel):
         try:
             val = float(txtctrl.GetValue())
         except ValueError:
-            if id == self.staticTxtIDs['qstart']:
+            if my_id == self.staticTxtIDs['qstart']:
                 spinctrl = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
                 txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
                 idx = int(spinctrl.GetValue())
-                txt.SetValue(str(round(self.sasm.q[idx],5)))
+                txt.SetValue(str(round(self.sasm.q[idx],4)))
                 return
 
-            if id == self.staticTxtIDs['qend']:
+            if my_id == self.staticTxtIDs['qend']:
                 spinctrl = wx.FindWindowById(self.spinctrlIDs['qend'], self)
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 idx = int(spinctrl.GetValue())
@@ -4914,15 +4931,15 @@ class GNOMControlPanel(wx.Panel):
                 return
         #################################
 
-        if id == self.staticTxtIDs['qstart']:
+        if my_id == self.staticTxtIDs['qstart']:
             control_name = 'qstart'
 
-        elif id == self.staticTxtIDs['qend']:
+        elif my_id == self.staticTxtIDs['qend']:
             control_name = 'qend'
 
         self.setQVal(val, control_name)
 
-    def setQVal(self, val, control_name):
+    def setQVal(self, val, control_name, do_update_plot=True):
         lx = self.sasm.q
 
         findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
@@ -4967,12 +4984,11 @@ class GNOMControlPanel(wx.Panel):
                 update_plot = True
             self.old_nend = i
 
-        if update_plot:
+        if update_plot and do_update_plot:
             wx.CallAfter(self.updatePlot)
 
 
     def onSpinCtrl(self, evt):
-
         myid = evt.GetId()
 
         update_plot = False
@@ -5073,7 +5089,7 @@ class GNOMControlPanel(wx.Panel):
         except Exception as e:
             dmax = -1
             msg = ("Automatic Dmax determination failed with the following error:\n"
-                "{}".format(e))
+                "{}\n\nGuessing Dmax.".format(e))
             wx.CallAfter(self.main_frame.showMessageDialog, self, msg, "Error finding Dmax",
                 wx.ICON_WARNING|wx.OK)
             traceback.print_exc()
@@ -5085,12 +5101,16 @@ class GNOMControlPanel(wx.Panel):
             except Exception:
                 rg = 10
 
-            dmax = int(round(rg*3))
+            units = SASUtils.guess_units(save_sasm.getQ(), rg, False)
+
+            if units == '1/A':
+                dmax = int(round(rg*3))
+            else:
+                dmax = round(rg*3, 1)
 
         wx.CallAfter(self._finishFindDmax, dmax)
 
     def _finishFindDmax(self, dmax):
-
         if dmax != -1:
             dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
 
@@ -5152,7 +5172,7 @@ class GNOMControlPanel(wx.Panel):
         if restart_timer:
             wx.CallAfter(self.gnom_frame.main_frame.controlTimer, True)
 
-        self.out_list[str(int(iftm.getParameter('dmax')))] = iftm
+        self.out_list[str(dmax)] = iftm
 
     def onSettingsChange(self, evt):
         self.updateGNOMSettings()
@@ -10990,7 +11010,7 @@ class BIFTControlPanel(wx.Panel):
 
     def createInfoBox(self, parent):
 
-        rglabel = wx.StaticText(parent, -1, 'Rg (A)')
+        rglabel = wx.StaticText(parent, -1, 'Rg')
         i0label = wx.StaticText(parent, -1, 'I0')
 
         guinierlabel = wx.StaticText(parent, -1, 'Guinier :')
@@ -11099,8 +11119,13 @@ class BIFTControlPanel(wx.Panel):
         self.startSpin = RAWCustomCtrl.IntSpinCtrl(parent, min_val=0)
         self.endSpin = RAWCustomCtrl.IntSpinCtrl(parent, min_val=0)
 
-        self.startSpin.SetValue(0)
-        self.endSpin.SetValue(0)
+        sp_min, sp_max = self.sasm.getQrange()
+
+        self.startSpin.SetRange((sp_min, sp_max-2))
+        self.endSpin.SetRange((sp_min+1, sp_max-1))
+
+        self.startSpin.SetValue(sp_min)
+        self.endSpin.SetValue(sp_max-1)
 
         self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
@@ -11176,22 +11201,20 @@ class BIFTControlPanel(wx.Panel):
             except Exception:
                 self.guinierI0Err.SetValue('')
 
-        self.startSpin.SetRange((0, len(self.sasm.q)-2))
-        self.endSpin.SetRange((1, len(self.sasm.q)-1))
-
         if 'BIFT' in analysis and 'qStart' in analysis['BIFT']:
             try:
-                qmin = analysis['BIFT']['qStart']
-                qmax = analysis['BIFT']['qEnd']
+                qmin = float(analysis['BIFT']['qStart'])
+                qmax = float(analysis['BIFT']['qEnd'])
 
-                findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
-                closest_qmin = findClosest(qmin, self.sasm.q)
-                closest_qmax = findClosest(qmax, self.sasm.q)
+                self.sasm.q - qmin
 
-                nmin = np.where(self.sasm.q == closest_qmin)[0][0]
-                nmax = np.where(self.sasm.q == closest_qmax)[0][0]+1
+                _, nmin = SASUtils.find_closest(qmin, self.sasm.q)
+                _, nmax = SASUtils.find_closest(qmax, self.sasm.q)
+
+                nmax += 1
             except Exception:
                 nmin, nmax = self.sasm.getQrange()
+                traceback.print_exc()
 
         elif 'guinier' in analysis:
             guinier = analysis['guinier']
@@ -11204,6 +11227,14 @@ class BIFTControlPanel(wx.Panel):
 
         else:
             nmin, nmax = self.sasm.getQrange()
+
+        sp_min, sp_max = self.sasm.getQrange()
+
+        if nmin < sp_min:
+            nmin = sp_min
+
+        if nmax > sp_max:
+            nmax = sp_max
 
         i = self.sasm.i
 
@@ -11358,7 +11389,7 @@ class BIFTControlPanel(wx.Panel):
                 wx.CallAfter(wx.MessageBox, 'The folder:\n' +self.raw_settings.get('BiftFilePath')+ '\ncould not be found. Autosave of BIFT files has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
         if self.iftm is not None:
-            RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [self.iftm, RAWGlobals.bift_item_color, 
+            RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [self.iftm, RAWGlobals.bift_item_color,
                 None, not self.raw_settings.get('AutoSaveOnBift')]])
 
         self.bift_frame.close()

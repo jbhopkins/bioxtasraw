@@ -712,3 +712,23 @@ def enqueue_output(proc, queue, read_semaphore):
 
         line2 += line
         queue.put_nowait([line2])
+
+def guess_units(q, val=None, is_dmax=True):
+
+    if val is not None:
+        if not is_dmax:
+            val = val*3
+
+    if val is not None:
+        if q[0] > 0.015 and q[-1] > 2 and val < 150:
+            units = '1/nm'
+        else:
+            units = '1/A'
+
+    else:
+        if q[0] > 0.015 and q[-1] > 2:
+            units = '1/nm'
+        else:
+            units = '1/A'
+
+    return units
