@@ -2012,7 +2012,8 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
                 ctrl = wx.TextCtrl(parent, id, '', size=self._FromDIP((200,-1)),
                     style = wx.TE_PROCESS_ENTER)
             else:
-                ctrl = wx.TextCtrl(parent, id, '', style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, id, '', style = wx.TE_PROCESS_ENTER,
+                    size=self._FromDIP((60,-1)))
             txt = wx.StaticText(parent, -1, txt)
 
             sizer.Add(txt, 0, wx.ALIGN_CENTER_HORIZONTAL)
@@ -2031,7 +2032,8 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
             if my_id == self.raw_settings.getId('MWVcType'):
                 ctrl = wx.Choice(parent, my_id, choices = ['Protein', 'RNA'])
             else:
-                ctrl = wx.TextCtrl(parent, my_id, '', style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, my_id, '', style = wx.TE_PROCESS_ENTER,
+                    size=self._FromDIP((60,-1)))
 
             txt = wx.StaticText(parent, -1, txt)
 
@@ -2048,7 +2050,8 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
                 ctrl = wx.Choice(parent, my_id, choices=['Default', '8/Rg',
                     'log(I0/I(q))', 'Manual'])
             else:
-                ctrl = wx.TextCtrl(parent, my_id, '', style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, my_id, '', style = wx.TE_PROCESS_ENTER,
+                    size=self._FromDIP((60,-1)))
 
             txt = wx.StaticText(parent, -1, txt)
 
@@ -2057,7 +2060,7 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(hSizer)
-        top_sizer.Add(h_sizer2, border=5, flag=wx.TOP)
+        top_sizer.Add(h_sizer2, border=self._FromDIP(5), flag=wx.TOP)
 
         return top_sizer
 
@@ -2071,7 +2074,8 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
                     'log(I0/I(q))', 'Manual'])
                 txt = wx.StaticText(parent, -1, txt)
             else:
-                ctrl = wx.TextCtrl(parent, my_id, '', style = wx.TE_PROCESS_ENTER)
+                ctrl = wx.TextCtrl(parent, my_id, '', style = wx.TE_PROCESS_ENTER,
+                    size=self._FromDIP((60,-1)))
                 txt = wx.StaticText(parent, -1, txt)
 
             sizer.Add(txt)
@@ -2084,7 +2088,8 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
 
         for txt, id in self.AbsMWData:
             sizer = wx.BoxSizer(wx.HORIZONTAL)
-            ctrl = wx.TextCtrl(parent, id, '', style = wx.TE_PROCESS_ENTER)
+            ctrl = wx.TextCtrl(parent, id, '', style = wx.TE_PROCESS_ENTER,
+                size=self._FromDIP((60,-1)))
             txt = wx.StaticText(parent, -1, txt)
 
             sizer.Add(txt, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -2661,7 +2666,7 @@ class GeneralOptionsPanel(scrolled.ScrolledPanel):
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
         hsizer.Add(online_dir_txt, 0, wx.ALIGN_CENTER_VERTICAL)
-        hsizer.Add(online_dir_ctrl, 1, wx.EXPAND|wx.LEFT, border=self._FromDIP(5))
+        hsizer.Add(online_dir_ctrl, 1, wx.LEFT, border=self._FromDIP(5))
         hsizer.Add(setdir_button, 0, wx.LEFT, border=self._FromDIP(5))
 
         hdrldconfig_dir_ctrl = wx.TextCtrl(box, self.raw_settings.getId('HdrLoadConfigDir'),
@@ -4743,7 +4748,7 @@ class SimilarityPanel(scrolled.ScrolledPanel):
         self.settings = [
             ('Test for profile similarity on average',
                 raw_settings.getId('similarityOnAverage'), 'bool'),
-            ('P-value threshold for similarity test on average',
+            ('P-value threshold for similarity test on average:',
                 raw_settings.getId('similarityThreshold'), 'float'),
             ('Similarity test to use:', raw_settings.getId('similarityTest'),
                 'choice', ['CorMap']),

@@ -668,7 +668,9 @@ class HdrDataDialog(wx.Dialog):
             self._insertData()
 
         self.data_grid.AutoSizeColumns()
-        # self.Fit()
+        self.Fit()
+
+        self.SetSize(self._FromDIP((600,-1)))
 
         SASUtils.set_best_size(self)
 
@@ -832,7 +834,7 @@ class DataDialog(wx.Dialog):
         if self.sasm.getQErr() is not None:
             self.data_grid.SetColLabelValue(3, 'q err')
 
-        self.data_grid.SetMinSize(self._FromDIP((400,400)))
+        self.data_grid.SetMinSize(self._FromDIP((450,400)))
 
         self.data_grid.EnableEditing(False)
 
@@ -3897,6 +3899,8 @@ class PlotOptionsDialog(wx.Dialog):
         sizer = wx.FlexGridSizer(cols=6, rows=nrows, vgap=self._FromDIP(5),
             hgap=self._FromDIP(5))
 
+        sizer.AddGrowableCol(1)
+
         sizer.Add(self._FromDIP((5,5)), 0)
         sizer.Add(self._FromDIP((5,5)), 0)
         sizer.Add(wx.StaticText(box, -1, 'Font'), 1)
@@ -3967,13 +3971,13 @@ class PlotOptionsDialog(wx.Dialog):
                 italic.Enable(False)
 
             sizer.Add(txt, 0)
-            sizer.Add(txt_ctrl, 0)
+            sizer.Add(txt_ctrl, 0, flag=wx.EXPAND)
             sizer.Add(font_ctrl, 0)
             sizer.Add(font_size, 0)
             sizer.Add(bold, 0)
             sizer.Add(italic, 0)
 
-        box_sizer.Add(sizer, 1, wx.ALL, border=self._FromDIP(5))
+        box_sizer.Add(sizer, 1, flag=wx.ALL|wx.EXPAND, border=self._FromDIP(5))
 
         return box_sizer
 

@@ -1,6 +1,14 @@
 import platform
 import codecs
 import os.path
+import six
+
+if six.PY2:
+    language_level ='2'
+elif six.PY3:
+    language_level = '3'
+else:
+    language_level = None
 
 opsys = platform.system()
 
@@ -48,12 +56,15 @@ setup(
         'hdf5plugin',
         'silx',
         'fabio',
+        'reportlab',
+        'mmcif_pdbx',
         'pyfai;python_version>"2.7"',
         'pyfai==0.17;python_version=="2.7"',
         'future;python_version=="2.7"',
         'dbus-python;platform_system=="Linux"',
         ],
-    ext_modules=cythonize("bioxtasraw/sascalc_exts.pyx"),
+    ext_modules=cythonize("bioxtasraw/sascalc_exts.pyx",
+        language_level=language_level),
     entry_points={
         'gui_scripts': [ 'bioxtas_raw = bioxtasraw.RAW:main']
 
