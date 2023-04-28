@@ -12468,8 +12468,8 @@ class SeriesControlPanel(wx.Panel):
                 self._onLoad()
         else:
              wx.CallAfter(wx.MessageBox, ('The "%s" header format is not '
-                'supported for automated SEC-SAXS file loading. You can use '
-                'the "Plot SEC" button in the file window to plot any SEC-SAXS '
+                'supported for automated series file loading. You can use '
+                'the "Plot Series" button in the Files control tab to plot any series '
                 'data. Please contact the RAW developers if you want to add '
                 'automated loading support for a particular header format.' %(hdr_format)) ,
                                       'Error loading file', style = wx.ICON_ERROR | wx.OK)

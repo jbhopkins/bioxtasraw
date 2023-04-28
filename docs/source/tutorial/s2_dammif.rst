@@ -9,7 +9,7 @@ reconstruction is not unique, a number of distinct reconstructions are generated
 consensus shape is made from the average of these reconstructions. The program DAMAVER from
 the ATSAS package is the most commonly used program for building consensus shapes. Note that you need
 :ref:`ATSAS installed <atsas>` to do this part of the tutorial. Also, this tutorial
-uses ATSAS 3.1.1, some pieces may be slightly diferent on older versions of ATSAS,
+uses ATSAS 3.1.1, some pieces may be slightly different on older versions of ATSAS,
 please see previous versions of this tutorial in that case.
 
 This is not a tutorial on basic principles and best practices for doing bead
@@ -97,7 +97,7 @@ The written version of the tutorial follows.
     how many of the reconstructions were included in the average. If DAMAVER was run on 3 or
     more reconstructions, and ATSAS >=2.8.0 is installed, there will be the output of SASRES
     which provides information on the resolution of the reconstruction. If DAMAVER
-    found more than one cluster, he number of clusters and information
+    found more than one cluster, the number of clusters and information
     on each cluster is shown. Note that DAMCLUST (ATSAS <=3.1.0) provided more information
     about the clusters, so some fields will be blank with ATSAS >=3.1.1.
 
@@ -111,7 +111,7 @@ The written version of the tutorial follows.
 
     *   *Tip:* The model highlighted in blue in the summary tab is the 'most
         probable' model, this can be used as your final bead model instead of
-        doing a dammin refinement.
+        doing a DAMMIN refinement.
 
     *   *Note:* DAMMIN in ATSAS >=3.1.0 doesn't provide the |Dmax| value for
         the model.

@@ -31,7 +31,7 @@ Bead models - CIFSUP
 *************************
 .. _raw_supcomb:
 
-CIFSUP from the ATSAS suite can be used to align two PDB files. In this context,
+CIFSUP from the ATSAS suite can be used to align two PDB/mmCIF files. In this context,
 one model (the reference) is the high resolution structure while the other
 (the target) is the bead model reconstruction.
 
