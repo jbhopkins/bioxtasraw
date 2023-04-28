@@ -345,7 +345,7 @@ class MainFrame(wx.Frame):
 
         # Start Plot Thread:
         self.main_worker_thread = MainWorkerThread(self, self.raw_settings)
-        self.main_worker_thread.setDaemon(True)
+        self.main_worker_thread.daemon = True
         self.main_worker_thread.start()
 
         #Set up sleep inhibit utility:
