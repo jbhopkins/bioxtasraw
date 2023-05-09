@@ -373,7 +373,14 @@ class SECData(object):
 
             self.regals_extra_data = True
             self.regals_profiles = [SAXSData(prof) for prof in regals_results[0]]
-            self.regals_ifts = [IFTData(ift) for ift in regals_results[1]]
+
+            self.regals_ifts = []
+            for ift in regals_results[1]:
+                if ift is None:
+                    self.regals_ifts.append(None)
+                else:
+                    self.regals_ifts.append(IFTData(ift))
+
             self.regals_chi = np.mean(regals_results[6] ** 2, 0)
             self.regals_conc = regals_results[2]
             self.regals_reg_conc = regals_results[3]
@@ -1259,7 +1266,7 @@ class overview_plot(object):
         ax.set_ylabel('{} Intensity [Arb.]'.format(self.int_type))
 
         if self.series_data == 'Rg':
-            ax2.set_ylabel(r'Rg [$\AA$]')
+            ax2.set_ylabel('Rg')
         elif self.series_data == 'I0':
             ax2.set_ylabel('I(0)')
         elif self.series_data == 'MW_Vc':
@@ -1286,7 +1293,7 @@ class overview_plot(object):
 
         absolute = [profile.metadata.Absolute_scale for profile in self.profiles]
 
-        ax.set_xlabel(r'q [$\AA^{-1}$]')
+        ax.set_xlabel('q')
 
         if all(absolute):
             ax.set_ylabel(r'Intensity [$cm^{-1}$]')
@@ -1345,7 +1352,7 @@ class overview_plot(object):
         else:
             ax.set_ylabel('Intensity [Arb.]')
 
-        res_ax.set_xlabel(r'q$^2$ [$\AA^{-2}$]')
+        res_ax.set_xlabel(r'q$^2$')
         res_ax.set_ylabel(r'$\Delta$I/$\sigma$')
 
         ax.text(-.15,1.0, label, transform = ax.transAxes, fontweight='bold',
@@ -1406,7 +1413,7 @@ class overview_plot(object):
         if len(self.profiles) > 1:
             ax.legend(fontsize='small')
 
-        ax.set_xlabel(r'r [$\AA$]')
+        ax.set_xlabel('r')
         ax.set_ylabel('P(r)/I(0)')
 
         if span:
@@ -1537,7 +1544,7 @@ class efa_plot(object):
         ax.set_ylabel('{} Intensity [Arb.]'.format(self.int_type))
 
         if self.series_data == 'Rg':
-            ax2.set_ylabel(r'Rg [$\AA$]')
+            ax2.set_ylabel('Rg')
         elif self.series_data == 'I0':
             ax2.set_ylabel('I(0)')
         elif self.series_data == 'MW_Vc':
@@ -1671,7 +1678,8 @@ class efa_plot(object):
         else:
             profiles = self.series.regals_profiles
 
-        if self.is_regals and len(self.series.regals_ifts) > 0:
+        if (self.is_regals and len(self.series.regals_ifts) > 0
+            and not all([x is None for x in self.series.regals_ifts])):
             ax = self.figure.add_subplot(self.gs[row, 0])
             span = False
         else:
@@ -1680,10 +1688,13 @@ class efa_plot(object):
 
         ax.set_yscale('log')
 
-        for profile in profiles:
-            ax.plot(profile.q, profile.i)
+        profile_lines = []
 
-        ax.set_xlabel(r'q [$\AA^{-1}$]')
+        for profile in profiles:
+            line, = ax.plot(profile.q, profile.i)
+            profile_lines.append(line)
+
+        ax.set_xlabel('q')
         ax.set_ylabel('Intensity [Arb.]')
 
         if span:
@@ -1694,14 +1705,18 @@ class efa_plot(object):
         ax.text(offset, 1.0, 'e', transform = ax.transAxes, fontweight='bold',
             size='large')
 
-        if self.is_regals and len(self.series.regals_ifts) > 0:
+        if (self.is_regals and len(self.series.regals_ifts) > 0
+            and not all([x is None for x in self.series.regals_ifts])):
             ax2 = self.figure.add_subplot(self.gs[row, 1])
             ax2.axhline(0, color='k')
 
-            for ift in self.series.regals_ifts:
-                ax2.plot(ift.r, ift.p, markersize=1, label=ift.filename)
+            for i, ift in enumerate(self.series.regals_ifts):
+                if ift is not None:
+                    color = profile_lines[i].get_color()
+                    ax2.plot(ift.r, ift.p, markersize=1, label=ift.filename,
+                        color=color)
 
-            ax2.set_xlabel(r'r [$\AA$]')
+            ax2.set_xlabel('r')
             ax2.set_ylabel('P(r)/I(0)')
 
             ax2.text(offset, 1.0, 'f', transform = ax2.transAxes, fontweight='bold',

@@ -3448,7 +3448,9 @@ def prepareSASMsforSVD(sasms, err_norm=True, do_binning=True, bin_to=100):
     else:
         svd_a = i
 
-    return svd_a, i, err
+    q = rebinned_sasms[0].getQ()
+
+    return svd_a, i, err, q
 
 def doSVDonSASMs(svd_a, do_autocorr=True):
     if np.all(np.isfinite(svd_a)):
@@ -3487,9 +3489,10 @@ def doSVDonSASMs(svd_a, do_autocorr=True):
 
 
 def SVDonSASMs(sasms, err_norm=True, do_binning=True, bin_to=100, do_autocorr=True):
-    svd_a, i, err = prepareSASMsforSVD(sasms, err_norm, do_binning, bin_to)
+    svd_a, i, err, q = prepareSASMsforSVD(sasms, err_norm, do_binning, bin_to)
 
-    svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, success = doSVDonSASMs(svd_a, do_autocorr)
+    svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, success = doSVDonSASMs(svd_a,
+        do_autocorr)
 
     return svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, i, err, svd_a, success
 
@@ -4874,6 +4877,9 @@ def make_regals_ifts(mixture, q, intensity, sigma, secm, start, end):
                 calc_err, calc_intensity, results, calc_intensity, q)
 
             new_ifts.append(ift)
+
+        else:
+            new_ifts.append(None)
 
     return new_ifts
 

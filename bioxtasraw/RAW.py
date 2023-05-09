@@ -15831,7 +15831,7 @@ class MyApp(wx.App):
         except Exception:
             atsas_version = ''
 
-        errTxt = "".join(err)
+        errTxt = "\n".join(err)
         msg = ("An unexpected error has occurred, please report it to the "
             "developers.\n"
             "System: {}\n"
