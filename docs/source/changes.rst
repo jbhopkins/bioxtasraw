@@ -44,6 +44,10 @@ All changes:
 *   Made GNOM and MW panels unit-aware for automatically determining some values.
 *   Fixed issues relating to using wxpython 4.2.0
 *   Fixed issues relating to using matplotlib 3.7
+*   Fixed a bug where the REGALS P(r) function wouldn't have the correct color.
+*   Updated error messages to have system and version information.
+*   Added zero lines to some REGALS and EFA plots.
+*   Changed how plot margins are set to fix visual glitches.
 
 
 2.1.4
