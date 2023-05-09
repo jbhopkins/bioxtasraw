@@ -119,7 +119,6 @@ def test_dammin_interative(gi_gnom_ift, temp_directory):
     assert os.path.exists(os.path.join(temp_directory, 'dammin_inter.fit'))
     assert os.path.exists(os.path.join(temp_directory, 'dammin_inter.fir'))
 
-@pytest.mark.new
 @pytest.mark.atsas
 @pytest.mark.slow
 def test_damaver(temp_directory):
