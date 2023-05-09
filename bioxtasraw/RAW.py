@@ -367,6 +367,7 @@ class MainFrame(wx.Frame):
 
         wx.CallAfter(self._showWelcomeDialog)
 
+
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
         try:
@@ -3611,10 +3612,32 @@ class MainWorkerThread(threading.Thread):
                         self._commands[command](data)
                     except Exception:
                         wx.CallAfter(self.main_frame.closeBusyDialog)
+
+                        try:
+                            main_frame = wx.FindWindowByName('MainFrame')
+                            atsasPath = main_frame.raw_settings.get('ATSASDir')
+
+                            if atsasPath != '':
+                                atsas_version = SASCalc.getATSASVersion(atsasPath)
+                            else:
+                                atsas_version = ''
+
+                        except Exception:
+                            atsas_version = ''
+
                         err = traceback.format_exc()
-                        msg = ("An unexpected error has occurred, please report it to the "
-                            "developers."
-                            "\n\nError:\n%s" %(err))
+
+                        errTxt = err
+                        msg = ("An unexpected error has occurred, please report "
+                            "it to the developers.\n"
+                            "System: {}\n"
+                            "RAW version: {}\n".format(platform.platform(),
+                                RAWGlobals.version))
+
+                        if atsas_version != '':
+                            msg = msg + "ATSAS version: {}\n".format(atsas_version)
+
+                        msg = msg + "\nError:\n{}".format(errTxt)
 
                         wx.CallAfter(wx.lib.dialogs.scrolledMessageDialog,
                             None, msg, "Unexpected Error")
@@ -15795,10 +15818,29 @@ class MyApp(wx.App):
 
     def ExceptionHook(self, errType, value, trace):
         err = traceback.format_exception(errType, value, trace)
-        errTxt = "\n".join(err)
+
+        try:
+            main_frame = wx.FindWindowByName('MainFrame')
+            atsasPath = main_frame.raw_settings.get('ATSASDir')
+
+            if atsasPath != '':
+                atsas_version = SASCalc.getATSASVersion(atsasPath)
+            else:
+                atsas_version = ''
+
+        except Exception:
+            atsas_version = ''
+
+        errTxt = "".join(err)
         msg = ("An unexpected error has occurred, please report it to the "
-                "developers. You may need to restart RAW to continue working."
-                "\n\nError:\n%s" %(errTxt))
+            "developers.\n"
+            "System: {}\n"
+            "RAW version: {}\n".format(platform.platform(), RAWGlobals.version))
+
+        if atsas_version != '':
+            msg = msg + "ATSAS version: {}\n".format(atsas_version)
+
+        msg = msg + "\nError:\n{}".format(errTxt)
 
         if self and self.IsMainLoopRunning():
             if not self.HandleError(value):
