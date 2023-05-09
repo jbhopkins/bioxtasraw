@@ -1,6 +1,51 @@
 Changes
 ============
 
+
+
+2.2.0
+-----------
+
+Release date:
+
+Overview
+^^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 2.2.0. Significant
+changes include:
+
+
+
+All changes:
+^^^^^^^^^^^^^
+
+*   Fixed a bug where ATSAS fit files might load in missing the first or last datapoint.
+*   Improved robustness of loading text files.
+*   Improved speed of averaging, subtraction, merging, and interpolation up to 10x.
+*   SVD, EFA, and REGALS can now used binned profiles for calculating the SVD,
+    resulting in a significant speed up.
+*   EFA now has a toggle for using previous result, which is off by
+    default (changes default behavior).
+*   Buffer region in the LC Series Analysis panel is now selected/validated with
+    an intensity test on the median frame rather than the max frame.
+*   Fixed a bug where Custom mode didn't work for DENSS.
+*   Fixed a bug where min/max q for adjusted porod volume could end up outside
+    of the interpolation range when using automated q selection.
+*   The RAW main window now remembers position and size when you reopen it.
+*   Fixed a bug where the q range in the BIFT and GNOM windows wasn't restricted by the
+    q range set for the profile.
+*   Removed spurious angstrom labels from the Rg label in the BIFT and GNOM window.
+*   Fixed some issues that could arise when opening the GNOM window if a IFT
+    wasn't successfully calculated.
+*   Fixed a bug where BIFT wasn't using the q range previously used if the window
+    was reopened.
+*   Added ability to use non-integer Dmax values in the GNOM window.
+*   Added ability to set profile units as 1/A or 1/nm for unit-aware calculations in RAW.
+*   Made GNOM and MW panels unit-aware for automatically determining some values.
+*   Fixed issues relating to using wxpython 4.2.0
+*   Fixed issues relating to using matplotlib 3.7
+
+
 2.1.4
 -----------
 
