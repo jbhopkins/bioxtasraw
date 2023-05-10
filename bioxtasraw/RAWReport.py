@@ -47,6 +47,7 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Table, Image,
     Preformatted, KeepTogether, TableStyle)
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from svglib.svglib import svg2rlg
 
 import bioxtasraw.RAWAPI as raw
 import bioxtasraw.SASCalc as SASCalc
@@ -3171,20 +3172,26 @@ def make_figure(figure, caption, img_width, img_height, styles):
     """
     datadir = os.path.abspath(os.path.expanduser(tempfile.gettempdir()))
     filename = tempfile.NamedTemporaryFile(dir=datadir).name
-    filename = os.path.split(filename)[-1] + '.png'
+    filename = os.path.split(filename)[-1] + '.svg'
     filename = os.path.join(datadir, filename)
 
     global temp_files
     temp_files.append(filename) #Note defined at a module level
 
-    figure.savefig(filename, dpi=300)
+    figure.savefig(filename)
     plt.close(figure)
-    image = Image(filename, img_width*inch, img_height*inch, lazy=2)
-    image.hAlign = 'CENTER'
+
+    drawing = svg2rlg(filename)
+
+    scale = 0.8
+
+    drawing.width = drawing.width*scale
+    drawing.height = drawing.height*scale
+    drawing.scale(scale, scale)
 
     text = Paragraph(caption, styles['Normal'])
 
-    return_fig = KeepTogether([image, text])
+    return_fig = KeepTogether([drawing, text])
 
     return return_fig
 

@@ -38,7 +38,7 @@ Windows 7, 8.1, and 10 install from source instructions
 
     *   ``conda install numpy scipy matplotlib pillow numba h5py cython numexpr reportlab``
 
-    *  ``conda install -c conda-forge wxpython hdf5plugin fabio pyfai mmcif_pdbx``
+    *  ``conda install -c conda-forge wxpython hdf5plugin fabio pyfai mmcif_pdbx svglib``
 
 #.  Download RAW from sourceforge (
     `https://sourceforge.net/projects/bioxtasraw <https://sourceforge.net/projects/bioxtasraw>`_)

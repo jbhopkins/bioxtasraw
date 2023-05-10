@@ -48,6 +48,14 @@ All changes:
 *   Updated error messages to have system and version information.
 *   Added zero lines to some REGALS and EFA plots.
 *   Changed how plot margins are set to fix visual glitches.
+*   Fixed an issue where tables in the report could extend off the edge of the document.
+*   Added ability to add DENSS data to the report from the API.
+*   Fixed a bug where DENSS data wasn't properly parsed for the report.
+*   Fixed a bug where DAMMIF data wasn't properly parsed for the report.
+*   Fixed a bug where extra EFA or REGALS information could be saved in the report
+    if you saved more than one dataset where the technique was used.
+*   Figures in the report are now vector (svg), so they should be higher quality.
+*   Added a dependency on svglib.
 
 
 2.1.4

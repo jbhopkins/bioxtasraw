@@ -58,6 +58,7 @@ setup(
         'fabio',
         'reportlab',
         'mmcif_pdbx',
+        'svglib',
         'pyfai;python_version>"2.7"',
         'pyfai==0.17;python_version=="2.7"',
         'future;python_version=="2.7"',
