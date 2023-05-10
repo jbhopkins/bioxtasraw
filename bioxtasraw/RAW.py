@@ -3612,6 +3612,8 @@ class MainWorkerThread(threading.Thread):
                         self._commands[command](data)
                     except Exception:
                         wx.CallAfter(self.main_frame.closeBusyDialog)
+                        RAWGlobals.save_in_progress = False
+                        wx.CallAfter(self.main_frame.setStatus, '', 0)
 
                         try:
                             main_frame = wx.FindWindowByName('MainFrame')
@@ -15820,7 +15822,8 @@ class MyApp(wx.App):
         err = traceback.format_exception(errType, value, trace)
 
         try:
-            main_frame = wx.FindWindowByName('MainFrame')
+            top_window = self.GetTopWindow()
+            main_frame = top_window.FindWindowByName('MainFrame')
             atsasPath = main_frame.raw_settings.get('ATSASDir')
 
             if atsasPath != '':
@@ -15830,6 +15833,7 @@ class MyApp(wx.App):
 
         except Exception:
             atsas_version = ''
+
 
         errTxt = "\n".join(err)
         msg = ("An unexpected error has occurred, please report it to the "
@@ -15848,6 +15852,10 @@ class MyApp(wx.App):
 
                 if top_window is not None:
                     parent = top_window.FindWindowByName("MainFrame")
+                    wx.CallAfter(parent.closeBusyDialog)
+
+                    RAWGlobals.save_in_progress = False
+                    wx.CallAfter(parent.setStatus, '', 0)
                 else:
                     parent = None
 

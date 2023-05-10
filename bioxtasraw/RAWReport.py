@@ -35,6 +35,7 @@ from collections import OrderedDict, defaultdict
 import tempfile
 import os
 import copy
+import math
 
 import numpy as np
 import scipy.signal
@@ -43,7 +44,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.platypus import (SimpleDocTemplate, Paragraph, Table, Image,
-    XPreformatted, KeepTogether, TableStyle)
+    Preformatted, KeepTogether, TableStyle)
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
@@ -806,7 +807,7 @@ class DenssDat(object):
     """
 
     def __init__(self, prefix, mode, sym, sym_axis, sym_factor, num, average,
-        refined, rsc, rsc_std, included, res):
+        refined, rsc, rsc_std, included, res, res_err):
 
         self.prefix = prefix
         self.mode = mode
@@ -820,6 +821,7 @@ class DenssDat(object):
         self.rsc_std = rsc_std
         self.included = included
         self.res = res
+        self.res_err = res_err
 
 
 def parse_efa_file(filename):
@@ -963,8 +965,11 @@ def parse_dammif_file(filename, data=None):
             rep_model = int(line.split(':')[-1].strip())
         elif 'Ensemble resolution' in line:
             res_data = line.split(':')[-1].strip()
-            res = float(res_data.split('+')[0].strip())
-            res_err = float(res_data.split('-')[1].strip().split(' ')[0].strip())
+            if '+' in res_data:
+                res = float(res_data.split('+')[0].strip())
+                res_err = float(res_data.split('-')[1].strip().split(' ')[0].strip())
+            else:
+                res = float(res_data.split()[0])
         elif 'Number of clusters' in line:
             clusters = int(line.split(':')[-1].strip())
         elif 'Output prefix' in line:
@@ -994,6 +999,7 @@ def parse_denss_file(filename, data=None):
     rsc_std = -1
     included = -1
     res = -1
+    res_err = -1
 
     for line in data:
         if 'Mode:' in line:
@@ -1017,12 +1023,17 @@ def parse_denss_file(filename, data=None):
         elif 'Number of models included' in line:
             included = int(line.split(':')[-1].strip().split(' ')[0].strip())
         elif 'Correlation Resolution' in line:
-            res = float(line.split(':')[-1].strip())
+            res_data = line.split(':')[-1].strip()
+            if '+' in res_data:
+                res = float(res_data.split('+')[0].strip())
+                res_err = float(res_data.split('-')[1].strip().split(' ')[0].strip())
+            else:
+                res = float(res_data.split()[0])
         elif 'Output prefix' in line:
             prefix = line.split(':')[-1].strip()
 
     denss_data = DenssDat(prefix, mode, sym, sym_axis, sym_factor, num, average,
-        refined, rsc, rsc_std, included, res)
+        refined, rsc, rsc_std, included, res, res_err)
 
     return denss_data
 
@@ -1039,7 +1050,7 @@ def make_patch_spines_invisible(ax):
 class overview_plot(object):
     """
     Makes an overview plot with up to 5 panels. a) Series intensity and rg.
-    b) Log-lin profiles. c) Guinier fits. d) Normalized Kratky profiles. e) P(r).
+    b) Log-lin profiles. c) Guinier fits. d) Dimensionless Kratky profiles. e) P(r).
     Plot generated depends on what data is input.
     """
 
@@ -1426,8 +1437,7 @@ class overview_plot(object):
 
 class efa_plot(object):
     """
-    Makes an overview plot with 4 panels. a) Series intensity and rg.
-    b) Log-lin profiles. c) Normalized Kratky profiles. d) P(r)
+    Makes an efa plot
     """
 
     def __init__(self, series, int_type='Total',
@@ -1641,6 +1651,7 @@ class efa_plot(object):
             reg_conc_vals = self.series.regals_reg_conc
 
         ax = self.figure.add_subplot(self.gs[row, column])
+        ax.axhline(0, color='k')
 
         conc_lines = []
 
@@ -1784,7 +1795,7 @@ def generate_report(fname, datadir, profiles, ifts, series, extra_data=None):
 
     doc = SimpleDocTemplate(os.path.join(datadir, fname), pagesize=letter,
         leftMargin=1*inch, rightMargin=1*inch, topMargin=1*inch,
-        bottomMargin=1*inch)
+        bottomMargin=1*inch, title="RAW Report", lang="en-US")
     doc.build(elements)
 
     global temp_files
@@ -1844,7 +1855,7 @@ def generate_overview(profiles, ifts, series):
     else:
          summary_text = ('Data name(s): {}\n'.format(name_str))
 
-    ov_summary = XPreformatted(summary_text, styles['Normal'])
+    ov_summary = Preformatted(summary_text, styles['Normal'], maxLineLength=90)
 
     elements.append(ov_title)
     elements.append(ov_text)
@@ -1885,7 +1896,7 @@ def generate_overview(profiles, ifts, series):
 
     profile_label = ('Scattering profile(s) on a log-lin scale.')
     guinier_label = ('Guinier fit(s) (top) and fit residuals (bottom).')
-    kratky_label = ('Normalized Kratky plot. Dashed lines show where a '
+    kratky_label = ('Dimensionless Kratky plot. Dashed lines show where a '
         'globular system would peak.')
     ift_label = ('P(r) function(s), normalized by I(0).')
 
@@ -1988,8 +1999,6 @@ def generate_overview(profiles, ifts, series):
         ]
 
     table_dict = OrderedDict()
-
-    table_data = []
 
     required_data = ['']
 
@@ -2106,28 +2115,9 @@ def generate_overview(profiles, ifts, series):
             else:
                 table_dict[header] = [value]
 
-    for header, values in table_dict.items():
-        if header in required_data:
-            table_entry = [header]
-            table_entry.extend(values)
-            table_data.append(table_entry)
-        else:
-            if any(val != '' for val in values):
-                table_entry = [header]
-                table_entry.extend(values)
-                table_data.append(table_entry)
+    ov_table, table_data = format_table(table_dict, required_data, 75., 150)
 
     if len(table_data) > 1:
-        ov_table = Table(table_data, spaceBefore=0.25*inch, spaceAfter=0.1*inch)
-
-        table_style = TableStyle(
-            [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-            ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-            ])
-
-        ov_table.setStyle(table_style)
-        ov_table.hAlign = 'LEFT'
-
         if 'N/A' in name_str:
             table_caption = ('SAXS data summary table. ')
         else:
@@ -2141,6 +2131,71 @@ def generate_overview(profiles, ifts, series):
 
     return elements
 
+def format_table(table_dict, required_data, first_col_width, max_col_width):
+    styles = getSampleStyleSheet()
+
+    table_data = []
+
+    for header, values in table_dict.items():
+        if header in required_data:
+
+            header = header.replace('&', '&amp;')
+            for val in values:
+                val = val.replace('&', '&amp;')
+
+            table_entry = [header]
+            table_entry.extend(values)
+
+            for i in range(len(table_entry)):
+                table_entry[i] = Paragraph(table_entry[i], styles['Normal'])
+
+            table_data.append(table_entry)
+        else:
+            if any(val != '' for val in values):
+                header = header.replace('&', '&amp;')
+                for val in values:
+                    val = val.replace('&', '&amp;')
+
+                table_entry = [header]
+                table_entry.extend(values)
+
+                for i in range(len(table_entry)):
+                    table_entry[i] = Paragraph(table_entry[i], styles['Normal'])
+
+                table_data.append(table_entry)
+
+    if len(table_data) > 1:
+        if max_col_width <= first_col_width:
+            ncol = int(math.ceil((440-first_col_width))/max_col_width) + 1
+        else:
+            ncol = int(math.ceil((440/first_col_width)))
+
+        cutoff = max(3, ncol)
+
+        if len(table_data[0]) >= cutoff:
+            column_widths = [440./len(table_data[0]) for x in range(len(table_data[0]))]
+
+        elif len(table_data[0]) < cutoff and len(table_data[0]) >=2:
+            column_widths = [first_col_width] + [min(max_col_width,
+                (440.-first_col_width)/(len(table_data[0])-1)) for x in range(len(table_data[0])-1)]
+        else:
+            column_widths = [first_col_width, max_col_width]
+
+        new_table = Table(table_data, spaceBefore=0.25*inch, spaceAfter=0.1*inch,
+            colWidths=column_widths)
+
+        table_style = TableStyle(
+            [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
+            ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
+            ])
+
+        new_table.setStyle(table_style)
+        new_table.hAlign = 'LEFT'
+
+    else:
+        new_table = None
+
+    return new_table, table_data
 
 def generate_exp_params(profiles, ifts, series):
     styles = getSampleStyleSheet()
@@ -2181,7 +2236,7 @@ def generate_exp_params(profiles, ifts, series):
         ('Detector', 'Detector'),
         ('Wavelength (A)', 'Wavelength'),
         ('Camera length (m)', 'Sample_to_detector_distance'),
-        ('q-measurement range (1/A)', 'q_range'),
+        ('q-measurement range', 'q_range'),
         ('Exposure time (s)', 'Exposure_time'),
         ('Exposure period (s)', 'Exposure_period'),
         ('Flow rate (ml/min)', 'Flow_rate'),
@@ -2191,8 +2246,6 @@ def generate_exp_params(profiles, ifts, series):
         ]
 
     table_dict = OrderedDict()
-
-    table_data = []
 
     required_data = ['']
 
@@ -2242,29 +2295,9 @@ def generate_exp_params(profiles, ifts, series):
             else:
                 table_dict[header] = [value]
 
-
-    for header, values in table_dict.items():
-        if header in required_data:
-            table_entry = [header]
-            table_entry.extend(values)
-            table_data.append(table_entry)
-        else:
-            if any(val != '' for val in values):
-                table_entry = [header]
-                table_entry.extend(values)
-                table_data.append(table_entry)
+    exp_table, table_data = format_table(table_dict, required_data, 115., 200.)
 
     if len(table_data) > 1:
-        exp_table = Table(table_data)
-
-        table_style = TableStyle(
-            [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-            ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-            ])
-
-        exp_table.setStyle(table_style)
-        exp_table.hAlign = 'LEFT'
-
         elements = [exp_text, exp_table]
 
     else:
@@ -2303,8 +2336,6 @@ def generate_series_params(profiles, ifts, series, extra_data):
 
     table_dict = OrderedDict()
 
-    table_data = []
-
     required_data = []
 
 
@@ -2340,27 +2371,9 @@ def generate_series_params(profiles, ifts, series, extra_data):
             else:
                 table_dict[header] = [value]
 
-    for header, values in table_dict.items():
-        if header in required_data:
-            table_entry = [header]
-            table_entry.extend(values)
-            table_data.append(table_entry)
-        else:
-            if any(val != '' for val in values):
-                table_entry = [header]
-                table_entry.extend(values)
-                table_data.append(table_entry)
+    series_table, table_data = format_table(table_dict, required_data, 105., 150)
 
     if len(table_data) > 1:
-        series_table = Table(table_data)
-
-        table_style = TableStyle(
-            [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-            ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-            ])
-
-        series_table.setStyle(table_style)
-        series_table.hAlign = 'LEFT'
         series_table = KeepTogether([series_text, series_table])
 
         elements = [series_table]
@@ -2379,13 +2392,11 @@ def generate_series_params(profiles, ifts, series, extra_data):
         ('Number of components', 'nsvs'),
         ]
 
-    efa_table_dict = OrderedDict()
-
-    efa_table_data = []
-
     efa_required_data = ['', 'EFA data range', 'Number of components']
 
     for j, s in enumerate(series):
+        efa_table_dict = OrderedDict()
+
         if s.efa_done:
             if len(series) > 1:
                 efa_title = Paragraph('{} EFA results:'.format(name_list[j]),
@@ -2419,27 +2430,8 @@ def generate_series_params(profiles, ifts, series, extra_data):
                     efa_table_dict[header] = [value]
 
 
-            for header, values in efa_table_dict.items():
-                if header in efa_required_data:
-                    efa_table_entry = [header]
-                    efa_table_entry.extend(values)
-                    efa_table_data.append(efa_table_entry)
-                else:
-                    if any(val != '' for val in values):
-                        efa_table_entry = [header]
-                        efa_table_entry.extend(values)
-                        efa_table_data.append(efa_table_entry)
-
-            efa_table = Table(efa_table_data)
-
-            table_style = TableStyle(
-                [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-                ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-                ])
-
-            efa_table.setStyle(table_style)
-            efa_table.hAlign = 'LEFT'
-            # efa_table = KeepTogether([efa_table])
+            efa_table, efa_table_data = format_table(efa_table_dict,
+                efa_required_data, 120., 150)
 
             # Make EFA plot
 
@@ -2492,14 +2484,8 @@ def generate_series_params(profiles, ifts, series, extra_data):
         ('Convergence Tolerance', 'tol'),
         ]
 
-    regals_table_dict = OrderedDict()
-
-    regals_table_data = []
-
     regals_required_data = ['', 'REGALS data range', 'Number of components']
 
-    regals_comp_table_dict = OrderedDict()
-    regals_comp_table_data = []
     regals_comp_required_data = []
 
     regals_profile_component_table_pairs = [
@@ -2523,6 +2509,9 @@ def generate_series_params(profiles, ifts, series, extra_data):
         ]
 
     for j, s in enumerate(series):
+        regals_table_dict = OrderedDict()
+        regals_comp_table_dict = OrderedDict()
+
         if s.regals_done:
             if len(series) > 1:
                 regals_title = Paragraph('{} REGALS results:'.format(name_list[j]),
@@ -2560,28 +2549,8 @@ def generate_series_params(profiles, ifts, series, extra_data):
                 else:
                     regals_table_dict[header] = [value]
 
-            for header, values in regals_table_dict.items():
-                if header in regals_comp_required_data:
-                    regals_table_entry = [header]
-                    regals_table_entry.extend(values)
-                    regals_table_data.append(regals_table_entry)
-                else:
-                    if any(val != '' for val in values):
-                        regals_table_entry = [header]
-                        regals_table_entry.extend(values)
-                        regals_table_data.append(regals_table_entry)
-
-            regals_table = Table(regals_table_data)
-
-            table_style = TableStyle(
-                [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-                ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-                ])
-
-            regals_table.setStyle(table_style)
-            regals_table.hAlign = 'LEFT'
-            # regals_table = KeepTogether([regals_table])
-
+            regals_table, regals_table_data = format_table(regals_table_dict,
+                regals_required_data, 120., 150)
 
             #Make REGALS compoment table
             for k, comp_settings in enumerate(s.regals_component_settings):
@@ -2620,26 +2589,8 @@ def generate_series_params(profiles, ifts, series, extra_data):
                     else:
                         regals_comp_table_dict[header] = [value]
 
-            for header, values in regals_comp_table_dict.items():
-                if header in regals_required_data:
-                    regals_table_entry = [header]
-                    regals_table_entry.extend(values)
-                    regals_comp_table_data.append(regals_table_entry)
-                else:
-                    if any(val != '' for val in values):
-                        regals_table_entry = [header]
-                        regals_table_entry.extend(values)
-                        regals_comp_table_data.append(regals_table_entry)
-
-            regals_comp_table = Table(regals_comp_table_data)
-
-            table_style = TableStyle(
-                [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-                ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-                ])
-
-            regals_comp_table.setStyle(table_style)
-            regals_comp_table.hAlign = 'LEFT'
+            regals_comp_table, regals_comp_table_data = format_table(regals_comp_table_dict,
+                regals_comp_required_data, 120., 70)
 
             # Make REGALS plot
 
@@ -2697,17 +2648,15 @@ def generate_guinier_params(profiles, ifts, series):
 
     table_pairs = [
         ('', 'name'),
-        ('Rg [A]', 'rg'),
+        ('Rg', 'rg'),
         (i0_label, 'i0'),
-        ('q-range [1/A]', 'q_range'),
+        ('q-range', 'q_range'),
         ('qmin*Rg', 'qRg_min'),
         ('qmax*Rg', 'qRg_max'),
         ('r^2', 'rsq'),
         ]
 
     table_dict = OrderedDict()
-
-    table_data = []
 
     required_data = ['']
 
@@ -2765,27 +2714,9 @@ def generate_guinier_params(profiles, ifts, series):
             else:
                 table_dict[header] = [value]
 
-    for header, values in table_dict.items():
-        if header in required_data:
-            table_entry = [header]
-            table_entry.extend(values)
-            table_data.append(table_entry)
-        else:
-            if any(val != '' for val in values):
-                table_entry = [header]
-                table_entry.extend(values)
-                table_data.append(table_entry)
+    guinier_table, table_data = format_table(table_dict, required_data, 65., 150.)
 
     if len(table_data) > 1:
-        guinier_table = Table(table_data)
-
-        table_style = TableStyle(
-            [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-            ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-            ])
-
-        guinier_table.setStyle(table_style)
-        guinier_table.hAlign = 'LEFT'
         guinier_table = KeepTogether([guinier_text, guinier_table])
 
         elements = [guinier_table]
@@ -2803,7 +2734,7 @@ def generate_mw_params(profiles, ifts, series):
     table_pairs = [
         ('', 'name'),
         ('M.W. (Vp) [kDa]', 'mw_vp'),
-        ('Porod Volume [A^3]', 'vp'),
+        ('Porod Volume', 'vp'),
         ('M.W. (Vc) [kDa]', 'mw_vc'),
         ('M.W. (S&S) [kDa]', 'mw_ss'),
         ('Shape (S&S)', 'shape'),
@@ -2817,8 +2748,6 @@ def generate_mw_params(profiles, ifts, series):
         ]
 
     table_dict = OrderedDict()
-
-    table_data = []
 
     required_data = ['']
 
@@ -2912,27 +2841,9 @@ def generate_mw_params(profiles, ifts, series):
             else:
                 table_dict[header] = [value]
 
-    for header, values in table_dict.items():
-        if header in required_data:
-            table_entry = [header]
-            table_entry.extend(values)
-            table_data.append(table_entry)
-        else:
-            if any(val != '' for val in values):
-                table_entry = [header]
-                table_entry.extend(values)
-                table_data.append(table_entry)
+    mw_table, table_data = format_table(table_dict, required_data, 100., 150.)
 
     if len(table_data) > 1:
-        mw_table = Table(table_data)
-
-        table_style = TableStyle(
-            [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-            ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-            ])
-
-        mw_table.setStyle(table_style)
-        mw_table.hAlign = 'LEFT'
         mw_table = KeepTogether([mw_text, mw_table])
 
         elements = [mw_table]
@@ -2949,21 +2860,19 @@ def generate_gnom_params(profiles, ifts, series):
 
     table_pairs = [
         ('', 'name'),
-        ('Dmax [A]', 'dmax'),
-        ('Rg [A]', 'rg'),
+        ('Dmax', 'dmax'),
+        ('Rg', 'rg'),
         ('I(0)', 'i0'),
         ('Chi^2', 'chi_sq'),
         ('Total Estimate', 'te'),
         ('Quality', 'quality'),
-        ('q-range [1/A]', 'q_range'),
+        ('q-range', 'q_range'),
         ('Ambiguity score', 'a_score'),
         ('Ambiguity cats.', 'a_cats'),
         ('Ambiguity', 'a_interp'),
         ]
 
     table_dict = OrderedDict()
-
-    table_data = []
 
     required_data = ['']
 
@@ -3033,27 +2942,9 @@ def generate_gnom_params(profiles, ifts, series):
                 else:
                     table_dict[header] = [value]
 
-    for header, values in table_dict.items():
-        if header in required_data:
-            table_entry = [header]
-            table_entry.extend(values)
-            table_data.append(table_entry)
-        else:
-            if any(val != '' for val in values):
-                table_entry = [header]
-                table_entry.extend(values)
-                table_data.append(table_entry)
+    gnom_table, table_data = format_table(table_dict, required_data, 85., 200.)
 
     if len(table_data) > 1:
-        gnom_table = Table(table_data)
-
-        table_style = TableStyle(
-            [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-            ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-            ])
-
-        gnom_table.setStyle(table_style)
-        gnom_table.hAlign = 'LEFT'
         gnom_table = KeepTogether([gnom_text, gnom_table])
 
         elements = [gnom_table]
@@ -3070,16 +2961,14 @@ def generate_bift_params(profiles, ifts, series):
 
     table_pairs = [
         ('', 'name'),
-        ('Dmax [A]', 'dmax'),
-        ('Rg [A]', 'rg'),
+        ('Dmax', 'dmax'),
+        ('Rg', 'rg'),
         ('I(0)', 'i0'),
         ('Chi^2', 'chi_sq'),
-        ('q-range [1/A]', 'q_range'),
+        ('q-range', 'q_range'),
         ]
 
     table_dict = OrderedDict()
-
-    table_data = []
 
     required_data = ['']
 
@@ -3129,27 +3018,9 @@ def generate_bift_params(profiles, ifts, series):
                 else:
                     table_dict[header] = [value]
 
-    for header, values in table_dict.items():
-        if header in required_data:
-            table_entry = [header]
-            table_entry.extend(values)
-            table_data.append(table_entry)
-        else:
-            if any(val != '' for val in values):
-                table_entry = [header]
-                table_entry.extend(values)
-                table_data.append(table_entry)
+    bift_table, table_data = format_table(table_dict, required_data, 55., 150.)
 
     if len(table_data) > 1:
-        bift_table = Table(table_data)
-
-        table_style = TableStyle(
-            [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-            ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-            ])
-
-        bift_table.setStyle(table_style)
-        bift_table.hAlign = 'LEFT'
         bift_table = KeepTogether([bift_text, bift_table])
 
         elements = [bift_table]
@@ -3183,8 +3054,6 @@ def generate_dammif_params(dammif_data):
 
     table_dict = OrderedDict()
 
-    table_data = []
-
     required_data = ['']
 
 
@@ -3201,8 +3070,12 @@ def generate_dammif_params(dammif_data):
                         value = '{} +/- {}'.format(text_round(value, 3),
                             text_round(info.nsd_std, 3))
                     elif key == 'res':
-                        value = '{} +/- {}'.format(text_round(value, 0),
-                            text_round(info.res_err, 0))
+                        if info.res_err > -1:
+                            value = '{} +/- {}'.format(text_round(value, 1),
+                                text_round(info.res_err, 1))
+                        else:
+                            value = '{}'.format(text_round(value, 1))
+
                     elif key == 'included':
                         value = '{} of {}'.format(value, info.num)
                     elif not isinstance(value, str):
@@ -3213,27 +3086,9 @@ def generate_dammif_params(dammif_data):
                 else:
                     table_dict[header] = [value]
 
-    for header, values in table_dict.items():
-        if header in required_data:
-            table_entry = [header]
-            table_entry.extend(values)
-            table_data.append(table_entry)
-        else:
-            if any(val != '' for val in values):
-                table_entry = [header]
-                table_entry.extend(values)
-                table_data.append(table_entry)
+    dammif_table, table_data = format_table(table_dict, required_data, 130., 150.)
 
     if len(table_data) > 1:
-        dammif_table = Table(table_data)
-
-        table_style = TableStyle(
-            [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-            ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-            ])
-
-        dammif_table.setStyle(table_style)
-        dammif_table.hAlign = 'LEFT'
         dammif_table = KeepTogether([dammif_text, dammif_table])
 
         elements = [dammif_table]
@@ -3282,7 +3137,11 @@ def generate_denss_params(denss_data):
                         value = '{} +/- {}'.format(text_round(value, 3),
                             text_round(info.rsc_std, 3))
                     elif key == 'res':
-                        value = '{}'.format(text_round(value, 1))
+                        if info.res_err > -1:
+                            value = '{} +/- {}'.format(text_round(value, 1),
+                                text_round(info.res_err, 1))
+                        else:
+                            value = '{}'.format(text_round(value, 1))
                     elif key == 'included':
                         value = '{} of {}'.format(value, info.num)
                     elif not isinstance(value, str):
@@ -3293,27 +3152,9 @@ def generate_denss_params(denss_data):
                 else:
                     table_dict[header] = [value]
 
-    for header, values in table_dict.items():
-        if header in required_data:
-            table_entry = [header]
-            table_entry.extend(values)
-            table_data.append(table_entry)
-        else:
-            if any(val != '' for val in values):
-                table_entry = [header]
-                table_entry.extend(values)
-                table_data.append(table_entry)
+    denss_table, table_data = format_table(table_dict, required_data, 130., 150.)
 
     if len(table_data) > 1:
-        denss_table = Table(table_data)
-
-        table_style = TableStyle(
-            [('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
-            ('LINEAFTER', (0, 0), (0,-1), 1, colors.black),
-            ])
-
-        denss_table.setStyle(table_style)
-        denss_table.hAlign = 'LEFT'
         denss_table = KeepTogether([denss_text, denss_table])
 
         elements = [denss_table]
@@ -3373,7 +3214,7 @@ def run_ambimeter_for_report(ift, settings):
     return a_score, a_cats, a_interp
 
 def make_report_from_raw(name, out_dir, profiles, ifts, series, settings,
-        dammif_data=None):
+        dammif_data=None, denss_data=None):
 
     profile_data = [SAXSData(copy.deepcopy(profile)) for profile in profiles]
 
@@ -3404,7 +3245,18 @@ def make_report_from_raw(name, out_dir, profiles, ifts, series, settings,
 
             dammif_results.append(results)
 
-    extra_data = {'dammif': dammif_results}
+    denss_results = []
+
+    if denss_data is not None:
+        for denss_file in denss_data:
+            if denss_file is not None:
+                results = parse_denss_file(denss_file)
+            else:
+                results = None
+
+            denss_results.append(results)
+
+    extra_data = {'dammif': dammif_results, 'denss': denss_results}
 
     generate_report(name, out_dir, profile_data, ift_data, series_data,
         extra_data)

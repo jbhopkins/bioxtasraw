@@ -5346,31 +5346,21 @@ class ReportFrame(wx.Frame):
 
     def _make_report(self, save_name, save_dir, profiles, ifts, series):
         RAWGlobals.save_in_progress = True
-        self.showBusy(msg='Saving report, please wait . . .')
+        self.main_frame.showBusyDialog('Saving report, please wait . . .')
         self.main_frame.setStatus('Saving report', 0)
 
         RAWReport.make_report_from_raw(save_name, save_dir, profiles, ifts,
             series, self.raw_settings)
 
-        self.showBusy(False)
+        self.main_frame.closeBusyDialog()
         RAWGlobals.save_in_progress = False
         self.main_frame.setStatus('', 0)
-
-    def showBusy(self, show=True, msg=''):
-        if show:
-            self.bi = wx.BusyInfo(msg, self)
-        else:
-            try:
-                del self.bi
-                self.bi = None
-            except Exception:
-                pass
 
     def _onCloseButton(self, evt):
         self.Close()
 
     def OnClose(self, event):
-        self.showBusy(show=False)
+        self.main_frame.closeBusyDialog()
         self.Destroy()
 
 
