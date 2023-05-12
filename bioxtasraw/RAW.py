@@ -1408,7 +1408,7 @@ class MainFrame(wx.Frame):
 
             self.regals_frames.append(regals_frame)
 
-    def showSimilarityFrame(self, sasm_list):
+    def showComparisonFrame(self, sasm_list):
         if not sasm_list or len(sasm_list) == 1:
             msg = 'You must select at least 2 items to test similarity.'
             dlg = wx.MessageDialog(self, msg, "Select more items", style = wx.ICON_INFORMATION | wx.OK)
@@ -1422,9 +1422,9 @@ class MainFrame(wx.Frame):
         for sim_frame in self.sim_frames:
             if sim_frame:
                 if sim_frame.sasm_list == sasm_list:
-                    msg = ('There is already a similarity window open for this dataset.'
+                    msg = ('There is already a comparison window open for this dataset.'
                         'Do you want to open another?')
-                    answer = wx.MessageBox(msg, 'Open duplicate similarity window?',
+                    answer = wx.MessageBox(msg, 'Open duplicate comparison window?',
                         style=wx.YES_NO)
 
                     if answer == wx.NO:
@@ -1443,11 +1443,11 @@ class MainFrame(wx.Frame):
 
         if proceed:
 
-            similarityframe = RAWAnalysis.SimilarityFrame(self, 'Similarity Testing', sasm_list)
-            similarityframe.SetIcon(self.GetIcon())
-            similarityframe.Show(True)
+            ComparisonFrame = RAWAnalysis.ComparisonFrame(self, 'Compare Profiles', sasm_list)
+            ComparisonFrame.SetIcon(self.GetIcon())
+            ComparisonFrame.Show(True)
 
-            self.sim_frames.append(similarityframe)
+            self.sim_frames.append(ComparisonFrame)
 
     def showNormKratkyFrame(self, sasm_list):
         if not sasm_list or sasm_list is None:
@@ -1855,7 +1855,7 @@ class MainFrame(wx.Frame):
                 ('&SVD', self.MenuIDs['runsvd'], self._onToolsMenu, 'normal'),
                 ('&EFA', self.MenuIDs['runefa'], self._onToolsMenu, 'normal'),
                 ('&REGALS', self.MenuIDs['runregals'], self._onToolsMenu, 'normal'),
-                ('&Similarity Test', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
+                ('&Compare Profiles', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
                 ('&Dimensionless Kratky Plots', self.MenuIDs['normalizedKratky'], self._onToolsMenu, 'normal'),
                 (None, None, None, 'separator'),
                 ('&Centering/Calibration', self.MenuIDs['centering'], self._onToolsMenu, 'normal'),
@@ -2462,7 +2462,7 @@ class MainFrame(wx.Frame):
 
                         selected_sasms.append(SASM.SASM(intensity, secm.frame_list, np.sqrt(intensity), secm.getAllParameters()))
 
-            self.showSimilarityFrame(selected_sasms)
+            self.showComparisonFrame(selected_sasms)
 
         elif id == self.MenuIDs['normalizedKratky']:
             manippage = wx.FindWindowByName('ManipulationPanel')
@@ -9064,7 +9064,7 @@ class ManipItemPanel(wx.Panel):
             if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'gnom')):
                 menu.Append(31, 'IFT (GNOM)')
 
-        menu.Append(37, 'Similarity Test')
+        menu.Append(37, 'Compare Profiles')
         menu.Append(38, 'Dimensionless Kratky Plot')
         menu.AppendSubMenu(other_an_menu, 'Other Analysis')
 
@@ -9267,7 +9267,7 @@ class ManipItemPanel(wx.Panel):
             else:
                 selected_sasms = []
 
-            Mainframe.showSimilarityFrame(selected_sasms)
+            Mainframe.showComparisonFrame(selected_sasms)
 
         elif evt.GetId() == 38:
             #Normalized Kratky Plots
@@ -10682,7 +10682,7 @@ class IFTItemPanel(wx.Panel):
             else:
                 selected_sasms = []
 
-            self.main_frame.showSimilarityFrame(selected_sasms)
+            self.main_frame.showComparisonFrame(selected_sasms)
 
         elif evt.GetId() == 28:
             #DENSS
@@ -12088,7 +12088,7 @@ class SeriesItemPanel(wx.Panel):
             else:
                 selected_sasms = []
 
-            self.main_frame.showSimilarityFrame(selected_sasms)
+            self.main_frame.showComparisonFrame(selected_sasms)
 
         elif evt.GetId() == 10:
             #Series analysis

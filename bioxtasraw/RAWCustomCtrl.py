@@ -129,6 +129,9 @@ class ColourIndicator(control_super):
         self._linecolor = colour
         self.Refresh()
 
+    def getColour(self):
+        return self._linecolor
+
     def InitializeColours(self):
         """ Initializes the focus indicator pen. """
 

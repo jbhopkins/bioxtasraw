@@ -58,6 +58,7 @@ matplotlib.rcParams['backend'] = 'WxAgg'
 matplotlib.rc('image', origin = 'lower')        # turn image upside down.. x,y, starting from lower left
 
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
+from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.figure import Figure
 import matplotlib.colors as mplcol
 from mpl_toolkits.mplot3d import Axes3D
@@ -4620,6 +4621,10 @@ class GNOMControlPanel(wx.Panel):
             except Exception:
                 traceback.print_exc()
                 nmin, nmax = sasm.getQrange()
+
+        # Shouldn't be necessary but I got one weird irreproducible error . . .
+        nmin = int(nmin)
+        nmax = int(nmax)
 
         sp_min, sp_max = sasm.getQrange()
 
@@ -19155,19 +19160,76 @@ class REGALSBackgroundSVDPlot(wx.Panel):
     def updatePlot(self):
         self.autoscale_plot()
 
-class SimilarityFrame(wx.Frame):
+class ComparisonFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm_list):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(600, client_display.Width), min(400, client_display.Height))
+        size = (min(900, client_display.Width), min(800, client_display.Height))
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
+        self.sasm_list = sasm_list
 
-        self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        self.create_layout()
 
+        SASUtils.set_best_size(self)
+        self.SendSizeEvent()
+
+        self.CenterOnParent()
+
+        self.Raise()
+
+    def create_layout(self):
+        panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+
+        notebook = wx.Notebook(panel)
+
+        residuals_panel = ResidualsPanel(notebook, self.sasm_list, self)
+        ratio_panel = RatioPanel(notebook, self.sasm_list, self)
+        similiarity_list_panel = SimilarityListPanel(notebook, self.sasm_list)
+
+        notebook.AddPage(residuals_panel, 'Residuals')
+        notebook.AddPage(ratio_panel, 'Ratios')
+        notebook.AddPage(similiarity_list_panel, 'Similarity Test')
+
+        done_button = wx.Button(panel, -1, 'Close')
+        done_button.Bind(wx.EVT_BUTTON, self._onCloseButton)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(notebook, proportion=1, flag=wx.EXPAND)
+        sizer.Add(done_button, flag=wx.ALL|wx.ALIGN_LEFT, border=self._FromDIP(5))
+
+        panel.SetSizer(sizer)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _onCloseButton(self, evt):
+        self._onClose()
+
+    def _onClose(self):
+        self.OnClose(1)
+
+    def OnClose(self, event):
+        self.Destroy()
+
+class SimilarityListPanel(wx.Panel):
+
+    def __init__(self, parent, sasm_list):
+
+        wx.Panel.__init__(self, parent, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
+
+        self.parent = parent
         self.sasm_list = sasm_list
 
         self.main_frame = wx.FindWindowByName('MainFrame')
@@ -19186,21 +19248,10 @@ class SimilarityFrame(wx.Frame):
         self.item_data = None
         self.corrected_pvals = None
 
-        sizer = self._createLayout(self.panel)
+        sizer = self._createLayout(self)
         self._initSettings()
 
-        self.panel.SetSizer(sizer)
-
-        top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
-        self.SetSizer(top_sizer)
-
-        SASUtils.set_best_size(self)
-        self.SendSizeEvent()
-
-        self.CenterOnParent()
-
-        self.Raise()
+        self.SetSizer(sizer)
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -19259,17 +19310,12 @@ class SimilarityFrame(wx.Frame):
         #Creating the fixed buttons
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.done_button = wx.Button(parent, -1, 'Done')
-        self.done_button.Bind(wx.EVT_BUTTON, self._onDoneButton)
-
         info_button = wx.Button(parent, -1, 'How To Cite')
         info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
 
         save_button = wx.Button(parent, -1, 'Save')
         save_button.Bind(wx.EVT_BUTTON, self._onSaveButton)
 
-        button_sizer.Add(self.done_button, 0, wx.RIGHT | wx.LEFT,
-            border=self._FromDIP(3))
         button_sizer.Add(info_button, 0, wx.RIGHT, border=self._FromDIP(3))
         button_sizer.Add(save_button, 0, wx.RIGHT, border=self._FromDIP(3))
 
@@ -19399,9 +19445,6 @@ class SimilarityFrame(wx.Frame):
         if failed_comparisons:
             self._showComparisonError(failed_comparisons)
 
-    def _onDoneButton(self, evt):
-        self._onClose()
-
     def _onInfoButton(self, evt):
         msg = ('If you use CorMap in your work, in addition to citing the '
             'RAW paper please cite this paper:\n'
@@ -19454,12 +19497,6 @@ class SimilarityFrame(wx.Frame):
 
         RAWGlobals.save_in_progress = False
         self.main_frame.setStatus('', 0)
-
-    def _onClose(self):
-        self.OnClose(1)
-
-    def OnClose(self, event):
-        self.Destroy()
 
 class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
     wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin):
@@ -19554,6 +19591,761 @@ class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
 
         self.list_ctrl.SetItemData(items, items)
 
+class ResidualsPanel(wx.Panel):
+
+    def __init__(self, parent, sasm_list, comp_frame):
+
+        wx.Panel.__init__(self, parent, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
+
+        self.parent = parent
+        self.sasm_list = sasm_list
+        self.comparison_frame = comp_frame
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = self.main_frame.raw_settings
+
+        sizer = self.create_layout()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def create_layout(self):
+
+        self.plot_panel = ComparisonPlotPanel(self, 'residual')
+        self.control_panel = ComparisonControlPanel(self, self.sasm_list,
+            'residual', self.comparison_frame)
+
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        top_sizer.Add(self.control_panel, flag=wx.ALL, border=self._FromDIP(5))
+        top_sizer.Add(self.plot_panel, proportion=1 ,
+            flag=wx.EXPAND|wx.RIGHT|wx.TOP|wx.BOTTOM, border=self._FromDIP(5))
+
+        self.SetSizer(top_sizer)
+
+    def send_to_plot(self, top_plot, bottom_plot, ref_item):
+        self.plot_panel.plot_data(top_plot, bottom_plot, ref_item)
+
+class RatioPanel(wx.Panel):
+
+    def __init__(self, parent, sasm_list, comp_frame):
+
+        wx.Panel.__init__(self, parent, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
+
+        self.parent = parent
+        self.sasm_list = sasm_list
+        self.comparison_frame = comp_frame
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = self.main_frame.raw_settings
+
+        sizer = self.create_layout()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def create_layout(self):
+
+        self.plot_panel = ComparisonPlotPanel(self, 'ratio')
+        self.control_panel = ComparisonControlPanel(self, self.sasm_list,
+            'ratio', self.comparison_frame)
+
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        top_sizer.Add(self.control_panel, flag=wx.ALL, border=self._FromDIP(5))
+        top_sizer.Add(self.plot_panel, proportion=1 ,
+            flag=wx.EXPAND|wx.RIGHT|wx.TOP|wx.BOTTOM, border=self._FromDIP(5))
+
+        self.SetSizer(top_sizer)
+
+    def send_to_plot(self, top_plot, bottom_plot, ref_item):
+        self.plot_panel.plot_data(top_plot, bottom_plot, ref_item)
+
+class ComparisonPlotPanel(wx.Panel):
+
+    def __init__(self, parent, plot_type):
+
+        wx.Panel.__init__(self, parent, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.plot_type = plot_type
+
+        self.top_plot_data = []
+        self.bottom_plot_dta = []
+        self.plot_scale = 'loglin'
+        self.plot_legend = True
+
+        self.line_color = SASUtils.update_mpl_style()
+
+        self._create_layout()
+
+        self.top_plot.set_xscale('linear')
+        self.top_plot.set_yscale('log')
+        self.bottom_plot.set_xscale('linear')
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _create_layout(self):
+        self.fig = Figure((5,4), 75)
+
+        self.line_dict = {}
+
+        self.top_plot = self.fig.add_subplot(2,1,1)
+        self.bottom_plot = self.fig.add_subplot(2,1,2)
+
+        self.label_plots()
+
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+
+        # self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
+        # self.toolbar.Realize()
+
+        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        self.toolbar.Realize()
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.EXPAND)
+        sizer.Add(self.toolbar, 0, wx.EXPAND)
+
+        self.SetSizer(sizer)
+
+        # Connect the callback for the draw_event so that window resizing works:
+        self.fig.tight_layout(pad=1, h_pad=1)
+
+        self.canvas.draw()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+        self.canvas.callbacks.connect('button_release_event', self._onMouseButtonReleaseEvent)
+        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
+
+    def updateColors(self):
+        color = SASUtils.update_mpl_style()
+
+        # self.hline.set_color(color)
+
+        self.ax_redraw()
+
+    def ax_redraw(self, widget=None):
+        ''' Redraw plots on window resize event '''
+
+        self.canvas.mpl_disconnect(self.cid)
+        self.fig.tight_layout(pad=1, h_pad=1)
+        self.canvas.draw()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def plot_data(self, top_plot_data, bottom_plot_data, ref_num):
+        self.top_plot_data = top_plot_data
+        self.bottom_plot_data = bottom_plot_data
+
+        self.top_plot.cla()
+        self.bottom_plot.cla()
+        self.label_plots()
+
+        for j, data in enumerate(self.top_plot_data):
+            sasm, show = data
+
+            name = sasm.getParameter('filename')
+
+            q = sasm.getQ()
+            i = sasm.getI()
+
+            line, = self.top_plot.plot(q, i, label=name)
+
+            if not show:
+                line.set_visible(False)
+
+            if j == ref_num:
+                line.set_linewidth(3)
+                line.set_zorder(10)
+
+        for data, show in bottom_plot_data:
+            line, = self.bottom_plot.plot(data[0], data[1])
+
+            if not show:
+                line.set_visible(False)
+
+        if self.plot_type == 'ratio':
+            self.bottom_plot.axhline(1, color=self.line_color)
+        elif self.plot_type == 'residual':
+            self.bottom_plot.axhline(0, color=self.line_color)
+
+        plot_scale = self.plot_scale
+        self.plot_scale = 'linlin'
+
+        self._updateLegend()
+        self.updatePlot(plot_scale, False)
+        self.ax_redraw()
+
+    def label_plots(self):
+        self.top_plot.set_title('Profiles')
+        self.top_plot.set_xlabel('q')
+        self.top_plot.set_ylabel('I(q)')
+
+        self.bottom_plot.set_xlabel('q')
+
+        if self.plot_type == 'residual':
+            self.bottom_plot.set_title('Residuals')
+            self.bottom_plot.set_ylabel('I/$\sigma$')
+        elif self.plot_type == 'ratio':
+            self.bottom_plot.set_title('Ratio')
+            self.bottom_plot.set_ylabel('Ratio')
+
+    def autoscale_plot(self):
+        top_plot_min_x = None
+        top_plot_max_x = None
+        top_plot_min_y = None
+        top_plot_max_y = None
+
+        if self.plot_scale == 'loglin' or self.plot_scale == 'loglog':
+            log_y = True
+        else:
+            log_y = False
+
+        if self.plot_scale == 'linlog' or self.plot_scale == 'loglog':
+            log_x = True
+        else:
+            log_x = False
+
+        for sasm, show in self.top_plot_data:
+            if show:
+                q = sasm.getQ()
+                i = sasm.getI()
+
+                if log_x:
+                    q = q[q>0]
+                if log_y:
+                    i = i[i>0]
+
+                if top_plot_min_x is None:
+                    top_plot_min_x = min(q)
+                else:
+                    top_plot_min_x = min(top_plot_min_x, min(q))
+
+                if top_plot_max_x is None:
+                    top_plot_max_x = max(q)
+                else:
+                    top_plot_max_x = max(top_plot_max_x, max(q))
+
+                if top_plot_min_y is None:
+                    top_plot_min_y = min(i)
+                else:
+                    top_plot_min_y = min(top_plot_min_y, min(i))
+
+                if top_plot_max_y is None:
+                    top_plot_max_y = max(i)
+                else:
+                    top_plot_max_y = max(top_plot_max_y, max(i))
+
+        if top_plot_min_x is not None and top_plot_max_x is not None:
+            self.top_plot.set_xlim(top_plot_min_x, top_plot_max_x)
+
+        if top_plot_min_y is not None and top_plot_max_y is not None:
+            self.top_plot.set_ylim(top_plot_min_y, top_plot_max_y)
+
+        bottom_plot_min_x = None
+        bottom_plot_max_x = None
+        bottom_plot_min_y = None
+        bottom_plot_max_y = None
+
+        for data, show in self.bottom_plot_data:
+            if show:
+                q = data[0]
+                i = data[1]
+
+                if log_x:
+                    q = q[q>0]
+
+                if bottom_plot_min_x is None:
+                    bottom_plot_min_x = min(q)
+                else:
+                    bottom_plot_min_x = min(bottom_plot_min_x, min(q))
+
+                if bottom_plot_max_x is None:
+                    bottom_plot_max_x = max(q)
+                else:
+                    bottom_plot_max_x = max(bottom_plot_max_x, max(q))
+
+                if bottom_plot_min_y is None:
+                    bottom_plot_min_y = min(i)
+                else:
+                    bottom_plot_min_y = min(bottom_plot_min_y, min(i))
+
+                if bottom_plot_max_y is None:
+                    bottom_plot_max_y = max(i)
+                else:
+                    bottom_plot_max_y = max(bottom_plot_max_y, max(i))
+
+        if bottom_plot_min_x is not None and bottom_plot_max_x is not None:
+            self.bottom_plot.set_xlim(bottom_plot_min_x, bottom_plot_max_x)
+
+        if bottom_plot_min_y is not None and bottom_plot_max_y is not None:
+            self.bottom_plot.set_ylim(bottom_plot_min_y, bottom_plot_max_y)
+
+    def updatePlot(self, plot_scale, draw=True):
+        if plot_scale != self.plot_scale:
+            self.plot_scale = plot_scale
+
+            self.autoscale_plot()
+
+            if self.plot_scale == 'linlin':
+                self.top_plot.set_xscale('linear')
+                self.top_plot.set_yscale('linear')
+                self.bottom_plot.set_xscale('linear')
+
+            elif self.plot_scale == 'loglin':
+                self.top_plot.set_xscale('linear')
+                self.top_plot.set_yscale('log')
+                self.bottom_plot.set_xscale('linear')
+
+            elif self.plot_scale == 'loglog':
+                self.top_plot.set_xscale('log')
+                self.top_plot.set_yscale('log')
+                self.bottom_plot.set_xscale('log')
+
+            elif self.plot_scale == 'linlog':
+                self.top_plot.set_xscale('log')
+                self.top_plot.set_yscale('linear')
+                self.bottom_plot.set_xscale('log')
+
+            if draw:
+                self.ax_redraw()
+
+    def _onMouseButtonReleaseEvent(self, event):
+        ''' Find out where the mouse button was released
+        and show a pop up menu to change the settings
+        of the figure the mouse was over '''
+        if event.button == 3:
+            if float(matplotlib.__version__[:3]) >= 1.2:
+                if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
+                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                        wx.CallAfter(self._showPopupMenu)
+                    else:
+                        self._showPopupMenu()
+
+            else:
+                if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
+                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                        wx.CallAfter(self._showPopupMenu)
+                    else:
+                        self._showPopupMenu()
+
+    def _showPopupMenu(self):
+        menu = wx.Menu()
+
+        menu.AppendCheckItem(1, 'Profiles Legend')
+        menu.Append(2, 'Export Data As CSV')
+
+        legend = self.top_plot.get_legend()
+
+        if self.plot_legend:
+            menu.Check(1, True)
+
+        axes_menu = wx.Menu()
+
+        axes_list = [
+            (3, 'Lin-Lin'),
+            (4, 'Log-Lin'),
+            (5, 'Log-Log'),
+            (6, 'Lin-Log'),
+            ]
+
+        for key, label in axes_list:
+            item = axes_menu.AppendRadioItem(key, label)
+
+            if label.replace('-', '').lower() == self.plot_scale:
+                item.Check(True)
+
+        menu.AppendSubMenu(axes_menu, 'Axes')
+
+        self.PopupMenu(menu)
+
+        menu.Destroy()
+
+    def _onPopupMenuChoice(self, evt):
+        my_id = evt.GetId()
+
+        if my_id == 1:
+            if evt.IsChecked():
+                self.plot_legend = True
+            else:
+                self.plot_legend = False
+
+            self._updateLegend()
+
+            self.ax_redraw()
+
+        elif my_id == 2:
+            self._exportData(self)
+
+        elif my_id == 3:
+            self.updatePlot('linlin')
+        elif my_id == 4:
+            self.updatePlot('loglin')
+        elif my_id == 5:
+            self.updatePlot('loglog')
+        elif my_id == 6:
+            self.updatePlot('linlog')
+
+    def _updateLegend(self):
+        legend_lines = []
+        legend_labels = []
+
+        legend = self.top_plot.get_legend()
+
+        if legend is not None:
+            legend.remove()
+
+        if self.plot_legend:
+            for each_line in self.top_plot.lines:
+                if (each_line.get_visible() and each_line.get_label() != '_zero_'
+                    and each_line.get_label() != '_nolegend_'
+                    and each_line.get_label() != '_line1'):
+                    legend_lines.append(each_line)
+                    legend_labels.append(each_line.get_label())
+
+            self.top_plot.legend(legend_lines, legend_labels)
+
+    def _exportData(self, evt):
+        data_list = []
+        header = ''
+
+        for j in range(len(self.top_plot_data)):
+            sasm, show = self.top_plot_data[j]
+
+            data, show2 = self.bottom_plot_data[j]
+
+            name = sasm.getParameter('filename')
+
+            if show:
+                q = sasm.getQ()
+                i = sasm.getI()
+                err = sasm.getErr()
+
+                data_list.append(q)
+                data_list.append(i)
+                data_list.append(err)
+
+                xlabel = '{}_{}'.format(name, 'q')
+                ylabel = '{}_{}'.format(name, 'I(q)')
+                errlabel = '{}_{}'.format(name, 'err')
+
+                header = header + '{},{},{},'.format(xlabel, ylabel, errlabel)
+
+
+                if show2:
+                    bot_data = data[1]
+
+                    data_list.append(bot_data)
+
+                    bot_label = '{}_{}'.format(name, self.plot_type)
+
+                    header = header+'{}, '.format(bot_label)
+                else:
+                    header = header+' '
+
+        header = header.rstrip(', ')
+
+        if len(data_list) == 0:
+            msg = 'Must have data shown on the plot to export it.'
+            wx.CallAfter(wx.MessageBox, str(msg), "No Data Shown", style = wx.ICON_ERROR | wx.OK)
+        else:
+            dirctrl = wx.FindWindowByName('DirCtrlPanel')
+            path = str(dirctrl.getDirLabel())
+
+            filename = self.plot_type.replace(' ', '_') + '.csv'
+
+            dialog = wx.FileDialog(self, message=("Please select save "
+                "directory and enter save file name"), style = wx.FD_SAVE,
+                defaultDir = path, defaultFile = filename)
+
+            if dialog.ShowModal() == wx.ID_OK:
+                save_path = dialog.GetPath()
+                name, ext = os.path.splitext(save_path)
+                save_path = name + '.csv'
+                dialog.Destroy()
+            else:
+                dialog.Destroy()
+                return
+
+            RAWGlobals.save_in_progress = True
+            self.main_frame.setStatus('Saving Kratky data', 0)
+
+            SASFileIO.saveUnevenCSVFile(save_path, data_list, header)
+
+            RAWGlobals.save_in_progress = False
+            self.main_frame.setStatus('', 0)
+
+class ComparisonControlPanel(wx.Panel):
+
+    def __init__(self, parent, sasm_list, plot_type, comp_frame):
+
+        wx.Panel.__init__(self, parent)
+
+        self.parent = parent
+        self.comparison_frame = comp_frame
+        self.sasm_list = [copy.deepcopy(sasm) for sasm in sasm_list]
+        self.plot_type = plot_type
+
+        self.reference_item = 0
+        self.scale = 'None'
+        self.norm_residuals = True
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = self.main_frame.raw_settings
+
+        self._create_layout()
+        self._initialize()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _create_layout(self):
+
+        ref_parent = self
+
+        filenames = [sasm.getParameter('filename') for sasm in self.sasm_list]
+
+        self.ref_ctrl = wx.Choice(ref_parent, choices=filenames)
+        self.ref_ctrl.SetSelection(self.reference_item)
+        self.ref_ctrl.Bind(wx.EVT_CHOICE, self._on_reference_ctrl)
+
+        ref_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        ref_sizer.Add(wx.StaticText(ref_parent, label='Ref. profile:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        ref_sizer.Add(self.ref_ctrl, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(2))
+
+        self.check_box_list = []
+        check_parent = self
+
+        show_sizer = wx.BoxSizer(wx.VERTICAL)
+        show_sizer.Add(wx.StaticText(check_parent, label='Show on plot:'))
+
+        for name in filenames:
+            check = wx.CheckBox(check_parent, label=name)
+            check.SetValue(True)
+            check.Bind(wx.EVT_CHECKBOX, self._on_show_ctrl)
+
+            self.check_box_list.append(check)
+
+            show_sizer.Add(check, flag=wx.LEFT|wx.TOP,
+                border=self._FromDIP(5))
+
+        scale_parent = self
+
+        self.scale_ctrl = wx.Choice(scale_parent, choices=['None',
+            'Scale, all q', 'Scale, high q', 'I(0), Guinier',
+            'I(0), GNOM', 'I(0), BIFT'])
+        self.scale_ctrl.SetStringSelection(self.scale)
+        self.scale_ctrl.Bind(wx.EVT_CHOICE, self._on_scale_ctrl)
+
+        scale_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        scale_sizer.Add(wx.StaticText(scale_parent, label='Scale:'))
+        scale_sizer.Add(self.scale_ctrl, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(2))
+
+        norm_parent = self
+        self.norm_ctrl = wx.CheckBox(norm_parent, label='Normalize Residuals')
+        self.norm_ctrl.SetValue(self.norm_residuals)
+        self.norm_ctrl.Bind(wx.EVT_CHECKBOX, self._on_norm_ctrl)
+
+        norm_sizer = wx.BoxSizer(wx.VERTICAL)
+        norm_sizer.Add(self.norm_ctrl)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(ref_sizer, border=self._FromDIP(5), flag=wx.ALL)
+        top_sizer.Add(show_sizer, border=self._FromDIP(5),
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+        top_sizer.Add(scale_sizer, border=self._FromDIP(5),
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+        top_sizer.Add(norm_sizer, border=self._FromDIP(5),
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+
+        if self.plot_type == 'ratio':
+            top_sizer.Hide(norm_sizer, recursive=True)
+
+        self.SetSizer(top_sizer)
+
+    def _initialize(self):
+        self.original_scales = [copy.copy(sasm.getScale()) for sasm in self.sasm_list]
+
+        self.guinier_i0s = []
+        self.gnom_i0s = []
+        self.bift_i0s = []
+
+        for sasm in self.sasm_list:
+            analysis = sasm.getParameter('analysis')
+
+            if 'guinier' in analysis:
+                i0 = float(analysis['guinier']['I0'])
+                self.guinier_i0s.append(i0)
+            else:
+                self.guinier_i0s.append(None)
+
+            if 'GNOM' in analysis:
+                i0 = float(analysis['GNOM']['Real_Space_I0'])
+                self.gnom_i0s.append(i0)
+            else:
+                self.gnom_i0s.append(None)
+
+            if 'BIFT' in analysis:
+                i0 = float(analysis['BIFT']['Real_Space_I0'])
+                self.bift_i0s.append(i0)
+            else:
+                self.bift_i0s.append(None)
+
+        self._plot_data()
+
+    def _on_show_ctrl(self, evt):
+        wx.CallAfter(self._plot_data)
+
+    def _on_reference_ctrl(self, evt):
+        self.reference_item = self.ref_ctrl.GetSelection()
+
+        wx.CallAfter(self._scale_data)
+
+    def _on_scale_ctrl(self, evt):
+        self.scale = self.scale_ctrl.GetStringSelection()
+
+        wx.CallAfter(self._scale_data)
+
+    def _on_norm_ctrl(self, evt):
+        self.norm_residuals = self.norm_ctrl.GetValue()
+
+        wx.CallAfter(self._plot_data)
+
+    def _scale_data(self):
+        scale_sasms = []
+
+        for j, sasm in enumerate(self.sasm_list):
+            if j == self.reference_item:
+                ref_sasm = sasm
+            else:
+                scale_sasms.append(sasm)
+
+            scale = self.original_scales[j]
+            sasm.scale(scale)
+
+        if self.scale == 'Scale, all q':
+            SASProc.superimpose(ref_sasm, scale_sasms, 'Scale')
+
+        elif self.scale == 'Scale, high q':
+            qmin, qmax = ref_sasm.getQrange()
+            q = ref_sasm.getQ()
+
+            dq = q[-1] - q[0]
+
+            high_q = q[0] + dq*0.67
+            new_qmin = ref_sasm.closest(q, high_q)
+
+            for sasm in self.sasm_list:
+                sasm.setQrange([new_qmin, qmax])
+
+            SASProc.superimpose(ref_sasm, scale_sasms, 'Scale')
+
+            for sasm in self.sasm_list:
+                sasm.setQrange([qmin, qmax])
+
+        elif self.scale == 'I(0), Guinier':
+            has_i0s = [i0 is not None for i0 in self.guinier_i0s]
+
+            if all(has_i0s):
+                for j, sasm in enumerate(self.sasm_list):
+                    sasm.scaleRelative(1/self.guinier_i0s[j])
+
+            else:
+                wx.CallAfter(self.scale_ctrl.SetStringSelection, 'None')
+                msg = ('Not all profiles have Guinier I0 values, reverting '
+                    'to no scale.')
+
+                wx.CallAfter(self.main_frame.showMessageDialog,
+                    self.comparison_frame, msg, "Missing I(0) values",
+                    wx.ICON_ERROR|wx.OK)
+
+        elif self.scale == 'I(0), GNOM':
+            has_i0s = [i0 is not None for i0 in self.gnom_i0s]
+
+            if all(has_i0s):
+                for j, sasm in enumerate(self.sasm_list):
+                    sasm.scaleRelative(1/self.gnom_i0s[j])
+
+            else:
+                wx.CallAfter(self.scale_ctrl.SetStringSelection, 'None')
+                msg = ('Not all profiles have GNOM I0 values, reverting '
+                    'to no scale.')
+
+                wx.CallAfter(self.main_frame.showMessageDialog,
+                    self.comparison_frame, msg, "Missing I(0) values",
+                    wx.ICON_ERROR|wx.OK)
+
+        elif self.scale == 'I(0), BIFT':
+            has_i0s = [i0 is not None for i0 in self.bift_i0s]
+
+            if all(has_i0s):
+                for j, sasm in enumerate(self.sasm_list):
+                    sasm.scaleRelative(1/self.bift_i0s[j])
+
+            else:
+                wx.CallAfter(self.scale_ctrl.SetStringSelection, 'None')
+                msg = ('Not all profiles have GNOM I0 values, reverting '
+                    'to no scale.')
+
+                wx.CallAfter(self.main_frame.showMessageDialog,
+                    self.comparison_frame, msg, "Missing I(0) values",
+                    wx.ICON_ERROR|wx.OK)
+
+        self._plot_data()
+
+    def _plot_data(self):
+        top_plot_data = []
+        bottom_plot_data = []
+
+        ref_sasm = self.sasm_list[self.reference_item]
+        ref_q = ref_sasm.getQ()
+        ref_i = ref_sasm.getI()
+
+        for j, sasm in enumerate(self.sasm_list):
+            show = self.check_box_list[j].GetValue()
+            show2 = show
+
+            if j == self.reference_item:
+                show2 = False
+
+            top_plot_data.append([sasm, show])
+
+            q = sasm.getQ()
+            i = sasm.getI()
+            err = sasm.getErr()
+
+            if self.plot_type == 'residual':
+                residual = i - ref_i
+                if self.norm_residuals:
+                    y_data = residual/err
+                else:
+                    y_data = residual
+            elif self.plot_type == 'ratio':
+                y_data = i/ref_i
+
+            bottom_plot_data.append([[q, y_data], show2])
+
+        self.parent.send_to_plot(top_plot_data, bottom_plot_data, self.reference_item)
+
 
 class NormKratkyFrame(wx.Frame):
 
@@ -19614,7 +20406,6 @@ class NormKratkyFrame(wx.Frame):
     def OnClose(self):
 
         self.Destroy()
-
 
 
 class NormKratkyPlotPanel(wx.Panel):
@@ -19993,7 +20784,8 @@ class NormKratkyControlPanel(wx.Panel):
         control_sizer = wx.StaticBoxSizer(ctrl_box, wx.VERTICAL)
 
         plt_text = wx.StaticText(ctrl_box, -1, 'Plot:')
-        plt_ctrl = wx.Choice(ctrl_box, self.control_ids['plot'], choices=['Normalized', 'Dimensionless (Rg)', 'Dimensionless (Vc)'])
+        plt_ctrl = wx.Choice(ctrl_box, self.control_ids['plot'],
+            choices=['Normalized', 'Dimensionless (Rg)', 'Dimensionless (Vc)'])
         plt_ctrl.SetStringSelection('Dimensionless (Rg)')
         plt_ctrl.Bind(wx.EVT_CHOICE, self._onPlotChoice)
 

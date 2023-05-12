@@ -2590,7 +2590,6 @@ def loadFitFile(filename):
         for line in f:
             q, i, err, fit = _match_fit_lines(line, q, i, err, fit, sasref)
 
-
     if len(i) == 0:
         raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
 
@@ -2607,16 +2606,21 @@ def loadFitFile(filename):
     return [sasm, fit_sasm]
 
 def _match_fit_lines(line, q, i, err, fit, sasref):
-    three_col_match = three_col_fit.match(line)
-    five_col_match = five_col_fit.match(line)
+    four_col_match = four_col_fit.match(line)
 
-    if three_col_match:
-        iq_match = three_col_fit.match(line)
+    if four_col_match:
+        found = four_col_match.group().split()
+        q.append(float(found[0]))
+        i.append(float(found[1]))
+        err.append(float(found[2]))
+        fit.append(float(found[3]))
 
-        if iq_match:
+    else:
+        three_col_match = three_col_fit.match(line)
 
+        if three_col_match:
             if not sasref:
-                found = iq_match.group().split()
+                found = three_col_match.group().split()
                 q.append(float(found[0]))
                 i.append(float(found[1]))
                 fit.append(float(found[2]))
@@ -2629,24 +2633,17 @@ def _match_fit_lines(line, q, i, err, fit, sasref):
                 fit.append(float(found[3]))
                 err.append(float(found[2]))
 
-    elif five_col_match:
-        #iq_match = five_col_fit.match(line)
-        found = line.split()
-        q.append(float(found[0]))
-        i.append(float(found[1]))
-        fit.append(float(found[2]))
-        err.append(float(found[3]))
+        else:
+            five_col_match = five_col_fit.match(line)
 
-    else:
+            if five_col_match:
+                found = five_col_match.group().split()
+                q.append(float(found[0]))
+                i.append(float(found[1]))
+                fit.append(float(found[2]))
+                err.append(float(found[3]))
 
-        iq_match = four_col_fit.match(line)
 
-        if iq_match:
-            found = iq_match.group().split()
-            q.append(float(found[0]))
-            i.append(float(found[1]))
-            err.append(float(found[2]))
-            fit.append(float(found[3]))
 
     return q, i, err, fit
 
