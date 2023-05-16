@@ -19165,7 +19165,7 @@ class ComparisonFrame(wx.Frame):
     def __init__(self, parent, title, sasm_list):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(900, client_display.Width), min(800, client_display.Height))
+        size = (min(800, client_display.Width), min(800, client_display.Height))
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
@@ -19174,7 +19174,7 @@ class ComparisonFrame(wx.Frame):
 
         self.create_layout()
 
-        SASUtils.set_best_size(self)
+        # SASUtils.set_best_size(self)
         self.SendSizeEvent()
 
         self.CenterOnParent()
@@ -19182,7 +19182,7 @@ class ComparisonFrame(wx.Frame):
         self.Raise()
 
     def create_layout(self):
-        panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
+        panel = wx.Panel(self)
 
         notebook = wx.Notebook(panel)
 
@@ -19230,7 +19230,7 @@ class SimilarityListPanel(wx.Panel):
         wx.Panel.__init__(self, parent, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
 
         self.parent = parent
-        self.sasm_list = sasm_list
+        self.sasm_list = [copy.deepcopy(sasm) for sasm in sasm_list]
 
         self.main_frame = wx.FindWindowByName('MainFrame')
         self.raw_settings = self.main_frame.raw_settings
@@ -19265,45 +19265,48 @@ class SimilarityListPanel(wx.Panel):
 
     def _createLayout(self, parent):
         method_text = wx.StaticText(parent, -1, 'Method:')
-        method_choice = wx.Choice(parent, self.ids['method'], choices = ['CorMap'])
-        method_choice.Bind(wx.EVT_CHOICE, self._onMethodChange)
+        self.method_choice = wx.Choice(parent, choices=['CorMap'])
+        self.method_choice.Bind(wx.EVT_CHOICE, self._onMethodChange)
         correction_text = wx.StaticText(parent, -1, 'Multiple testing correction:')
-        correction_choice = wx.Choice(parent, self.ids['correction'],
-            choices=['None', 'Bonferroni'])
-        correction_choice.SetStringSelection('Bonferroni')
-        correction_choice.Bind(wx.EVT_CHOICE, self._onMethodChange)
+        self.correction_choice = wx.Choice(parent, choices=['None', 'Bonferroni'])
+        self.correction_choice.SetStringSelection('Bonferroni')
+        self.correction_choice.Bind(wx.EVT_CHOICE, self._onMethodChange)
 
-        method_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        method_sizer.Add(method_text, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(3))
-        method_sizer.Add(method_choice, 0, wx.RIGHT, border=self._FromDIP(6))
-        method_sizer.Add(correction_text, 0, wx.RIGHT, border=self._FromDIP(3))
-        method_sizer.Add(correction_choice, 0, wx.RIGHT, border=self._FromDIP(3))
+        method_sizer = wx.FlexGridSizer(cols=2, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(5))
+        method_sizer.Add(method_text, flag=wx.ALIGN_CENTER_VERTICAL)
+        method_sizer.Add(self.method_choice, flag=wx.ALIGN_CENTER_VERTICAL)
+        method_sizer.Add(correction_text, flag=wx.ALIGN_CENTER_VERTICAL)
+        method_sizer.Add(self.correction_choice, flag=wx.ALIGN_CENTER_VERTICAL)
 
-        highlight_diff_chkbx = wx.CheckBox(parent, self.ids['hl_diff_chk'],
-            'Highlight with p-value <')
-        highlight_diff_chkbx.Bind(wx.EVT_CHECKBOX, self._onHighlightChange)
-        highlight_diff_pval = wx.TextCtrl(parent, self.ids['hl_diff_val'], '0.01',
+        self.highlight_diff_chkbx = wx.CheckBox(parent,
+            label='Highlight with p-value <')
+        self.highlight_diff_chkbx.Bind(wx.EVT_CHECKBOX, self._onHighlightChange)
+        self.highlight_diff_pval = wx.TextCtrl(parent, value='0.01',
             size=self._FromDIP((65, -1)))
-        highlight_diff_pval.SetBackgroundColour(wx.Colour(255,128,96))
-        highlight_diff_pval.Bind(wx.EVT_TEXT, self._onTextEntry)
+        self.highlight_diff_pval.SetBackgroundColour(wx.Colour(255,128,96))
+        self.highlight_diff_pval.Bind(wx.EVT_TEXT, self._onTextEntry)
 
-        highlight_same_chkbx = wx.CheckBox(parent, self.ids['hl_same_chk'],
-            'Highlight with p-value >')
-        highlight_same_chkbx.Bind(wx.EVT_CHECKBOX, self._onHighlightChange)
-        highlight_same_pval = wx.TextCtrl(parent, self.ids['hl_same_val'], '0.01',
+        self.highlight_same_chkbx = wx.CheckBox(parent,
+            label='Highlight with p-value >')
+        self.highlight_same_chkbx.Bind(wx.EVT_CHECKBOX, self._onHighlightChange)
+        self.highlight_same_pval = wx.TextCtrl(parent, value='0.01',
             size=self._FromDIP((65, -1)))
-        highlight_same_pval.SetBackgroundColour('LIGHT BLUE')
-        highlight_same_pval.Bind(wx.EVT_TEXT, self._onTextEntry)
+        self.highlight_same_pval.SetBackgroundColour('LIGHT BLUE')
+        self.highlight_same_pval.Bind(wx.EVT_TEXT, self._onTextEntry)
 
-        highlight_diff_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        highlight_diff_sizer.Add(highlight_diff_chkbx,0, wx.LEFT,
-            border=self._FromDIP(3))
-        highlight_diff_sizer.Add(highlight_diff_pval, 0, wx.RIGHT,
-            border=self._FromDIP(3))
-        highlight_diff_sizer.Add(highlight_same_chkbx,0, wx.LEFT,
-            border=self._FromDIP(12))
-        highlight_diff_sizer.Add(highlight_same_pval, 0, wx.RIGHT,
-            border=self._FromDIP(3))
+        highlight_diff_sizer = wx.FlexGridSizer(cols=2, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(3))
+        highlight_diff_sizer.Add(self.highlight_diff_chkbx,
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        highlight_diff_sizer.Add(self.highlight_diff_pval,
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        highlight_diff_sizer.Add(self.highlight_same_chkbx,
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        highlight_diff_sizer.Add(self.highlight_same_pval,
+            flag=wx.ALIGN_CENTER_VERTICAL)
+
+        self.similarity_plot = SimilarityPlotPanel(parent)
 
         self.listPanel = similiarityListPanel(parent, (-1, 300))
 
@@ -19319,12 +19322,21 @@ class SimilarityListPanel(wx.Panel):
         button_sizer.Add(info_button, 0, wx.RIGHT, border=self._FromDIP(3))
         button_sizer.Add(save_button, 0, wx.RIGHT, border=self._FromDIP(3))
 
+        ctrl_sizer = wx.BoxSizer(wx.VERTICAL)
+        ctrl_sizer.Add(method_sizer, 0, wx.TOP|wx.BOTTOM,
+            border=self._FromDIP(5))
+        ctrl_sizer.Add(highlight_diff_sizer)
+
+        ctrl_plot_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        ctrl_plot_sizer.Add(ctrl_sizer, flag=wx.RIGHT, border=self._FromDIP(5))
+        ctrl_plot_sizer.Add(self.similarity_plot, proportion=1,
+            flag=wx.EXPAND)
+
         top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(method_sizer, 0, wx.TOP | wx.BOTTOM,
+        top_sizer.Add(ctrl_plot_sizer, proportion=2, flag=wx.EXPAND|wx.ALL,
             border=self._FromDIP(5))
-        top_sizer.Add(highlight_diff_sizer, 0, wx.TOP | wx.BOTTOM,
+        top_sizer.Add(self.listPanel, 1, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
             border=self._FromDIP(5))
-        top_sizer.Add(self.listPanel, 1, wx.EXPAND)
         top_sizer.Add(button_sizer, 0, wx.BOTTOM, border=self._FromDIP(5))
 
         return top_sizer
@@ -19334,16 +19346,15 @@ class SimilarityListPanel(wx.Panel):
         correction = self.raw_settings.get('similarityCorrection')
         threshold = self.raw_settings.get('similarityThreshold')
 
-        wx.FindWindowById(self.ids['method'], self).SetStringSelection(method)
-        wx.FindWindowById(self.ids['correction'], self).SetStringSelection(correction)
-        wx.FindWindowById(self.ids['hl_diff_val'], self).ChangeValue(str(threshold))
-        wx.FindWindowById(self.ids['hl_same_val'], self).ChangeValue(str(threshold))
+        self.method_choice.SetStringSelection(method)
+        self.correction_choice.SetStringSelection(correction)
+        self.highlight_diff_pval.ChangeValue(str(threshold))
+        self.highlight_same_pval.ChangeValue(str(threshold))
 
         self._runSimilarityTest()
 
     def _runSimilarityTest(self):
-        method_window = wx.FindWindowById(self.ids['method'])
-        method = method_window.GetStringSelection()
+        method = self.method_choice.GetStringSelection()
 
         if method == 'CorMap':
             self._calcCorMapPval()
@@ -19369,11 +19380,11 @@ class SimilarityListPanel(wx.Panel):
         self._highlight()
 
     def _highlight(self):
-        hl_diff = wx.FindWindowById(self.ids['hl_diff_chk']).GetValue()
-        hl_diff_pval = wx.FindWindowById(self.ids['hl_diff_val']).GetValue()
-        hl_same = wx.FindWindowById(self.ids['hl_same_chk']).GetValue()
-        hl_same_pval = wx.FindWindowById(self.ids['hl_same_val']).GetValue()
-        correction = wx.FindWindowById(self.ids['correction']).GetStringSelection()
+        hl_diff = self.highlight_diff_chkbx.GetValue()
+        hl_diff_pval = self.highlight_diff_pval.GetValue()
+        hl_same = self.highlight_same_chkbx.GetValue()
+        hl_same_pval = self.highlight_same_pval.GetValue()
+        correction = self.correction_choice.GetStringSelection()
 
         def_color = RAWGlobals.list_item_bkg_color
 
@@ -19431,10 +19442,35 @@ class SimilarityListPanel(wx.Panel):
                     self.listPanel.SetItemBackgroundColour(index, def_color)
 
     def _calcCorMapPval(self):
-        correction_window = wx.FindWindowById(self.ids['correction'])
-        correction = correction_window.GetStringSelection()
+        correction = self.correction_choice.GetStringSelection()
 
-        self.item_data, self.pvals, self.corrected_pvals, failed_comparisons = SASProc.run_cormap_all(self.sasm_list, correction)
+        (self.item_data, self.pvals, self.corrected_pvals,
+            failed_comparisons) = SASProc.run_cormap_all(self.sasm_list,
+            correction)
+
+        prob_array = np.ones((len(self.sasm_list), len(self.sasm_list)))
+        c_prob_array = np.ones((len(self.sasm_list), len(self.sasm_list)))
+        test_val_array = np.ones((len(self.sasm_list), len(self.sasm_list)))
+
+        for item in self.item_data:
+            index1 = int(item[0])
+            index2 = int(item[1])
+            test_val = float(item[4])
+            prob = float(item[5])
+            c_prob = float(item[6])
+
+            prob_array[index1, index2] = prob
+            prob_array[index2, index1] = prob
+            c_prob_array[index1, index2] = c_prob
+            c_prob_array[index2, index1] = c_prob
+            test_val_array[index1, index2] = test_val
+            test_val_array[index2, index1] = test_val
+
+        if correction == 'None':
+            self.similarity_plot.plot_data(prob_array, test_val_array)
+        else:
+            self.similarity_plot.plot_data(c_prob_array, test_val_array)
+
 
         self.listPanel.DeleteAllItems()
         for item in self.item_data:
@@ -19482,8 +19518,7 @@ class SimilarityListPanel(wx.Panel):
         RAWGlobals.save_in_progress = True
         self.main_frame.setStatus('Saving similarity data', 0)
 
-        correction_window = wx.FindWindowById(self.ids['correction'])
-        correction = correction_window.GetStringSelection()
+        correction = self.correction_choice.GetStringSelection()
 
         save_data = copy.copy(self.item_data)
         if correction == 'None':
@@ -19591,11 +19626,151 @@ class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
 
         self.list_ctrl.SetItemData(items, items)
 
+class SimilarityPlotPanel(wx.Panel):
+
+    def __init__(self, parent):
+
+        wx.Panel.__init__(self, parent, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.line_color = SASUtils.update_mpl_style()
+
+        self._create_layout()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _create_layout(self):
+        self.fig = Figure((5,4), 75)
+
+        self.line_dict = {}
+
+        self.subplot = self.fig.add_subplot(1,1,1)
+        self.label_plots()
+
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+
+        self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
+        self.toolbar.Realize()
+
+        # self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        # self.toolbar.Realize()
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.EXPAND)
+        sizer.Add(self.toolbar, 0, wx.EXPAND)
+
+        self.SetSizer(sizer)
+
+        # Connect the callback for the draw_event so that window resizing works:
+        self.fig.tight_layout(pad=1, h_pad=1)
+
+        self.canvas.draw()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+        self.canvas.mpl_connect('motion_notify_event', self._onMouseMotionEvent)
+
+    def updateColors(self):
+        color = SASUtils.update_mpl_style()
+
+        # self.hline.set_color(color)
+
+        self.ax_redraw()
+
+    def ax_redraw(self, widget=None):
+        ''' Redraw plots on window resize event '''
+
+        self.canvas.mpl_disconnect(self.cid)
+        self.fig.tight_layout(pad=1, h_pad=1)
+        self.canvas.draw()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def plot_data(self, prob_data, test_data):
+        self.prob_data = prob_data
+        self.test_data = test_data
+
+        length = self.prob_data.shape[0]
+
+        ticks = np.arange(-.5, length-0.5, 1)
+        tick_labels = np.arange(0, length, 1)
+
+        self.fig.clear()
+        self.subplot = self.fig.add_subplot(1,1,1)
+        self.label_plots()
+
+        pos = self.subplot.imshow(self.prob_data, interpolation='none',
+            cmap='plasma')
+
+        self.subplot.grid(color=self.line_color, linestyle='--')
+        self.subplot.set_xticks(ticks)
+        self.subplot.set_yticks(ticks)
+        self.subplot.set_xticklabels(tick_labels)
+        self.subplot.set_yticklabels(tick_labels)
+
+
+
+        self.fig.colorbar(pos, ax=self.subplot)
+
+        # self.autoscale_plot()
+        self.ax_redraw()
+
+    def label_plots(self):
+        self.subplot.set_xlabel('Profile #')
+        self.subplot.set_ylabel('Profile #')
+
+    def autoscale_plot(self):
+        redraw = False
+
+        plot_list = [self.subplot]
+
+        for plot in plot_list:
+            plot.set_autoscale_on(True)
+
+            oldx = plot.get_xlim()
+            oldy = plot.get_ylim()
+
+            plot.relim(True)
+            plot.autoscale_view()
+
+            newx = plot.get_xlim()
+            newy = plot.get_ylim()
+
+            if newx != oldx or newy != oldy:
+                redraw = True
+
+        if redraw:
+            self.ax_redraw()
+
+    def _onMouseMotionEvent(self, event):
+
+        if event.inaxes:
+            x, y = event.xdata, event.ydata
+            # xlabel = self.subplot.xaxis.get_label().get_text()
+            # ylabel = self.subplot.yaxis.get_label().get_text()
+            xlabel = 'X'
+            ylabel = 'Y'
+
+            x_val = int(x+0.5)
+            y_val = int(y+0.5)
+
+            self.toolbar.set_status(('{} = {}, {} = {}, {} = {} {} = {}'.format(xlabel,
+                x_val, ylabel, y_val, 'Prob.', self.prob_data[x_val, y_val],
+                'Test val:', self.test_data[x_val, y_val])))
+
+        else:
+            self.toolbar.set_status('')
+
+
 class ResidualsPanel(wx.Panel):
 
     def __init__(self, parent, sasm_list, comp_frame):
 
-        wx.Panel.__init__(self, parent, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent)
 
         self.parent = parent
         self.sasm_list = sasm_list
@@ -19633,7 +19808,7 @@ class RatioPanel(wx.Panel):
 
     def __init__(self, parent, sasm_list, comp_frame):
 
-        wx.Panel.__init__(self, parent, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
+        wx.Panel.__init__(self, parent)
 
         self.parent = parent
         self.sasm_list = sasm_list
@@ -19679,7 +19854,7 @@ class ComparisonPlotPanel(wx.Panel):
         self.plot_type = plot_type
 
         self.top_plot_data = []
-        self.bottom_plot_dta = []
+        self.bottom_plot_data = []
         self.plot_scale = 'loglin'
         self.plot_legend = True
 
@@ -20132,10 +20307,11 @@ class ComparisonControlPanel(wx.Panel):
             border=self._FromDIP(2))
 
         self.check_box_list = []
-        check_parent = self
 
-        show_sizer = wx.BoxSizer(wx.VERTICAL)
-        show_sizer.Add(wx.StaticText(check_parent, label='Show on plot:'))
+        show_box = wx.StaticBox(self, -1, 'Show on plot')
+        show_sizer = wx.StaticBoxSizer(show_box, wx.VERTICAL)
+
+        check_parent = show_box
 
         for name in filenames:
             check = wx.CheckBox(check_parent, label=name)
@@ -20144,8 +20320,10 @@ class ComparisonControlPanel(wx.Panel):
 
             self.check_box_list.append(check)
 
-            show_sizer.Add(check, flag=wx.LEFT|wx.TOP,
+            show_sizer.Add(check, flag=wx.LEFT|wx.TOP|wx.RIGHT,
                 border=self._FromDIP(5))
+
+        show_sizer.AddSpacer(self._FromDIP(5))
 
         scale_parent = self
 
@@ -20169,9 +20347,10 @@ class ComparisonControlPanel(wx.Panel):
         norm_sizer.Add(self.norm_ctrl)
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(ref_sizer, border=self._FromDIP(5), flag=wx.ALL)
         top_sizer.Add(show_sizer, border=self._FromDIP(5),
-            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+            flag=wx.ALL|wx.EXPAND)
+        top_sizer.Add(ref_sizer, border=self._FromDIP(5),
+             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
         top_sizer.Add(scale_sizer, border=self._FromDIP(5),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
         top_sizer.Add(norm_sizer, border=self._FromDIP(5),

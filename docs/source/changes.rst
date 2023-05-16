@@ -56,6 +56,9 @@ All changes:
     if you saved more than one dataset where the technique was used.
 *   Figures in the report are now vector (svg), so they should be higher quality.
 *   Added a dependency on svglib.
+*   Added a new comparison window that has residuals and ratios as well as the
+    old similarity test list.
+*   Fixed an issue where FoXS fit files could take a long time to load.
 
 
 2.1.4

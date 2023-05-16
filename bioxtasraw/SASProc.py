@@ -942,13 +942,15 @@ def run_cormap_all(sasm_list, correction='None'):
                     n = 0
                     c = -1
                     prob = -1
-                    failed_comparisons.append((sasm1.getParameter('filename'), sasm2.getParameter('filename')))
+                    failed_comparisons.append((sasm1.getParameter('filename'),
+                        sasm2.getParameter('filename')))
 
             else:
                 n = 0
                 c = -1
                 prob = -1
-                failed_comparisons.append((sasm1.getParameter('filename'), sasm2.getParameter('filename')))
+                failed_comparisons.append((sasm1.getParameter('filename'),
+                    sasm2.getParameter('filename')))
 
             pvals[index1, index1+index2] = prob
             pvals[index1+index2, index1] = prob
