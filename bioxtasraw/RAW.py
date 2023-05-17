@@ -209,6 +209,7 @@ class MainFrame(wx.Frame):
             'rungnom'               : self.NewControlId(),
             'rundammif'             : self.NewControlId(),
             'bift'                  : self.NewControlId(),
+            'dift'                  : self.NewControlId(),
             'runambimeter'          : self.NewControlId(),
             'runatsasalign'         : self.NewControlId(),
             'runcrysol'             : self.NewControlId(),
@@ -234,6 +235,7 @@ class MainFrame(wx.Frame):
         self.mw_frames = []
         self.gnom_frames = []
         self.bift_frames = []
+        self.dift_frames = []
         self.dammif_frames = []
         self.ambimeter_frames = []
         self.atsasalign_frames = []
@@ -367,7 +369,6 @@ class MainFrame(wx.Frame):
         thread.start()
 
         wx.CallAfter(self._showWelcomeDialog)
-
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -696,6 +697,12 @@ class MainFrame(wx.Frame):
             pass
 
         try:
+            for frame in self.dift_frames:
+                frame.updateColors()
+        except Exception:
+            pass
+
+        try:
             for frame in self.dammif_frames:
                 frame.updateColors()
         except Exception:
@@ -990,6 +997,39 @@ class MainFrame(wx.Frame):
             biftframe.Show(True)
 
             self.bift_frames.append(biftframe)
+
+    def showDIFTFrame(self, sasm, manip_item):
+        remove = []
+        proceed = True
+
+        for dift_frame in self.dift_frames:
+            if dift_frame:
+                if dift_frame.sasm == sasm:
+                    msg = ('There is already a DENSS IFT window open '
+                        'for this dataset. Do you want to open another?')
+                    answer = wx.MessageBox(msg, 'Open duplicate DENSS IFT window?',
+                        style=wx.YES_NO)
+
+                    if answer == wx.NO:
+                        proceed = False
+                        dift_frame.Raise()
+                        dift_frame.RequestUserAttention()
+
+                    break
+
+            else:
+                remove.append(dift_frame)
+
+        if remove:
+            for dift_frame in remove:
+                self.dift_frames.remove(dift_frame)
+
+        if proceed:
+            diftframe = RAWAnalysis.DIFTFrame(self, 'DIFT', sasm, manip_item)
+            diftframe.SetIcon(self.GetIcon())
+            diftframe.Show(True)
+
+            self.dift_frames.append(diftframe)
 
     def showMolWeightFrame(self, sasm, manip_item):
         remove = []
@@ -1960,7 +2000,7 @@ class MainFrame(wx.Frame):
                 ('&SVD', self.MenuIDs['runsvd'], self._onToolsMenu, 'normal'),
                 ('&EFA', self.MenuIDs['runefa'], self._onToolsMenu, 'normal'),
                 ('&REGALS', self.MenuIDs['runregals'], self._onToolsMenu, 'normal'),
-                ('&Compare Profiles', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
+                ('&Similarity Test', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
                 ('&Dimensionless Kratky Plots', self.MenuIDs['normalizedKratky'], self._onToolsMenu, 'normal'),
                 (None, None, None, 'separator'),
                 ('&Centering/Calibration', self.MenuIDs['centering'], self._onToolsMenu, 'normal'),
@@ -9197,8 +9237,9 @@ class ManipItemPanel(wx.Panel):
         else:
             if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'gnom')):
                 menu.Append(31, 'IFT (GNOM)')
+        menu.Append(44, 'IFT (DENSS)')
 
-        menu.Append(37, 'Compare Profiles')
+        menu.Append(37, 'Similarity Test')
         menu.Append(38, 'Dimensionless Kratky Plot')
         menu.AppendSubMenu(other_an_menu, 'Other Analysis')
 
@@ -12193,6 +12234,32 @@ class SeriesItemPanel(wx.Panel):
 
             secm = selectedSECMList[0].getSECM()
             Mainframe.showREGALSFrame(secm, selectedSECMList[0])
+
+        elif evt.GetId() == 9:
+            #Similarity testing
+            selected_items = self.sec_panel.getSelectedItems()
+
+            if selected_items:
+                selected_secms = [item.getSECM() for item in selected_items]
+                selected_sasms = []
+                ydata_type = self.sec_plot_panel.plotparams['y_axis_display']
+
+                for secm in selected_secms:
+                    if ydata_type == 'q_val':
+                        intensity = secm.I_of_q
+                    elif ydata_type == 'mean':
+                        intensity = secm.mean_i
+                    elif ydata_type == 'q_range':
+                        intensity = secm.qrange_I
+                    else:
+                        intensity = secm.total_i
+
+                    selected_sasms.append(SASM.SASM(intensity, secm.frame_list,
+                        np.sqrt(intensity), secm.getAllParameters()))
+            else:
+                selected_sasms = []
+
+            self.main_frame.showComparisonFrame(selected_sasms)
 
         elif evt.GetId() == 10:
             #Series analysis
@@ -15978,10 +16045,6 @@ class MyApp(wx.App):
 
                 if top_window is not None:
                     parent = top_window.FindWindowByName("MainFrame")
-                    wx.CallAfter(parent.closeBusyDialog)
-
-                    RAWGlobals.save_in_progress = False
-                    wx.CallAfter(parent.setStatus, '', 0)
                 else:
                     parent = None
 

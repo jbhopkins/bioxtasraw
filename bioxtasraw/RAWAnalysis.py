@@ -59,7 +59,6 @@ matplotlib.rcParams['backend'] = 'WxAgg'
 matplotlib.rc('image', origin = 'lower')        # turn image upside down.. x,y, starting from lower left
 
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
-from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.figure import Figure
 import matplotlib.colors as mplcol
 from mpl_toolkits.mplot3d import Axes3D
@@ -4657,10 +4656,6 @@ class GNOMControlPanel(wx.Panel):
             except Exception:
                 traceback.print_exc()
                 nmin, nmax = sasm.getQrange()
-
-        # Shouldn't be necessary but I got one weird irreproducible error . . .
-        nmin = int(nmin)
-        nmax = int(nmax)
 
         sp_min, sp_max = sasm.getQrange()
 
@@ -11680,6 +11675,1117 @@ class BIFTControlPanel(wx.Panel):
         except queue.Empty:
             pass
 
+class DIFTFrame(wx.Frame):
+
+    def __init__(self, parent, title, sasm, manip_item):
+
+        client_display = wx.GetClientDisplayRect()
+        size = (min(825, client_display.Width), min(700, client_display.Height))
+
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.SetSize(self._FromDIP(size))
+
+        self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
+
+        self.main_frame = parent
+        self.sasm = sasm
+
+        panel = wx.Panel(self)
+
+        splitter1 = wx.SplitterWindow(panel, wx.ID_ANY)
+
+        sizer = wx.BoxSizer()
+        sizer.Add(splitter1, 1, flag=wx.EXPAND)
+
+        panel.SetSizer(sizer)
+
+        self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY)
+        self.controlPanel = DIFTControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
+
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(315))
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            splitter1.SetMinimumPaneSize(self._FromDIP(315))   #Back compatability with older wxpython versions
+        else:
+            splitter1.SetMinimumPaneSize(self._FromDIP(50))
+
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
+
+        SASUtils.set_best_size(self)
+
+        self.SendSizeEvent()
+
+        self.CenterOnParent()
+        self.Raise()
+
+        self.getDiftVersion()
+
+        self.standard_paths = wx.StandardPaths.Get()
+
+        self.showBusy()
+        t = threading.Thread(target=self.initDIFT, args=(sasm,))
+        t.daemon=True
+        t.start()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def updateColors(self):
+        self.plotPanel.updateColors()
+
+    def initDIFT(self, sasm):
+
+        self.saveDIFTProfile()
+
+        analysis_dict = sasm.getParameter('analysis')
+        if 'DIFT' in analysis_dict:
+            wx.CallAfter(self.controlPanel.initDiftValues, sasm, 'dift')
+        else:
+            wx.CallAfter(self.controlPanel.initDiftValues, sasm, 'auto')
+
+    def getDiftVersion(self):
+        self.new_dift = False
+
+    def showBusy(self, show=True, msg=''):
+        if show:
+            if msg == '':
+                msg = 'Initializing DIFT, please wait.'
+
+            self.bi = wx.BusyInfo(msg, self)
+        else:
+            try:
+                del self.bi
+                self.bi = None
+            except Exception:
+                pass
+
+    def updateDIFTSettings(self):
+        self.controlPanel.updateDIFTSettings()
+
+    def saveDIFTProfile(self):
+        tempdir = self.standard_paths.GetTempDir()
+
+        save_sasm = copy.deepcopy(self.sasm)
+
+        savename = os.path.splitext(save_sasm.getParameter('filename'))[0] + '.dat'
+
+        outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
+        while os.path.isfile(outname):
+            outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
+
+        outname = os.path.split(outname)[1]
+        outname = outname+'.out'
+
+        if (self.main_frame.OnlineControl.isRunning()
+            and tempdir == self.main_frame.OnlineControl.getTargetDir()):
+            self.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
+        try:
+            SASFileIO.saveMeasurement(save_sasm, tempdir, self._raw_settings, filetype = '.dat')
+        except SASExceptions.HeaderSaveError as e:
+            self._showSaveError('header')
+
+        self.tempdir = tempdir
+        self.savename = savename
+        self.outname = outname
+
+        if restart_timer:
+            wx.CallAfter(self.main_frame.controlTimer, True)
+
+    def cleanupDIFT(self):
+        savefile = os.path.join(self.tempdir, self.savename)
+        outfile = os.path.join(self.tempdir, self.outname)
+
+        if self.savename != '':
+            if os.path.isfile(savefile):
+                try:
+                    os.remove(savefile)
+                except Exception as e:
+                    print(e)
+                    print('DIFT cleanup failed to remove the .dat file!')
+
+        if self.outname != '':
+            if os.path.isfile(outfile):
+                try:
+                    os.remove(outfile)
+                except Exception as e:
+                    print(e)
+                    print('DIFT cleanup failed to remove the .out file!')
+
+    def OnClose(self):
+        self.cleanupDIFT()
+
+        self.Destroy()
+
+class DIFTControlPanel(wx.Panel):
+
+    def __init__(self, parent, panel_id, sasm, manip_item):
+
+        wx.Panel.__init__(self, parent, panel_id,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
+
+        self.parent = parent
+
+        self.sasm = sasm
+
+        self.manip_item = manip_item
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        self.dift_frame = parent.GetParent().GetParent()
+
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.old_analysis = {}
+        self.old_dmax = -1
+
+        if 'DIFT' in self.sasm.getParameter('analysis'):
+            self.old_analysis = copy.deepcopy(self.sasm.getParameter('analysis')['DIFT'])
+
+        self.dift_settings = {
+            # 'rmin_zero'     : self.raw_settings.get('gnomForceRminZero'),
+            # 'rmax_zero'     : self.raw_settings.get('gnomForceRmaxZero'),
+            # 'npts'          : self.raw_settings.get('diftNPoints'),
+            # 'alpha'         : self.raw_settings.get('diftInitialAlpha'),
+            'first'         : 0,
+            'last'          : len(self.sasm.q),
+            # 'system'        : self.raw_settings.get('gnomSystem'),
+            # 'radius56'      : self.raw_settings.get('gnomRadius56'),
+            # 'rmin'          : self.raw_settings.get('gnomRmin'),
+            }
+
+        self.out_list = {}
+
+
+        self.spinctrlIDs = {'qstart' : self.NewControlId(),
+                            'qend'   : self.NewControlId(),
+                            'dmax'   : self.NewControlId(),
+                            'alpha'   : self.NewControlId(),
+                            }
+
+        self.staticTxtIDs = {'qstart'   : self.NewControlId(),
+                            'qend'      : self.NewControlId(),
+                            # 'alpha'     : self.NewControlId(),
+                            }
+
+        self.otherctrlIDs = {'force_dmax'   : self.NewControlId(),
+                            }
+
+
+        self.infodata = {'guinierI0' : ('I0 :', self.NewControlId()),
+                         'guinierRg' : ('Rg :', self.NewControlId()),
+                         'guinierRg_err'    :('Rg Err. :', self.NewControlId()),
+                         'guinierI0_err'    :('I0 Err. :', self.NewControlId()),
+                         'diftRg_err'    :('Rg Err. :', self.NewControlId()),
+                         'diftI0_err'    :('I0 Err. :', self.NewControlId()),
+                         'diftI0'    : ('I0 :', self.NewControlId()),
+                         'diftRg'    : ('Rg :', self.NewControlId()),
+                         'TE': ('Total Estimate :', self.NewControlId()),
+                         'diftQuality': ('DIFT says :', self.NewControlId()),
+                         'chisq': ('Chi^2 (fit) :', self.NewControlId()),
+                         'alpha':   ('Alpha :', self.NewControlId()),
+                         }
+
+        self.plotted_iftm = None
+
+        self._createLayout()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _createLayout(self):
+        info_button = wx.Button(self, -1, 'How To Cite')
+        info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
+
+
+        button = wx.Button(self, wx.ID_CANCEL, 'Cancel')
+        button.Bind(wx.EVT_BUTTON, self.onCloseButton)
+
+        savebutton = wx.Button(self, wx.ID_OK, 'OK')
+        savebutton.Bind(wx.EVT_BUTTON, self.onSaveInfo)
+
+        buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonSizer.Add(info_button,0, wx.RIGHT, border=self._FromDIP(5))
+        buttonSizer.Add(savebutton, 0, wx.RIGHT, border=self._FromDIP(5))
+        buttonSizer.Add(button)
+
+
+        box2 = wx.StaticBox(self, -1, 'Control')
+        controlSizer = self._createControls(box2)
+        boxSizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
+        boxSizer2.Add(controlSizer, 0, wx.EXPAND|wx.ALL, border=self._FromDIP(5))
+
+
+        box = wx.StaticBox(self, -1, 'Parameters')
+        infoSizer = self._createInfoBox(box)
+        boxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+        boxSizer.Add(infoSizer, 0, wx.EXPAND)
+
+
+        bsizer = wx.BoxSizer(wx.VERTICAL)
+        bsizer.Add(self.createFileInfo(), 0, wx.EXPAND | wx.LEFT | wx.RIGHT
+            | wx.TOP, self._FromDIP(5))
+        bsizer.Add(boxSizer2, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
+            self._FromDIP(5))
+        bsizer.Add(boxSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
+            self._FromDIP(5))
+        bsizer.AddStretchSpacer(1)
+        bsizer.Add(buttonSizer, 0, wx.ALIGN_CENTER | wx.ALL, border=self._FromDIP(5))
+
+        self.SetSizer(bsizer)
+
+    def _createInfoBox(self, parent):
+
+        sizer = wx.FlexGridSizer(5, 3, self._FromDIP(5), self._FromDIP(5))
+
+        sizer.Add((0,0))
+
+        rglabel = wx.StaticText(parent, -1, 'Rg')
+        i0label = wx.StaticText(parent, -1, 'I(0)')
+
+        sizer.Add(rglabel, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        sizer.Add(i0label, 0, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 5)
+
+        guinierlabel = wx.StaticText(parent, -1, 'Guinier:')
+        self.guinierRg = wx.TextCtrl(parent, self.infodata['guinierRg'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
+        self.guinierI0 = wx.TextCtrl(parent, self.infodata['guinierI0'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
+
+        sizer.Add(guinierlabel, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.guinierRg, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.guinierI0, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        guinierlabel = wx.StaticText(parent, -1, 'Guinier Err.:')
+        self.guinierRg = wx.TextCtrl(parent, self.infodata['guinierRg_err'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
+        self.guinierI0 = wx.TextCtrl(parent, self.infodata['guinierI0_err'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
+
+        sizer.Add(guinierlabel, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.guinierRg, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.guinierI0, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        diftlabel = wx.StaticText(parent, -1, 'P(r):')
+        self.diftRg = wx.TextCtrl(parent, self.infodata['diftRg'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
+        self.diftI0 = wx.TextCtrl(parent, self.infodata['diftI0'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
+
+        sizer.Add(diftlabel, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.diftRg, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.diftI0, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        diftlabel = wx.StaticText(parent, -1, 'P(r) Err.:')
+        self.diftRg = wx.TextCtrl(parent, self.infodata['diftRg_err'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
+        self.diftI0 = wx.TextCtrl(parent, self.infodata['diftI0_err'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
+
+        sizer.Add(diftlabel, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.diftRg, 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(self.diftI0, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        self.alpha = wx.TextCtrl(parent, self.infodata['alpha'][1], ''
+            , size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
+
+        teLabel = wx.StaticText(parent, -1, self.infodata['TE'][0])
+        self.totalEstimate = wx.TextCtrl(parent, self.infodata['TE'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
+
+        chisqLabel = wx.StaticText(parent, -1, self.infodata['chisq'][0])
+        self.chisq = wx.TextCtrl(parent, self.infodata['chisq'][1], '0',
+            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
+
+        qualityLabel = wx.StaticText(parent, -1, self.infodata['diftQuality'][0])
+        self.quality = wx.TextCtrl(parent, self.infodata['diftQuality'][1], '', style = wx.TE_READONLY)
+
+        res_sizer2 = wx.FlexGridSizer(rows=4, cols=2, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(5))
+        res_sizer2.Add(teLabel)
+        res_sizer2.Add(self.totalEstimate)
+        res_sizer2.Add(chisqLabel)
+        res_sizer2.Add(self.chisq)
+        res_sizer2.Add(qualityLabel)
+        res_sizer2.Add(self.quality, flag=wx.EXPAND)
+        res_sizer2.Add(wx.StaticText(parent, label=self.infodata['alpha'][0]))
+        res_sizer2.Add(self.alpha)
+        res_sizer2.AddGrowableCol(1)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(sizer, 0, wx.TOP|wx.LEFT|wx.RIGHT, self._FromDIP(5))
+        top_sizer.Add(res_sizer2, flag=wx.ALL|wx.EXPAND, border=self._FromDIP(5))
+
+        return top_sizer
+
+    def _createControls(self, parent):
+
+        sizer = wx.FlexGridSizer(rows=2, cols=4, hgap=self._FromDIP(5),
+            vgap=self._FromDIP(2))
+        sizer.AddGrowableCol(0)
+        sizer.AddGrowableCol(1)
+        sizer.AddGrowableCol(2)
+        sizer.AddGrowableCol(3)
+
+        sizer.Add(wx.StaticText(parent, -1,'q_min'),1)
+        sizer.Add(wx.StaticText(parent, -1,'n_min'),1)
+        sizer.Add(wx.StaticText(parent, -1,'q_max'),1)
+        sizer.Add(wx.StaticText(parent, -1,'n_max'),1)
+
+        self.startSpin = RAWCustomCtrl.IntSpinCtrl(parent, self.spinctrlIDs['qstart'],
+            min_val=0)
+        self.endSpin = RAWCustomCtrl.IntSpinCtrl(parent, self.spinctrlIDs['qend'],
+            min_val=0)
+
+        sp_min, sp_max = self.sasm.getQrange()
+
+        self.startSpin.SetRange((sp_min, sp_max-1))
+        self.endSpin.SetRange((sp_min, sp_max-1))
+
+        self.startSpin.SetValue(sp_min)
+        self.endSpin.SetValue(sp_max-1)
+
+        self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
+        self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
+
+        self.qstartTxt = wx.TextCtrl(parent, self.staticTxtIDs['qstart'],
+            str(round(self.sasm.q[sp_min],4)), size = self._FromDIP((55, 22)),
+            style = wx.TE_PROCESS_ENTER,
+            validator=RAWCustomCtrl.CharValidator('float_te'))
+        self.qendTxt = wx.TextCtrl(parent, self.staticTxtIDs['qend'],
+            str(round(self.sasm.q[sp_max-1],4)), size = self._FromDIP((55, 22)),
+            style = wx.TE_PROCESS_ENTER,
+            validator=RAWCustomCtrl.CharValidator('float_te'))
+
+        self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
+        self.qendTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
+
+        sizer.Add(self.qstartTxt, 0, wx.EXPAND)
+        sizer.Add(self.startSpin, 0, wx.EXPAND)
+        sizer.Add(self.qendTxt, 0, wx.EXPAND)
+        sizer.Add(self.endSpin, 0, wx.EXPAND)
+
+
+        ctrl2_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.dmaxSpin = RAWCustomCtrl.FloatSpinCtrl(parent, self.spinctrlIDs['dmax'],
+            min_val = 0.1)
+        self.dmaxSpin.SetValue(1)
+        self.dmaxSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
+
+        self.alphaSpin = RAWCustomCtrl.FloatSpinCtrl(parent, self.spinctrlIDs['alpha'],
+            min_val = -50)
+        self.alphaSpin.SetValue(1)
+        self.alphaSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
+
+        ctrl2_sizer.Add(wx.StaticText(parent, -1, 'Dmax: '), 0, wx.RIGHT
+            |wx.ALIGN_CENTER_VERTICAL, self._FromDIP(2))
+        ctrl2_sizer.Add(self.dmaxSpin, 1, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL,
+            self._FromDIP(5))
+        ctrl2_sizer.Add(wx.StaticText(parent, -1, 'log10(Alpha): '), 0, wx.RIGHT
+            |wx.ALIGN_CENTER_VERTICAL, self._FromDIP(2))
+        ctrl2_sizer.Add(self.alphaSpin, 1, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL,
+            self._FromDIP(5))
+
+        advancedParams = wx.Button(parent, -1, 'Change Advanced Parameters')
+        advancedParams.Bind(wx.EVT_BUTTON, self.onChangeParams)
+
+        find_dmax = wx.Button(parent, -1, 'Auto Dmax')
+        find_dmax.Bind(wx.EVT_BUTTON, self.onFindDmaxButton)
+
+        scan_alpha = wx.Button(parent, -1, 'Scan Alpha')
+        scan_alpha.Bind(wx.EVT_BUTTON, self.onScanAlphaButton)
+
+        da_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        da_sizer.Add(find_dmax, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL,
+            self._FromDIP(2))
+        da_sizer.Add(scan_alpha, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL,
+            self._FromDIP(2))
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(sizer, 0, wx.EXPAND|wx.BOTTOM, self._FromDIP(5))
+        top_sizer.Add(ctrl2_sizer, 0, wx.EXPAND | wx.BOTTOM,
+            self._FromDIP(5))
+        top_sizer.Add(da_sizer, 0, wx.CENTER | wx.BOTTOM,
+            self._FromDIP(5))
+        top_sizer.Add(advancedParams, 0, wx.CENTER | wx.BOTTOM, self._FromDIP(5))
+
+        return top_sizer
+
+    def initDiftValues(self, sasm, mode='auto'):
+        self.setGuinierInfo(sasm)
+
+        if mode == 'auto':
+            if 'guinier' in sasm.getParameter('analysis'):
+                guinier = sasm.getParameter('analysis')['guinier']
+
+                try:
+                    nmin = guinier['nStart']
+                    nmax = sasm.getQrange()[1]
+                except Exception:
+                    nmin, nmax = sasm.getQrange()
+            else:
+                nmin, nmax = sasm.getQrange()
+
+        else:
+            dift_analysis = sasm.getParameter('analysis')['DIFT']
+
+            try:
+                qmin = dift_analysis['qStart']
+                qmax = dift_analysis['qEnd']
+
+                _, nmin = SASUtils.find_closest(qmin, sasm.q)
+                _, nmax = SASUtils.find_closest(qmax, sasm.q)
+
+                nmax += 1
+
+            except Exception:
+                traceback.print_exc()
+                nmin, nmax = sasm.getQrange()
+
+        sp_min, sp_max = sasm.getQrange()
+
+        if nmin < sp_min:
+            nmin = sp_min
+
+        if nmax > sp_max:
+            nmax = sp_max
+
+        self.endSpin.SetValue(nmax-1)
+        self.startSpin.SetValue(nmin)
+        txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
+        txt.ChangeValue(str(round(sasm.q[nmax-1],4)))
+        txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
+        txt.ChangeValue(str(round(sasm.q[nmin],4)))
+
+        self.old_nstart = nmin
+        self.old_nend = nmax
+        self.previous_qmax = sasm.q[nmax-1]
+
+        self.setFilename(os.path.basename(sasm.getParameter('filename')))
+
+        if mode == 'auto':
+            dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
+            print("first dmax:", dmaxWindow.GetValue())
+            self._runFindDmax()
+            self._runScanAlpha()
+            # self.findDmax()
+            # self.scanAlpha()
+            dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
+            print("second dmax:", dmaxWindow.GetValue())
+
+        else:
+            dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
+            try:
+                dmax = float(dift_analysis['Dmax'])
+            except Exception:
+                dmax = -1
+
+            alphaWindow = wx.FindWindowById(self.spinctrlIDs['alpha'], self)
+
+            try:
+                alpha = float(dift_analysis['alpha'])
+            except Exception:
+                alpha = 0.0
+
+            self.updateDIFTSettings(update_plot=False)
+
+            if dmax != -1:
+                self.old_dmax = dmax
+                self.old_alpha = alpha
+
+                self.runDIFT(dmax, alpha)
+
+                dmaxWindow.SetValue(round(dmax,2))
+                alphaWindow.SetValue(round(alpha,2))
+
+                self.updateDIFTInfo(self.out_list[str(dmax)])
+
+                self.updatePlot()
+
+                wx.CallAfter(self.dift_frame.showBusy, False)
+
+            else:
+                self._runFindDmax()
+                self._runScanAlpha()
+
+
+    def setGuinierInfo(self, sasm):
+        guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1], self)
+        guinierI0Window = wx.FindWindowById(self.infodata['guinierI0'][1], self)
+        guinierRgerrWindow = wx.FindWindowById(self.infodata['guinierRg_err'][1], self)
+        guinierI0errWindow = wx.FindWindowById(self.infodata['guinierI0_err'][1], self)
+
+        if 'guinier' in sasm.getParameter('analysis'):
+
+            guinier = sasm.getParameter('analysis')['guinier']
+
+            try:
+                guinierRgWindow.SetValue(self.formatNumStr(guinier['Rg']))
+            except Exception:
+                guinierRgWindow.SetValue('')
+
+            try:
+                guinierI0Window.SetValue(self.formatNumStr(guinier['I0']))
+            except Exception:
+                guinierI0Window.SetValue('')
+
+            try:
+                guinierRgerrWindow.SetValue(self.formatNumStr(guinier['Rg_err']))
+            except Exception:
+                guinierRgerrWindow.SetValue('')
+
+            try:
+                guinierI0errWindow.SetValue(self.formatNumStr(guinier['I0_err']))
+            except Exception:
+                guinierI0errWindow.SetValue('')
+
+    def formatNumStr(self, val):
+        val = float(val)
+
+        if abs(val) > 1e3 or abs(val) < 1e-2:
+            my_str = '%.2E' %(val)
+        else:
+            my_str = '%.4f' %(round(val,4))
+
+        return my_str
+
+    def updateDIFTInfo(self, iftm):
+        diftRgWindow = wx.FindWindowById(self.infodata['diftRg'][1], self)
+        diftI0Window = wx.FindWindowById(self.infodata['diftI0'][1], self)
+        diftRgerrWindow = wx.FindWindowById(self.infodata['diftRg_err'][1], self)
+        diftI0errWindow = wx.FindWindowById(self.infodata['diftI0_err'][1], self)
+        diftTEWindow = wx.FindWindowById(self.infodata['TE'][1], self)
+        diftQualityWindow = wx.FindWindowById(self.infodata['diftQuality'][1], self)
+        diftChisqWindow = wx.FindWindowById(self.infodata['chisq'][1], self)
+        diftAlphaWindow = wx.FindWindowById(self.infodata['alpha'][1], self)
+
+        try:
+            diftRgWindow.SetValue(self.formatNumStr(iftm.getParameter('rg')))
+        except Exception:
+            diftRgWindow.SetValue('')
+        try:
+            diftI0Window.SetValue(self.formatNumStr(iftm.getParameter('i0')))
+        except Exception:
+            diftI0Window.SetValue('')
+        try:
+            diftRgerrWindow.SetValue(self.formatNumStr(iftm.getParameter('rger')))
+        except Exception:
+            diftRgerrWindow.SetValue('')
+        try:
+            diftI0errWindow.SetValue(self.formatNumStr(iftm.getParameter('i0er')))
+        except Exception:
+            diftI0errWindow.SetValue('')
+        try:
+            diftTEWindow.SetValue(str(iftm.getParameter('TE')))
+        except Exception:
+            diftTEWindow.SetValue('')
+        try:
+            diftChisqWindow.SetValue(self.formatNumStr(iftm.getParameter('chisq')))
+        except Exception:
+            diftTEWdiftChisqWindowindow.SetValue('')
+        try:
+            diftQualityWindow.SetValue(str(iftm.getParameter('quality')))
+        except Exception:
+            diftQualityWindow.SetValue('')
+        try:
+            diftAlphaWindow.SetValue(str(iftm.getParameter('alpha')))
+        except Exception:
+            diftAlphaWindow.SetValue('')
+
+    def setFilename(self, filename):
+        self.filenameTxtCtrl.SetValue(str(filename))
+
+    def createFileInfo(self):
+
+        box = wx.StaticBox(self, -1, 'Filename')
+        boxsizer = wx.StaticBoxSizer(box, wx.HORIZONTAL)
+
+        self.filenameTxtCtrl = wx.TextCtrl(box, -1, '', style = wx.TE_READONLY)
+
+        boxsizer.Add(self.filenameTxtCtrl, 1, wx.EXPAND|wx.ALL,
+            border=self._FromDIP(5))
+
+        return boxsizer
+
+    def onSaveInfo(self, evt):
+        dift_results = {}
+
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
+        dmax = str(dmaxWindow.GetValue())
+
+        alphaWindow = wx.FindWindowById(self.spinctrlIDs['alpha'], self)
+        alpha = str(10**float(alphaWindow.GetValue()))
+
+        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
+        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
+        start_idx = startSpin.GetValue()
+        end_idx = endSpin.GetValue()
+
+        if not self.out_list or dmax not in self.out_list:
+            self.updateDIFTSettings(update_plot=False)
+            self.runDIFT(dmax, alpha)
+
+        dift_results['Dmax'] = dmax
+        # dift_results['Total_Estimate'] = self.out_list[dmax].getParameter('TE')
+        dift_results['Real_Space_Rg'] = self.out_list[dmax].getParameter('rg')
+        dift_results['Real_Space_I0'] = self.out_list[dmax].getParameter('i0')
+        dift_results['Real_Space_Rg_Err'] = self.out_list[dmax].getParameter('rger')
+        dift_results['Real_Space_I0_Err'] = self.out_list[dmax].getParameter('i0er')
+        dift_results['Alpha'] = alpha #self.out_list[dmax].getParameter('alpha')
+        dift_results['qStart'] = self.sasm.q[start_idx]
+        dift_results['qEnd'] = self.sasm.q[end_idx]
+        dift_results['DIFT_ChiSquared'] = self.out_list[dmax].getParameter('chisq')
+        # dift_results['DIFT_Quality_Assessment'] = self.out_list[dmax].getParameter('quality')
+
+        analysis_dict = self.sasm.getParameter('analysis')
+        analysis_dict['DIFT'] = dift_results
+
+        if self.manip_item is not None:
+            if dift_results != self.old_analysis:
+                wx.CallAfter(self.manip_item.markAsModified)
+                wx.CallAfter(self.manip_item.updateInfoPanel)
+
+        iftm = self.out_list[dmax]
+        iftm.setParameter('filename', os.path.splitext(self.sasm.getParameter('filename'))[0]+'.out')
+
+        if self.raw_settings.get('AutoSaveOnDift'):
+            if os.path.isdir(self.raw_settings.get('DiftFilePath')):
+                RAWGlobals.mainworker_cmd_queue.put(['save_iftm', [iftm, self.raw_settings.get('DiftFilePath')]])
+            else:
+                self.raw_settings.set('DiftFilePath', False)
+                wx.CallAfter(wx.MessageBox, 'The folder:\n' +self.raw_settings.get('DIFTFilePath')+ '\ncould not be found. Autosave of DIFT files has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+
+        RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [iftm, RAWGlobals.general_text_color,
+            None, not self.raw_settings.get('AutoSaveOnDift')]])
+
+
+        self.dift_frame.OnClose()
+
+    def onCloseButton(self, evt):
+
+        self.dift_frame.OnClose()
+
+    def _onInfoButton(self, evt):
+        msg = ('If you use DIFT in your work, in addition to citing '
+            'the RAW paper please cite the paper given here:'
+            '\nhttps://journals.iucr.org/j/issues/2022/05/00/vg5144/index.html')
+        wx.MessageBox(str(msg), "How to cite DIFT", style = wx.ICON_INFORMATION | wx.OK)
+
+    def onFindDmaxButton(self, evt):
+        self.dift_frame.showBusy(True, 'Finding Dmax')
+        self._runFindDmax()
+
+    def onScanAlphaButton(self, evt):
+        self.dift_frame.showBusy(True, 'Scanning Alpha')
+        self._runScanAlpha()
+
+    def _runFindDmax(self):
+        t = threading.Thread(target=self.findDmax)
+        t.daemon=True
+        t.start()
+
+    def _runScanAlpha(self):
+        t = threading.Thread(target=self.scanAlpha)
+        t.daemon=True
+        t.start()
+
+    def onEnterInQlimits(self, evt):
+
+        my_id = evt.GetId()
+
+        txtctrl = wx.FindWindowById(id, self)
+
+        #### If User inputs garbage: ####
+        try:
+            val = float(txtctrl.GetValue())
+        except ValueError:
+            if my_id == self.staticTxtIDs['qstart']:
+                spinctrl = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
+                txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
+                idx = int(spinctrl.GetValue())
+                txt.SetValue(str(round(self.sasm.q[idx],4)))
+                return
+
+            if my_id == self.staticTxtIDs['qend']:
+                spinctrl = wx.FindWindowById(self.spinctrlIDs['qend'], self)
+                txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
+                idx = int(spinctrl.GetValue())
+                txt.SetValue(str(round(self.sasm.q[idx],4)))
+                return
+        #################################
+
+        if my_id == self.staticTxtIDs['qstart']:
+            control_name = 'qstart'
+
+        elif my_id == self.staticTxtIDs['qend']:
+            control_name = 'qend'
+
+        self.setQVal(val, control_name)
+
+    def setQVal(self, val, control_name, do_update_plot=True):
+        lx = self.sasm.q
+
+        findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
+        closest = findClosest(val,lx)
+
+        i = np.where(lx == closest)[0][0]
+
+        endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
+        startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
+
+        if control_name == 'qstart':
+
+            n_max = endSpin.GetValue()
+
+            if i > n_max-3:
+                i = n_max - 3
+
+            startSpin.SetValue(i)
+
+        elif control_name == 'qend':
+            n_min = startSpin.GetValue()
+
+
+            if i < n_min+3:
+                i = n_min + 3
+
+            endSpin.SetValue(i)
+
+        txtctrl = wx.FindWindowById(self.staticTxtIDs[control_name], self)
+        txtctrl.SetValue(str(round(self.sasm.q[int(i)],4)))
+
+        update_plot = False
+
+        if control_name == 'qstart':
+            if i != self.old_nstart:
+                self.out_list = {}
+                update_plot = True
+            self.old_nstart = i
+        elif control_name == 'qend':
+            if i != self.old_nend:
+                self.out_list = {}
+                update_plot = True
+            self.old_nend = i
+
+        if update_plot and do_update_plot:
+            wx.CallAfter(self.updatePlot)
+
+
+    def onSpinCtrl(self, evt):
+        myid = evt.GetId()
+
+        update_plot = False
+
+        if myid != self.spinctrlIDs['dmax'] and myid != self.spinctrlIDs['alpha']:
+            spin = wx.FindWindowById(myid, self)
+
+            startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
+            endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
+
+            i = spin.GetValue()
+
+            #Make sure the boundaries don't cross:
+            if myid == self.spinctrlIDs['qstart']:
+                max_val = endSpin.GetValue()
+                txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
+
+                if i > max_val-3:
+                    i = max_val - 3
+                    spin.SetValue(i)
+
+            elif myid == self.spinctrlIDs['qend']:
+                min_val = startSpin.GetValue()
+                txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
+
+                if i < min_val+3:
+                    i = min_val + 3
+                    spin.SetValue(i)
+
+            txt.SetValue(str(round(self.sasm.q[int(i)],4)))
+
+            if myid == self.spinctrlIDs['qstart']:
+                if i != self.old_nstart:
+                    self.out_list = {}
+                    update_plot = True
+                self.old_nstart = i
+            elif myid == self.spinctrlIDs['qend']:
+                if i != self.old_nend:
+                    self.out_list = {}
+                    update_plot = True
+                self.old_nend = i
+
+        elif myid == self.spinctrlIDs['dmax']:
+            dmax = float(wx.FindWindowById(self.spinctrlIDs['dmax'], self).GetValue())
+            if self.old_dmax != dmax:
+                update_plot = True
+            self.old_dmax = dmax
+
+        elif myid == self.spinctrlIDs['alpha']:
+            alpha = 10**float(wx.FindWindowById(self.spinctrlIDs['alpha'], self).GetValue())
+            if self.old_alpha != alpha:
+                update_plot = True
+            self.old_alpha = alpha
+
+        if update_plot:
+            #Important, since it's a slow function to update (could do it in a
+            #timer instead) otherwise this spin event might loop!
+            wx.CallAfter(self.updatePlot)
+
+
+    def updatePlot(self):
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
+        dmax = dmaxWindow.GetValue()
+
+        alphaWindow = wx.FindWindowById(self.spinctrlIDs['alpha'], self)
+        alpha = 10**float(alphaWindow.GetValue())
+
+        plotpanel = self.dift_frame.plotPanel
+
+        if str(dmax) not in self.out_list:
+            self.updateDIFTSettings(update_plot=False)
+            self.runDIFT(dmax, alpha)
+        else:
+            self.runDIFT(dmax, alpha)
+
+        if str(dmax) in self.out_list:
+            self.updateDIFTInfo(self.out_list[str(dmax)])
+
+            a = plotpanel.subplots['P(r)']
+            b = plotpanel.subplots['Data/Fit']
+            if not a.get_autoscale_on():
+                a.set_autoscale_on(True)
+            if not b.get_autoscale_on():
+                b.set_autoscale_on(True)
+
+            plotpanel.plotPr(self.out_list[str(dmax)])
+        else:
+            plotpanel.clearDataPlot()
+
+    def findDmax(self):
+        self.updateDIFTSettings(update_plot=False)
+
+        start = self.dift_settings['first']
+        end = self.dift_settings['last']
+
+        save_sasm = copy.deepcopy(self.sasm)
+
+        save_sasm.setQrange((start, end))
+
+        # Calculate Rg if not available
+        error_weight = self.raw_settings.get('errorWeight')
+
+        analysis = save_sasm.getParameter('analysis')
+        if 'guinier' not in analysis:
+            RAWAPI.auto_guinier(save_sasm, error_weight)
+
+        try:
+            # dmax = RAWAPI.auto_dmax(save_sasm, single_proc=True)
+            Iq = np.vstack((save_sasm.q, save_sasm.i, save_sasm.err)).T
+            #give a ballpark estimate of dmax as 3.5 * rg,
+            #note, twice this value will be used inside estimate_dmax
+            rg = float(analysis['guinier']['Rg'])
+            dmax, sasrec = DENSS.estimate_dmax(Iq, dmax=rg*3.5)
+            print("find dmax. dmax, alpha", sasrec.D, sasrec.alpha)
+        except Exception as e:
+            dmax = -1
+            msg = ("Automatic Dmax determination failed with the following error:\n"
+                "{}\n\nGuessing Dmax.".format(e))
+            wx.CallAfter(self.main_frame.showMessageDialog, self, msg, "Error finding Dmax",
+                wx.ICON_WARNING|wx.OK)
+            traceback.print_exc()
+
+        if dmax == -1:
+            try:
+                analysis = save_sasm.getParameter('analysis')
+                rg = float(analysis['guinier']['Rg'])
+            except Exception:
+                rg = 10
+
+            units = SASUtils.guess_units(save_sasm.getQ(), rg, False)
+
+            if units == '1/A':
+                dmax = int(round(rg*3))
+            else:
+                dmax = round(rg*3, 1)
+
+        wx.CallAfter(self._finishFindDmax, dmax)
+
+    def _finishFindDmax(self, dmax):
+        if dmax != -1:
+            dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
+            dmaxWindow.SetValue(round(dmax,2))
+            self.old_dmax = dmax
+
+            # alpha = self.dift_settings['alpha']
+            alphaWindow = wx.FindWindowById(self.spinctrlIDs['alpha'], self)
+            alpha = 10**float(alphaWindow.GetValue())
+            self.old_alpha = alpha
+
+            print("finish dmax. dmax, alpha:", dmax, alpha)
+
+            self.runDIFT(dmax, alpha)
+            self.updateDIFTInfo(self.out_list[str(dmax)])
+
+            self.updatePlot()
+
+        self.dift_frame.showBusy(show=False)
+
+    def scanAlpha(self):
+        self.updateDIFTSettings(update_plot=False)
+
+        start = self.dift_settings['first']
+        end = self.dift_settings['last']
+
+        save_sasm = copy.deepcopy(self.sasm)
+
+        save_sasm.setQrange((start, end))
+
+        # Calculate Rg if not available
+        error_weight = self.raw_settings.get('errorWeight')
+
+        analysis = save_sasm.getParameter('analysis')
+        if 'guinier' not in analysis:
+            RAWAPI.auto_guinier(save_sasm, error_weight)
+
+        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
+        dmax = dmaxWindow.GetValue()
+
+        try:
+            # dmax = RAWAPI.auto_dmax(save_sasm, single_proc=True)
+            Iq = np.vstack((save_sasm.q, save_sasm.i, save_sasm.err)).T
+            sasrec = DENSS.Sasrec(Iq, dmax)
+            alpha = sasrec.optimize_alpha()
+            print("scan alpha. dmax, alpha", sasrec.D, sasrec.alpha)
+        except Exception as e:
+            alpha = 0.0
+            msg = ("Automatic Alpha determination failed with the following error:\n"
+                "{}\n\nSetting Alpha to zero.".format(e))
+            wx.CallAfter(self.main_frame.showMessageDialog, self, msg, "Error finding Alpha",
+                wx.ICON_WARNING|wx.OK)
+            traceback.print_exc()
+
+        wx.CallAfter(self._finishScanAlpha, alpha)
+
+    def _finishScanAlpha(self, alpha):
+        if alpha != -1:
+            dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
+            dmax = dmaxWindow.GetValue()
+
+            alphaWindow = wx.FindWindowById(self.spinctrlIDs['alpha'], self)
+            alphaWindow.SetValue(round(np.log10(alpha),2))
+            print("finish alpha. dmax, alpha:", dmax, alpha)
+            # wx.FindWindowById(self.staticTxtIDs['alpha']).SetValue(str(alpha))
+
+            self.old_dmax = dmax
+            self.old_alpha = alpha
+
+            self.runDIFT(dmax, alpha)
+            self.updateDIFTInfo(self.out_list[str(dmax)])
+
+            self.updatePlot()
+
+        self.dift_frame.showBusy(show=False)
+
+    def runDIFT(self, dmax, alpha):
+        tempdir = self.dift_frame.standard_paths.GetTempDir()
+
+        save_sasm = copy.deepcopy(self.sasm)
+
+        savename = os.path.splitext(save_sasm.getParameter('filename'))[0] + '.dat'
+
+        outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
+        while os.path.isfile(outname):
+            outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
+
+        outname = os.path.split(outname)[1]
+        outname = outname+'.out'
+
+        if not os.path.isfile(os.path.join(self.dift_frame.tempdir, self.dift_frame.savename)):
+            self.dift_frame.saveDIFTProfile()
+
+        if (self.dift_frame.main_frame.OnlineControl.isRunning()
+            and tempdir == self.dift_frame.main_frame.OnlineControl.getTargetDir()):
+            self.dift_frame.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
+        try:
+            SASFileIO.saveMeasurement(save_sasm, tempdir, self.raw_settings, filetype = '.dat')
+        except SASExceptions.HeaderSaveError as e:
+            self._showSaveError('header')
+
+        # self.updateStatus({'status': 'Scanning alpha'})
+
+        # start = int(self.startSpin.GetValue())
+        # end = int(self.endSpin.GetValue())+1
+
+        q = self.sasm.q #[start:end]
+        i = self.sasm.i #[start:end]
+        err = self.sasm.err #[start:end]
+
+        Iq = np.vstack((q,i,err)).T
+
+        args = (Iq, dmax, self.sasm.getParameter('filename'))
+
+        kwargs = copy.deepcopy(self.dift_settings)
+        kwargs['alpha'] = alpha
+        kwargs['extrapolate'] = True
+
+        iftm = DENSS.doDIFT(Iq, dmax, self.sasm.getParameter('filename'),
+                npts=None, first=None, last=None, rmin=None,
+                qc=None, r=None, nr=None, alpha=alpha, ne=2, extrapolate=True,
+                queue=None, abort_check=threading.Event(), single_proc=False, nprocs=0)
+
+        print("iftm dmax, alpha:", iftm.getParameter('dmax'), iftm.getParameter('alpha'))
+
+        self.out_list[str(dmax)] = iftm
+
+    def _onSuccess(self):
+        self.updateStatus({'status' : 'DIFT done'})
+        self.updatePlot()
+        self.updateDIFTInfo()
+        self.finishedProcessing()
+
+        if self.DIFT_timer.IsRunning():
+            self.DIFT_timer.Stop()
+
+    def onSettingsChange(self, evt):
+        self.updateDIFTSettings()
+
+    def updateDIFTSettings(self, update_plot=True):
+        self.old_settings = copy.deepcopy(self.dift_settings)
+
+        self.dift_settings = {
+            # 'npts'      : self.raw_settings.get('diftNPoints'),
+            # 'alpha'     : wx.FindWindowById(self.staticTxtIDs['alpha']).GetValue(),
+            'alpha'     : wx.FindWindowById(self.spinctrlIDs['alpha']).GetValue(),
+            'first'     : int( wx.FindWindowById(self.spinctrlIDs['qstart'], self).GetValue()),
+            'last'      : int( wx.FindWindowById(self.spinctrlIDs['qend'], self).GetValue()),
+            # 'rmin'      : self.raw_settings.get('gnomRmin'),
+            }
+
+        if self.old_settings != self.dift_settings:
+            self.out_list = {}
+
+        if update_plot:
+            self.updatePlot()
+
+    def onChangeParams(self, evt):
+        self.main_frame.showOptionsDialog(focusHead='DIFT')
 
 class TheoreticalFrame(wx.Frame):
 
@@ -14891,22 +15997,19 @@ class SVDControlPanel(wx.Panel):
         n_bins = max(n_shannon_bins, self._num_svd_bins)
 
         if svd_val_key in self._full_svd_vals:
-            (self.svd_a_full, self.i_full, self.err_full,
-                self.q_full) = self._full_svd_vals[svd_val_key]
+            self.svd_a_full, self.i_full, self.err_full = self._full_svd_vals[svd_val_key]
 
         else:
             sasms = secm.getAllSASMs()
 
-            svd_a_full, i_full, err_full, q_full = SASCalc.prepareSASMsforSVD(sasms,
+            svd_a_full, i_full, err_full = SASCalc.prepareSASMsforSVD(sasms,
                 err_norm, do_binning=self._do_svd_binning, bin_to=n_bins)
 
-            self._full_svd_vals[svd_val_key] = (svd_a_full, i_full, err_full,
-                q_full)
+            self._full_svd_vals[svd_val_key] = (svd_a_full, i_full, err_full)
 
             self.svd_a_full = svd_a_full
             self.i_full = i_full
             self.err_full = err_full
-            self.q_full = q_full
 
     #This function is called when the profiles used are changed between subtracted and unsubtracted.
     def _onProfileChoice(self, evt):
@@ -15241,7 +16344,15 @@ class SVDControlPanel(wx.Panel):
                 value = filename_window.GetValue()
 
             elif key == 'q':
-                value = self.q_full
+                profile_window = wx.FindWindowById(self.control_ids['profile'], self)
+                profile_type = profile_window.GetStringSelection()
+
+                if profile_type == 'Unsubtracted':
+                    value = self.secm.getSASM().getQ()
+                elif profile_type == 'Subtracted':
+                    value = self.subtracted_secm.getSASM().getQ()
+                elif profile_type == 'Baseline Corrected':
+                    value = self.bl_subtracted_secm.getSASM().getQ()
 
             self.results[key] = value
 
@@ -17038,7 +18149,7 @@ class EFAControlPanel3(wx.Panel):
 
         conc_data = [self.rotation_data['C'], list(range(framei, framef+1))]
 
-        self.efa_frame.plotPanel3.plotEFAresults(self.sasms, rmsd_data, conc_data)
+        self.efa_frame.plotPanel3.plotEFA(self.sasms, rmsd_data, conc_data)
 
     def clearResultsPlot(self):
         self.efa_frame.plotPanel3.refresh()
@@ -17083,7 +18194,7 @@ class EFAResultsPlotPanel3(wx.Panel):
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
 
-        self.base_color = SASUtils.update_mpl_style()
+        SASUtils.update_mpl_style()
 
         self.fig = Figure((5,4), 75)
 
@@ -17093,8 +18204,8 @@ class EFAResultsPlotPanel3(wx.Panel):
         self.c_reg_lines = []
         self.d_lines = []
 
-        subplotLabels = [('Scattering Profiles', 'q', 'I', 0.1),
-            ('P(r)', 'r', '', 0.1),
+        subplotLabels = [('Scattering Profiles', 'q ($\AA^{-1}$)', 'I', 0.1),
+            ('P(r)', 'r ($\AA$)', '', 0.1),
             ('Mean Error Weighted $\chi^2$', 'Index', '$\chi^2$', 0.1),
             ('Concentration', 'Index', 'Arb.', 0.1)]
 
@@ -17273,20 +18384,13 @@ class EFAResultsPlotPanel3(wx.Panel):
         self.ax_redraw()
 
 
-    def plotEFAresults(self, profile_data, rmsd_data, conc_data, ift_data=[],
+    def plotEFA(self, profile_data, rmsd_data, conc_data, ift_data=[],
         reg_conc_data=[]):
         if (len(profile_data) != len(self.a_lines)
             or len(ift_data) != len(self.d_lines)):
             self.refresh()
 
-
-        if ift_data is not None and len(ift_data) > 0:
-            plot_ift = not all([x is None for x in ift_data])
-
-        else:
-            plot_ift = False
-
-        if plot_ift:
+        if len(ift_data) > 0:
             if not self.show_pr:
                 self.show_pr = True
                 self.update_layout()
@@ -17323,8 +18427,6 @@ class EFAResultsPlotPanel3(wx.Panel):
 
             self.b_lines.append(line)
 
-            c.axhline(0, color=self.base_color, linewidth=1.0)
-
             if isinstance(conc_data[0], np.ndarray):
                 for j in range(conc_data[0].shape[1]):
                     line, = c.plot(conc_data[1], conc_data[0][:,j], animated = True)
@@ -17345,14 +18447,10 @@ class EFAResultsPlotPanel3(wx.Panel):
                         line.set_color(color)
                         self.c_reg_lines.append(line)
 
-            d.axhline(0, color=self.base_color, linewidth=1.0)
-
             for j in range(len(ift_data)):
-                if ift_data[j] is not None:
-                    color = self.a_lines[j].get_color()
-                    line, = d.plot(ift_data[j].r, ift_data[j].p/ift_data[j].getParameter('i0'),
-                        animated=True, color=color)
-                    self.d_lines.append(line)
+                line, = d.plot(ift_data[j].r, ift_data[j].p/ift_data[j].getParameter('i0'),
+                    animated=True)
+                self.d_lines.append(line)
 
             a.legend(fontsize = 12)
 
@@ -19769,7 +20867,7 @@ class REGALSResults(wx.Panel):
         self.iters.SetLabel('{}'.format(total_iter))
         self.chisq.SetLabel('{}'.format(round(aver_chisq,3)))
 
-        self.results_plot.plotEFAresults(sasms, rmsd_data, conc_data, ifts, reg_concs)
+        self.results_plot.plotEFA(sasms, rmsd_data, conc_data, ifts, reg_concs)
 
     def refresh_results(self):
         self.iters.SetLabel('')
@@ -22048,7 +23146,6 @@ class ComparisonControlPanel(scrolled.ScrolledPanel):
 
         self.plot_parent.send_to_plot(top_plot_data, bottom_plot_data, self.reference_item)
 
-
 class NormKratkyFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm_list):
@@ -22109,6 +23206,7 @@ class NormKratkyFrame(wx.Frame):
     def OnClose(self):
 
         self.Destroy()
+
 
 
 class NormKratkyPlotPanel(wx.Panel):

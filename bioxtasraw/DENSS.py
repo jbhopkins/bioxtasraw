@@ -46,9 +46,12 @@ import struct
 import logging
 from functools import partial
 import multiprocessing
+import threading
 import datetime, time
 from time import sleep
 import warnings
+import copy
+
 import pickle
 
 import numpy as np
@@ -81,6 +84,7 @@ try:
 except:
     numba = False
 
+
 try:
     import cupy as cp
     CUPY_LOADED = True
@@ -106,6 +110,8 @@ except ImportError:
 #disable pyfftw until we can make it more stable
 #it works, but often results in nans randomly
 PYFFTW = False
+
+import bioxtasraw.SASM as SASM
 
 def myfftn(x, DENSS_GPU=False):
     if DENSS_GPU:
@@ -4881,6 +4887,691 @@ def denss_3DFs(rho_start, dmax, ne=None, voxel=5., oversampling=3., positivity=T
 
     return rho
 
+
+def clean_up_data(Iq):
+    """Do a quick cleanup by removing zero intensities and zero errors.
+
+    Iq - N x 3 numpy array, where N is the number of data  points, and the
+    three columns are q, I, error.
+    """
+    return Iq[(~np.isclose(Iq[:,1],0))&(~np.isclose(Iq[:,2],0))]
+
+def calc_rg_I0_by_guinier(Iq,nb=None,ne=None):
+    """calculate Rg, I(0) by fitting Guinier equation to data.
+    Use only desired q range in input arrays."""
+    if nb is None:
+        nb = 0
+    if ne is None:
+        ne = Iq.shape[0]
+    while True:
+        m, b = stats.linregress(Iq[nb:ne,0]**2,np.log(Iq[nb:ne,1]))[:2]
+        if m < 0.0:
+            break
+        else:
+            #the slope should be negative
+            #if the slope is positive, shift the
+            #region forward by one point and try again
+            nb += 1
+            ne += 1
+            if nb>50:
+                raise ValueError("Guinier estimation failed. Guinier region slope is positive.")
+    rg = (-3*m)**(0.5)
+    I0 = np.exp(b)
+    return rg, I0
+
+def calc_rg_by_guinier_peak(Iq,exp=1,nb=0,ne=None):
+    """roughly estimate Rg using the Guinier peak method.
+    Use only desired q range in input arrays.
+    exp - the exponent in q^exp * I(q)"""
+    d = exp
+    if ne is None:
+        ne = Iq.shape[0]
+    q = Iq[:,0] #[nb:ne,0]
+    I = Iq[:,1] #[nb:ne,1]
+    qdI = q**d * I
+    try:
+        #fit a quick quadratic for smoothness, ax^2 + bx + c
+        a,b,c = np.polyfit(q,qdI,2)
+        #get the peak position
+        qpeak = -b/(2*a)
+    except:
+        #if polyfit fails, just grab the maximum position
+        qpeaki = np.argmax(qdI)
+        qpeak = q[qpeaki]
+    #calculate Rg from the peak position
+    rg = (3.*d/2.)**0.5 / qpeak
+    return rg
+
+def estimate_dmax(Iq,dmax=None,clean_up=True):
+    """Attempt to roughly estimate Dmax directly from data."""
+    #first, clean up the data
+    if clean_up:
+        Iq = clean_up_data(Iq)
+    q = Iq[:,0]
+    I = Iq[:,1]
+    if dmax is None:
+        #first, estimate a very rough rg from the first 20 data points
+        nmax = 20
+        try:
+            rg, I0 = calc_rg_I0_by_guinier(Iq,ne=nmax)
+        except:
+            rg = calc_rg_by_guinier_peak(Iq,exp=1,ne=100)
+        #next, dmax is roughly 3.5*rg for most particles
+        #so calculate P(r) using a larger dmax, say twice as large, so 7*rg
+        D = 7*rg
+    else:
+        #allow user to give an initial estimate of Dmax
+        #multiply by 2 to allow for enough large r values
+        D = 2*dmax
+    #create a calculated q range for Sasrec for low q out to q=0
+    qmin = np.min(q)
+    dq = (q.max()-q.min())/(q.size-1)
+    nq = int(qmin/dq)
+    qc = np.concatenate(([0.0],np.arange(nq)*dq+(qmin-nq*dq),q))
+    #run Sasrec to perform IFT
+    sasrec = Sasrec(Iq, D, qc=None, alpha=0.0, extrapolate=False)
+    #now filter the P(r) curve for estimating Dmax better
+    r, Pfilt, sigrfilt = filter_P(sasrec.r, sasrec.P, sasrec.Perr, qmax=Iq[:,0].max())
+    #estimate D as the first position where P becomes less than 0.01*P.max(), after P.max()
+    Pargmax = Pfilt.argmax()
+    # np.savetxt('pr.dat',np.vstack((r,sasrec.P,Pfilt)).T)
+    #catch cases where the P(r) plot goes largely negative at large r values,
+    #as this indicates repulsion. Set the new Pargmax, which is really just an
+    #identifier for where to begin searching for Dmax, to be any P value whose
+    #absolute value is greater than at least 10% of Pfilt.max. The large 10% is to
+    #avoid issues with oscillations in P(r).
+    above_idx = np.where((np.abs(Pfilt)>0.1*Pfilt.max())&(r>r[Pargmax]))
+    Pargmax = np.max(above_idx)
+    near_zero_idx = np.where((np.abs(Pfilt[Pargmax:])<(0.001*Pfilt.max())))[0]
+    near_zero_idx += Pargmax
+    D_idx = near_zero_idx[0]
+    D = r[D_idx]
+    sasrec.D = D
+    sasrec.update()
+    return D, sasrec
+
+def filter_P(r,P,sigr=None,qmax=0.5,cutoff=0.75,qmin=0.0,cutoffmin=1.25):
+    """Filter P(r) and sigr of oscillations."""
+    npts = len(r)
+    dr = (r.max()-r.min())/(r.size-1)
+    fs = 1./dr
+    nyq = fs*0.5
+    fc = (cutoff*qmax/(2*np.pi))/nyq
+    ntaps = npts//3
+    if ntaps%2==0:
+        ntaps -=1
+    b = signal.firwin(ntaps, fc, window='hann')
+    if qmin>0.0:
+        fcmin = (cutoffmin*qmin/(2*np.pi))/nyq
+        b = signal.firwin(ntaps, [fcmin,fc],pass_zero=False, window='hann')
+    a = np.array([1])
+    import warnings
+    with warnings.catch_warnings():
+        #theres a warning from filtfilt that is a bug in older scipy versions
+        #we are just going to suppress that here.
+        warnings.filterwarnings("ignore")
+        Pfilt = signal.filtfilt(tuple(b),tuple(a),tuple(P),padlen=len(r)-1)
+        r = np.arange(npts)/fs
+        if sigr is not None:
+            sigrfilt = signal.filtfilt(b, a, sigr,padlen=len(r)-1)/(2*np.pi)
+            return r, Pfilt, sigrfilt
+        else:
+            return r, Pfilt
+
+class Sasrec(object):
+    def __init__(self, Iq, D, qc=None, r=None, nr=None, alpha=0.0, ne=2, extrapolate=True):
+        D = float(D)
+        alpha = float(alpha)
+        self.Iq = np.asarray(Iq)
+        self.q = Iq[:,0]
+        self.I = Iq[:,1]
+        self.Ierr = Iq[:,2]
+        self.q.clip(1e-10)
+        self.I[np.abs(self.I)<1e-10] = 1e-10
+        self.Ierr.clip(1e-10)
+        self.q_data = np.copy(self.q)
+        self.I_data = np.copy(self.I)
+        self.Ierr_data = np.copy(self.Ierr)
+        if qc is None:
+            #self.qc = self.q
+            self.create_lowq()
+        else:
+            self.qc = qc
+        if extrapolate:
+            self.extrapolate()
+        self.D = D
+        self.qmin = np.min(self.q)
+        self.qmax = np.max(self.q)
+        self.nq = len(self.q)
+        self.qi = np.arange(self.nq)
+        if r is not None:
+            self.r = r
+            self.nr = len(self.r)
+        elif nr is not None:
+            self.nr = nr
+            self.r = np.linspace(0,self.D,self.nr)
+        else:
+            self.nr = self.nq
+            self.r = np.linspace(0,self.D,self.nr)
+        self.alpha = alpha
+        self.ne = ne
+        self.update()
+
+    def update(self):
+        #self.r = np.linspace(0,self.D,self.nr)
+        self.ri = np.arange(self.nr)
+        self.n = self.shannon_channels(self.qmax,self.D) + self.ne
+        self.Ni = np.arange(self.n)
+        self.N = self.Ni + 1
+        self.Mi = np.copy(self.Ni)
+        self.M = np.copy(self.N)
+        self.qn = np.pi/self.D * self.N
+        self.In = np.zeros((self.nq))
+        self.Inerr = np.zeros((self.nq))
+        self.B_data = self.Bt(q=self.q_data)
+        self.B = self.Bt()
+        #Bc is for the calculated q values in
+        #cases where qc is not equal to q.
+        self.Bc = self.Bt(q=self.qc)
+        self.S = self.St()
+        self.Y = self.Yt()
+        self.C = self.Ct2()
+        self.Cinv = np.linalg.inv(self.C)
+        self.In = np.linalg.solve(self.C,self.Y)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            self.Inerr = np.diagonal(self.Cinv)**(0.5)
+        self.Ic = self.Ish2Iq()
+        self.Icerr = self.Icerrt()
+        self.P = self.Ish2P()
+        self.Perr = self.Perrt()
+        self.I0 = self.Ish2I0()
+        self.I0err = self.I0errf()
+        self.F = self.Ft()
+        self.rg = self.Ish2rg()
+        self.E = self.Et()
+        self.rgerr = self.rgerrf()
+        self.avgr = self.Ish2avgr()
+        self.avgrerr = self.avgrerrf()
+        self.Q = self.Ish2Q()
+        self.Qerr = self.Qerrf()
+        self.Vp = self.Ish2Vp()
+        self.Vperr = self.Vperrf()
+        self.mwVp = self.Ish2mwVp()
+        self.mwVperr = self.mwVperrf()
+        self.Vc = self.Ish2Vc()
+        self.Vcerr = self.Vcerrf()
+        self.Qr = self.Ish2Qr()
+        self.mwVc = self.Ish2mwVc()
+        self.mwVcerr = self.mwVcerrf()
+        self.lc = self.Ish2lc()
+        self.lcerr = self.lcerrf()
+        self.chi2 = self.calc_chi2()
+
+    def create_lowq(self):
+        """Create a calculated q range for Sasrec for low q out to q=0.
+        Just the q values, not any extrapolation of intensities."""
+        dq = (self.q.max()-self.q.min())/(self.q.size-1)
+        nq = int(self.q.min()/dq)
+        self.qc = np.concatenate(([0.0],np.arange(nq)*dq+(self.q.min()-nq*dq),self.q))
+
+    def extrapolate(self):
+        """Extrapolate to high q values"""
+        #create a range of 1001 data points from 1*qmax to 3*qmax
+        qe = np.linspace(1.0*self.q[-1],3.0*self.q[-1],1001)
+        qe = qe[qe>self.q[-1]]
+        qce = np.linspace(1.0*self.qc[-1],3.0*self.q[-1],1001)
+        qce = qce[qce>self.qc[-1]]
+        #extrapolated intensities can be anything, since they will
+        #have infinite errors and thus no impact on the calculation
+        #of the fit, so just make them a constant
+        Ie = np.ones_like(qe)
+        #set infinite error bars so that the actual intensities don't matter
+        Ierre = Ie*np.inf
+        self.q = np.hstack((self.q, qe))
+        self.I = np.hstack((self.I, Ie))
+        self.Ierr = np.hstack((self.Ierr, Ierre))
+        self.qc = np.hstack((self.qc, qce))
+
+    def optimize_alpha(self):
+        """Scan alpha values to find optimal alpha"""
+        ideal_chi2 = self.calc_chi2()
+        al = []
+        chi2 = []
+        #here, alphas are actually the exponents, since the range can
+        #vary from 10^-20 upwards of 10^20. This should cover nearly all likely values
+        alphas = np.arange(-20,20.)
+        i = 0
+        nalphas = len(alphas)
+        for alpha in alphas:
+            i += 1
+            sys.stdout.write("\rScanning alphas... {:.0%} complete".format(i*1./nalphas))
+            sys.stdout.flush()
+            try:
+                self.alpha = 10.**alpha
+                self.update()
+            except:
+                continue
+            chi2value = self.calc_chi2()
+            al.append(alpha)
+            chi2.append(chi2value)
+        al = np.array(al)
+        chi2 = np.array(chi2)
+        print()
+        #find optimal alpha value based on where chi2 begins to rise, to 10% above the ideal chi2
+        #interpolate between tested alphas to find more precise value
+        #x = np.linspace(alphas[0],alphas[-1],1000)
+        x = np.linspace(al[0],al[-1],1000)
+        y = np.interp(x, al, chi2)
+        chif = 1.1
+        #take the maximum alpha value (x) where the chi2 just starts to rise above ideal
+        try:
+            ali = np.argmax(x[y<=chif*ideal_chi2])
+        except:
+            #if it fails, it may mean that the lowest alpha value of 10^-20 is still too large, so just take that.
+            ali = 0
+        #set the optimal alpha to be 10^alpha, since we were actually using exponents
+        #also interpolate between the two neighboring alpha values, to get closer to the chif*ideal_chi2
+        opt_alpha_exponent = np.interp(chif*ideal_chi2,[y[ali],y[ali-1]],[x[ali],x[ali-1]])
+        #print(opt_alpha_exponent)
+        opt_alpha = 10.0**(opt_alpha_exponent)
+        self.alpha = np.copy(opt_alpha)
+        self.update()
+        return self.alpha
+
+    def calc_chi2(self):
+        Ish = self.In
+        Bn = self.B_data
+        #calculate Ic at experimental q vales for chi2 calculation
+        Ic_qe = 2*np.einsum('n,nq->q',Ish,Bn)
+        chi2 = (1./(self.nq-self.n-1.))*np.sum(1/(self.Ierr_data**2)*(self.I_data-Ic_qe)**2)
+        self.chi2 = chi2
+        return chi2
+
+    def estimate_Vp_etal(self):
+        """Estimate Porod volume using modified method based on oversmoothing.
+
+        Oversmooth the P(r) curve with a high alpha. This helps to remove shape
+        scattering that distorts Porod assumptions. """
+        #how much to oversmooth by, i.e. multiply alpha times this factor
+        oversmoothing = 1.0e1
+        #use a different qmax to limit effects of shape scattering.
+        #use 8/Rg as the new qmax, but be sure to keep these effects
+        #separate from the rest of sasrec, as it is only used for estimating
+        #porod volume.
+        qmax = 8./self.rg
+        if np.isnan(qmax):
+            qmax = 8./(self.D/3.5)
+        Iq = np.vstack((self.q,self.I,self.Ierr)).T
+        sasrec4vp = Sasrec(Iq[self.q<qmax], self.D, alpha=self.alpha*oversmoothing, extrapolate=self.extrapolate)
+        self.Q = sasrec4vp.Q
+        self.Qerr = sasrec4vp.Qerr
+        self.Vp = sasrec4vp.Vp
+        self.Vperr = sasrec4vp.Vperr
+        self.mwVp = sasrec4vp.mwVp
+        self.mwVperr = sasrec4vp.mwVperr
+        self.Vc = sasrec4vp.Vc
+        self.Vcerr = sasrec4vp.Vcerr
+        self.Qr = sasrec4vp.Qr
+        self.mwVc = sasrec4vp.mwVc
+        self.mwVcerr = sasrec4vp.mwVcerr
+        self.lc = sasrec4vp.lc
+        self.lcerr = sasrec4vp.lcerr
+
+    def shannon_channels(self, D, qmax=0.5, qmin=0.0):
+        """Return the number of Shannon channels given a q range and maximum particle dimension"""
+        width = np.pi / D
+        num_channels = int((qmax-qmin) / width)
+        return num_channels
+
+    def Bt(self,q=None):
+        N = self.N[:, None]
+        if q is None:
+            q = self.q
+        else:
+            q = q
+        D = self.D
+        #catch cases where qD==nPi, not often, but possible
+        x = (N*np.pi)**2-(q*D)**2
+        y =  np.where(x==0,(N*np.pi)**2,x)
+        #B = (N*np.pi)**2/((N*np.pi)**2-(q*D)**2) * np.sinc(q*D/np.pi) * (-1)**(N+1)
+        B = (N*np.pi)**2/y * np.sinc(q*D/np.pi) * (-1)**(N+1)
+        return B
+
+    def St(self):
+        N = self.N[:,None]
+        r = self.r
+        D = self.D
+        S = r/(2*D**2) * N * np.sin(N*np.pi*r/D)
+        return S
+
+    def Yt(self):
+        """Return the values of Y, an m-length vector."""
+        I = self.I
+        Ierr = self.Ierr
+        Bm = self.B
+        Y = np.einsum('q, nq->n', I/Ierr**2, Bm)
+        return Y
+
+    def Ct(self):
+        """Return the values of C, a m x n variance-covariance matrix"""
+        Ierr = self.Ierr
+        Bm = self.B
+        Bn = self.B
+        C = 2*np.einsum('ij,kj->ik', Bm/Ierr**2, Bn)
+        return C
+
+    def Gmn(self):
+        """Return the mxn matrix of coefficients for the integral of (2nd deriv of P(r))**2 used for smoothing"""
+        M = self.M
+        N = self.N
+        D = self.D
+        gmn = np.zeros((self.n,self.n))
+        mm, nn = np.meshgrid(M,N,indexing='ij')
+        #two cases, one where m!=n, one where m==n. Do both separately.
+        idx = np.where(mm!=nn)
+        gmn[idx] = np.pi**2/(2*D**5) * (mm[idx]*nn[idx])**2 * (mm[idx]**4+nn[idx]**4)/(mm[idx]**2-nn[idx]**2)**2 * (-1)**(mm[idx]+nn[idx])
+        idx = np.where(mm==nn)
+        gmn[idx] = nn[idx]**4*np.pi**2/(48*D**5) * (2*nn[idx]**2*np.pi**2 + 33)
+        return gmn
+
+    def Ct2(self):
+        """Return the values of C, a m x n variance-covariance matrix while smoothing P(r)"""
+        n = self.n
+        Ierr = self.Ierr
+        Bm = self.B
+        Bn = self.B
+        alpha = self.alpha
+        gmn = self.Gmn()
+        return alpha * gmn + 2*np.einsum('ij,kj->ik', Bm/Ierr**2, Bn)
+
+    def Ish2Iq(self):
+        """Calculate I(q) from intensities at Shannon points."""
+        Ish = self.In
+        Bn = self.Bc
+        I = 2*np.einsum('n,nq->q',Ish,Bn)
+        return I
+
+    def Ish2P(self):
+        """Calculate P(r) from intensities at Shannon points."""
+        Ish = self.In
+        Sn = self.S
+        P = np.einsum('n,nr->r',Ish,Sn)
+        return P
+
+    def Icerrt(self):
+        """Return the standard errors on I_c(q)."""
+        Bn = self.Bc
+        Bm = self.Bc
+        err2 = 2 * np.einsum('nq,mq,nm->q', Bn, Bm, self.Cinv)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            err = err2**(.5)
+        return err
+
+    def Perrt(self):
+        """Return the standard errors on P(r)."""
+        Sn = self.S
+        Sm = self.S
+        err2 = np.einsum('nr,mr,nm->r', Sn, Sm, self.Cinv)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            err = err2**(.5)
+        return err
+
+    def Ish2I0(self):
+        """Calculate I0 from Shannon intensities"""
+        N = self.N
+        Ish = self.In
+        I0 = 2 * np.sum(Ish*(-1)**(N+1))
+        return I0
+
+    def I0errf(self):
+        """Calculate error on I0 from Shannon intensities from inverse C variance-covariance matrix"""
+        N = self.N
+        M = self.M
+        Cinv = self.Cinv
+        s2 = 2*np.einsum('n,m,nm->',(-1)**(N),(-1)**M,Cinv)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            s = s2**(0.5)
+        return s
+
+    def Ft(self):
+        """Calculate Fn function, for use in Rg calculation"""
+        N = self.N
+        F = (1-6/(N*np.pi)**2)*(-1)**(N+1)
+        return F
+
+    def Ish2rg(self):
+        """Calculate Rg from Shannon intensities"""
+        N = self.N
+        Ish = self.In
+        D = self.D
+        I0 = self.I0
+        F = self.F
+        summation = np.sum(Ish*F)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            rg2 = D**2/I0 * summation
+            rg = np.sqrt(rg2)
+        return rg
+
+    def rgerrfold(self):
+        """Calculate error on Rg from Shannon intensities from inverse C variance-covariance matrix"""
+        Ish = self.In
+        D = self.D
+        Cinv = self.Cinv
+        rg = self.rg
+        I0 = self.I0
+        Fn = self.F
+        Fm = self.F
+        s2 = np.einsum('n,m,nm->',Fn,Fm,Cinv)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            s = D**2/(I0*rg)*s2**(0.5)
+        return s
+
+    def rgerrf(self):
+        """Calculate error on Rg from Shannon intensities from inverse C variance-covariance matrix"""
+        Ish = self.In
+        D = self.D
+        Cinv = self.Cinv
+        rg = self.rg
+        I0 = self.I0
+        Fn = self.F
+        Fm = self.F
+        s2 = np.einsum('n,m,nm->',Fn,Fm,Cinv)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            rgerr = D**2/(I0*rg)*s2**(0.5)
+        return rgerr
+
+    def Et(self):
+        """Calculate En function, for use in ravg calculation"""
+        N = self.N
+        E = ((-1)**N-1)/(N*np.pi)**2 - (-1)**N/2.
+        return E
+
+    def Ish2avgr(self):
+        """Calculate average vector length r from Shannon intensities"""
+        Ish = self.In
+        I0 = self.I0
+        D = self.D
+        E = self.E
+        avgr = 4*D/I0 * np.sum(Ish * E)
+        return avgr
+
+    def avgrerrf(self):
+        """Calculate error on Rg from Shannon intensities from inverse C variance-covariance matrix"""
+        D = self.D
+        Cinv = self.Cinv
+        I0 = self.I0
+        En = self.E
+        Em = self.E
+        s2 = np.einsum('n,m,nm->',En,Em,Cinv)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            avgrerr = 4*D/I0 * s2**(0.5)
+        return avgrerr
+
+    def Ish2Q(self):
+        """Calculate Porod Invariant Q from Shannon intensities"""
+        D = self.D
+        N = self.N
+        Ish = self.In
+        Q = (np.pi/D)**3 * np.sum(Ish*N**2)
+        return Q
+
+    def Qerrf(self):
+        """Calculate error on Q from Shannon intensities from inverse C variance-covariance matrix"""
+        D = self.D
+        Cinv = self.Cinv
+        N = self.N
+        M = self.M
+        s2 = np.einsum('n,m,nm->', N**2, M**2,Cinv)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            s = (np.pi/D)**3 * s2**(0.5)
+        return s
+
+    def gamma0(self):
+        """Calculate gamma at r=0. gamma is P(r)/4*pi*r^2"""
+        Ish = self.In
+        D = self.D
+        Q = self.Q
+        return 1/(8*np.pi**3) * Q
+
+    def Ish2Vp(self):
+        """Calculate Porod Volume from Shannon intensities"""
+        Q = self.Q
+        I0 = self.I0
+        Vp = 2*np.pi**2 * I0/Q
+        return Vp
+
+    def Vperrf(self):
+        """Calculate error on Vp from Shannon intensities from inverse C variance-covariance matrix"""
+        I0 = self.I0
+        Q = self.Q
+        I0s = self.I0err
+        Qs = self.Qerr
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            Vperr2 = (2*np.pi/Q)**2*(I0s)**2 + (2*np.pi*I0/Q**2)**2*Qs**2
+            Vperr = Vperr2**(0.5)
+        return Vperr
+
+    def Ish2mwVp(self):
+        """Calculate molecular weight via Porod Volume from Shannon intensities"""
+        Vp = self.Vp
+        mw = Vp/1.66
+        return mw
+
+    def mwVperrf(self):
+        """Calculate error on mwVp from Shannon intensities from inverse C variance-covariance matrix"""
+        Vps = self.Vperr
+        return Vps/1.66
+
+    def Ish2Vc(self):
+        """Calculate Volume of Correlation from Shannon intensities"""
+        Ish = self.In
+        N = self.N
+        I0 = self.I0
+        D = self.D
+        area_qIq = 2*np.pi/D**2 * np.sum(N * Ish * special.sici(N*np.pi)[0])
+        Vc = I0/area_qIq
+        return Vc
+
+    def Vcerrf(self):
+        """Calculate error on Vc from Shannon intensities from inverse C variance-covariance matrix"""
+        I0 = self.I0
+        Vc = self.Vc
+        N = self.N
+        M = self.M
+        D = self.D
+        Cinv = self.Cinv
+        Sin = special.sici(N*np.pi)[0]
+        Sim = special.sici(M*np.pi)[0]
+        s2 = np.einsum('n,m,nm->', N*Sin, M*Sim,Cinv)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            Vcerr = (2*np.pi*Vc**2/(D**2*I0)) * s2**(0.5)
+        return Vcerr
+
+    def Ish2Qr(self):
+        """Calculate Rambo Invariant Qr (Vc^2/Rg) from Shannon intensities"""
+        Vc = self.Vc
+        Rg = self.rg
+        Qr = Vc**2/Rg
+        return Qr
+
+    def Ish2mwVc(self,RNA=False):
+        """Calculate molecular weight via the Volume of Correlation from Shannon intensities"""
+        Qr = self.Qr
+        if RNA:
+            mw = (Qr/0.00934)**(0.808)
+        else:
+            mw = (Qr/0.1231)**(1.00)
+        return mw
+
+    def mwVcerrf(self):
+        Vc = self.Vc
+        Rg = self.rg
+        Vcs = self.Vcerr
+        Rgs = self.rgerr
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            mwVcs = Vc/(0.1231*Rg) * (4*Vcs**2 + (Vc/Rg*Rgs)**2)**(0.5)
+        return mwVcs
+
+    def Ish2lc(self):
+        """Calculate length of correlation from Shannon intensities"""
+        Vp = self.Vp
+        Vc = self.Vc
+        lc = Vp/(2*np.pi*Vc)
+        return lc
+
+    def lcerrf(self):
+        """Calculate error on lc from Shannon intensities from inverse C variance-covariance matrix"""
+        Vp = self.Vp
+        Vc = self.Vc
+        Vps = self.Vperr
+        Vcs = self.Vcerr
+        s2 = Vps**2 + (Vp/Vc)**2*Vcs**2
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=RuntimeWarning)
+            lcerr = 1/(2*np.pi*Vc) * s2**(0.5)
+        return lcerr
+
+def doDIFT(Iq, D, filename, npts=None, first=None, last=None, rmin=None, qc=None, r=None, nr=None, alpha=0.0, ne=2, extrapolate=True,
+    queue=None, abort_check=threading.Event(), single_proc=False, nprocs=0):
+
+    sasrec = Sasrec(Iq, D, qc=Iq[:,0], alpha=alpha, extrapolate=extrapolate)
+    pr = sasrec.P
+    r = sasrec.r
+    perr = sasrec.Perr
+    i = sasrec.I[(sasrec.q>=Iq[:,0].min())&(sasrec.qc<=Iq[:,0].max())]
+    q = sasrec.q[(sasrec.q>=Iq[:,0].min())&(sasrec.qc<=Iq[:,0].max())]
+    err = sasrec.Ierr[(sasrec.q>=Iq[:,0].min())&(sasrec.qc<=Iq[:,0].max())]
+    fit = sasrec.Ic[(sasrec.qc>=Iq[:,0].min())&(sasrec.qc<=Iq[:,0].max())]
+    fit_extrap = sasrec.Ic #[(sasrec.qc>=Iq[:,0].min())&(sasrec.qc<=Iq[:,0].max())]
+    q_extrap = sasrec.qc #[(sasrec.qc>=Iq[:,0].min())&(sasrec.qc<=Iq[:,0].max())]
+    results = {
+        'dmax'          : sasrec.D,         # Dmax
+        'rg'            : sasrec.rg,           # Real space Rg
+        'rger'          : sasrec.rgerr,        # Real space rg error
+        'i0'            : sasrec.I0,           # Real space I0
+        'i0er'          : sasrec.I0err,        # Real space I0 error
+        'chisq'         : sasrec.chi2,            # Actual chi squared value
+        'alpha'         : sasrec.alpha,        # log(Alpha) used for the IFT
+        'qmin'          : q[0],         # Minimum q
+        'qmax'          : q[-1],        # Maximum q
+        'algorithm'     : 'DIFT',       # Lets us know what algorithm was used to find the IFT
+        'filename'      : os.path.splitext(filename)[0]+'.ift'
+        }
+    iftm = SASM.IFTM(pr, r, perr, i, q, err, fit, results, fit_extrap, q_extrap)
+
+    return iftm
 
 ######################
 # RAW specific stuff

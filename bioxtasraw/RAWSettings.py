@@ -211,11 +211,13 @@ class RawGuiSettings(object):
                 'AveragedFilePath'     : [None,  get_id(), 'text'],
                 'SubtractedFilePath'   : [None,  get_id(), 'text'],
                 'BiftFilePath'         : [None,  get_id(), 'text'],
+                'DiftFilePath'         : [None,  get_id(), 'text'],
                 'GnomFilePath'         : [None,  get_id(), 'text'],
                 'AutoSaveOnImageFiles' : [False, get_id(), 'bool'],
                 'AutoSaveOnAvgFiles'   : [False, get_id(), 'bool'],
                 'AutoSaveOnSub'        : [False, get_id(), 'bool'],
                 'AutoSaveOnBift'       : [False, get_id(), 'bool'],
+                'AutoSaveOnDift'       : [False, get_id(), 'bool'],
                 'AutoSaveOnGnom'       : [False, get_id(), 'bool'],
 
                 #IMAGE FORMATS
@@ -459,6 +461,10 @@ class RawGuiSettings(object):
                 'denssNCSType'          : ['Cyclical', get_id(), 'choice'],
                 'denssRefine'           : [True, get_id(), 'bool'],
                 'denssGPU'              : [False, get_id(), 'bool'],
+
+                #DIFT settings
+                'diftInitialAlpha'      : [0.0, get_id(), 'float'],
+                'diftExtrapolate'       : [True, get_id(), 'bool'],
 
                 #File definitions
                 'fileDefinitions'       : [file_defs, get_id(), 'dict'],
@@ -781,7 +787,7 @@ def postProcess(raw_settings, default_settings, loaded_param):
         raw_settings.set('IntegrationMethod', default_settings['IntegrationMethod'][0])
 
     dir_check_list = [('AutoSaveOnImageFiles', 'ProcessedFilePath'), ('AutoSaveOnAvgFiles', 'AveragedFilePath'),
-                    ('AutoSaveOnSub', 'SubtractedFilePath'), ('AutoSaveOnBift', 'BiftFilePath'),
+                    ('AutoSaveOnSub', 'SubtractedFilePath'), ('AutoSaveOnBift', 'BiftFilePath'), ('AutoSaveOnDift', 'DiftFilePath'),
                     ('AutoSaveOnGnom', 'GnomFilePath'), ('OnlineModeOnStartup', 'OnlineStartupDir'),
                     ]
 
@@ -796,6 +802,7 @@ def postProcess(raw_settings, default_settings, loaded_param):
                     'AutoSaveOnAvgFiles'    : '- AutoSave averaged files',
                     'AutoSaveOnSub'         : '- AutoSave subtracted files',
                     'AutoSaveOnBift'        : '- AutoSave BIFT files',
+                    'AutoSaveOnDift'        : '- AutoSave DIFT files',
                     'AutoSaveOnGnom'        : '- AutoSave GNOM files',
                     'OnlineModeOnStartup'   : '- Start online mode when RAW starts',
                     'NormFlatfieldEnabled'  : '- Apply a flatfield correction',
