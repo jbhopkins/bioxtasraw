@@ -755,7 +755,7 @@ def save_settings(settings, fname, datadir='.'):
     return success
 
 def save_report(fname, datadir='.', profiles=[], ifts=[], series=[],
-    dammif_data=[], denss_data=[]):
+    dammif_data=[]):
     """
     Saves a .pdf report/summary of the input data.
 
@@ -775,16 +775,13 @@ def save_report(fname, datadir='.', profiles=[], ifts=[], series=[],
     dammif_data: list
         A list of paths to the summary files of dammif runs from RAW (.csv files)
         to add to the report.
-    denss_data: list
-        A list of paths to the summary files of denss runs from RAW (.csv files)
-        to add to the report.
     """
     datadir = os.path.abspath(os.path.expanduser(datadir))
 
     fname = os.path.splitext(fname)[0] + '.pdf'
 
     RAWReport.make_report_from_raw(fname, datadir, profiles, ifts, series,
-        __default_settings, dammif_data, denss_data)
+        __default_settings, dammif_data)
 
 def average(profiles, forced=False, copy_metadata=True):
     """
@@ -2522,6 +2519,214 @@ def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
 
     return (ift, dmax, rg, i0, dmax_err, rg_err, i0_err, chi_sq, log_alpha,
         log_alpha_err, evidence, evidence_err)
+
+def denss_ift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
+    alpha_max=1e10, alpha_pts=16, dmax_min=10, dmax_max=400, dmax_pts=10,
+    mc_runs=300, use_guinier_start=True, single_proc=True, nprocs=None,
+    settings=None):
+    """
+    Calculates the Bayesian indirect Fourier transform (BIFT) of a scattering
+    profile to generate a P(r) function and determine the maximum dimension
+    Dmax. Returns None and -1 values if BIFT fails.
+
+    Parameters
+    ----------
+    profile: :class:`bioxtasraw.SASM.SASM`
+        The profile to calculate the BIFT for.
+    idx_min: int, optional
+        The index of the q vector that corresponds to the minimum q point
+        to be used in the IFT. Default is to use the first point of the q
+        vector, unless use_guinier_start is set.
+    idx_max: int, optional
+        The index of the q vector that corresponds to the maximum q point
+        to be used in the IFT. Default is to use the last point of the
+        q vector.
+    pr_pts: int, optional
+        The number of points in the calculated P(r) function. This should
+        be less than the number of points in the scattering profile.
+        If settings are provided, this is overridden by the value in the
+        settings.
+    alpha_min: float, optional
+        The minimum value of alpha for the parameter search step. If settings
+        are provided, this is overridden by the value in the settings. The
+        value of alpha can go beyond this bound in the optimization step,
+        so this is not a hard limit on alpha.
+    alpha_max: float, optional
+        The maximum value of alpha for the parameter search step. If settings
+        are provided, this is overridden by the value in the settings. The
+        value of alpha can go beyond this bound in the optimization step,
+        so this is not a hard limit on alpha.
+    alpha_pts: int, optional
+        The number of points in the alpha search space, which will be
+        logarithmically spaced between alpha_min and alpha_max. If settings
+        are provided, this is overridden by the value in the settings.
+    dmax_min: float, optional
+        The minimum value of Dmax for the parameter search step. If settings
+        are provided, this is overridden by the value in the settings. The
+        value of Dmax can go beyond this bound in the optimization step,
+        so this is not a hard limit on Dmax.
+    dmax_max: float, optional
+        The maximum value of Dmax for the parameter search step. If settings
+        are provided, this is overridden by the value in the settings. The
+        value of Dmax can go beyond this bound in the optimization step,
+        so this is not a hard limit on Dmax.
+    dmax_pts: int, optional
+        The number of points in the Dmax search space, which will be linearly
+        spaced between dmax_min and dmax_max. If settings are provided, this
+        is overridden by the value in the settings.
+    mc_runs: int, optional
+        The number of monte carlo runs used to generate the uncertainty
+        estimates for the P(r) function.
+    use_guiner_start: bool, optional
+        If set to True, and no idx_min idx_min is provided, if a Guinier fit has
+        been done for the input profile, the start point of the Guinier fit is
+        used as the start point for the IFT.
+    single_proc: bool, optional
+        Whether to use one or multiple processors. Defaults to True. In limited
+        testing the single processor version has been found to be 2-3x faster
+        than the multiprocessor version, but actual results may depend on
+        the computer and the number of gird search points.
+    nprocs: int, optional
+        If specified, and single_proc is False, determines the number of processors
+        to use for BIFT. Otherwise defaults to number of processors in the computer
+        -1 (minimum 1).
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, the
+        pr_Pts, alpha_min, alpha_max, alpha_pts, dmax_min, dmax_max, dmax_pts,
+        and mc_runs parameters will be overridden with the values in the
+        settings. Default is None.
+
+    Returns
+    -------
+    ift: :class:`bioxtasraw.SASM.IFTM`
+        The IFT calculated by BIFT from the input profile.
+    dmax: float
+        The maximum dimension of the P(r) function found by BIFT.
+    rg: float
+        The real space radius of gyration (Rg) from the P(r) function.
+    i0: float
+        The real space scattering at zero angle (I(0)) from the P(r) function.
+    dmax_err: float
+        The uncertainty in the maximum dimension of the P(r) function found
+        by BIFT.
+    rg_err: float
+        The uncertainty in the real space radius of gyration (Rg) from the P(r)
+        function.
+    i0_err: float
+        The uncertainty in the real space scattering at zero angle (I(0)) from
+        the P(r) function.
+    chi_sq: float
+        The chi squared value of the fit of the scattering profile calculated
+        from the P(r) function to the input scattering profile.
+    log_alpha: float
+        Log base 10 of the alpha value for the IFT.
+    log_alpha_err: float
+        Log base 10 of the uncertainty in the alpha value for the IFT.
+    evidence: float
+        The Bayesian evidence of the IFT.
+    evidence_err: float
+        The uncertainty in the Bayesian evidence of the IFT.
+    """
+
+    if settings is not None:
+        pr_pts = settings.get('PrPoints')
+        alpha_min = settings.get('minAlpha')
+        alpha_max = settings.get('maxAlpha')
+        alpha_pts = settings.get('AlphaPoints')
+        dmax_min = settings.get('maxDmax')
+        dmax_max = settings.get('minDmax')
+        dmax_pts = settings.get('DmaxPoints')
+        mc_runs = settings.get('mcRuns')
+
+    q = profile.getQ()
+    i = profile.getI()
+    err = profile.getErr()
+    filename = profile.getParameter('filename')
+
+    if idx_min is None and use_guinier_start:
+        analysis_dict = profile.getParameter('analysis')
+        if 'guinier' in analysis_dict:
+            guinier_dict = analysis_dict['guinier']
+            idx_min = max(0, int(guinier_dict['nStart']) - profile.getQrange()[0])
+        else:
+            idx_min = 0
+
+    elif idx_min is None:
+        idx_min = 0
+
+    if idx_max is not None:
+        q = q[idx_min:idx_max+1]
+        i = i[idx_min:idx_max+1]
+        err = err[idx_min:idx_max+1]
+    else:
+        q = q[idx_min:]
+        i = i[idx_min:]
+        err = err[idx_min:]
+
+    if nprocs is None:
+        nprocs = 0
+
+    bift_settings = {
+        'npts'      : pr_pts,
+        'alpha_max' : alpha_max,
+        'alpha_min' : alpha_min,
+        'alpha_n'   : alpha_pts,
+        'dmax_min'  : dmax_min,
+        'dmax_max'  : dmax_max,
+        'dmax_n'    : dmax_pts,
+        'mc_runs'   : mc_runs,
+        'single_proc' : single_proc,
+        'nprocs'    : nprocs,
+        }
+
+    Iq = np.vstack((q,i,err)).T
+
+    #guess the initial D and alpha values
+    dmax_guess = auto_dmax(profile)
+    sasrec = DENSS.Sasrec(Iq, D=dmax_guess, extrapolate=True)
+    alpha = sasrec.optimize_alpha()
+    #recalculate with the new D, alpha values with extrapolation to high q
+    sasrec.estimate_Vp_etal()
+
+    if sasrec is not None:
+
+        dmax = float(sasrec.D)
+        rg = float(sasrec.rg)
+        rg_err = float(sasrec.rgerr)
+        i0 = float(sasrec.I0)
+        i0_err = float(sasrec.I0err)
+        chi_sq = float(sasrec.chi2)
+        alpha = float(sasrec.alpha)
+        qmin = q[0]
+        qmax = q[-1]
+
+        results_dict = {}
+        results_dict['Dmax'] = str(dmax)
+        results_dict['Real_Space_Rg'] = str(rg)
+        results_dict['Real_Space_Rg_Err'] = str(rg_err)
+        results_dict['Real_Space_I0'] = str(i0)
+        results_dict['Real_Space_I0_Err'] = str(i0_err)
+        results_dict['ChiSquared'] = str(chi_sq)
+        results_dict['Alpha'] = str(alpha)
+        results_dict['qStart'] = str(qmin)
+        results_dict['qEnd'] = str(qmax)
+
+        analysis_dict = profile.getParameter('analysis')
+        analysis_dict['denss_ift'] = results_dict
+        profile.setParameter('analysis', analysis_dict)
+
+    else:
+        dmax = -1
+        rg = -1
+        rg_err = -1
+        i0 = -1
+        i0_err = -1
+        chi_sq = -1
+        alpha = -1
+        qmin = q[0]
+        qmax = q[-1]
+
+    return (sasrec, dmax, rg, i0, rg_err, i0_err, chi_sq, alpha)
 
 def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
     use_rg_from='guinier', use_guinier_start=True, cut_8rg=False,

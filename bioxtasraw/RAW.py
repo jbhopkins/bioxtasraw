@@ -208,6 +208,7 @@ class MainFrame(wx.Frame):
             'rungnom'               : self.NewControlId(),
             'rundammif'             : self.NewControlId(),
             'bift'                  : self.NewControlId(),
+            'dift'                  : self.NewControlId(),
             'runambimeter'          : self.NewControlId(),
             'runatsasalign'         : self.NewControlId(),
             'rundenssalign'         : self.NewControlId(),
@@ -232,6 +233,7 @@ class MainFrame(wx.Frame):
         self.mw_frames = []
         self.gnom_frames = []
         self.bift_frames = []
+        self.dift_frames = []
         self.dammif_frames = []
         self.ambimeter_frames = []
         self.atsasalign_frames = []
@@ -366,7 +368,6 @@ class MainFrame(wx.Frame):
 
 
         wx.CallAfter(self._showWelcomeDialog)
-
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -695,6 +696,12 @@ class MainFrame(wx.Frame):
             pass
 
         try:
+            for frame in self.dift_frames:
+                frame.updateColors()
+        except Exception:
+            pass
+
+        try:
             for frame in self.dammif_frames:
                 frame.updateColors()
         except Exception:
@@ -979,6 +986,39 @@ class MainFrame(wx.Frame):
             biftframe.Show(True)
 
             self.bift_frames.append(biftframe)
+
+    def showDIFTFrame(self, sasm, manip_item):
+        remove = []
+        proceed = True
+
+        for dift_frame in self.dift_frames:
+            if dift_frame:
+                if dift_frame.sasm == sasm:
+                    msg = ('There is already a DENSS IFT window open '
+                        'for this dataset. Do you want to open another?')
+                    answer = wx.MessageBox(msg, 'Open duplicate DENSS IFT window?',
+                        style=wx.YES_NO)
+
+                    if answer == wx.NO:
+                        proceed = False
+                        dift_frame.Raise()
+                        dift_frame.RequestUserAttention()
+
+                    break
+
+            else:
+                remove.append(dift_frame)
+
+        if remove:
+            for dift_frame in remove:
+                self.dift_frames.remove(dift_frame)
+
+        if proceed:
+            diftframe = RAWAnalysis.DIFTFrame(self, 'DIFT', sasm, manip_item)
+            diftframe.SetIcon(self.GetIcon())
+            diftframe.Show(True)
+
+            self.dift_frames.append(diftframe)
 
     def showMolWeightFrame(self, sasm, manip_item):
         remove = []
@@ -1408,7 +1448,7 @@ class MainFrame(wx.Frame):
 
             self.regals_frames.append(regals_frame)
 
-    def showComparisonFrame(self, sasm_list):
+    def showSimilarityFrame(self, sasm_list):
         if not sasm_list or len(sasm_list) == 1:
             msg = 'You must select at least 2 items to test similarity.'
             dlg = wx.MessageDialog(self, msg, "Select more items", style = wx.ICON_INFORMATION | wx.OK)
@@ -1422,9 +1462,9 @@ class MainFrame(wx.Frame):
         for sim_frame in self.sim_frames:
             if sim_frame:
                 if sim_frame.sasm_list == sasm_list:
-                    msg = ('There is already a comparison window open for this dataset.'
+                    msg = ('There is already a similarity window open for this dataset.'
                         'Do you want to open another?')
-                    answer = wx.MessageBox(msg, 'Open duplicate comparison window?',
+                    answer = wx.MessageBox(msg, 'Open duplicate similarity window?',
                         style=wx.YES_NO)
 
                     if answer == wx.NO:
@@ -1443,11 +1483,11 @@ class MainFrame(wx.Frame):
 
         if proceed:
 
-            ComparisonFrame = RAWAnalysis.ComparisonFrame(self, 'Compare Profiles', sasm_list)
-            ComparisonFrame.SetIcon(self.GetIcon())
-            ComparisonFrame.Show(True)
+            similarityframe = RAWAnalysis.SimilarityFrame(self, 'Similarity Testing', sasm_list)
+            similarityframe.SetIcon(self.GetIcon())
+            similarityframe.Show(True)
 
-            self.sim_frames.append(ComparisonFrame)
+            self.sim_frames.append(similarityframe)
 
     def showNormKratkyFrame(self, sasm_list):
         if not sasm_list or sasm_list is None:
@@ -1855,7 +1895,7 @@ class MainFrame(wx.Frame):
                 ('&SVD', self.MenuIDs['runsvd'], self._onToolsMenu, 'normal'),
                 ('&EFA', self.MenuIDs['runefa'], self._onToolsMenu, 'normal'),
                 ('&REGALS', self.MenuIDs['runregals'], self._onToolsMenu, 'normal'),
-                ('&Compare Profiles', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
+                ('&Similarity Test', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
                 ('&Dimensionless Kratky Plots', self.MenuIDs['normalizedKratky'], self._onToolsMenu, 'normal'),
                 (None, None, None, 'separator'),
                 ('&Centering/Calibration', self.MenuIDs['centering'], self._onToolsMenu, 'normal'),
@@ -2462,7 +2502,7 @@ class MainFrame(wx.Frame):
 
                         selected_sasms.append(SASM.SASM(intensity, secm.frame_list, np.sqrt(intensity), secm.getAllParameters()))
 
-            self.showComparisonFrame(selected_sasms)
+            self.showSimilarityFrame(selected_sasms)
 
         elif id == self.MenuIDs['normalizedKratky']:
             manippage = wx.FindWindowByName('ManipulationPanel')
@@ -3612,34 +3652,10 @@ class MainWorkerThread(threading.Thread):
                         self._commands[command](data)
                     except Exception:
                         wx.CallAfter(self.main_frame.closeBusyDialog)
-                        RAWGlobals.save_in_progress = False
-                        wx.CallAfter(self.main_frame.setStatus, '', 0)
-
-                        try:
-                            main_frame = wx.FindWindowByName('MainFrame')
-                            atsasPath = main_frame.raw_settings.get('ATSASDir')
-
-                            if atsasPath != '':
-                                atsas_version = SASCalc.getATSASVersion(atsasPath)
-                            else:
-                                atsas_version = ''
-
-                        except Exception:
-                            atsas_version = ''
-
                         err = traceback.format_exc()
-
-                        errTxt = err
-                        msg = ("An unexpected error has occurred, please report "
-                            "it to the developers.\n"
-                            "System: {}\n"
-                            "RAW version: {}\n".format(platform.platform(),
-                                RAWGlobals.version))
-
-                        if atsas_version != '':
-                            msg = msg + "ATSAS version: {}\n".format(atsas_version)
-
-                        msg = msg + "\nError:\n{}".format(errTxt)
+                        msg = ("An unexpected error has occurred, please report it to the "
+                            "developers."
+                            "\n\nError:\n%s" %(err))
 
                         wx.CallAfter(wx.lib.dialogs.scrolledMessageDialog,
                             None, msg, "Unexpected Error")
@@ -9063,8 +9079,9 @@ class ManipItemPanel(wx.Panel):
         else:
             if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'gnom')):
                 menu.Append(31, 'IFT (GNOM)')
+        menu.Append(44, 'IFT (DENSS)')
 
-        menu.Append(37, 'Compare Profiles')
+        menu.Append(37, 'Similarity Test')
         menu.Append(38, 'Dimensionless Kratky Plot')
         menu.AppendSubMenu(other_an_menu, 'Other Analysis')
 
@@ -9267,7 +9284,7 @@ class ManipItemPanel(wx.Panel):
             else:
                 selected_sasms = []
 
-            Mainframe.showComparisonFrame(selected_sasms)
+            Mainframe.showSimilarityFrame(selected_sasms)
 
         elif evt.GetId() == 38:
             #Normalized Kratky Plots
@@ -9321,6 +9338,12 @@ class ManipItemPanel(wx.Panel):
                 unit = dialog.GetStringSelection()
                 self.sasm.setParameter('unit', unit)
 
+        elif evt.GetId() == 44:
+            #Open the DENSS IFT window
+            selectedSASMList = self.manipulation_panel.getSelectedItems()
+
+            sasm = selectedSASMList[0].getSASM()
+            Mainframe.showDIFTFrame(sasm, selectedSASMList[0])
 
     def _saveAllAnalysisInfo(self):
         selected_items = self.manipulation_panel.getSelectedItems()
@@ -10682,7 +10705,7 @@ class IFTItemPanel(wx.Panel):
             else:
                 selected_sasms = []
 
-            self.main_frame.showComparisonFrame(selected_sasms)
+            self.main_frame.showSimilarityFrame(selected_sasms)
 
         elif evt.GetId() == 28:
             #DENSS
@@ -12088,7 +12111,7 @@ class SeriesItemPanel(wx.Panel):
             else:
                 selected_sasms = []
 
-            self.main_frame.showComparisonFrame(selected_sasms)
+            self.main_frame.showSimilarityFrame(selected_sasms)
 
         elif evt.GetId() == 10:
             #Series analysis
@@ -15820,31 +15843,10 @@ class MyApp(wx.App):
 
     def ExceptionHook(self, errType, value, trace):
         err = traceback.format_exception(errType, value, trace)
-
-        try:
-            top_window = self.GetTopWindow()
-            main_frame = top_window.FindWindowByName('MainFrame')
-            atsasPath = main_frame.raw_settings.get('ATSASDir')
-
-            if atsasPath != '':
-                atsas_version = SASCalc.getATSASVersion(atsasPath)
-            else:
-                atsas_version = ''
-
-        except Exception:
-            atsas_version = ''
-
-
         errTxt = "\n".join(err)
         msg = ("An unexpected error has occurred, please report it to the "
-            "developers.\n"
-            "System: {}\n"
-            "RAW version: {}\n".format(platform.platform(), RAWGlobals.version))
-
-        if atsas_version != '':
-            msg = msg + "ATSAS version: {}\n".format(atsas_version)
-
-        msg = msg + "\nError:\n{}".format(errTxt)
+                "developers. You may need to restart RAW to continue working."
+                "\n\nError:\n%s" %(errTxt))
 
         if self and self.IsMainLoopRunning():
             if not self.HandleError(value):
@@ -15852,10 +15854,6 @@ class MyApp(wx.App):
 
                 if top_window is not None:
                     parent = top_window.FindWindowByName("MainFrame")
-                    wx.CallAfter(parent.closeBusyDialog)
-
-                    RAWGlobals.save_in_progress = False
-                    wx.CallAfter(parent.setStatus, '', 0)
                 else:
                     parent = None
 
