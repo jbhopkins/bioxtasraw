@@ -4302,11 +4302,12 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
         scattering profiles of the models. Alternatively a list of names of
         experimental profiles on disk, including the full path to the profile.
     lm: int, optional
-        Number of spherical harmonics used in NCC mode. Default 5.
+        Number of spherical harmonics used. Default 20.
     ns: int, optional
-        Number of data points used in NCC mode. Default 51.
+        Number of data points in generated profile. Default 101. Note: ignored
+        if you are fitting a profile.
     smax: float, optional
-        Maximum scattering angle in 1/A used in NCC mode. Default 0.5.
+        Maximum scattering angle in 1/A. Default 0.5.
     dns: float, optional
         Solvent density. Default is 0.334 e/A^3, the electron density of pure
         water. Note that fit_solvent must be False to use the provided parameter.
@@ -4364,19 +4365,17 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
     Returns
     -------
     crysol_results
-        If no more than one model and no more than one profile are provided,
-        a list of the calculated profiles (`bioxtasraw.SASM.SASM`) is returned.
-        Otherwise, a dictionary is returned, where the keys of the dictionary
+        A dictionary is returned, where the keys of the dictionary
         are the names returned by CRYSOL (by default the model name or
         model_profile name) and the values are a list of the calculated profiles
-        for each model/profile combination. If only a model is provided, two
-        results are returned, the first is the calculated profile on an absolute
-        scale (.abs file from CRYSOL) and the second is the calculated profile
-        unscaled (.int file from CRYSOL). If a model and a profile are provided,
-        one result is returned, the fit of the model to the profile (.fit file
-        from CRYSOL). Note that in the SASM parameters dictionary there is a
-        'crysol' item with values for Rg, chi^2, hydration, and other calculated
-        parameters.
+        (`bioxtasraw.SASM.SASM`) for each model/profile combination. If only a
+        model is provided, two results are returned, the first is the
+        calculated profile on an absolute scale (.abs file from CRYSOL) and the
+        second is the calculated profile unscaled (.int file from CRYSOL). If a
+        model and a profile are provided, one result is returned, the fit of t
+        he model to the profile (.fit file from CRYSOL). Note that in the SASM
+        parameters dictionary there is a 'crysol' item with values for Rg,
+        chi^2, hydration, and other calculated parameters.
     """
 
     if settings is None:
@@ -4465,11 +4464,11 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
         if crysol_settings['energy'] == 'None':
             crysol_settings['energy'] = None
 
-        if crysol_settings['explicit_hydrogen'] == 'None':
-            crysol_settings['explicit_hydrogen'] = None
-
         if crysol_settings['implicit_hydrogen'] == 'None':
             crysol_settings['implicit_hydrogen'] = None
+
+        if crysol_settings['sub_element'] == 'None':
+            crysol_settings['sub_element'] = None
 
         if crysol_settings['model'] == 'None':
             crysol_settings['model'] = None
@@ -4506,7 +4505,6 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
     if not abort_event.is_set():
         crysol_results = {}
 
-        print(exp_fnames)
         if exp_fnames is not None:
             if prefix is not None:
                 data, fit = SASFileIO.loadFitFile(os.path.join(output_dir,
@@ -4536,7 +4534,6 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
                             prefix, '.fit')))
             else:
                 for exp_name in exp_fnames:
-
                     for fname in models:
                         name = '{}_{}'.format(os.path.split(os.path.splitext(fname)[0])[1],
                             os.path.split(os.path.splitext(exp_name)[0])[1])
@@ -4591,9 +4588,7 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
                 abs_prof.setParameter('crysol',
                     copy.deepcopy(fit.getParameter('counters')))
 
-                crysol_results[name] = [abs_prof, fit]
-
-                crysol_results[prefix] = [fit]
+                crysol_results[prefix] = [abs_prof, fit]
 
                 if not save_output:
                     for ext in crysol_output_exts:
@@ -4637,15 +4632,14 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
         crysol_results = {}
 
 
-    if len(models) == 1 and (profiles is None or
-        (profiles is not None and len(profiles) <= 1)):
-        crysol_results = list(crysol_results.values())[0]
+    # if len(models) == 1 and (profiles is None or
+    #     (profiles is not None and len(profiles) <= 1)):
+    #     crysol_results = list(crysol_results.values())[0]
 
     if profiles is not None:
         for prof in profiles:
             if isinstance(prof, SASM.SASM):
-                name = os.path.exists(os.path.join(output_dir,
-                    prof.getParameter('filename')))
+                name = os.path.join(output_dir, prof.getParameter('filename'))
                 if os.path.exists(name):
                     os.remove(name)
 

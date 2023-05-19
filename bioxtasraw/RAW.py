@@ -79,7 +79,7 @@ else:
     SplashScreen = wx.SplashScreen
     TaskBarIcon = wx.TaskBarIcon
     AboutDialogInfo = wx.AboutDialogInfo
-    Aboutbox = wx.AboutBox
+    AboutBox = wx.AboutBox
 
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
@@ -106,6 +106,7 @@ import bioxtasraw.SASUtils as SASUtils
 import bioxtasraw.SECM as SECM
 import bioxtasraw.RAWReport as RAWReport
 import bioxtasraw.BIFT as BIFT
+import bioxtasraw.RAWAPI as RAWAPI
 from bioxtasraw.RAWGlobals import mainworker_cmd_queue
 
 thread_wait_event = threading.Event()
@@ -210,6 +211,7 @@ class MainFrame(wx.Frame):
             'bift'                  : self.NewControlId(),
             'runambimeter'          : self.NewControlId(),
             'runatsasalign'         : self.NewControlId(),
+            'runcrysol'             : self.NewControlId(),
             'rundenssalign'         : self.NewControlId(),
             'runsvd'                : self.NewControlId(),
             'runefa'                : self.NewControlId(),
@@ -235,6 +237,7 @@ class MainFrame(wx.Frame):
         self.dammif_frames = []
         self.ambimeter_frames = []
         self.atsasalign_frames = []
+        self.crysol_frames = []
         self.svd_frames = []
         self.efa_frames = []
         self.regals_frames = []
@@ -707,6 +710,12 @@ class MainFrame(wx.Frame):
             pass
 
         # self.atsasalign_frames = []
+
+        try:
+            for frame in self.crysol_frames:
+                frame.updateColors()
+        except Exception:
+            pass
 
         try:
             for frame in self.svd_frames:
@@ -1259,6 +1268,63 @@ class MainFrame(wx.Frame):
             dial2.ShowModal()
             dial2.Destroy()
 
+    def showCRYSOLFrame(self, sasm_list):
+        atsasPath = self.raw_settings.get('ATSASDir')
+
+        if atsasPath != '':
+            program = 'crysol'
+
+            opsys = platform.system()
+            if opsys == 'Windows':
+                alignPath = os.path.join(atsasPath, '{}.exe'.format(program))
+            else:
+                alignPath = os.path.join(atsasPath, program)
+
+        if os.path.exists(alignPath):
+            remove = []
+            proceed = True
+
+            for crysol_frame in self.crysol_frames:
+                if crysol_frame:
+                    msg = ('There is already a {} window. Do you want to '
+                        'open another?'.format(program.upper()))
+                    answer = wx.MessageBox(msg,
+                        'Open duplicate {} window?'.format(program.upper()),
+                        style=wx.YES_NO)
+
+                    if answer == wx.NO:
+                        proceed = False
+                        crysol_frame.Raise()
+                        crysol_frame.RequestUserAttention()
+
+                    break
+
+                else:
+                    remove.append(crysol_frame)
+
+            if remove:
+                for crysol_frame in remove:
+                    self.crysol_frames.remove(crysol_frame)
+
+            if proceed:
+                crysol_frame = RAWAnalysis.TheoreticalFrame(self, 'CRYSOL',
+                    sasm_list)
+                crysol_frame.SetIcon(self.GetIcon())
+                crysol_frame.Show(True)
+
+                self.crysol_frames.append(crysol_frame)
+
+        else:
+            msg = ('The {} program in the ATSAS package could not be '
+                'found. Please make sure that ATSAS is installed, and that you '
+                'have defined the ATSAS directory in the RAW Advanced Options.'
+                ''.format(program.upper()))
+            dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS",
+                                    wx.OK | wx.ICON_INFORMATION)
+            dial2.ShowModal()
+            dial2.Destroy()
+
+
     def showDenssAlignFrame(self):
 
         remove = []
@@ -1797,7 +1863,9 @@ class MainFrame(wx.Frame):
                 ('GNOM', self.MenuIDs['rungnom'], self._onToolsMenu, 'normal'),
                 ('DAMMIF/N', self.MenuIDs['rundammif'], self._onToolsMenu, 'normal'),
                 ('AMBIMETER', self.MenuIDs['runambimeter'], self._onToolsMenu, 'normal'),
-                ('Align (SUPCOMB/CIFSUP)', self.MenuIDs['runatsasalign'], self._onToolsMenu, 'normal'),
+                ('Align (SUPCOMB/CIFSUP)', self.MenuIDs['runatsasalign'],
+                    self._onToolsMenu, 'normal'),
+                ('CRYSOL', self.MenuIDs['runcrysol'], self._onToolsMenu, 'normal')
                 ],
         }
 
@@ -2153,6 +2221,22 @@ class MainFrame(wx.Frame):
 
         elif id == self.MenuIDs['runatsasalign']:
             self.showATSASAlignFrame()
+
+        elif id == self.MenuIDs['runcrysol']:
+            manippage = wx.FindWindowByName('ManipulationPanel')
+
+            current_page = self.control_notebook.GetSelection()
+            page = self.control_notebook.GetPage(current_page)
+
+            selected_sasms = []
+
+            if page == manippage:
+                selected_items = manippage.getSelectedItems()
+
+                if selected_items:
+                    selected_sasms = [item.getSASM() for item in selected_items]
+
+            self.showCRYSOLFrame(selected_sasms)
 
         elif id == self.MenuIDs['rundenssalign']:
             self.showDenssAlignFrame()
@@ -2971,7 +3055,7 @@ class MainFrame(wx.Frame):
                         'http://www.gnu.org/licenses/'))
 
         # Show the wx.AboutBox
-        AboutBox(info)
+        about = AboutBox(info, self)
 
     def saveBackupData(self):
         file = os.path.join(RAWGlobals.RAWWorkDir,'backup.ini')
@@ -3037,8 +3121,9 @@ class MainFrame(wx.Frame):
                 else:
                     message = ''
 
-                dial2 = wx.MessageDialog(self, 'You have unsaved changes in your ' + message + 'data. Do you want to discard these changes?', 'Discard changes?',
-                                         wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+                dial2 = wx.MessageDialog(self, ('You have unsaved changes in your '
+                    + message + 'data. Do you want to discard these changes?'),
+                    'Discard changes?', wx.YES_NO|wx.NO_DEFAULT|wx.ICON_QUESTION)
                 exit_without_saving = dial2.ShowModal()
                 dial2.Destroy()
 
@@ -3064,17 +3149,32 @@ class MainFrame(wx.Frame):
                 return
 
             if exit_without_saving == wx.ID_YES and dammif_closed and denss_closed:
+                crysol_closed = True
+                for crysol_frame in self.crysol_frames:
+                    if crysol_frame:
+                        dc = crysol_frame.Close()
+
+                        crysol_closed = crysol_closed & dc
+            else:
+                event.Veto()
+                return
+
+            if (exit_without_saving == wx.ID_YES and dammif_closed and denss_closed
+                and crysol_closed):
                 force_quit = wx.ID_YES
                 if RAWGlobals.save_in_progress:
-                    dial = wx.MessageDialog(self, 'RAW is currently saving one or more files. Do you want to force quit (may corrupt files being saved)?', 'Force quit?',
-                                         wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+                    dial = wx.MessageDialog(self, ('RAW is currently saving '
+                        'one or more files. Do you want to force quit (may '
+                        'corrupt files being saved)?'), 'Force quit?',
+                        wx.YES_NO|wx.NO_DEFAULT|wx.ICON_QUESTION)
                     force_quit = dial.ShowModal()
                     dial.Destroy()
             else:
                 event.Veto()
                 return
 
-            if exit_without_saving == wx.ID_YES and dammif_closed and denss_closed and force_quit == wx.ID_YES:
+            if (exit_without_saving == wx.ID_YES and dammif_closed
+                and denss_closed and crysol_closed and force_quit == wx.ID_YES):
                 self._cleanup_and_quit()
             else:
                 event.Veto()
@@ -3133,6 +3233,10 @@ class MainFrame(wx.Frame):
             for frame in self.bift_frames:
                 if frame:
                     frame.controlPanel.BIFT_timer.Stop()
+
+            for frame in self.crysol_frames:
+                if frame:
+                    frame.ctrl_panel.running_timer.Stop()
 
             self.plot_panel.blink_timer.Stop()
             self.ift_plot_panel.blink_timer.Stop()
@@ -3674,8 +3778,12 @@ class MainWorkerThread(threading.Thread):
         self._sendImageToDisplay(img, bogus_sasm, 0, num_frames)
 
 
-    def _sendIFTMToPlot(self, iftm, item_colour=RAWGlobals.general_text_color, line_color=None,
+    def _sendIFTMToPlot(self, iftm, item_colour=None, line_color=None,
         no_update=False, update_legend=False, notsaved=False):
+
+        if item_colour is None:
+            item_colour = RAWGlobals.general_text_color
+
         wx.CallAfter(self.ift_plot_panel.plotIFTM, iftm)
         wx.CallAfter(self.ift_item_panel.addItem, iftm, item_colour,
             notsaved=notsaved)
@@ -3688,8 +3796,11 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.ift_plot_panel.fitAxis)
 
 
-    def _sendSASMToPlot(self, sasm, axes_num=1, item_colour=RAWGlobals.general_text_color,
+    def _sendSASMToPlot(self, sasm, axes_num=1, item_colour=None,
         line_color=None, no_update=False, notsaved=False, update_legend=True):
+
+        if item_colour is None:
+            item_colour = RAWGlobals.general_text_color
 
         wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num,
             color=line_color)
@@ -3707,7 +3818,7 @@ class MainWorkerThread(threading.Thread):
         line_color=None, no_update=False, notsaved=False, update_legend=True):
 
         if item_colour is None:
-            item_color = RAWGlobals.general_text_color
+            item_colour = RAWGlobals.general_text_color
 
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while plotting frames...')
 
@@ -3725,8 +3836,11 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
 
-    def _sendSECMToPlot(self, secm, item_colour=RAWGlobals.general_text_color, line_color=None,
+    def _sendSECMToPlot(self, secm, item_colour=None, line_color=None,
         no_update=False, notsaved=False, update_legend=True):
+
+        if item_colour is None:
+            item_colour = RAWGlobals.general_text_color
 
         wx.CallAfter(self.sec_plot_panel.plotSECM, secm, color = line_color)
         wx.CallAfter(self.sec_item_panel.addItem, secm, item_colour,
@@ -3739,8 +3853,11 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.sec_plot_panel.fitAxis)
 
 
-    def _updateSECMPlot(self, secm, item_colour=RAWGlobals.general_text_color, line_color=None,
+    def _updateSECMPlot(self, secm, item_colour=None, line_color=None,
         no_update=False, notsaved=False):
+        if item_colour is None:
+            item_colour = RAWGlobals.general_text_color
+
         if isinstance(secm, list):
             wx.CallAfter(self.sec_plot_panel.updatePlotData, secm, draw=False)
 
@@ -4043,6 +4160,10 @@ class MainWorkerThread(threading.Thread):
                     loaded_files, img = SASFileIO.loadFile(each_filename,
                         self._raw_settings, return_all_images=False)
 
+                elif file_ext == '.pdb' or file_ext == '.cif':
+                    loaded_files = self._loadStructureFile(each_filename)
+                    img = None
+
                 else:
                     loaded_files, img = SASFileIO.loadFile(each_filename,
                         self._raw_settings, return_all_images=False)
@@ -4209,6 +4330,21 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(file_list.SetFocus)
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
+
+    def _loadStructureFile(self, filename):
+        structure_calc = self._raw_settings.get('defaultStructureCalc')
+
+        models = [filename]
+
+        if structure_calc == 'CRYSOL':
+            ret_vals = RAWAPI.crysol(models, settings=self._raw_settings)
+
+            profiles = []
+
+            for value in ret_vals.values():
+                profiles.extend(value)
+
+        return profiles
 
     def _loadAndPlotSEC(self, data):
         filename_list=data[0]
@@ -7855,8 +7991,13 @@ class ManipulationPanel(wx.Panel):
 
         self.Thaw()
 
-    def addItem(self, sasm, item_colour = RAWGlobals.general_text_color, item_visible = True,
+    def addItem(self, sasm, item_colour = None, item_visible = True,
         notsaved = False, legend_label=''):
+
+        if item_colour is None:
+            item_colour = RAWGlobals.general_text_color
+
+        print(sasm)
 
         self.underpanel.Freeze()
 
@@ -8408,6 +8549,7 @@ class ManipItemPanel(wx.Panel):
 
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
 
+        print(sasm)
         self.parent = parent
         self.sasm = sasm
         self.sasm.itempanel = self
@@ -10611,7 +10753,6 @@ class IFTItemPanel(wx.Panel):
         menu.Append(28, 'Electron Density (DENSS)')
         menu.Append(25, 'SVD')
         menu.Append(26, 'EFA')
-        menu.Append(27, 'Similarity Test')
 
         menu.AppendSeparator()
         menu.Append(20, 'Show data')
@@ -10671,18 +10812,6 @@ class IFTItemPanel(wx.Panel):
         elif evt.GetId() == 26:
             #EFA
             self._runEFA()
-
-        elif evt.GetId() == 27:
-            #Similarity testing
-            selected_items = self.ift_panel.getSelectedItems()
-
-            if selected_items:
-                selected_iftms = [item.getIFTM() for item in selected_items]
-                selected_sasms = [SASM.SASM(iftm.p, iftm.r, iftm.err, iftm.getAllParameters()) for iftm in selected_iftms]
-            else:
-                selected_sasms = []
-
-            self.main_frame.showComparisonFrame(selected_sasms)
 
         elif evt.GetId() == 28:
             #DENSS
@@ -11995,7 +12124,6 @@ class SeriesItemPanel(wx.Panel):
         menu.Append(7, 'SVD')
         menu.Append(8, 'EFA')
         menu.Append(15, 'REGALS')
-        menu.Append(9, 'Similarity Test')
         menu.AppendSeparator()
 
         menu.Append(4, 'Show data')
@@ -12063,32 +12191,6 @@ class SeriesItemPanel(wx.Panel):
 
             secm = selectedSECMList[0].getSECM()
             Mainframe.showREGALSFrame(secm, selectedSECMList[0])
-
-        elif evt.GetId() == 9:
-            #Similarity testing
-            selected_items = self.sec_panel.getSelectedItems()
-
-            if selected_items:
-                selected_secms = [item.getSECM() for item in selected_items]
-                selected_sasms = []
-                ydata_type = self.sec_plot_panel.plotparams['y_axis_display']
-
-                for secm in selected_secms:
-                    if ydata_type == 'q_val':
-                        intensity = secm.I_of_q
-                    elif ydata_type == 'mean':
-                        intensity = secm.mean_i
-                    elif ydata_type == 'q_range':
-                        intensity = secm.qrange_I
-                    else:
-                        intensity = secm.total_i
-
-                    selected_sasms.append(SASM.SASM(intensity, secm.frame_list,
-                        np.sqrt(intensity), secm.getAllParameters()))
-            else:
-                selected_sasms = []
-
-            self.main_frame.showComparisonFrame(selected_sasms)
 
         elif evt.GetId() == 10:
             #Series analysis
@@ -15678,6 +15780,8 @@ class WelcomeDialog(wx.Dialog):
 
         wx.Dialog.__init__(self,parent, style=wx.RESIZE_BORDER|wx.STAY_ON_TOP,
             *args, **kwargs)
+
+        self.CenterOnParent()
 
         self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 

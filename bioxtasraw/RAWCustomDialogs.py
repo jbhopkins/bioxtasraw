@@ -66,6 +66,9 @@ class SaveAnalysisInfoDialog(wx.Dialog):
         wx.Dialog.__init__(self, parent, -1, ('Select variables to include in '
             'the comma separated file.'),
              *args, style = wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
+
+        self.CenterOnParent()
+
         self.SetSize(self._FromDIP((900,600)))
 
         self.raw_settings = raw_settings
@@ -87,6 +90,8 @@ class SaveAnalysisInfoDialog(wx.Dialog):
         self.SetSizer(self.sizer)
 
         SASUtils.set_best_size(self)
+
+        self.CenterOnParent()
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -627,6 +632,8 @@ class HdrDataDialog(wx.Dialog):
         wx.Dialog.__init__(self, parent, -1, 'Header Data Display', *args,
             style = wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
 
+        self.CenterOnParent()
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.grid_changed = False
@@ -808,6 +815,8 @@ class DataDialog(wx.Dialog):
         wx.Dialog.__init__(self, parent, -1, 'Scattering Data Display', *args,
             style = wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
 
+        self.CenterOnParent()
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.grid_changed = False
@@ -919,6 +928,8 @@ class SeriesDataDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, 'Series Data Display', *args,
             style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
+
+        self.CenterOnParent()
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1136,6 +1147,8 @@ class IFTDataDialog(wx.Dialog):
         wx.Dialog.__init__(self, parent, -1, 'IFT Data Display', *args,
             style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
 
+        self.CenterOnParent()
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.iftm = iftm
@@ -1262,6 +1275,9 @@ class HistoryDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, 'History Display',
             *args, style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
+
+        self.CenterOnParent()
+
         self.SetSize(self._FromDIP((500,600)))
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
@@ -1339,6 +1355,8 @@ class SyncDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, 'Synchronize', *args, **kwargs)
 
+        self.CenterOnParent()
+
         self.chkbox_list = [('q min', 'qmin', wx.ID_ANY),
                        ('q max', 'qmax', wx.ID_ANY),
                        ('n min', 'nmin', wx.ID_ANY),
@@ -1409,6 +1427,8 @@ class QuickReduceDialog(wx.Dialog):
 
         wx.Dialog.__init__(self,parent, -1, 'Quick Reduce Settings', *args,
             **kwargs)
+
+        self.CenterOnParent()
 
         self._path = path
         filecount_label = wx.StaticText(self, -1, '# of files selected : ' + str(len(selected_files)))
@@ -1492,6 +1512,8 @@ class FilenameChangeDialog(wx.Dialog):
 
         wx.Dialog.__init__(self,parent, -1, hdr, *args, **kwargs)
 
+        self.CenterOnParent()
+
         self.ok_button = wx.Button(self, -1, 'OK')
         self.cancel_button = wx.Button(self, -1, 'Cancel')
         self._filename = None
@@ -1551,6 +1573,8 @@ class RebinDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, 'Rebinning', *args, **kwargs)
 
+        self.CenterOnParent()
+
         top_sizer = wx.BoxSizer(wx.VERTICAL)
 
         choices = ['2','3','4','5','6','7','8','9','10']
@@ -1604,6 +1628,9 @@ class ColourChangeDialog(wx.Dialog):
         style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
 
         wx.Dialog.__init__(self, parent, -1, 'Pick a Colour', *args, **kwargs)
+
+        self.CenterOnParent()
+
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -1794,6 +1821,9 @@ class LinePropertyDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, "Line Properties", *args,
             style=style, **kwargs)
+
+        self.CenterOnParent()
+
         self.SetSize(self._FromDIP(size))
 
         self.sasm = sasm
@@ -2175,6 +2205,9 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, "IFT Line Properties", *args,
             style = style, **kwargs)
+
+        self.CenterOnParent()
+
         self.SetSize(self._FromDIP(size))
 
         self.iftm = iftm
@@ -3048,6 +3081,9 @@ class SECMLinePropertyDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, "Series Line Properties", *args,
             style = style, **kwargs)
+
+        self.CenterOnParent()
+
         self.SetSize(self._FromDIP(size))
 
         self.secm = secm
@@ -3612,6 +3648,8 @@ class CustomQuestionDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, title, *args, **kwargs)
 
+        self.CenterOnParent()
+
         self.icon = icon
         self._path = None
         self._filename = filename
@@ -3658,6 +3696,8 @@ class CustomQuestionDialog(wx.Dialog):
         best_height = min(best_height, client_display.Height)
 
         self.SetSize((best_width, best_height))
+
+        self.CenterOnParent()
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -3758,6 +3798,9 @@ class PlotOptionsDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, 'Plot Options',
             *args, style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
+
+        self.CenterOnParent()
+
         self.SetSize(self._FromDIP((576,522)))
 
         self.axes = axes
@@ -4626,10 +4669,13 @@ class PlotOptionsDialog(wx.Dialog):
 class HelpFrame(wx.Frame):
 
     def __init__(self, parent):
+        wx.Frame.__init__(self, parent, -1, "RAW {} Help".format(RAWGlobals.version))
+
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
         size = (min(1110, client_display.Width), min(768, client_display.Height))
 
-        wx.Frame.__init__(self, parent, -1, "RAW {} Help".format(RAWGlobals.version))
         self.SetSize(self._FromDIP(size))
 
         self.doc_path = RAWGlobals.RAWDocsDir
@@ -4703,10 +4749,12 @@ class HelpFrame(wx.Frame):
 
 class SeriesAdjustmentFrame(wx.Frame):
     def __init__(self, parent, seriesm, series_item_panel):
+        wx.Frame.__init__(self, parent, -1, "Series Adjustment")
+
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
         size = (min(100, client_display.Width), min(100, client_display.Height))
-
-        wx.Frame.__init__(self, parent, -1, "Series Adjustment")
         self.SetSize(self._FromDIP(size))
 
         self.seriesm = seriesm
@@ -5156,10 +5204,12 @@ class ReportFrame(wx.Frame):
 
     def __init__(self, parent, title, all_profiles, all_ifts, all_series,
             selected_profiles, selected_ifts, selected_series):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
         size = (min(450, client_display.Width), min(350, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self.main_frame = wx.FindWindowByName('MainFrame')
@@ -5370,10 +5420,14 @@ class CheckListCtrl(ULC.UltimateListCtrl, listmix.ListCtrlAutoWidthMixin):
     https://www.blog.pythonlibrary.org/2011/01/04/wxpython-wx-listctrl-tips-and-tricks/
     https://www.blog.pythonlibrary.org/2011/11/02/wxpython-an-intro-to-the-ultimatelistctrl/
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, highlight=False, **kwargs):
 
-        ULC.UltimateListCtrl.__init__(self, *args, agwStyle=ULC.ULC_REPORT
-            |ULC.ULC_NO_HEADER|ULC.ULC_NO_HIGHLIGHT, **kwargs)
+        if highlight:
+            style = ULC.ULC_REPORT|ULC.ULC_NO_HEADER
+        else:
+            style = ULC.ULC_REPORT|ULC.ULC_NO_HEADER|ULC.ULC_NO_HIGHLIGHT
+
+        ULC.UltimateListCtrl.__init__(self, *args, agwStyle=style, **kwargs)
 
         self.InsertColumn(0, 'Show')
         self.InsertColumn(1, 'Filename')
@@ -5384,6 +5438,13 @@ class CheckListCtrl(ULC.UltimateListCtrl, listmix.ListCtrlAutoWidthMixin):
     def addItem(self, sasm):
         name = sasm.getParameter('filename')
 
+        self._addItem(name)
+
+    def addTextItem(self, descrip, data):
+        index = self._addItem(descrip, data)
+        return index
+
+    def _addItem(self, name, data=None):
         try:
             index = self.InsertStringItem(sys.maxsize, '', it_kind=1)
         except Exception:
@@ -5392,7 +5453,10 @@ class CheckListCtrl(ULC.UltimateListCtrl, listmix.ListCtrlAutoWidthMixin):
 
         self.itemDataMap[index] = ('', name)
 
-        self.SetItemData(index, index)
+        if data is not None:
+            self.SetItemData(index, data)
+        else:
+            self.SetItemData(index, index)
 
         item = self.GetItem(index, 0)
         item.SetAlign(ULC.ULC_FORMAT_CENTER)
@@ -5401,7 +5465,35 @@ class CheckListCtrl(ULC.UltimateListCtrl, listmix.ListCtrlAutoWidthMixin):
         self.SetColumnWidth(0, wx.LIST_AUTOSIZE)
         self.SetColumnWidth(1, wx.LIST_AUTOSIZE)
 
+        return index
+
     def checkItem(self, index):
         item = self.GetItem(index, 0)
         item.Check(True)
         self.SetItem(item)
+
+    def getSelectedItems(self):
+        """    Gets the selected items for the list control.
+          Selection is returned as a list of selected indices,
+          low to high.
+        """
+        selection = []
+        index = self.GetFirstSelected()
+
+        if index == -1:
+            return []
+
+        selection.append(index)
+
+        while len(selection) != self.GetSelectedItemCount():
+            index = self.GetNextSelected(index)
+            selection.append(index)
+
+        return selection
+
+    def removeSelectedItems(self):
+        items = self.getSelectedItems()
+        items = items[::-1]
+
+        for index in items:
+            self.DeleteItem(index)

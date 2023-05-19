@@ -5375,6 +5375,9 @@ class OptionsDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, 'Options', *args, name='OptionsDialog',
             style=wx.RESIZE_BORDER|wx.CAPTION, **kwargs)
+
+        self.CenterOnParent()
+
         self.SetSize(self._FromDIP((850,750)))
 
         #################################################################

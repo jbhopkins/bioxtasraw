@@ -1172,6 +1172,7 @@ def loadFile(filename, raw_settings, no_processing=False, return_all_images=True
     elif file_type == 'hdf5':
         sasm = loadHdf5File(filename, raw_settings)
         img = None
+
     else:
         sasm = loadAsciiFile(filename, file_type)
         img = None
@@ -2186,7 +2187,6 @@ def loadSeriesFile(filename, settings):
         raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
 
     return new_secm
-
 
 def makeSeriesFile(secm_data, settings):
 
@@ -5053,15 +5053,17 @@ def checkFileType(filename):
         return 'image'
     elif ext == '.int':
         return 'int'
-    elif ext == '.img' or ext == '.imx_0' or ext == '.dkx_0' or ext == '.dkx_1' or ext == '.png' or ext == '.mpa':
+    elif (ext == '.img' or ext == '.imx_0' or ext == '.dkx_0' or ext == '.dkx_1'
+        or ext == '.png' or ext == '.mpa'):
         return 'image'
     elif ext == '.dat' or ext == '.sub' or ext =='.txt':
         return 'primus'
     elif ext == '.mar1200' or ext == '.mar2400' or ext == '.mar2300' or ext == '.mar3600':
         return 'image'
-    elif (ext == '.img' or ext == '.sfrm' or ext == '.dm3' or ext == '.edf' or ext == '.xml' or ext == '.cbf' or ext == '.kccd' or
-        ext == '.msk' or ext == '.spr' or ext == '.tif' or ext == '.mccd' or ext == '.mar3450' or ext =='.npy' or
-        ext == '.pnm' or ext == '.No'):
+    elif (ext == '.img' or ext == '.sfrm' or ext == '.dm3' or ext == '.edf'
+        or ext == '.xml' or ext == '.cbf' or ext == '.kccd' or ext == '.msk'
+        or ext == '.spr' or ext == '.tif' or ext == '.mccd' or ext == '.mar3450'
+        or ext =='.npy' or ext == '.pnm' or ext == '.No'):
         return 'image'
     elif ext == '.ift':
         return 'ift'
@@ -5069,6 +5071,10 @@ def checkFileType(filename):
         return 'txt'
     elif ext == '.h5':
         return 'hdf5'
+    elif ext == '.pdb':
+        return 'pdb'
+    elif ext == '.cif':
+        return 'cif'
     else:
         try:
             f = fabio.open(filename)

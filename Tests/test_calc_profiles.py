@@ -757,7 +757,8 @@ def test_cormap_ref(bsa_series_profiles):
     assert corrected_pvals[5] == 0.54454
     assert len(failed_comparisons) == 0
 
-def test_crysol_fit(temp_directory):
+@pytest.mark.atsas
+def test_crysol_model(temp_directory):
     shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
             os.path.join(temp_directory, '1XIB_4mer.pdb'))
 
@@ -776,7 +777,49 @@ def test_crysol_fit(temp_directory):
     assert fit_profile.getI().sum() == 4664787183.0
     assert abs_profile.getI().sum() == 1.2894319715
 
-def test_crysol_model(temp_directory):
+@pytest.mark.atsas
+def test_crysol_model_settings(temp_directory, old_settings):
+    shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
+            os.path.join(temp_directory, '1XIB_4mer.pdb'))
+
+    results = raw.crysol([os.path.join(temp_directory, '1XIB_4mer.pdb')],
+        settings=old_settings)
+
+    abs_profile = results[0]
+    fit_profile = results[1]
+
+    abs_params = abs_profile.getParameter('crysol')
+    fit_params = fit_profile.getParameter('crysol')
+
+    assert len(results) == 2
+    assert fit_params['Rg'] == 33.22
+    assert abs_params['Rg'] == 33.22
+    assert fit_params['Excluded_volume'] == 213838
+    assert fit_profile.getI().sum() == 4664787183.0
+    assert abs_profile.getI().sum() == 1.2894319715
+
+@pytest.mark.atsas
+def test_crysol_model_cif(temp_directory):
+    shutil.copy2(os.path.join('./data', '2pol.cif'),
+            os.path.join(temp_directory, '2pol.cif'))
+
+    results = raw.crysol([os.path.join(temp_directory, '2pol.cif')])
+
+    abs_profile = results[0]
+    fit_profile = results[1]
+
+    abs_params = abs_profile.getParameter('crysol')
+    fit_params = fit_profile.getParameter('crysol')
+
+    assert len(results) == 2
+    assert fit_params['Rg'] == 33.19
+    assert abs_params['Rg'] == 33.19
+    assert fit_params['Excluded_volume'] == 101381.0
+    assert fit_profile.getI().sum() == 1108294088.4
+    assert abs_profile.getI().sum() == 0.6531660600000001
+
+@pytest.mark.atsas
+def test_crysol_fit(temp_directory):
     shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
             os.path.join(temp_directory, '1XIB_4mer.pdb'))
 
@@ -785,6 +828,28 @@ def test_crysol_model(temp_directory):
 
     results = raw.crysol([os.path.join(temp_directory, '1XIB_4mer.pdb')],
         [os.path.join(temp_directory, 'glucose_isomerase.dat')])
+
+    fit_profile = results[0]
+
+    fit_params = fit_profile.getParameter('crysol')
+
+    assert len(results) == 1
+    assert fit_params['Rg'] == 33.22
+    assert fit_params['Excluded_volume'] == 213838
+    assert fit_params['Chi_squared'] ==  1.089
+    assert fit_profile.getI().sum() == 3.72612387712
+
+@pytest.mark.atsas
+def test_crysol_fit_settings(temp_directory, old_settings):
+    shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
+            os.path.join(temp_directory, '1XIB_4mer.pdb'))
+
+    shutil.copy2(os.path.join('./data', 'glucose_isomerase.dat'),
+            os.path.join(temp_directory, 'glucose_isomerase.dat'))
+
+    results = raw.crysol([os.path.join(temp_directory, '1XIB_4mer.pdb')],
+        [os.path.join(temp_directory, 'glucose_isomerase.dat')],
+        settings=old_settings)
 
     fit_profile = results[0]
 

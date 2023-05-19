@@ -400,6 +400,10 @@ class RawGuiSettings(object):
                 'crysolModelID'         : ['None', get_id(), 'str'],
                 'crysolChainId'         : ['None', get_id(), 'str'],
                 'crysolAltNames'        : [False, get_id(), 'bool'],
+                'crysolResultToPlot'    : ['.abs', get_id(), 'bool'],
+
+                #Default structure prediction
+                'defaultStructureCalc'  : ['CRYSOL', get_id(), 'str'],
 
                 #Weighted Average Settings
                 'weightCounter'         : ['', get_id(), 'choice'],

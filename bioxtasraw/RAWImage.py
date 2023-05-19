@@ -1512,6 +1512,9 @@ class HdrInfoDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, 'Image Header',
             style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX)
+
+        self.CenterOnParent()
+
         self.SetSize(self._FromDIP((500,500)))
 
         self.sasm = sasm

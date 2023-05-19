@@ -43,6 +43,7 @@ import traceback
 import tempfile
 import shutil
 import glob
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 import wx
@@ -1568,10 +1569,12 @@ class GuinierControlPanel(wx.Panel):
 class GuinierFrame(wx.Frame):
 
     def __init__(self, parent, title, ExpObj, manip_item):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
         size = (min(800, client_display.Width), min(650, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         panel = wx.Panel(self)
@@ -1636,6 +1639,9 @@ class MolWeightFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm, manip_item):
 
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
 
         self.main_frame = wx.FindWindowByName('MainFrame')
@@ -1659,7 +1665,6 @@ class MolWeightFrame(wx.Frame):
         else:
             size = (min(750, client_display.Width), min(550, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
@@ -3895,11 +3900,12 @@ class MWPlotPanel(wx.Panel):
 class GNOMFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm, manip_item):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
         size = (min(825, client_display.Width), min(700, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -5221,11 +5227,12 @@ class GNOMControlPanel(wx.Panel):
 class DammifFrame(wx.Frame):
 
     def __init__(self, parent, title, iftm, manip_item):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
         size = (min(725, client_display.Width), min(900, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self.manip_item = manip_item
@@ -7882,11 +7889,12 @@ class DammifViewerPanel(wx.Panel):
 class DenssFrame(wx.Frame):
 
     def __init__(self, parent, title, iftm, manip_item):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
         size = (min(750, client_display.Width), min(900, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self.manip_item = manip_item
@@ -10439,10 +10447,12 @@ class DenssAveragePlotPanel(wx.Panel):
 class DenssAlignFrame(wx.Frame):
 
     def __init__(self, parent, title):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
         size = (min(450, client_display.Width), min(450, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self.main_frame = wx.FindWindowByName('MainFrame')
@@ -10834,11 +10844,12 @@ class DenssAlignFrame(wx.Frame):
 class BIFTFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm, manip_item):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
         size = (min(800, client_display.Width), min(700, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -11607,14 +11618,965 @@ class BIFTControlPanel(wx.Panel):
             pass
 
 
+class TheoreticalFrame(wx.Frame):
+
+    def __init__(self, parent, calc_type, sasm_list):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, calc_type)
+
+        self.CenterOnParent()
+
+        client_display = wx.GetClientDisplayRect()
+        size = (min(900, client_display.Width), min(800, client_display.Height))
+        self.SetSize(self._FromDIP(size))
+
+        self.calc_type = calc_type
+        self.sasm_list = [copy.deepcopy(sasm) for sasm in sasm_list]
+
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+        self.create_layout()
+
+        SASUtils.set_best_size(self)
+        self.SendSizeEvent()
+
+        self.CenterOnParent()
+
+        self.Raise()
+
+    def create_layout(self):
+        panel = wx.Panel(self)
+
+        splitter = wx.SplitterWindow(panel, style=wx.SP_3D|wx.SP_BORDER)
+
+        self.plot_panel = ComparisonPlotPanel(splitter, 'residual')
+        self.ctrl_panel = TheoreticalControlPanel(splitter, self, self.calc_type,
+            self.sasm_list)
+
+        splitter.SplitVertically(self.ctrl_panel, self.plot_panel, self._FromDIP(325))
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            splitter.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
+        else:
+            splitter.SetMinimumPaneSize(self._FromDIP(50))
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(splitter, proportion=1, flag=wx.EXPAND)
+
+        panel.SetSizer(sizer)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
+
+        self.set_plot_view('top')
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def set_plot_view(self, plot_type):
+        if plot_type == 'both':
+            self.plot_panel.show_both()
+
+        else:
+            self.plot_panel.show_top()
+
+    def OnClose(self, event):
+        self.ctrl_panel.save_results_on_close = False
+        self.ctrl_panel.Close(event)
+
+        if event.GetVeto():
+            return
+        else:
+            self.Destroy()
+
+
+class TheoreticalControlPanel(scrolled.ScrolledPanel):
+
+    def __init__(self, parent, theory_frame, calc_type, sasm_list, *args, **kwargs):
+
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style']|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.RAISED_BORDER
+
+        scrolled.ScrolledPanel.__init__(self, parent, *args, **kwargs)
+
+        self.parent = parent
+        self.sasm_list = sasm_list
+        self.theory_frame = theory_frame
+        self.calc_type = calc_type
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.abort_event = threading.Event()
+        self.calc_futures = []
+        self.running_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._on_running_timer, self.running_timer)
+
+        self.current_results = {}
+        self.save_results_on_close = False
+
+        if self.calc_type == 'CRYSOL':
+            self.executor = None
+
+        self.create_layout()
+        self._initialize()
+        self.SetupScrolling(scroll_x=False)
+
+        self.standard_paths = wx.StandardPaths.Get()
+        self.save_names = []
+
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def create_layout(self):
+
+        if self.calc_type == 'CRYSOL':
+            ctrl_sizer = self._create_crysol_ctrls()
+
+
+        model_box = wx.StaticBox(self, label='Models')
+
+        self.structure_list = RAWCustomDialogs.CheckListCtrl(model_box,
+            highlight=True, size=self._FromDIP((-1, 100)))
+
+        add_structure = wx.Button(model_box, label='Add')
+        remove_structure = wx.Button(model_box, label='Remove')
+
+        add_structure.Bind(wx.EVT_BUTTON, self._on_add_structure)
+        remove_structure.Bind(wx.EVT_BUTTON, self._on_remove_structure)
+
+        struct_btn_sizer = wx.BoxSizer(wx.VERTICAL)
+        struct_btn_sizer.Add(add_structure)
+        struct_btn_sizer.Add(remove_structure, flag=wx.TOP, border=self._FromDIP(5))
+
+        model_sizer = wx.StaticBoxSizer(model_box, wx.HORIZONTAL)
+        model_sizer.Add(self.structure_list, flag=wx.EXPAND|wx.ALL,
+            border=self._FromDIP(5), proportion=1)
+        model_sizer.Add(struct_btn_sizer, flag=wx.TOP|wx.BOTTOM|wx.RIGHT,
+            border=self._FromDIP(5))
+
+        data_box = wx.StaticBox(self, label='Experimental data')
+
+        self.data_list = RAWCustomDialogs.CheckListCtrl(data_box,
+            highlight=True, size=self._FromDIP((-1, 100)))
+
+        add_data = wx.Button(data_box, label='Add')
+        remove_data = wx.Button(data_box, label='Remove')
+
+        add_data.Bind(wx.EVT_BUTTON, self._on_add_data)
+        remove_data.Bind(wx.EVT_BUTTON, self._on_remove_data)
+
+        data_btn_sizer = wx.BoxSizer(wx.VERTICAL)
+        data_btn_sizer.Add(add_data)
+        data_btn_sizer.Add(remove_data, flag=wx.TOP, border=self._FromDIP(5))
+
+        data_sizer = wx.StaticBoxSizer(data_box, wx.HORIZONTAL)
+        data_sizer.Add(self.data_list, flag=wx.EXPAND|wx.ALL,
+            border=self._FromDIP(5), proportion=1)
+        data_sizer.Add(data_btn_sizer, flag=wx.TOP|wx.BOTTOM|wx.RIGHT,
+            border=self._FromDIP(5))
+
+
+        status_box = wx.StaticBox(self, label='Status')
+        self.status = wx.StaticText(status_box)
+        self.status.SetForegroundColour('Red')
+
+        status_sizer = wx.StaticBoxSizer(status_box, wx.HORIZONTAL)
+        status_sizer.Add(wx.StaticText(status_box, label='Status:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        status_sizer.Add(self.status, border=self._FromDIP(5),
+            flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+
+
+        info_button = wx.Button(self, -1, 'How To Cite')
+        info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
+
+        save_button = wx.Button(self, wx.ID_OK, 'OK')
+        save_button.Bind(wx.EVT_BUTTON, self._onSaveButton)
+
+        cancel_button = wx.Button(self, wx.ID_OK, 'Cancel')
+        cancel_button.Bind(wx.EVT_BUTTON, self._onCloseButton)
+
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(info_button,1,wx.RIGHT, border=self._FromDIP(5))
+        button_sizer.Add(save_button,1,wx.RIGHT, border=self._FromDIP(5))
+        button_sizer.Add(cancel_button, 1)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(model_sizer, flag=wx.ALL|wx.EXPAND, border=self._FromDIP(5))
+        top_sizer.Add(data_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(5))
+        top_sizer.Add(ctrl_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(5))
+        top_sizer.Add(status_sizer, border=self._FromDIP(5),
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
+        top_sizer.AddStretchSpacer(1)
+        top_sizer.Add(button_sizer, flag=wx.ALIGN_CENTER_HORIZONTAL|wx.TOP|wx.BOTTOM,
+            border=self._FromDIP(5))
+
+        self.SetSizer(top_sizer)
+
+    def _create_crysol_ctrls(self):
+        ctrl_box = wx.StaticBox(self, label='Controls')
+
+        ctrl_parent = ctrl_box
+
+        self.harmonics = wx.TextCtrl(ctrl_parent, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('int'))
+        self.npts = wx.TextCtrl(ctrl_parent, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('int'))
+        self.qmax = wx.TextCtrl(ctrl_parent, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('float'))
+
+        nprocs_tot = multiprocessing.cpu_count()
+        nprocs_list = [str(i) for i in range(nprocs_tot, 0, -1)]
+        default_proc = str(int(min(nprocs_tot//2 -1, 1)))
+        default_index = nprocs_list.index(default_proc)
+        self.nprocs = wx.Choice(ctrl_parent, choices=nprocs_list)
+        self.nprocs.SetSelection(default_index)
+
+        basic_ctrls = wx.FlexGridSizer(cols=2, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(5))
+        basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Harmonics:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        basic_ctrls.Add(self.harmonics, flag=wx.ALIGN_CENTER_VERTICAL)
+        basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Number of points:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        basic_ctrls.Add(self.npts, flag=wx.ALIGN_CENTER_VERTICAL)
+        basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Maximum q:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        basic_ctrls.Add(self.qmax, flag=wx.ALIGN_CENTER_VERTICAL)
+        basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Simultaneous calcs.:'))
+        basic_ctrls.Add(self.nprocs)
+
+        basic_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        basic_sizer.Add(basic_ctrls)
+        basic_sizer.AddStretchSpacer(1)
+
+
+        adv_panel = wx.CollapsiblePane(ctrl_parent, label="Advanced Settings",
+            style=wx.CP_NO_TLW_RESIZE)
+        adv_panel.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
+        adv_win = adv_panel.GetPane()
+
+        self.save_all_results = wx.CheckBox(adv_win, label='Save all outputs to folder')
+        self.directory_ctrl = wx.DirPickerCtrl(adv_win, style=wx.DIRP_USE_TEXTCTRL|wx.DIRP_SMALL)
+
+        dir_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        dir_sizer.Add(wx.StaticText(adv_win, label='Save to:'))
+        dir_sizer.Add(self.directory_ctrl, proportion=1, flag=wx.LEFT,
+            border=self._FromDIP(5))
+
+        save_sizer = wx.BoxSizer(wx.VERTICAL)
+        save_sizer.Add(self.save_all_results, flag=wx.ALL, border=self._FromDIP(5))
+        save_sizer.Add(dir_sizer, flag=wx.EXPAND|wx.BOTTOM|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(5))
+
+
+        self.fib = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('int'))
+        self.dns = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('float'))
+        self.dro = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('float_neg'))
+        self.fit_solvent = wx.CheckBox(adv_win, label='Fit solvent')
+        self.constant = wx.CheckBox(adv_win, label='Subtract constant for fit')
+        self.shell = wx.Choice(adv_win, choices=['directional', 'water'])
+        self.energy = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('float'))
+        self.explicit_hydrogen = wx.CheckBox(adv_win, label='Explicit Hydrogen')
+        self.model_id = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('int'))
+        self.chain_id = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)))
+        self.alt_names = wx.CheckBox(adv_win, label='Alternative (old) atom names')
+        self.implicit_hydrogen = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('int'))
+        self.units = wx.Choice(adv_win, choices=['Unknown', '1 - 1/A, q=4pi*sin(th)/l)',
+            '2 - 1/nm, q=4pi*sin(th)/l', '3 - 1/A, q=2*sin(th)/l',
+            '4 - 1/nm, q=2*sin(th)/l'])
+        self.sub_element = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)))
+        self.result_to_plot = wx.Choice(adv_win, choices=['.abs', '.int', 'both'])
+
+        shell_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        shell_sizer.Add(wx.StaticText(adv_win, label='Hydration shell kind:'),
+            border=self._FromDIP(5), flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        shell_sizer.Add(self.shell, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        units_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        units_sizer.Add(wx.StaticText(adv_win, label='Units:'), border=self._FromDIP(5),
+            flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        units_sizer.Add(self.units, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        adv_ctrls = wx.GridBagSizer(vgap=self._FromDIP(5), hgap=self._FromDIP(5))
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Order of Fib. grid:'),
+            (0,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.fib, (0,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Solvent density [e/A^3]:'),
+            (1,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.dns, (1,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Hydration shell contrast [e/A^3]:'),
+            (2,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.dro, (2,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.fit_solvent, (3,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.constant, (4,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(shell_sizer, (5,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Energy (anomalous only):'),
+            (6,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.energy, (6,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.explicit_hydrogen, (7,0), (1,2),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Model ID:'),
+            (8,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.model_id, (8,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Chain ID:'),
+            (9,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.chain_id, (9,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.alt_names, (10,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Implicit Hydrogen:'),
+            (11,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.implicit_hydrogen, (11,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(units_sizer, (12,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Sub element:'),
+            (13,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.sub_element, (13,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Result to plot (no fit):'),
+            (14,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.result_to_plot, (14,1), flag=wx.ALIGN_CENTER_VERTICAL)
+
+        adv_sizer = wx.BoxSizer(wx.VERTICAL)
+        adv_sizer.Add(save_sizer, border=self._FromDIP(5),
+            flag=wx.LEFT|wx.RIGHT|wx.EXPAND)
+        adv_sizer.Add(adv_ctrls, border=self._FromDIP(5),
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
+
+        adv_win.SetSizer(adv_sizer)
+
+
+        self.start_button = wx.Button(ctrl_parent, label='Start')
+        self.abort_button = wx.Button(ctrl_parent, label='Abort')
+
+        self.start_button.Bind(wx.EVT_BUTTON, self.onStartButton)
+        self.abort_button.Bind(wx.EVT_BUTTON, self.onAbortButton)
+        self.abort_button.Disable()
+
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(self.start_button, flag=wx.RIGHT, border=self._FromDIP(5))
+        button_sizer.Add(self.abort_button)
+
+
+        ctrl_sizer = wx.StaticBoxSizer(ctrl_box, wx.VERTICAL)
+        ctrl_sizer.Add(basic_sizer, flag=wx.ALL|wx.EXPAND, border=self._FromDIP(5))
+        ctrl_sizer.Add(adv_panel, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(5))
+        ctrl_sizer.Add(button_sizer, border=self._FromDIP(5),
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT|wx.RIGHT|wx.BOTTOM)
+
+        return ctrl_sizer
+
+    def _initialize(self):
+        self.data_list.Freeze()
+        for sasm in self.sasm_list:
+            name = sasm.getParameter('filename')
+
+            index = self.data_list.addTextItem(name, copy.deepcopy(sasm))
+            self.data_list.checkItem(index)
+
+        self.onCollapse(None)
+        self.data_list.Thaw()
+
+        if self.calc_type == 'CRYSOL':
+            self._initialize_crysol()
+
+    def _initialize_crysol(self):
+        self.harmonics.ChangeValue(str(self.raw_settings.get('crysolHarmonics')))
+        self.npts.ChangeValue(str(self.raw_settings.get('crysolPoints')))
+        self.qmax.ChangeValue(str(self.raw_settings.get('crysolQmax')))
+        self.fib.ChangeValue(str(self.raw_settings.get('crysolFibGrid')))
+        self.dns.ChangeValue(str(self.raw_settings.get('crysolSolvDensity')))
+        self.dro.ChangeValue(str(self.raw_settings.get('crysolHydrDensity')))
+        self.fit_solvent.SetValue(self.raw_settings.get('crysolFitSolvent'))
+        self.constant.SetValue(self.raw_settings.get('crysolConstant'))
+        self.shell.SetStringSelection(self.raw_settings.get('crysolShell'))
+        self.explicit_hydrogen.SetValue(self.raw_settings.get('crysolExplicitH'))
+        self.alt_names.SetValue(self.raw_settings.get('crysolAltNames'))
+        self.units.SetStringSelection(self.raw_settings.get('crysolUnit'))
+
+        if self.raw_settings.get('crysolEnergy') != 'None':
+            self.energy.ChangeValue(str(self.raw_settings.get('crysolEnergy')))
+
+        if self.raw_settings.get('crysolImplicitH') != 'None':
+            self.implicit_hydrogen.ChangeValue(str(self.raw_settings.get('crysolImplicitH')))
+
+        if self.raw_settings.get('crysolModelID') != 'None':
+            self.model_id.ChangeValue(str(self.raw_settings.get('crysolModelID')))
+
+        if self.raw_settings.get('crysolChainId') != 'None':
+            self.chain_id.ChangeValue(str(self.raw_settings.get('crysolChainId')))
+
+        if self.raw_settings.get('crysolSubElement') != 'None':
+            self.sub_element.ChangeValue(str(self.raw_settings.get('crysolSubElement')))
+
+        self.result_to_plot.SetStringSelection(self.raw_settings.get('crysolResultToPlot'))
+
+    def set_status(self, status):
+        wx.CallAfter(self.status.SetLabel, status)
+
+    def onCollapse(self, event):
+        self.Layout()
+        self.Refresh()
+        self.SendSizeEvent()
+        self.parent.Layout()
+        self.parent.Refresh()
+        self.parent.SendSizeEvent()
+        self.theory_frame.Layout()
+        self.theory_frame.Refresh()
+        self.theory_frame.SendSizeEvent()
+
+    def _on_add_structure(self, event):
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        load_path = dirctrl_panel.getDirLabel()
+
+        if self.calc_type == 'CRYSOL':
+            filters = 'PDB and mmCIF files (*.pdb;*.cif)|*.pdb;*.cif|All files (*.*)|*.*'
+
+        dialog = wx.FileDialog(self, 'Select model files', load_path,
+            style=wx.FD_OPEN|wx.FD_MULTIPLE, wildcard=filters)
+
+        if dialog.ShowModal() == wx.ID_OK:
+            files = dialog.GetPaths()
+        else:
+            files = None
+
+        # Destroy the dialog
+        dialog.Destroy()
+
+        unused_items = []
+
+        if files is not None:
+            self.structure_list.Freeze()
+            for f in files:
+                _, name = os.path.split(f)
+                _, ext = os.path.splitext(name)
+
+                use_item = True
+
+                if self.calc_type == 'CRYSOL':
+                    if ext != '.pdb' and ext != '.cif':
+                        use_item = False
+
+                if use_item:
+                    index = self.structure_list.addTextItem(name, f)
+                    self.structure_list.checkItem(index)
+
+                else:
+                    unused_items.append(name)
+
+            self.onCollapse(None)
+            self.structure_list.Thaw()
+
+        if len(unused_items) > 0:
+            msg = ("The following files were not loaded because they are not "
+                ".pdb or .cif files:")
+            for name in unused_items:
+                msg += "\n{}".format(name)
+
+            dialog = wx.MessageDialog(self, msg, 'Models not loaded',
+                style=wx.OK)
+            dialog.ShowModal()
+            dialog.Destroy()
+
+    def _on_remove_structure(self, event):
+        self.structure_list.removeSelectedItems()
+
+    def _on_add_data(self, event):
+        manip_panel = wx.FindWindowByName('ManipulationPanel')
+
+        names = []
+        item_dict = {}
+
+        for item in manip_panel.all_manipulation_items:
+            sasm = item.getSASM()
+            name = sasm.getParameter('filename')
+
+            names.append(name)
+            item_dict[name] = sasm
+
+        dialog = wx.MultiChoiceDialog(self, 'Select experimental data to fit',
+            'Select data', choices=names)
+        dialog.SendSizeEvent()
+
+        if dialog.ShowModal() == wx.ID_OK:
+            items = dialog.GetSelections()
+        else:
+            items = None
+
+        dialog.Destroy()
+
+        if items is not None:
+            self.data_list.Freeze()
+            for index in items:
+                name = names[index]
+                sasm = item_dict[name]
+
+                index = self.data_list.addTextItem(name, copy.deepcopy(sasm))
+                self.data_list.checkItem(index)
+
+            self.onCollapse(None)
+            self.data_list.Thaw()
+
+    def _on_remove_data(self, event):
+        self.data_list.removeSelectedItems()
+
+    def onStartButton(self, evt):
+        wx.CallAfter(self._start_calculations)
+
+    def onAbortButton(self, evt):
+        wx.CallAfter(self._abort_calculations)
+
+    def _start_calculations(self):
+        models = self._get_models()
+
+        if len(models) == 0:
+            msg = ('One or more models must be checked in order to calculate '
+                'theoretical profiles.')
+            dialog = wx.MessageDialog(self, msg, 'No models selected',
+                style=wx.OK)
+            dialog.ShowModal()
+            dialog.Destroy()
+
+        else:
+            self.set_status('Running calculation')
+            if self.calc_type == 'CRYSOL':
+                self._start_crysol()
+
+    def _start_crysol(self):
+        save_all = self.save_all_results.GetValue()
+        save_path = self.directory_ctrl.GetPath()
+
+        self.start_button.Disable()
+        self.abort_button.Enable()
+
+        settings = self._get_crysol_settings()
+        models = self._get_models()
+        data = self._get_data()
+
+        if len(data) == 0:
+            data = None
+
+        self.abort_event.clear()
+
+        if data is not None:
+            profile_names = self.save_profiles(data)
+        else:
+            profile_names = None
+
+        settings['abort_event'] = self.abort_event
+        settings['profiles'] = profile_names
+        settings['atsas_dir'] = self.raw_settings.get('ATSASDir')
+
+        if save_all:
+            settings['save_output'] = save_all
+            settings['output_dir'] = save_path
+
+        self.crysol_ref = {}
+
+        for model in models:
+            model_name = os.path.splitext(os.path.split(model)[1])[0]
+            if data is None:
+                self.crysol_ref[model_name] = [model_name, None]
+            else:
+                for j, profile in enumerate(data):
+                    profile_name = os.path.split(os.path.splitext(profile_names[j])[0])[1]
+                    self.crysol_ref[('{}_{}'.format(model_name,
+                        profile_name))] = [model_name, profile]
+
+        if save_all:
+            path_exists = os.path.exists(save_path)
+
+            if not path_exists:
+                msg = ("Save path doesn't exist, select a new save path.")
+                dialog = wx.MessageDialog(self, msg, 'Invalid save path',
+                    style=wx.OK)
+                dialog.ShowModal()
+                dialog.Destroy()
+
+                self._cleanup()
+
+            else:
+                output_exists = False
+
+                for model_name in self.crysol_ref.keys():
+                    alm_name = '{}.alm'.format(os.path.splitext(model_name)[0])
+                    output_exists = (output_exists or
+                        os.path.exists(os.path.join(save_path, alm_name)))
+
+                    if output_exists:
+                        break
+
+                if output_exists:
+                    msg = ("Some output files already exist and will be "
+                        "overwritten. Do you want continue?")
+                    dialog = wx.MessageDialog(self, msg, 'Invalid save path',
+                        style=wx.YES_NO|wx.NO_DEFAULT)
+                    res = dialog.ShowModal()
+                    dialog.Destroy()
+
+                    if res == wx.ID_NO:
+                        path_exists = False
+                        self._cleanup()
+
+        else:
+            path_exists = True
+
+        if path_exists:
+            self.calc_futures = []
+
+            nprocs = int(self.nprocs.GetStringSelection())
+
+            self.executor = ThreadPoolExecutor(nprocs)
+
+            for model in models:
+                crysol_future = self.executor.submit(RAWAPI.crysol,
+                    [model,], **settings)
+
+                self.calc_futures.append(crysol_future)
+
+            self.running_timer.Start(1000)
+
+    def _get_crysol_settings(self):
+        prefix = None
+        lm = int(self.harmonics.GetValue())
+        fb = int(self.fib.GetValue())
+        ns = int(self.npts.GetValue())
+        smax = float(self.qmax.GetValue())
+
+        unit_choice = self.units.GetStringSelection()
+
+        if unit_choice == 'Unknown':
+            units = None
+        else:
+            units = int(unit_choice.split('-')[0].strip())
+
+        dns = self.dns.GetValue()
+        dro = self.dro.GetValue()
+        constant = self.constant.GetValue()
+        fit_solvent = self.fit_solvent.GetValue()
+
+        energy_val = self.energy.GetValue()
+        try:
+            energy = float(energy_val)
+        except ValueError:
+            energy = None
+
+        shell = self.shell.GetStringSelection()
+        explicit_hydrogen = self.explicit_hydrogen.GetValue()
+
+        implicit_hydrogen_val = self.implicit_hydrogen.GetValue()
+        try:
+            implicit_hydrogen = int(implicit_hydrogen_val)
+        except ValueError:
+            implicit_hydrogen = None
+
+        sub_element_val = self.sub_element.GetValue()
+        if sub_element_val == '':
+            sub_element = None
+        else:
+            sub_element = sub_element_val
+
+        model_id_val = self.model_id.GetValue()
+        if model_id_val == '':
+            model_id = None
+        else:
+            model_id = model_id_val
+
+        chain_id_val = self.chain_id.GetValue()
+        if chain_id_val == '':
+            chain_id = None
+        else:
+            chain_id = chain_id_val
+
+        alternative_names = self.alt_names.GetValue()
+
+
+        crysol_settings = {
+            'prefix'            : prefix,
+            'lm'                : lm,
+            'fb'                : fb,
+            'ns'                : ns,
+            'smax'              : smax,
+            'units'             : units,
+            'dns'               : dns,
+            'dro'               : dro,
+            'constant'          : constant,
+            'fit_solvent'       : fit_solvent,
+            'energy'            : energy,
+            'shell'             : shell,
+            'explicit_hydrogen' : explicit_hydrogen,
+            'implicit_hydrogen' : implicit_hydrogen,
+            'sub_element'       : sub_element,
+            'model_id'          : model_id,
+            'chain_id'          : chain_id,
+            'alternative_names' : alternative_names,
+            }
+
+        return crysol_settings
+
+    def _get_models(self):
+        models = []
+
+        tot = self.structure_list.GetItemCount()
+
+        for i in range(tot):
+            if self.structure_list.IsItemChecked(i):
+                path = self.structure_list.GetItemData(i)
+
+                models.append(path)
+
+        return models
+
+    def _get_data(self):
+        data = []
+
+        tot = self.data_list.GetItemCount()
+
+        for i in range(tot):
+            if self.data_list.IsItemChecked(i):
+                sasm = self.data_list.GetItemData(i)
+
+                data.append(sasm)
+
+        return data
+
+    def _on_running_timer(self, evt):
+        if self.calc_type == 'CRYSOL':
+            calc_finished = all([future.done() for future in self.calc_futures])
+
+            if calc_finished:
+                self.executor.shutdown()
+
+        if calc_finished:
+            self.running_timer.Stop()
+            self._process_results()
+
+    def _process_results(self):
+        if self.calc_type == 'CRYSOL':
+            theory, residuals, data, params = self._process_crysol_results()
+
+        if len(theory) > 0:
+            self.send_to_plot(theory, residuals, data)
+
+            self.current_results = {
+                'theory'    : theory,
+                'residuals' : residuals,
+                'data'      : data,
+                'params'    : params,
+                }
+
+        self._cleanup()
+
+    def _process_crysol_results(self):
+        results = [future.result() for future in self.calc_futures]
+
+        theory_list = []
+        residual_list = []
+        data_list = []
+
+        for res in results:
+            for key, value in res.items():
+                crysol_ref_data = self.crysol_ref[key]
+
+                if crysol_ref_data[1] is None:
+                    if self.result_to_plot.GetStringSelection() == '.abs':
+                        profiles = [value[0]]
+                    elif self.result_to_plot.GetStringSelection() == '.int':
+                        profiles = [value[1]]
+                    else:
+                        profiles = value
+                else:
+                    profiles = value
+
+                theory_list.extend(profiles)
+
+                if crysol_ref_data[1] is not None:
+                    sasm = profiles[0]
+
+                    exp_data = crysol_ref_data[1]
+
+                    if np.round(sasm.getQ()[0]*10,4) == np.round(exp_data.getQ()[0], 4):
+                        profile = exp_data.copy_no_metadata()
+                        profile.scaleRelativeQ(0.1)
+
+                    else:
+                        profile = exp_data
+
+                    diff = SASProc.subtract(profile, sasm, forced=True,
+                        copy_params=False)
+                    temp_p = SASM.SASM(profile.getErr(), profile.getQ(),
+                        profile.getErr(), profile.getAllParameters())
+                    residual = SASProc.divide(diff, temp_p, forced=True,
+                        copy_params=False)
+
+                    residual_list.append([residual.getQ(), residual.getI(), key])
+
+                    if profile not in data_list:
+                        data_list.append(profile)
+
+        return theory_list, residual_list, data_list, []
+
+    def _cleanup(self):
+        self.start_button.Enable()
+        self.abort_button.Disable()
+
+        if self.abort_event.is_set():
+            self.set_status('Aborted calculation')
+        else:
+            self.set_status('Finished calculation')
+
+    def send_to_plot(self, theory, residuals, data):
+        if len(residuals) == 0:
+            self.theory_frame.set_plot_view('one')
+            self.theory_frame.plot_panel.plot_theory_data(theory)
+        else:
+            self.theory_frame.set_plot_view('both')
+            self.theory_frame.plot_panel.plot_fit_data(theory, residuals, data)
+
+    def _abort_calculations(self):
+        self.abort_event.set()
+
+        if self.calc_type == 'CRYSOL':
+            self._abort_crysol()
+
+    def _abort_crysol(self):
+        if self.executor is not None:
+            self.executor.shutdown()
+
+    def save_profiles(self, profiles):
+        tempdir = self.standard_paths.GetTempDir()
+
+        profile_names = []
+
+        if (self.main_frame.OnlineControl.isRunning()
+            and tempdir == self.main_frame.OnlineControl.getTargetDir()):
+            self.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
+        for sasm in profiles:
+            save_sasm = sasm.copy_no_metadata()
+
+            base_name = os.path.splitext(save_sasm.getParameter('filename'))[0]
+            save_name = '{}.dat'.format(base_name)
+
+            i = 1
+            while os.path.join(tempdir, save_name) in profile_names:
+                save_name = '{}_{}.dat'.format(base_name, i)
+                i += 1
+
+            save_sasm.setParameter('filename', save_name)
+
+            try:
+                SASFileIO.saveMeasurement(save_sasm, tempdir, self.raw_settings,
+                    filetype='.dat')
+            except SASExceptions.HeaderSaveError as e:
+                self._showSaveError('header')
+
+            self.save_names.append(save_name)
+            profile_names.append(os.path.join(tempdir, save_name))
+
+        if restart_timer:
+            wx.CallAfter(self.main_frame.controlTimer, True)
+
+        return profile_names
+
+    def _onCloseButton(self, evt):
+        self.save_results_on_close = False
+        self.theory_frame.Close()
+
+    def _onSaveButton(self, evt):
+        self.save_results_on_close = True
+        self.theory_frame.Close()
+        self._on_save_info()
+
+    def _onInfoButton(self, evt):
+        msg = ('If you use CRYSOL in your work, in addition '
+            'to citing the RAW paper please cite the paper given here:\n'
+            'https://www.embl-hamburg.de/biosaxs/manuals/crysol.html')
+        wx.MessageBox(str(msg), "How to cite CRYSOL", style=wx.ICON_INFORMATION|wx.OK)
+
+    def _on_close(self):
+        self._abort_calculations()
+
+        if self.calc_type == 'CRYSOL':
+            if self.executor is not None:
+                self.executor.shutdown()
+
+        for name in self.save_names:
+            if os.path.exists(name):
+                os.remove(name)
+
+    def Close(self, event):
+        process_finished = True
+
+        if self.running_timer.IsRunning():
+            process_finished = False
+
+        if not process_finished and event.CanVeto():
+            msg = ("Warning: {} calculations are still "
+                "running. Closing this window will abort the currently "
+                "running processes. Do you want to continue closing the "
+                "window?".format(self.calc_type))
+            dlg = wx.MessageDialog(self.main_frame, msg, "Abort {}?".format(self.calc_type),
+                style = wx.ICON_WARNING | wx.YES_NO)
+            proceed = dlg.ShowModal()
+            dlg.Destroy()
+
+            if proceed == wx.ID_YES:
+                self.running_timer.Stop()
+                process_finished = True
+
+            else:
+                event.Veto()
+
+        else:
+            process_finished
+
+        if process_finished:
+            if self.save_results_on_close:
+                self.__on_save_info()
+
+            self._on_close()
+
+    def _on_save_info(self):
+        if 'theory' in self.current_results:
+            theory_profiles = self.current_results['theory']
+        else:
+            theory_profiles = []
+
+        if len(theory_profiles) > 0:
+            RAWGlobals.mainworker_cmd_queue.put(['to_plot', theory_profiles])
+
+
 class AmbimeterFrame(wx.Frame):
 
     def __init__(self, parent, title, iftm, manip_item):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
         size = (min(450, client_display.Width), min(450, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
@@ -12033,10 +12995,12 @@ class AmbimeterFrame(wx.Frame):
 class SupcombFrame(wx.Frame):
 
     def __init__(self, parent, title):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
         size = (min(450, client_display.Width), min(450, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self.main_frame = wx.FindWindowByName('MainFrame')
@@ -12405,10 +13369,12 @@ class SupcombFrame(wx.Frame):
 class CifsupFrame(wx.Frame):
 
     def __init__(self, parent, title):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
         size = (min(500, client_display.Width), min(250, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
         self.SetMinSize(self._FromDIP((min(500, client_display.Width), -1)))
 
@@ -12774,14 +13740,15 @@ class CifsupFrame(wx.Frame):
 class SVDFrame(wx.Frame):
 
     def __init__(self, parent, title, secm, manip_item):
-
-        client_display = wx.GetClientDisplayRect()
-        size = size = (min(950, client_display.Width), min(750, client_display.Height))
-
         self.secm = secm
         self.manip_item = manip_item
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
+
+        client_display = wx.GetClientDisplayRect()
+        size = size = (min(950, client_display.Width), min(750, client_display.Height))
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -14027,10 +14994,12 @@ class SVDControlPanel(wx.Panel):
 class EFAFrame(wx.Frame):
 
     def __init__(self, parent, title, secm, manip_item):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
         size = (min(950, client_display.Width), min(825, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -16455,6 +17424,8 @@ class REGALSFrame(wx.Frame):
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, "REGALS")
 
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
         size = (min(1500, client_display.Width), min(875, client_display.Height))
         self.SetSize(self._FromDIP(size))
@@ -18500,6 +19471,8 @@ class REGALSXCalibration(wx.Dialog):
         wx.Dialog.__init__(self, parent, wx.ID_ANY, 'REGALS X Data Calibration', *args,
             style = wx.RESIZE_BORDER|wx.CAPTION, **kwargs)
 
+        self.CenterOnParent()
+
         self.series = series
         self.regals_frame = regals_frame
         self.start = start
@@ -18685,6 +19658,8 @@ class REGALSBackground(wx.Dialog):
         svd_a_binned, *args, **kwargs):
         wx.Dialog.__init__(self, parent, wx.ID_ANY, 'REGALS Background Components', *args,
             style = wx.RESIZE_BORDER|wx.CAPTION, **kwargs)
+
+        self.CenterOnParent()
 
         self.series = series
         self.start = start
@@ -19163,11 +20138,12 @@ class REGALSBackgroundSVDPlot(wx.Panel):
 class ComparisonFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm_list):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
         size = (min(800, client_display.Width), min(800, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self.sasm_list = sasm_list
@@ -19857,6 +20833,8 @@ class ComparisonPlotPanel(wx.Panel):
         self.bottom_plot_data = []
         self.plot_scale = 'loglin'
         self.plot_legend = True
+        self._plot_shown = 0
+        self.bottom_legend = False
 
         self.line_color = SASUtils.update_mpl_style()
 
@@ -19963,6 +20941,107 @@ class ComparisonPlotPanel(wx.Panel):
         self.updatePlot(plot_scale, False)
         self.ax_redraw()
 
+    def plot_theory_data(self, top_plot_data):
+        self.top_plot_data = [[data, True] for data in top_plot_data]
+        self.bottom_plot_data
+
+        self.top_plot.cla()
+        self.bottom_plot.cla()
+        self.label_plots()
+
+        for data in self.top_plot_data:
+            sasm, show = data
+
+            name = sasm.getParameter('filename')
+
+            q = sasm.getQ()
+            i = sasm.getI()
+
+            line, = self.top_plot.plot(q, i, label=name)
+
+            if not show:
+                line.set_visible(False)
+
+        plot_scale = self.plot_scale
+        self.plot_scale = 'linlin'
+
+        self._updateLegend()
+        self.updatePlot(plot_scale, False)
+        self.ax_redraw()
+
+    def plot_fit_data(self, theory, residuals, exp_data):
+        self.top_plot_data = [[data, True] for data in theory]
+        self.top_plot_data = self.top_plot_data + [[data, True] for data in exp_data]
+
+        self.bottom_plot_data = [[data, True] for data in residuals]
+
+        self.top_plot.cla()
+        self.bottom_plot.cla()
+        self.label_plots()
+
+        if len(exp_data) == 1:
+
+            for sasm in theory:
+
+                name = sasm.getParameter('filename')
+
+                q = sasm.getQ()
+                i = sasm.getI()
+
+                line, = self.top_plot.plot(q, i, label=name)
+
+
+            for sasm in exp_data:
+                name = sasm.getParameter('filename')
+
+                q = sasm.getQ()
+                i = sasm.getI()
+
+                line, = self.top_plot.plot(q, i, '.', label=name, color='0.5')
+                line.set_zorder(-1)
+
+            for data in residuals:
+                line, = self.bottom_plot.plot(data[0], data[1], label=data[2])
+
+            self._updateLegend()
+
+        else:
+            for sasm in theory:
+
+                name = sasm.getParameter('filename')
+
+                q = sasm.getQ()
+                i = sasm.getI()
+
+                line, = self.top_plot.plot(q, i, label=name)
+
+
+            for sasm in exp_data:
+                name = sasm.getParameter('filename')
+
+                q = sasm.getQ()
+                i = sasm.getI()
+
+                line, = self.top_plot.plot(q, i, '.', label=name)
+                line.set_zorder(-1)
+
+            for data in residuals:
+                line, = self.bottom_plot.plot(data[0], data[1], label=data[2])
+
+            self._updateLegend(True)
+
+        if self.plot_type == 'ratio':
+            self.bottom_plot.axhline(1, color=self.line_color)
+        elif self.plot_type == 'residual':
+            self.bottom_plot.axhline(0, color=self.line_color)
+
+        plot_scale = self.plot_scale
+        self.plot_scale = 'linlin'
+
+
+        self.updatePlot(plot_scale, False)
+        self.ax_redraw()
+
     def label_plots(self):
         self.top_plot.set_title('Profiles')
         self.top_plot.set_xlabel('q')
@@ -19977,7 +21056,7 @@ class ComparisonPlotPanel(wx.Panel):
             self.bottom_plot.set_title('Ratio')
             self.bottom_plot.set_ylabel('Ratio')
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, scale_bottom_x_separate=False):
         top_plot_min_x = None
         top_plot_max_x = None
         top_plot_min_y = None
@@ -20062,8 +21141,11 @@ class ComparisonPlotPanel(wx.Panel):
                 else:
                     bottom_plot_max_y = max(bottom_plot_max_y, max(i))
 
-        if bottom_plot_min_x is not None and bottom_plot_max_x is not None:
+        if (scale_bottom_x_separate and bottom_plot_min_x is not None and bottom_plot_max_x is not None):
             self.bottom_plot.set_xlim(bottom_plot_min_x, bottom_plot_max_x)
+
+        elif top_plot_min_x is not None and top_plot_max_x is not None:
+            self.bottom_plot.set_xlim(top_plot_min_x, top_plot_max_x)
 
         if bottom_plot_min_y is not None and bottom_plot_max_y is not None:
             self.bottom_plot.set_ylim(bottom_plot_min_y, bottom_plot_max_y)
@@ -20157,7 +21239,7 @@ class ComparisonPlotPanel(wx.Panel):
             else:
                 self.plot_legend = False
 
-            self._updateLegend()
+            self._updateLegend(self.bottom_legend)
 
             self.ax_redraw()
 
@@ -20173,14 +21255,20 @@ class ComparisonPlotPanel(wx.Panel):
         elif my_id == 6:
             self.updatePlot('linlog')
 
-    def _updateLegend(self):
+    def _updateLegend(self, bottom_legend=False):
         legend_lines = []
         legend_labels = []
+        bot_leg_lines = []
+        bot_leg_labels = []
 
         legend = self.top_plot.get_legend()
+        bot_legend = self.bottom_plot.get_legend()
 
         if legend is not None:
             legend.remove()
+
+        if bot_legend is not None:
+            bot_legend.remove()
 
         if self.plot_legend:
             for each_line in self.top_plot.lines:
@@ -20191,6 +21279,20 @@ class ComparisonPlotPanel(wx.Panel):
                     legend_labels.append(each_line.get_label())
 
             self.top_plot.legend(legend_lines, legend_labels)
+
+            if bottom_legend:
+                self.bottom_legend = True
+                for each_line in self.bottom_plot.lines:
+                    if (each_line.get_visible() and each_line.get_label() != '_zero_'
+                        and each_line.get_label() != '_nolegend_'
+                        and each_line.get_label() != '_line1'):
+                        bot_leg_lines.append(each_line)
+                        bot_leg_labels.append(each_line.get_label())
+
+                self.bottom_plot.legend(bot_leg_lines, bot_leg_labels)
+
+            else:
+                self.bottom_legend = False
 
     def _exportData(self, evt):
         data_list = []
@@ -20219,7 +21321,7 @@ class ComparisonPlotPanel(wx.Panel):
                 header = header + '{},{},{},'.format(xlabel, ylabel, errlabel)
 
 
-                if show2:
+                if show2 and self._plot_shown == 0:
                     bot_data = data[1]
 
                     data_list.append(bot_data)
@@ -20261,6 +21363,44 @@ class ComparisonPlotPanel(wx.Panel):
 
             RAWGlobals.save_in_progress = False
             self.main_frame.setStatus('', 0)
+
+    def show_both(self):
+        if self._plot_shown != 0:
+            self.top_plot.set_visible(True)
+            self.bottom_plot.set_visible(True)
+
+            if ((int(matplotlib.__version__.split('.')[0]) == 3
+                and int(matplotlib.__version__.split('.')[1]) >= 4) or
+                int(matplotlib.__version__.split('.')[0]) > 3):
+                gs = matplotlib.gridspec.GridSpec(2,1)
+                self.top_plot.set_subplotspec(gs.new_subplotspec((0,0)))
+                self.bottom_plot.set_subplotspec(gs.new_subplotspec((1,0)))
+            else:
+                self.top_plot.change_geometry(2,1,1)
+                self.bottom_plot.change_geometry(2,1,2)
+
+            self._plot_shown = 0
+            self.canvas.draw()
+
+    def show_top(self):
+        if self._plot_shown != 1:
+            self.top_plot.set_visible(True)
+            self.bottom_plot.set_visible(False)
+
+
+            if ((int(matplotlib.__version__.split('.')[0]) == 3
+                and int(matplotlib.__version__.split('.')[1]) >= 4) or
+                int(matplotlib.__version__.split('.')[0]) > 3):
+                gs = matplotlib.gridspec.GridSpec(1,1)
+                self.top_plot.set_subplotspec(gs.new_subplotspec((0,0)))
+            else:
+                self.top_plot.change_geometry(1,1,1)
+
+            self.top_plot.set_zorder(2)
+            self.bottom_plot.set_zorder(1)
+
+            self._plot_shown = 1
+            self.canvas.draw()
 
 class ComparisonControlPanel(wx.Panel):
 
@@ -20529,11 +21669,12 @@ class ComparisonControlPanel(wx.Panel):
 class NormKratkyFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm_list):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
         size = (min(800, client_display.Width), min(600, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -21209,11 +22350,12 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
 class LCSeriesFrame(wx.Frame):
 
     def __init__(self, parent, title, secm, manip_item, raw_settings):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
         size = (min(1000, client_display.Width), min(900, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         panel = wx.Panel(self)

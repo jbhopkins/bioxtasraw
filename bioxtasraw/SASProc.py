@@ -71,26 +71,31 @@ def subtract(sasm1, sasm2, forced=False, full=False, copy_params=True):
         err2 = sasm2.err[q2_min:q2_max]
 
         if q1[0]>q2[0]:
-            start=np.round(q1[0],5)
+            start=q1[0]
         else:
-            start=np.round(q2[0],5)
+            start=q2[0]
 
         if q1[-1]>q2[-1]:
-            end=np.round(q2[-1],5)
+            end=q2[-1]
         else:
-            end=np.round(q1[-1],5)
+            end=q1[-1]
 
         if start>end:
             raise SASExceptions.DataNotCompatible('Subtraction failed: the curves have no overlapping q region.')
 
         shifted = False
-        if len(np.argwhere(q1==start))>0 and len(np.argwhere(q1==end))>0 and len(np.argwhere(q2==start))>0 and len(np.argwhere(q2==end))>0:
+
+        if (len(np.argwhere(q1==start))>0 and len(np.argwhere(q1==end))>0
+            and len(np.argwhere(q2==start))>0 and len(np.argwhere(q2==end))>0):
             q1_idx1 = np.argwhere(q1==start)[0][0]
             q1_idx2 = np.argwhere(q1==end)[0][0]+1
             q2_idx1 = np.argwhere(q2==start)[0][0]
             q2_idx2 = np.argwhere(q2==end)[0][0] +1
 
             if np.all(q1[q1_idx1:q1_idx2]==q2[q2_idx1:q2_idx2]):
+                shifted = True
+
+            elif np.all(np.round(q1[q1_idx1:q1_idx2], 4)==np.round(q2[q2_idx1:q2_idx2], 4)):
                 shifted = True
 
         if shifted:
@@ -107,6 +112,8 @@ def subtract(sasm1, sasm2, forced=False, full=False, copy_params=True):
                 npts=(end-start)//q1space+1
             else:
                 npts=(end-start)//q2space+1
+
+            npts = int(npts)
 
             refq=np.linspace(start,end,npts,endpoint=True)
 
@@ -808,6 +815,127 @@ def binfixed(q, I, er, refq):
     qn=refq
 
     return qn, In, np.nan_to_num(Iern)
+
+def divide(sasm1, sasm2, forced=False, full=False, copy_params=True):
+    ''' Divide one SASM object by another and propagate errors '''
+    if not full:
+        q1_min, q1_max = sasm1.getQrange()
+        q2_min, q2_max = sasm2.getQrange()
+    else:
+        q1_min = 0
+        q1_max = len(sasm1.q)+1
+        q2_min = 0
+        q2_max = len(sasm2.q)+1
+
+    if np.all(np.round(sasm1.q[q1_min:q1_max],5) == np.round(sasm2.q[q2_min:q2_max],5)):
+        i = sasm1.i[q1_min:q1_max]/sasm2.i[q2_min:q2_max]
+
+        q = copy.deepcopy(sasm1.q)[q1_min:q1_max]
+        err = np.sqrt( np.power(sasm1.err[q1_min:q1_max]/sasm1.i[q1_min:q1_max], 2)
+            + np.power(sasm2.err[q2_min:q2_max]/sasm2.i[q2_min:q2_max],2))
+        err = i*err
+
+    elif not np.all(np.round(sasm1.q[q1_min:q1_max],5) == np.round(sasm2.q[q2_min:q2_max],5)) and forced:
+        q1 = np.round(sasm1.q[q1_min:q1_max],5)
+        q2 = np.round(sasm2.q[q2_min:q2_max],5)
+        i1 = sasm1.i[q1_min:q1_max]
+        i2 = sasm2.i[q2_min:q2_max]
+        err1 = sasm1.err[q1_min:q1_max]
+        err2 = sasm2.err[q2_min:q2_max]
+
+        if q1[0]>q2[0]:
+            start=np.round(q1[0],5)
+        else:
+            start=np.round(q2[0],5)
+
+        if q1[-1]>q2[-1]:
+            end=np.round(q2[-1],5)
+        else:
+            end=np.round(q1[-1],5)
+
+        if start>end:
+            raise SASExceptions.DataNotCompatible('Subtraction failed: the curves have no overlapping q region.')
+
+        shifted = False
+        if len(np.argwhere(q1==start))>0 and len(np.argwhere(q1==end))>0 and len(np.argwhere(q2==start))>0 and len(np.argwhere(q2==end))>0:
+            q1_idx1 = np.argwhere(q1==start)[0][0]
+            q1_idx2 = np.argwhere(q1==end)[0][0]+1
+            q2_idx1 = np.argwhere(q2==start)[0][0]
+            q2_idx2 = np.argwhere(q2==end)[0][0] +1
+
+            if np.all(q1[q1_idx1:q1_idx2]==q2[q2_idx1:q2_idx2]):
+                shifted = True
+
+            elif np.all(np.round(q1[q1_idx1:q1_idx2], 4)==np.round(q2[q2_idx1:q2_idx2], 4)):
+                shifted = True
+
+        if shifted:
+            i = i1[q1_idx1:q1_idx2]/i2[q2_idx1:q2_idx2]
+            err = np.sqrt( np.power(err1[q1_idx1:q1_idx2]/i1[q1_idx1:q1_idx2], 2)
+                + np.power(err2[q2_idx1:q2_idx2]/i2[q2_idx1:q2_idx2],2))
+            err = i*err
+
+            q = copy.deepcopy(sasm1.q[q1_idx1:q1_idx2])
+
+        else:
+            q1space=q1[1]-q1[0]
+            q2space=q2[1]-q2[0]
+
+            if q1space>q2space:
+                npts=(end-start)//q1space+1
+            else:
+                npts=(end-start)//q2space+1
+
+            npts = int(npts)
+
+            refq=np.linspace(start,end,npts,endpoint=True)
+
+            q1_idx1 = np.argmin(np.absolute(q1-start))
+            q1_idx2 = np.argmin(np.absolute(q1-end))+1
+            q2_idx1 = np.argmin(np.absolute(q2-start))
+            q2_idx2 = np.argmin(np.absolute(q2-end))+1
+
+            q1b, i1b, err1b=binfixed(sasm1.q[q1_idx1:q1_idx2],
+                i1[q1_idx1:q1_idx2], err1[q1_idx1:q1_idx2], refq=refq)
+            q2b, i2b, err2b=binfixed(sasm2.q[q2_idx1:q2_idx2],
+                i2[q2_idx1:q2_idx2], err2[q2_idx1:q2_idx2], refq=refq)
+
+            i = i1b - i2b
+            err=np.sqrt(np.square(err1b/i1b)+np.square(err2b/i2b))
+            err = err*i
+
+            q = refq
+
+    else:
+        raise SASExceptions.DataNotCompatible('The curves does not have the same q vectors.')
+
+    if copy_params:
+        sub_parameters = get_shared_header([sasm1, sasm2])
+
+        sub_parameters['filename'] = copy.deepcopy(sasm1.getParameter('filename'))
+
+        history = {}
+
+        history1 = []
+        history1.append(copy.deepcopy(sasm1.getParameter('filename')))
+        for key in sasm1.getParameter('history'):
+            history1.append({ key : copy.deepcopy(sasm1.getParameter('history')[key])})
+
+        history2 = []
+        history2.append(copy.deepcopy(sasm2.getParameter('filename')))
+        for key in sasm2.getParameter('history'):
+            history2.append({key : copy.deepcopy(sasm2.getParameter('history')[key])})
+
+        history['subtraction'] = {'initial_file':history1, 'subtracted_file':history2}
+
+        sub_parameters['history'] = history
+
+    else:
+        sub_parameters = {'filename': copy.deepcopy(sasm1.getParameter('filename'))}
+
+    newSASM = SASM.SASM(i, q, err, sub_parameters, copy.deepcopy(sasm1.getQErr()))
+
+    return newSASM
 
 def get_shared_header(sasm_list):
     params_list = [sasm.getAllParameters() for sasm in sasm_list]
