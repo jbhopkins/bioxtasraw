@@ -21004,7 +21004,7 @@ class ComparisonPlotPanel(wx.Panel):
 
     def plot_theory_data(self, top_plot_data):
         self.top_plot_data = [[data, True] for data in top_plot_data]
-        self.bottom_plot_data
+        self.bottom_plot_data = []
 
         self.top_plot.cla()
         self.bottom_plot.cla()
@@ -21117,7 +21117,7 @@ class ComparisonPlotPanel(wx.Panel):
             self.bottom_plot.set_title('Ratio')
             self.bottom_plot.set_ylabel('Ratio')
 
-    def autoscale_plot(self, scale_bottom_x_separate=False):
+    def autoscale_plot(self, scale_bottom_x_separate=False, draw=True):
         top_plot_min_x = None
         top_plot_max_x = None
         top_plot_min_y = None
@@ -21211,11 +21211,14 @@ class ComparisonPlotPanel(wx.Panel):
         if bottom_plot_min_y is not None and bottom_plot_max_y is not None:
             self.bottom_plot.set_ylim(bottom_plot_min_y, bottom_plot_max_y)
 
+        if draw:
+            self.ax_redraw()
+
     def updatePlot(self, plot_scale, draw=True):
         if plot_scale != self.plot_scale:
             self.plot_scale = plot_scale
 
-            self.autoscale_plot()
+            self.autoscale_plot(draw=False)
 
             if self.plot_scale == 'linlin':
                 self.top_plot.set_xscale('linear')
