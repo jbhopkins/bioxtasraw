@@ -11648,11 +11648,20 @@ class TheoreticalFrame(wx.Frame):
 
         splitter = wx.SplitterWindow(panel, style=wx.SP_3D|wx.SP_BORDER)
 
-        self.plot_panel = ComparisonPlotPanel(splitter, 'residual')
+        sub_panel = wx.Panel(splitter)
+
+        self.plot_panel = ComparisonPlotPanel(sub_panel, 'residual')
+        self.results_list = TheoreticalList(sub_panel, self.calc_type, size=self._FromDIP((-1, 10)))
         self.ctrl_panel = TheoreticalControlPanel(splitter, self, self.calc_type,
             self.sasm_list)
 
-        splitter.SplitVertically(self.ctrl_panel, self.plot_panel, self._FromDIP(325))
+        results_sizer = wx.BoxSizer(wx.VERTICAL)
+        results_sizer.Add(self.plot_panel, proportion=5, flag=wx.EXPAND)
+        results_sizer.Add(self.results_list, proportion=1, border=self._FromDIP(5),
+            flag=wx.TOP|wx.EXPAND|wx.BOTTOM)
+        sub_panel.SetSizer(results_sizer)
+
+        splitter.SplitVertically(self.ctrl_panel, sub_panel, self._FromDIP(325))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
             splitter.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
@@ -12192,14 +12201,15 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         self.crysol_ref = {}
 
         for model in models:
-            model_name = os.path.splitext(os.path.split(model)[1])[0]
+            model_name_ext = os.path.split(model)[1]
+            model_name = os.path.splitext(model_name_ext)[0]
             if data is None:
-                self.crysol_ref[model_name] = [model_name, None]
+                self.crysol_ref[model_name] = [model_name_ext, None]
             else:
                 for j, profile in enumerate(data):
                     profile_name = os.path.split(os.path.splitext(profile_names[j])[0])[1]
                     self.crysol_ref[('{}_{}'.format(model_name,
-                        profile_name))] = [model_name, profile]
+                        profile_name))] = [model_name_ext, profile]
 
         if save_all:
             path_exists = os.path.exists(save_path)
@@ -12375,6 +12385,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         if len(theory) > 0:
             self.send_to_plot(theory, residuals, data)
+            self.update_results_list(params)
 
             self.current_results = {
                 'theory'    : theory,
@@ -12391,9 +12402,12 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         theory_list = []
         residual_list = []
         data_list = []
+        params = []
 
         for res in results:
             for key, value in res.items():
+                param_list = []
+
                 crysol_ref_data = self.crysol_ref[key]
 
                 if crysol_ref_data[1] is None:
@@ -12405,6 +12419,8 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                         profiles = value
                 else:
                     profiles = value
+
+                param_list.append(crysol_ref_data[0])
 
                 theory_list.extend(profiles)
 
@@ -12432,7 +12448,30 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                     if profile not in data_list:
                         data_list.append(profile)
 
-        return theory_list, residual_list, data_list, []
+                    param_list.append(exp_data.getParameter('filename'))
+
+                else:
+                    param_list.append('')
+
+                cd = profiles[0].getParameter('crysol')
+                param_list.append(cd['Rg'])
+                param_list.append(cd['Excluded_volume'])
+
+                if 'Chi_squared' in cd:
+                    param_list.append(cd['Chi_squared'])
+                else:
+                    param_list.append('')
+
+                if 'Probability_of_fit' in cd:
+                    param_list.append(cd['Probability_of_fit'])
+                else:
+                    param_list.append('')
+
+                param_list.append(cd['Hydration_shell_contrast'])
+
+                params.append(param_list)
+
+        return theory_list, residual_list, data_list, params
 
     def _cleanup(self):
         self.start_button.Enable()
@@ -12450,6 +12489,12 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         else:
             self.theory_frame.set_plot_view('both')
             self.theory_frame.plot_panel.plot_fit_data(theory, residuals, data)
+
+    def update_results_list(self, params):
+        self.theory_frame.results_list.DeleteAllItems()
+
+        for item in params:
+            self.theory_frame.results_list.Append(item)
 
     def _abort_calculations(self):
         self.abort_event.set()
@@ -12567,6 +12612,25 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         if len(theory_profiles) > 0:
             RAWGlobals.mainworker_cmd_queue.put(['to_plot', theory_profiles])
 
+class TheoreticalList(wx.ListCtrl, wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin,):
+    # wx.lib.mixins.listctrl.ColumnSorterMixin):
+
+    def __init__(self, parent, calc_type, *args, **kwargs):
+        wx.ListCtrl.__init__(self, parent, *args, style=wx.LC_REPORT, **kwargs)
+
+        self.calc_type = calc_type
+
+        if self.calc_type == 'CRYSOL':
+            self.InsertColumn(0, 'Model')
+            self.InsertColumn(1, 'Data')
+            self.InsertColumn(2, 'Rg')
+            self.InsertColumn(3, 'Ex. Vol.')
+            self.InsertColumn(4, 'Chi^2')
+            self.InsertColumn(5, 'Prob.')
+            self.InsertColumn(6, 'Contrast')
+
+        wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin.__init__(self)
+        # wx.lib.mixins.listctrl.ColumnSorterMixin.__init__(self, 7)
 
 class AmbimeterFrame(wx.Frame):
 
@@ -20164,7 +20228,7 @@ class ComparisonFrame(wx.Frame):
 
         residuals_panel = ResidualsPanel(notebook, self.sasm_list, self)
         ratio_panel = RatioPanel(notebook, self.sasm_list, self)
-        similiarity_list_panel = SimilarityListPanel(notebook, self.sasm_list)
+        similiarity_list_panel = SimilarityTestPanel(notebook, self.sasm_list)
 
         notebook.AddPage(residuals_panel, 'Residuals')
         notebook.AddPage(ratio_panel, 'Ratios')
@@ -20199,7 +20263,7 @@ class ComparisonFrame(wx.Frame):
     def OnClose(self, event):
         self.Destroy()
 
-class SimilarityListPanel(wx.Panel):
+class SimilarityTestPanel(wx.Panel):
 
     def __init__(self, parent, sasm_list):
 
@@ -20284,7 +20348,7 @@ class SimilarityListPanel(wx.Panel):
 
         self.similarity_plot = SimilarityPlotPanel(parent)
 
-        self.listPanel = similiarityListPanel(parent, (-1, 300))
+        self.listPanel = SimilarityListPanel(parent, (-1, 300))
 
         #Creating the fixed buttons
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -20509,7 +20573,7 @@ class SimilarityListPanel(wx.Panel):
         RAWGlobals.save_in_progress = False
         self.main_frame.setStatus('', 0)
 
-class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
+class SimilarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
     wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin):
     """Makes a sortable list panel for the similarity data. Right now,
     only has columns for the CorMap test.
@@ -20863,10 +20927,7 @@ class ComparisonPlotPanel(wx.Panel):
 
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
 
-        # self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
-        # self.toolbar.Realize()
-
-        self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
         self.toolbar.Realize()
 
         sizer = wx.BoxSizer(wx.VERTICAL)

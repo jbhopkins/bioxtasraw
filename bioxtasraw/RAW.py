@@ -7997,8 +7997,6 @@ class ManipulationPanel(wx.Panel):
         if item_colour is None:
             item_colour = RAWGlobals.general_text_color
 
-        print(sasm)
-
         self.underpanel.Freeze()
 
         if not isinstance(sasm, list):
@@ -8549,7 +8547,6 @@ class ManipItemPanel(wx.Panel):
 
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
 
-        print(sasm)
         self.parent = parent
         self.sasm = sasm
         self.sasm.itempanel = self
@@ -14408,7 +14405,7 @@ class CenteringPanel(scrolled.ScrolledPanel):
         self.c.refine()
 
         results = self.c.geoRef.getFit2D()
-        print(self.c.geoRef.getPyFAI())
+        # print(self.c.geoRef.getPyFAI())
 
         self._center = [results['centerX'], results['centerY']]
         self._sd_text.SetValue(str(results['directDist']))
