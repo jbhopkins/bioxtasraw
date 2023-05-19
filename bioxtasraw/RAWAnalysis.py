@@ -12453,7 +12453,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                 else:
                     param_list.append('')
 
-                cd = profiles[0].getParameter('crysol')
+                cd = profiles[0].getParameter('analysis')['crysol']
                 param_list.append(cd['Rg'])
                 param_list.append(cd['Excluded_volume'])
 

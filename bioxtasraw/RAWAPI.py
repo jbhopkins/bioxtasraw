@@ -4516,7 +4516,9 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
                 counters = fit.getParameter('counters')
                 counters.update(log_results)
 
-                fit.setParameter('crysol', counters)
+                analysis = fit.getParameter('analysis')
+                analysis['crysol'] = counters
+                fit.setParameter('analysis', analysis)
 
                 crysol_results[prefix] = [fit]
 
@@ -4547,7 +4549,9 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
                         counters = fit.getParameter('counters')
                         counters.update(log_results)
 
-                        fit.setParameter('crysol', counters)
+                        analysis = fit.getParameter('analysis')
+                        analysis['crysol'] = counters
+                        fit.setParameter('analysis', analysis)
 
                         crysol_results[name] = [fit]
 
@@ -4580,13 +4584,15 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
                 counters = fit.getParameter('counters')
                 counters.update(log_results)
 
-                fit.setParameter('crysol', counters)
+                analysis = fit.getParameter('analysis')
+                analysis['crysol'] = counters
+                fit.setParameter('analysis', analysis)
 
                 abs_prof = SASFileIO.loadIntFile(os.path.join(output_dir,
                     '{}.abs'.format(prefix)))
 
-                abs_prof.setParameter('crysol',
-                    copy.deepcopy(fit.getParameter('counters')))
+                abs_prof.setParameter('analysis',
+                    copy.deepcopy(fit.getParameter('analysis')))
 
                 crysol_results[prefix] = [abs_prof, fit]
 
@@ -4611,13 +4617,15 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
                     counters = fit.getParameter('counters')
                     counters.update(log_results)
 
-                    fit.setParameter('crysol', counters)
+                    analysis = fit.getParameter('analysis')
+                    analysis['crysol'] = counters
+                    fit.setParameter('analysis', analysis)
 
                     abs_prof = SASFileIO.loadIntFile(os.path.join(output_dir,
                         '{}.abs'.format(name)))
 
-                    abs_prof.setParameter('crysol',
-                        copy.deepcopy(fit.getParameter('counters')))
+                    abs_prof.setParameter('analysis',
+                        copy.deepcopy(fit.getParameter('analysis')))
 
                     crysol_results[name] = [abs_prof, fit]
 
