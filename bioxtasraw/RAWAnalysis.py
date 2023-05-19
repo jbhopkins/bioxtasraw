@@ -21362,39 +21362,79 @@ class ComparisonPlotPanel(wx.Panel):
         data_list = []
         header = ''
 
-        for j in range(len(self.top_plot_data)):
-            sasm, show = self.top_plot_data[j]
+        if len(self.top_plot_data) == len(self.bottom_plot_data):
+            for j in range(len(self.top_plot_data)):
+                sasm, show = self.top_plot_data[j]
 
-            data, show2 = self.bottom_plot_data[j]
+                data, show2 = self.bottom_plot_data[j]
 
-            name = sasm.getParameter('filename')
+                name = sasm.getParameter('filename')
 
-            if show:
-                q = sasm.getQ()
-                i = sasm.getI()
-                err = sasm.getErr()
+                if show:
+                    q = sasm.getQ()
+                    i = sasm.getI()
+                    err = sasm.getErr()
 
-                data_list.append(q)
-                data_list.append(i)
-                data_list.append(err)
+                    data_list.append(q)
+                    data_list.append(i)
+                    data_list.append(err)
 
-                xlabel = '{}_{}'.format(name, 'q')
-                ylabel = '{}_{}'.format(name, 'I(q)')
-                errlabel = '{}_{}'.format(name, 'err')
+                    xlabel = '{}_{}'.format(name, 'q')
+                    ylabel = '{}_{}'.format(name, 'I(q)')
+                    errlabel = '{}_{}'.format(name, 'err')
 
-                header = header + '{},{},{},'.format(xlabel, ylabel, errlabel)
+                    header = header + '{},{},{},'.format(xlabel, ylabel, errlabel)
 
 
-                if show2 and self._plot_shown == 0:
-                    bot_data = data[1]
+                    if show2 and self._plot_shown == 0:
+                        bot_data = data[1]
 
-                    data_list.append(bot_data)
+                        data_list.append(bot_data)
 
-                    bot_label = '{}_{}'.format(name, self.plot_type)
+                        bot_label = '{}_{}'.format(name, self.plot_type)
 
-                    header = header+'{}, '.format(bot_label)
-                else:
-                    header = header+' '
+                        header = header+'{}, '.format(bot_label)
+                    else:
+                        header = header+' '
+
+        else:
+            for j in range(len(self.top_plot_data)):
+                sasm, show = self.top_plot_data[j]
+
+                name = sasm.getParameter('filename')
+
+                if show:
+                    q = sasm.getQ()
+                    i = sasm.getI()
+                    err = sasm.getErr()
+
+                    data_list.append(q)
+                    data_list.append(i)
+                    data_list.append(err)
+
+                    xlabel = '{}_{}'.format(name, 'q')
+                    ylabel = '{}_{}'.format(name, 'I(q)')
+                    errlabel = '{}_{}'.format(name, 'err')
+
+                    header = header + '{},{},{},'.format(xlabel, ylabel, errlabel)
+
+            if self._plot_shown == 0:
+                for j in range(len(self.bottom_plot_data)):
+                    data, show = self.bottom_plot_data[j]
+
+                    name = data[2]
+
+                    if show:
+                        q = data[0]
+                        i = data[1]
+
+                        data_list.append(q)
+                        data_list.append(i)
+
+                        xlabel = '{}_residual_{}'.format(name, 'q')
+                        ylabel = '{}_residual_{}'.format(name, 'I(q)')
+
+                        header = header + '{},{},'.format(xlabel, ylabel)
 
         header = header.rstrip(', ')
 
