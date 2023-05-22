@@ -9181,6 +9181,8 @@ class ManipItemPanel(wx.Panel):
         other_ops_menu.Append(43, 'Set q units')
 
         other_an_menu = wx.Menu()
+        other_an_menu.Append(32, 'IFT (BIFT)')
+        other_an_menu.Append(44, 'Fit model (CRYSOL)')
         other_an_menu.Append(34, 'SVD')
         other_an_menu.Append(35, 'EFA')
         other_an_menu.Append(42, 'REGALS')
@@ -9195,7 +9197,7 @@ class ManipItemPanel(wx.Panel):
         menu.AppendSeparator()
         menu.Append(13, 'Guinier fit')
         menu.Append(29, 'Molecular weight')
-        menu.Append(32, 'IFT (BIFT)')
+
         if opsys == 'Windows':
             if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'gnom.exe')):
                 menu.Append(31, 'IFT (GNOM)')
@@ -9460,6 +9462,16 @@ class ManipItemPanel(wx.Panel):
                 unit = dialog.GetStringSelection()
                 self.sasm.setParameter('unit', unit)
 
+        elif evt.GetId() == 44:
+            #Open crysol window
+            selected_sasms = []
+
+            selected_items = self.manipulation_panel.getSelectedItems()
+
+            if selected_items:
+                selected_sasms = [item.getSASM() for item in selected_items]
+
+            self.main_frame.showCRYSOLFrame(selected_sasms)
 
     def _saveAllAnalysisInfo(self):
         selected_items = self.manipulation_panel.getSelectedItems()

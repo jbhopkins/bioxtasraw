@@ -11651,7 +11651,8 @@ class TheoreticalFrame(wx.Frame):
         sub_panel = wx.Panel(splitter)
 
         self.plot_panel = ComparisonPlotPanel(sub_panel, 'residual')
-        self.results_list = TheoreticalList(sub_panel, self.calc_type, size=self._FromDIP((-1, 10)))
+        self.results_list = TheoreticalList(sub_panel, self.calc_type,
+            size=self._FromDIP((-1, 10)))
         self.ctrl_panel = TheoreticalControlPanel(splitter, self, self.calc_type,
             self.sasm_list)
 
@@ -12618,6 +12619,8 @@ class TheoreticalList(wx.ListCtrl, wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin
     def __init__(self, parent, calc_type, *args, **kwargs):
         wx.ListCtrl.__init__(self, parent, *args, style=wx.LC_REPORT, **kwargs)
 
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
         self.calc_type = calc_type
 
         if self.calc_type == 'CRYSOL':
@@ -12631,6 +12634,83 @@ class TheoreticalList(wx.ListCtrl, wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin
 
         wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin.__init__(self)
         # wx.lib.mixins.listctrl.ColumnSorterMixin.__init__(self, 7)
+
+        self.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
+
+    def _onRightMouseButton(self, evt):
+        if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+            wx.CallAfter(self._showPopupMenu)
+        else:
+            self._showPopupMenu()
+
+    def _showPopupMenu(self):
+        menu = wx.Menu()
+
+        menu.Append(1, 'Export Data')
+
+        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
+        self.PopupMenu(menu)
+
+        menu.Destroy()
+
+    def _onPopupMenuChoice(self, evt):
+
+        Mainframe = wx.FindWindowByName('MainFrame')
+
+        if evt.GetId() == 1:
+            #Export data
+            self._export_data()
+
+    def _export_data(self):
+        dirctrl = wx.FindWindowByName('DirCtrlPanel')
+        path = str(dirctrl.getDirLabel())
+
+        filename = 'crysol_results.csv'
+
+        dialog = wx.FileDialog(self, message=("Please select save directory "
+            "and enter save file name"), style=wx.FD_SAVE, defaultDir=path,
+            defaultFile=filename)
+
+        if dialog.ShowModal() == wx.ID_OK:
+            save_path = dialog.GetPath()
+            name, ext = os.path.splitext(save_path)
+            save_path = name + '.csv'
+            dialog.Destroy()
+        else:
+            dialog.Destroy()
+            return
+
+        RAWGlobals.save_in_progress = True
+        self.main_frame.setStatus('Saving SVD data', 0)
+
+        ncols = self.GetColumnCount()
+
+        headers = []
+
+        for i in range(ncols):
+            item = self.GetColumn(i)
+            item_label = item.GetText()
+            headers.append(item_label)
+
+        nitems = self.GetItemCount()
+
+        item_list = []
+
+        for i in range(nitems):
+            item_data = []
+
+            for j in range(ncols):
+                item = self.GetItem(i, j)
+                item_data.append(item.GetText())
+
+            item_list.append(item_data)
+
+        header_str = '#' + ','.join(headers)
+
+        SASFileIO.saveCSVFile(save_path, item_list, header_str)
+
+        RAWGlobals.save_in_progress = False
+        self.main_frame.setStatus('', 0)
 
 class AmbimeterFrame(wx.Frame):
 

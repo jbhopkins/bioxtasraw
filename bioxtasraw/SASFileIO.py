@@ -4343,7 +4343,7 @@ def saveWorkspace(sasm_dict, save_path):
         pickle.dump(sasm_dict, f, protocol=2)
 
 
-def saveCSVFile(filename, data, header = ''):
+def saveCSVFile(filename, data, header=''):
     if isinstance(data, list):
         body_string = ''
         for item in data:
@@ -4359,9 +4359,10 @@ def saveCSVFile(filename, data, header = ''):
 
     else:
         if header != '':
-            np.savetxt(filename, data, delimiter = ',', header = header, comments = '')
+            np.savetxt(filename, data, delimiter=',', header=header,
+                comments='')
         else:
-            np.savetxt(filename, data, delimiter = ',', comments ='')
+            np.savetxt(filename, data, delimiter=',', comments='')
 
 def saveUnevenCSVFile(filename, data, header = ''):
     maxlen = max([len(item) for item in data])

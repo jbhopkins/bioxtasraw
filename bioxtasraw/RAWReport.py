@@ -127,6 +127,10 @@ BayesMWData = collections.namedtuple('Bayes_MW', ['MW', 'Probability',
     'Confidence_interval_lower', 'Confidence_interval_upper',
     'Confidence_interval_probability'], defaults=[-1, -1, -1, -1, -1])
 
+TheoryData = collections.namedtuple('Theory', ['Chi_squared', 'Rg',
+    'Hydration_shell_contrast', 'Excluded_volume', 'Probability_of_fit',
+    'Solvent_density', 'Type'], defaults=[-1, -1, -1, -1, -1, -1, ''])
+
 BIFTData = collections.namedtuple('BIFT', ['Dmax', 'Rg', 'I0', 'Dmax_err',
     'Rg_err', 'I0_err', 'Chi_sq', 'q_min', 'q_max', 'Evidence', 'log_alpha',
     'Evidence_err', 'log_alpha_err'], defaults=[-1, -1, -1, -1, -1, -1, -1,
@@ -490,6 +494,15 @@ class SAXSData(object):
         'Bayesian'              : (_bayesmw_trans, BayesMWData),
         }
 
+    _theory_trans = {
+        'Chi_squared'               : 'Chi_squared',
+        'Rg'                        : 'Rg',
+        'Hydration_shell_contrast'  : 'Hydration_shell_contrast',
+        'Excluded_volume'           : 'Excluded_volume',
+        'Probability_of_fit'        : 'Probability_of_fit',
+        'Solvent_density'           : 'Solvent_density',
+        }
+
     _bift_trans = {
         'Dmax'              : 'Dmax',
         'Real_Space_Rg'     : 'Rg',
@@ -646,6 +659,21 @@ class SAXSData(object):
             data_tuple = data_method(**data_dict)
 
             self.mw_data[value] = data_tuple
+
+
+        # Get data on theoretical profile. Could be CRYSOL or . . .
+        # Grab CRYSOL data
+        data_dict = {}
+
+        if 'crysol' in self._analysis_data:
+            crysol_analysis = self._analysis_data['crysol']
+            data_dict['Type'] = 'CRYSOL'
+
+            for key, value in self._theory_trans.items():
+                if key in crysol_analysis:
+                    data_dict[value] = float(crysol_analysis[key])
+
+        self.theory_data = TheoryData(**data_dict)
 
         # Grab BIFT data
         data_dict = {}
@@ -1770,6 +1798,9 @@ def generate_report(fname, datadir, profiles, ifts, series, extra_data=None):
         mw = generate_mw_params(profiles, ifts, series)
         elements.extend(mw)
 
+        theory = generate_theory_params(profiles, ifts, series)
+        elements.extend(theory)
+
     if len(ifts) > 0:
         if any(ift.type == 'GNOM' for ift in ifts):
             gnom = generate_gnom_params(profiles, ifts, series)
@@ -2848,6 +2879,56 @@ def generate_mw_params(profiles, ifts, series):
         mw_table = KeepTogether([mw_text, mw_table])
 
         elements = [mw_table]
+
+    else:
+        elements = []
+
+    return elements
+
+def generate_theory_params(profiles, ifts, series):
+    styles = getSampleStyleSheet()
+
+    theory_text = Paragraph('Theoretical profiles:', styles['Heading2'])
+
+    table_pairs = [
+        ('', 'name'),
+        ('Date', 'Date'),
+        ('Method', 'Type'),
+        ('Rg', 'Rg'),
+        ('Excluded volume', 'Excluded_volume'),
+        ('Hydration shell contrast', 'Hydration_shell_contrast'),
+        ('Chi^2', 'Chi_squared'),
+        ('Probability of fit', 'Probability_of_fit'),
+        ]
+
+    table_dict = OrderedDict()
+
+    required_data = ['']
+
+    for profile in profiles:
+        for header, key in table_pairs:
+            if key in profile.theory_data._fields:
+                value = getattr(profile.theory_data, key)
+            else:
+                value = ''
+
+            if value != -1:
+                value = str(value)
+            else:
+                value = ''
+
+            if key == 'name':
+                value = profile.filename
+
+            if header in table_dict:
+                table_dict[header].append(value)
+            else:
+                table_dict[header] = [value]
+
+    theory_table, table_data = format_table(table_dict, required_data, 130., 200.)
+
+    if len(table_data) > 1:
+        elements = [theory_text, theory_table]
 
     else:
         elements = []
