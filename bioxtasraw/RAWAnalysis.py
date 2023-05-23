@@ -20910,14 +20910,21 @@ class ResidualsPanel(wx.Panel):
 
     def create_layout(self):
 
-        self.plot_panel = ComparisonPlotPanel(self, 'residual')
-        self.control_panel = ComparisonControlPanel(self, self.sasm_list,
-            'residual', self.comparison_frame)
+        splitter = wx.SplitterWindow(self, style=wx.SP_3D|wx.SP_BORDER)
+
+        self.plot_panel = ComparisonPlotPanel(splitter, 'residual')
+        self.control_panel = ComparisonControlPanel(splitter, self.sasm_list,
+            'residual', self.comparison_frame, self)
+
+        splitter.SplitVertically(self.control_panel, self.plot_panel, self._FromDIP(325))
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            splitter.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
+        else:
+            splitter.SetMinimumPaneSize(self._FromDIP(50))
 
         top_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        top_sizer.Add(self.control_panel, flag=wx.ALL, border=self._FromDIP(5))
-        top_sizer.Add(self.plot_panel, proportion=1 ,
-            flag=wx.EXPAND|wx.RIGHT|wx.TOP|wx.BOTTOM, border=self._FromDIP(5))
+        top_sizer.Add(splitter, proportion=1, flag=wx.EXPAND)
 
         self.SetSizer(top_sizer)
 
@@ -20948,14 +20955,21 @@ class RatioPanel(wx.Panel):
 
     def create_layout(self):
 
-        self.plot_panel = ComparisonPlotPanel(self, 'ratio')
-        self.control_panel = ComparisonControlPanel(self, self.sasm_list,
-            'ratio', self.comparison_frame)
+        splitter = wx.SplitterWindow(self, style=wx.SP_3D|wx.SP_BORDER)
+
+        self.plot_panel = ComparisonPlotPanel(splitter, 'ratio')
+        self.control_panel = ComparisonControlPanel(splitter, self.sasm_list,
+            'ratio', self.comparison_frame, self)
+
+        splitter.SplitVertically(self.control_panel, self.plot_panel, self._FromDIP(325))
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            splitter.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
+        else:
+            splitter.SetMinimumPaneSize(self._FromDIP(50))
 
         top_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        top_sizer.Add(self.control_panel, flag=wx.ALL, border=self._FromDIP(5))
-        top_sizer.Add(self.plot_panel, proportion=1 ,
-            flag=wx.EXPAND|wx.RIGHT|wx.TOP|wx.BOTTOM, border=self._FromDIP(5))
+        top_sizer.Add(splitter, proportion=1, flag=wx.EXPAND)
 
         self.SetSizer(top_sizer)
 
@@ -21586,14 +21600,21 @@ class ComparisonPlotPanel(wx.Panel):
             self._plot_shown = 1
             self.canvas.draw()
 
-class ComparisonControlPanel(wx.Panel):
+class ComparisonControlPanel(scrolled.ScrolledPanel):
 
-    def __init__(self, parent, sasm_list, plot_type, comp_frame):
+    def __init__(self, parent, sasm_list, plot_type, comp_frame, plot_parent,
+        *args, **kwargs):
 
-        wx.Panel.__init__(self, parent)
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style']|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.RAISED_BORDER
+
+        scrolled.ScrolledPanel.__init__(self, parent, *args, **kwargs)
 
         self.parent = parent
         self.comparison_frame = comp_frame
+        self.plot_parent = plot_parent
         self.sasm_list = [copy.deepcopy(sasm) for sasm in sasm_list]
         self.plot_type = plot_type
 
@@ -21606,6 +21627,7 @@ class ComparisonControlPanel(wx.Panel):
 
         self._create_layout()
         self._initialize()
+        self.SetupScrolling()
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -21847,7 +21869,7 @@ class ComparisonControlPanel(wx.Panel):
 
             bottom_plot_data.append([[q, y_data], show2])
 
-        self.parent.send_to_plot(top_plot_data, bottom_plot_data, self.reference_item)
+        self.plot_parent.send_to_plot(top_plot_data, bottom_plot_data, self.reference_item)
 
 
 class NormKratkyFrame(wx.Frame):

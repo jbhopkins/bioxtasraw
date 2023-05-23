@@ -47,91 +47,29 @@ import bioxtasraw.sascalc_exts as sascalc_exts
 
 def subtract(sasm1, sasm2, forced=False, full=False, copy_params=True):
     ''' Subtract one SASM object from another and propagate errors '''
-    if not full:
-        q1_min, q1_max = sasm1.getQrange()
-        q2_min, q2_max = sasm2.getQrange()
-    else:
-        q1_min = 0
-        q1_max = len(sasm1.q)+1
-        q2_min = 0
-        q2_max = len(sasm2.q)+1
+    q_match = test_equal_q_ranges([sasm1, sasm2], full, 5)
 
-    if np.all(np.round(sasm1.q[q1_min:q1_max],5) == np.round(sasm2.q[q2_min:q2_max],5)):
-        i = sasm1.i[q1_min:q1_max] - sasm2.i[q2_min:q2_max]
+    if q_match:
+        prof1 = sasm1
+        prof2 = sasm2
 
-        q = copy.deepcopy(sasm1.q)[q1_min:q1_max]
-        err = np.sqrt( np.power(sasm1.err[q1_min:q1_max], 2) + np.power(sasm2.err[q2_min:q2_max],2))
-
-    elif not np.all(np.round(sasm1.q[q1_min:q1_max],5) == np.round(sasm2.q[q2_min:q2_max],5)) and forced:
-        q1 = np.round(sasm1.q[q1_min:q1_max],5)
-        q2 = np.round(sasm2.q[q2_min:q2_max],5)
-        i1 = sasm1.i[q1_min:q1_max]
-        i2 = sasm2.i[q2_min:q2_max]
-        err1 = sasm1.err[q1_min:q1_max]
-        err2 = sasm2.err[q2_min:q2_max]
-
-        if q1[0]>q2[0]:
-            start=q1[0]
-        else:
-            start=q2[0]
-
-        if q1[-1]>q2[-1]:
-            end=q2[-1]
-        else:
-            end=q1[-1]
-
-        if start>end:
-            raise SASExceptions.DataNotCompatible('Subtraction failed: the curves have no overlapping q region.')
-
-        shifted = False
-
-        if (len(np.argwhere(q1==start))>0 and len(np.argwhere(q1==end))>0
-            and len(np.argwhere(q2==start))>0 and len(np.argwhere(q2==end))>0):
-            q1_idx1 = np.argwhere(q1==start)[0][0]
-            q1_idx2 = np.argwhere(q1==end)[0][0]+1
-            q2_idx1 = np.argwhere(q2==start)[0][0]
-            q2_idx2 = np.argwhere(q2==end)[0][0] +1
-
-            if np.all(q1[q1_idx1:q1_idx2]==q2[q2_idx1:q2_idx2]):
-                shifted = True
-
-            elif np.all(np.round(q1[q1_idx1:q1_idx2], 4)==np.round(q2[q2_idx1:q2_idx2], 4)):
-                shifted = True
-
-        if shifted:
-            i = i1[q1_idx1:q1_idx2] - i2[q2_idx1:q2_idx2]
-            err = np.sqrt( np.power(err1[q1_idx1:q1_idx2], 2) + np.power(err2[q2_idx1:q2_idx2],2))
-
-            q = copy.deepcopy(sasm1.q[q1_idx1:q1_idx2])
-
-        else:
-            q1space=q1[1]-q1[0]
-            q2space=q2[1]-q2[0]
-
-            if q1space>q2space:
-                npts=(end-start)//q1space+1
-            else:
-                npts=(end-start)//q2space+1
-
-            npts = int(npts)
-
-            refq=np.linspace(start,end,npts,endpoint=True)
-
-            q1_idx1 = np.argmin(np.absolute(q1-start))
-            q1_idx2 = np.argmin(np.absolute(q1-end))+1
-            q2_idx1 = np.argmin(np.absolute(q2-start))
-            q2_idx2 = np.argmin(np.absolute(q2-end))+1
-
-            q1b, i1b, err1b=binfixed(sasm1.q[q1_idx1:q1_idx2], i1[q1_idx1:q1_idx2], err1[q1_idx1:q1_idx2], refq=refq)
-            q2b, i2b, err2b=binfixed(sasm2.q[q2_idx1:q2_idx2], i2[q2_idx1:q2_idx2], err2[q2_idx1:q2_idx2], refq=refq)
-
-            i = i1b - i2b
-            err=np.sqrt(np.square(err1b)+np.square(err2b))
-
-            q = refq
+    elif not q_match and forced:
+        prof1, prof2 = match_q_vals([sasm1, sasm2], full, 5)
 
     else:
-        raise SASExceptions.DataNotCompatible('The curves does not have the same q vectors.')
+        raise SASExceptions.DataNotCompatible('The profiles do not have the '
+            'same q vectors.')
+
+    if full:
+        i = prof1.i - prof2.i
+        q = copy.deepcopy(prof1.q)
+        err = np.sqrt(np.square(prof1.err) + np.square(prof2.err))
+    else:
+        i = prof1.getI() - prof2.getI()
+        q = copy.deepcopy(prof1.getQ())
+        err = np.sqrt(np.square(prof1.getErr()) + np.square(prof2.getErr()))
+
+    q_err = copy.deepcopy(prof1.getQErr())
 
     if copy_params:
         sub_parameters = get_shared_header([sasm1, sasm2])
@@ -157,83 +95,80 @@ def subtract(sasm1, sasm2, forced=False, full=False, copy_params=True):
     else:
         sub_parameters = {'filename': copy.deepcopy(sasm1.getParameter('filename'))}
 
-    newSASM = SASM.SASM(i, q, err, sub_parameters, copy.deepcopy(sasm1.getQErr()))
+    newSASM = SASM.SASM(i, q, err, sub_parameters, q_err)
 
     return newSASM
 
-def average(sasm_list, forced=False, copy_params=True):
+def average(sasm_list, forced=False, copy_params=True, full=False):
     ''' Average the intensity of a list of sasm objects '''
-
-    first_sasm = sasm_list[0]
 
     if len(sasm_list) == 1:
         #Useful for where all but the first profile are rejected due to similarity
         #testing. Otherwise we should never have just than one profile to average
+        sasm = sasm_list[0]
 
-        q_min, q_max = first_sasm.getQrange()
-
-        avg_q = copy.deepcopy(first_sasm.q[q_min:q_max])
-        avg_i = copy.deepcopy(first_sasm.i[q_min:q_max])
-        avg_err = copy.deepcopy(first_sasm.err[q_min:q_max])
-        avg_parameters = copy.deepcopy(first_sasm.getAllParameters())
-        avg_q_err = copy.deepcopy(first_sasm.getQErr())
+        if full:
+            avg_q = copy.deepcopy(sasm.q)
+            avg_i = copy.deepcopy(sasm.i)
+            avg_err = copy.deepcopy(sasm.err)
+            avg_parameters = copy.deepcopy(sasm.getAllParameters())
+            avg_q_err = copy.deepcopy(sasm.q_err)
+        else:
+            avg_q = copy.deepcopy(sasm.getQ())
+            avg_i = copy.deepcopy(sasm.getI())
+            avg_err = copy.deepcopy(sasm.getErr())
+            avg_parameters = copy.deepcopy(sasm.getAllParameters())
+            avg_q_err = copy.deepcopy(sasm.getQErr())
 
     else:
-        #Check average is possible with provided curves:
-        first_q_min, first_q_max = first_sasm.getQrange()
+        q_match = test_equal_q_ranges(sasm_list, full, 5)
 
-        for each in sasm_list:
-            each_q_min, each_q_max = each.getQrange()
-            if not np.all(np.round(each.q[each_q_min:each_q_max], 5) == np.round(first_sasm.q[first_q_min:first_q_max], 5)) and not forced:
-                raise SASExceptions.DataNotCompatible('Average list contains data sets with different q vectors.')
+        if q_match:
+            avg_sasms = sasm_list
 
-        all_i = first_sasm.i[first_q_min : first_q_max]
+        elif not q_match and forced:
+            avg_sasms = match_q_vals(sasm_list, full, 5)
 
-        all_err = first_sasm.err[first_q_min : first_q_max]
+        else:
+            raise SASExceptions.DataNotCompatible('The profiles do not have the '
+                'same q vectors.')
 
-        avg_filelist = []
-        avg_filelist.append(first_sasm.getParameter('filename'))
-
-        for idx in range(1, len(sasm_list)):
-            each_q_min, each_q_max = sasm_list[idx].getQrange()
-            all_i = np.vstack((all_i, sasm_list[idx].i[each_q_min:each_q_max]))
-            all_err = np.vstack((all_err, sasm_list[idx].err[each_q_min:each_q_max]))
-            avg_filelist.append(sasm_list[idx].getParameter('filename'))
+        if full:
+            avg_q = avg_sasms[0].q
+            all_i = np.array([sasm.i for sasm in avg_sasms])
+            all_err = np.array([sasm.err for sasm in avg_sasms])
+        else:
+            avg_q = avg_sasms[0].getQ()
+            all_i = np.array([sasm.getI() for sasm in avg_sasms])
+            all_err = np.array([sasm.getErr() for sasm in avg_sasms])
 
         avg_i = np.mean(all_i, 0)
+        avg_err = np.sqrt(np.sum(np.square(all_err), 0))/len(all_err)
+        avg_q_err = copy.deepcopy(avg_sasms[0].getQErr())
 
-        avg_err = np.sqrt( np.sum( np.power(all_err,2), 0 ) ) / len(all_err)  #np.sqrt(len(all_err))
+        if copy_params:
+            avg_parameters = get_shared_header(sasm_list)
 
-        avg_i = copy.deepcopy(avg_i)
-        avg_err = copy.deepcopy(avg_err)
+            avg_parameters['filename'] = copy.deepcopy(sasm_list[0].getParameter('filename'))
 
-        avg_q = copy.deepcopy(first_sasm.q)[first_q_min:first_q_max]
+            history = {}
 
-        avg_q_err = copy.deepcopy(first_sasm.getQErr())
+            history_list = []
 
-    if copy_params:
-        avg_parameters = get_shared_header(sasm_list)
+            for eachsasm in sasm_list:
+                each_history = []
+                each_history.append(copy.deepcopy(eachsasm.getParameter('filename')))
 
-        avg_parameters['filename'] = copy.deepcopy(first_sasm.getParameter('filename'))
+                for key in eachsasm.getParameter('history'):
+                    each_history.append({key : copy.deepcopy(eachsasm.getParameter('history')[key])})
 
-        history = {}
+                history_list.append(each_history)
 
-        history_list = []
+            history['averaged_files'] = history_list
+            avg_parameters['history'] = history
 
-        for eachsasm in sasm_list:
-            each_history = []
-            each_history.append(copy.deepcopy(eachsasm.getParameter('filename')))
-
-            for key in eachsasm.getParameter('history'):
-                each_history.append({key : copy.deepcopy(eachsasm.getParameter('history')[key])})
-
-            history_list.append(each_history)
-
-        history['averaged_files'] = history_list
-        avg_parameters['history'] = history
-
-    else:
-        avg_parameters = {'filename': copy.deepcopy(first_sasm.getParameter('filename'))}
+        else:
+            avg_parameters = {'filename': copy.deepcopy(first_sasm.getParameter('filename'))}
 
     avgSASM = SASM.SASM(avg_i, avg_q, avg_err, avg_parameters, avg_q_err)
 
@@ -818,96 +753,31 @@ def binfixed(q, I, er, refq):
 
 def divide(sasm1, sasm2, forced=False, full=False, copy_params=True):
     ''' Divide one SASM object by another and propagate errors '''
-    if not full:
-        q1_min, q1_max = sasm1.getQrange()
-        q2_min, q2_max = sasm2.getQrange()
-    else:
-        q1_min = 0
-        q1_max = len(sasm1.q)+1
-        q2_min = 0
-        q2_max = len(sasm2.q)+1
+    q_match = test_equal_q_ranges([sasm1, sasm2], full, 5)
 
-    if np.all(np.round(sasm1.q[q1_min:q1_max],5) == np.round(sasm2.q[q2_min:q2_max],5)):
-        i = sasm1.i[q1_min:q1_max]/sasm2.i[q2_min:q2_max]
+    if q_match:
+        prof1 = sasm1
+        prof2 = sasm2
 
-        q = copy.deepcopy(sasm1.q)[q1_min:q1_max]
-        err = np.sqrt( np.power(sasm1.err[q1_min:q1_max]/sasm1.i[q1_min:q1_max], 2)
-            + np.power(sasm2.err[q2_min:q2_max]/sasm2.i[q2_min:q2_max],2))
-        err = i*err
-
-    elif not np.all(np.round(sasm1.q[q1_min:q1_max],5) == np.round(sasm2.q[q2_min:q2_max],5)) and forced:
-        q1 = np.round(sasm1.q[q1_min:q1_max],5)
-        q2 = np.round(sasm2.q[q2_min:q2_max],5)
-        i1 = sasm1.i[q1_min:q1_max]
-        i2 = sasm2.i[q2_min:q2_max]
-        err1 = sasm1.err[q1_min:q1_max]
-        err2 = sasm2.err[q2_min:q2_max]
-
-        if q1[0]>q2[0]:
-            start=np.round(q1[0],5)
-        else:
-            start=np.round(q2[0],5)
-
-        if q1[-1]>q2[-1]:
-            end=np.round(q2[-1],5)
-        else:
-            end=np.round(q1[-1],5)
-
-        if start>end:
-            raise SASExceptions.DataNotCompatible('Subtraction failed: the curves have no overlapping q region.')
-
-        shifted = False
-        if len(np.argwhere(q1==start))>0 and len(np.argwhere(q1==end))>0 and len(np.argwhere(q2==start))>0 and len(np.argwhere(q2==end))>0:
-            q1_idx1 = np.argwhere(q1==start)[0][0]
-            q1_idx2 = np.argwhere(q1==end)[0][0]+1
-            q2_idx1 = np.argwhere(q2==start)[0][0]
-            q2_idx2 = np.argwhere(q2==end)[0][0] +1
-
-            if np.all(q1[q1_idx1:q1_idx2]==q2[q2_idx1:q2_idx2]):
-                shifted = True
-
-            elif np.all(np.round(q1[q1_idx1:q1_idx2], 4)==np.round(q2[q2_idx1:q2_idx2], 4)):
-                shifted = True
-
-        if shifted:
-            i = i1[q1_idx1:q1_idx2]/i2[q2_idx1:q2_idx2]
-            err = np.sqrt( np.power(err1[q1_idx1:q1_idx2]/i1[q1_idx1:q1_idx2], 2)
-                + np.power(err2[q2_idx1:q2_idx2]/i2[q2_idx1:q2_idx2],2))
-            err = i*err
-
-            q = copy.deepcopy(sasm1.q[q1_idx1:q1_idx2])
-
-        else:
-            q1space=q1[1]-q1[0]
-            q2space=q2[1]-q2[0]
-
-            if q1space>q2space:
-                npts=(end-start)//q1space+1
-            else:
-                npts=(end-start)//q2space+1
-
-            npts = int(npts)
-
-            refq=np.linspace(start,end,npts,endpoint=True)
-
-            q1_idx1 = np.argmin(np.absolute(q1-start))
-            q1_idx2 = np.argmin(np.absolute(q1-end))+1
-            q2_idx1 = np.argmin(np.absolute(q2-start))
-            q2_idx2 = np.argmin(np.absolute(q2-end))+1
-
-            q1b, i1b, err1b=binfixed(sasm1.q[q1_idx1:q1_idx2],
-                i1[q1_idx1:q1_idx2], err1[q1_idx1:q1_idx2], refq=refq)
-            q2b, i2b, err2b=binfixed(sasm2.q[q2_idx1:q2_idx2],
-                i2[q2_idx1:q2_idx2], err2[q2_idx1:q2_idx2], refq=refq)
-
-            i = i1b - i2b
-            err=np.sqrt(np.square(err1b/i1b)+np.square(err2b/i2b))
-            err = err*i
-
-            q = refq
+    elif not q_match and forced:
+        prof1, prof2 = match_q_vals([sasm1, sasm2], full, 5)
 
     else:
-        raise SASExceptions.DataNotCompatible('The curves does not have the same q vectors.')
+        raise SASExceptions.DataNotCompatible('The profiles do not have the '
+            'same q vectors.')
+
+    if full:
+        i = prof1.i/prof2.i
+        q = copy.deepcopy(prof1.q)
+        err = np.sqrt(np.square(prof1.err/prof1.i) + np.square(prof2.err/prof2.i))
+    else:
+        i = prof1.getI()/prof2.getI()
+        q = copy.deepcopy(prof1.getQ())
+        err = np.sqrt(np.square(prof1.getErr()/prof1.getI()) + np.square(prof2.getErr()/prof2.getI()))
+
+    err = i*err
+
+    q_err = copy.deepcopy(prof1.getQErr())
 
     if copy_params:
         sub_parameters = get_shared_header([sasm1, sasm2])
@@ -926,14 +796,14 @@ def divide(sasm1, sasm2, forced=False, full=False, copy_params=True):
         for key in sasm2.getParameter('history'):
             history2.append({key : copy.deepcopy(sasm2.getParameter('history')[key])})
 
-        history['subtraction'] = {'initial_file':history1, 'subtracted_file':history2}
+        history['division'] = {'initial_file':history1, 'subtracted_file':history2}
 
         sub_parameters['history'] = history
 
     else:
         sub_parameters = {'filename': copy.deepcopy(sasm1.getParameter('filename'))}
 
-    newSASM = SASM.SASM(i, q, err, sub_parameters, copy.deepcopy(sasm1.getQErr()))
+    newSASM = SASM.SASM(i, q, err, sub_parameters, q_err)
 
     return newSASM
 
@@ -1133,3 +1003,200 @@ def run_cormap_ref(sasm_list, ref_sasm, correction='None'):
         corrected_pvals = np.ones_like(pvals)
 
     return pvals, corrected_pvals, failed_comparisons
+
+def match_q_vals(sasm_list, full=False, prec=5):
+    #First test if they currently match
+    ref_sasm = sasm_list[0]
+
+    if full:
+        ref_qmin = 0
+        ref_qmax = len(ref_sasm.q)+1
+    else:
+        ref_qmin, ref_qmax = ref_sasm.getQrange()
+
+    ref_q = ref_sasm.q[ref_qmin:ref_qmax]
+
+    all_match = test_equal_q_ranges(sasm_list, full, prec)
+
+    if all_match:
+        print('all match')
+        regrid_sasms = sasm_list
+
+    else:
+        #Calculate overlap range
+        q_min = 0
+        q_max = max([sasm.q[-1] for sasm in sasm_list])
+
+        for sasm in sasm_list:
+            if full:
+                q = sasm.q
+            else:
+                q = sasm.getQ()
+
+            q_min = max(q[0], q_min)
+            q_max = min(q[-1], q_max)
+
+        if q_min > q_max:
+            raise SASExceptions.DataNotCompatible(('The profiles have no '
+                'overlapping q region.'))
+
+        else:
+            #See if these are the same q grids with different start/end points
+            shifted = True
+
+            shifted_indices = []
+
+            find_ref_min = np.argwhere(ref_q==q_min)
+            find_ref_max = np.argwhere(ref_q==q_max)
+            if len(find_ref_min)>0 and len(find_ref_max)>0:
+                ref_q_idx_min = find_ref_min[0][0]
+                ref_q_idx_max = find_ref_max[0][0]
+                ref_q_shift = ref_q[ref_q_idx_min:ref_q_idx_max+1]
+                shifted_indices.append([ref_q_idx_min, ref_q_idx_max])
+
+            else:
+                shifted = False
+
+            for sasm in sasm_list[1:]:
+                if not shifted:
+                    break
+
+                if full:
+                    q = sasm.q
+                else:
+                    q = sasm.getQ()
+
+                find_min = np.argwhere(q==q_min)
+                find_max = np.argwhere(q==q_max)
+                if len(find_min)>0 and len(find_max)>0:
+                    q_idx_min = find_min[0][0]
+                    q_idx_max = find_max[0][0]
+                    q_shift = q[q_idx_min:q_idx_max+1]
+                    shifted_indices.append([q_idx_min, q_idx_max])
+
+                    if len(q_shift) == len(ref_q_shift):
+                        if np.all(np.round(q_shift, prec) != np.round(ref_q_shift, prec)):
+                            shifted = False
+
+                    else:
+                        shifted = False
+                else:
+                    shifted = False
+
+            if shifted:
+                print('shifted')
+
+                regrid_sasms = []
+
+                for j, sasm in enumerate(sasm_list):
+
+                    if full:
+                        nmin, nmax = shifted_indices[j]
+                        parameters = {'filename': copy.deepcopy(sasm.getParameter('filename'))}
+
+                        if sasm.q_err is not None:
+                            new_q_err = sasm.q_err[nmin:nmax+1]
+                        else:
+                            new_q_err = None
+
+                        new_sasm = SASM.SASM(sasm.i[nmin:nmax+1], sasm.q[nmin:nmax+1],
+                            sasm.err[nmin:nmax+1], parameters, new_q_err)
+
+                    else:
+                        new_sasm = sasm.copy_no_metadata()
+                        idx_min, _ = new_sasm.getQrange()
+                        shift_min, shift_max = shifted_indices[j]
+                        new_sasm.setQrange([idx_min+shift_min, idx_min+shift_max+1])
+
+                    regrid_sasms.append(new_sasm)
+
+            else:
+                #Rebin to a uniform q grid, make sure there's at least one q point in each bin
+                max_delta_q = 0
+
+                for sasm in sasm_list:
+                    temp_q = sasm.q[sasm.q>=q_min]
+                    full_q_range = temp_q[temp_q<=q_max]
+                    delta_q = np.ediff1d(full_q_range)
+                    max_delta_q = max(max_delta_q, delta_q.max())
+
+                npts = int(np.floor((q_max - q_min)/(1.01*max_delta_q)))
+                regrid_q = np.linspace(q_min, q_max, npts)
+                q_bins = np.linspace(q_min-max_delta_q/2, q_max+max_delta_q/2,
+                    npts+1)
+
+                regrid_sasms = []
+
+                for sasm in sasm_list:
+                    if full:
+                        q = sasm.q
+                        intensity = sasm.i
+                        err = sasm.err
+                        q_err = sasm.q_err
+                    else:
+                        q = sasm.getQ()
+                        intensity = sasm.getI()
+                        err = sasm.getErr()
+                        q_err = sasm.getQErr()
+
+                    dig = np.digitize(q, q_bins)
+
+                    regrid_I = np.empty_like(regrid_q)
+                    regrid_err = np.empty_like(regrid_q)
+
+                    if q_err is not None:
+                        regrid_qerr = np.empty_like(regrid_q)
+                    else:
+                        regrid_qerr = None
+
+                    for j in range(1, len(q_bins)):
+                        idx = (dig == j)
+
+                        regrid_I[j-1] = intensity[idx].mean()
+                        regrid_err[j-1] = np.sqrt(np.sum(np.square(err[idx])))/err[idx].size
+
+                        if regrid_qerr is not None:
+                            regrid_qerr[j-1] = np.sqrt(np.sum(np.square(q_err[idx])))/q_err[idx].size
+
+                    parameters = {'filename': copy.deepcopy(sasm.getParameter('filename'))}
+                    new_sasm = SASM.SASM(regrid_I, regrid_q, regrid_err,
+                        parameters, regrid_qerr)
+
+
+                    regrid_sasms.append(new_sasm)
+                print('regrid')
+
+    return regrid_sasms
+
+def test_equal_q_ranges(sasm_list, full=False, prec=5):
+    ref_sasm = sasm_list[0]
+    all_match = True
+
+    if full:
+        ref_qmin = 0
+        ref_qmax = len(ref_sasm.q)+1
+    else:
+        ref_qmin, ref_qmax = ref_sasm.getQrange()
+
+    ref_q = ref_sasm.q[ref_qmin:ref_qmax]
+
+    for sasm in sasm_list[1:]:
+        if not all_match:
+            break
+
+        if full:
+            ref_qmin = 0
+            ref_qmax = len(sasm.q)+1
+        else:
+            ref_qmin, ref_qmax = sasm.getQrange()
+
+        q = sasm.q[ref_qmin:ref_qmax]
+
+        if len(ref_q) == len(q):
+            if np.all(np.round(ref_q, prec) != np.round(q, prec)):
+                all_match = False
+        else:
+            all_match = False
+
+    return all_match
+

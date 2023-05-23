@@ -1507,9 +1507,36 @@ class MainFrame(wx.Frame):
             for sim_frame in remove:
                 self.sim_frames.remove(sim_frame)
 
-        if proceed:
+        q_match = SASProc.test_equal_q_ranges(sasm_list)
 
-            ComparisonFrame = RAWAnalysis.ComparisonFrame(self, 'Compare Profiles', sasm_list)
+        if not q_match:
+            msg = ('Not all profiles have matching q vectors. Continuing will '
+                'attempt to find matching q regions in the profiles or '
+                'create matching q regions by binning. Do you wish to continue?')
+            answer = wx.MessageBox(msg, 'O vectors do not match',
+                style=wx.YES_NO)
+
+            if answer == wx.YES:
+                try:
+                    avg_list = SASProc.match_q_vals(sasm_list)
+
+                except SASExceptions.DataNotCompatible:
+                    proceed = False
+                    msg = 'Matching q vectors could not be found/created.'
+                    dlg = wx.MessageDialog(self, msg, "No matching q range available",
+                        style = wx.ICON_INFORMATION | wx.OK)
+                    dlg.ShowModal()
+                    dlg.Destroy()
+
+            else:
+                proceed = False
+
+        else:
+            avg_list = sasm_list
+
+        if proceed:
+            ComparisonFrame = RAWAnalysis.ComparisonFrame(self, 'Compare Profiles',
+                avg_list)
             ComparisonFrame.SetIcon(self.GetIcon())
             ComparisonFrame.Show(True)
 
@@ -4702,10 +4729,11 @@ class MainWorkerThread(threading.Thread):
 
             result = wx.ID_YES
 
-            qmin, qmax = sasm.getQrange()
-            sub_qmin, sub_qmax = sub_sasm.getQrange()
+            q_match = SASProc.test_equal_q_ranges([sasm, sub_sasm])
 
-            if np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and not yes_to_all:
+            subtract = True
+
+            if not q_match and not yes_to_all:
                 result = self._showQvectorsNotEqualWarning(sasm, sub_sasm)[0]
 
                 if result == wx.ID_YESTOALL:
@@ -4717,9 +4745,13 @@ class MainWorkerThread(threading.Thread):
                         pass
                     secm.releaseSemaphore()
                     return
+                elif result == wx.ID_NO:
+                    subtract = False
+
+            if subtract:
                 try:
                     if result == wx.ID_YES or result == wx.ID_YESTOALL:
-                        subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
+                        subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced=True)
                         self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                         subtracted_sasm_list.append(subtracted_sasm)
@@ -4731,35 +4763,6 @@ class MainWorkerThread(threading.Thread):
                         pass
                     secm.releaseSemaphore()
                     return
-            elif np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
-                try:
-                    subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
-                    self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-
-                    subtracted_sasm_list.append(subtracted_sasm)
-                except SASExceptions.DataNotCompatible:
-                    wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
-                    try:
-                        wx.CallAfter(self.main_frame.closeBusyDialog)
-                    except Exception:
-                        pass
-                    secm.releaseSemaphore()
-                    return
-            else:
-                try:
-                    subtracted_sasm = SASProc.subtract(sasm, sub_sasm)
-                    self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-
-                    subtracted_sasm_list.append(subtracted_sasm)
-                except SASExceptions.DataNotCompatible:
-                    wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
-                    try:
-                        wx.CallAfter(self.main_frame.closeBusyDialog)
-                    except Exception:
-                        pass
-                    secm.releaseSemaphore()
-                    return
-
 
         secm.appendSubtractedSASMs(subtracted_sasm_list, use_subtracted_sasm, window_size)
 
@@ -5185,17 +5188,30 @@ class MainWorkerThread(threading.Thread):
 
         self._showGenericError(msg, title)
 
-    def _showQvectorsNotEqualWarning(self, sasm, sub_sasm):
+    def _showQvectorsNotEqualWarning(self, sasm, sub_sasm, msg_type='subtraction'):
 
         sub_filename = sub_sasm.getParameter('filename')
         filename = sasm.getParameter('filename')
 
-        button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO), ('Cancel', wx.ID_CANCEL)]
-        question = ('Q vectors for ' + str(filename) + ' and ' + str(sub_filename) +
-            ' are not the same. \nContinuing subtraction will attempt to find '
-            'matching q regions in or create matching q regions by binning.\n'
-            'Do you wish to continue?')
+        if msg_type == 'subtraction':
+            button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL),
+                ('No', wx.ID_NO), ('Cancel', wx.ID_CANCEL)]
+
+            question = ('Q vectors for ' + str(filename) + ' and ' + str(sub_filename) +
+                ' are not the same. \nContinuing {} will attempt to find '
+                'matching q regions in or create matching q regions by binning.\n'
+                'Do you wish to continue?'.format(msg_type))
+
+        else:
+            button_list = [('Yes', wx.ID_YES), ('No', wx.ID_NO)]
+
+            question = ('Q vectors for selected profiles'
+                ' are not the same. \nContinuing {} will attempt to find '
+                'matching q regions in the profiles or create matching q '
+                'regions by binning.\n Do you wish to continue?'.format(msg_type))
+
         label = 'Q vectors do not match'
+
         icon = wx.ART_WARNING
 
         answer = self._displayQuestionDialog(question, label, button_list, icon)
@@ -5498,10 +5514,11 @@ class MainWorkerThread(threading.Thread):
             # result = wx.ID_YES
             sasm = each.getSASM()
 
-            qmin, qmax = sasm.getQrange()
-            sub_qmin, sub_qmax = sub_sasm.getQrange()
+            q_match = SASProc.test_equal_q_ranges([sasm, sub_sasm])
 
-            if np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and not yes_to_all:
+            subtract = True
+
+            if not q_match and not yes_to_all:
                 result = self._showQvectorsNotEqualWarning(sasm, sub_sasm)[0]
 
                 if result == wx.ID_YESTOALL:
@@ -5509,69 +5526,15 @@ class MainWorkerThread(threading.Thread):
                 elif result == wx.ID_CANCEL:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                     return
-                try:
-                    if result == wx.ID_YES or result == wx.ID_YESTOALL:
-                        subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
-                        self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
+                elif result == wx.ID_NO:
+                    subtract = False
 
-                        subtracted_list.append(subtracted_sasm)
-                        # self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
-
-                        if do_auto_save:
-                            save_path = self._raw_settings.get('SubtractedFilePath')
-                            try:
-                                self._saveSASM(subtracted_sasm, '.dat', save_path)
-                            except IOError as e:
-                                self._raw_settings.set('AutoSaveOnSub', False)
-                                do_auto_save = False
-                                msg = (str(e) + '\n\nAutosave of subtracted '
-                                    'images has been disabled. If you are '
-                                    'using a config file from a different '
-                                    'computer please go into Advanced '
-                                    'Options/Autosave to change the save '
-                                    'folders, or save you config file to '
-                                    'avoid this message next time.')
-                                wx.CallAfter(self._showGenericError, msg, 'Autosave Error')
-
-                except SASExceptions.DataNotCompatible:
-                   wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
-                   wx.CallAfter(self.main_frame.closeBusyDialog)
-                   return
-            elif np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
+            if subtract:
                 try:
                     subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                     subtracted_list.append(subtracted_sasm)
-                    # self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
-
-                    if do_auto_save:
-                        save_path = self._raw_settings.get('SubtractedFilePath')
-                        try:
-                            self._saveSASM(subtracted_sasm, '.dat', save_path)
-                        except IOError as e:
-                            self._raw_settings.set('AutoSaveOnSub', False)
-                            do_auto_save = False
-                            msg = (str(e) + '\n\nAutosave of subtracted '
-                                'images has been disabled. If you are '
-                                'using a config file from a different '
-                                'computer please go into Advanced '
-                                'Options/Autosave to change the save '
-                                'folders, or save you config file to '
-                                'avoid this message next time.')
-                            wx.CallAfter(self._showGenericError, msg, 'Autosave Error')
-
-                except SASExceptions.DataNotCompatible:
-                   wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
-                   wx.CallAfter(self.main_frame.closeBusyDialog)
-                   return
-            else:
-                try:
-                    subtracted_sasm = SASProc.subtract(sasm, sub_sasm)
-                    self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-
-                    subtracted_list.append(subtracted_sasm)
-                    # self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
 
                     if do_auto_save:
                         save_path = self._raw_settings.get('SubtractedFilePath')
@@ -5614,54 +5577,67 @@ class MainWorkerThread(threading.Thread):
         weightCounter=None):
         profiles_to_use = wx.ID_YESTOALL
 
+        q_match = SASProc.test_equal_q_ranges(sasm_list)
+
+        if not q_match:
+            result = self._showQvectorsNotEqualWarning(sasm_list[0], sasm_list[1],
+                'averaging')[0]
+
+            if result == wx.ID_NO:
+                wx.CallAfter(self.main_frame.closeBusyDialog)
+                return None
+
+            else:
+                try:
+                    avg_list = SASProc.match_q_vals(sasm_list)
+                except SASExceptions.DataNotCompatible:
+                    wx.CallAfter(self._showAverageError, 3)
+                    return None
+        else:
+            avg_list = sasm_list
+
         if self._raw_settings.get('similarityOnAverage'):
-            ref_sasm = sasm_list[0]
-            qi_ref, qf_ref = ref_sasm.getQrange()
-            pvals = np.ones(len(sasm_list[1:]), dtype=float)
+            ref_sasm = avg_list[0]
+            pvals = np.ones(len(avg_list[1:]), dtype=float)
             threshold = self._raw_settings.get('similarityThreshold')
             sim_test = self._raw_settings.get('similarityTest')
             correction = self._raw_settings.get('similarityCorrection')
 
-            for index, sasm in enumerate(sasm_list[1:]):
-                qi, qf = sasm.getQrange()
-                if not np.all(np.round(sasm.q[qi:qf], 5) == np.round(ref_sasm.q[qi_ref:qf_ref], 5)):
-                    wx.CallAfter(self._showAverageError, 3)
-                    return None
-
-                if sim_test == 'CorMap':
-                    n, c, pval = SASProc.cormap_pval(ref_sasm.i[qi_ref:qf_ref], sasm.i[qi:qf])
-                pvals[index] = pval
-
-            if correction == 'Bonferroni':
-                pvals = pvals*len(sasm_list[1:])
-                pvals[pvals>1] = 1
+            if sim_test == 'CorMap':
+                pvals, corrected_pvals, _ = SASProc.run_cormap_ref(avg_list[1:],
+                    ref_sasm)
 
             if np.any(pvals<threshold):
                 wx.CallAfter(self.main_frame.closeBusyDialog)
-                profiles_to_use = self._showAverageError(4, itertools.compress(sasm_list[1:], pvals<threshold))
+                profiles_to_use = self._showAverageError(4,
+                    itertools.compress(sasm_list[1:], pvals<threshold))
 
                 if profiles_to_use == wx.ID_CANCEL:
                     return None
 
-                wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while averaging and plotting...')
+                wx.CallAfter(self.main_frame.showBusyDialog,
+                    'Please wait while averaging and plotting...')
 
         try:
             if profiles_to_use == wx.ID_YESTOALL:
                 if not weight:
-                    avg_sasm = SASProc.average(sasm_list)
+                    avg_sasm = SASProc.average(avg_list, True)
                 else:
-                    avg_sasm = SASProc.weightedAverage(sasm_list, weightByError, weightCounter)
+                    avg_sasm = SASProc.weightedAverage(avg_list, weightByError,
+                        weightCounter)
 
             elif profiles_to_use == wx.ID_YES:
-                reduced_sasm_list = [sasm_list[0]]
-                for i, sasm in enumerate(sasm_list[1:]):
+                reduced_sasm_list = [avg_list[0]]
+
+                for i, sasm in enumerate(avg_list[1:]):
                     if pvals[i] >= threshold:
                         reduced_sasm_list.append(sasm)
 
                 if not weight:
                     avg_sasm = SASProc.average(reduced_sasm_list)
                 else:
-                    avg_sasm = SASProc.weightedAverage(reduced_sasm_list, weightByError, weightCounter)
+                    avg_sasm = SASProc.weightedAverage(reduced_sasm_list,
+                        weightByError, weightCounter)
 
         except SASExceptions.DataNotCompatible:
             wx.CallAfter(self._showAverageError, 3)
