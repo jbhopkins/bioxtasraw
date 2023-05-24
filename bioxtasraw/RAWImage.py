@@ -478,25 +478,26 @@ class ImagePanel(wx.Panel):
 
         try:
             if 'eiger2' in settings.get('Detector'):
-                if settings.get('ExcludeMaskFromImageScale'):
-                    self.plot_parameters['maxImgVal'] = self.img[np.logical_and(self.img<4294967295, bs_mask)].max()
+                if settings.get('ExcludeMaskFromImageScale') and self.img.shape == bs_mask.shape:
+                    self.plot_parameters['maxImgVal'] = self.img[np.logical_and(
+                        self.img<4294967295, bs_mask)].max()
                 else:
                     self.plot_parameters['maxImgVal'] = self.img[self.img<4294967295].max()
 
             else:
-                if settings.get('ExcludeMaskFromImageScale'):
+                if settings.get('ExcludeMaskFromImageScale')and self.img.shape == bs_mask.shape:
                     self.plot_parameters['maxImgVal'] = self.img[bs_mask].max()
                 else:
                     self.plot_parameters['maxImgVal'] = self.img.max()
 
             if 'pilatus' in settings.get('Detector'):
-                if settings.get('ExcludeMaskFromImageScale'):
+                if settings.get('ExcludeMaskFromImageScale')and self.img.shape == bs_mask.shape:
                     self.plot_parameters['minImgVal'] = self.img[np.logical_and(self.img>-1, bs_mask)].min()
                 else:
                     self.plot_parameters['minImgVal'] = self.img[self.img>-1].min()
 
             else:
-                if settings.get('ExcludeMaskFromImageScale'):
+                if settings.get('ExcludeMaskFromImageScale')and self.img.shape == bs_mask.shape:
                     self.plot_parameters['minImgVal'] = self.img[bs_mask].min()
                 else:
                     self.plot_parameters['minImgVal'] = self.img.min()

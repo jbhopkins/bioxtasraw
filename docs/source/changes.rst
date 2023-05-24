@@ -73,6 +73,8 @@ All changes:
 *   Added ability to export data from the main IFT plot.
 *   Fixed a bug where loading series data that doesn't have time data when the
     series x axis is in time would cause an error.
+*   Fixed a bug where showing an image that was a different size than the beamstop
+    mask array would cause an error.
 
 
 2.1.4
