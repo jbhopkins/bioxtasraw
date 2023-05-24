@@ -48,6 +48,7 @@ import bioxtasraw.RAWCustomCtrl as RAWCustomCtrl
 import bioxtasraw.RAWGlobals as RAWGlobals
 import bioxtasraw.RAWCustomDialogs as RAWCustomDialogs
 import bioxtasraw.SASUtils as SASUtils
+import bioxtasraw.SASFileIO as SASFileIO
 
 class MyFigureCanvasWxAgg(FigureCanvasWxAgg):
 
@@ -442,9 +443,6 @@ class PlotPanel(wx.Panel):
                                 'normal'      : ['Main Plot', '$q$', '$I(q)$']}
 
         self.subplot_labels = copy.copy(self.default_subplot_labels)
-
-        self.save_parameters ={'dpi' : 100,
-                               'format' : 'png'}
 
         self._setLabels(axes = self.subplot1)
         self._setLabels(axes = self.subplot2)
@@ -1430,9 +1428,6 @@ class IftPlotPanel(PlotPanel):
 
         self.subplot_labels = copy.copy(self.default_subplot_labels)
 
-        self.save_parameters ={'dpi' : 100,
-                               'format' : 'png'}
-
         self._setLabels(axes = self.subplot1)
         self._setLabels(axes = self.subplot2)
 
@@ -1886,11 +1881,11 @@ class IftPlotPanel(PlotPanel):
         menu.AppendSeparator()
 
         plot_options = menu.Append(wx.ID_ANY, 'Plot Options...')
+        export_data = menu.Append(wx.ID_ANY, 'Export Data')
 
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
-
         self.Bind(wx.EVT_MENU, self._onPlotOptions, plot_options)
-
+        self.Bind(wx.EVT_MENU, self._onExportData, export_data)
 
         self.PopupMenu(menu)
 
@@ -2058,6 +2053,92 @@ class IftPlotPanel(PlotPanel):
         self._setLabels(axes = axes)
 
         self.fitAxis()
+
+    def _onExportData(self, evt):
+        dirctrl = wx.FindWindowByName('DirCtrlPanel')
+        path = str(dirctrl.getDirLabel())
+
+        if self.selected_plot == 1:
+            filename = 'pr_plot1_data.csv'
+        else:
+            filename = 'pr_plot2_data.csv'
+
+        dialog = wx.FileDialog(self, message=("Please select save directory "
+            "and enter save file name"), style=wx.FD_SAVE, defaultDir=path,
+            defaultFile=filename)
+
+        if dialog.ShowModal() == wx.ID_OK:
+            save_path = dialog.GetPath()
+            name, ext = os.path.splitext(save_path)
+            save_path = name + '.csv'
+            dialog.Destroy()
+        else:
+            dialog.Destroy()
+            return
+
+        data = []
+        header = ''
+
+        for iftm in self.plotted_iftms:
+            if self.selected_plot == 1:
+                if iftm.r_line.get_visible():
+                    xdata = iftm.r
+                    ydata = iftm.p
+                    errdata = iftm.err
+
+                    if self.plotparams.get('plot1type') == 'normalized':
+                        i0 = float(iftm.getParameter('i0'))
+                        ydata /= i0
+                        errdata /= i0
+                        header += '{0}_r,{0}_P(r)/I(0),{0}_sigma,'.format(iftm.r_line.get_label())
+                    else:
+                        header += '{0}_r,{0}_P(r),{0}_sigma,'.format(iftm.r_line.get_label())
+
+                    data.extend([xdata, ydata, errdata])
+
+            else:
+                if iftm.qo_line.get_visible():
+                    xdata = iftm.q_orig
+                    ydata = iftm.i_orig
+                    errdata = iftm.err_orig
+
+                    if self.plotparams.get('plot2type') == 'kratky':
+                        ydata *= np.square(xdata)
+                        errdata *= np.square(xdata)
+                        header += '{0}_q,{0}_I(q)*q^2,{0}_sigma,'.format(iftm.r_line.get_label()+'_data')
+                    elif self.plotparams.get('plot2type') == 'guinier':
+                        xdata = np.square(xdata)
+                        header += '{0}_q^2,{0}_I(q),{0}_sigma,'.format(iftm.r_line.get_label()+'_data')
+                    elif self.plotparams.get('plot2type') == 'porod':
+                        ydata *= np.power(xdata, 4)
+                        errdata *= np.power(xdata, 4)
+                        header += '{0}_q,{0}_I(q)*q^4,{0}_sigma,'.format(iftm.r_line.get_label()+'_data')
+                    else:
+                        header += '{0}_q,{0}_I(q),{0}_sigma,'.format(iftm.r_line.get_label()+'_data')
+
+                    data.extend([xdata, ydata, errdata])
+
+                if iftm.qf_line.get_visible():
+                    xdata = iftm.q_orig
+                    ydata = iftm.i_fit
+
+                    if self.plotparams.get('plot2type') == 'kratky':
+                        ydata *= np.square(xdata)
+                        header += '{0}_q,{0}_I(q)*q^2,'.format(iftm.r_line.get_label()+'_fit')
+                    elif self.plotparams.get('plot2type') == 'guinier':
+                        xdata = np.square(xdata)
+                        header += '{0}_q^2,{0}_I(q),'.format(iftm.r_line.get_label()+'_fit')
+                    elif self.plotparams.get('plot2type') == 'porod':
+                        ydata *= np.power(xdata, 4)
+                        header += '{0}_q,{0}_I(q)*q^4,'.format(iftm.r_line.get_label()+'_fit')
+                    else:
+                        header += '{0}_q,{0}_I(q),'.format(iftm.r_line.get_label()+'_fit')
+
+                    data.extend([xdata, ydata])
+
+        header = header.rstrip(',')
+
+        SASFileIO.saveUnevenCSVFile(save_path, data, header)
 
     def updatePlotAxes(self):
 
@@ -2412,7 +2493,7 @@ class IftPlotPanel(PlotPanel):
                     label=legend_label+'_Exp', zorder=1, **kwargs)
             elif type2 == 'kratky':
                 orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig,
-                    iftm.i_orig*np.power(iftm.q_orig,2), iftm.err_orig,
+                    iftm.i_orig*np.power(iftm.q_orig,2), iftm.err_orig*np.power(iftm.q_orig,2),
                     pickradius=3, label=legend_label+'_Exp', zorder=1, **kwargs)
             elif type2 == 'guinier':
                 orig_line, orig_ec, orig_el = a2.errorbar(np.power(iftm.q_orig,2),
@@ -2629,9 +2710,6 @@ class SeriesPlotPanel(wx.Panel):
 
         self.subplot_labels = copy.copy(self.default_subplot_labels)
         self.subplot_titles = copy.copy(self.default_subplot_titles)
-
-        self.save_parameters ={'dpi' : 100,
-                               'format' : 'png'}
 
         self._initFigure()
 

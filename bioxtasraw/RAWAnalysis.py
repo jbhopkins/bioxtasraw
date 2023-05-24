@@ -12681,7 +12681,7 @@ class TheoreticalList(wx.ListCtrl, wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin
             return
 
         RAWGlobals.save_in_progress = True
-        self.main_frame.setStatus('Saving SVD data', 0)
+        self.main_frame.setStatus('Saving CRYSOL data', 0)
 
         ncols = self.GetColumnCount()
 

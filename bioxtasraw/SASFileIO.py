@@ -394,7 +394,7 @@ def parseCHESSF2CTSfile(filename, new_filename=None):
     datePattern = re.compile('#D\s.*\n')
 
 
-    with open(filename[:-3] + 'cts', 'rU') as f:
+    with open(filename[:-3] + 'cts', 'r') as f:
 
         mon1, mon2, exposure_time, closed_shutter_count = None, None, None, None
 
@@ -452,7 +452,7 @@ def parseCHESSEIGER4MCountFile(filename, new_filename=None):
 
     countFilename = os.path.join(dir, countFile)
 
-    with open(countFilename,'rU') as f:
+    with open(countFilename,'r') as f:
         allLines = f.readlines()
 
     line_num = 0
@@ -520,7 +520,7 @@ def parseCHESSG1CountFile(filename, new_filename=None):
 
     countFilename = os.path.join(dir, countFile)
 
-    with open(countFilename,'rU') as f:
+    with open(countFilename,'r') as f:
         allLines = f.readlines()
 
     line_num = 0
@@ -586,7 +586,7 @@ def parseCHESSG1CountFileWAXS(filename, new_filename=None):
 
     countFilename = os.path.join(dir, countFile)
 
-    with open(countFilename,'rU') as f:
+    with open(countFilename,'r') as f:
         allLines = f.readlines()
 
     line_num = 0
@@ -655,7 +655,7 @@ def parseCHESSG1CountFileEiger(filename, new_filename=None):
 
     countFilename = os.path.join(dirname, countFile)
 
-    with open(countFilename,'rU') as f:
+    with open(countFilename,'r') as f:
         allLines = f.readlines()
 
     line_num = 0
@@ -704,7 +704,7 @@ def parseMAXLABI911HeaderFile(filename, new_filename=None):
     filepath, ext = os.path.splitext(filename)
     hdr_file = filename + '.hdr'
 
-    with open(hdr_file,'rU') as f:
+    with open(hdr_file,'r') as f:
         all_lines = f.readlines()
 
     counters = {}
@@ -722,7 +722,7 @@ def parseMAXLABI77HeaderFile(filename, new_filename=None):
     filepath, ext = os.path.splitext(filename)
     hdr_file = filename + '.hdr'
 
-    with open(hdr_file,'rU') as f:
+    with open(hdr_file,'r') as f:
         all_lines = f.readlines()
 
     counters = {}
@@ -790,7 +790,7 @@ def parseBioCATlogfile(filename, new_filename=None):
         countFilename=os.path.join(datadir, '_'.join(fname.split('_')[:-1])+'.log')
         searchName='.'.join(fname.split('.')[:-1])
 
-    with open(countFilename,'rU') as f:
+    with open(countFilename,'r') as f:
         allLines=f.readlines()
 
     line_num=0
@@ -903,7 +903,7 @@ def parseBL19U2HeaderFile(filename, new_filename=None):
 
     counters = {}
 
-    with open(countFilename, 'rU') as f:
+    with open(countFilename, 'r') as f:
         for line in f:
             name = line.split(':')[0]
             value = ':'.join(line.split(':')[1:])
@@ -928,7 +928,7 @@ def parsePetraIIIP12EigerFile(filename, new_filename = None):
 
     counters = {}
 
-    with open(countFilename, 'rU') as f:
+    with open(countFilename, 'r') as f:
         for line in f:
             name = line.split(':')[0]
             value = ':'.join(line.split(':')[1:])
@@ -1740,7 +1740,7 @@ def loadHdf5File(filename, raw_settings):
 
 def loadOutFile(filename):
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
         lines = f.readlines()
 
     iftm = parse_out_file(lines)
@@ -2168,7 +2168,7 @@ def loadSeriesFile(filename, settings):
         except Exception as e:
             print(e)
             file.close()
-            file = open(filename, 'rU')
+            file = open(filename, 'r')
             if six.PY3:
                 secm_data = pickle.load(file, encoding='latin-1')
             else:
@@ -2472,7 +2472,7 @@ def loadIftFile(filename):
     q_extrap = []
     fit_extrap = []
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
 
         path_noext, ext = os.path.splitext(filename)
 
@@ -2515,7 +2515,7 @@ def loadIftFile(filename):
 
 
     #Check to see if there is any header from RAW, and if so get that.
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
         all_lines = f.readlines()
 
     header = []
@@ -2558,7 +2558,7 @@ def loadFitFile(filename):
     err = []
     fit = []
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
 
         firstLine = f.readline()
 
@@ -2651,7 +2651,7 @@ def loadDamselLogFile(filename):
     """Loads data from a damsel log file"""
     res_pattern = re.compile('\s*Ensemble\s*Resolution\s*=?\s*\d+\.?\d*\s*\+?-?\s*\d+\s*[a-zA-Z]*')
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
         process_includes = False
         result_dict = {}
         include_list = []
@@ -2701,7 +2701,7 @@ def loadDamsupLogFile(filename):
     model_data = []
     representative_model = ''
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
         for line in f:
             results = line.strip().split()
 
@@ -2729,7 +2729,7 @@ def loadDamclustLogFile(filename):
     cluster_list = []
     distance_list = []
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
         for line in f:
             cluster_match = cluster_pattern.match(line)
             distance_match = distance_pattern.match(line)
@@ -2945,7 +2945,7 @@ def loadPDBFile(filename):
     atoms = []
     useful_params = collections.defaultdict(str)
 
-    for line in open(filename, 'rU'):
+    for line in open(filename, 'r'):
         if line.startswith("ATOM"):
             x = float(line[30:38])
             y = float(line[38:46])
@@ -3022,7 +3022,7 @@ def loadmmCIFFile(filename):
 def loadDatFile(filename):
     ''' Loads a .dat format file '''
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
         lines = f.readlines()
 
     if len(lines) == 0:
@@ -3184,7 +3184,7 @@ def loadRadFile(filename):
 
     fileheader = {}
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
 
         for line in f:
 
@@ -3249,7 +3249,7 @@ def loadNewRadFile(filename):
 
     fileheader = {}
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
 
         for line in f:
 
@@ -3308,7 +3308,7 @@ def loadIntFile(filename):
     q = []
     err = []
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
 
         firstLine = f.readline()
 
@@ -3394,7 +3394,7 @@ def loadTxtFile(filename):
     q = []
     err = []
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
 
         firstLine = f.readline()
 
