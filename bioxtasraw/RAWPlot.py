@@ -3231,7 +3231,8 @@ class SeriesPlotPanel(wx.Panel):
             if xdata is None or ydata is None:
                 return
 
-            line = self.subplot1.plot(xdata, ydata, pickradius=3, label=legend_label, **kwargs)[0]
+            line = self.subplot1.plot(xdata, ydata, pickradius=3,
+                label=legend_label, **kwargs)[0]
             line.set_label(legend_label)
 
             secm.line = line
@@ -3655,7 +3656,8 @@ class SeriesPlotPanel(wx.Panel):
             qmax = sasm.q[qrange[-1]-1]
 
             if q > qmax or q < qmin:
-                wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
+                wx.MessageBox("Specified q value outside of q range! Reverting "
+                    "to total intensity.", style=wx.ICON_ERROR|wx.OK)
                 self.plotparams['y_axis_display'] = 'total'
                 mainframe.setViewMenuScale(menu_ids['secplottotal'])
 
@@ -3667,7 +3669,8 @@ class SeriesPlotPanel(wx.Panel):
             qmax = q[-1]
 
             if qrange[1] > qmax or qrange[0] < qmin:
-                wx.MessageBox("Specified q value outside of q range! Reverting to total intensity.", style=wx.ICON_ERROR | wx.OK)
+                wx.MessageBox("Specified q value outside of q range! Reverting "
+                    "to total intensity.", style=wx.ICON_ERROR|wx.OK)
                 self.plotparams['y_axis_display'] = 'total'
                 mainframe.setViewMenuScale(menu_ids['secplottotal'])
 
@@ -3675,18 +3678,22 @@ class SeriesPlotPanel(wx.Panel):
         if self.plotparams['x_axis_display'] == 'time':
             time= secm.getTime()
 
-            ydata = secm.line.get_ydata()
+            ydata = secm.total_i
 
             if len(time) == 0:
-                wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                wx.CallAfter(wx.MessageBox, ("Time data not available for this "
+                    "data set. Reverting to frame number."), style=wx.ICON_ERROR|wx.OK)
                 self.plotparams['x_axis_display'] = 'frame'
                 mainframe.setViewMenuScale(menu_ids['secplotframe'])
             elif time[0] == -1:
-                wx.CallAfter(wx.MessageBox, "Time data not available for this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                wx.CallAfter(wx.MessageBox, ("Time data not available for this "
+                    "data set. Reverting to frame number."), style=wx.ICON_ERROR|wx.OK)
                 self.plotparams['x_axis_display'] = 'frame'
                 mainframe.setViewMenuScale(menu_ids['secplotframe'])
             elif len(time) != len(ydata):
-                wx.CallAfter(wx.MessageBox, "Time data not available for every frame in this data set. Reverting to frame number.", style=wx.ICON_ERROR | wx.OK)
+                wx.CallAfter(wx.MessageBox, "Time data not available for every "
+                    "frame in this data set. Reverting to frame number.",
+                    style=wx.ICON_ERROR|wx.OK)
                 self.plotparams['x_axis_display'] = 'frame'
                 mainframe.setViewMenuScale(menu_ids['secplotframe'])
 

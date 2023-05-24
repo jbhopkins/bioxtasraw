@@ -70,6 +70,9 @@ All changes:
     CRYSOL is calculated when that happens.
 *   Made subtraction of profiles with mismatched q vectors more robust.
 *   Added ability to average profiles with mismatched q vectors.
+*   Added ability to export data from the main IFT plot.
+*   Fixed a bug where loading series data that doesn't have time data when the
+    series x axis is in time would cause an error.
 
 
 2.1.4
