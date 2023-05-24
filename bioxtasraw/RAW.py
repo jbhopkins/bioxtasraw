@@ -5624,7 +5624,7 @@ class MainWorkerThread(threading.Thread):
                     avg_sasm = SASProc.average(avg_list, True)
                 else:
                     avg_sasm = SASProc.weightedAverage(avg_list, weightByError,
-                        weightCounter)
+                        weightCounter, True)
 
             elif profiles_to_use == wx.ID_YES:
                 reduced_sasm_list = [avg_list[0]]
@@ -5637,7 +5637,7 @@ class MainWorkerThread(threading.Thread):
                     avg_sasm = SASProc.average(reduced_sasm_list)
                 else:
                     avg_sasm = SASProc.weightedAverage(reduced_sasm_list,
-                        weightByError, weightCounter)
+                        weightByError, weightCounter, True)
 
         except SASExceptions.DataNotCompatible:
             wx.CallAfter(self._showAverageError, 3)

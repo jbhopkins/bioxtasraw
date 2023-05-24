@@ -14,6 +14,12 @@ Overview
 The RAW team is pleased to announce the release of RAW version 2.2.0. Significant
 changes include:
 
+    *   New CRYSOL GUI
+    *   New profile comparison window
+    *   Faster calculation of forward and backward EFA plots
+    *   Improved PDF report with text wrapping in columns and vector graphics
+
+Note that this version of RAW introduces a new dependency on svglib.
 
 
 All changes:
@@ -56,9 +62,14 @@ All changes:
     if you saved more than one dataset where the technique was used.
 *   Figures in the report are now vector (svg), so they should be higher quality.
 *   Added a dependency on svglib.
-*   Added a new comparison window that has residuals and ratios as well as the
-    old similarity test list.
+*   Added a new comparison window that has residuals, ratios and a heat map as
+    well as the old similarity test list.
 *   Fixed an issue where FoXS fit files could take a long time to load.
+*   Added a GUI for CRYSOL.
+*   PDB and CIF files can now be loaded into RAW and the theoretical profile from
+    CRYSOL is calculated when that happens.
+*   Made subtraction of profiles with mismatched q vectors more robust.
+*   Added ability to average profiles with mismatched q vectors.
 
 
 2.1.4

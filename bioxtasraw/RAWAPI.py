@@ -875,7 +875,7 @@ def weighted_average(profiles, weight_by_error=True, weight_counter='',
         weight_counter = settings.get('weightCounter')
 
     avg_profile = SASProc.weightedAverage(profiles, weight_by_error,
-        weight_counter, forced = False, copy_params=copy_metadata)
+        weight_counter, forced=forced, copy_params=copy_metadata)
 
     avg_profile.setParameter('filename',
         'A_{}'.format(avg_profile.getParameter('filename')))
