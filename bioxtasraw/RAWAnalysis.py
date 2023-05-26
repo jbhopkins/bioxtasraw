@@ -22056,6 +22056,27 @@ class NormKratkyPlotPanel(wx.Panel):
 
         return data_line
 
+    def updatePlotSASMs(self, sasm_list):
+        for sasm in sasm_list:
+            name = sasm.getParameter('filename')
+
+            for data_line in self.line_dict:
+                line_name = self.line_dict[data_line].label
+
+                if line_name == name:
+                    analysis_dict = sasm.getParameter('analysis')
+
+                    rg = float(analysis_dict['guinier']['Rg'])
+                    i0 = float(analysis_dict['guinier']['I0'])
+                    vc = float(analysis_dict['molecularWeight']['VolumeOfCorrelation']['Vcor'])
+
+                    self.line_dict[data_line] = self.DataTuple(sasm, rg, i0, vc,
+                        data_line, name)
+
+                    break
+
+        self.updatePlot(self.plot_type)
+
     def autoscale_plot(self):
         redraw = False
 
@@ -22120,9 +22141,8 @@ class NormKratkyPlotPanel(wx.Panel):
 
         for line, data in self.line_dict.items():
             sasm = data.sasm
-            qmin, qmax = sasm.getQrange()
-            q = sasm.q[qmin:qmax]
-            i = sasm.i[qmin:qmax]
+            q = sasm.getQ()
+            i = sasm.getI()
 
             rg = data.rg
             i0 = data.i0
@@ -22240,7 +22260,9 @@ class NormKratkyPlotPanel(wx.Panel):
 
             filename = title.replace(' ', '_') + '.csv'
 
-            dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = path, defaultFile = filename)
+            dialog = wx.FileDialog(self, message=("Please select save "
+                "directory and enter save file name"), style=wx.FD_SAVE,
+                defaultDir=path, defaultFile=filename)
 
             if dialog.ShowModal() == wx.ID_OK:
                 save_path = dialog.GetPath()
@@ -22271,10 +22293,8 @@ class NormKratkyControlPanel(wx.Panel):
 
         self.norm_kratky_frame = parent.GetParent().GetParent()
 
-        self.sasm_list = sasm_list
-
-        self.control_ids = {'plot'  : self.NewControlId(),
-                            }
+        self.orig_sasms = sasm_list
+        self.sasm_list = [copy.deepcopy(sasm) for sasm in self.orig_sasms]
 
         self.main_frame = wx.FindWindowByName('MainFrame')
 
@@ -22309,21 +22329,46 @@ class NormKratkyControlPanel(wx.Panel):
         ctrl_box = wx.StaticBox(self, -1, 'Control')
         control_sizer = wx.StaticBoxSizer(ctrl_box, wx.VERTICAL)
 
-        plt_text = wx.StaticText(ctrl_box, -1, 'Plot:')
-        plt_ctrl = wx.Choice(ctrl_box, self.control_ids['plot'],
-            choices=['Normalized', 'Dimensionless (Rg)', 'Dimensionless (Vc)'])
-        plt_ctrl.SetStringSelection('Dimensionless (Rg)')
-        plt_ctrl.Bind(wx.EVT_CHOICE, self._onPlotChoice)
+        self.plt_ctrl = wx.Choice(ctrl_box, choices=['Normalized',
+            'Dimensionless (Rg)', 'Dimensionless (Vc)'])
+        self.plt_ctrl.SetStringSelection('Dimensionless (Rg)')
+        self.plt_ctrl.Bind(wx.EVT_CHOICE, self._onPlotChoice)
 
         plt_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        plt_sizer.Add(plt_text, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(5))
-        plt_sizer.Add(plt_ctrl, 0, wx.RIGHT, border=self._FromDIP(5))
+        plt_sizer.Add(wx.StaticText(ctrl_box, -1, 'Plot:'), 0, wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(5))
+        plt_sizer.Add(self.plt_ctrl, 0, wx.RIGHT, border=self._FromDIP(5))
+
+
+        self.rebin_ctrl = wx.CheckBox(ctrl_box, label='Rebin profiles for plot')
+        self.rebin_ctrl.SetValue(0)
+        self.rebin_ctrl.Bind(wx.EVT_CHECKBOX, self._on_rebin)
+
+        self.rebin_type = wx.Choice(ctrl_box, choices=['Log', 'Linear'])
+        self.rebin_type.SetSelection(0)
+        self.rebin_type.Bind(wx.EVT_CHOICE, self._on_rebin)
+
+        self.rebin_scale = RAWCustomCtrl.IntSpinCtrl(ctrl_box, wx.ID_ANY,
+            min_val=1, TextLength=45)
+        self.rebin_scale.SetValue(2)
+        self.rebin_scale.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_rebin)
+
+        rebin_sizer = wx.GridBagSizer(vgap=self._FromDIP(5), hgap=self._FromDIP(5))
+        rebin_sizer.Add(self.rebin_ctrl, (0,0), span=(1,2))
+        rebin_sizer.Add(wx.StaticText(ctrl_box, label='Rebin mode:'), (1,0),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        rebin_sizer.Add(self.rebin_type, (1,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        rebin_sizer.Add(wx.StaticText(ctrl_box, label='Rebin factor:'), (2,0),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        rebin_sizer.Add(self.rebin_scale, (2,1), flag=wx.ALIGN_CENTER_VERTICAL)
+
 
         self.list = normKratkyListPanel(ctrl_box)
 
-
-        control_sizer.Add(plt_sizer, 0)
-        control_sizer.Add(self.list, 1, wx.EXPAND | wx.TOP, border=self._FromDIP(5))
+        control_sizer.Add(plt_sizer, 0, flag=wx.ALL, border=self._FromDIP(5))
+        control_sizer.Add(rebin_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
+        control_sizer.Add(self.list, 1, wx.EXPAND|wx.BOTTOM, border=self._FromDIP(5))
 
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -22337,7 +22382,7 @@ class NormKratkyControlPanel(wx.Panel):
     def _initialize(self):
         plotpanel = self.norm_kratky_frame.plotPanel
 
-        for sasm in self.sasm_list:
+        for sasm in self.orig_sasms:
             analysis_dict = sasm.getParameter('analysis')
             i0 = float(analysis_dict['guinier']['I0'])
 
@@ -22355,14 +22400,38 @@ class NormKratkyControlPanel(wx.Panel):
 
             self.list.addItem(sasm, line)
 
+    def _on_rebin(self, evt):
+        self._rebin()
+
+    def _rebin(self):
+        rebin_factor = self.rebin_scale.GetValue()
+        rebin_type = self.rebin_type.GetStringSelection()
+        do_rebin = self.rebin_ctrl.GetValue()
+
+        if rebin_type == 'Log':
+            log_rebin = True
+        else:
+            log_rebin = False
+
+        if do_rebin and rebin_factor != 1:
+            self.sasm_list = RAWAPI.rebin(self.orig_sasms, rebin_factor=rebin_factor,
+                log_rebin=log_rebin)
+
+            for sasm in self.sasm_list:
+                sasm.setParameter('filename', sasm.getParameter('filename')[2:])
+
+        else:
+            self.sasm_list = [copy.deepcopy(sasm) for sasm in self.orig_sasms]
+
+
+        self.norm_kratky_frame.plotPanel.updatePlotSASMs(self.sasm_list)
 
     def _onPlotChoice(self, evt):
         self.updatePlot()
 
 
     def updatePlot(self):
-        plotWindow = wx.FindWindowById(self.control_ids['plot'], self)
-        plot_type = plotWindow.GetStringSelection()
+        plot_type = self.plt_ctrl.GetStringSelection()
 
         plotpanel = self.norm_kratky_frame.plotPanel
 

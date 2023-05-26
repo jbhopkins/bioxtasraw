@@ -75,6 +75,9 @@ All changes:
     series x axis is in time would cause an error.
 *   Fixed a bug where showing an image that was a different size than the beamstop
     mask array would cause an error.
+*   DENSS resolution now rounds instead of displaying to arbitrary precision.
+*   Added ability to rebin profiles in the dimensionless Kratky plot directly
+    from the panel.
 
 
 2.1.4
