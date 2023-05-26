@@ -366,8 +366,6 @@ class MainFrame(wx.Frame):
         thread.daemon = True
         thread.start()
 
-
-
         wx.CallAfter(self._showWelcomeDialog)
 
 
@@ -774,7 +772,11 @@ class MainFrame(wx.Frame):
         mainworker_cmd_queue.put([taskname, data])
 
     def closeBusyDialog(self):
-        del self._busyDialog
+        try:
+            del self._busyDialog
+        except Exception:
+            pass
+
         self._busyDialog = None
 
     def showBusyDialog(self, text):
@@ -3764,8 +3766,9 @@ class MainWorkerThread(threading.Thread):
                         msg = ("An unexpected error has occurred, please report "
                             "it to the developers.\n"
                             "System: {}\n"
-                            "RAW version: {}\n".format(platform.platform(),
-                                RAWGlobals.version))
+                            "RAW version: {}\n"
+                            "Prebuilt: {}\n".format(platform.platform(),
+                                RAWGlobals.version, RAWGlobals.frozen))
 
                         if atsas_version != '':
                             msg = msg + "ATSAS version: {}\n".format(atsas_version)
@@ -15928,7 +15931,9 @@ class MyApp(wx.App):
         msg = ("An unexpected error has occurred, please report it to the "
             "developers.\n"
             "System: {}\n"
-            "RAW version: {}\n".format(platform.platform(), RAWGlobals.version))
+            "RAW version: {}\n"
+            "Prebuilt: {}\n".format(platform.platform(), RAWGlobals.version,
+                RAWGlobals.frozen))
 
         if atsas_version != '':
             msg = msg + "ATSAS version: {}\n".format(atsas_version)

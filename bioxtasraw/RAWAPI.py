@@ -4184,7 +4184,7 @@ def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
     datadir: str
         The directory containing both the target and ref_file. It is also the
         directory for the output file.
-   method: {'NSD, 'NCC', 'ICP', 'RMSD'} str, optional
+    method: {'NSD, 'NCC', 'ICP', 'RMSD'} str, optional
         What method to use to determine distance between two models. Default
         is ICP.
     selection: {'ALL', 'BACKBONE', 'REGRID', 'SHELL'} str, optional
