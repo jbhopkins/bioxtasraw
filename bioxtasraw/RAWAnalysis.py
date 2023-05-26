@@ -9885,10 +9885,10 @@ class DenssResultsPanel(wx.Panel):
 
     def getResolution(self, resolution, resolution_sd):
         res_window = wx.FindWindowById(self.ids['res'], self)
-        res_window.SetValue(str(resolution))
+        res_window.SetValue(str(round(resolution, 1)))
 
         res_sd_window = wx.FindWindowById(self.ids['res_sd'], self)
-        res_sd_window.SetValue(str(resolution_sd))
+        res_sd_window.SetValue(str(round(resolution_sd,1)))
 
     def getModels(self, settings, denss_results, denss_stats, average_results,
         refine_results):
