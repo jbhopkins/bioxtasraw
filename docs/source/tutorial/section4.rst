@@ -18,5 +18,6 @@ Sections 1 and 2.
 
    s4_save_plots
    s4_export_plots
+   s4_external_data
 
 
