@@ -62,7 +62,7 @@ linux_install = 'install/linux_install'
 
 # General information about the project.
 project = u'BioXTAS RAW'
-copyright = u'2017-2021, Jesse B. Hopkins'
+copyright = u'2017-2023, Jesse B. Hopkins'
 author = u'Jesse B. Hopkins'
 
 # The version info for the project you're documenting, acts as replacement for

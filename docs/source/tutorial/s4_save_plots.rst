@@ -1,6 +1,6 @@
 Customizing and saving plots
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. _raw_mw:
+.. _raw_save_plot:
 
 This tutorial covers how to customize plots in RAW and save plots from RAW.
 Note that RAW is not meant to be a program for making publication quality
@@ -32,12 +32,12 @@ Customizing plots in RAW
     |plot_options1_png|
 
 #.  In the options window, do the following: Turn on the Top and Right borders,
-    Change the x-axis label to give the q units, as "$q$ $[1/\AA]$". Click "Okay"
+    Change the x-axis label to give the q units, as "$q$ $[1/\\AA]$". Click "Okay"
     to exit the plot options window.
 
     *   Tip: Anything inside of "$" signs in a plot label or legend label is
         parsed as a TeX markup, which allows you to use special symbols like
-        the angstrom symbol, Å, as $\AA$. A useful guide to allowed formating
+        the angstrom symbol, Å, as $\\AA$. A useful guide to allowed formatting
         and special characters input can be found in the matplotlib documentation:
         https://matplotlib.org/stable/tutorials/text/mathtext.html
 
@@ -47,18 +47,22 @@ Customizing plots in RAW
 
     |plot_checkpoint1_png|
 
+#.  Adjust the size of the RAW window to adjust the aspect ratio of the plot and
+    make it roughly square.
+
 #.  Use the horizontal slider bar button in the plot toolbar to open the margin
     adjustment for the plot.
 
     |plot_margins1_png|
 
 #.  In the window that opens, use the left, right, top, and bottom sliders
-    to bring the edges of the plot close to the edges of the window.
+    to bring the edges of the plot close to the edges of the window. Close the
+    margin adjustment window when done.
 
     |plot_margins2_png|
 
 #.  Click on the colored line in the glucose_isomerase.dat item in the Profiles
-    Control Panel to open the Line Properies window.
+    Control Panel to open the Line Properties window.
 
     |plot_line_properties1_png|
 
@@ -97,9 +101,9 @@ Customizing plots in RAW
 
 Note: All of the main plots in RAW ("Profiles", "IFTs", "Series") can be
 customized in a similar way. All of the items in the control panel have
-the line optiosn dialogs. All of the plots have plot options. Analysis
+the line options dialogs. All of the plots have plot options. Analysis
 plots (such as the Guinier plot) don't generally have most of these customization
-options. All of the analysis plos will have the ability to set the margins and
+options. All of the analysis plots will have the ability to set the margins and
 to zoom/drag to adjust what's visible, not nothing else. The exception to this
 is the Dimensionless Krakty plot, where you can adjust the line color (but nothing else).
 
@@ -110,6 +114,21 @@ as desired.
 
 Saving plots in RAW
 *****************************
+
+#.  Click the Save icon in the plot toolbar at the bottom of the plot window to
+    open the save dialog.
+
+    |plot_save_png|
+
+#.  Select an appropriate file type, filename, and location, then save the image.
+
+Note: We recommend using vector graphics formats for plots that you'll be including
+in presentations or papers. Vector graphics are images that can be rescaled
+(preserving aspect ratio) arbitrarily without loss of quality. We recommend the
+"Scalable Vector Graphics" (.svg) format for vector graphics saved with
+matplotlib, but you can select other options as it suits your needs. For raster
+graphics (e.g. images with a defined set of pixels) we recommend "Portable
+Network File" (.png) as it has lossless compression.
 
 
 .. |show_plot1_png| image:: images/show_plot1.png
@@ -129,18 +148,22 @@ Saving plots in RAW
 
 .. |plot_margins1_png| image:: images/plot_margins1.png
     :target: ../_images/plot_margins1.png
+    :width: 400 px
 
 .. |plot_margins2_png| image:: images/plot_margins2.png
     :target: ../_images/plot_margins2.png
 
 .. |plot_line_properties1_png| image:: images/plot_line_properties1.png
     :target: ../_images/plot_line_properties1.png
+    :width: 400 px
 
 .. |plot_line_properties2_png| image:: images/plot_line_properties2.png
     :target: ../_images/plot_line_properties2.png
+    :width: 450 px
 
 .. |plot_errorbars_png| image:: images/plot_errorbars.png
     :target: ../_images/plot_errorbars.png
+    :width: 400 px
 
 .. |plot_checkpoint2_png| image:: images/plot_checkpoint2.png
     :target: ../_images/plot_checkpoint2.png
@@ -150,3 +173,7 @@ Saving plots in RAW
 
 .. |plot_checkpoint3_png| image:: images/plot_checkpoint3.png
     :target: ../_images/plot_checkpoint3.png
+
+.. |plot_save_png| image:: images/plot_save.png
+    :target: ../_images/plot_save.png
+    :width: 400 px

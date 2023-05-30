@@ -720,7 +720,7 @@ class GuinierPlotPanel(wx.Panel):
             data_list.append(y)
             data_list.append(yerr)
 
-            header = header + '{},{},{},'.format('q**2_data', 'ln(I(q))_data', 'error_data')
+            header = header + '#{},{},{},'.format('q**2_data', 'ln(I(q))_data', 'error_data')
 
 
             x_fit = self.fit_line.get_xdata()

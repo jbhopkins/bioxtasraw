@@ -16,6 +16,7 @@ Sections 1 and 2.
 .. toctree::
    :maxdepth: 2
 
-   s4_saveplots
+   s4_save_plots
+   s4_export_plots
 
 
