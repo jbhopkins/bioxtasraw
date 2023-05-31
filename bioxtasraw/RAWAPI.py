@@ -4454,7 +4454,7 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
             'implicit_hydrogen' : settings.get('crysolImplicitH'),
             'sub_element'       : settings.get('crysolSubElement'),
             'model'             : settings.get('crysolModelID'),
-            'chain'             : settings.get('crysolChainId'),
+            'chain'             : settings.get('crysolChainID'),
             'alternative_names' : settings.get('crysolAltNames'),
             }
 

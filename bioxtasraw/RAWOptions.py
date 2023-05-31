@@ -4639,6 +4639,129 @@ class ATSASAlign(scrolled.ScrolledPanel):
 
         return top_sizer
 
+class ATSASCrysol(scrolled.ScrolledPanel):
+
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
+
+        self.raw_settings = raw_settings
+
+        self.update_keys = [
+            'crysolHarmonics',
+            'crysolFibGrid',
+            'crysolPoints',
+            'crysolQmax',
+            'crysolUnit',
+            'crysolSolvDensity',
+            'crysolHydrDensity',
+            'crysolConstant',
+            'crysolFitSolvent',
+            'crysolEnergy',
+            'crysolShell',
+            'crysolExplicitH',
+            'crysolImplicitH',
+            'crysolSubElement',
+            'crysolModelID',
+            'crysolChainID',
+            'crysolAltNames',
+            'crysolResultToPlot',
+            ]
+
+        crysol_layout_settings = (
+            (("Harmonics:"), raw_settings.getId('crysolHarmonics'), 'int'),
+            (("Number of points:"), raw_settings.getId('crysolPoints'), 'int'),
+            (("Maximum q:"), raw_settings.getId('crysolQmax'), 'float'),
+            (("Order of fibonacci grid:"), raw_settings.getId('crysolFibGrid'),
+                'int'),
+            (("Solvent density [e/A^3]:"), raw_settings.getId('crysolSolvDensity'),
+                'float'),
+            (("Hydration shell contrats [e/A^3]:"),
+                raw_settings.getId('crysolHydrDensity'), 'float'),
+            (("Fit solvent"),  raw_settings.getId('crysolFitSolvent'), 'bool'),
+            (("Subtract constant for fit"),  raw_settings.getId('crysolConstant'),
+                'bool'),
+            (("Hydration shell kind:"), raw_settings.getId('crysolShell'), 'choice',
+                ['directional', 'water']),
+            (("Energy (anomalous only):"), raw_settings.getId('crysolEnergy'),
+                'float'),
+            (("Explicit Hydrogen"),  raw_settings.getId('crysolExplicitH'),
+                'bool'),
+            (("Model ID:"), raw_settings.getId('crysolModelID'), 'text'),
+            (("Chain ID:"), raw_settings.getId('crysolChainID'), 'text'),
+            (("Alternative (old) atom names"),  raw_settings.getId('crysolAltNames'),
+                'bool'),
+            (("Implicit Hydrogen:"), raw_settings.getId('crysolImplicitH'), 'text'),
+            (("Units:"), raw_settings.getId('crysolUnit'), 'choice',
+                ['Unknown', '1 - 1/A, q=4pi*sin(th)/l)',
+                '2 - 1/nm, q=4pi*sin(th)/l', '3 - 1/A, q=2*sin(th)/l',
+                '4 - 1/nm, q=2*sin(th)/l']),
+            (("Sub element:"), raw_settings.getId('crysolSubElement'), 'text'),
+            (("Result to plot (no fit):"), raw_settings.getId('crysolResultToPlot'),
+                'choice', ['.abs', '.int', 'both']),
+            )
+
+        options_sizer = self.createOptions(crysol_layout_settings)
+
+        self.SetSizer(options_sizer)
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def createOptions(self, layout_settings):
+        sizer = self._createItemsSizer(layout_settings, self)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(sizer, flag=wx.EXPAND|wx.BOTTOM|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(3))
+
+        return top_sizer
+
+    def _createItemsSizer(self, layout_settings, parent):
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        for item in layout_settings:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.Choice(parent, myId, choices = item[3])
+
+                sizer.Add(labeltxt, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL,
+                    border=self._FromDIP(2))
+                sizer.Add(ctrl, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL,
+                    border=self._FromDIP(2))
+
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(parent, -1, label)
+                ctrl = wx.TextCtrl(parent, myId, '', size=self._FromDIP((60,-1)),
+                    style = wx.TE_PROCESS_ENTER)
+
+                sizer.Add(labeltxt, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL,
+                    border=self._FromDIP(2))
+                sizer.Add(ctrl, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL,
+                    border=self._FromDIP(2))
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(parent, myId, label)
+                sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
+
+            top_sizer.Add(sizer, 0)
+
+        return top_sizer
 
 class WeightedAveragePanel(scrolled.ScrolledPanel):
 
@@ -5411,6 +5534,7 @@ class OptionsDialog(wx.Dialog):
             [ (9,2,2), wx.Window.NewControlId(), "DAMMIN Advanced", ATSASDamminAdvanced],
             [ (9,3,1), wx.Window.NewControlId(), "DAMAVER", ATSASDamaver],
             [ (9,4,1), wx.Window.NewControlId(), "CIFSUP/SUPCOMB", ATSASAlign],
+            [ (9,5,1), wx.Window.NewControlId(), "CRYSOL", ATSASCrysol],
             [ (10,0,0), wx.Window.NewControlId(), "Weighted Average", WeightedAveragePanel],
             [ (11,0,0), wx.Window.NewControlId(), "Similarity Testing", SimilarityPanel],
             [ (12,0,0), wx.Window.NewControlId(), "Fitting", FittingPanel],

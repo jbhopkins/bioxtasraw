@@ -12031,8 +12031,8 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         if self.raw_settings.get('crysolModelID') != 'None':
             self.model_id.ChangeValue(str(self.raw_settings.get('crysolModelID')))
 
-        if self.raw_settings.get('crysolChainId') != 'None':
-            self.chain_id.ChangeValue(str(self.raw_settings.get('crysolChainId')))
+        if self.raw_settings.get('crysolChainID') != 'None':
+            self.chain_id.ChangeValue(str(self.raw_settings.get('crysolChainID')))
 
         if self.raw_settings.get('crysolSubElement') != 'None':
             self.sub_element.ChangeValue(str(self.raw_settings.get('crysolSubElement')))

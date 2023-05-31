@@ -398,9 +398,9 @@ class RawGuiSettings(object):
                 'crysolImplicitH'       : ['None', get_id(), 'str'],
                 'crysolSubElement'      : ['None', get_id(), 'str'],
                 'crysolModelID'         : ['None', get_id(), 'str'],
-                'crysolChainId'         : ['None', get_id(), 'str'],
+                'crysolChainID'         : ['None', get_id(), 'str'],
                 'crysolAltNames'        : [False, get_id(), 'bool'],
-                'crysolResultToPlot'    : ['.abs', get_id(), 'bool'],
+                'crysolResultToPlot'    : ['.abs', get_id(), 'choice'],
 
                 #Default structure prediction
                 'defaultStructureCalc'  : ['CRYSOL', get_id(), 'str'],
