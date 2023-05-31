@@ -126,7 +126,7 @@ Note: We recommend using vector graphics formats for plots that you'll be includ
 in presentations or papers. Vector graphics are images that can be rescaled
 (preserving aspect ratio) arbitrarily without loss of quality. We recommend the
 "Scalable Vector Graphics" (.svg) format for vector graphics saved with
-matplotlib, but you can select other options as it suits your needs. For raster
+RAW, but you can select other options as it suits your needs. For raster
 graphics (e.g. images with a defined set of pixels) we recommend "Portable
 Network File" (.png) as it has lossless compression.
 
