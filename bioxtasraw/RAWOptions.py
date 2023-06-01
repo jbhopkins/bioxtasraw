@@ -2606,6 +2606,7 @@ class GeneralOptionsPanel(scrolled.ScrolledPanel):
             'UseHeaderForMask', 'DetectorFlipped90', 'OnlineModeOnStartup',
             'OnlineStartupDir', 'DetectorFlipLR', 'DetectorFlipUD',
             'UseHeaderForConfig', 'HdrLoadConfigDir', 'ExcludeMaskFromImageScale',
+            'defaultStructureCalc',
             ]# 'PromptConfigLoad']
 
         self.chkboxdata = [
@@ -2629,7 +2630,7 @@ class GeneralOptionsPanel(scrolled.ScrolledPanel):
                 raw_settings.getId('ExcludeMaskFromImageScale')),
             ]
 
-        options_sizer = self.createGeneralOptionsData()
+        options_sizer = self.createGeneralOptionsData(raw_settings)
 
         final_sizer = wx.BoxSizer(wx.VERTICAL)
         final_sizer.Add(options_sizer, 0, wx.EXPAND|wx.ALL, border=self._FromDIP(5))
@@ -2643,7 +2644,7 @@ class GeneralOptionsPanel(scrolled.ScrolledPanel):
         except Exception:
             return size
 
-    def createGeneralOptionsData(self):
+    def createGeneralOptionsData(self, raw_settings):
 
         box = wx.StaticBox(self, -1, 'General Options')
         staticBoxSizer = wx.StaticBoxSizer(box, wx.VERTICAL)
@@ -2682,9 +2683,20 @@ class GeneralOptionsPanel(scrolled.ScrolledPanel):
             border=self._FromDIP(5))
         hsizer2.Add(hdrldsetdir_button, 0, wx.LEFT, border=self._FromDIP(5))
 
+        default_structure_calc_ctrl = wx.Choice(box,
+            raw_settings.getId('defaultStructureCalc'), choices=['CRYSOL'])
+
+        calc_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        calc_sizer.Add(wx.StaticText(box, label='Default structure calculator:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        calc_sizer.Add(default_structure_calc_ctrl, flag=wx.ALIGN_CENTER_VERTICAL|wx.LEFT,
+            border=self._FromDIP(5))
+
         staticBoxSizer.Add(hsizer, 1, wx.EXPAND|wx.LEFT|wx.RIGHT,
             border=self._FromDIP(5))
         staticBoxSizer.Add(hsizer2, 1, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
+        staticBoxSizer.Add(calc_sizer, 1, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM,
             border=self._FromDIP(5))
 
         return staticBoxSizer
