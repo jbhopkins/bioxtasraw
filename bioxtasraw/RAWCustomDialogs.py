@@ -5273,31 +5273,61 @@ class ReportFrame(wx.Frame):
             self.series_list.addItem(seriesm)
 
         profile_sizer = wx.BoxSizer(wx.VERTICAL)
-        profile_sizer.Add(wx.StaticText(inc_box, label='Profiles:'), flag=wx.ALL,
-            border=self._FromDIP(5))
-        profile_sizer.Add(self.profile_list, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
-            border=self._FromDIP(5), proportion=1)
+        profile_sizer.Add(wx.StaticText(inc_box, label='Profiles:'),
+            flag=wx.BOTTOM, border=self._FromDIP(5))
+        profile_sizer.Add(self.profile_list, flag=wx.EXPAND, proportion=1)
 
         ift_sizer = wx.BoxSizer(wx.VERTICAL)
-        ift_sizer.Add(wx.StaticText(inc_box, label='IFTs:'), flag=wx.ALL,
+        ift_sizer.Add(wx.StaticText(inc_box, label='IFTs:'), flag=wx.BOTTOM,
             border=self._FromDIP(5))
-        ift_sizer.Add(self.ift_list, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
-            border=self._FromDIP(5), proportion=1)
+        ift_sizer.Add(self.ift_list, flag=wx.EXPAND, proportion=1)
 
         series_sizer = wx.BoxSizer(wx.VERTICAL)
-        series_sizer.Add(wx.StaticText(inc_box, label='Series:'), flag=wx.ALL,
+        series_sizer.Add(wx.StaticText(inc_box, label='Series:'), flag=wx.BOTTOM,
             border=self._FromDIP(5))
-        series_sizer.Add(self.series_list, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+        series_sizer.Add(self.series_list, flag=wx.EXPAND, proportion=1)
+
+        self.dammif_list = CheckListCtrl(inc_box, size=self._FromDIP((200, 100)))
+        add_dammif = wx.Button(inc_box, label='Add DAMMIF/N results .csv')
+
+        add_dammif.Bind(wx.EVT_BUTTON, self._on_add_dammif)
+
+        dammif_sizer = wx.BoxSizer(wx.VERTICAL)
+        dammif_sizer.Add(wx.StaticText(inc_box, label='DAMMIF/N results:'),
+            flag=wx.BOTTOM, border=self._FromDIP(5))
+        dammif_sizer.Add(self.dammif_list, flag=wx.EXPAND|wx.BOTTOM,
             border=self._FromDIP(5), proportion=1)
+        dammif_sizer.Add(add_dammif)
+
+        self.denss_list = CheckListCtrl(inc_box, size=self._FromDIP((200, 100)))
+        add_denss = wx.Button(inc_box, label='Add DENSS results .csv')
+
+        add_denss.Bind(wx.EVT_BUTTON, self._on_add_denss)
+
+        denss_sizer = wx.BoxSizer(wx.VERTICAL)
+        denss_sizer.Add(wx.StaticText(inc_box, label='DENSS results:'),
+            flag=wx.BOTTOM, border=self._FromDIP(5))
+        denss_sizer.Add(self.denss_list, flag=wx.EXPAND|wx.BOTTOM,
+            border=self._FromDIP(5), proportion=1)
+        denss_sizer.Add(add_denss)
+
+
+        sel_sub_sizer = wx.FlexGridSizer(cols=3, hgap=self._FromDIP(10),
+            vgap=self._FromDIP(5))
+        sel_sub_sizer.Add(profile_sizer, flag=wx.EXPAND, proportion=1)
+        sel_sub_sizer.Add(ift_sizer, flag=wx.EXPAND, proportion=1)
+        sel_sub_sizer.Add(series_sizer, flag=wx.EXPAND, proportion=1)
+        sel_sub_sizer.Add(dammif_sizer, flag=wx.EXPAND, proportion=1)
+        sel_sub_sizer.Add(denss_sizer, flag=wx.EXPAND, proportion=1)
+        sel_sub_sizer.AddGrowableCol(0)
+        sel_sub_sizer.AddGrowableCol(1)
+        sel_sub_sizer.AddGrowableCol(2)
+        sel_sub_sizer.AddGrowableRow(0)
+        sel_sub_sizer.AddGrowableRow(1)
 
         selector_sizer = wx.StaticBoxSizer(inc_box, wx.HORIZONTAL)
-        selector_sizer.Add(profile_sizer, flag=wx.ALL|wx.EXPAND,
+        selector_sizer.Add(sel_sub_sizer, flag=wx.ALL|wx.EXPAND,
             border=self._FromDIP(5), proportion=1)
-        selector_sizer.Add(ift_sizer, flag=wx.TOP|wx.BOTTOM|wx.RIGHT|wx.EXPAND,
-            border=self._FromDIP(5), proportion=1)
-        selector_sizer.Add(series_sizer, flag=wx.TOP|wx.BOTTOM|wx.RIGHT|wx.EXPAND,
-            border=self._FromDIP(5), proportion=1)
-
 
         ctrl_box = wx.StaticBox(panel, label='Controls')
 
@@ -5340,30 +5370,9 @@ class ReportFrame(wx.Frame):
     # def _update_available_data(profiles, ifts, series):
 
     def _on_make_report(self, evt):
+        report_has_items = self._check_report_items()
 
-        profiles = []
-        ifts = []
-        series = []
-
-        tot = self.profile_list.GetItemCount()
-
-        for i in range(tot):
-            if self.profile_list.IsItemChecked(i):
-                profiles.append(copy.deepcopy(self.all_profiles[i]))
-
-        tot = self.ift_list.GetItemCount()
-
-        for i in range(tot):
-            if self.ift_list.IsItemChecked(i):
-                ifts.append(copy.deepcopy(self.all_ifts[i]))
-
-        tot = self.series_list.GetItemCount()
-
-        for i in range(tot):
-            if self.series_list.IsItemChecked(i):
-                series.append(copy.deepcopy(self.all_series[i]))
-
-        if len(profiles) == 0 and len(ifts) == 0 and len(series) == 0:
+        if not report_has_items:
             msg = 'No items are selected for the report.'
             dlg = wx.MessageDialog(self, msg, "Select items for report",
                 style = wx.ICON_ERROR | wx.OK)
@@ -5391,20 +5400,170 @@ class ReportFrame(wx.Frame):
                 dialog.Destroy()
                 return
 
-            wx.CallAfter(self._make_report, save_name, save_dir, profiles,
-                ifts, series)
+            profiles, ifts, series, dammif, denss = self._get_report_items()
 
-    def _make_report(self, save_name, save_dir, profiles, ifts, series):
+            wx.CallAfter(self._make_report, save_name, save_dir, profiles,
+                ifts, series, dammif, denss)
+
+    def _check_report_items(self):
+        report_has_items = False
+
+        tot = self.profile_list.GetItemCount()
+
+        for i in range(tot):
+            if self.profile_list.IsItemChecked(i):
+                report_has_items = True
+                break
+
+        if not report_has_items:
+            tot = self.ift_list.GetItemCount()
+
+            for i in range(tot):
+                if self.ift_list.IsItemChecked(i):
+                    report_has_items = True
+                    break
+
+        if not report_has_items:
+            tot = self.series_list.GetItemCount()
+
+            for i in range(tot):
+                if self.series_list.IsItemChecked(i):
+                    report_has_items = True
+                    break
+
+        if not report_has_items:
+            tot = self.dammif_list.GetItemCount()
+
+            for i in range(tot):
+                if self.dammif_list.IsItemChecked(i):
+                    report_has_items = True
+                    break
+
+        if not report_has_items:
+            tot = self.denss_list.GetItemCount()
+
+            for i in range(tot):
+                if self.denss_list.IsItemChecked(i):
+                    report_has_items = True
+                    break
+
+        return report_has_items
+
+    def _get_report_items(self):
+        profiles = []
+        ifts = []
+        series = []
+        dammif = []
+        denss = []
+
+        tot = self.profile_list.GetItemCount()
+
+        for i in range(tot):
+            if self.profile_list.IsItemChecked(i):
+                profiles.append(copy.deepcopy(self.all_profiles[i]))
+
+        tot = self.ift_list.GetItemCount()
+
+        for i in range(tot):
+            if self.ift_list.IsItemChecked(i):
+                ifts.append(copy.deepcopy(self.all_ifts[i]))
+
+        tot = self.series_list.GetItemCount()
+
+        for i in range(tot):
+            if self.series_list.IsItemChecked(i):
+                series.append(copy.deepcopy(self.all_series[i]))
+
+        tot = self.dammif_list.GetItemCount()
+
+        for i in range(tot):
+            if self.dammif_list.IsItemChecked(i):
+                path = self.dammif_list.GetItemData(i)
+                dammif.append(path)
+
+        tot = self.denss_list.GetItemCount()
+
+        for i in range(tot):
+            if self.denss_list.IsItemChecked(i):
+                path = self.denss_list.GetItemData(i)
+                denss.append(path)
+
+        return profiles, ifts, series, dammif, denss
+
+    def _make_report(self, save_name, save_dir, profiles, ifts, series,
+        dammif, denss):
         RAWGlobals.save_in_progress = True
         self.main_frame.showBusyDialog('Saving report, please wait . . .')
         self.main_frame.setStatus('Saving report', 0)
 
         RAWReport.make_report_from_raw(save_name, save_dir, profiles, ifts,
-            series, self.raw_settings)
+            series, self.raw_settings, dammif, denss)
 
         self.main_frame.closeBusyDialog()
         RAWGlobals.save_in_progress = False
         self.main_frame.setStatus('', 0)
+
+    def _on_add_dammif(self, evt):
+        self._get_model_results('dammif')
+
+    def _on_add_denss(self, evt):
+        self._get_model_results('denss')
+
+    def _get_model_results(self, mode):
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        load_path = dirctrl_panel.getDirLabel()
+
+        filters = 'CSV files (*.csv)|*.csv|All files (*.*)|*.*'
+
+        dialog = wx.FileDialog(self, 'Select model results .csv file', load_path,
+            style=wx.FD_OPEN|wx.FD_MULTIPLE, wildcard=filters)
+
+        if dialog.ShowModal() == wx.ID_OK:
+            files = dialog.GetPaths()
+        else:
+            files = None
+
+        # Destroy the dialog
+        dialog.Destroy()
+
+        unused_items = []
+
+        if files is not None:
+            if mode == 'dammif':
+                model_list = self.dammif_list
+
+            elif mode == 'denss':
+                model_list = self.denss_list
+
+            model_list.Freeze()
+            for f in files:
+                _, name = os.path.split(f)
+                _, ext = os.path.splitext(name)
+
+                use_item = True
+
+                if ext != '.csv':
+                    use_item = False
+
+                if use_item:
+                    index = model_list.addTextItem(name, f)
+                    model_list.checkItem(index)
+
+                else:
+                    unused_items.append(name)
+
+            model_list.Thaw()
+
+        if len(unused_items) > 0:
+            msg = ("The following files were not loaded because they are not "
+                ".csv files:")
+            for name in unused_items:
+                msg += "\n{}".format(name)
+
+            dialog = wx.MessageDialog(self, msg, 'Models results not loaded',
+                style=wx.OK)
+            dialog.ShowModal()
+            dialog.Destroy()
 
     def _onCloseButton(self, evt):
         self.Close()

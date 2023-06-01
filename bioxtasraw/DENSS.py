@@ -2592,8 +2592,8 @@ def run_align(allrhos, sides, ref_file, avg_q=None, abort_event=None, center=Tru
         avg_q.put_nowait('Loading reference model...\n')
 
     if os.path.splitext(ref_file)[1] == '.pdb':
-        reffname_nopath = os.path.basename(ref_file)
-        refbasename, refext = os.path.splitext(reffname_nopath)
+        # reffname_nopath = os.path.basename(ref_file)
+        refbasename, refext = os.path.splitext(ref_file)
         refoutput = refbasename+"_centered.pdb"
         refside = sides[0]
         voxel = (refside/allrhos[0].shape)[0]

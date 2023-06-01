@@ -82,6 +82,9 @@ All changes:
     fixed number of points in the P(r) function.
 *   Added a tutorial on customizing and saving plots, exporting plot data, and
     opening data saved from RAW externally.
+*   Updated DENSS to the latest version.
+*   Added the ability to add DAMMIF and DENSS results from the saved results.csv
+    files to the pdf reports from the GUI.
 
 
 2.1.4
