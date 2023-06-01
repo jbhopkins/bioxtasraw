@@ -78,6 +78,10 @@ All changes:
 *   DENSS resolution now rounds instead of displaying to arbitrary precision.
 *   Added ability to rebin profiles in the dimensionless Kratky plot directly
     from the panel.
+*   Fixed a bug where GNOM could raise an error if it failed due to having a
+    fixed number of points in the P(r) function.
+*   Added a tutorial on customizing and saving plots, exporting plot data, and
+    opening data saved from RAW externally.
 
 
 2.1.4

@@ -4361,6 +4361,10 @@ class GNOMControlPanel(wx.Panel):
 
         self.plotted_iftm = None
 
+        self.question_event = threading.Event()
+        self.answer_queue = queue.Queue()
+
+
         self._createLayout()
 
     def _FromDIP(self, size):
@@ -4596,6 +4600,23 @@ class GNOMControlPanel(wx.Panel):
         top_sizer.Add(find_dmax, 0, wx.CENTER)
 
         return top_sizer
+
+    def showQuestionDialogFromThread(self, question, label, button_list,
+        icon = None, filename = None, save_path = None):
+        ''' Function to show a question dialog from the thread '''
+
+        question_dialog = RAWCustomDialogs.CustomQuestionDialog(self, question,
+            button_list, label, icon, filename, save_path, style = wx.CAPTION | wx.RESIZE_BORDER)
+        result = question_dialog.ShowModal()
+        path = question_dialog.getPath()
+        question_dialog.Destroy()
+
+        if path:
+            self.answer_queue.put([result, path])
+        else:
+            self.answer_queue.put([result])  # put answer in thread safe queue
+
+        self.question_event.set()      # Release thread from its waiting state
 
     def initGnomValues(self, sasm, mode='auto'):
         self.setGuinierInfo(sasm)
@@ -5107,14 +5128,46 @@ class GNOMControlPanel(wx.Panel):
             RAWAPI.auto_guinier(save_sasm, error_weight)
 
         try:
-            dmax = RAWAPI.auto_dmax(save_sasm, single_proc=True)
+            dmax = RAWAPI.auto_dmax(save_sasm, single_proc=True,
+                settings=self.raw_settings)
         except Exception as e:
-            dmax = -1
-            msg = ("Automatic Dmax determination failed with the following error:\n"
-                "{}\n\nGuessing Dmax.".format(e))
-            wx.CallAfter(self.main_frame.showMessageDialog, self, msg, "Error finding Dmax",
-                wx.ICON_WARNING|wx.OK)
-            traceback.print_exc()
+            auto_dmax_failed = False
+            if self.gnom_settings['npts'] != 0:
+                msg = ("Automatic Dmax determination failed. This may be due\n"
+                    "to having a fixed number of points for the P(r) function\n"
+                    "in you GNOM settings. Would you like RAW to change this\n"
+                    "to automatically determined number of points (default) and\n"
+                    "try to find Dmax again?")
+
+                wx.CallAfter(self.showQuestionDialogFromThread, msg,
+                    "Error finding Dmax", [('Yes', wx.ID_YES), ('No', wx.ID_NO)],
+                    wx.ART_QUESTION)
+
+                self.question_event.wait()
+                self.question_event.clear()
+
+                answer = self.answer_queue.get()
+                self.answer_queue.task_done()
+
+                if answer[0] == wx.ID_YES:
+                    self.raw_settings.set('gnomNPoints', 0)
+                    self.updateGNOMSettings(update_plot=False)
+
+                try:
+                    dmax = RAWAPI.auto_dmax(save_sasm, single_proc=True,
+                        settings=self.raw_settings)
+                except Exception:
+                    auto_dmax_failed = True
+            else:
+                auto_dmax_failed = True
+
+            if auto_dmax_failed:
+                dmax = -1
+                msg = ("Automatic Dmax determination failed with the following error:\n"
+                    "{}\n\nGuessing Dmax.".format(e))
+                wx.CallAfter(self.main_frame.showMessageDialog, self, msg, "Error finding Dmax",
+                    wx.ICON_WARNING|wx.OK)
+                # traceback.print_exc()
 
         if dmax == -1:
             try:
@@ -5144,7 +5197,9 @@ class GNOMControlPanel(wx.Panel):
 
             else:
                 self.calcGNOM(dmax)
-                self.updateGNOMInfo(self.out_list[str(dmax)])
+
+                if str(dmax) in self.out_list.keys():
+                    self.updateGNOMInfo(self.out_list[str(dmax)])
 
             self.updatePlot()
 
@@ -5188,7 +5243,7 @@ class GNOMControlPanel(wx.Panel):
         except (SASExceptions.NoATSASError, SASExceptions.GNOMError) as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
             self.SetFocusIgnoringChildren()
-            traceback.print_exc()
+            # traceback.print_exc()
             return
 
         if restart_timer:
