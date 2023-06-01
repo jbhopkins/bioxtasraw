@@ -8827,6 +8827,7 @@ class DenssRunPanel(wx.Panel):
             self.denss_settings['swMinStep'] = temp_settings.get('denssShrinkwrapMinStep')
             self.denss_settings['connected'] = temp_settings.get('denssConnected')
             self.denss_settings['conSteps'] = temp_settings.get('denssConnectivitySteps')
+            self.denss_settings['conFeatures'] = temp_settings.get('denssConFeatures')
             self.denss_settings['chiEndFrac'] = temp_settings.get('denssChiEndFrac')
             self.denss_settings['cutOutput'] = temp_settings.get('denssCutOut')
             self.denss_settings['writeXplor'] = temp_settings.get('denssWriteXplor')
@@ -9613,6 +9614,7 @@ class DenssRunPanel(wx.Panel):
             'swMinStep'         : self.raw_settings.get('denssShrinkwrapMinStep'),
             'connected'         : self.raw_settings.get('denssConnected'),
             'conSteps'          : self.raw_settings.get('denssConnectivitySteps'),
+            'conFeatures'       : self.raw_settings.get('denssConFeatures'),
             'chiEndFrac'        : self.raw_settings.get('denssChiEndFrac'),
             'average'           : self.raw_settings.get('denssAverage'),
             'runs'              : self.raw_settings.get('denssReconstruct'),
@@ -10483,7 +10485,7 @@ class DenssAveragePlotPanel(wx.Panel):
             self.fsc_plots.append(new_plot)
 
         ax0.plot(res, fsc, 'bo-')
-        ax0.plot([resx],[0.5],'ro',label='Resolution = '+str(resn)+r'$\mathrm{\AA}$')
+        ax0.plot([resx],[0.5],'ro', label='Resolution = %.2f $\mathrm{\AA}$'%resn)
         ax0.set_xlabel('Resolution ($\\AA^{-1}$)', fontsize='small')
         ax0.set_ylabel('Fourier Shell Correlation', fontsize='small')
         ax0.tick_params(labelsize='x-small')

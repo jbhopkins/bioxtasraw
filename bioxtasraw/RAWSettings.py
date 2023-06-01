@@ -439,6 +439,7 @@ class RawGuiSettings(object):
                 'denssShrinkwrapMinStep'    : ['None', get_id(), 'text'],
                 'denssConnected'        : [True, get_id(), 'bool'],
                 'denssConnectivitySteps'    : ['[500]', get_id(), 'text'],
+                'denssConFeatures'      : [1, get_id(), 'int'],
                 'denssChiEndFrac'       : [0.001, get_id(), 'float'],
                 'denssAverage'          : [True, get_id(), 'bool'],
                 'denssReconstruct'      : [20, get_id(), 'int'],

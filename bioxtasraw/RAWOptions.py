@@ -5032,7 +5032,7 @@ class DenssPanel(scrolled.ScrolledPanel):
             'denssRecenter',
             'denssRecenterStep', 'denssPositivity', 'denssShrinkwrap',
             'denssShrinkwrapMinStep', 'denssConnected', 'denssConnectivitySteps',
-            'denssWriteXplor', 'denssCutOut', 'denssRecenterMode',
+            'denssConFeatures', 'denssWriteXplor', 'denssCutOut', 'denssRecenterMode',
             'denssAverage', 'denssReconstruct', 'denssRefine',
             'denssNCS', 'denssNCSAxis', 'denssNCSSteps', 'denssGPU',
             'denssNCSType',
@@ -5072,7 +5072,9 @@ class DenssPanel(scrolled.ScrolledPanel):
             # ('Set density values near zero (0.01 e-/A^3) to zero:',
             #     raw_settings.getId('denssFlattenLowDensity'), 'bool'),
             ('Use GPU computing (requires CuPy)', raw_settings.getId('denssGPU'),
-                'bool')
+                'bool'),
+            (('Maximum number of features allowed when enforcing connectivity (default 1):'),
+                raw_settings.getId('denssConFeatures'), 'int')
 
             )
 
