@@ -3656,8 +3656,8 @@ class SeriesPlotPanel(wx.Panel):
             qmax = sasm.q[qrange[-1]-1]
 
             if q > qmax or q < qmin:
-                wx.MessageBox("Specified q value outside of q range! Reverting "
-                    "to total intensity.", style=wx.ICON_ERROR|wx.OK)
+                wx.CallAfter(wx.MessageBox, ("Specified q value outside of q "
+                    "range! Reverting to total intensity."), style=wx.ICON_ERROR|wx.OK)
                 self.plotparams['y_axis_display'] = 'total'
                 mainframe.setViewMenuScale(menu_ids['secplottotal'])
 
@@ -3669,8 +3669,8 @@ class SeriesPlotPanel(wx.Panel):
             qmax = q[-1]
 
             if qrange[1] > qmax or qrange[0] < qmin:
-                wx.MessageBox("Specified q value outside of q range! Reverting "
-                    "to total intensity.", style=wx.ICON_ERROR|wx.OK)
+                wx.CallAfter(wx.MessageBox, ("Specified q value outside of q "
+                    "range! Reverting to total intensity."), style=wx.ICON_ERROR|wx.OK)
                 self.plotparams['y_axis_display'] = 'total'
                 mainframe.setViewMenuScale(menu_ids['secplottotal'])
 
