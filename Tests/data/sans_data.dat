@@ -129,6 +129,7 @@
 #        "comment": "# I(Q)\n#Q (1/A)        I (1/cm)        dI (1/cm)       dQ (1/A)\n"
 #    },
 #    "filename": "sans_data.dat",
-#    "history": {}
+#    "history": {},
+#    "unit": ""
 #}
 

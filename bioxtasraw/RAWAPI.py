@@ -4660,9 +4660,9 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     recenter_mode='com', positivity=True, extrapolate=True, shrinkwrap=True,
     sw_sigma_start=3.0, sw_sigma_end=1.5, sw_sigma_decay=0.99,
     sw_sigma_thresh=0.2, sw_iter=20, sw_min_step=5000, connected=True,
-    connectivity_step=[7500], chi_end_frac=0.001, cut_output=False,
-    write_xplor=False, sym_step=[3000, 5000, 7000, 9000], seed=None,
-    abort_event=None, gpu=False):
+    connectivity_step=[7500], connected_features=1, chi_end_frac=0.001,
+    cut_output=False, write_xplor=False, sym_step=[3000, 5000, 7000, 9000],
+    seed=None, abort_event=None, gpu=False):
     """
     Generates an electron density reconstruction using DENSS. Function blocks
     until DENSS finishes. Can be used to refine an existing model.
@@ -4744,7 +4744,10 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
         True.
     connectivity_step: list, optional
         A list of integers specifying the steps at which connectivity is
-        enforced. Only used in Custom model.
+        enforced. Only used in Custom mode.
+    connected_features: int, optional
+        The number of features (density blobs) to allow during the connectivity
+        steps. Only used in Custom mode. Deafult is 1.
     chi_end_frac: float, optional
         The convergence criteria. Set as the minimum threshold of the chi
         squared standard deviation in the last 100 steps, as a fraction of
@@ -4826,6 +4829,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
             'swMinStep'         : settings.get('denssShrinkwrapMinStep'),
             'connected'         : settings.get('denssConnected'),
             'conSteps'          : settings.get('denssConnectivitySteps'),
+            'conFeatures'       : raw_settings.get('denssConFeatures'),
             'chiEndFrac'        : settings.get('denssChiEndFrac'),
             'cutOutput'         : settings.get('denssCutOut'),
             'writeXplor'        : settings.get('denssWriteXplor'),
@@ -4863,6 +4867,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
             'swMinStep'         : sw_min_step,
             'connected'         : connected,
             'conSteps'          : str(connectivity_step),
+            'conFeatures'       : connected_features,
             'chiEndFrac'        : chi_end_frac,
             'cutOutput'         : cut_output,
             'writeXplor'        : write_xplor,
@@ -4892,6 +4897,38 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
         sigq = I*(ift.err_orig/ift.i_orig)
 
     D = ift.getParameter('dmax')
+
+    if denss_settings['mode'] != 'Custom':
+        #reset settings to default
+        temp_settings = RAWSettings.RawGuiSettings()
+        denss_settings['voxel'] = temp_settings.get('denssVoxel')
+        denss_settings['oversample'] = temp_settings.get('denssOversampling')
+        denss_settings['steps'] = temp_settings.get('denssSteps')
+        # denss_settings['limitDmax'] = temp_settings.get('denssLimitDmax')
+        # denss_settings['dmaxStep'] = temp_settings.get('denssLimitDmaxStep')
+        denss_settings['recenter'] = temp_settings.get('denssRecenter')
+        denss_settings['recenterStep'] = temp_settings.get('denssRecenterStep')
+        denss_settings['positivity'] = temp_settings.get('denssPositivity')
+        denss_settings['extrapolate'] = temp_settings.get('denssExtrapolate')
+        denss_settings['shrinkwrap'] = temp_settings.get('denssShrinkwrap')
+        denss_settings['swSigmaStart'] = temp_settings.get('denssShrinkwrapSigmaStart')
+        denss_settings['swSigmaEnd'] = temp_settings.get('denssShrinkwrapSigmaEnd')
+        denss_settings['swSigmaDecay'] = temp_settings.get('denssShrinkwrapSigmaDecay')
+        denss_settings['swThresFrac'] = temp_settings.get('denssShrinkwrapThresFrac')
+        denss_settings['swIter'] = temp_settings.get('denssShrinkwrapIter')
+        denss_settings['swMinStep'] = temp_settings.get('denssShrinkwrapMinStep')
+        denss_settings['connected'] = temp_settings.get('denssConnected')
+        denss_settings['conSteps'] = temp_settings.get('denssConnectivitySteps')
+        denss_settings['conFeatures'] = temp_settings.get('denssConFeatures')
+        denss_settings['chiEndFrac'] = temp_settings.get('denssChiEndFrac')
+        denss_settings['cutOutput'] = temp_settings.get('denssCutOut')
+        denss_settings['writeXplor'] = temp_settings.get('denssWriteXplor')
+        denss_settings['recenterMode'] = temp_settings.get('denssRecenterMode')
+        # denss_settings['minDensity'] = temp_settings.get('denssMinDensity')
+        # denss_settings['maxDensity'] = temp_settings.get('denssMaxDensity')
+        # denss_settings['flattenLowDensity'] = temp_settings.get('denssFlattenLowDensity')
+        denss_settings['ncsSteps'] = temp_settings.get('denssNCSSteps')
+        denss_settings['denssGPU'] = temp_settings.get('denssGPU')
 
     shrinkwrap_sigma_start_in_A = (3.0 * D / 64.0) * 3.0
     shrinkwrap_sigma_end_in_A = (3.0 * D / 64.0) * 1.5

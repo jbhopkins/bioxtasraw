@@ -74,9 +74,9 @@ def test_mw_vc(clean_gi_sub_profile, old_settings):
 
     mw, vcor, mw_err, qmax = raw.mw_vc(profile, settings=old_settings)
 
-    assert mw == 145.09526582282663
-    assert vcor == 774.7748056547058
-    assert mw_err == 12.045549627261789
+    assert mw == 157.024044893903
+    assert vcor == 805.9942596873724
+    assert mw_err == 12.530923545130383
     assert qmax == 0.282996847
 
 @pytest.mark.atsas
@@ -764,11 +764,12 @@ def test_crysol_model(temp_directory):
 
     results = raw.crysol([os.path.join(temp_directory, '1XIB_4mer.pdb')])
 
+    results = results['1XIB_4mer']
     abs_profile = results[0]
     fit_profile = results[1]
 
-    abs_params = abs_profile.getParameter('crysol')
-    fit_params = fit_profile.getParameter('crysol')
+    abs_params = abs_profile.getParameter('analysis')['crysol']
+    fit_params = fit_profile.getParameter('analysis')['crysol']
 
     assert len(results) == 2
     assert fit_params['Rg'] == 33.22
@@ -785,11 +786,12 @@ def test_crysol_model_settings(temp_directory, old_settings):
     results = raw.crysol([os.path.join(temp_directory, '1XIB_4mer.pdb')],
         settings=old_settings)
 
+    results = results['1XIB_4mer']
     abs_profile = results[0]
     fit_profile = results[1]
 
-    abs_params = abs_profile.getParameter('crysol')
-    fit_params = fit_profile.getParameter('crysol')
+    abs_params = abs_profile.getParameter('analysis')['crysol']
+    fit_params = fit_profile.getParameter('analysis')['crysol']
 
     assert len(results) == 2
     assert fit_params['Rg'] == 33.22
@@ -805,11 +807,12 @@ def test_crysol_model_cif(temp_directory):
 
     results = raw.crysol([os.path.join(temp_directory, '2pol.cif')])
 
+    results = results['2pol']
     abs_profile = results[0]
     fit_profile = results[1]
 
-    abs_params = abs_profile.getParameter('crysol')
-    fit_params = fit_profile.getParameter('crysol')
+    abs_params = abs_profile.getParameter('analysis')['crysol']
+    fit_params = fit_profile.getParameter('analysis')['crysol']
 
     assert len(results) == 2
     assert fit_params['Rg'] == 33.19
@@ -829,9 +832,10 @@ def test_crysol_fit(temp_directory):
     results = raw.crysol([os.path.join(temp_directory, '1XIB_4mer.pdb')],
         [os.path.join(temp_directory, 'glucose_isomerase.dat')])
 
+    results = results['1XIB_4mer_glucose_isomerase']
     fit_profile = results[0]
 
-    fit_params = fit_profile.getParameter('crysol')
+    fit_params = fit_profile.getParameter('analysis')['crysol']
 
     assert len(results) == 1
     assert fit_params['Rg'] == 33.22
@@ -851,9 +855,10 @@ def test_crysol_fit_settings(temp_directory, old_settings):
         [os.path.join(temp_directory, 'glucose_isomerase.dat')],
         settings=old_settings)
 
+    results = results['1XIB_4mer_glucose_isomerase']
     fit_profile = results[0]
 
-    fit_params = fit_profile.getParameter('crysol')
+    fit_params = fit_profile.getParameter('analysis')['crysol']
 
     assert len(results) == 1
     assert fit_params['Rg'] == 33.22

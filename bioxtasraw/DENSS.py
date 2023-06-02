@@ -1952,6 +1952,7 @@ class PDB(object):
             self.generate_pdb_from_defaults(natoms)
 
     def read_pdb(self, filename, ignore_waters=False):
+        print(filename)
         self.natoms = 0
         with open(filename) as f:
             for line in f:
@@ -1961,16 +1962,16 @@ class PDB(object):
                     continue
                 self.natoms += 1
         self.atomnum = np.zeros((self.natoms),dtype=int)
-        self.atomname = np.zeros((self.natoms),dtype=np.dtype((np.str,3)))
-        self.atomalt = np.zeros((self.natoms),dtype=np.dtype((np.str,1)))
-        self.resname = np.zeros((self.natoms),dtype=np.dtype((np.str,3)))
+        self.atomname = np.zeros((self.natoms),dtype=np.dtype((str,3)))
+        self.atomalt = np.zeros((self.natoms),dtype=np.dtype((str,1)))
+        self.resname = np.zeros((self.natoms),dtype=np.dtype((str,3)))
         self.resnum = np.zeros((self.natoms),dtype=int)
-        self.chain = np.zeros((self.natoms),dtype=np.dtype((np.str,1)))
+        self.chain = np.zeros((self.natoms),dtype=np.dtype((str,1)))
         self.coords = np.zeros((self.natoms, 3))
         self.occupancy = np.zeros((self.natoms))
         self.b = np.zeros((self.natoms))
-        self.atomtype = np.zeros((self.natoms),dtype=np.dtype((np.str,2)))
-        self.charge = np.zeros((self.natoms),dtype=np.dtype((np.str,2)))
+        self.atomtype = np.zeros((self.natoms),dtype=np.dtype((str,2)))
+        self.charge = np.zeros((self.natoms),dtype=np.dtype((str,2)))
         self.nelectrons = np.zeros((self.natoms),dtype=int)
         with open(filename) as f:
             atom = 0
@@ -2019,15 +2020,15 @@ class PDB(object):
         #simple array of incrementing integers, starting from 1
         self.atomnum = np.arange((self.natoms),dtype=int)+1
         #all carbon atoms by default
-        self.atomname = np.full((self.natoms),"C",dtype=np.dtype((np.str,3)))
+        self.atomname = np.full((self.natoms),"C",dtype=np.dtype((str,3)))
         #no alternate conformations by default
-        self.atomalt = np.zeros((self.natoms),dtype=np.dtype((np.str,1)))
+        self.atomalt = np.zeros((self.natoms),dtype=np.dtype((str,1)))
         #all Alanines by default
-        self.resname = np.full((self.natoms),"ALA",dtype=np.dtype((np.str,3)))
+        self.resname = np.full((self.natoms),"ALA",dtype=np.dtype((str,3)))
         #each atom belongs to a new residue by default
         self.resnum = np.arange((self.natoms),dtype=int)
         #chain A by default
-        self.chain = np.full((self.natoms),"A",dtype=np.dtype((np.str,1)))
+        self.chain = np.full((self.natoms),"A",dtype=np.dtype((str,1)))
         #all atoms at (0,0,0) by default
         self.coords = np.zeros((self.natoms, 3))
         #all atoms 1.0 occupancy by default
@@ -2035,9 +2036,9 @@ class PDB(object):
         #all atoms 20 A^2 by default
         self.b = np.ones((self.natoms))*20.0
         #all atom types carbon by default
-        self.atomtype = np.full((self.natoms),"C",dtype=np.dtype((np.str,2)))
+        self.atomtype = np.full((self.natoms),"C",dtype=np.dtype((str,2)))
         #all atoms neutral by default
-        self.charge = np.zeros((self.natoms),dtype=np.dtype((np.str,2)))
+        self.charge = np.zeros((self.natoms),dtype=np.dtype((str,2)))
         #all atoms carbon so have six electrons by default
         self.nelectrons = np.ones((self.natoms),dtype=int)*6
         #for CRYST1 card, use default defined by PDB, but 100 A side
