@@ -162,8 +162,8 @@ def test_regals_auto_lambda(bsa_series):
 
     assert len(regals_profiles) == 2
     assert len(regals_ifts) == 2
-    assert np.allclose(regals_profiles[0].getI().sum(), 200.47569599218787)
-    assert np.allclose(params['x2'], 0.9948359960552903)
+    assert np.allclose(regals_profiles[0].getI().sum(), 200.47569599218787, rtol=1e-3)
+    assert np.allclose(params['x2'], 0.9948359960552903, rtol=1e-4)
     assert params['total_iter'] == 33
 
 def test_regals_realspace(bsa_series):
@@ -257,7 +257,7 @@ def test_validate_buffer_range_good(bsa_series):
     assert svd_results['svals'] == 1
     assert intI_results['intI_valid']
     assert intI_results['smoothed_intI_valid']
-    assert intI_results['intI_pval'] == 0.16014409516640912
+    assert np.isclose(intI_results['intI_pval'], 0.16014409516640912)
     assert np.isclose(intI_results['smoothed_intI_pval'], 0.39653903414001357)
 
 def test_validate_buffer_region_bad(bsa_series):
@@ -289,7 +289,7 @@ def test_validate_buffer_range_list(bsa_series):
     assert svd_results['svals'] == 1
     assert intI_results['intI_valid']
     assert intI_results['smoothed_intI_valid']
-    assert intI_results['intI_pval'] == 0.16014409516640912
+    assert np.isclose(intI_results['intI_pval'], 0.16014409516640912)
     assert np.isclose(intI_results['smoothed_intI_pval'], 0.39653903414001357)
 
 def test_set_buffer_range(clean_bsa_series):

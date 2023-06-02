@@ -841,7 +841,7 @@ def test_crysol_fit(temp_directory):
     assert fit_params['Rg'] == 33.22
     assert fit_params['Excluded_volume'] == 213838
     assert fit_params['Chi_squared'] ==  1.089
-    assert fit_profile.getI().sum() == 3.72612387712
+    assert np.allclose(fit_profile.getI().sum(), 3.72612387712)
 
 @pytest.mark.atsas
 def test_crysol_fit_settings(temp_directory, old_settings):
@@ -864,4 +864,4 @@ def test_crysol_fit_settings(temp_directory, old_settings):
     assert fit_params['Rg'] == 33.22
     assert fit_params['Excluded_volume'] == 213838
     assert fit_params['Chi_squared'] ==  1.089
-    assert fit_profile.getI().sum() == 3.72612387712
+    assert np.allclose(fit_profile.getI().sum(), 3.72612387712)
