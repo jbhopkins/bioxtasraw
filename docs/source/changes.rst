@@ -85,6 +85,8 @@ All changes:
 *   Updated DENSS to the latest version.
 *   Added the ability to add DAMMIF and DENSS results from the saved results.csv
     files to the pdf reports from the GUI.
+*   Fixed a bug where setting certain TeX values for plot labels could cause an
+    error.
 
 
 2.1.4
