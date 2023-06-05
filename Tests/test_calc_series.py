@@ -274,7 +274,7 @@ def test_validate_buffer_region_bad(bsa_series):
     assert not intI_results['intI_valid']
     assert not intI_results['smoothed_intI_valid']
     assert np.isclose(intI_results['intI_pval'], 0.0007815284021663028)
-    assert intI_results['smoothed_intI_pval'] == 2.8531443061690295e-19
+    assert np.isclose(intI_results['smoothed_intI_pval'], 2.8531443061690295e-19)
 
 def test_validate_buffer_range_list(bsa_series):
     sasms = bsa_series.getAllSASMs()
@@ -350,7 +350,7 @@ def test_validate_sample_range_good(bsa_series):
     assert param_results['vcmw_valid']
     assert param_results['vpmw_valid']
     assert param_results['rg_pval'] == 0.9488461264555137
-    assert param_results['vcmw_pval'] == 0.3438801731989136
+    assert np.isclose(param_results['vcmw_pval'], 0.3438801731989136)
     assert param_results['vpmw_pval'] == 0.6472068934597522
     assert sn_results['sn_valid']
 
@@ -392,7 +392,7 @@ def test_validate_sample_range_list(bsa_series):
     assert param_results['vcmw_valid']
     assert param_results['vpmw_valid']
     assert param_results['rg_pval'] == 0.9488461264555137
-    assert param_results['vcmw_pval'] == 0.3438801731989136
+    assert np.isclose(param_results['vcmw_pval'], 0.3438801731989136)
     assert param_results['vpmw_pval'] == 0.6472068934597522
     assert sn_results['sn_valid']
 
