@@ -7606,11 +7606,21 @@ class DammifResultsPanel(wx.Panel):
 
         self.Layout()
 
-        self.parent.SetSelection(1)
-
         self.dammif_frame.ViewerPanel.updateResults(model_list)
 
         self._saveResults()
+
+        models_nb = wx.FindWindowById(self.ids['models'])
+
+        for i in range(models_nb.GetPageCount()):
+            models_nb.SetSelection(i)
+            if i > 0:
+                page = models_nb.GetCurrentPage()
+                page.ax_redraw()
+
+        models_nb.SetSelection(0)
+
+        self.parent.SetSelection(1)
 
     def _saveResults(self):
         nsd_data = []
@@ -10042,18 +10052,27 @@ class DenssResultsPanel(wx.Panel):
         self.Layout()
 
         models_nb = wx.FindWindowById(self.ids['models'])
-        models_nb.DoGetBestSize()
+
         for i in range(models_nb.GetPageCount()):
             models_nb.SetSelection(i)
-
-        models_nb.SetSelection(0)
-
-        self.parent.SetSelection(1)
+            if i > 0:
+                page = models_nb.GetCurrentPage()
+                page.ax_redraw()
 
         # viewer_window = wx.FindWindowByName('DammifViewerPanel')
         # viewer_window.updateResults(model_list)
 
         self._saveResults()
+
+        for i in range(models_nb.GetPageCount()):
+            models_nb.SetSelection(i)
+            if i > 0:
+                page = models_nb.GetCurrentPage()
+                page.ax_redraw()
+
+        models_nb.SetSelection(0)
+
+        self.parent.SetSelection(1)
 
     def _saveResults(self):
         res_data = []
