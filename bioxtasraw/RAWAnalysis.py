@@ -20814,6 +20814,8 @@ class SimilarityPlotPanel(wx.Panel):
 
         self.line_color = SASUtils.update_mpl_style()
 
+        self.sim_type = 'cormap'
+
         self._create_layout()
 
     def _FromDIP(self, size):
@@ -20880,16 +20882,19 @@ class SimilarityPlotPanel(wx.Panel):
         self.subplot = self.fig.add_subplot(1,1,1)
         self.label_plots()
 
+        if self.sim_type == 'cormap':
+            kwargs = {'vmin': 0, 'vmax': 1}
+        else:
+            kwargs = {'vmin': None, 'vmax': None}
+
         pos = self.subplot.imshow(self.prob_data, interpolation='none',
-            cmap='plasma')
+            cmap='plasma', **kwargs)
 
         self.subplot.grid(color=self.line_color, linestyle='--')
         self.subplot.set_xticks(ticks)
         self.subplot.set_yticks(ticks)
         self.subplot.set_xticklabels(tick_labels)
         self.subplot.set_yticklabels(tick_labels)
-
-
 
         self.fig.colorbar(pos, ax=self.subplot)
 
