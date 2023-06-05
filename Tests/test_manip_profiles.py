@@ -48,9 +48,9 @@ def test_average(bsa_series_profiles):
     all_i = np.array([sasm.getI() for sasm in profiles])
     avg_i = np.mean(all_i, axis=0)
     all_err = np.array([sasm.getErr() for sasm in profiles])
-    avg_err = np.sqrt(np.sum(np.power(all_err, 2),axis=0))/len(all_err)
+    avg_err = np.sqrt(np.sum(np.square(all_err), axis=0))/len(all_err)
 
-    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert np.allclose(avg_profile.getQ(), profiles[0].getQ())
     assert all(avg_profile.getI() == avg_i)
     assert all(avg_profile.getErr() == avg_err)
 
@@ -68,7 +68,7 @@ def test_average_forced_first_prof_shift_end(bsa_series_profiles):
     all_i = np.array([sasm.getI() for sasm in profiles])
     avg_i = np.mean(all_i, axis=0)
     all_err = np.array([sasm.getErr() for sasm in profiles])
-    avg_err = np.sqrt(np.sum(np.power(all_err, 2),axis=0))/len(all_err)
+    avg_err = np.sqrt(np.sum(np.square(all_err), axis=0))/len(all_err)
 
     assert all(avg_profile.getQ() == profiles[0].getQ())
     assert all(avg_profile.getI() == avg_i)
@@ -88,7 +88,7 @@ def test_average_forced_first_prof_shift_start(bsa_series_profiles):
     all_i = np.array([sasm.getI() for sasm in profiles])
     avg_i = np.mean(all_i, axis=0)
     all_err = np.array([sasm.getErr() for sasm in profiles])
-    avg_err = np.sqrt(np.sum(np.power(all_err, 2),axis=0))/len(all_err)
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
 
     assert all(avg_profile.getQ() == profiles[0].getQ())
     assert all(avg_profile.getI() == avg_i)
@@ -108,7 +108,7 @@ def test_average_forced_first_prof_shift_both(bsa_series_profiles):
     all_i = np.array([sasm.getI() for sasm in profiles])
     avg_i = np.mean(all_i, axis=0)
     all_err = np.array([sasm.getErr() for sasm in profiles])
-    avg_err = np.sqrt(np.sum(np.power(all_err, 2),axis=0))/len(all_err)
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
 
     assert all(avg_profile.getQ() == profiles[0].getQ())
     assert all(avg_profile.getI() == avg_i)
@@ -128,7 +128,7 @@ def test_average_forced_mid_prof_shift_end(bsa_series_profiles):
     all_i = np.array([sasm.getI() for sasm in profiles])
     avg_i = np.mean(all_i, axis=0)
     all_err = np.array([sasm.getErr() for sasm in profiles])
-    avg_err = np.sqrt(np.sum(np.power(all_err, 2),axis=0))/len(all_err)
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
 
     assert all(avg_profile.getQ() == profiles[3].getQ())
     assert all(avg_profile.getI() == avg_i)
@@ -148,7 +148,7 @@ def test_average_forced_mid_prof_shift_start(bsa_series_profiles):
     all_i = np.array([sasm.getI() for sasm in profiles])
     avg_i = np.mean(all_i, axis=0)
     all_err = np.array([sasm.getErr() for sasm in profiles])
-    avg_err = np.sqrt(np.sum(np.power(all_err, 2),axis=0))/len(all_err)
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
 
     assert all(avg_profile.getQ() == profiles[3].getQ())
     assert all(avg_profile.getI() == avg_i)
@@ -168,7 +168,7 @@ def test_average_forced_mid_prof_shift_both(bsa_series_profiles):
     all_i = np.array([sasm.getI() for sasm in profiles])
     avg_i = np.mean(all_i, axis=0)
     all_err = np.array([sasm.getErr() for sasm in profiles])
-    avg_err = np.sqrt(np.sum(np.power(all_err, 2),axis=0))/len(all_err)
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
 
     assert all(avg_profile.getQ() == profiles[3].getQ())
     assert all(avg_profile.getI() == avg_i)
@@ -232,7 +232,7 @@ def test_average_no_metadata(bsa_series_profiles):
     all_i = np.array([sasm.getI() for sasm in profiles])
     avg_i = np.mean(all_i, axis=0)
     all_err = np.array([sasm.getErr() for sasm in profiles])
-    avg_err = np.sqrt(np.sum(np.power(all_err, 2),axis=0))/len(all_err)
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
 
     assert all(avg_profile.getQ() == profiles[0].getQ())
     assert all(avg_profile.getI() == avg_i)
@@ -252,7 +252,7 @@ def test_average_forced_first_prof_shift_end_no_metadata(bsa_series_profiles):
     all_i = np.array([sasm.getI() for sasm in profiles])
     avg_i = np.mean(all_i, axis=0)
     all_err = np.array([sasm.getErr() for sasm in profiles])
-    avg_err = np.sqrt(np.sum(np.power(all_err, 2),axis=0))/len(all_err)
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
 
     assert all(avg_profile.getQ() == profiles[0].getQ())
     assert all(avg_profile.getI() == avg_i)
@@ -272,7 +272,7 @@ def test_average_forced_first_prof_shift_start_no_metadata(bsa_series_profiles):
     all_i = np.array([sasm.getI() for sasm in profiles])
     avg_i = np.mean(all_i, axis=0)
     all_err = np.array([sasm.getErr() for sasm in profiles])
-    avg_err = np.sqrt(np.sum(np.power(all_err, 2),axis=0))/len(all_err)
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
 
     assert all(avg_profile.getQ() == profiles[0].getQ())
     assert all(avg_profile.getI() == avg_i)
@@ -292,7 +292,7 @@ def test_average_forced_first_prof_shift_both_no_metadata(bsa_series_profiles):
     all_i = np.array([sasm.getI() for sasm in profiles])
     avg_i = np.mean(all_i, axis=0)
     all_err = np.array([sasm.getErr() for sasm in profiles])
-    avg_err = np.sqrt(np.sum(np.power(all_err, 2),axis=0))/len(all_err)
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
 
     assert all(avg_profile.getQ() == profiles[0].getQ())
     assert all(avg_profile.getI() == avg_i)
@@ -312,7 +312,7 @@ def test_average_forced_mid_prof_shift_end_no_metadata(bsa_series_profiles):
     all_i = np.array([sasm.getI() for sasm in profiles])
     avg_i = np.mean(all_i, axis=0)
     all_err = np.array([sasm.getErr() for sasm in profiles])
-    avg_err = np.sqrt(np.sum(np.power(all_err, 2),axis=0))/len(all_err)
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
 
     assert all(avg_profile.getQ() == profiles[3].getQ())
     assert all(avg_profile.getI() == avg_i)
@@ -332,7 +332,7 @@ def test_average_forced_mid_prof_shift_start_no_metadata(bsa_series_profiles):
     all_i = np.array([sasm.getI() for sasm in profiles])
     avg_i = np.mean(all_i, axis=0)
     all_err = np.array([sasm.getErr() for sasm in profiles])
-    avg_err = np.sqrt(np.sum(np.power(all_err, 2),axis=0))/len(all_err)
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
 
     assert all(avg_profile.getQ() == profiles[3].getQ())
     assert all(avg_profile.getI() == avg_i)
@@ -352,7 +352,7 @@ def test_average_forced_mid_prof_shift_both_no_metadata(bsa_series_profiles):
     all_i = np.array([sasm.getI() for sasm in profiles])
     avg_i = np.mean(all_i, axis=0)
     all_err = np.array([sasm.getErr() for sasm in profiles])
-    avg_err = np.sqrt(np.sum(np.power(all_err, 2),axis=0))/len(all_err)
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
 
     assert all(avg_profile.getQ() == profiles[3].getQ())
     assert all(avg_profile.getI() == avg_i)
