@@ -87,6 +87,9 @@ All changes:
     files to the pdf reports from the GUI.
 *   Fixed a bug where setting certain TeX values for plot labels could cause an
     error.
+*   Fixed a bug where loading in a series when the intensity display was set
+    to q value or q range and profiles in the series didn't contain either
+    the q value or start/end of the q range could crash RAW.
 
 
 2.1.4
