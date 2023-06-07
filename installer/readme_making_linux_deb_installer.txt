@@ -18,6 +18,15 @@ Steps:
 9)  Rename the package appropriate (e.g. RAW-2.0.0-linux-amd64.deb)
 
 Current build notes:
+- Using ubuntu 18.04 LTS
+- Using wxpython 4.2.0, python 3.11, pyinstaller 5.11.0 (requires
+    up to date pyinstaller, which currently isn't available on conda for py311,
+    so had to pip install)
+- Using raw_py311 environment on the virtualbox machine
+
+
+
+Older notes (not relevant unless I need to go back to the older build):
 - Using Ubuntu 14.04 LTS
 - On linux requires wxpython 4.0.4 (later versions don't package right with pyinstaller)
 - With conda on linux, 4.0.4 requires python 3.7

@@ -4639,11 +4639,6 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
     else:
         crysol_results = {}
 
-
-    # if len(models) == 1 and (profiles is None or
-    #     (profiles is not None and len(profiles) <= 1)):
-    #     crysol_results = list(crysol_results.values())[0]
-
     if profiles is not None:
         for prof in profiles:
             if isinstance(prof, SASM.SASM):

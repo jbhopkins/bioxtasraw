@@ -11707,6 +11707,7 @@ class TheoreticalFrame(wx.Frame):
 
         self.calc_type = calc_type
         self.sasm_list = [copy.deepcopy(sasm) for sasm in sasm_list]
+        self.original_sasm_list = sasm_list
 
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -12687,7 +12688,29 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
             theory_profiles = []
 
         if len(theory_profiles) > 0:
-            RAWGlobals.mainworker_cmd_queue.put(['to_plot', theory_profiles])
+            plotpanel = wx.FindWindowByName('PlotPanel')
+
+            for j, t_profile in enumerate(theory_profiles):
+                params = self.current_results['params']
+
+                exp_data_name = ''
+                plot_num = 1
+
+                if self.calc_type == 'CRYSOL':
+                    exp_data_name = params[j][1]
+
+                if exp_data_name != '':
+                    for sasm in self.theory_frame.original_sasm_list:
+                        if sasm.getParameter('filename') == exp_data_name:
+                            if sasm.axes == plotpanel.subplot1:
+                                plot_num = 1
+                            else:
+                                plot_num = 2
+
+                            break
+
+                RAWGlobals.mainworker_cmd_queue.put(['to_plot_num', [t_profile,
+                    plot_num]])
 
 class TheoreticalList(wx.ListCtrl, wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin,):
     # wx.lib.mixins.listctrl.ColumnSorterMixin):
@@ -16193,17 +16216,37 @@ class EFAResultsPlotPanel2(wx.Panel):
         a = self.subplots['Forward EFA']
         b = self.subplots['Backward EFA']
 
-        self.f_lines = []
-        self.b_lines = []
+        if ((int(matplotlib.__version__.split('.')[0])==3
+            and int(matplotlib.__version__.split('.')[1]) <5)
+            or int(matplotlib.__version__.split('.')[0]) < 3):
+            self.f_lines = []
+            self.b_lines = []
+            self.f_markers = []
+            self.b_markers = []
 
-        self.f_markers = []
-        self.b_markers = []
+            while len(a.lines) != 0:
+                a.lines.pop(0)
 
-        while len(a.lines) != 0:
-            a.lines.pop(0)
+            while len(b.lines) != 0:
+                b.lines.pop(0)
 
-        while len(b.lines) != 0:
-            b.lines.pop(0)
+        else:
+            for line in self.f_lines:
+                line.remove()
+
+            for line in self.b_lines:
+                line.remove()
+
+            for line in self.f_markers:
+                line.remove()
+
+            for line in self.b_markers:
+                line.remove()
+
+            self.f_lines = []
+            self.b_lines = []
+            self.f_markers = []
+            self.b_markers = []
 
         if ((int(matplotlib.__version__.split('.')[0]) ==1
             and int(matplotlib.__version__.split('.')[1]) >=5)
@@ -17492,12 +17535,31 @@ class EFARangePlotPanel(wx.Panel):
     def refresh(self):
         a = self.subplots['SECPlot']
 
-        self.range_lines = []
-        self.range_arrows = []
-        self.cut_line = None
+        if ((int(matplotlib.__version__.split('.')[0])==3
+            and int(matplotlib.__version__.split('.')[1]) <5)
+            or int(matplotlib.__version__.split('.')[0]) < 3):
 
-        while len(a.lines) != 0:
-            a.lines.pop(0)
+            self.range_lines = []
+            self.range_arrows = []
+            self.cut_line = None
+
+            while len(a.lines) != 0:
+                a.lines.pop(0)
+
+        else:
+            for lines in self.range_lines:
+                lines[0].remove()
+                lines[1].remove()
+
+            for line in self.range_arrows:
+                line.remove()
+
+            if self.cut_line is not None:
+                self.cut_line.remove()
+
+            self.range_lines = []
+            self.range_arrows = []
+            self.cut_line = None
 
         if ((int(matplotlib.__version__.split('.')[0]) ==1
                     and int(matplotlib.__version__.split('.')[1]) >=5)

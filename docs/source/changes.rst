@@ -19,7 +19,12 @@ changes include:
     *   Faster calculation of forward and backward EFA plots
     *   Improved PDF report with text wrapping in columns and vector graphics
 
-Note that this version of RAW introduces a new dependency on svglib.
+The new release also includes numerous small bug fixes and improvements. Note
+that this version of RAW introduces a new dependency on svglib.
+
+In order to improve the prebuilt MacOS and Linux installers the oldest version
+of OSes they will work in is now MacOS 10.14 and Ubuntu 18.04 LTS (note that
+RAW can still be run from source on older versions).
 
 
 All changes:
@@ -90,6 +95,12 @@ All changes:
 *   Fixed a bug where loading in a series when the intensity display was set
     to q value or q range and profiles in the series didn't contain either
     the q value or start/end of the q range could crash RAW.
+*   Fixed a bug where denss and dammif results plots could end up the wrong size.
+*   The Linux .deb installer now provides a version of RAW that works properly
+    on Ubuntu 22.04 LTS (previously no GUI widgets had borders and ATSAS didn't
+    work).
+*   MacOS .app is now codesigned and notarized, so it should work on any system
+    without requiring a workaround.
 
 
 2.1.4

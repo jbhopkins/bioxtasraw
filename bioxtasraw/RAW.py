@@ -3713,6 +3713,7 @@ class MainWorkerThread(threading.Thread):
                         'sec_plot'                      : self._loadAndPlotSEC,
                         'update_secm'                   : self._updateSECM,
                         'to_plot'                       : self._sendSASMToPlot,
+                        'to_plot_num'                   : self._sendSASMToPlotNum,
                         'to_plot_ift'                   : self._plotIFTM,
                         'to_plot_SEC'                   : self._sendSASMToPlotSEC,
                         'save_sec_data'                 : self._saveSeriesData,
@@ -3825,6 +3826,11 @@ class MainWorkerThread(threading.Thread):
         if no_update == False:
             wx.CallAfter(self.ift_plot_panel.fitAxis)
 
+    def _sendSASMToPlotNum(self, data):
+        sasm = data[0]
+        axes_num = data[1]
+
+        self._sendSASMToPlot(sasm, axes_num)
 
     def _sendSASMToPlot(self, sasm, axes_num=1, item_colour=None,
         line_color=None, no_update=False, notsaved=False, update_legend=True):
@@ -9160,7 +9166,6 @@ class ManipItemPanel(wx.Panel):
         other_ops_menu.Append(43, 'Set q units')
 
         other_an_menu = wx.Menu()
-        other_an_menu.Append(32, 'IFT (BIFT)')
         other_an_menu.Append(44, 'Fit model (CRYSOL)')
         other_an_menu.Append(34, 'SVD')
         other_an_menu.Append(35, 'EFA')
@@ -9176,6 +9181,7 @@ class ManipItemPanel(wx.Panel):
         menu.AppendSeparator()
         menu.Append(13, 'Guinier fit')
         menu.Append(29, 'Molecular weight')
+        menu.Append(32, 'IFT (BIFT)')
 
         if opsys == 'Windows':
             if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'gnom.exe')):
