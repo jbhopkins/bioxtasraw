@@ -5,7 +5,7 @@ General instructions for installing from source (advanced users)
 #.  Install Microsoft Visual C++ 14.2 Standalone: Build Tools for Visual Studio 2019
 
 #.  Install Python 3.X (if it isn’t already installed) and add it to your system
-    path (tested on 3.7 and 3.8).
+    path.
 
 #.  Install the following Python packages (version indicated if less than most recent):
 

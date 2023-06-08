@@ -21021,9 +21021,9 @@ class SimilarityPlotPanel(wx.Panel):
             x_val = int(x+0.5)
             y_val = int(y+0.5)
 
-            self.toolbar.set_status(('{} = {}, {} = {}, {} = {} {} = {}'.format(xlabel,
+            self.toolbar.set_status(('{}={} {}={} {}={} {}={}'.format(xlabel,
                 x_val, ylabel, y_val, 'Prob.', self.prob_data[x_val, y_val],
-                'Test val:', self.test_data[x_val, y_val])))
+                'Test val', self.test_data[x_val, y_val])))
 
         else:
             self.toolbar.set_status('')
@@ -22188,6 +22188,8 @@ class NormKratkyPlotPanel(wx.Panel):
 
         self.line_dict[data_line] = self.DataTuple(sasm, rg, i0, vc, data_line, name)
 
+        self._updateLegend()
+
         if len(self.line_dict) == 1:
             self.canvas.mpl_disconnect(self.cid)
             self.fig.tight_layout(pad=1, h_pad=1)
@@ -22599,7 +22601,7 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
 
         self.list_ctrl.InsertColumn(0, 'Show')
         self.list_ctrl.InsertColumn(1, 'Filename')
-        self.list_ctrl.InsertColumn(2, 'Color')
+        # self.list_ctrl.InsertColumn(2, 'Color')
         self.list_ctrl.InsertColumn(3, 'Rg')
         self.list_ctrl.InsertColumn(4, 'I(0)')
         self.list_ctrl.InsertColumn(5, 'Vc')
@@ -22680,17 +22682,16 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         color = conv.to_rgb(line.get_mfc())
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
 
-        try:
-            index = self.list_ctrl.InsertStringItem(sys.maxsize, '', it_kind=1)
-        except Exception:
-            index = self.list_ctrl.InsertStringItem(sys.maxint, '', it_kind=1)
-        self.list_ctrl.SetStringItem(index, 1, name)
-        self.list_ctrl.SetStringItem(index, 2, '')
-        self.list_ctrl.SetStringItem(index, 3, str(rg))
-        self.list_ctrl.SetStringItem(index, 4, str(i0))
-        self.list_ctrl.SetStringItem(index, 5, str(vc))
+        index = self.list_ctrl.InsertStringItem(self.list_ctrl.GetItemCount(), '', it_kind=1)
 
-        self.itemDataMap[index] = ('', name, '', rg, i0, vc)
+        self.list_ctrl.SetStringItem(index, 1, name)
+        # self.list_ctrl.SetStringItem(index, 2, '')
+        self.list_ctrl.SetStringItem(index, 2, str(rg))
+        self.list_ctrl.SetStringItem(index, 3, str(i0))
+        self.list_ctrl.SetStringItem(index, 4, str(vc))
+
+        # self.itemDataMap[index] = ('', name, '', rg, i0, vc)
+        self.itemDataMap[index] = ('', name,  rg, i0, vc)
 
         self.list_ctrl.SetItemData(index, index)
 
@@ -22698,14 +22699,15 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         item.Check(True)
         self.list_ctrl.SetItem(item)
 
-        colour_indicator = RAWCustomCtrl.ColourIndicator(self.list_ctrl, index,
-            color, size = self._FromDIP((30,15)))
-        colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onColorButton)
+        # This should work but doesn't due to a bug with the ULC
+        # colour_indicator = RAWCustomCtrl.ColourIndicator(self.list_ctrl, index,
+        #     color, size = self._FromDIP((30,15)))
+        # colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onColorButton)
 
-        item = self.list_ctrl.GetItem(index, 2)
-        item.SetWindow(colour_indicator)
-        item.SetAlign(ULC.ULC_FORMAT_LEFT)
-        self.list_ctrl.SetItem(item)
+        # item = self.list_ctrl.GetItem(index, 2)
+        # item.SetWindow(colour_indicator)
+        # item.SetAlign(ULC.ULC_FORMAT_LEFT)
+        # self.list_ctrl.SetItem(item)
 
         item = self.list_ctrl.GetItem(index, 0)
         item.SetAlign(ULC.ULC_FORMAT_CENTER)
@@ -22718,7 +22720,7 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
 
         self.list_ctrl.SetColumnWidth(0, wx.LIST_AUTOSIZE_USEHEADER)
         self.list_ctrl.SetColumnWidth(1, self._FromDIP(130))
-        self.list_ctrl.SetColumnWidth(2, wx.LIST_AUTOSIZE_USEHEADER)
+        # self.list_ctrl.SetColumnWidth(2, wx.LIST_AUTOSIZE_USEHEADER)
 
     def _onItemChecked(self, evt):
         item = evt.GetItem()

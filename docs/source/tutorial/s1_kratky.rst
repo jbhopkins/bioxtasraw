@@ -8,12 +8,13 @@ have a bell-shaped (Gaussian) peak. A partially unfolded (flexible) protein may 
 combination of the bell-shape and plateau, or a plateau that slowly decays to zero.
 
 Normalized Kratky plots are plots of :math:`q^2I(q)/I(0)` vs. *q*\ . This normalizes scattering profiles
-by mass and concentration. Dimensionless Kratky plots are presented as either :math:`(qR_g)^2I(q)/I(0)`
-vs. :math:`qR_g`\ or :math:`(q^2V_c)I(q)/I(0)` vs. :math:`q(V_c)^{1/2}`\ . These dimensionless plots
-can provide semi-quantitative analysis of flexibility and disorder. More information about can
-be found here and references therein: `https://www.bioisis.net/tutorials/21 <https://www.bioisis.net/tutorials/21>`_.
+by mass and concentration. Dimensionless Kratky plots are almost always presented as
+:math:`(qR_g)^2I(q)/I(0)` vs. :math:`qR_g`\ . On some occasions you may want to
+use an alternative normalization: :math:`(q^2V_c)I(q)/I(0)` vs. :math:`q(V_c)^{1/2}`\ .
+These dimensionless plots can provide semi-quantitative analysis of flexibility
+and disorder.
 
-A video version of this tutorial is available:
+A video of an older version of this tutorial is available:
 
 .. raw:: html
 
@@ -85,13 +86,25 @@ The written version of the tutorial follows.
     unfolded data sets on the plot. Note that both the lysozyme and GI data look very similar
     on this plot, showing they have similar shapes and (lack of) flexibility.
 
-    *   *Tip:* You can click on the colored line in the Color column to
-        change the color of an item on the plot.
-
     |kratky_select_png|
+
+#.  Kratky plots are often noisy in the high q region due to low signal. It can be
+    helpful to rebin the data, usually on a logarithmic scale, to smooth out the
+    high q region. Check the "Rebin profiles for plot" option to rebin the
+    profiles logarithmically with an overall binning factor of 2.
+
+    *   *Note:* The binning is only done in the Kratky plot, it doesn't
+        propagate back to the profiles in the main window.
+
+    *   *Try:* Vary the binning factor and see how the profiles change.
+
+    |kratky_rebin_png|
 
 #.  Right click on the plot and select “Export Data As CSV” to save the dimensionless data
     for further processing or plotting with another program.
+
+    *   *Note:* The data is saved as displayed on the plot. So only selected profiles
+        are exported, and if binning has been done the binned profiles are exported.
 
 #.  Click the Close button to close the Dimensionless Kratky Plot window.
 
@@ -113,6 +126,9 @@ The written version of the tutorial follows.
 .. |kratky_select_png| image:: images/kratky_select.png
     :width: 300 px
     :target: ../_images/kratky_norm_autorg.png
+
+.. |kratky_rebin_png| image:: images/kratky_rebin.png
+    :target: ../_images/kratky_rebin.png
 
 
 .. |Rg| replace:: R\ :sub:`g`

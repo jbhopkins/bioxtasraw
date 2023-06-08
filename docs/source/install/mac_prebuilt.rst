@@ -19,9 +19,9 @@ Direct links fo the downloads:
 
 **Important Notes:**
 
-*   Because the RAW team is an unidentified developer, you may get a warning message
+*   With some version of the RAW installer, you may get a warning message
     the first time you run the program. If that happens, right click on RAW and
-    select :menuselection:`Open` from the right click menu, and then click the :guilabel:`Open` button in the
-    window that appears.
+    select :menuselection:`Open` from the right click menu, and then click
+    the :guilabel:`Open` button in the window that appears.
 
     *   *Note:* This requires administrator permissions.

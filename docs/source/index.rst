@@ -6,7 +6,7 @@ What is BioXTAS RAW?
 
 BioXTAS RAW is a GUI based, free, open-source Python program for reduction and analysis
 of small-angle X-ray solution scattering (SAXS) data. The software is designed for biological
-SAXS data. It is available on windows, macOS (and OS X), and Linux. It provides an
+SAXS data. It is available on Windows, macOS (and OS X), and Linux. It provides an
 alternative to closed source programs such as Primus and Scatter for primary data analysis.
 Because it can calibrate, mask, and integrate images it also provides an alternative to
 synchrotron beamline pipelines that scientists can install on their own computers and use
@@ -25,6 +25,7 @@ Features
     indirect Fourier transform (BIFT).
 *   Calculation of envelopes (dummy atom models) using DAMMIF, DAMMIN, DAMAVER, and DAMCLUST.
 *   Calculation of electron density using the DENSS algorithm
+*   Calculation and fitting of theoretical profiles to experimental data using CRYSOL.
 *   Easy processing of in-line chromatography coupled SAXS data, including size-exclusions
     coupled SAXS (SEC-SAXS) data.
 *   Deconvolution of SAXS data using singular value decomposition (SVD) and
@@ -53,17 +54,17 @@ RAW was first developed in 2008 by Soren Skou as part of the biological x-ray to
 system (BioXTAS) project. Since then it has been extensively developed, with recent
 work being done by Jesse Hopkins.
 
-RAW is actively used as the primary analysis software at the
-`MacCHESS ID7A BioSAXS beamline <https://www.chess.cornell.edu/index.php/macchess/biosaxs>`_
-at CHESS and the `BioCAT <https://www.bio.aps.anl.gov/>`_  (18-ID) beamline at the APS. It is
-also used at various other beamlines, including:
+RAW is used at various beamlines, including:
 
-*   BL19U2 (SSRF)
-*   LiX (NSLS II)
-*   SIBYLS (ALS)
+*   `BioCAT (18-ID) <https://www.bio.aps.anl.gov/>`_ at the APS
+*   `MacCHESS ID7A BioSAXS <https://www.chess.cornell.edu/index.php/macchess/biosaxs>`_
+    at CHESS
+*   `LiX <https://www.bnl.gov/nsls2/beamlines/beamline.php?r=16-ID>`_ at NSLS II
+*   `SIBYLS <https://bl1231.als.lbl.gov/htsaxs>`_ at ALS
+*   BL19U2 at SSRF
 
-`SAXSLAB <http://saxslab.com/>`_ distributes RAW with some of its homesources,
-and RAW is used at various other homesources around the world.
+Xenocs distributes RAW with some of its homesources, and RAW is used at
+various other homesources around the world.
 
 Do you use RAW? :ref:`Let us know! <contactus>`
 

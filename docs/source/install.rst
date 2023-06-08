@@ -6,9 +6,21 @@ RAW can be downloaded from `sourceforge <https://sourceforge.net/projects/bioxta
 There are prebuilt installers for Windows (.msi), MacOs (.dmg), and Debian/Ubuntu (.deb).
 Installation on other Linux distributions requires building from source.
 
-.. raw:: html
-
-    <a href="https://sourceforge.net/projects/bioxtasraw/files/latest/download"><img alt="Download BioXTAS RAW" src="https://a.fsdn.com/con/app/sf-download-button" width=276 height=48 srcset="https://a.fsdn.com/con/app/sf-download-button?button_size=2x 2x"></a>
+*  `Download Windows installer
+   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.1.4-win64.msi/download>`_ (
+   Windows 10 or newer)
+*  `Download MacOS x86_64 (Intel) installer
+   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.1.4-mac-x86_64.dmg/download>`_
+   (MacOS 11 or newer)
+*  `Download MacOS arm64 (Apple Silicon/M chips) installer
+   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.1.4-macos-arm64.dmg/download>`_
+   (MacOS 12 or newer)
+*  `Download Ubuntu/Debian installer
+   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.1.4-linux-amd64.deb/download>`_
+   (Ubuntu 18.04/Debian 10)
+*  `Download source code
+   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.1.4-source.zip/download>`_
+   (Other)
 
 RAW is also available through `SBGrid <https://sbgrid.org/software/titles/bioxtas-raw>`_.
 

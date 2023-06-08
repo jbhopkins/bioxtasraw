@@ -11,7 +11,7 @@ This tutorial covers SAXS data processing with RAW. You will learn how to:
 *   Find |Rg| and I(0) by Guinier analysis
 *   Find molecular weight by six different methods
 *   Do Kratky analysis and dimensionless Kratky analysis
-*   Test the similarity of scattering profiles
+*   Compare scattering profiles using residuals, ratios, and statistical tests
 *   Load and process SEC-SAXS data
 *   Carry out singular value decomposition (SVD) and evolving factor analysis (EFA)
     to evaluate and deconvolve SEC-SAXS data
@@ -23,7 +23,10 @@ This tutorial covers SAXS data processing with RAW. You will learn how to:
 *   Evaluate ambiguity of 3D shape reconstructions (AMBIMETER)
 *   3D reconstructions with bead models (DAMMIF/N and DAMAVER)
 *   3D reconstructions with electron density (DENSS)
-*   Save your analysis information
+*   Align 3D reconstructions with high resolution models (DENSS and CIFSUP)
+*   Calculate theoretical scattering profiles from models and fit the
+    theoretical scattering against experimental data (CRYSOL)
+*   Save your analysis information and plots
 *   Calibrate RAW for integrating images
 *   Mask images for integration
 *   Set up normalization and save processing settings
@@ -32,7 +35,9 @@ This tutorial covers SAXS data processing with RAW. You will learn how to:
 
 :ref:`Section 1 <section1>` covers basic processing with RAW, and
 :ref:`Section 2 <section2>` covers advanced processing with RAW.
-:ref:`Section 3 <section3>` covers how to set up RAW for integrating images for
+:ref:`Section 3 <section4>` covers saving plots and plot data and opening
+data in other programs.
+:ref:`Section 4 <section3>` covers how to set up RAW for integrating images for
 those who do not already have a configuration file.
 
 
@@ -42,7 +47,7 @@ covers some basic processing and analysis best practices.
 
 Requirements
 ^^^^^^^^^^^^
-*  BioXTAS RAW >= v2.1.0 (most recent is best).
+*  BioXTAS RAW >= v2.2.0 (most recent is best).
 
     *   :ref:`Install instructions <install>`
 
@@ -56,13 +61,13 @@ Requirements
 
 .. _atsas:
 
-*   ATSAS programs, >= v2.8.0 (for parts of :ref:`Section 2 <section2>` of
+*   ATSAS programs, >= v3.1.1 (for parts of :ref:`Section 2 <section2>` of
     the tutorial).
 
     *   Download and installation instructions are available from:
         `https://www.embl-hamburg.de/biosaxs/download.html <https://www.embl-hamburg.de/biosaxs/download.html>`_
 
-    *   Requires a free registration for academic users. Industrial users must pay to use.
+    *   Requires a free registration for academic users. Proprietary users must pay to use.
 
 Other useful materials
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -70,7 +75,7 @@ Other useful materials
     <https://www.youtube.com/playlist?list=PLbPNI520xTsEYbJk8V0BNQ461xnG6tpRW>`_
     which can help you learn more about best practices for SAXS data processing.
 
-#.  Each tutorial section has a linked video tutorial. A full playlist of the
+#.  Most tutorial sections have a linked video tutorial. A full playlist of the
     videos is available here:
 
     .. raw:: html
@@ -90,7 +95,7 @@ Notes
 ^^^^^^
 If you are only interested in using RAW to process data, and are not interested
 in how to set up RAW to calibrate your data, you do not need to look at
-:ref:`Section 3 <section3>`.
+:ref:`Section 4 <section3>`.
 
 
 RAW depends on user feedback to get better. If you have questions, find bugs,

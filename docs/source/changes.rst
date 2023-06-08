@@ -23,8 +23,8 @@ The new release also includes numerous small bug fixes and improvements. Note
 that this version of RAW introduces a new dependency on svglib.
 
 In order to improve the prebuilt MacOS and Linux installers the oldest version
-of OSes they will work in is now MacOS 10.14 and Ubuntu 18.04 LTS (note that
-RAW can still be run from source on older versions).
+of OSes they will work in is now MacOS 11 (Intel) or 12 (Apple Silicon) and
+Ubuntu 18.04 LTS (note that RAW can still be run from source on older versions).
 
 
 All changes:

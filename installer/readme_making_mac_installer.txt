@@ -55,6 +55,7 @@ Codesigning/notarization notes:
 Useful resources:
 https://lessons.livecode.com/m/4071/l/1653720-code-signing-and-notarizing-your-lc-standalone-for-distribution-outside-the-mac-appstore-with-xcode-13-and-up
 https://developer.apple.com/forums/thread/128166
+https://gist.github.com/txoof/0636835d3cc65245c6288b2374799c43
 
 
 wxpython notes:

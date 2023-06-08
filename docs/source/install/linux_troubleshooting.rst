@@ -6,9 +6,9 @@ Common problems/troubleshooting
     installing RAW so that there are no spaces in the file path (navigate the folder
     in the terminal, type ``pwd`` and see what the result is).
 
-*   If you have installed a standalone python distribution (such as Enthought Canopy or
-    miniconda/anaconda), it is possible that it isn’t set to default, so when you run
-    ``python RAW.py``, you are using the wrong python.
+*   If you have installed a standalone python distribution (such miniconda/anaconda),
+    it is possible that it isn’t set to default, so when you run ``python RAW.py``,
+    you are using the wrong python.
 
     *   You can verify which python you are using the command ``which python`` in the terminal.
 
@@ -16,7 +16,7 @@ Common problems/troubleshooting
         file (such as the .bash_profile), or setting the :envvar:`$PATH` environmental variable.
 
     *   You can also specify the full path to the version of python you want to use in
-        the command, such as ``~/miniconda2/bin/python``
+        the command, such as ``~/miniconda3/bin/python``
 
 *   Note that when you change environmental variables in one terminal window, you need to
     restart other windows for this to take effect. If you aren’t using the right python
@@ -29,13 +29,3 @@ Common problems/troubleshooting
     If you get an error running this function update your numba version to the
     most recent.
 
-*   On Scientific Linux 6, and thus probably on Red Hat 6 (untested), RAW completely fails
-    to work with wxpython 3.0 and certain python distributions (namely the Enthought python).
-
-    *   If RAW completely doesn’t start, check and make sure you have wxpython 2.8
-        installed. This requires that you have matplotlib<=1.4.
-
-    *   In general, RAW should work with wxpython 3 and 4.
-
-*   As for the last time we tested it (2017) the Enthought Canopy python package
-    DOESN’T WORK on Ubuntu or Linux Mint with wxpython.
