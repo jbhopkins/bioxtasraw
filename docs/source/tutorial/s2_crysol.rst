@@ -10,14 +10,14 @@ data. You can also fit these generated theoretical scattering profiles against
 the experimental SAXS data.
 
 While it might seem that the most rigorous approach would be to generate a
-theoretical profile independent of the experimental data, this 'blind' approach
+theoretical profile independent of the experimental data, this 'minimal' approach
 often fails to produce good fits even when the model and solution structure are
 in good agreement. This is because there are contributions from the solvent,
 particularly the hydration layer and the excluded volume, that are hard to model
 and that most theoretical scattering profile calculators treat as fit parameters.
 So to get the most accurate understanding of whether your model fits the data,
 you should actually fit the data as part of the process of generating the
-theoretical profile, rather than generating a 'blind' theoretical profile
+theoretical profile, rather than generating a 'minimal' theoretical profile
 and comparing to the data.
 
 One of the most common programs to generate theoretical scattering profiles
@@ -150,7 +150,7 @@ The written version of the tutorial follows.
 
     *   *Tip:* You can also calculate the theoretical scattering profile from
         multiple models without fitting against data. To do this, uncheck all the
-        data items and calculate the 'blind' theoretical profiles.
+        data items and calculate the 'minimal' theoretical profiles.
 
     |theory_crysol_results4_png|
 
@@ -174,8 +174,8 @@ The written version of the tutorial follows.
     window. We'll do that using some example data. Load the **SASDP43.dat**
     experimental data into RAW.
 
-    *   *Note:* This dataset is from the `SASDP53 entry in the SASBDB
-        <https://www.sasbdb.org/data/SASDP53/>`_
+    *   *Note:* This dataset is from the `SASDP43 entry in the SASBDB
+        <https://www.sasbdb.org/data/SASDP43/>`_
 
 #.  Open a CRYSOL window and add the **Brpt55_M_Zn.pdb** model and the
     **SASDP43.dat** data.
