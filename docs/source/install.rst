@@ -7,19 +7,19 @@ There are prebuilt installers for Windows (.msi), MacOs (.dmg), and Debian/Ubunt
 Installation on other Linux distributions requires building from source.
 
 *  `Download Windows installer
-   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.1.4-win64.msi/download>`_ (
+   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.2.0-win64.msi/download>`_ (
    Windows 10 or newer)
 *  `Download MacOS x86_64 (Intel) installer
-   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.1.4-mac-x86_64.dmg/download>`_
+   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.2.0-mac-x86_64.dmg/download>`_
    (MacOS 11 or newer)
 *  `Download MacOS arm64 (Apple Silicon/M chips) installer
-   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.1.4-macos-arm64.dmg/download>`_
+   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.2.0-mac-arm64.dmg/download>`_
    (MacOS 12 or newer)
 *  `Download Ubuntu/Debian installer
-   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.1.4-linux-amd64.deb/download>`_
+   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.2.0-linux-amd64.deb/download>`_
    (Ubuntu 18.04/Debian 10)
 *  `Download source code
-   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.1.4-source.zip/download>`_
+   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.2.0-source.zip/download>`_
    (Other)
 
 RAW is also available through `SBGrid <https://sbgrid.org/software/titles/bioxtas-raw>`_.
