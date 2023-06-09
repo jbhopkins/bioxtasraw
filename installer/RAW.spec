@@ -45,6 +45,11 @@ a = Analysis(
     hookspath=['.'],
     runtime_hooks=[],
     excludes=[],
+    hooksconfig={
+        'matplotlib': {
+            'backends': ['AGG', 'PDF', 'PS', 'SVG', 'PGF', 'Cairo', 'wxAgg'],
+        }
+    },
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=None,
@@ -73,7 +78,7 @@ if opsys == 'Darwin':
         disable_windowed_traceback=False,
 #        target_arch='arm64',
         codesign_identity=None,
-        entitlements_file=None, 
+        entitlements_file=None,
         )
 
     coll = COLLECT(
