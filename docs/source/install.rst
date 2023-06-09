@@ -16,7 +16,7 @@ Installation on other Linux distributions requires building from source.
    <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.2.0-mac-arm64.dmg/download>`_
    (MacOS 12 or newer)
 *  `Download Ubuntu/Debian installer
-   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.2.0-linux-amd64.deb/download>`_
+   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.2.0-linux-x86_64.deb/download>`_
    (Ubuntu 18.04/Debian 10)
 *  `Download source code
    <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.2.0-source.zip/download>`_
