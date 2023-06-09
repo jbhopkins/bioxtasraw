@@ -16761,11 +16761,16 @@ class EFAControlPanel3(wx.Panel):
 
         if (len(self.secm.getSASM(int_type=int_type).getQ())
             != len(self.panel1_results['int'].T[0])):
+
+            start = svd_results['fstart']
+            end = svd_results['fend']
+
             sasms = self.secm.getSASMList(start, end, int_type=int_type)
 
             (svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, i, err,
                 svd_a, success) = SASCalc.SVDonSASMs(sasms, err_norm=True,
-                do_binning=False)
+                do_binning=False, do_autocorr=False)
+
             self.efa_input_D = svd_a
             self.efa_input_intensity = i
             self.efa_input_err = err

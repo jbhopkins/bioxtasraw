@@ -1952,7 +1952,7 @@ class PDB(object):
             self.generate_pdb_from_defaults(natoms)
 
     def read_pdb(self, filename, ignore_waters=False):
-        print(filename)
+        # print(filename)
         self.natoms = 0
         with open(filename) as f:
             for line in f:

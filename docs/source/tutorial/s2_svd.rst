@@ -83,6 +83,10 @@ The written version of the tutorial follows.
 #.  Close the SVD window by clicking the OK button.
 
 
+Note: By default, RAW bins the profiles before doing an SVD, in order to speed
+up the actual SVD. You can turn binning on and off and adjust the binning
+parameters in the Series options panel in the Advanced Options window.
+
 .. |efa_series_plot_png| image:: images/efa_series_plot.png
     :target: ../_images/efa_series_plot.png
 

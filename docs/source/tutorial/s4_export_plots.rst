@@ -25,12 +25,12 @@ the plot as a csv file:
 
 We will demonstrate how to do this using the Guinier fit plot.
 
-#.  Load the glucose_isomerase.dat dataset in the reconstruction_data folder.
+#.  Load the **glucose_isomerase.dat** dataset in the reconstruction_data folder.
 
 #.  Open the Guinier fit window by selecting the profile in the control
     panel and clicking the "Guinier" button.
 
-    *   Tip: For the IFT plot panel, the top and bottom plot (P(r) functions and
+    *   *Tip:* For the IFT plot panel, the top and bottom plot (P(r) functions and
         data/fit in q space) export separately, so if you want both you will
         need to right click and export from both the top and bottom plot.
         For the other windows listed above, all data on all plots shown is
@@ -55,7 +55,7 @@ SVD, EFA, and REGALS plot data (including the singular values, autocorrelations,
 forward and backward EFA plots and EFA and REGALS result plots) can be saved
 from the various analysis windows.
 
-#.  Load the phehc_sec.hdf5 file in the series_data folder.
+#.  Load the **phehc_sec.hdf5** file in the series_data folder.
 
 #.  Open the SVD window by right clicking on the phehc_sec.hdf5 series item
     and selecting "SVD".
@@ -101,9 +101,9 @@ Exporting series plot data
 Series plot data (including the integrated intensity vs. frame and Rg vs. frame
 values) can be saved from the Series control panel.
 
-#.  Load the baseline.hdf5 file in the series_data folder.
+#.  Load the **baseline.hdf5** file in the series_data folder.
 
-#.  In the Series control panel, right click on the baseline.hdf5 item and
+#.  In the Series control panel, right click on the **baseline.hdf5** item and
     select "Export data".
 
 #.  Save the .csv file with an appropriate filename and location. This file
@@ -121,18 +121,18 @@ Saving reconstruction plots
 
 The reconstruction plots (dammif/n residual plots and denss residual,
 convergence and fsc plots) are automatically saved as
-<prefix>_dammif_results.pdf or <prefix>_denss_results.pdf. However,
+**<prefix>_dammif_results.pdf** or **<prefix>_denss_results.pdf**. However,
 the data that makes the plots is not necessarily saved.
 
 For DAMMIF/N results, if you want to recreate the residuals plots you can
-load the .fir file, which has the fit and experimental data, and open those
+load the **.fir** file, which has the fit and experimental data, and open those
 two curves in the Comparison window to make a residual plot. The residual
 data can be exported from there. Alternatively, you could calculate the
 normalized residual directly from the data and fit.
 
-For the DENSS results, the convergence data is saved in the _by_step.fit files,
-the fsc data is saved in the _fsc.dat file, and the fit data is saved in the
-_map.fit for each individual model.
+For the DENSS results, the convergence data is saved in the **_by_step.fit** files,
+the fsc data is saved in the **_fsc.dat file**, and the fit data is saved in the
+**_map.fit** for each individual model.
 
 
 .. |export_guinier_png| image:: images/export_guinier.png

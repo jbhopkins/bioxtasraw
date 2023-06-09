@@ -1289,11 +1289,13 @@ class overview_plot(object):
 
             if series.buffer_range:
                 for buf in series.buffer_range:
-                    ax.axvspan(buf[0], buf[1], color='#2ca02c', alpha=0.5)
+                    ax.axvspan(buf[0], buf[1], color='#95cf95', alpha=1,
+                        zorder=-1)
 
             if series.sample_range:
                 for sam in series.sample_range:
-                    ax.axvspan(sam[0], sam[1], color='#B879CB', alpha=0.5)
+                    ax.axvspan(sam[0], sam[1], color='#CDA7D8', alpha=1,
+                        zorder=-1)
 
 
         labels = [l.get_label() for l in lines]

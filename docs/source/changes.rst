@@ -6,7 +6,7 @@ Changes
 2.2.0
 -----------
 
-Release date:
+Release date: 2023-06-09
 
 Overview
 ^^^^^^^^^^^
@@ -14,10 +14,16 @@ Overview
 The RAW team is pleased to announce the release of RAW version 2.2.0. Significant
 changes include:
 
-    *   New CRYSOL GUI
-    *   New profile comparison window
-    *   Faster calculation of forward and backward EFA plots
-    *   Improved PDF report with text wrapping in columns and vector graphics
+    *   Integration of CRYSOL into the GUI and API. You can now generate theoretical
+        profiles by simply plotting a .pdb or .cif file, or you can open the CRYSOL
+        analysis window and adjust the settings and fit the model to experimental
+        data.
+    *   A new profile comparison window that provides residual and ratio plots,
+        as well as a heatmap of the probability profiles are the same based on
+        the selected similarity test.
+    *   Faster calculation of SVD and forward and backward EFA plots
+    *   Improved PDF report with text wrapping in columns so that tables can't
+        extend off the edge of the page and vector graphics plots.
 
 The new release also includes numerous small bug fixes and improvements. Note
 that this version of RAW introduces a new dependency on svglib.
@@ -101,6 +107,7 @@ All changes:
     work).
 *   MacOS .app is now codesigned and notarized, so it should work on any system
     without requiring a workaround.
+*   Fixed a bug that would prevent installation of the API.
 
 
 2.1.4

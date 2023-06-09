@@ -193,7 +193,15 @@ The written version of the tutorial follows.
         **<prefix>_##-1_aligned.cif** where ## is the model number of a model.
         For this tutorial, that is **glucose_isomerase_##-1_aligned.cif**.
 
+#.  You can save a summary table of the DAMMIF results with the pdf report that
+    RAW can make. Close the DAMMIF/N window, right click on the **glucose_isomerase.out**
+    item in the IFT control panel and select "Save report". Use the "Add DAMMIF/N results
+    .csv" button to add the **glucose_isomerase_dammif_results.csv** to the
+    report. Then click "Save Report" and save the pdf report. If you open the
+    report you will see a summary of the run parameters and numerical results
+    saved as a table.
 
+    |dammif_report_png|
 
 .. |dammif_run_tab_png| image:: images/dammif_run_tab.png
     :target: ../_images/dammif_run_tab.png
@@ -206,6 +214,10 @@ The written version of the tutorial follows.
 
 .. |dammif_viewer_png| image:: images/dammif_viewer.png
     :target: ../_images/dammif_viewer.png
+
+.. |dammif_report_png| image:: images/dammif_report.png
+    :target: ../_images/dammif_report.png
+    :width: 300 px
 
 .. |Rg| replace:: R\ :sub:`g`
 

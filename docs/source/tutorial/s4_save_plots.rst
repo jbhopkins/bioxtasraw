@@ -12,7 +12,7 @@ The written version of the tutorial follows.
 Customizing plots in RAW
 *****************************
 
-#.  Load the glucose_isomerase.dat dataset in the reconstruction_data folder.
+#.  Load the **glucose_isomerase.dat** dataset in the reconstruction_data folder.
 
 #.  Use the "1" button in the plot toolbar at the bottom of the RAW window to
     show just the Main Plot.
@@ -21,7 +21,7 @@ Customizing plots in RAW
 
 #.  Right click on the plot and select "Plot Options..." in the right click menu.
 
-    *   Note: Plot options only affects the plot you click on. Each plot has its
+    *   *Note:* Plot options only affects the plot you click on. Each plot has its
         own set of options.
 
     |show_plot_options_png|
@@ -29,13 +29,16 @@ Customizing plots in RAW
 #.  In the options window that opens, do the following: remove the plot title,
     turn on the legend, change the font for all items to Arial.
 
+    *   *Note:* Not all fonts are available on all systems, you may have to select
+        a different font.
+
     |plot_options1_png|
 
 #.  In the options window, do the following: Turn on the Top and Right borders,
     Change the x-axis label to give the q units, as "$q$ $[1/\\AA]$". Click "Okay"
     to exit the plot options window.
 
-    *   Tip: Anything inside of "$" signs in a plot label or legend label is
+    *   *Tip:* Anything inside of "$" signs in a plot label or legend label is
         parsed as a TeX markup, which allows you to use special symbols like
         the angstrom symbol, Å, as $\\AA$. A useful guide to allowed formatting
         and special characters input can be found in the matplotlib documentation:
@@ -85,7 +88,7 @@ Customizing plots in RAW
 #.  Open the plot Options dialog again. Turn off autolimits and adjust the y limits
     To have a minimum of 2e-5 and a maximum of 0.065.
 
-    *   Tip: You can also use the crossed arrows and the magnifying glass
+    *   *Tip:* You can also use the crossed arrows and the magnifying glass
         in the plot toolbar to adjust the scale of the plot.
 
     |plot_options3_png|

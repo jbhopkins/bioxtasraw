@@ -658,6 +658,11 @@ General notes
     dimension. One of the advantages of REGALS is that it can incorporate
     these additional pieces of information to improve the deconvolution.
 
+#.  By default, RAW bins the profiles before doing an SVD and calculating the
+    evolving factor plots, in order to speed up the process. The final REGALS
+    rotation is done on the full unbinned dataset. You can turn binning on and
+    off and adjust  the binning parameters in the Series options panel in the
+    Advanced Options window.
 
 .. |regals_series_plot_png| image:: images/regals_series_plot.png
     :target: ../_images/regals_series_plot.png

@@ -6,7 +6,7 @@ We have made various demo and instructional videos for RAW.
 Tutorial videos
 ---------------------
 
-Every section of the RAW tutorial has an associated tutorial video. These can be
+Most sections of the RAW tutorial has an associated tutorial video. These can be
 found in the appropriate section. A playlist of all the videos is available:
 
 .. raw:: html

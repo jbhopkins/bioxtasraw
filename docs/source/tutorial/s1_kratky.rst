@@ -96,7 +96,7 @@ The written version of the tutorial follows.
     *   *Note:* The binning is only done in the Kratky plot, it doesn't
         propagate back to the profiles in the main window.
 
-    *   *Try:* Vary the binning factor and see how the profiles change.
+    *   *Try:* Vary the rebin factor and see how the profiles change.
 
     |kratky_rebin_png|
 

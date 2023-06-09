@@ -44,6 +44,15 @@ The written version of the tutorial follows.
 #.  Click on the IFTs Control and Plot tabs. This will display the BIFT output you just generated.
     Save the **glucose_isomerase.ift** item in the **reconstruction_data** folder.
 
+#.  You can save the IFT in the pdf report that RAW can make. Right click on
+    the **glucose_isomerase.ift** item in the IFT control panel and
+    select "Save report". In the window that opens click "Save Report" and
+    save the pdf report. If you open the report you will see a plot of the P(r)
+    function and a summary of the run parameters and numerical results saved
+    as a table.
+
+    |bift_report_png|
+
 *Note:* As of now, BIFT output from RAW is not compatible with DAMMIF or other ATSAS programs.
 However, it is compatible with electron density determination via DENSS.
 
@@ -51,5 +60,9 @@ However, it is compatible with electron density determination via DENSS.
 
 .. |bift_panel_png| image:: images/bift_panel.png
     :target: ../_images/bift_panel.png
+
+.. |bift_report_png| image:: images/bift_report.png
+    :target: ../_images/bift_report.png
+    :width: 450 px
 
 .. |Dmax| replace:: D\ :sub:`max`

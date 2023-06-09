@@ -36,7 +36,8 @@ If you use RAW to control any of the ATSAS programs (
 `GNOM <https://www.embl-hamburg.de/biosaxs/manuals/gnom.html>`_,
 `SASRES <https://www.embl-hamburg.de/biosaxs/manuals/sasres.html>`_,
 `SUPCOMB <https://www.embl-hamburg.de/biosaxs/manuals/supcomb.html>`_,
-`CIFSUP <https://www.embl-hamburg.de/biosaxs/manuals/cifsup.html>`_),
+`CIFSUP <https://www.embl-hamburg.de/biosaxs/manuals/cifsup.html>`_,
+`CRYSOL <https://www.embl-hamburg.de/biosaxs/crysol.html>`_),
 in addition to the RAW paper, please cite the appropriate paper given on their
 `documentation pages <https://www.embl-hamburg.de/biosaxs/manuals/>`_.
 
