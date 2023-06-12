@@ -4170,9 +4170,12 @@ class IFTPlotPanel(wx.Panel):
         qfit = q
         fit = iftm.i_fit #GNOM jreg
 
-        self.updateDataPlot(q, i, err, r, p, perr, qfit, fit)
+        q_extrap = iftm.q_extrap
+        i_extrap = iftm.i_extrap
 
-    def updateDataPlot(self, q, i, err, r, p, perr, qfit, fit):
+        self.updateDataPlot(q, i, err, r, p, perr, qfit, fit, q_extrap, i_extrap)
+
+    def updateDataPlot(self, q, i, err, r, p, perr, qfit, fit, q_extrap=None, i_extrap=None):
 
         #Save for resizing:
         self.orig_q = q
@@ -4183,8 +4186,15 @@ class IFTPlotPanel(wx.Panel):
         self.orig_perr = perr
         self.orig_qfit = qfit
         self.orig_fit = fit
+        if q_extrap is None:
+            self.orig_q_extrap = qfit
+            self.orig_i_extrap = fit
+        else:
+            self.orig_q_extrap = q_extrap
+            self.orig_i_extrap = i_extrap
 
-        residual = i - fit
+
+        residual = i - np.interp(q,qfit,fit)
         if self.norm_residuals:
             residual = residual/err
 
@@ -4196,7 +4206,8 @@ class IFTPlotPanel(wx.Panel):
             self.ift, = a.plot(r, p, 'r.-', animated = True)
 
             self.data_line, = b.semilogy(q, i, 'b.', animated = True)
-            self.fit_line, = b.semilogy(qfit, fit, 'r', animated = True)
+            # self.fit_line, = b.semilogy(qfit, fit, 'r', animated = True)
+            self.fit_line, = b.semilogy(q_extrap, i_extrap, 'r', animated = True)
 
             self.residual_line, = c.plot(q, residual, 'b.', animated=True)
 
@@ -4215,8 +4226,10 @@ class IFTPlotPanel(wx.Panel):
             #Error lines:
             self.data_line.set_xdata(q)
             self.data_line.set_ydata(i)
-            self.fit_line.set_xdata(qfit)
-            self.fit_line.set_ydata(fit)
+            # self.fit_line.set_xdata(qfit)
+            # self.fit_line.set_ydata(fit)
+            self.fit_line.set_xdata(q_extrap)
+            self.fit_line.set_ydata(i_extrap)
 
             self.residual_line.set_xdata(q)
             self.residual_line.set_ydata(residual)
@@ -12104,14 +12117,7 @@ class DIFTControlPanel(wx.Panel):
 
         if mode == 'auto':
             dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-            print("first dmax:", dmaxWindow.GetValue())
-            self._runFindDmax()
-            self._runScanAlpha()
-            # self.findDmax()
-            # self.scanAlpha()
-            dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-            print("second dmax:", dmaxWindow.GetValue())
-
+            self._runFindDmax(scanalpha=True)
         else:
             dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
             try:
@@ -12144,9 +12150,7 @@ class DIFTControlPanel(wx.Panel):
                 wx.CallAfter(self.dift_frame.showBusy, False)
 
             else:
-                self._runFindDmax()
-                self._runScanAlpha()
-
+                self._runFindDmax(scanalpha=True)
 
     def setGuinierInfo(self, sasm):
         guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1], self)
@@ -12265,16 +12269,14 @@ class DIFTControlPanel(wx.Panel):
             self.runDIFT(dmax, alpha)
 
         dift_results['Dmax'] = dmax
-        # dift_results['Total_Estimate'] = self.out_list[dmax].getParameter('TE')
         dift_results['Real_Space_Rg'] = self.out_list[dmax].getParameter('rg')
         dift_results['Real_Space_I0'] = self.out_list[dmax].getParameter('i0')
         dift_results['Real_Space_Rg_Err'] = self.out_list[dmax].getParameter('rger')
         dift_results['Real_Space_I0_Err'] = self.out_list[dmax].getParameter('i0er')
-        dift_results['Alpha'] = alpha #self.out_list[dmax].getParameter('alpha')
+        dift_results['Alpha'] = alpha
         dift_results['qStart'] = self.sasm.q[start_idx]
         dift_results['qEnd'] = self.sasm.q[end_idx]
         dift_results['DIFT_ChiSquared'] = self.out_list[dmax].getParameter('chisq')
-        # dift_results['DIFT_Quality_Assessment'] = self.out_list[dmax].getParameter('quality')
 
         analysis_dict = self.sasm.getParameter('analysis')
         analysis_dict['DIFT'] = dift_results
@@ -12318,8 +12320,8 @@ class DIFTControlPanel(wx.Panel):
         self.dift_frame.showBusy(True, 'Scanning Alpha')
         self._runScanAlpha()
 
-    def _runFindDmax(self):
-        t = threading.Thread(target=self.findDmax)
+    def _runFindDmax(self, scanalpha=False):
+        t = threading.Thread(target=self.findDmax, kwargs={'scanalpha':scanalpha})
         t.daemon=True
         t.start()
 
@@ -12500,7 +12502,7 @@ class DIFTControlPanel(wx.Panel):
         else:
             plotpanel.clearDataPlot()
 
-    def findDmax(self):
+    def findDmax(self, scanalpha=False):
         self.updateDIFTSettings(update_plot=False)
 
         start = self.dift_settings['first']
@@ -12524,7 +12526,6 @@ class DIFTControlPanel(wx.Panel):
             #note, twice this value will be used inside estimate_dmax
             rg = float(analysis['guinier']['Rg'])
             dmax, sasrec = DENSS.estimate_dmax(Iq, dmax=rg*3.5)
-            print("find dmax. dmax, alpha", sasrec.D, sasrec.alpha)
         except Exception as e:
             dmax = -1
             msg = ("Automatic Dmax determination failed with the following error:\n"
@@ -12549,6 +12550,11 @@ class DIFTControlPanel(wx.Panel):
 
         wx.CallAfter(self._finishFindDmax, dmax)
 
+        if scanalpha:
+            #run scanalpha after Dmax is found just to be sure it uses the new dmax
+            # self.dift_frame.showBusy(True, 'Scanning Alpha')
+            self.scanAlpha(dmax)
+
     def _finishFindDmax(self, dmax):
         if dmax != -1:
             dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
@@ -12560,8 +12566,6 @@ class DIFTControlPanel(wx.Panel):
             alpha = 10**float(alphaWindow.GetValue())
             self.old_alpha = alpha
 
-            print("finish dmax. dmax, alpha:", dmax, alpha)
-
             self.runDIFT(dmax, alpha)
             self.updateDIFTInfo(self.out_list[str(dmax)])
 
@@ -12569,7 +12573,7 @@ class DIFTControlPanel(wx.Panel):
 
         self.dift_frame.showBusy(show=False)
 
-    def scanAlpha(self):
+    def scanAlpha(self, dmax=None):
         self.updateDIFTSettings(update_plot=False)
 
         start = self.dift_settings['first']
@@ -12586,15 +12590,15 @@ class DIFTControlPanel(wx.Panel):
         if 'guinier' not in analysis:
             RAWAPI.auto_guinier(save_sasm, error_weight)
 
-        dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-        dmax = dmaxWindow.GetValue()
+        if dmax is None:
+            dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
+            dmax = dmaxWindow.GetValue()
 
         try:
             # dmax = RAWAPI.auto_dmax(save_sasm, single_proc=True)
             Iq = np.vstack((save_sasm.q, save_sasm.i, save_sasm.err)).T
             sasrec = DENSS.Sasrec(Iq, dmax)
             alpha = sasrec.optimize_alpha()
-            print("scan alpha. dmax, alpha", sasrec.D, sasrec.alpha)
         except Exception as e:
             alpha = 0.0
             msg = ("Automatic Alpha determination failed with the following error:\n"
@@ -12612,8 +12616,6 @@ class DIFTControlPanel(wx.Panel):
 
             alphaWindow = wx.FindWindowById(self.spinctrlIDs['alpha'], self)
             alphaWindow.SetValue(round(np.log10(alpha),2))
-            print("finish alpha. dmax, alpha:", dmax, alpha)
-            # wx.FindWindowById(self.staticTxtIDs['alpha']).SetValue(str(alpha))
 
             self.old_dmax = dmax
             self.old_alpha = alpha
@@ -12675,8 +12677,6 @@ class DIFTControlPanel(wx.Panel):
                 npts=None, first=None, last=None, rmin=None, 
                 qc=None, r=None, nr=None, alpha=alpha, ne=2, extrapolate=True,
                 queue=None, abort_check=threading.Event(), single_proc=False, nprocs=0)
-
-        print("iftm dmax, alpha:", iftm.getParameter('dmax'), iftm.getParameter('alpha'))
 
         self.out_list[str(dmax)] = iftm
 

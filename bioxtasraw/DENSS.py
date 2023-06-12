@@ -54,7 +54,7 @@ import functools
 import threading
 
 import numpy as np
-from scipy import optimize, ndimage, spatial, special, signal
+from scipy import optimize, ndimage, spatial, special, signal, fft
 import scipy.interpolate as interpolate
 
 try:
@@ -62,6 +62,8 @@ try:
     CUPY_LOADED = True
 except ImportError:
     CUPY_LOADED = False
+
+PYFFTW = False
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -73,22 +75,53 @@ def myfftn(x, DENSS_GPU=False):
     if DENSS_GPU:
         return cp.fft.fftn(x)
     else:
-        return np.fft.fftn(x)
+        if PYFFTW:
+            return pyfftw.interfaces.numpy_fft.fftn(x)
+        else:
+            try:
+                #try running the parallelized version of scipy fft
+                return fft.fftn(x,workers=-1)
+            except:
+                #fall back to numpy
+                return np.fft.fftn(x)
 
-def myabs(x, DENSS_GPU=False):
+def myifftn(x, DENSS_GPU=False):
     if DENSS_GPU:
-        return cp.abs(x)
+        return cp.fft.ifftn(x)
     else:
-        return np.abs(x)
+        if PYFFTW:
+            return pyfftw.interfaces.numpy_fft.ifftn(x)
+        else:
+            try:
+                #try running the parallelized version of scipy fft
+                return fft.ifftn(x,workers=-1)
+            except:
+                #fall back to numpy
+                return np.fft.ifftn(x)
 
-def mybinmean(x,bins, DENSS_GPU=False):
+def myabs(x, out=None,DENSS_GPU=False):
     if DENSS_GPU:
-        xsum = cp.bincount(bins.ravel(), x.ravel())
-        xcount = cp.bincount(bins.ravel())
+        return cp.abs(x,out=out)
+    else:
+        return np.abs(x,out=out)
+
+def abs2(x):
+    #a faster way to calculate abs(x)**2, for calculating intensities
+    re2 = (x.real)**2 
+    im2 = (x.imag)**2
+    _abs2 = re2 + im2
+    return _abs2
+
+def mybinmean(xravel,binsravel,xcount=None,DENSS_GPU=False):
+    if DENSS_GPU:
+        xsum = cp.bincount(binsravel, xravel)
+        if xcount is None:
+            xcount = cp.bincount(binsravel)
         return xsum/xcount
     else:
-        xsum = np.bincount(bins.ravel(), x.ravel())
-        xcount = np.bincount(bins.ravel())
+        xsum = np.bincount(binsravel, xravel)
+        if xcount is None:
+            xcount = np.bincount(binsravel)
         return xsum/xcount
 
 def myones(x, DENSS_GPU=False):
@@ -333,12 +366,17 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., recenter=True, r
     qbins = np.linspace(0,nbins*qstep,nbins+1)
 
     #create modified qbins and put qbins in center of bin rather than at left edge of bin.
-    qbinsc = np.copy(qbins)
-    qbinsc[1:] += qstep/2.
+    # qbinsc = np.copy(qbins)
+    # qbinsc[1:] += qstep/2.
 
     #create an array labeling each voxel according to which qbin it belongs
     qbin_labels = np.searchsorted(qbins,qr,"right")
     qbin_labels -= 1
+    qblravel = qbin_labels.ravel()
+    xcount = np.bincount(qblravel)
+
+    #create modified qbins and put qbins in center of bin rather than at left edge of bin.
+    qbinsc = mybinmean(qr.ravel(), qblravel, xcount=xcount, DENSS_GPU=False)
 
     #allow for any range of q data
     qdata = qbinsc[np.where( (qbinsc>=q.min()) & (qbinsc<=q.max()) )]
@@ -495,7 +533,7 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., recenter=True, r
         #APPLY RECIPROCAL SPACE RESTRAINTS
         #calculate spherical average of intensities from 3D Fs
         I3D = myabs(F, DENSS_GPU=DENSS_GPU)**2
-        Imean = mybinmean(I3D, qbin_labels, DENSS_GPU=DENSS_GPU)
+        Imean = mybinmean(I3D.ravel(), qblravel, xcount=xcount, DENSS_GPU=DENSS_GPU)
 
         #scale Fs to match data
         #factors = myones((len(qbins)))
@@ -770,7 +808,8 @@ def denss(q, I, sigq, dmax, ne=None, voxel=5., oversampling=3., recenter=True, r
 
     F = np.fft.fftn(rho)
     #calculate spherical average intensity from 3D Fs
-    Imean = ndimage.mean(np.abs(F)**2, labels=qbin_labels, index=np.arange(0,qbin_labels.max()+1))
+    I3D = abs2(F)
+    Imean = mybinmean(I3D.ravel(), qblravel, xcount=xcount, DENSS_GPU=False)
     #chi[j+1] = np.sum(((Imean[j+1,qbin_args]-Idata)/sigqdata)**2)/qbin_args.size
 
     #scale Fs to match data
@@ -2405,16 +2444,19 @@ class Sasrec(object):
 def doDIFT(Iq, D, filename, npts=None, first=None, last=None, rmin=None, qc=None, r=None, nr=None, alpha=0.0, ne=2, extrapolate=True,
     queue=None, abort_check=threading.Event(), single_proc=False, nprocs=0):
     
-    sasrec = Sasrec(Iq, D, qc=Iq[:,0], alpha=alpha, extrapolate=extrapolate)
+    sasrec = Sasrec(Iq, D, qc=None, alpha=alpha, extrapolate=extrapolate)
     pr = sasrec.P
     r = sasrec.r
     perr = sasrec.Perr
-    i = sasrec.I[(sasrec.q>=Iq[:,0].min())&(sasrec.qc<=Iq[:,0].max())]
-    q = sasrec.q[(sasrec.q>=Iq[:,0].min())&(sasrec.qc<=Iq[:,0].max())]
-    err = sasrec.Ierr[(sasrec.q>=Iq[:,0].min())&(sasrec.qc<=Iq[:,0].max())]
-    fit = sasrec.Ic[(sasrec.qc>=Iq[:,0].min())&(sasrec.qc<=Iq[:,0].max())]
-    fit_extrap = sasrec.Ic #[(sasrec.qc>=Iq[:,0].min())&(sasrec.qc<=Iq[:,0].max())]
-    q_extrap = sasrec.qc #[(sasrec.qc>=Iq[:,0].min())&(sasrec.qc<=Iq[:,0].max())]
+    qmin = Iq[:,0].min()
+    qmax = Iq[:,0].max()
+    idx = np.where((sasrec.q>=qmin)&(sasrec.q<=qmax))
+    i = sasrec.I[idx]
+    q = sasrec.q[idx]
+    err = sasrec.Ierr[idx]
+    fit = np.interp(q,sasrec.qc, sasrec.Ic)
+    fit_extrap = sasrec.Ic
+    q_extrap = sasrec.qc
     results = {
         'dmax'          : sasrec.D,         # Dmax
         'rg'            : sasrec.rg,           # Real space Rg
