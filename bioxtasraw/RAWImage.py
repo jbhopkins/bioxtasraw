@@ -1111,12 +1111,26 @@ class ImagePanel(wx.Panel):
 
         a = self.fig.gca()
 
-        if a.lines:
-            del(a.lines[:])     # delete plotted masks
-        if a.patches:
-            del(a.patches[:])
-        if a.collections:
-            del(a.collections[:])
+        if ((int(matplotlib.__version__.split('.')[0])==3
+            and int(matplotlib.__version__.split('.')[1]) <5)
+            or int(matplotlib.__version__.split('.')[0]) < 3):
+            if a.lines:
+                del(a.lines[:])     # delete plotted masks
+            if a.patches:
+                del(a.patches[:])
+            if a.collections:
+                del(a.collections[:])
+
+        else:
+            if a.lines:
+                for line in a.lines:
+                    line.remove()
+            if a.patches:
+                for patch in a.patches:
+                    patch.remove()
+            if a.collections:
+                for col in a.collections:
+                    col.remove()
 
         if self.center_patch:
             a.add_patch(self.center_patch)
@@ -1128,12 +1142,26 @@ class ImagePanel(wx.Panel):
         a = self.fig.gca()        # Get current axis from figure
         stored_masks = self.plot_parameters['storedMasks']
 
-        if a.lines:
-            del(a.lines[:])     # delete plotted masks
-        if a.patches:
-            del(a.patches[:])
-        if a.collections:
-            del(a.collections[:])
+        if ((int(matplotlib.__version__.split('.')[0])==3
+            and int(matplotlib.__version__.split('.')[1]) <5)
+            or int(matplotlib.__version__.split('.')[0]) < 3):
+            if a.lines:
+                del(a.lines[:])     # delete plotted masks
+            if a.patches:
+                del(a.patches[:])
+            if a.collections:
+                del(a.collections[:])
+
+        else:
+            if a.lines:
+                for line in a.lines:
+                    line.remove()
+            if a.patches:
+                for patch in a.patches:
+                    patch.remove()
+            if a.collections:
+                for col in a.collections:
+                    col.remove()
 
         for mask_id, each in enumerate(stored_masks):
             each.setId(mask_id)
@@ -1480,12 +1508,26 @@ class ImagePanel(wx.Panel):
     def clearPatches(self):
         a = self.fig.gca()
 
-        if a.lines:
-            del(a.lines[:])     # delete plotted masks
-        if a.patches:
-            del(a.patches[:])
-        if a.texts:
-            del(a.texts[:])
+        if ((int(matplotlib.__version__.split('.')[0])==3
+            and int(matplotlib.__version__.split('.')[1]) <5)
+            or int(matplotlib.__version__.split('.')[0]) < 3):
+            if a.lines:
+                del(a.lines[:])     # delete plotted masks
+            if a.patches:
+                del(a.patches[:])
+            if a.collections:
+                del(a.collections[:])
+
+        else:
+            if a.lines:
+                for line in a.lines:
+                    line.remove()
+            if a.patches:
+                for patch in a.patches:
+                    patch.remove()
+            if a.collections:
+                for col in a.collections:
+                    col.remove()
 
         self.canvas.draw()
 
