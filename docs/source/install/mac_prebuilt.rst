@@ -12,9 +12,9 @@ double click it to open the dmg, and drag the :file:`RAW.app` file to your Appli
 
 Direct links fo the downloads:
 
-*   `Apple Silicon macs (M1 or newer chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.2.0-mac-arm64.dmg/download>`_
+*   `Apple Silicon macs (M1 or newer chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.2.1-mac-arm64.dmg/download>`_
 
-*   `Intel macs (pre-M1 chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.2.0-mac-x86_64.dmg/download>`_
+*   `Intel macs (pre-M1 chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.2.1-mac-x86_64.dmg/download>`_
 
 
 **Important Notes:**
