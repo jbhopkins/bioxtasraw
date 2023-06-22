@@ -4,7 +4,7 @@ Changes
 2.2.1
 ----------
 
-Release date: 2023-06-21
+Release date: 2023-06-22
 
 Overview
 ^^^^^^^^^^
@@ -12,15 +12,16 @@ Overview
 The RAW team is pleased to announce the release of RAW version 2.2.1. This
 version contains a single bug fix:
 
-*   Fixed a bug that prevented some calibration and masking operations.
+*   Fixed a bug that prevented some calibration and masking operations from being used.
 
 Because this bug prevented the use of major features it warranted a quick fix.
 
 All changes:
 ^^^^^^^^^^^^^
 
-*   Fixed a bug that prevented some calibration and masking operations when
-    running with newer versions of matplotlib (including the prebuilt installers).
+*   Fixed a bug that prevented some calibration and masking operations
+    from being used when running with newer versions of matplotlib (including
+    the prebuilt installers).
 
 
 2.2.0
