@@ -14,13 +14,13 @@ version contains a single bug fix:
 
 *   Fixed a bug that prevented some calibration and masking operations.
 
-Because this bug prevented the use of major featuers it warrented a quick fix.
+Because this bug prevented the use of major features it warranted a quick fix.
 
 All changes:
 ^^^^^^^^^^^^^
 
 *   Fixed a bug that prevented some calibration and masking operations when
-    running with newer versions of matlpotlib (including the prebuilt installers).
+    running with newer versions of matplotlib (including the prebuilt installers).
 
 
 2.2.0
