@@ -3555,8 +3555,11 @@ def findSignificantSingularValues(svd_s, svd_U_autocor, svd_V_autocor):
 
         mode, count = stats.mode(plist)
 
-        mode = mode[0]
-        count = count[0]
+        try:
+            mode = mode[0]
+            count = count[0]
+        except IndexError:
+            pass
 
         if count > 1:
             svals = mode
