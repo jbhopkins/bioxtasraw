@@ -1219,6 +1219,9 @@ class MainFrame(wx.Frame):
             else:
                 alignPath = os.path.join(atsasPath, program)
 
+        else:
+            alignPath = ''
+
         if os.path.exists(alignPath):
             remove = []
             proceed = True
@@ -12772,6 +12775,9 @@ class SeriesControlPanel(wx.Panel):
 
         if sasm_list is not None and sasm_list:
             sasm_list = list(map(copy.deepcopy, sasm_list))
+
+            for sasm in sasm_list:
+                print(sasm.getParameter('filename'))
 
             if average:
                 mainworker_cmd_queue.put(['secm_average_sasms', sasm_list])
