@@ -12873,12 +12873,18 @@ class SeriesControlPanel(wx.Panel):
                 for frame in modified_frame_list:
                     name = os.path.join(self.directory,
                         '{}_data_{}'.format(self.image_prefix, frame))
+                    
+                    #To match new eiger dat file naming convention
                     name2 = os.path.join(self.directory,
                         '{}_data_'.format(self.image_prefix))
+                    flist = glob.glob(name2+'*_{}.dat'.format(frame))
+                    if len(flist) > 0:
+                        fname = flist[0]
+                        
                     if os.path.isfile(name+'.dat'):
                         file_list.append(name+'.dat')
-                    elif os.path.isfile(name2+'{}_{}.dat'.format(frame, frame)):
-                        file_list.append(name2+'{}_{}.dat'.format(frame, frame))
+                    elif os.path.isfile(fname):
+                        file_list.append(fname)
                     elif os.path.isfile(name+'.h5'):
                         file_list.append(name+'.h5')
                     elif os.path.isfile(name+'.tiff'):
