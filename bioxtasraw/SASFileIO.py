@@ -876,7 +876,7 @@ def parseCHESSEigerFilename(filename):
     directory, fname = os.path.split(filename)
 
     if '_data_' in fname:
-        countFile, fnum = fname.rsplit('_data_', maxsplit=1)
+        countFilename, fnum = fname.rsplit('_data_', maxsplit=1)
         frame_number = os.path.split(fnum)[0].split('_')[-1]
         filenumber = countFile.split('_')[-1]
 
