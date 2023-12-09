@@ -12871,10 +12871,13 @@ class SeriesControlPanel(wx.Panel):
         elif hdr_format == 'CHESS EIGER 4M':
             if self.image_prefix != '' or self.filename != '':
                 for frame in modified_frame_list:
-                    name = os.path.join(self.directory, '{}_data_{}'.format(self.image_prefix, frame))
-
+                    name = os.path.join(self.directory,
+                        '{}_data_{}'.format(self.image_prefix, frame))
+                    name2 = os.path.join(self.directory,
+                        '{}_data_'.format(self.image_prefix))
                     if os.path.isfile(name+'.dat'):
                         file_list.append(name+'.dat')
+                    elif os.path.isfile(name2+'*_{}.dat'.format(frame))
                     elif os.path.isfile(name+'.h5'):
                         file_list.append(name+'.h5')
                     elif os.path.isfile(name+'.tiff'):

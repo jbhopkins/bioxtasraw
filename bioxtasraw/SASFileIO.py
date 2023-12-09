@@ -873,26 +873,33 @@ def parseBiocatFilename(filename):
     return (countFilename, frame_number)
 
 def parseCHESSEigerFilename(filename):
-    dir, file = os.path.split(filename)
-    underscores = file.split('_')
+    directory, fname = os.path.split(filename)
 
-    countFile = underscores[0]
+    if '_data_' in fname:
+        countFile, fnum = fname.rsplit('_data_', maxsplit=1)
+        frame_number = os.path.split(fnum)[0].split('_')[-1]
+        filenumber = countFile.split('_')[-1]
 
-    filenumber = underscores[-3]
+    else:
+        underscores = fname.split('_')
 
-    try:
-        frame_number = underscores[-1].split('.')[0]
-    except Exception:
-        frame_number = 0
+        countFile = underscores[0]
 
-    # REG: if user root file name contains underscores, include those
-    # note: must start at -3 to leave out "data" in image name
+        filenumber = underscores[-3]
 
-    if len(underscores)>3:
-        for each in underscores[1:-3]:
-            countFile += '_' + each
+        try:
+            frame_number = underscores[-1].split('.')[0]
+        except Exception:
+            frame_number = 0
 
-    countFilename = os.path.join(dir, countFile)
+        # REG: if user root file name contains underscores, include those
+        # note: must start at -3 to leave out "data" in image name
+
+        if len(underscores)>3:
+            for each in underscores[1:-3]:
+                countFile += '_' + each
+
+        countFilename = os.path.join(directory, countFile)
 
     return (countFilename, filenumber, frame_number)
 
