@@ -876,9 +876,9 @@ def parseCHESSEigerFilename(filename):
     directory, fname = os.path.split(filename)
 
     if '_data_' in fname:
-        countFilename, fnum = fname.rsplit('_data_', maxsplit=1)
+        fprefix, fnum = fname.rsplit('_data_', maxsplit=1)
         frame_number = os.path.split(fnum)[0].split('_')[-1]
-        filenumber = countFile.split('_')[-1]
+        countFile, filenumber = fprefix.rsplit('_', maxsplit=1)
 
     else:
         underscores = fname.split('_')
@@ -899,7 +899,7 @@ def parseCHESSEigerFilename(filename):
             for each in underscores[1:-3]:
                 countFile += '_' + each
 
-        countFilename = os.path.join(directory, countFile)
+    countFilename = os.path.join(directory, countFile)
 
     return (countFilename, filenumber, frame_number)
 
