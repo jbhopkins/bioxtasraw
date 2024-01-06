@@ -61,7 +61,6 @@ setup(
         'svglib',
         'pyfai;python_version>"2.7"',
         'pyfai==0.17;python_version=="2.7"',
-        'future;python_version=="2.7"',
         'dbus-python;platform_system=="Linux"',
         ],
     ext_modules=cythonize("bioxtasraw/sascalc_exts.pyx",
