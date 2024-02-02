@@ -1359,26 +1359,26 @@ class GuinierControlPanel(wx.Panel):
 
     def onEnterInQlimits(self, evt):
 
-        id = evt.GetId()
+        my_id = evt.GetId()
 
         lx = self.ExpObj.q
 
         findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
 
-        txtctrl = wx.FindWindowById(id, self)
+        txtctrl = wx.FindWindowById(my_id, self)
 
         #### If User inputs garbage: ####
         try:
             val = float(txtctrl.GetValue())
         except ValueError:
-            if id == self.staticTxtIDs['qstart']:
+            if my_id == self.staticTxtIDs['qstart']:
                 spinctrl = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
                 txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
                 idx = int(spinctrl.GetValue())
                 txt.SetValue(str(round(self.ExpObj.q[idx],5)))
                 return
 
-            if id == self.staticTxtIDs['qend']:
+            if my_id == self.staticTxtIDs['qend']:
                 spinctrl = wx.FindWindowById(self.spinctrlIDs['qend'], self)
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 idx = int(spinctrl.GetValue())
@@ -1393,7 +1393,7 @@ class GuinierControlPanel(wx.Panel):
         endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
         startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
 
-        if id == self.staticTxtIDs['qstart']:
+        if my_id == self.staticTxtIDs['qstart']:
 
             max = endSpin.GetValue()
 
@@ -1402,7 +1402,7 @@ class GuinierControlPanel(wx.Panel):
 
             startSpin.SetValue(i)
 
-        elif id == self.staticTxtIDs['qend']:
+        elif my_id == self.staticTxtIDs['qend']:
             minq = startSpin.GetValue()
 
 
@@ -4953,7 +4953,7 @@ class GNOMControlPanel(wx.Panel):
 
         my_id = evt.GetId()
 
-        txtctrl = wx.FindWindowById(id, self)
+        txtctrl = wx.FindWindowById(my_id, self)
 
         #### If User inputs garbage: ####
         try:

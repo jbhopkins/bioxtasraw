@@ -51,6 +51,7 @@ from svglib.svglib import svg2rlg
 
 import bioxtasraw.RAWAPI as raw
 import bioxtasraw.SASCalc as SASCalc
+import bioxtasraw.SASUtils as SASUtils
 
 # mpl.rc('font', size = 8.0, family='Arial')
 # mpl.rc('legend', frameon=False, fontsize='medium')
@@ -1783,6 +1784,8 @@ def generate_report(fname, datadir, profiles, ifts, series, extra_data=None):
 
     elements = []
 
+    SASUtils.update_mpl_style('light')
+
     overview = generate_overview(profiles, ifts, series)
     elements.extend(overview)
 
@@ -1831,6 +1834,8 @@ def generate_report(fname, datadir, profiles, ifts, series, extra_data=None):
         leftMargin=1*inch, rightMargin=1*inch, topMargin=1*inch,
         bottomMargin=1*inch, title="RAW Report", lang="en-US")
     doc.build(elements)
+
+    SASUtils.update_mpl_style()
 
     global temp_files
 

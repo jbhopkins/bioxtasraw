@@ -660,14 +660,22 @@ def get_mpl_fonts():
 
         return fonts, default_plot_font
 
-def update_mpl_style():
-    system_settings = wx.SystemSettings()
+def update_mpl_style(forced=None):
 
-    try:
-        system_appearance = system_settings.GetAppearance()
-        is_dark = system_appearance.IsDark()
-    except Exception:
+    if forced is None:
+        system_settings = wx.SystemSettings()
+
+        try:
+            system_appearance = system_settings.GetAppearance()
+            is_dark = system_appearance.IsDark()
+        except Exception:
+            is_dark = False
+
+    elif forced == 'light':
         is_dark = False
+
+    else:
+        is_dark = True
 
     if is_dark:
         mpl.style.use('dark_background')
