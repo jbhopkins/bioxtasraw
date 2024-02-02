@@ -15813,21 +15813,19 @@ class WelcomeDialog(wx.Dialog):
 
         headline = wx.StaticText(self.panel, wx.ID_ANY, 'Welcome to RAW %s!' %(RAWGlobals.version))
 
-        text1 = 'Developers/Contributors:'
-        text2 = '\nSoren Skou'
-        text3 = 'Jesse B. Hopkins'
-        text4 = 'Richard E. Gillilan'
+        text1 = 'Primary Developers:'
+        text2 = 'Jesse B. Hopkins'
+        text3 = 'Soren Skou'
 
-        text7 = ('\nHelp this software become better by reporting bugs to:\n'
-                '     http://bit.ly/rawhelp\n')
+        text7 = ('\nHelp this software become better by reporting bugs to: '
+                'http://bit.ly/rawhelp\n\n')
 
         text8 = 'If you use this software for your SAXS data processing please cite:\n'
-        text9 = ('"BioXTAS RAW: improvements to a free open-source program for\n'
-                'small-angle X-ray scattering data reduction and analysis."\n'
-                'J. B. Hopkins, R. E. Gillilan, and S. Skou. Journal of Applied\n'
-                'Crystallography (2017). 50, 1545-1553\n\n')
+        text9 = ('"BioXTAS RAW 2: new developments for a free open-source program\n'
+                'for small-angle scattering data reduction and analysis." J. B. Hopkins.\n'
+                'Journal of Applied Crystallography (2024). 57, 194-208.\n\n')
 
-        all_text = [text1, text2, text3, text4, text7, text8, text9]
+        all_text = [text1, text2, text3, text7, text8, text9]
 
         final_sizer = wx.BoxSizer(wx.VERTICAL)
         final_sizer.Add(raw_icon, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL,
