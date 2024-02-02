@@ -294,6 +294,7 @@ class RawGuiSettings(object):
                 'doSVDBinning'          : [True, get_id(), 'bool'],
                 'numSVDBins'            : [150, get_id(), 'int'],
                 'SVDCheckShannonBins'   : [True, get_id(), 'bool'],
+                'warnLinearBaseline'    : [False, get_id(), 'bool'],
 
                 #GUI Settings:
                 'csvIncludeData'      : [None],

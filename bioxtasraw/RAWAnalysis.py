@@ -14493,6 +14493,8 @@ class SVDControlPanel(wx.Panel):
             'svd_s'         : [],
             'svd_v'         : [],
             'svd_int_norm'  : [],
+            'acor_u'        : [],
+            'acor_v'        : [],
             'secm_choice'   : 'sub',
             'sub_secm'      : None,
             'bl_secm'       : None,
@@ -15196,6 +15198,12 @@ class SVDControlPanel(wx.Panel):
 
             elif key == 'svd_int_norm':
                 value = self.svd_a
+
+            elif key == 'acor_u':
+                value = self.svd_U_autocor
+
+            elif key == 'acor_v':
+                value = self.svd_V_autocor
 
             elif key =='secm_choice':
                 profile_window = wx.FindWindowById(self.control_ids['profile'], self)
@@ -17612,16 +17620,31 @@ class EFARangePlotPanel(wx.Panel):
 
             if ((int(matplotlib.__version__.split('.')[0]) ==1 and
                 int(matplotlib.__version__.split('.')[1]) >=5) or
-                int(matplotlib.__version__.split('.')[0]) > 1):
+                (int(matplotlib.__version__.split('.')[0]) > 1 and
+                int(matplotlib.__version__.split('.')[0]) < 3) or
+                (int(matplotlib.__version__.split('.')[0]) == 3 and
+                int(matplotlib.__version__.split('.')[1]) <8)):
                 a.set_prop_cycle(None) #Resets the color cycler to the original state
+            elif ((int(matplotlib.__version__.split('.')[0]) == 3 and
+                int(matplotlib.__version__.split('.')[1]) >=8) or
+                (int(matplotlib.__version__.split('.')[0]) > 3)):
+                prop_cycle = copy.deepcopy(matplotlib.rcParams['axes.prop_cycle'])
+                color_cycle = prop_cycle.by_key()['color']
             else:
                 a.set_color_cycle(None)
 
             for i in range(ranges.shape[0]):
                 if ((int(matplotlib.__version__.split('.')[0]) ==1 and
                     int(matplotlib.__version__.split('.')[1]) >=5) or
-                    int(matplotlib.__version__.split('.')[0]) > 1):
+                    (int(matplotlib.__version__.split('.')[0]) > 1 and
+                    int(matplotlib.__version__.split('.')[0]) < 3) or
+                    (int(matplotlib.__version__.split('.')[0]) == 3 and
+                    int(matplotlib.__version__.split('.')[1]) <8)):
                     color = next(a._get_lines.prop_cycler)['color']
+                elif ((int(matplotlib.__version__.split('.')[0]) == 3 and
+                    int(matplotlib.__version__.split('.')[1]) >=8) or
+                    (int(matplotlib.__version__.split('.')[0]) > 3)):
+                    color = color_cycle[i]
                 else:
                     color =next(a._get_lines.color_cycle)
 
@@ -20329,7 +20352,7 @@ class REGALSBackgroundSVDPlot(wx.Panel):
 
         self.SetSizer(sizer)
 
-    def plot_data(self, xdata, ydata, label, axis, color=None):
+    def plot_data(self, xdata, ydata, label, axis, color):
         #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
         self.canvas.mpl_disconnect(self.cid)
 
@@ -20351,11 +20374,12 @@ class REGALSBackgroundSVDPlot(wx.Panel):
             except Exception:
                 line = None
 
-        if color is None:
-            if axis == 'sv':
-                color = next(self.sv_subplot._get_lines.prop_cycler)['color']
-            else:
-                color = next(self.ac_subplot._get_lines.prop_cycler)['color']
+        # This is broken in matplotlib >=3.8, so for now we require a color
+        # if color is None:
+        #     if axis == 'sv':
+        #         color = next(self.sv_subplot._get_lines.prop_cycler)['color']
+        #     else:
+        #         color = next(self.ac_subplot._get_lines.prop_cycler)['color']
 
         if line is None:
             if axis == 'sv':
@@ -25454,6 +25478,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 msg = ('RAW found potential issues with the selected baseline '
                     'start/end regions(s).\n')
 
+                show_msg = True
+
                 if not other_results['fit_valid']:
                     msg = msg + ('\nThe linear fit of the selected start region '
                         'does not match the linear fit of the\nselected end region '
@@ -25461,18 +25487,23 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                         'is not an appropriate correction over the selected '
                         'ranges.')
 
-                wx.CallAfter(self.series_frame.showBusy, False)
+                    if not self.raw_settings.get('warnLinearBaseline'):
+                        show_msg = False
 
-                answer = self._displayQuestionDialog(msg,
-                    'Warning: Selected baseline ranges may be invalid',
-                [('Cancel', wx.ID_CANCEL), ('Continue', wx.ID_YES)],
-                wx.ART_WARNING)
+                if show_msg:
 
-                wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
+                    wx.CallAfter(self.series_frame.showBusy, False)
 
-                if answer[0] != wx.ID_YES:
-                    self.continue_processing = False
-                    return
+                    answer = self._displayQuestionDialog(msg,
+                        'Warning: Selected baseline ranges may be invalid',
+                    [('Cancel', wx.ID_CANCEL), ('Continue', wx.ID_YES)],
+                    wx.ART_WARNING)
+
+                    wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
+
+                    if answer[0] != wx.ID_YES:
+                        self.continue_processing = False
+                        return
 
         (bl_sasms, use_subtracted_sasms, bl_corr, fit_results, sub_mean_i,
             sub_total_i, bl_sub_mean_i, bl_sub_total_i) = SASCalc.processBaseline(

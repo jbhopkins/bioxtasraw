@@ -4534,6 +4534,31 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
 
     body_string = body_string +'\n'
 
+
+    body_string = body_string + '# Autocorrelation of Left Singular Vectors (U)\n'
+    body_string = body_string + '# Index,Autocorrelation\n'
+
+    acor_u = panel1_results['acor_u']
+    acor_u = np.column_stack((list(range(len(acor_u))), acor_u))
+
+    for line in acor_u:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
+
+    body_string = body_string + '# Autocorrelation of Right Singular Vectors (V)\n'
+    body_string = body_string + '# Index,Autocorrelation\n'
+
+    acor_v = panel1_results['acor_v']
+    acor_v = np.column_stack((list(range(len(acor_v))), acor_v))
+
+    for line in acor_v:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
+
     save_string = header_string + body_string
 
 
@@ -4755,6 +4780,31 @@ def saveREGALSData(filename, panel_results):
         body_string = body_string+','.join(map(str, line)) + '\n'
 
     body_string = body_string +'\n'
+
+
+    body_string = body_string + '# Autocorrelation of Left Singular Vectors (U)\n'
+    body_string = body_string + '# Index,Autocorrelation\n'
+
+    acor_u = svd_results['acor_u']
+    acor_u = np.column_stack((list(range(len(acor_u))), acor_u))
+
+    for line in acor_u:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
+
+    body_string = body_string + '# Autocorrelation of Right Singular Vectors (V)\n'
+    body_string = body_string + '# Index,Autocorrelation\n'
+
+    acor_v = svd_results['acor_v']
+    acor_v = np.column_stack((list(range(len(acor_v))), acor_v))
+
+    for line in acor_v:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
 
     save_string = header_string + comp_str + body_string
 

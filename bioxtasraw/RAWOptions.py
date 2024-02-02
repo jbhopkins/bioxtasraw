@@ -3299,7 +3299,7 @@ class SeriesPanel(scrolled.ScrolledPanel):
 
         self.update_keys = ['secCalcThreshold', 'IBaselineMinIter',
             'IBaselineMaxIter', 'doSVDBinning', 'numSVDBins',
-            'SVDCheckShannonBins']
+            'SVDCheckShannonBins', 'warnLinearBaseline']
 
 
         # self.settings = [(('Intensity ratio (to background) threshold for '
@@ -3329,6 +3329,8 @@ class SeriesPanel(scrolled.ScrolledPanel):
             ('Number of bins for SVD', raw_settings.getId('numSVDBins'), 'int'),
             ('Adjust bins for maximum number of Shannon channels in the data',
                 raw_settings.getId('SVDCheckShannonBins'), 'bool'),
+            ('Warn users about mismatched slopes when running a linear baseline correction',
+                raw_settings.getId('warnLinearBaseline'), 'bool'),
             )
 
         options_sizer = self.createOptions(layout_settings)

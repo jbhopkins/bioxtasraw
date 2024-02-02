@@ -1618,10 +1618,36 @@ class efa_plot(object):
         plt.setp(ax.get_yticklabels(), visible=False)
 
         ax.plot(frame_data, int_data, '-', color='k')
-        ax.set_prop_cycle(None)
+
+        if ((int(mpl.__version__.split('.')[0]) ==1 and
+            int(mpl.__version__.split('.')[1]) >=5) or
+            (int(mpl.__version__.split('.')[0]) > 1 and
+            int(mpl.__version__.split('.')[0]) < 3) or
+            (int(mpl.__version__.split('.')[0]) == 3 and
+            int(mpl.__version__.split('.')[1]) <8)):
+            ax.set_prop_cycle(None) #Resets the color cycler to the original state
+        elif ((int(mpl.__version__.split('.')[0]) == 3 and
+            int(mpl.__version__.split('.')[1]) >=8) or
+            (int(mpl.__version__.split('.')[0]) > 3)):
+            prop_cycle = copy.deepcopy(mpl.rcParams['axes.prop_cycle'])
+            color_cycle = prop_cycle.by_key()['color']
+        else:
+            ax.set_color_cycle(None)
 
         for i in range(len(ranges)):
-            color = next(ax._get_lines.prop_cycler)['color']
+            if ((int(mpl.__version__.split('.')[0]) ==1 and
+                int(mpl.__version__.split('.')[1]) >=5) or
+                (int(mpl.__version__.split('.')[0]) > 1 and
+                int(mpl.__version__.split('.')[0]) < 3) or
+                (int(mpl.__version__.split('.')[0]) == 3 and
+                int(mpl.__version__.split('.')[1]) <8)):
+                color = next(a._get_lines.prop_cycler)['color']
+            elif ((int(mpl.__version__.split('.')[0]) == 3 and
+                int(mpl.__version__.split('.')[1]) >=8) or
+                (int(mpl.__version__.split('.')[0]) > 3)):
+                color = color_cycle[i]
+            else:
+                color =next(a._get_lines.color_cycle)
 
             ax.annotate('', xy=(ranges[i][0], 0.975-0.05*(i)),
                 xytext=(ranges[i][1], 0.975-0.05*(i)),

@@ -4374,8 +4374,6 @@ def processBaseline(unsub_sasms, sub_sasms, r1, r2, bl_type, min_iter, max_iter,
 
             if bl_extrap:
                 baseline = np.array([linear_func(j, fit[0], fit[1]) for fit in fit_results])
-                if j == 0:
-                    print(baseline)
                 i = sasm.getI() - baseline
                 err = sasm.getErr() * i/sasm.getI()
 
