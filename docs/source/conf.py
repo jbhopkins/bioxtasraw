@@ -37,7 +37,7 @@ version_number = bioxtasraw.__version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.mathjax', 'sphinx.ext.ifconfig', 'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon']
+    'sphinx.ext.napoleon', 'sphinx_rtd_theme']
 
 # Napoleon settings
 napoleon_use_ivar = True
