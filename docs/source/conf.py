@@ -100,7 +100,7 @@ todo_include_todos = False
 #
 
 if on_rtd:
-    html_theme = 'default'
+    html_theme = 'sphinx_rtd_theme'
 else:
     html_theme = 'sphinx_rtd_theme'
 

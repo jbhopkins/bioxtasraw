@@ -3062,17 +3062,17 @@ class MainFrame(wx.Frame):
         info.SetName("RAW")
         info.SetVersion(RAWGlobals.version)
         info.SetCopyright("Copyright(C) 2009 RAW")
-        info.SetDescription(('RAW is a software package primarily for SAXS 2D data '
-                            'reduction and 1D data analysis.\nIt provides an easy '
-                            'GUI for handling multiple files fast, and a\ngood '
-                            'alternative to commercial or protected software packages\n\n'
-                            'Please cite:\n"BioXTAS RAW: improvements to a free open-source program for\n'
-                            'small-angle X-ray scattering data reduction and analysis."\n'
-                            'J. B. Hopkins, R. E. Gillilan, and S. Skou. Journal of Applied\n'
-                            'Crystallography (2017). 50, 1545-1553'))
+        info.SetDescription(('RAW is a software package primarily for '
+                            'biological SAXS 2D data reduction and 1D '
+                            'data analysis.\n\n'
+                            'Please cite:\n"BioXTAS RAW 2: new developments for a '
+                            'free open-source program for small-angle scattering\n'
+                            'data reduction and analysis." J. B. Hopkins. '
+                            'Journal of Applied Crystallography (2024). '
+                            '57, 194-208'))
 
         info.SetWebSite("http://bioxtas-raw.readthedocs.io/", "The RAW Project Homepage")
-        info.SetDevelopers(["Soren Skou", "Jesse B. Hopkins", "Richard E. Gillilan"])
+        info.SetDevelopers(["Jesse B. Hopkins", "Soren Skou"])
         info.SetLicense(('This program is free software: you can redistribute it '
                         'and/or modify it under the terms of the\nGNU General '
                         'Public License as published by the Free Software '
@@ -12873,14 +12873,14 @@ class SeriesControlPanel(wx.Panel):
                 for frame in modified_frame_list:
                     name = os.path.join(self.directory,
                         '{}_data_{}'.format(self.image_prefix, frame))
-                    
+
                     #To match new eiger dat file naming convention
                     name2 = os.path.join(self.directory,
                         '{}_data_'.format(self.image_prefix))
                     flist = glob.glob(name2+'*_{}.dat'.format(frame))
                     if len(flist) > 0:
                         fname = flist[0]
-                        
+
                     if os.path.isfile(name+'.dat'):
                         file_list.append(name+'.dat')
                     elif os.path.isfile(fname):
