@@ -4155,18 +4155,34 @@ class PlotOptionsDialog(wx.Dialog):
         else:
             y_tick_label = wx.StaticText(box, -1, 'Y-tick label font size:')
 
-        for tick in self.axes.xaxis.get_major_ticks():
-            x_tick_size = tick.label.get_fontsize()
-            break
-
-        for tick in self.axes.yaxis.get_major_ticks():
-            y_tick_size = tick.label.get_fontsize()
-            break
-
-        if self.is_sec and self.sec_calc != 'None':
-            for tick in self.axes2.yaxis.get_major_ticks():
-                y2_tick_size = tick.label.get_fontsize()
+        if (int(matplotlib.__version__.split('.')[0]) < 3 or
+            (int(matplotlib.__version__.split('.')[0]) == 3 and
+            int(matplotlib.__version__.split('.')[1]) <8)):
+            for tick in self.axes.xaxis.get_major_ticks():
+                x_tick_size = tick.label.get_fontsize()
                 break
+
+            for tick in self.axes.yaxis.get_major_ticks():
+                y_tick_size = tick.label.get_fontsize()
+                break
+
+            if self.is_sec and self.sec_calc != 'None':
+                for tick in self.axes2.yaxis.get_major_ticks():
+                    y2_tick_size = tick.label.get_fontsize()
+                    break
+        else:
+            for tick in self.axes.xaxis.get_major_ticks():
+                x_tick_size = tick.label1.get_fontsize()
+                break
+
+            for tick in self.axes.yaxis.get_major_ticks():
+                y_tick_size = tick.label1.get_fontsize()
+                break
+
+            if self.is_sec and self.sec_calc != 'None':
+                for tick in self.axes2.yaxis.get_major_ticks():
+                    y2_tick_size = tick.label1.get_fontsize()
+                    break
 
 
         x_tick_font_size = wx.SpinCtrl(box, -1, str(x_tick_size), name='xticksize')

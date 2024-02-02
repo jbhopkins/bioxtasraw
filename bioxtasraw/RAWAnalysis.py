@@ -3804,11 +3804,20 @@ class MWPlotPanel(wx.Panel):
         a.yaxis.get_label().set_size(font_size)
         a.xaxis.get_label().set_size(font_size)
 
-        for tick in a.xaxis.get_major_ticks():
-            tick.label.set_fontsize(font_size)
+        if (int(matplotlib.__version__.split('.')[0]) < 3 or
+            (int(matplotlib.__version__.split('.')[0]) == 3 and
+            int(matplotlib.__version__.split('.')[1]) <8)):
+            for tick in a.xaxis.get_major_ticks():
+                tick.label.set_fontsize(font_size)
 
-        for tick in a.yaxis.get_major_ticks():
-            tick.label.set_fontsize(font_size)
+            for tick in a.yaxis.get_major_ticks():
+                tick.label.set_fontsize(font_size)
+        else:
+            for tick in a.xaxis.get_major_ticks():
+                tick.label1.set_fontsize(font_size)
+
+            for tick in a.yaxis.get_major_ticks():
+                tick.label1.set_fontsize(font_size)
 
         self.fig.tight_layout(pad=0.4)
 
