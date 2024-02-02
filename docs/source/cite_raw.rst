@@ -6,14 +6,20 @@ RAW
 
 If you use RAW in your research, please cite the newest RAW paper:
 
+*BioXTAS RAW 2: new developments for a free open-source program for
+small-angle scattering data reduction and analysis.* J. B. Hopkins.
+Journal of Applied Crystallography (2024). 57, 194-208.
+
+DOI: `10.1107/S1600576723011019 <https://doi.org/10.1107/S1600576723011019>`_
+
+
+You can also cite the previous RAW papers if you like:
+
 *BioXTAS RAW: improvements to a free open-source program for small-angle X-ray
 scattering data reduction and analysis.* J. B. Hopkins, R. E. Gillilan, and S. Skou.
 Journal of Applied Crystallography (2017). 50, 1545-1553.
 
 DOI: `10.1107/S1600576717011438 <https://doi.org/10.1107/S1600576717011438>`_
-
-
-You can also cite the previous RAW paper if you like:
 
 *BioXTAS RAW, a software program for high-throughput automated small-angle X-ray
 scattering data reduction and preliminary analysis.* S. S. Nielsen, K. Noergaard
