@@ -21235,6 +21235,7 @@ class ComparisonPlotPanel(wx.Panel):
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def plot_data(self, top_plot_data, bottom_plot_data, ref_num):
+        print('here')
         self.top_plot_data = top_plot_data
         self.bottom_plot_data = bottom_plot_data
 
@@ -22199,7 +22200,17 @@ class NormKratkyPlotPanel(wx.Panel):
         rg = float(analysis_dict['guinier']['Rg'])
         i0 = float(analysis_dict['guinier']['I0'])
         vc = float(analysis_dict['molecularWeight']['VolumeOfCorrelation']['Vcor'])
-        name = sasm.getParameter('filename')
+        filename = sasm.getParameter('filename')
+
+        cur_names = [data.label for data in self.line_dict.values()]
+
+        i = 1
+        temp_name = filename
+        while temp_name in cur_names:
+            temp_name = '{}_{}'.format(filename, i)
+            i += i
+
+        name = temp_name
 
         qmin, qmax = sasm.getQrange()
         q = sasm.q[qmin:qmax]
@@ -22222,7 +22233,7 @@ class NormKratkyPlotPanel(wx.Panel):
             xdata = q*np.sqrt(vc)
             ydata = (q)**2*vc*i/i0
 
-        data_line, = self.subplot.plot(xdata, ydata, animated=True, label=name)
+        data_line, = self.subplot.plot(xdata, ydata, animated=True, label=filename)
 
         self.line_dict[data_line] = self.DataTuple(sasm, rg, i0, vc, data_line, name)
 
@@ -22240,8 +22251,19 @@ class NormKratkyPlotPanel(wx.Panel):
         return data_line
 
     def updatePlotSASMs(self, sasm_list):
+        data_names = []
+
         for sasm in sasm_list:
-            name = sasm.getParameter('filename')
+            filename = sasm.getParameter('filename')
+
+            i = 1
+            temp_name = filename
+            while temp_name in data_names:
+                temp_name = '{}_{}'.format(filename, i)
+                i += i
+            name = temp_name
+
+            data_names.append(name)
 
             for data_line in self.line_dict:
                 line_name = self.line_dict[data_line].label
@@ -22605,7 +22627,6 @@ class NormKratkyControlPanel(wx.Panel):
 
         else:
             self.sasm_list = [copy.deepcopy(sasm) for sasm in self.orig_sasms]
-
 
         self.norm_kratky_frame.plotPanel.updatePlotSASMs(self.sasm_list)
 

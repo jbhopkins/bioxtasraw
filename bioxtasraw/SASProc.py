@@ -298,7 +298,6 @@ def superimpose(sasm_star, sasm_list, choice):
     The reference curve need not be sampled at the same q-space points.
 
     """
-
     q_star = sasm_star.q
     i_star = sasm_star.i
     # err_star = sasm_star.err
@@ -344,6 +343,10 @@ def superimpose(sasm_star, sasm_list, choice):
 
             each_sasm.scale(scale)
             each_sasm.offset(offset)
+
+        else:
+            each_sasm.scale(1.0)
+            each_sasm.offset(0.0)
 
 
 def merge(sasm_star, sasm_list, copy_params=True):
