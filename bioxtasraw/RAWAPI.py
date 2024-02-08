@@ -4649,13 +4649,13 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
     return crysol_results
 
 def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
-    sym_type='Cyclical', initial_model=None, n_electrons=None, settings=None,
-    voxel=5, oversampling=3, steps=10000,
-    recenter=True, recenter_step=list(range(1001,8002, 500)),
+    sym_type='Cyclical', initial_model=None, n_electrons=10000, settings=None,
+    voxel=5, oversampling=3, steps=None,
+    recenter=True, recenter_step=list(range(501,8002, 500)),
     recenter_mode='com', positivity=True, extrapolate=True, shrinkwrap=True,
-    sw_sigma_start=3.0, sw_sigma_end=1.5, sw_sigma_decay=0.99,
-    sw_sigma_thresh=0.2, sw_iter=20, sw_min_step=5000, connected=True,
-    connectivity_step=[7500], connected_features=1, chi_end_frac=0.001,
+    sw_sigma_start=None, sw_sigma_end=None, sw_sigma_decay=0.99,
+    sw_sigma_thresh=0.2, sw_iter=20, sw_min_step=None, connected=True,
+    connectivity_step=None, connected_features=1, chi_end_frac=0.001,
     cut_output=False, write_xplor=False, sym_step=[3000, 5000, 7000, 9000],
     seed=None, abort_event=None, gpu=False):
     """
@@ -4687,7 +4687,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     n_electrons: int, optional
         Number of electrons in the molecule. If provided, the output density
         will be scaled so that the sum of the density across the occupied volume
-        is equal to this value.
+        is equal to this value. If no value is provided 10000 is used.
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
         RAW settings containing relevant parameters. If provided, every model
         parameter except mode, symmetry, and sym_axis, and n_electrons is
@@ -4719,10 +4719,8 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
         support. Default is True. Not recommended to change.
     sw_sigma_start: float, optional
         The starting value to use for blurring during the shrinkwrap algorithm.
-        Default is 3.0.
     sw_sigma_end: float, optional
         The ending value to use for blurring during the shrinkwrap algorithm.
-        Default is 1.5.
     sw_sigma_decay: float, optional
         How quickly the sw_sigma value transitions from start to end.
     sw_sigma_thresh: float, optional
@@ -4770,7 +4768,8 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     rho: :class:`numpy.array`
         The calculated electron density of the model.
     chi_sq: float
-        The chi squared value of the model fit to the data.
+        The final reduced chi^2 value of the fit of the density scattering
+        profile to the data (not the regularized IFT intensity)
     rg: float
         The radius of gyration of the model.
     support_vol: float
@@ -4796,6 +4795,10 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     all_support_vol: :class:`numpy.array`
         The value of support volume at all iterations of the DENSS algorithm.
         Useful to check convergence.
+    fit: :class:`numpy.array`
+        A numpy array where the first column is q, the second is the data (not
+        the regularized IFT) intensity, the third column is the data uncertainty,
+        and the fourth column is the fit of the model density to the data.
     """
 
     datadir = os.path.abspath(os.path.expanduser(datadir))
@@ -4882,6 +4885,10 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     q = ift.q_extrap
     I = ift.i_extrap
 
+    q_raw = ift.q_orig
+    i_raw = ift.i_orig
+    err_raw = ift.err_orig
+
     ext_pts = len(I)-len(ift.i_orig)
 
     if ext_pts > 0:
@@ -4904,7 +4911,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
         denss_settings['recenter'] = temp_settings.get('denssRecenter')
         denss_settings['recenterStep'] = temp_settings.get('denssRecenterStep')
         denss_settings['positivity'] = temp_settings.get('denssPositivity')
-        denss_settings['extrapolate'] = temp_settings.get('denssExtrapolate')
+        # denss_settings['extrapolate'] = temp_settings.get('denssExtrapolate')
         denss_settings['shrinkwrap'] = temp_settings.get('denssShrinkwrap')
         denss_settings['swSigmaStart'] = temp_settings.get('denssShrinkwrapSigmaStart')
         denss_settings['swSigmaEnd'] = temp_settings.get('denssShrinkwrapSigmaEnd')
@@ -4929,22 +4936,21 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     shrinkwrap_sigma_end_in_A = (3.0 * D / 64.0) * 1.5
 
     if denss_settings['mode'] == 'Fast':
-        denss_settings['swMinStep'] = 1000
-        denss_settings['conSteps'] = '[2000]'
+        denss_settings['swMinStep'] = 0
+        denss_settings['conSteps'] = '[1000]'
         denss_settings['recenterStep'] = '%s' %(list(range(501,2502,500)))
         denss_settings['steps'] = None
         denss_settings['voxel'] = D*denss_settings['oversample']/32.
 
     elif denss_settings['mode'] == 'Slow':
-        denss_settings['swMinStep'] = 1000
-        denss_settings['conSteps'] = '[2000]'
+        denss_settings['swMinStep'] = 0
+        denss_settings['conSteps'] = '[1000]'
         denss_settings['recenterStep'] = '%s' %(list(range(501,8002,500)))
         denss_settings['steps'] = None
         denss_settings['voxel'] = D*denss_settings['oversample']/64.
 
     elif denss_settings['mode'] == 'Membrane':
         denss_settings['swMinStep'] = 0
-        denss_settings['swThresFrac'] = 0.1
         denss_settings['conSteps'] = '[300, 500, 1000]'
         denss_settings['recenterStep'] = '%s' %(list(range(501,8002,500)))
         denss_settings['steps'] = None
@@ -4954,23 +4960,33 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
         shrinkwrap_sigma_start_in_A *= 2.0
         shrinkwrap_sigma_end_in_A *= 2.0
 
-    if denss_settings['swSigmaStart'] == 'None':
+    elif denss_settings['mode'] == 'Custom':
+        if denss_settings['voxel'] == 'None':
+            denss_settings['voxel'] = dmax * denss_settings['oversample']/64
+
+        if denss_settings['swMinStep'] == 'None':
+            denss_settings['swMinStep'] = 0
+
+        if denss_settings['conSteps'] == 'None':
+            denss_settings['conSteps'] = '[{}]'.format(1000+denss_settings['swMinStep'])
+
+    if denss_settings['swSigmaStart'] == 'None' or denss_settings['swSigmaStart'] is None:
         shrinkwrap_sigma_start_in_vox = shrinkwrap_sigma_start_in_A / denss_settings['voxel']
         denss_settings['swSigmaStart'] = shrinkwrap_sigma_start_in_vox
 
-    if denss_settings['swSigmaEnd'] == 'None':
+    if denss_settings['swSigmaEnd'] == 'None' or denss_settings['swSigmaEnd'] is None:
         shrinkwrap_sigma_end_in_vox = shrinkwrap_sigma_end_in_A / denss_settings['voxel']
         denss_settings['swSigmaEnd'] = shrinkwrap_sigma_end_in_vox
 
-    denss_data = DENSS.runDenss(q, I, sigq, D, prefix, datadir, denss_settings,
-        initial_model, gui=False, abort_event=abort_event)
+    denss_data = DENSS.runDenss(q, I, sigq, D, q_raw, i_raw, err_raw, prefix,
+        datadir, denss_settings, initial_model, gui=False, abort_event=abort_event)
 
     if len(denss_data) == 0:
         raise Exception('DENSS failed to run properly')
 
     if not abort_event.is_set():
         (qdata, I_extrap, err_extrap, q_fit, I_fit, chi_sq, rg, support_vol, rho,
-            side) = denss_data
+            side, fit, final_chi2) = denss_data
 
         last_index = max(np.where(rg !=0)[0])
         all_rg = rg[:last_index+1]
@@ -4987,9 +5003,11 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
         I_fit = -1
         I_extrap = -1
         err_extrap = -1
+        final_chi2 = -1
 
-    return (rho, all_chi_sq[-1], all_rg[-1], all_support_vol[-1], side, q_fit,
-        I_fit, I_extrap, err_extrap, all_chi_sq, all_rg, all_support_vol)
+    return (rho, final_chi2, all_rg[-1], all_support_vol[-1], side, q_fit,
+        I_fit, I_extrap, err_extrap, all_chi_sq, all_rg, all_support_vol,
+        fit)
 
 def denss_average(densities, side, prefix, datadir, n_proc=1,
     abort_event=None):

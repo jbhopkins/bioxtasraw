@@ -260,7 +260,7 @@ def test_load_settings_old(old_settings):
     assert settings.get('denssShrinkwrapIter') == 20
     assert settings.get('denssShrinkwrapMinStep') == 'None'
     assert settings.get('denssConnected')
-    assert settings.get('denssConnectivitySteps') == '[500]'
+    assert settings.get('denssConnectivitySteps') == 'None'
     assert settings.get('denssChiEndFrac') == 0.001
     assert settings.get('denssAverage')
     assert settings.get('denssReconstruct') == 20

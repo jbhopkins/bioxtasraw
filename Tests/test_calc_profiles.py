@@ -758,6 +758,7 @@ def test_cormap_ref(bsa_series_profiles):
     assert len(failed_comparisons) == 0
 
 @pytest.mark.atsas
+@pytest.mark.slow
 def test_crysol_model(temp_directory):
     shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
             os.path.join(temp_directory, '1XIB_4mer.pdb'))
@@ -779,6 +780,7 @@ def test_crysol_model(temp_directory):
     assert abs_profile.getI().sum() == 1.2894319715
 
 @pytest.mark.atsas
+@pytest.mark.slow
 def test_crysol_model_settings(temp_directory, old_settings):
     shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
             os.path.join(temp_directory, '1XIB_4mer.pdb'))
@@ -801,6 +803,7 @@ def test_crysol_model_settings(temp_directory, old_settings):
     assert abs_profile.getI().sum() == 1.2894319715
 
 @pytest.mark.atsas
+@pytest.mark.slow
 def test_crysol_model_cif(temp_directory):
     shutil.copy2(os.path.join('./data', '2pol.cif'),
             os.path.join(temp_directory, '2pol.cif'))
@@ -822,6 +825,7 @@ def test_crysol_model_cif(temp_directory):
     assert abs_profile.getI().sum() == 0.6531660600000001
 
 @pytest.mark.atsas
+@pytest.mark.slow
 def test_crysol_fit(temp_directory):
     shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
             os.path.join(temp_directory, '1XIB_4mer.pdb'))
@@ -844,6 +848,7 @@ def test_crysol_fit(temp_directory):
     assert np.allclose(fit_profile.getI().sum(), 3.72612387712)
 
 @pytest.mark.atsas
+@pytest.mark.slow
 def test_crysol_fit_settings(temp_directory, old_settings):
     shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
             os.path.join(temp_directory, '1XIB_4mer.pdb'))

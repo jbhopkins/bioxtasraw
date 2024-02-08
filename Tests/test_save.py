@@ -14,6 +14,7 @@ def new_settings():
     settings = raw.load_settings(os.path.join('.', 'data', 'settings_new.cfg'))
     return settings
 
+@pytest.mark.new
 def test_save_settings(new_settings, temp_directory):
     raw.save_settings(new_settings, 'test_settings.cfg', temp_directory)
 

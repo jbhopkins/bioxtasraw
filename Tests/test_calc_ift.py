@@ -214,7 +214,7 @@ def test_cifsup(temp_directory):
 @pytest.mark.slow
 def test_denss(gi_gnom_ift, temp_directory):
     (rho, chi_sq, rg, support_vol, side, q_fit, I_fit, I_extrap,
-        err_extrap, all_chi_sq, all_rg, all_support_vol) = raw.denss(gi_gnom_ift,
+        err_extrap, all_chi_sq, all_rg, all_support_vol, fit) = raw.denss(gi_gnom_ift,
         'denss', temp_directory, 'Fast', seed=1)
 
     assert os.path.exists(os.path.join(temp_directory, 'denss.mrc'))
@@ -222,9 +222,9 @@ def test_denss(gi_gnom_ift, temp_directory):
     assert os.path.exists(os.path.join(temp_directory, 'denss_support.mrc'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_map.fit'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_stats_by_step.dat'))
-    assert np.allclose(chi_sq, 0.014104156149462454)
-    assert np.allclose(rg, 34.286959887223595)
-    assert np.allclose(support_vol, 382023.83880615234)
+    assert np.allclose(chi_sq, 0.8973733889747175)
+    assert np.allclose(rg, 34.28961149550543)
+    assert np.allclose(support_vol, 381174.8969421387)
     assert np.allclose(I_fit.sum(), 0.1419790665740152)
 
 @pytest.mark.very_slow
@@ -274,7 +274,7 @@ def test_denss_align(temp_directory):
     aligned_density, score = raw.denss_align(rhos[0], sides[0], '1XIB_4mer.pdb',
         './data/dammif_data/', save_datadir=temp_directory, n_proc=2)
 
-    assert np.isclose(score, 0.8550877371331738)
+    assert np.isclose(score, 0.8464630033326552)
     assert np.isclose(aligned_density.sum(), 11.779369354248047)
 
 @pytest.mark.very_slow
@@ -284,5 +284,5 @@ def test_denss_align_single_proc(temp_directory):
     aligned_density, score = raw.denss_align(rhos[0], sides[0], '1XIB_4mer.pdb',
         './data/dammif_data/', save_datadir=temp_directory, n_proc=1)
 
-    assert np.isclose(score, 0.8550877371331738)
+    assert np.isclose(score, 0.8464630033326552)
     assert np.isclose(aligned_density.sum(), 11.779369354248047)

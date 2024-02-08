@@ -8861,23 +8861,21 @@ class DenssRunPanel(wx.Panel):
         shrinkwrap_sigma_end_in_A = (3.0 * dmax / 64.0) * 1.5
 
         if self.denss_settings['mode'] == 'Fast':
-            self.denss_settings['swMinStep'] = 1000
-            self.denss_settings['conSteps'] = '[2000]'
+            self.denss_settings['swMinStep'] = 0
+            self.denss_settings['conSteps'] = '[1000]'
             self.denss_settings['recenterStep'] = '%s' %(list(range(501,2502,500)))
             self.denss_settings['steps'] = None
-
             self.denss_settings['voxel'] = dmax*self.denss_settings['oversample']/32.
 
         elif self.denss_settings['mode'] == 'Slow':
-            self.denss_settings['swMinStep'] = 1000
-            self.denss_settings['conSteps'] = '[2000]'
+            self.denss_settings['swMinStep'] = 0
+            self.denss_settings['conSteps'] = '[1000]'
             self.denss_settings['recenterStep'] = '%s' %(list(range(501,8002,500)))
             self.denss_settings['steps'] = None
             self.denss_settings['voxel'] = dmax*self.denss_settings['oversample']/64.
 
         elif self.denss_settings['mode'] == 'Membrane':
             self.denss_settings['swMinStep'] = 0
-            self.denss_settings['swThresFrac'] = 0.1
             self.denss_settings['conSteps'] = '[300, 500, 1000]'
             self.denss_settings['recenterStep'] = '%s' %(list(range(501,8002,500)))
             self.denss_settings['steps'] = None
@@ -8892,7 +8890,10 @@ class DenssRunPanel(wx.Panel):
                 self.denss_settings['voxel'] = dmax * self.denss_settings['oversample']/64
 
             if self.denss_settings['swMinStep'] == 'None':
-                self.denss_settings['swMinStep'] = 1000
+                self.denss_settings['swMinStep'] = 0
+
+            if self.denss_settings['conSteps'] == 'None':
+                self.denss_settings['conSteps'] = '[{}]'.format(1000+self.denss_settings['swMinStep'])
 
         if self.denss_settings['swSigmaStart'] == 'None':
             shrinkwrap_sigma_start_in_vox = shrinkwrap_sigma_start_in_A / float(self.denss_settings['voxel'])
@@ -8935,6 +8936,10 @@ class DenssRunPanel(wx.Panel):
 
         q = self.iftm.q_extrap
         I = self.iftm.i_extrap
+
+        q_raw = self.iftm.q_orig
+        i_raw = self.iftm.i_orig
+        err_raw = self.iftm.err_orig
 
         ext_pts = len(I)-len(self.iftm.i_orig)
 
@@ -8982,7 +8987,8 @@ class DenssRunPanel(wx.Panel):
                 for key in self.denss_ids:
                     if key != 'average' and key != 'refine' and key!= 'align':
                         result = my_pool.apply_async(DENSS.runDenss, args=(q, I,
-                            sigq, D, prefix, path, self.denss_settings),
+                            sigq, D, q_raw, i_raw, err_raw, prefix, path,
+                            self.denss_settings),
                             kwds={'comm_list':comm_list, 'my_lock':self.my_lock,
                             'thread_num_q':self.thread_nums,
                             'wx_queue':self.wx_queue,
@@ -9004,18 +9010,19 @@ class DenssRunPanel(wx.Panel):
             self.abort_event.clear()
 
             run_t = threading.Thread(target=self.manage_denss, args=(q, I, sigq,
-                D, prefix, path, comm_list))
+                D, q_raw, i_raw, err_raw, prefix, path, comm_list))
             run_t.daemon = True
             run_t.start()
 
         self.denss_timer.Start(1000)
         self.msg_timer.Start(100)
 
-    def manage_denss(self, q, I, sigq, D, prefix, path, comm_list):
+    def manage_denss(self, q, I, sigq, D, q_raw, i_raw, err_raw, prefix, path,
+        comm_list):
         for key in self.denss_ids:
             if key != 'average' and key != 'refine' and key != 'align':
-                data = DENSS.runDenss(q, I, sigq, D, prefix, path,
-                    self.denss_settings, **{'comm_list':comm_list,
+                data = DENSS.runDenss(q, I, sigq, D, q_raw, i_raw, err_raw,
+                    prefix, path, self.denss_settings, **{'comm_list':comm_list,
                     'my_lock':self.my_lock, 'thread_num_q':self.thread_nums,
                     'wx_queue':self.wx_queue, 'abort_event':self.abort_event,
                     'log_id': self.denss_ids[key],})
@@ -9102,10 +9109,9 @@ class DenssRunPanel(wx.Panel):
                 filtered[i] = 'Filtered'
             else:
                 filtered[i] = ' '
-            # ioutput = prefix+"_"+str(i+1)+"_aligned"
-            # DENSS.write_mrc(aligned[i], sides[0], os.path.join(path, ioutput+".mrc"))
-            ioutput = prefix+"_"+str(i+1)
-            # wx.CallAfter(averWindow.AppendText, "%s, Score = %0.3f %s\n" % (ioutput,scores[i],filtered[i]))
+            ioutput = prefix+"_"+str(i)+"_aligned"
+            # saxs.write_mrc(aligned[i], sides[0], ioutput+".mrc")
+            # print("%s.mrc written. Score = %0.3f %s " % (ioutput,scores[i],filtered[i]))
             wx.CallAfter(averWindow.AppendText,'Correlation score to reference: %s.mrc %.3f %s\n' %(ioutput, scores[i], filtered[i]))
 
         idx_keep = np.where(scores>threshold)
@@ -9229,6 +9235,10 @@ class DenssRunPanel(wx.Panel):
         q = self.iftm.q_extrap
         I = self.iftm.i_extrap
 
+        q_raw = self.iftm.q_orig
+        i_raw = self.iftm.i_orig
+        err_raw = self.iftm.err_orig
+
         ext_pts = len(I)-len(self.iftm.i_orig)
 
         if ext_pts > 0:
@@ -9246,7 +9256,8 @@ class DenssRunPanel(wx.Panel):
             my_pool = multiprocessing.Pool(procs)
 
             result = my_pool.apply_async(DENSS.runDenss, args=(q, I, sigq,
-                D, prefix, path, self.denss_settings, avg_model),
+                D, q_raw, i_raw, err_raw, prefix, path, self.denss_settings,
+                avg_model),
                 kwds={'comm_list':comm_list, 'my_lock':self.my_lock,
                     'thread_num_q':self.thread_nums, 'wx_queue':self.wx_queue,
                     'abort_event':self.abort_event, 'log_id': myId,})
@@ -9256,7 +9267,8 @@ class DenssRunPanel(wx.Panel):
             self.refine_results = result.get()
 
         else:
-            self.refine_results = DENSS.runDenss(q, I, sigq, D, prefix, path,
+            self.refine_results = DENSS.runDenss(q, I, sigq, D, q_raw,
+                i_raw, err_raw, prefix, path,
                 self.denss_settings, avg_model, **{'comm_list':comm_list,
                 'my_lock':self.my_lock, 'thread_num_q':self.thread_nums,
                 'wx_queue':self.wx_queue, 'abort_event':self.abort_event,
@@ -9287,8 +9299,8 @@ class DenssRunPanel(wx.Panel):
         items_to_align = collections.OrderedDict()
 
         if 'refine' in self.denss_ids:
-            rho = self.refine_results[-2]
-            side = self.refine_results[-1]
+            rho = self.refine_results[8]
+            side = self.refine_results[9]
 
             rhos = np.array([rho])
             sides = np.array([side])
@@ -9311,8 +9323,8 @@ class DenssRunPanel(wx.Panel):
 
             for i, key in enumerate(self.denss_ids):
                 if key != 'average' and key != 'refine' and key != 'align':
-                    rho = denss_outputs[i][-2]
-                    side = denss_outputs[i][-1]
+                    rho = denss_outputs[i][8]
+                    side = denss_outputs[i][9]
                     rhos = np.array([rho])
                     sides = np.array([side])
 
@@ -9422,43 +9434,42 @@ class DenssRunPanel(wx.Panel):
             sigqdata = denss_outputs[0][2]
             qbinsc = denss_outputs[0][3]
             all_Imean = [denss_outputs[i][4] for i in np.arange(nruns)]
+            all_fits = [denss_outputs[i][-2] for i in np.arange(nruns)]
             header = ['q','I','error']
-            fit = np.zeros(( len(qbinsc),nruns+3 ))
-            fit[:len(qdata),0] = qdata
-            fit[:len(Idata),1] = Idata
-            fit[:len(sigqdata),2] = sigqdata
+            fit = np.zeros(( all_fits[0].shape[0],nruns+3 ))
+            fit[:,0] = all_fits[0][:,0]
+            fit[:,1] = all_fits[0][:,1]
+            fit[:,2] = all_fits[0][:,2]
 
             for edmap in range(nruns):
-                fit[:len(all_Imean[0]),edmap+3] = all_Imean[edmap]
+                fit[:,edmap+3] = all_fits[edmap][:,3]
                 header.append("I_fit_"+str(edmap))
 
-            np.savetxt(os.path.join(path, prefix+'_map.fit'), fit, delimiter=" ",
-                fmt="%.5e".encode('ascii'), header=" ".join(header))
+            np.savetxt(os.path.join(path, prefix+'_map.fit'),fit, delimiter=" ",
+                fmt="%.5e", header=" ".join(header))
             chi_header, rg_header, supportV_header = list(zip(*[('chi_'+str(i),
                 'rg_'+str(i),'supportV_'+str(i)) for i in range(nruns)]))
             all_chis = np.array([denss_outputs[i][5] for i in np.arange(nruns)])
             all_rg = np.array([denss_outputs[i][6] for i in np.arange(nruns)])
             all_supportV = np.array([denss_outputs[i][7] for i in np.arange(nruns)])
+            final_chis = np.zeros(nruns)
+            final_rgs = np.zeros(nruns)
+            final_supportVs = np.zeros(nruns)
 
-            np.savetxt(os.path.join(path, prefix+'_chis_by_step.fit'), all_chis.T,
-                delimiter=" ", fmt="%.5e".encode('ascii'), header=",".join(chi_header))
-            np.savetxt(os.path.join(path, prefix+'_rg_by_step.fit'), all_rg.T,
-                delimiter=" ", fmt="%.5e".encode('ascii'), header=",".join(rg_header))
+            for i in range(nruns):
+                final_rgs[i] = all_rg[i,all_rg[i]>0][-1]
+                final_chis[i] = all_chis[i,all_chis[i]>0][-1]
+                final_supportVs[i] = all_supportV[i,all_supportV[i]>0][-1]
+
+            np.savetxt(os.path.join(path, prefix+'_chis_by_step.fit'),all_chis.T,
+                delimiter=" ", fmt="%.5e",header=",".join(chi_header))
+            np.savetxt(os.path.join(path, prefix+'_rg_by_step.fit'),all_rg.T,
+                delimiter=" ", fmt="%.5e",header=",".join(rg_header))
             np.savetxt(os.path.join(path, prefix+'_supportV_by_step.fit'),
-                all_supportV.T, delimiter=" ", fmt="%.5e".encode('ascii'),
+                all_supportV.T, delimiter=" ",fmt="%.5e",
                 header=",".join(supportV_header))
 
-            chis = []
-            rgs = []
-            svs = []
-            for i in range(nruns):
-                last_index = max(np.where(denss_outputs[i][5] !=0)[0])
-                chis.append(denss_outputs[i][5][last_index])
-                rgs.append(denss_outputs[i][6][last_index+1])
-                svs.append(denss_outputs[i][7][last_index+1])
-                #Weird DENSS thing where last index of chi is 1 less than of Rg
-
-            self.denss_stats = {'rg': rgs, 'chi': chis, 'sv': svs}
+            self.denss_stats = {'rg': final_rgs, 'chi': final_chis, 'sv': final_supportVs}
 
             if 'average' in self.denss_ids:
                 t = threading.Thread(target=self.runAverage,
@@ -10188,109 +10199,6 @@ class DenssResultsPanel(wx.Panel):
 
         self.Layout()
 
-
-class DenssViewerPanel(wx.Panel):
-
-    def __init__(self, parent):
-
-        wx.Panel.__init__(self, parent, wx.ID_ANY, name = 'DenssViewerPanel')
-
-        self.parent = parent
-
-        self.ids = {'models'    : self.NewControlId(),
-                    }
-
-        self.model_dict = None
-
-        top_sizer = self._createLayout(self)
-
-        self.SetSizer(top_sizer)
-
-    def _FromDIP(self, size):
-        # This is a hack to provide easy back compatibility with wxpython < 4.1
-        try:
-            return self.FromDIP(size)
-        except Exception:
-            return size
-
-    def _createLayout(self, parent):
-        ctrls_box = wx.StaticBox(parent, wx.ID_ANY, 'Viewer Controls')
-
-        model_text = wx.StaticText(ctrls_box, wx.ID_ANY, 'Model to display:')
-        model_choice = wx.Choice(ctrls_box, self.ids['models'])
-        model_choice.Bind(wx.EVT_CHOICE, self.onChangeModels)
-
-        model_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        model_sizer.Add(model_text, 0)
-        model_sizer.Add(model_choice, 0, wx.LEFT, border=self._FromDIP(3))
-
-
-        ctrls_sizer = wx.StaticBoxSizer(ctrls_box, wx.VERTICAL)
-        ctrls_sizer.Add(model_sizer, 0)
-
-
-        self.fig = Figure(dpi=75, tight_layout=True)
-        self.fig.set_facecolor('white')
-
-        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-        self.canvas.SetBackgroundColour('white')
-
-        self.subplot = self.fig.add_subplot(1,1,1, projection='3d')
-        self.subplot.grid(False)
-        self.subplot.set_axis_off()
-
-        # self.toolbar = NavigationToolbar2WxAgg(self.canvas)
-        # self.toolbar.Realize()
-
-        layout_sizer = wx.BoxSizer(wx.VERTICAL)
-        layout_sizer.Add(ctrls_sizer, 0, wx.BOTTOM | wx.EXPAND, self._FromDIP(5))
-        layout_sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.EXPAND)
-        # sizer.Add(self.toolbar, 0, wx.GROW)
-
-        self.canvas.draw()
-
-        return layout_sizer
-
-    def _plotModel(self, atoms, radius):
-        self.subplot.clear()
-        self.subplot.grid(False)
-        self.subplot.set_axis_off()
-
-        scale = (float(radius)/1.25)**2
-
-        self.subplot.scatter(atoms[:,0], atoms[:,1], atoms[:,2], s=250*scale, alpha=.95)
-
-        self.canvas.draw()
-
-    def onChangeModels(self, evt):
-        model = evt.GetString()
-
-        self._plotModel(self.model_dict[model][1], self.model_dict[model][0]['atom_radius'])
-
-
-    def updateResults(self, model_list):
-        self.model_dict = collections.OrderedDict()
-
-        for item in model_list:
-            self.model_dict[str(item[0])] = [item[1], item[2]]
-
-        model_choice = wx.FindWindowById(self.ids['models'], self)
-        model_choice.Set(list(self.model_dict.keys()))
-
-        if 'refine' in self.model_dict:
-            self._plotModel(self.model_dict['refine'][1], self.model_dict['refine'][0]['atom_radius'])
-            model_choice.SetStringSelection('refine')
-        elif 'damfilt' in self.model_dict:
-            self._plotModel(self.model_dict['damfilt'][1], self.model_dict['damfilt'][0]['atom_radius'])
-            model_choice.SetStringSelection('damfilt')
-        elif 'damaver' in self.model_dict:
-            self._plotModel(self.model_dict['damaver'][1], self.model_dict['damaver'][0]['atom_radius'])
-            model_choice.SetStringSelection('damaver')
-        else:
-            self._plotModel(self.model_dict['1'][1], self.model_dict['1'][0]['atom_radius'])
-            model_choice.SetStringSelection('1')
-
-
 class DenssPlotPanel(wx.Panel):
 
     def __init__(self, parent, denss_results, iftm):
@@ -10341,67 +10249,64 @@ class DenssPlotPanel(wx.Panel):
 
         self.figures.append(fig)
 
-        if self.iftm.getParameter('algorithm') == 'GNOM':
-            q = self.iftm.q_extrap
-            I = self.iftm.i_extrap
+        fit = self.denss_results[-2]
+        final_chi2 = self.denss_results[-1]
 
-            ext_pts = len(I)-len(self.iftm.i_orig)
-            sigq = np.empty_like(I)
-            sigq[:ext_pts] = I[:ext_pts]*np.mean((self.iftm.err_orig[:10]/self.iftm.i_orig[:10]))
-            sigq[ext_pts:] = I[ext_pts:]*(self.iftm.err_orig/self.iftm.i_orig)
-        else:
-            q = self.iftm.q_orig
-            I = self.iftm.i_fit
-            sigq = I*(self.iftm.err_orig/self.iftm.i_orig)
-        #handle sigq values whose error bounds would go negative and be missing on the log scale
-        sigq2 = np.copy(sigq)
-        sigq2[sigq>I] = I[sigq>I]*.999
-
-        qdata = self.denss_results[0]
-        Idata = self.denss_results[1]
-        qbinsc = self.denss_results[3]
-        Imean = self.denss_results[4]
+        #handle values whose error bounds would go negative and be missing on the log scale
+        yerr = np.copy(fit[:,2])
+        # yerr[yerr>fit[:,1]] = fit[:,1][yerr>fit[:,1]]*.999
+        yerr = np.abs(yerr)
 
         gs = matplotlib.gridspec.GridSpec(2, 1, height_ratios=[3,1])
-
         ax0 = fig.add_subplot(gs[0])
-        self.ax0_err = ax0.errorbar(self.iftm.q_orig, self.iftm.i_orig, color=color, marker='.',
-            yerr=self.iftm.err_orig, mec='none', mew=0, ms=3, alpha=0.3,
-            capsize=0, elinewidth=0.1, ecolor=cc.to_rgba(color_num,alpha=0.5),
-            label='Exp. Data')
-        self.ax0_smooth = ax0.plot(q, I, color=color, linestyle='--',alpha=0.7, lw=1,
-            label='Smoothed Exp. Data')[0]
-        ax0.plot(qdata[qdata<=q[-1]], Idata[qdata<=q[-1]], 'bo',alpha=0.5,
-            label='Interpolated')
-        ax0.plot(qbinsc[qdata<=q[-1]], Imean[qdata<=q[-1]],'r.',label='DENSS Map')
-        handles,labels = ax0.get_legend_handles_labels()
-        handles = [handles[3], handles[0], handles[1],handles[2]]
-        labels = [labels[3], labels[0], labels[1], labels[2]]
-        xmax = np.min([self.iftm.q_orig.max(),q.max(),qdata.max()])*1.1
-        ymin = np.min([np.min(I[q<=xmax]),np.min(Idata[qdata<=xmax]),np.min(Imean[qdata<=xmax])])
-        ymax = np.max([np.max(I[q<=xmax]),np.max(Idata[qdata<=xmax]),np.max(Imean[qdata<=xmax])])
-        ax0.set_xlim([-xmax*.05,xmax])
-        ax0.set_ylim([0.5*ymin,1.5*ymax])
-        ax0.legend(handles,labels, fontsize='small')
-        ax0.semilogy()
-        ax0.set_ylabel('I(q)', fontsize='small')
-        ax0.tick_params(labelbottom=False, labelsize='x-small')
 
-        residuals = np.log10(Imean[np.in1d(qbinsc,qdata)])-np.log10(Idata)
+        ax0.errorbar(fit[:,0], fit[:,1], fmt='k.', yerr=yerr, mec='none',
+            mew=0, ms=5, alpha=0.3, capsize=0, elinewidth=0.1,
+            ecolor=cc.to_rgba('0',alpha=0.5),label='Supplied Data',zorder=-1)
+        ax0.plot(fit[:,0],fit[:,3],'r-',label=r'DENSS Map $\chi^2 = %.2f$'%final_chi2)
+
+        handles,labels = ax0.get_legend_handles_labels()
+        handles = [handles[1], handles[0] ]
+        labels = [labels[1], labels[0] ]
+        ax0.legend(handles,labels)
+        ax0.semilogy()
+        ax0.set_ylabel('I(q)')
+
+        # xmax = np.min([self.iftm.q_orig.max(),q.max(),qdata.max()])*1.1
+        # ymin = np.min([np.min(I[q<=xmax]),np.min(Idata[qdata<=xmax]),np.min(Imean[qdata<=xmax])])
+        # ymax = np.max([np.max(I[q<=xmax]),np.max(Idata[qdata<=xmax]),np.max(Imean[qdata<=xmax])])
+        # ax0.set_xlim([-xmax*.05,xmax])
+        # ax0.set_ylim([0.5*ymin,1.5*ymax])
+        # ax0.legend(handles,labels, fontsize='small')
+        # ax0.semilogy()
+        # ax0.set_ylabel('I(q)', fontsize='small')
+        # ax0.tick_params(labelbottom=False, labelsize='x-small')
+
         ax1 = fig.add_subplot(gs[1])
-        self.ax1_hline = ax1.axhline(0, color=color, linewidth=1.0)
-        ax1.plot(qdata[qdata<=q[-1]], residuals[qdata<=q[-1]], 'ro-')
+        ax1.plot(fit[:,0], fit[:,0]*0, 'k--')
+        residuals = (fit[:,1]-fit[:,3])/fit[:,2]
+        ax1.plot(fit[:,0], residuals, 'r.')
         ylim = ax1.get_ylim()
         ymax = np.max(np.abs(ylim))
-        n = int(.9*len(residuals[qdata<=q[-1]]))
-        ymax = np.max(np.abs(residuals[qdata<=q[-1]][:-n]))
+        ymax = np.max(np.abs(residuals))
         ax1.set_ylim([-ymax,ymax])
         ax1.yaxis.major.locator.set_params(nbins=5)
         xlim = ax0.get_xlim()
         ax1.set_xlim(xlim)
-        ax1.set_ylabel('Residuals', fontsize='small')
-        ax1.set_xlabel(r'q ($\mathrm{\AA^{-1}}$)', fontsize='small')
-        ax1.tick_params(labelsize='x-small')
+        ax1.set_ylabel(r'$\Delta{I}/\sigma$')
+        ax1.set_xlabel(r'q ($\mathrm{\AA^{-1}}$)')
+
+        # ylim = ax1.get_ylim()
+        # ymax = np.max(np.abs(ylim))
+        # n = int(.9*len(residuals[qdata<=q[-1]]))
+        # ymax = np.max(np.abs(residuals[qdata<=q[-1]][:-n]))
+        # ax1.set_ylim([-ymax,ymax])
+        # ax1.yaxis.major.locator.set_params(nbins=5)
+        # xlim = ax0.get_xlim()
+        # ax1.set_xlim(xlim)
+        # ax1.set_ylabel('Residuals', fontsize='small')
+        # ax1.set_xlabel(r'q ($\mathrm{\AA^{-1}}$)', fontsize='small')
+        # ax1.tick_params(labelsize='x-small')
 
 
         # canvas.SetBackgroundColour('white')
@@ -10421,12 +10326,12 @@ class DenssPlotPanel(wx.Panel):
 
         self.figures.append(fig)
 
-        chi = self.denss_results[5]
+        chis = self.denss_results[5]
         rg = self.denss_results[6]
-        vol = self.denss_results[7]
+        supportV = self.denss_results[7]
 
         ax0 = fig.add_subplot(311)
-        ax0.plot(chi[chi>0])
+        ax0.plot(chis[chis>0])
         ax0.set_ylabel('$\chi^2$', fontsize='small')
         ax0.semilogy()
         ax0.tick_params(labelbottom=False, labelsize='x-small')
@@ -10437,11 +10342,42 @@ class DenssPlotPanel(wx.Panel):
         ax1.tick_params(labelbottom=False, labelsize='x-small')
 
         ax2 = fig.add_subplot(313)
-        ax2.plot(vol[vol>0])
+        ax2.plot(supportV[supportV>0])
         ax2.set_xlabel('Step', fontsize='small')
         ax2.set_ylabel('Support Volume ($\mathrm{\AA^{3}}$)', fontsize='small')
         ax2.semilogy()
         ax2.tick_params(labelsize='x-small')
+
+        # host = fig.add_subplot(111)
+
+        # par1 = host.twinx()
+        # par2 = host.twinx()
+
+        # host.set_xlabel('Step')
+        # host.set_ylabel('$\chi^2$')
+        # par1.set_ylabel('Rg')
+        # par2.set_ylabel('Support Volume')
+
+        # color1 = matplotlib.cm.viridis(0)
+        # color2 = matplotlib.cm.viridis(0.5)
+        # color3 = matplotlib.cm.viridis(.9)
+
+        # p1, = host.plot(chis[chis>0], color=color1,label="$\chi^2$")
+        # p2, = par1.plot(rg[rg!=0], color=color2, label="Rg")
+        # p3, = par2.plot(supportV[supportV>0], color=color3, label="Support Volume")
+
+        # host.semilogy()
+        # par2.semilogy()
+
+        # lns = [p1, p2, p3]
+        # host.legend(handles=lns, loc='best')
+
+        # # right, left, top, bottom
+        # par2.spines['right'].set_position(('outward', 60))
+
+        # host.yaxis.label.set_color(p1.get_color())
+        # par1.yaxis.label.set_color(p2.get_color())
+        # par2.yaxis.label.set_color(p3.get_color())
 
         # canvas.SetBackgroundColour('white')
         # fig.subplots_adjust(left = 0.2, bottom = 0.15, right = 0.95, top = 0.95)
@@ -21235,7 +21171,6 @@ class ComparisonPlotPanel(wx.Panel):
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def plot_data(self, top_plot_data, bottom_plot_data, ref_num):
-        print('here')
         self.top_plot_data = top_plot_data
         self.bottom_plot_data = bottom_plot_data
 
