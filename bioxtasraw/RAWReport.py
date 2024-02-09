@@ -49,9 +49,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from svglib.svglib import svg2rlg
 
-import bioxtasraw.RAWAPI as raw
 import bioxtasraw.SASCalc as SASCalc
-import bioxtasraw.SASUtils as SASUtils
+# import bioxtasraw.SASUtils as SASUtils
 
 # mpl.rc('font', size = 8.0, family='Arial')
 # mpl.rc('legend', frameon=False, fontsize='medium')
@@ -1094,137 +1093,139 @@ class overview_plot(object):
             'ytick.labelsize' : 'medium', 'ytick.right' : True, 'ytick.direction' : 'in',
             'lines.linewidth' : 1, 'mathtext.default': 'regular'}):
 
-            self.profiles = profiles
-            self.ifts = ifts
-            self.series = series
+            with mpl.style.context('default'):
 
-            self.int_type = int_type
-            self.series_data = series_data
+                self.profiles = profiles
+                self.ifts = ifts
+                self.series = series
 
-            if len(profiles) > 0:
-                has_profiles = True
+                self.int_type = int_type
+                self.series_data = series_data
 
-                has_rg = any([prof.guinier_data.Rg > 0 and prof.guinier_data.I0 > 0 for prof in profiles])
-            else:
-                has_profiles = False
-                has_rg = False
+                if len(profiles) > 0:
+                    has_profiles = True
 
-            if len(ifts) > 0:
-                has_ifts = True
-            else:
-                has_ifts = False
+                    has_rg = any([prof.guinier_data.Rg > 0 and prof.guinier_data.I0 > 0 for prof in profiles])
+                else:
+                    has_profiles = False
+                    has_rg = False
 
-            if len(series) > 0:
-                has_series = True
-            else:
-                has_series = False
+                if len(ifts) > 0:
+                    has_ifts = True
+                else:
+                    has_ifts = False
 
-            self.figure = plt.figure(figsize=(img_width, img_height))
+                if len(series) > 0:
+                    has_series = True
+                else:
+                    has_series = False
 
-            if has_profiles and has_rg and has_ifts and has_series:
-                self.gs = self.figure.add_gridspec(3, 2)
+                self.figure = plt.figure(figsize=(img_width, img_height))
 
-                self._make_series_plot('a')
-                self._make_profile_plot('b')
-                self._make_guinier_plot('c')
-                self._make_kratky_plot('d')
-                self._make_ift_plot('e')
+                if has_profiles and has_rg and has_ifts and has_series:
+                    self.gs = self.figure.add_gridspec(3, 2)
 
-                self.figure.subplots_adjust(left=0.1, right=0.90, wspace=0.3,
-                    bottom=0.07, top=0.98, hspace=0.3)
+                    self._make_series_plot('a')
+                    self._make_profile_plot('b')
+                    self._make_guinier_plot('c')
+                    self._make_kratky_plot('d')
+                    self._make_ift_plot('e')
 
-            elif has_profiles and has_rg and has_ifts and not has_series:
-                self.gs = self.figure.add_gridspec(2, 2)
+                    self.figure.subplots_adjust(left=0.1, right=0.90, wspace=0.3,
+                        bottom=0.07, top=0.98, hspace=0.3)
 
-                self._make_profile_plot('a', row=0)
-                self._make_guinier_plot('b', row=0)
-                self._make_kratky_plot('c', row=1)
-                self._make_ift_plot('d', row=1)
+                elif has_profiles and has_rg and has_ifts and not has_series:
+                    self.gs = self.figure.add_gridspec(2, 2)
 
-                self.figure.subplots_adjust(left=0.1, right=0.97, wspace=0.3,
-                    bottom=0.09, top=0.96, hspace=0.3)
+                    self._make_profile_plot('a', row=0)
+                    self._make_guinier_plot('b', row=0)
+                    self._make_kratky_plot('c', row=1)
+                    self._make_ift_plot('d', row=1)
 
-            elif has_profiles and has_rg and not has_ifts and has_series:
-                self.gs = self.figure.add_gridspec(3, 2)
+                    self.figure.subplots_adjust(left=0.1, right=0.97, wspace=0.3,
+                        bottom=0.09, top=0.96, hspace=0.3)
 
-                self._make_series_plot('a')
-                self._make_profile_plot('b', row=1, span=True)
-                self._make_guinier_plot('c', row=2, column=0)
-                self._make_kratky_plot('d', row=2, column=1)
+                elif has_profiles and has_rg and not has_ifts and has_series:
+                    self.gs = self.figure.add_gridspec(3, 2)
 
-                self.figure.subplots_adjust(left=0.1, right=0.90, wspace=0.3,
-                    bottom=0.07, top=0.98, hspace=0.3)
+                    self._make_series_plot('a')
+                    self._make_profile_plot('b', row=1, span=True)
+                    self._make_guinier_plot('c', row=2, column=0)
+                    self._make_kratky_plot('d', row=2, column=1)
 
-            elif has_profiles and has_rg and not has_ifts and not has_series:
-                self.gs = self.figure.add_gridspec(2, 2)
+                    self.figure.subplots_adjust(left=0.1, right=0.90, wspace=0.3,
+                        bottom=0.07, top=0.98, hspace=0.3)
 
-                self._make_profile_plot('a', row=0, span=True)
-                self._make_guinier_plot('b', row=1, column=0)
-                self._make_kratky_plot('c', row=1, column=1)
+                elif has_profiles and has_rg and not has_ifts and not has_series:
+                    self.gs = self.figure.add_gridspec(2, 2)
 
-                self.figure.subplots_adjust(left=0.1, right=0.97, wspace=0.3,
-                    bottom=0.10, top=0.97, hspace=0.3)
+                    self._make_profile_plot('a', row=0, span=True)
+                    self._make_guinier_plot('b', row=1, column=0)
+                    self._make_kratky_plot('c', row=1, column=1)
 
-            elif has_profiles and not has_rg and has_ifts and has_series:
-                self.gs = self.figure.add_gridspec(2, 2)
+                    self.figure.subplots_adjust(left=0.1, right=0.97, wspace=0.3,
+                        bottom=0.10, top=0.97, hspace=0.3)
 
-                self._make_series_plot('a')
-                self._make_profile_plot('b')
-                self._make_ift_plot('e', row=1, column=1)
+                elif has_profiles and not has_rg and has_ifts and has_series:
+                    self.gs = self.figure.add_gridspec(2, 2)
 
-                self.figure.subplots_adjust(left=0.1, right=0.90, wspace=0.3,
-                    bottom=0.09, top=0.98, hspace=0.3)
+                    self._make_series_plot('a')
+                    self._make_profile_plot('b')
+                    self._make_ift_plot('e', row=1, column=1)
 
-            elif has_profiles and not has_rg and has_ifts and not has_series:
-                self.gs = self.figure.add_gridspec(1, 2)
+                    self.figure.subplots_adjust(left=0.1, right=0.90, wspace=0.3,
+                        bottom=0.09, top=0.98, hspace=0.3)
 
-                self._make_profile_plot('a', row=0)
-                self._make_ift_plot('b', row=0, column=1)
+                elif has_profiles and not has_rg and has_ifts and not has_series:
+                    self.gs = self.figure.add_gridspec(1, 2)
 
-                self.figure.subplots_adjust(left=0.1, right=0.97, wspace=0.3,
-                    bottom=0.18, top=0.96, hspace=0.3)
+                    self._make_profile_plot('a', row=0)
+                    self._make_ift_plot('b', row=0, column=1)
 
-            elif has_profiles and not has_rg and not has_ifts and has_series:
-                self.gs = self.figure.add_gridspec(2, 2)
+                    self.figure.subplots_adjust(left=0.1, right=0.97, wspace=0.3,
+                        bottom=0.18, top=0.96, hspace=0.3)
 
-                self._make_series_plot('a')
-                self._make_profile_plot('b', row=1, span=True)
+                elif has_profiles and not has_rg and not has_ifts and has_series:
+                    self.gs = self.figure.add_gridspec(2, 2)
 
-                self.figure.subplots_adjust(left=0.1, right=0.90, wspace=0.3,
-                    bottom=0.09, top=0.98, hspace=0.3)
+                    self._make_series_plot('a')
+                    self._make_profile_plot('b', row=1, span=True)
 
-            elif has_profiles and not has_rg and not has_ifts and not has_series:
-                self.gs = self.figure.add_gridspec(1, 2)
+                    self.figure.subplots_adjust(left=0.1, right=0.90, wspace=0.3,
+                        bottom=0.09, top=0.98, hspace=0.3)
 
-                self._make_profile_plot('', row=0, span=True)
+                elif has_profiles and not has_rg and not has_ifts and not has_series:
+                    self.gs = self.figure.add_gridspec(1, 2)
 
-                self.figure.subplots_adjust(left=0.1, right=0.97, wspace=0.3,
-                    bottom=0.17, top=0.98, hspace=0.3)
+                    self._make_profile_plot('', row=0, span=True)
 
-            elif not has_profiles and has_ifts and has_series:
-                self.gs = self.figure.add_gridspec(2, 2)
+                    self.figure.subplots_adjust(left=0.1, right=0.97, wspace=0.3,
+                        bottom=0.17, top=0.98, hspace=0.3)
 
-                self._make_series_plot('a')
-                self._make_ift_plot('b', row=1, span=True)
+                elif not has_profiles and has_ifts and has_series:
+                    self.gs = self.figure.add_gridspec(2, 2)
 
-                self.figure.subplots_adjust(left=0.1, right=0.90, wspace=0.3,
-                    bottom=0.09, top=0.97, hspace=0.3)
+                    self._make_series_plot('a')
+                    self._make_ift_plot('b', row=1, span=True)
 
-            elif not has_profiles and not has_ifts and has_series:
-                self.gs = self.figure.add_gridspec(1, 2)
+                    self.figure.subplots_adjust(left=0.1, right=0.90, wspace=0.3,
+                        bottom=0.09, top=0.97, hspace=0.3)
 
-                self._make_series_plot('')
+                elif not has_profiles and not has_ifts and has_series:
+                    self.gs = self.figure.add_gridspec(1, 2)
 
-                self.figure.subplots_adjust(left=0.1, right=0.90, wspace=0.3,
-                    bottom=0.15, top=0.98, hspace=0.3)
+                    self._make_series_plot('')
 
-            elif not has_profiles and has_ifts and not has_series:
-                self.gs = self.figure.add_gridspec(1, 2)
+                    self.figure.subplots_adjust(left=0.1, right=0.90, wspace=0.3,
+                        bottom=0.15, top=0.98, hspace=0.3)
 
-                self._make_ift_plot('', row=0, span=True)
+                elif not has_profiles and has_ifts and not has_series:
+                    self.gs = self.figure.add_gridspec(1, 2)
 
-                self.figure.subplots_adjust(left=0.1, right=0.97, wspace=0.3,
-                    bottom=0.17, top=0.98, hspace=0.3)
+                    self._make_ift_plot('', row=0, span=True)
+
+                    self.figure.subplots_adjust(left=0.1, right=0.97, wspace=0.3,
+                        bottom=0.17, top=0.98, hspace=0.3)
 
 
     def _make_series_plot(self, label, row=0):
@@ -1483,41 +1484,43 @@ class efa_plot(object):
             'ytick.labelsize' : 'medium', 'ytick.right' : True, 'ytick.direction' : 'in',
             'lines.linewidth' : 1, 'mathtext.default': 'regular'}):
 
-            self.series = series
+            with mpl.style.context('default'):
 
-            self.int_type = int_type
-            self.series_data = series_data
+                self.series = series
 
-            self.is_regals = is_regals
+                self.int_type = int_type
+                self.series_data = series_data
+
+                self.is_regals = is_regals
 
 
-            if not series.efa_extra_data and not self.is_regals:
-                if img_width == 6 and img_height == 6:
-                    self.figure = plt.figure(figsize=(6, 2))
+                if not series.efa_extra_data and not self.is_regals:
+                    if img_width == 6 and img_height == 6:
+                        self.figure = plt.figure(figsize=(6, 2))
+                    else:
+                        self.figure = plt.figure(figsize=(img_width, img_height))
+
+                    self.gs = self.figure.add_gridspec(1, 2)
+
                 else:
                     self.figure = plt.figure(figsize=(img_width, img_height))
+                    self.gs = self.figure.add_gridspec(3, 2)
 
-                self.gs = self.figure.add_gridspec(1, 2)
+                self._make_series_plot()
+                self._make_efa_range_plot()
 
-            else:
-                self.figure = plt.figure(figsize=(img_width, img_height))
-                self.gs = self.figure.add_gridspec(3, 2)
+                if series.efa_extra_data or self.is_regals:
+                    self._make_efa_chi_plot()
+                    self._make_efa_concentration_plot()
+                    self._make_efa_profiles_plot()
 
-            self._make_series_plot()
-            self._make_efa_range_plot()
+                if series.efa_extra_data or self.is_regals:
 
-            if series.efa_extra_data or self.is_regals:
-                self._make_efa_chi_plot()
-                self._make_efa_concentration_plot()
-                self._make_efa_profiles_plot()
-
-            if series.efa_extra_data or self.is_regals:
-
-                self.figure.subplots_adjust(left=0.1, right=0.98, wspace=0.3,
-                    bottom=0.07, top=0.98, hspace=0.3)
-            else:
-                self.figure.subplots_adjust(left=0.1, right=0.98, wspace=0.3,
-                    bottom=0.16, top=0.93, hspace=0.3)
+                    self.figure.subplots_adjust(left=0.1, right=0.98, wspace=0.3,
+                        bottom=0.07, top=0.98, hspace=0.3)
+                else:
+                    self.figure.subplots_adjust(left=0.1, right=0.98, wspace=0.3,
+                        bottom=0.16, top=0.93, hspace=0.3)
 
     def _make_series_plot(self, row=0, column=0):
         ax = self.figure.add_subplot(self.gs[row, column])
@@ -1641,13 +1644,13 @@ class efa_plot(object):
                 int(mpl.__version__.split('.')[0]) < 3) or
                 (int(mpl.__version__.split('.')[0]) == 3 and
                 int(mpl.__version__.split('.')[1]) <8)):
-                color = next(a._get_lines.prop_cycler)['color']
+                color = next(ax._get_lines.prop_cycler)['color']
             elif ((int(mpl.__version__.split('.')[0]) == 3 and
                 int(mpl.__version__.split('.')[1]) >=8) or
                 (int(mpl.__version__.split('.')[0]) > 3)):
                 color = color_cycle[i]
             else:
-                color =next(a._get_lines.color_cycle)
+                color =next(ax._get_lines.color_cycle)
 
             ax.annotate('', xy=(ranges[i][0], 0.975-0.05*(i)),
                 xytext=(ranges[i][1], 0.975-0.05*(i)),
@@ -1810,7 +1813,7 @@ def generate_report(fname, datadir, profiles, ifts, series, extra_data=None):
 
     elements = []
 
-    SASUtils.update_mpl_style('light')
+    # SASUtils.update_mpl_style('light')
 
     overview = generate_overview(profiles, ifts, series)
     elements.extend(overview)
@@ -1861,7 +1864,7 @@ def generate_report(fname, datadir, profiles, ifts, series, extra_data=None):
         bottomMargin=1*inch, title="RAW Report", lang="en-US")
     doc.build(elements)
 
-    SASUtils.update_mpl_style()
+    # SASUtils.update_mpl_style()
 
     global temp_files
 
