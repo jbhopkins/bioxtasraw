@@ -5520,6 +5520,8 @@ class ReportFrame(wx.Frame):
         RAWGlobals.save_in_progress = False
         self.main_frame.setStatus('', 0)
 
+        wx.CallAfter(SASUtils.update_mpl_style, 'light')
+
     def _on_add_dammif(self, evt):
         self._get_model_results('dammif')
 
