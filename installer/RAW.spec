@@ -22,6 +22,7 @@ else:
     add_files = [
         (os.path.join('..', 'bioxtasraw', 'resources'), os.path.join('share', 'bioxtas-raw', 'resources')),
         (os.path.join('..', 'bioxtasraw', 'definitions'), os.path.join('share', 'bioxtas-raw', 'definitions')),
+        (os.path.join('..', 'bioxtasraw', 'denss_resources'), os.path.join('bioxtasraw', 'denss_resources')),
         (os.path.join('..', 'gpl-3.0.txt'), '.'),
         (os.path.join('..', 'docs', 'build', 'html'), os.path.join('share', 'bioxtas-raw', 'docs')),
         ]

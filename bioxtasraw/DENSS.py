@@ -59,13 +59,7 @@ raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
     os.sys.path.append(raw_path)
 
-denss_resource_path = os.path.abspath(os.path.join(raw_path, 'denss_resurces'))
-if denss_resource_path not in os.sys.path:
-    os.sys.path.append(denss_resource_path)
-
-#load some dictionaries
-# from .denss_resources import resources
-import denss_resources.resources as resources
+import bioxtasraw.denss_resources.resources as resources
 electrons = resources.electrons
 atomic_volumes = resources.atomic_volumes
 numH = resources.numH
