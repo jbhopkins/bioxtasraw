@@ -15890,17 +15890,27 @@ class MyApp(wx.App):
 
         sys.excepthook = self.ExceptionHook
 
+        opsys = platform.system()
+
         RAWGlobals.RAWWorkDir = standard_paths.GetUserLocalDataDir()
         if not os.path.exists(RAWGlobals.RAWWorkDir):
             os.mkdir(RAWGlobals.RAWWorkDir)
 
         if RAWGlobals.frozen:
-            RAWGlobals.RAWResourcesDir = os.path.join(standard_paths.GetResourcesDir(),
-                'resources')
-            RAWGlobals.RAWDefinitionsDir = os.path.join(standard_paths.GetResourcesDir(),
-                'definitions')
-            RAWGlobals.RAWDocsDir = os.path.join(standard_paths.GetResourcesDir(),
-                'docs')
+            if opsys == 'Windows':
+                RAWGlobals.RAWResourcesDir = os.path.join(standard_paths.GetResourcesDir(),
+                    '_internal', 'resources')
+                RAWGlobals.RAWDefinitionsDir = os.path.join(standard_paths.GetResourcesDir(),
+                    '_internal', 'definitions')
+                RAWGlobals.RAWDocsDir = os.path.join(standard_paths.GetResourcesDir(),
+                    '_internal', 'docs')
+            else:
+                RAWGlobals.RAWResourcesDir = os.path.join(standard_paths.GetResourcesDir(),
+                    'resources')
+                RAWGlobals.RAWDefinitionsDir = os.path.join(standard_paths.GetResourcesDir(),
+                    'definitions')
+                RAWGlobals.RAWDocsDir = os.path.join(standard_paths.GetResourcesDir(),
+                    'docs')
         else:
             RAWGlobals.RAWResourcesDir = os.path.join(raw_path, 'bioxtasraw',
                 'resources')

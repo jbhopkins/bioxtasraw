@@ -1641,13 +1641,13 @@ class efa_plot(object):
                 int(mpl.__version__.split('.')[0]) < 3) or
                 (int(mpl.__version__.split('.')[0]) == 3 and
                 int(mpl.__version__.split('.')[1]) <8)):
-                color = next(a._get_lines.prop_cycler)['color']
+                color = next(ax._get_lines.prop_cycler)['color']
             elif ((int(mpl.__version__.split('.')[0]) == 3 and
                 int(mpl.__version__.split('.')[1]) >=8) or
                 (int(mpl.__version__.split('.')[0]) > 3)):
                 color = color_cycle[i]
             else:
-                color =next(a._get_lines.color_cycle)
+                color =next(ax._get_lines.color_cycle)
 
             ax.annotate('', xy=(ranges[i][0], 0.975-0.05*(i)),
                 xytext=(ranges[i][1], 0.975-0.05*(i)),

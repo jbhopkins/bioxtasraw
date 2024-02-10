@@ -13,6 +13,8 @@ if opsys != 'Linux':
     add_files = [
         (os.path.join('..', 'bioxtasraw', 'resources'), 'resources'),
         (os.path.join('..', 'bioxtasraw', 'definitions'), 'definitions'),
+        (os.path.join('..', 'bioxtasraw', 'denss_resources'),
+            os.path.join('bioxtasraw', 'denss_resources')),
         (os.path.join('..', 'gpl-3.0.txt'), '.'),
         (os.path.join('..', 'docs', 'build', 'html'), 'docs'),
         ]
