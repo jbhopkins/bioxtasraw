@@ -49,9 +49,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from svglib.svglib import svg2rlg
 
-import bioxtasraw.RAWAPI as raw
 import bioxtasraw.SASCalc as SASCalc
-import bioxtasraw.SASUtils as SASUtils
 
 # mpl.rc('font', size = 8.0, family='Arial')
 # mpl.rc('legend', frameon=False, fontsize='medium')
@@ -1086,6 +1084,8 @@ class overview_plot(object):
 
     def __init__(self, profiles, ifts, series, int_type='Total',
         series_data='Rg', img_width=6, img_height=6):
+        plt.style.use('default')
+
         with mpl.rc_context({'font.size' : 8.0, 'font.family': 'Arial',
             'legend.frameon': False, 'legend.fontsize': 'medium', 'axes.labelsize': 'medium',
             'axes.linewidth': 1, 'axes.facecolor': 'white', 'axes.axisbelow': False,
@@ -1475,6 +1475,8 @@ class efa_plot(object):
     def __init__(self, series, int_type='Total',
         series_data='Rg', img_width=6, img_height=6, is_regals=False):
 
+        plt.style.use('default')
+
         with mpl.rc_context({'font.size' : 8.0, 'font.family': 'Arial',
             'legend.frameon': False, 'legend.fontsize': 'medium', 'axes.labelsize': 'medium',
             'axes.linewidth': 1, 'axes.facecolor': 'white', 'axes.axisbelow': False,
@@ -1810,8 +1812,6 @@ def generate_report(fname, datadir, profiles, ifts, series, extra_data=None):
 
     elements = []
 
-    SASUtils.update_mpl_style('light')
-
     overview = generate_overview(profiles, ifts, series)
     elements.extend(overview)
 
@@ -1860,8 +1860,6 @@ def generate_report(fname, datadir, profiles, ifts, series, extra_data=None):
         leftMargin=1*inch, rightMargin=1*inch, topMargin=1*inch,
         bottomMargin=1*inch, title="RAW Report", lang="en-US")
     doc.build(elements)
-
-    SASUtils.update_mpl_style()
 
     global temp_files
 
