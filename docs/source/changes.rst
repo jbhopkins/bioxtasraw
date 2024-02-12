@@ -1,6 +1,57 @@
 Changes
 ============
 
+2.2.2
+----------
+
+Release date: 2024-02-12
+
+Overview
+^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 2.2.2. This
+version is mostly minor bug fixes. Of note is that it includes the citation
+for the new RAW paper:
+
+*BioXTAS RAW 2: new developments for a free open-source program for
+small-angle scattering data reduction and analysis.* J. B. Hopkins.
+Journal of Applied Crystallography (2024). 57, 194-208.
+DOI: `10.1107/S1600576723011019 <https://doi.org/10.1107/S1600576723011019>`_
+
+All changes:
+^^^^^^^^^^^^^
+
+*   Fixed several bugs related to using LC analysis, EFA, and REGALS with
+    newer versions of scipy.
+*   Fixed an issue where zero value errors would break the linear baseline
+    correction
+*   Fixed a bug where if the ATSAS path was not found, trying to open the
+    supcomb/cifsup window would result in an error rather than a warning
+    message that ATSAS couldn't be found.
+*   Fixed a bug in automated series loading for MacCHESS header format.
+*   Fixed a bug loading eiger images for the MacCHESS header format.
+*   Removed an extraneous dependence in the requirements files on future.
+*   Added the new RAW paper to the splash screen and about page.
+*   Fixed a bug where setting the q value in the GNOM window range box would
+    cause an error.
+*   Fixed a bug where reports saved when RAW is in dark mode would have
+    dark mode style graphs.
+*   Autocorrelation vectors are now saved with the rest of the EFA and REGALS
+    results.
+*   Fixed a bug with showing one of the EFA and REGALS plots with matplotlib >=3.8.
+*   Fixed a bug where the MW and plot options windows wouldn't open with
+    matplotlib >=3.8.
+*   Fixed an issue where if two or more items in the dimensionless Kratky window
+    had the same name rebinning would only work on the first item.
+*   Fixed an issue where superimpose could fail if the items were identical
+    to within a scale/offset (most noticeable in the comparison window).
+*   Updated DENSS to the newest version. WARNING: Includes a non-backwards
+    compatible change to the DENSS function in the API.
+*   Improved display of DENSS results plots in dark mode.
+*   Fixed various issues with making the frozen builds using the newest
+    version of pyinstaller.
+
+
 2.2.1
 ----------
 
