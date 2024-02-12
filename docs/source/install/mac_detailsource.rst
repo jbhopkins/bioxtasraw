@@ -71,7 +71,9 @@ OS X and macOS detailed install from source instructions
 
 #.  Run RAW
 
-    *   ``pythonw RAW.py``
+    *   ``python RAW.py``
+
+    *   Note: Older versions of conda will use the command ``pythonw RAW.py``
 
 #.  Enjoy!
 

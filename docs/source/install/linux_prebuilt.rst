@@ -31,3 +31,8 @@ from a prebuilt app package:
 
 Note: if you wish to uninstall a version of RAW installed this way, simply use
 the following command: ``sudo apt-get remove bioxtas-raw``
+
+Alternatively, RAW is available as a standard debian package:
+`https://tracker.debian.org/pkg/bioxtasraw <https://tracker.debian.org/pkg/bioxtasraw>`_.
+So you can use that. However, the RAW developers do not maintain this version
+and cannot guarantee functionality or how up to date it is.
