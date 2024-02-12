@@ -10240,9 +10240,15 @@ class DenssPlotPanel(wx.Panel):
         color = SASUtils.update_mpl_style()
 
         if color == 'black':
-            color_num = '0'
+            color_num = 'k'
+            alpha=0.3
+            ealpha=0.5
         else:
-            color_num = '1'
+            color_num = 'w'
+            alpha=0.75
+            ealpha=1
+
+        print(color_num)
 
         fig = Figure((3.25,2.5))
         canvas = FigureCanvasWxAgg(self, -1, fig)
@@ -10260,9 +10266,9 @@ class DenssPlotPanel(wx.Panel):
         gs = matplotlib.gridspec.GridSpec(2, 1, height_ratios=[3,1])
         ax0 = fig.add_subplot(gs[0])
 
-        ax0.errorbar(fit[:,0], fit[:,1], fmt='k.', yerr=yerr, mec='none',
-            mew=0, ms=5, alpha=0.3, capsize=0, elinewidth=0.1,
-            ecolor=cc.to_rgba('0',alpha=0.5),label='Supplied Data',zorder=-1)
+        ax0.errorbar(fit[:,0], fit[:,1], fmt='{}.'.format(color_num), yerr=yerr, mec='none',
+            mew=0, ms=5, alpha=alpha, capsize=0, elinewidth=0.25,
+            ecolor=cc.to_rgba(color_num, alpha=ealpha),label='Supplied Data',zorder=-1)
         ax0.plot(fit[:,0],fit[:,3],'r-',label=r'DENSS Map $\chi^2 = %.2f$'%final_chi2)
 
         handles,labels = ax0.get_legend_handles_labels()
@@ -10283,7 +10289,7 @@ class DenssPlotPanel(wx.Panel):
         # ax0.tick_params(labelbottom=False, labelsize='x-small')
 
         ax1 = fig.add_subplot(gs[1])
-        ax1.plot(fit[:,0], fit[:,0]*0, 'k--')
+        ax1.axhline(0, color=color, linewidth=1.0)
         residuals = (fit[:,1]-fit[:,3])/fit[:,2]
         ax1.plot(fit[:,0], residuals, 'r.')
         ylim = ax1.get_ylim()
