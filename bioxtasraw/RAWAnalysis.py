@@ -10248,8 +10248,6 @@ class DenssPlotPanel(wx.Panel):
             alpha=0.75
             ealpha=1
 
-        print(color_num)
-
         fig = Figure((3.25,2.5))
         canvas = FigureCanvasWxAgg(self, -1, fig)
 
@@ -10431,6 +10429,11 @@ class DenssAveragePlotPanel(wx.Panel):
     def createFSCPlot(self):
         color = SASUtils.update_mpl_style()
 
+        if color == 'black':
+            alpha=0.1
+        else:
+            alpha=0.75
+
         fig = Figure((3.25,2.5))
         canvas = FigureCanvasWxAgg(self, -1, fig)
 
@@ -10451,7 +10454,7 @@ class DenssAveragePlotPanel(wx.Panel):
         self.ax0_hline = ax0.axhline(0.5, color=color, linestyle='--')
         self.fsc_plots = []
         for i in range(fscs.shape[0]):
-            new_plot = ax0.plot(fscs[i,:,0],fscs[i,:,1],color=color, linestyle='--',alpha=0.1)[0]
+            new_plot = ax0.plot(fscs[i,:,0],fscs[i,:,1],color=color, linestyle='--',alpha=alpha)[0]
             self.fsc_plots.append(new_plot)
 
         ax0.plot(res, fsc, 'bo-')
