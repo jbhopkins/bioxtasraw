@@ -15903,12 +15903,6 @@ class EFAControlPanel2(wx.Panel):
                         backward_sv = np.roll(backward_sv, -1*bkg_comp)
                         points = np.column_stack((forward_sv, backward_sv))
 
-                        if int(self.bkg_components.GetValue()) == 0:
-
-                            if ('exp_type' in self.panel1_results and
-                                self.panel1_results['exp_type'] == 'IEC/SEC-SAXS'):
-                                wx.CallAfter(self._find_regals_bkg)
-
                     if np.all(np.sort(forward_sv) == forward_sv) and np.all(np.sort(backward_sv) == backward_sv):
                         self.setSVs(points)
                     elif self.ctrl_type == 'REGALS':

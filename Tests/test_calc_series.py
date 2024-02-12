@@ -60,7 +60,6 @@ def test_efa_list(bsa_series):
     assert len(efa_profiles) == 2
     assert np.allclose(efa_profiles[0].getI().sum(), 75885.43573919893)
 
-@pytest.mark.new
 def test_regals(bsa_series):
     prof1_settings = {
         'type'          : 'simple',
@@ -114,7 +113,6 @@ def test_regals(bsa_series):
     assert np.allclose(params['x2'], 1.0332748476863391)
     assert params['total_iter'] == 43
 
-@pytest.mark.new
 def test_regals_auto_lambda(bsa_series):
     prof1_settings = {
         'type'          : 'simple',
@@ -168,7 +166,6 @@ def test_regals_auto_lambda(bsa_series):
     assert np.allclose(params['x2'], 0.9948359960552903, rtol=1e-4)
     assert params['total_iter'] == 33
 
-@pytest.mark.new
 def test_regals_realspace(bsa_series):
     prof1_settings = {
         'type'          : 'realspace',
