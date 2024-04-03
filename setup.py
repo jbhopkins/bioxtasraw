@@ -10,18 +10,20 @@ elif six.PY3:
 else:
     language_level = None
 
-opsys = platform.system()
+from setuptools import setup, Extension, find_packages
 
-if opsys == 'Windows':
-    try:
-        from setuptools import setup, find_packages
-        from setuptools import Extension
-    except ImportError:
-        from distutils.core import setup, find_packages
-        from distutils.extension import Extension
-else:
-    from distutils.core import setup, find_packages
-    from distutils.extension import Extension
+# opsys = platform.system()
+
+# if opsys == 'Windows':
+#     try:
+#         from setuptools import setup
+#         from setuptools import Extension
+#     except ImportError:
+#         from distutils.core import setup
+#         from distutils.extension import Extension
+# else:
+#     from distutils.core import setup
+#     from distutils.extension import Extension
 
 from Cython.Build import cythonize
 
