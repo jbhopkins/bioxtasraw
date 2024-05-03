@@ -2896,7 +2896,7 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
 
     # Save profile if necessary, truncating q range as appropriate
     if write_profile:
-        if rg is None:
+        if rg is None and cut_dam:
             if use_rg_from == 'guinier':
                 guinier_dict = analysis_dict['guinier']
                 rg = float(guinier_dict['Rg'])
