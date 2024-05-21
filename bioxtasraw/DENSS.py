@@ -2444,7 +2444,7 @@ class Sasrec(object):
 def doDIFT(Iq, D, filename, npts=None, first=None, last=None, rmin=None, qc=None, r=None, nr=None, alpha=0.0, ne=2, extrapolate=True,
     queue=None, abort_check=threading.Event(), single_proc=False, nprocs=0):
     
-    sasrec = Sasrec(Iq, D, qc=None, alpha=alpha, extrapolate=extrapolate)
+    sasrec = Sasrec(Iq[first:last], D, qc=None, alpha=alpha, extrapolate=extrapolate)
     pr = sasrec.P
     r = sasrec.r
     perr = sasrec.Perr

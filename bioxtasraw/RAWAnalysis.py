@@ -4084,8 +4084,16 @@ class IFTPlotPanel(wx.Panel):
         self.subplots = {}
 
         for i in range(0, len(subplotLabels)):
-            subplot = self.fig.add_subplot(gridspec[i],
-                title = subplotLabels[i][0], label = subplotLabels[i][0])
+            if subplotLabels[i][0] == 'Normalized Residual':
+                #link residuals x axis to data x axis
+                subplot = self.fig.add_subplot(gridspec[i],
+                    title = subplotLabels[i][0], 
+                    label = subplotLabels[i][0],
+                    sharex = self.subplots['Data/Fit'])
+            else:
+                subplot = self.fig.add_subplot(gridspec[i],
+                    title = subplotLabels[i][0], 
+                    label = subplotLabels[i][0])
             subplot.set_xlabel(subplotLabels[i][1])
             subplot.set_ylabel(subplotLabels[i][2])
 
@@ -4158,7 +4166,7 @@ class IFTPlotPanel(wx.Panel):
         self.redrawLines()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) #Reconnect draw_event
 
-    def plotPr(self, iftm):
+    def plotPr(self, iftm, autoscale=True):
         r = iftm.r
         p = iftm.p
         perr = iftm.err
@@ -4173,9 +4181,9 @@ class IFTPlotPanel(wx.Panel):
         q_extrap = iftm.q_extrap
         i_extrap = iftm.i_extrap
 
-        self.updateDataPlot(q, i, err, r, p, perr, qfit, fit, q_extrap, i_extrap)
+        self.updateDataPlot(q, i, err, r, p, perr, qfit, fit, q_extrap, i_extrap, autoscale=autoscale)
 
-    def updateDataPlot(self, q, i, err, r, p, perr, qfit, fit, q_extrap=None, i_extrap=None):
+    def updateDataPlot(self, q, i, err, r, p, perr, qfit, fit, q_extrap=None, i_extrap=None, autoscale=True):
 
         #Save for resizing:
         self.orig_q = q
@@ -4240,7 +4248,8 @@ class IFTPlotPanel(wx.Panel):
                 self.fit_line.set_visible(True)
                 self.residual_line.set_visible(True)
 
-        self.autoscale_plot()
+        if autoscale:
+            self.autoscale_plot()
 
     def redrawLines(self):
         a = self.subplots['P(r)']
@@ -12147,7 +12156,7 @@ class DIFTControlPanel(wx.Panel):
 
                 self.updatePlot()
 
-                wx.CallAfter(self.dift_frame.showBusy, False)
+                wx.CallAfter(self.dift_frame.showBusy, True)
 
             else:
                 self._runFindDmax(scanalpha=True)
@@ -12334,7 +12343,7 @@ class DIFTControlPanel(wx.Panel):
 
         my_id = evt.GetId()
 
-        txtctrl = wx.FindWindowById(id, self)
+        txtctrl = wx.FindWindowById(my_id, self)
 
         #### If User inputs garbage: ####
         try:
@@ -12493,12 +12502,21 @@ class DIFTControlPanel(wx.Panel):
 
             a = plotpanel.subplots['P(r)']
             b = plotpanel.subplots['Data/Fit']
-            if not a.get_autoscale_on():
-                a.set_autoscale_on(True)
-            if not b.get_autoscale_on():
-                b.set_autoscale_on(True)
-
-            plotpanel.plotPr(self.out_list[str(dmax)])
+            # if not a.get_autoscale_on():
+            #     a.set_autoscale_on(True)
+            # if not b.get_autoscale_on():
+            #     b.set_autoscale_on(True)
+            #for DENSS IFT, Data/Fit panel should not autoscale as that will show
+            #all the extrapolated values at high q. Instead, scale to qmax of the data
+            iftm = self.out_list[str(dmax)]
+            a.set_xlim(left=0.0, right=1.05*iftm.r.max())
+            a.set_ylim(bottom=iftm.p.min()-0.1*np.abs(iftm.p.max()),
+                       top=1.1*iftm.p.max())
+            b.set_xlim(left=0.0, right=iftm.q_orig.max())
+            b.set_ylim(bottom=0.5*iftm.i_fit.min(),
+                       top=2.0*iftm.i_fit.max())
+            plotpanel.plotPr(self.out_list[str(dmax)], autoscale=False)
+            plotpanel.ax_redraw()
         else:
             plotpanel.clearDataPlot()
 
@@ -12658,12 +12676,12 @@ class DIFTControlPanel(wx.Panel):
 
         # self.updateStatus({'status': 'Scanning alpha'})
 
-        # start = int(self.startSpin.GetValue())
-        # end = int(self.endSpin.GetValue())+1
+        start = int(self.startSpin.GetValue())
+        end = int(self.endSpin.GetValue())+1
 
-        q = self.sasm.q #[start:end]
-        i = self.sasm.i #[start:end]
-        err = self.sasm.err #[start:end]
+        q = self.sasm.q[start:end]
+        i = self.sasm.i[start:end]
+        err = self.sasm.err[start:end]
 
         Iq = np.vstack((q,i,err)).T
 
