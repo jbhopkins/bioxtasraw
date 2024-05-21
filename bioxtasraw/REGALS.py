@@ -239,7 +239,7 @@ class mixture:
         y = w[:,np.newaxis] * y
 
         AA = [[(y[:,k1] @ y[:,k2]) * (A[k1].T @ A[k2]) for k2 in range(self.Nc)] for k1 in range(self.Nc)]
-        AA = sp.vstack((sp.hstack(tuple(AAi)) for AAi in AA))
+        AA = sp.vstack(tuple(sp.hstack(tuple(AAi)) for AAi in AA))
 
         if calc_Ab == True:
             Ab = [A[k].T @ (D.T @ y[:,k]) for k in range(self.Nc)]
@@ -259,7 +259,7 @@ class mixture:
         c = self.concentrations
 
         AA = [[sp.csr_matrix((c[:,k1] @ c[:,k2]) * (A[k1].T @ A[k2])) for k2 in range(self.Nc)] for k1 in range(self.Nc)]
-        AA = sp.vstack((sp.hstack(tuple(AAi)) for AAi in AA))
+        AA = sp.vstack(tuple(sp.hstack(tuple(AAi)) for AAi in AA))
 
         if calc_Ab == True:
             Ab = [A[k].T @ (D @ c[:,k]) for k in range(self.Nc)]

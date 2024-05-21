@@ -12,16 +12,16 @@ double click it to open the dmg, and drag the :file:`RAW.app` file to your Appli
 
 Direct links fo the downloads:
 
-*   `Apple Silicon macs (M1 or newer chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.1.4-macos-arm64.dmg/download>`_
+*   `Apple Silicon macs (M1 or newer chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.2.2-mac-arm64.dmg/download>`_
 
-*   `Intel macs (pre-M1 chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.1.4-mac-x86_64.dmg/download>`_
+*   `Intel macs (pre-M1 chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.2.2-mac-x86_64.dmg/download>`_
 
 
 **Important Notes:**
 
-*   Because the RAW team is an unidentified developer, you may get a warning message
+*   With some version of the RAW installer, you may get a warning message
     the first time you run the program. If that happens, right click on RAW and
-    select :menuselection:`Open` from the right click menu, and then click the :guilabel:`Open` button in the
-    window that appears.
+    select :menuselection:`Open` from the right click menu, and then click
+    the :guilabel:`Open` button in the window that appears.
 
     *   *Note:* This requires administrator permissions.

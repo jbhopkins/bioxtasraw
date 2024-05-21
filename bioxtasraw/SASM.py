@@ -171,7 +171,7 @@ class SASM(object):
         i_raw = copy.deepcopy(self._i_raw)
         q_raw = copy.deepcopy(self._q_raw)
         err_raw = copy.deepcopy(self._err_raw)
-        parameters = {}
+        parameters = {'filename': copy.deepcopy(self.getParameter('filename'))}
 
         newsasm = SASM(i_raw, q_raw, err_raw, parameters)
 

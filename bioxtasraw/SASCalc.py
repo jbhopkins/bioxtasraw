@@ -76,6 +76,14 @@ def linear_func(x, a, b):
 
 @jit(nopython=True, cache=True, parallel=False)
 def weighted_lin_reg(x, y, err):
+    err_idx = err == 0
+
+    if not np.all(err_idx) :
+        if np.any(err_idx):
+            err[err_idx] = np.mean(err[np.nonzero(err_idx)])
+    else:
+        err[err_idx] = 1.
+
     weights = 1./(err)**2.
 
     w_sum = weights.sum()
@@ -2780,7 +2788,6 @@ def linear_baseline(sasms, start_range, end_range):
     fit_results = []
 
     for j in range(intensity.shape[1]):
-
         a, b, cov_a, cov_b = weighted_lin_reg(frames, intensity[:, j], err[:, j])
         fit_results.append((a, b, cov_a, cov_b))
 
@@ -3555,8 +3562,11 @@ def findSignificantSingularValues(svd_s, svd_U_autocor, svd_V_autocor):
 
         mode, count = stats.mode(plist)
 
-        mode = mode[0]
-        count = count[0]
+        try:
+            mode = mode[0]
+            count = count[0]
+        except IndexError:
+            pass
 
         if count > 1:
             svals = mode
@@ -4299,7 +4309,6 @@ def findBaselineRange(sub_sasms, intensity, bl_type, avg_window, start_region,
 
 def processBaseline(unsub_sasms, sub_sasms, r1, r2, bl_type, min_iter, max_iter,
     bl_extrap, int_type, qref, qrange, calc_threshold):
-
     if bl_type == 'Integral':
         fit_results = [] #Need to declare here for integral baselines which don't return fit_results
 
@@ -4353,9 +4362,7 @@ def processBaseline(unsub_sasms, sub_sasms, r1, r2, bl_type, min_iter, max_iter,
             bl_sasms.append(newSASM)
 
     elif bl_type == 'Linear':
-
         fit_results = linear_baseline(sub_sasms, r1, r2)
-
         bl_sasms = []
         bl_corr = []
 
@@ -4410,7 +4417,6 @@ def processBaseline(unsub_sasms, sub_sasms, r1, r2, bl_type, min_iter, max_iter,
 
     sub_mean_i = np.array([sasm.getMeanI() for sasm in bl_sasms])
     sub_total_i = np.array([sasm.getTotalI() for sasm in bl_sasms])
-
 
     use_subtracted_sasms = []
     zeroSASM = SASM.SASM(np.zeros_like(sub_sasms[0].getQ()), sub_sasms[0].getQ(),

@@ -43,6 +43,7 @@ import traceback
 import tempfile
 import shutil
 import glob
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 import wx
@@ -718,7 +719,7 @@ class GuinierPlotPanel(wx.Panel):
             data_list.append(y)
             data_list.append(yerr)
 
-            header = header + '{},{},{},'.format('q**2_data', 'ln(I(q))_data', 'error_data')
+            header = header + '#{},{},{},'.format('q**2_data', 'ln(I(q))_data', 'error_data')
 
 
             x_fit = self.fit_line.get_xdata()
@@ -1357,26 +1358,26 @@ class GuinierControlPanel(wx.Panel):
 
     def onEnterInQlimits(self, evt):
 
-        id = evt.GetId()
+        my_id = evt.GetId()
 
         lx = self.ExpObj.q
 
         findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
 
-        txtctrl = wx.FindWindowById(id, self)
+        txtctrl = wx.FindWindowById(my_id, self)
 
         #### If User inputs garbage: ####
         try:
             val = float(txtctrl.GetValue())
         except ValueError:
-            if id == self.staticTxtIDs['qstart']:
+            if my_id == self.staticTxtIDs['qstart']:
                 spinctrl = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
                 txt = wx.FindWindowById(self.staticTxtIDs['qstart'], self)
                 idx = int(spinctrl.GetValue())
                 txt.SetValue(str(round(self.ExpObj.q[idx],5)))
                 return
 
-            if id == self.staticTxtIDs['qend']:
+            if my_id == self.staticTxtIDs['qend']:
                 spinctrl = wx.FindWindowById(self.spinctrlIDs['qend'], self)
                 txt = wx.FindWindowById(self.staticTxtIDs['qend'], self)
                 idx = int(spinctrl.GetValue())
@@ -1391,7 +1392,7 @@ class GuinierControlPanel(wx.Panel):
         endSpin = wx.FindWindowById(self.spinctrlIDs['qend'], self)
         startSpin = wx.FindWindowById(self.spinctrlIDs['qstart'], self)
 
-        if id == self.staticTxtIDs['qstart']:
+        if my_id == self.staticTxtIDs['qstart']:
 
             max = endSpin.GetValue()
 
@@ -1400,7 +1401,7 @@ class GuinierControlPanel(wx.Panel):
 
             startSpin.SetValue(i)
 
-        elif id == self.staticTxtIDs['qend']:
+        elif my_id == self.staticTxtIDs['qend']:
             minq = startSpin.GetValue()
 
 
@@ -1567,10 +1568,12 @@ class GuinierControlPanel(wx.Panel):
 class GuinierFrame(wx.Frame):
 
     def __init__(self, parent, title, ExpObj, manip_item):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
         size = (min(800, client_display.Width), min(650, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         panel = wx.Panel(self)
@@ -1635,6 +1638,9 @@ class MolWeightFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm, manip_item):
 
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
 
         self.main_frame = wx.FindWindowByName('MainFrame')
@@ -1658,7 +1664,6 @@ class MolWeightFrame(wx.Frame):
         else:
             size = (min(750, client_display.Width), min(550, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
@@ -3798,11 +3803,20 @@ class MWPlotPanel(wx.Panel):
         a.yaxis.get_label().set_size(font_size)
         a.xaxis.get_label().set_size(font_size)
 
-        for tick in a.xaxis.get_major_ticks():
-            tick.label.set_fontsize(font_size)
+        if (int(matplotlib.__version__.split('.')[0]) < 3 or
+            (int(matplotlib.__version__.split('.')[0]) == 3 and
+            int(matplotlib.__version__.split('.')[1]) <8)):
+            for tick in a.xaxis.get_major_ticks():
+                tick.label.set_fontsize(font_size)
 
-        for tick in a.yaxis.get_major_ticks():
-            tick.label.set_fontsize(font_size)
+            for tick in a.yaxis.get_major_ticks():
+                tick.label.set_fontsize(font_size)
+        else:
+            for tick in a.xaxis.get_major_ticks():
+                tick.label1.set_fontsize(font_size)
+
+            for tick in a.yaxis.get_major_ticks():
+                tick.label1.set_fontsize(font_size)
 
         self.fig.tight_layout(pad=0.4)
 
@@ -3894,11 +3908,12 @@ class MWPlotPanel(wx.Panel):
 class GNOMFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm, manip_item):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
         size = (min(825, client_display.Width), min(700, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -4376,6 +4391,10 @@ class GNOMControlPanel(wx.Panel):
 
         self.plotted_iftm = None
 
+        self.question_event = threading.Event()
+        self.answer_queue = queue.Queue()
+
+
         self._createLayout()
 
     def _FromDIP(self, size):
@@ -4611,6 +4630,23 @@ class GNOMControlPanel(wx.Panel):
         top_sizer.Add(find_dmax, 0, wx.CENTER)
 
         return top_sizer
+
+    def showQuestionDialogFromThread(self, question, label, button_list,
+        icon = None, filename = None, save_path = None):
+        ''' Function to show a question dialog from the thread '''
+
+        question_dialog = RAWCustomDialogs.CustomQuestionDialog(self, question,
+            button_list, label, icon, filename, save_path, style = wx.CAPTION | wx.RESIZE_BORDER)
+        result = question_dialog.ShowModal()
+        path = question_dialog.getPath()
+        question_dialog.Destroy()
+
+        if path:
+            self.answer_queue.put([result, path])
+        else:
+            self.answer_queue.put([result])  # put answer in thread safe queue
+
+        self.question_event.set()      # Release thread from its waiting state
 
     def initGnomValues(self, sasm, mode='auto'):
         self.setGuinierInfo(sasm)
@@ -4943,7 +4979,7 @@ class GNOMControlPanel(wx.Panel):
 
         my_id = evt.GetId()
 
-        txtctrl = wx.FindWindowById(id, self)
+        txtctrl = wx.FindWindowById(my_id, self)
 
         #### If User inputs garbage: ####
         try:
@@ -5118,14 +5154,46 @@ class GNOMControlPanel(wx.Panel):
             RAWAPI.auto_guinier(save_sasm, error_weight)
 
         try:
-            dmax = RAWAPI.auto_dmax(save_sasm, single_proc=True)
+            dmax = RAWAPI.auto_dmax(save_sasm, single_proc=True,
+                settings=self.raw_settings)
         except Exception as e:
-            dmax = -1
-            msg = ("Automatic Dmax determination failed with the following error:\n"
-                "{}\n\nGuessing Dmax.".format(e))
-            wx.CallAfter(self.main_frame.showMessageDialog, self, msg, "Error finding Dmax",
-                wx.ICON_WARNING|wx.OK)
-            traceback.print_exc()
+            auto_dmax_failed = False
+            if self.gnom_settings['npts'] != 0:
+                msg = ("Automatic Dmax determination failed. This may be due\n"
+                    "to having a fixed number of points for the P(r) function\n"
+                    "in you GNOM settings. Would you like RAW to change this\n"
+                    "to automatically determined number of points (default) and\n"
+                    "try to find Dmax again?")
+
+                wx.CallAfter(self.showQuestionDialogFromThread, msg,
+                    "Error finding Dmax", [('Yes', wx.ID_YES), ('No', wx.ID_NO)],
+                    wx.ART_QUESTION)
+
+                self.question_event.wait()
+                self.question_event.clear()
+
+                answer = self.answer_queue.get()
+                self.answer_queue.task_done()
+
+                if answer[0] == wx.ID_YES:
+                    self.raw_settings.set('gnomNPoints', 0)
+                    self.updateGNOMSettings(update_plot=False)
+
+                try:
+                    dmax = RAWAPI.auto_dmax(save_sasm, single_proc=True,
+                        settings=self.raw_settings)
+                except Exception:
+                    auto_dmax_failed = True
+            else:
+                auto_dmax_failed = True
+
+            if auto_dmax_failed:
+                dmax = -1
+                msg = ("Automatic Dmax determination failed with the following error:\n"
+                    "{}\n\nGuessing Dmax.".format(e))
+                wx.CallAfter(self.main_frame.showMessageDialog, self, msg, "Error finding Dmax",
+                    wx.ICON_WARNING|wx.OK)
+                # traceback.print_exc()
 
         if dmax == -1:
             try:
@@ -5155,7 +5223,9 @@ class GNOMControlPanel(wx.Panel):
 
             else:
                 self.calcGNOM(dmax)
-                self.updateGNOMInfo(self.out_list[str(dmax)])
+
+                if str(dmax) in self.out_list.keys():
+                    self.updateGNOMInfo(self.out_list[str(dmax)])
 
             self.updatePlot()
 
@@ -5199,7 +5269,7 @@ class GNOMControlPanel(wx.Panel):
         except (SASExceptions.NoATSASError, SASExceptions.GNOMError) as e:
             wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
             self.SetFocusIgnoringChildren()
-            traceback.print_exc()
+            # traceback.print_exc()
             return
 
         if restart_timer:
@@ -5238,11 +5308,12 @@ class GNOMControlPanel(wx.Panel):
 class DammifFrame(wx.Frame):
 
     def __init__(self, parent, title, iftm, manip_item):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
         size = (min(725, client_display.Width), min(900, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self.manip_item = manip_item
@@ -7561,11 +7632,21 @@ class DammifResultsPanel(wx.Panel):
 
         self.Layout()
 
-        self.parent.SetSelection(1)
-
         self.dammif_frame.ViewerPanel.updateResults(model_list)
 
         self._saveResults()
+
+        models_nb = wx.FindWindowById(self.ids['models'])
+
+        for i in range(models_nb.GetPageCount()):
+            models_nb.SetSelection(i)
+            if i > 0:
+                page = models_nb.GetCurrentPage()
+                page.ax_redraw()
+
+        models_nb.SetSelection(0)
+
+        self.parent.SetSelection(1)
 
     def _saveResults(self):
         nsd_data = []
@@ -7899,11 +7980,12 @@ class DammifViewerPanel(wx.Panel):
 class DenssFrame(wx.Frame):
 
     def __init__(self, parent, title, iftm, manip_item):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
         size = (min(750, client_display.Width), min(900, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self.manip_item = manip_item
@@ -8781,6 +8863,7 @@ class DenssRunPanel(wx.Panel):
             self.denss_settings['swMinStep'] = temp_settings.get('denssShrinkwrapMinStep')
             self.denss_settings['connected'] = temp_settings.get('denssConnected')
             self.denss_settings['conSteps'] = temp_settings.get('denssConnectivitySteps')
+            self.denss_settings['conFeatures'] = temp_settings.get('denssConFeatures')
             self.denss_settings['chiEndFrac'] = temp_settings.get('denssChiEndFrac')
             self.denss_settings['cutOutput'] = temp_settings.get('denssCutOut')
             self.denss_settings['writeXplor'] = temp_settings.get('denssWriteXplor')
@@ -8795,23 +8878,21 @@ class DenssRunPanel(wx.Panel):
         shrinkwrap_sigma_end_in_A = (3.0 * dmax / 64.0) * 1.5
 
         if self.denss_settings['mode'] == 'Fast':
-            self.denss_settings['swMinStep'] = 1000
-            self.denss_settings['conSteps'] = '[2000]'
+            self.denss_settings['swMinStep'] = 0
+            self.denss_settings['conSteps'] = '[1000]'
             self.denss_settings['recenterStep'] = '%s' %(list(range(501,2502,500)))
             self.denss_settings['steps'] = None
-
             self.denss_settings['voxel'] = dmax*self.denss_settings['oversample']/32.
 
         elif self.denss_settings['mode'] == 'Slow':
-            self.denss_settings['swMinStep'] = 1000
-            self.denss_settings['conSteps'] = '[2000]'
+            self.denss_settings['swMinStep'] = 0
+            self.denss_settings['conSteps'] = '[1000]'
             self.denss_settings['recenterStep'] = '%s' %(list(range(501,8002,500)))
             self.denss_settings['steps'] = None
             self.denss_settings['voxel'] = dmax*self.denss_settings['oversample']/64.
 
         elif self.denss_settings['mode'] == 'Membrane':
             self.denss_settings['swMinStep'] = 0
-            self.denss_settings['swThresFrac'] = 0.1
             self.denss_settings['conSteps'] = '[300, 500, 1000]'
             self.denss_settings['recenterStep'] = '%s' %(list(range(501,8002,500)))
             self.denss_settings['steps'] = None
@@ -8826,7 +8907,10 @@ class DenssRunPanel(wx.Panel):
                 self.denss_settings['voxel'] = dmax * self.denss_settings['oversample']/64
 
             if self.denss_settings['swMinStep'] == 'None':
-                self.denss_settings['swMinStep'] = 1000
+                self.denss_settings['swMinStep'] = 0
+
+            if self.denss_settings['conSteps'] == 'None':
+                self.denss_settings['conSteps'] = '[{}]'.format(1000+self.denss_settings['swMinStep'])
 
         if self.denss_settings['swSigmaStart'] == 'None':
             shrinkwrap_sigma_start_in_vox = shrinkwrap_sigma_start_in_A / float(self.denss_settings['voxel'])
@@ -8869,6 +8953,10 @@ class DenssRunPanel(wx.Panel):
 
         q = self.iftm.q_extrap
         I = self.iftm.i_extrap
+
+        q_raw = self.iftm.q_orig
+        i_raw = self.iftm.i_orig
+        err_raw = self.iftm.err_orig
 
         ext_pts = len(I)-len(self.iftm.i_orig)
 
@@ -8916,7 +9004,8 @@ class DenssRunPanel(wx.Panel):
                 for key in self.denss_ids:
                     if key != 'average' and key != 'refine' and key!= 'align':
                         result = my_pool.apply_async(DENSS.runDenss, args=(q, I,
-                            sigq, D, prefix, path, self.denss_settings),
+                            sigq, D, q_raw, i_raw, err_raw, prefix, path,
+                            self.denss_settings),
                             kwds={'comm_list':comm_list, 'my_lock':self.my_lock,
                             'thread_num_q':self.thread_nums,
                             'wx_queue':self.wx_queue,
@@ -8938,18 +9027,19 @@ class DenssRunPanel(wx.Panel):
             self.abort_event.clear()
 
             run_t = threading.Thread(target=self.manage_denss, args=(q, I, sigq,
-                D, prefix, path, comm_list))
+                D, q_raw, i_raw, err_raw, prefix, path, comm_list))
             run_t.daemon = True
             run_t.start()
 
         self.denss_timer.Start(1000)
         self.msg_timer.Start(100)
 
-    def manage_denss(self, q, I, sigq, D, prefix, path, comm_list):
+    def manage_denss(self, q, I, sigq, D, q_raw, i_raw, err_raw, prefix, path,
+        comm_list):
         for key in self.denss_ids:
             if key != 'average' and key != 'refine' and key != 'align':
-                data = DENSS.runDenss(q, I, sigq, D, prefix, path,
-                    self.denss_settings, **{'comm_list':comm_list,
+                data = DENSS.runDenss(q, I, sigq, D, q_raw, i_raw, err_raw,
+                    prefix, path, self.denss_settings, **{'comm_list':comm_list,
                     'my_lock':self.my_lock, 'thread_num_q':self.thread_nums,
                     'wx_queue':self.wx_queue, 'abort_event':self.abort_event,
                     'log_id': self.denss_ids[key],})
@@ -9036,10 +9126,9 @@ class DenssRunPanel(wx.Panel):
                 filtered[i] = 'Filtered'
             else:
                 filtered[i] = ' '
-            # ioutput = prefix+"_"+str(i+1)+"_aligned"
-            # DENSS.write_mrc(aligned[i], sides[0], os.path.join(path, ioutput+".mrc"))
-            ioutput = prefix+"_"+str(i+1)
-            # wx.CallAfter(averWindow.AppendText, "%s, Score = %0.3f %s\n" % (ioutput,scores[i],filtered[i]))
+            ioutput = prefix+"_"+str(i)+"_aligned"
+            # saxs.write_mrc(aligned[i], sides[0], ioutput+".mrc")
+            # print("%s.mrc written. Score = %0.3f %s " % (ioutput,scores[i],filtered[i]))
             wx.CallAfter(averWindow.AppendText,'Correlation score to reference: %s.mrc %.3f %s\n' %(ioutput, scores[i], filtered[i]))
 
         idx_keep = np.where(scores>threshold)
@@ -9163,6 +9252,10 @@ class DenssRunPanel(wx.Panel):
         q = self.iftm.q_extrap
         I = self.iftm.i_extrap
 
+        q_raw = self.iftm.q_orig
+        i_raw = self.iftm.i_orig
+        err_raw = self.iftm.err_orig
+
         ext_pts = len(I)-len(self.iftm.i_orig)
 
         if ext_pts > 0:
@@ -9180,7 +9273,8 @@ class DenssRunPanel(wx.Panel):
             my_pool = multiprocessing.Pool(procs)
 
             result = my_pool.apply_async(DENSS.runDenss, args=(q, I, sigq,
-                D, prefix, path, self.denss_settings, avg_model),
+                D, q_raw, i_raw, err_raw, prefix, path, self.denss_settings,
+                avg_model),
                 kwds={'comm_list':comm_list, 'my_lock':self.my_lock,
                     'thread_num_q':self.thread_nums, 'wx_queue':self.wx_queue,
                     'abort_event':self.abort_event, 'log_id': myId,})
@@ -9190,7 +9284,8 @@ class DenssRunPanel(wx.Panel):
             self.refine_results = result.get()
 
         else:
-            self.refine_results = DENSS.runDenss(q, I, sigq, D, prefix, path,
+            self.refine_results = DENSS.runDenss(q, I, sigq, D, q_raw,
+                i_raw, err_raw, prefix, path,
                 self.denss_settings, avg_model, **{'comm_list':comm_list,
                 'my_lock':self.my_lock, 'thread_num_q':self.thread_nums,
                 'wx_queue':self.wx_queue, 'abort_event':self.abort_event,
@@ -9221,8 +9316,8 @@ class DenssRunPanel(wx.Panel):
         items_to_align = collections.OrderedDict()
 
         if 'refine' in self.denss_ids:
-            rho = self.refine_results[-2]
-            side = self.refine_results[-1]
+            rho = self.refine_results[8]
+            side = self.refine_results[9]
 
             rhos = np.array([rho])
             sides = np.array([side])
@@ -9245,8 +9340,8 @@ class DenssRunPanel(wx.Panel):
 
             for i, key in enumerate(self.denss_ids):
                 if key != 'average' and key != 'refine' and key != 'align':
-                    rho = denss_outputs[i][-2]
-                    side = denss_outputs[i][-1]
+                    rho = denss_outputs[i][8]
+                    side = denss_outputs[i][9]
                     rhos = np.array([rho])
                     sides = np.array([side])
 
@@ -9356,43 +9451,42 @@ class DenssRunPanel(wx.Panel):
             sigqdata = denss_outputs[0][2]
             qbinsc = denss_outputs[0][3]
             all_Imean = [denss_outputs[i][4] for i in np.arange(nruns)]
+            all_fits = [denss_outputs[i][-2] for i in np.arange(nruns)]
             header = ['q','I','error']
-            fit = np.zeros(( len(qbinsc),nruns+3 ))
-            fit[:len(qdata),0] = qdata
-            fit[:len(Idata),1] = Idata
-            fit[:len(sigqdata),2] = sigqdata
+            fit = np.zeros(( all_fits[0].shape[0],nruns+3 ))
+            fit[:,0] = all_fits[0][:,0]
+            fit[:,1] = all_fits[0][:,1]
+            fit[:,2] = all_fits[0][:,2]
 
             for edmap in range(nruns):
-                fit[:len(all_Imean[0]),edmap+3] = all_Imean[edmap]
+                fit[:,edmap+3] = all_fits[edmap][:,3]
                 header.append("I_fit_"+str(edmap))
 
-            np.savetxt(os.path.join(path, prefix+'_map.fit'), fit, delimiter=" ",
-                fmt="%.5e".encode('ascii'), header=" ".join(header))
+            np.savetxt(os.path.join(path, prefix+'_map.fit'),fit, delimiter=" ",
+                fmt="%.5e", header=" ".join(header))
             chi_header, rg_header, supportV_header = list(zip(*[('chi_'+str(i),
                 'rg_'+str(i),'supportV_'+str(i)) for i in range(nruns)]))
             all_chis = np.array([denss_outputs[i][5] for i in np.arange(nruns)])
             all_rg = np.array([denss_outputs[i][6] for i in np.arange(nruns)])
             all_supportV = np.array([denss_outputs[i][7] for i in np.arange(nruns)])
+            final_chis = np.zeros(nruns)
+            final_rgs = np.zeros(nruns)
+            final_supportVs = np.zeros(nruns)
 
-            np.savetxt(os.path.join(path, prefix+'_chis_by_step.fit'), all_chis.T,
-                delimiter=" ", fmt="%.5e".encode('ascii'), header=",".join(chi_header))
-            np.savetxt(os.path.join(path, prefix+'_rg_by_step.fit'), all_rg.T,
-                delimiter=" ", fmt="%.5e".encode('ascii'), header=",".join(rg_header))
+            for i in range(nruns):
+                final_rgs[i] = all_rg[i,all_rg[i]>0][-1]
+                final_chis[i] = all_chis[i,all_chis[i]>0][-1]
+                final_supportVs[i] = all_supportV[i,all_supportV[i]>0][-1]
+
+            np.savetxt(os.path.join(path, prefix+'_chis_by_step.fit'),all_chis.T,
+                delimiter=" ", fmt="%.5e",header=",".join(chi_header))
+            np.savetxt(os.path.join(path, prefix+'_rg_by_step.fit'),all_rg.T,
+                delimiter=" ", fmt="%.5e",header=",".join(rg_header))
             np.savetxt(os.path.join(path, prefix+'_supportV_by_step.fit'),
-                all_supportV.T, delimiter=" ", fmt="%.5e".encode('ascii'),
+                all_supportV.T, delimiter=" ",fmt="%.5e",
                 header=",".join(supportV_header))
 
-            chis = []
-            rgs = []
-            svs = []
-            for i in range(nruns):
-                last_index = max(np.where(denss_outputs[i][5] !=0)[0])
-                chis.append(denss_outputs[i][5][last_index])
-                rgs.append(denss_outputs[i][6][last_index+1])
-                svs.append(denss_outputs[i][7][last_index+1])
-                #Weird DENSS thing where last index of chi is 1 less than of Rg
-
-            self.denss_stats = {'rg': rgs, 'chi': chis, 'sv': svs}
+            self.denss_stats = {'rg': final_rgs, 'chi': final_chis, 'sv': final_supportVs}
 
             if 'average' in self.denss_ids:
                 t = threading.Thread(target=self.runAverage,
@@ -9567,6 +9661,7 @@ class DenssRunPanel(wx.Panel):
             'swMinStep'         : self.raw_settings.get('denssShrinkwrapMinStep'),
             'connected'         : self.raw_settings.get('denssConnected'),
             'conSteps'          : self.raw_settings.get('denssConnectivitySteps'),
+            'conFeatures'       : self.raw_settings.get('denssConFeatures'),
             'chiEndFrac'        : self.raw_settings.get('denssChiEndFrac'),
             'average'           : self.raw_settings.get('denssAverage'),
             'runs'              : self.raw_settings.get('denssReconstruct'),
@@ -9894,10 +9989,10 @@ class DenssResultsPanel(wx.Panel):
 
     def getResolution(self, resolution, resolution_sd):
         res_window = wx.FindWindowById(self.ids['res'], self)
-        res_window.SetValue(str(resolution))
+        res_window.SetValue(str(round(resolution, 1)))
 
         res_sd_window = wx.FindWindowById(self.ids['res_sd'], self)
-        res_sd_window.SetValue(str(resolution_sd))
+        res_sd_window.SetValue(str(round(resolution_sd,1)))
 
     def getModels(self, settings, denss_results, denss_stats, average_results,
         refine_results):
@@ -9994,18 +10089,27 @@ class DenssResultsPanel(wx.Panel):
         self.Layout()
 
         models_nb = wx.FindWindowById(self.ids['models'])
-        models_nb.DoGetBestSize()
+
         for i in range(models_nb.GetPageCount()):
             models_nb.SetSelection(i)
-
-        models_nb.SetSelection(0)
-
-        self.parent.SetSelection(1)
+            if i > 0:
+                page = models_nb.GetCurrentPage()
+                page.ax_redraw()
 
         # viewer_window = wx.FindWindowByName('DammifViewerPanel')
         # viewer_window.updateResults(model_list)
 
         self._saveResults()
+
+        for i in range(models_nb.GetPageCount()):
+            models_nb.SetSelection(i)
+            if i > 0:
+                page = models_nb.GetCurrentPage()
+                page.ax_redraw()
+
+        models_nb.SetSelection(0)
+
+        self.parent.SetSelection(1)
 
     def _saveResults(self):
         res_data = []
@@ -10112,109 +10216,6 @@ class DenssResultsPanel(wx.Panel):
 
         self.Layout()
 
-
-class DenssViewerPanel(wx.Panel):
-
-    def __init__(self, parent):
-
-        wx.Panel.__init__(self, parent, wx.ID_ANY, name = 'DenssViewerPanel')
-
-        self.parent = parent
-
-        self.ids = {'models'    : self.NewControlId(),
-                    }
-
-        self.model_dict = None
-
-        top_sizer = self._createLayout(self)
-
-        self.SetSizer(top_sizer)
-
-    def _FromDIP(self, size):
-        # This is a hack to provide easy back compatibility with wxpython < 4.1
-        try:
-            return self.FromDIP(size)
-        except Exception:
-            return size
-
-    def _createLayout(self, parent):
-        ctrls_box = wx.StaticBox(parent, wx.ID_ANY, 'Viewer Controls')
-
-        model_text = wx.StaticText(ctrls_box, wx.ID_ANY, 'Model to display:')
-        model_choice = wx.Choice(ctrls_box, self.ids['models'])
-        model_choice.Bind(wx.EVT_CHOICE, self.onChangeModels)
-
-        model_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        model_sizer.Add(model_text, 0)
-        model_sizer.Add(model_choice, 0, wx.LEFT, border=self._FromDIP(3))
-
-
-        ctrls_sizer = wx.StaticBoxSizer(ctrls_box, wx.VERTICAL)
-        ctrls_sizer.Add(model_sizer, 0)
-
-
-        self.fig = Figure(dpi=75, tight_layout=True)
-        self.fig.set_facecolor('white')
-
-        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
-        self.canvas.SetBackgroundColour('white')
-
-        self.subplot = self.fig.add_subplot(1,1,1, projection='3d')
-        self.subplot.grid(False)
-        self.subplot.set_axis_off()
-
-        # self.toolbar = NavigationToolbar2WxAgg(self.canvas)
-        # self.toolbar.Realize()
-
-        layout_sizer = wx.BoxSizer(wx.VERTICAL)
-        layout_sizer.Add(ctrls_sizer, 0, wx.BOTTOM | wx.EXPAND, self._FromDIP(5))
-        layout_sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.EXPAND)
-        # sizer.Add(self.toolbar, 0, wx.GROW)
-
-        self.canvas.draw()
-
-        return layout_sizer
-
-    def _plotModel(self, atoms, radius):
-        self.subplot.clear()
-        self.subplot.grid(False)
-        self.subplot.set_axis_off()
-
-        scale = (float(radius)/1.25)**2
-
-        self.subplot.scatter(atoms[:,0], atoms[:,1], atoms[:,2], s=250*scale, alpha=.95)
-
-        self.canvas.draw()
-
-    def onChangeModels(self, evt):
-        model = evt.GetString()
-
-        self._plotModel(self.model_dict[model][1], self.model_dict[model][0]['atom_radius'])
-
-
-    def updateResults(self, model_list):
-        self.model_dict = collections.OrderedDict()
-
-        for item in model_list:
-            self.model_dict[str(item[0])] = [item[1], item[2]]
-
-        model_choice = wx.FindWindowById(self.ids['models'], self)
-        model_choice.Set(list(self.model_dict.keys()))
-
-        if 'refine' in self.model_dict:
-            self._plotModel(self.model_dict['refine'][1], self.model_dict['refine'][0]['atom_radius'])
-            model_choice.SetStringSelection('refine')
-        elif 'damfilt' in self.model_dict:
-            self._plotModel(self.model_dict['damfilt'][1], self.model_dict['damfilt'][0]['atom_radius'])
-            model_choice.SetStringSelection('damfilt')
-        elif 'damaver' in self.model_dict:
-            self._plotModel(self.model_dict['damaver'][1], self.model_dict['damaver'][0]['atom_radius'])
-            model_choice.SetStringSelection('damaver')
-        else:
-            self._plotModel(self.model_dict['1'][1], self.model_dict['1'][0]['atom_radius'])
-            model_choice.SetStringSelection('1')
-
-
 class DenssPlotPanel(wx.Panel):
 
     def __init__(self, parent, denss_results, iftm):
@@ -10256,76 +10257,77 @@ class DenssPlotPanel(wx.Panel):
         color = SASUtils.update_mpl_style()
 
         if color == 'black':
-            color_num = '0'
+            color_num = 'k'
+            alpha=0.3
+            ealpha=0.5
         else:
-            color_num = '1'
+            color_num = 'w'
+            alpha=0.75
+            ealpha=1
 
         fig = Figure((3.25,2.5))
         canvas = FigureCanvasWxAgg(self, -1, fig)
 
         self.figures.append(fig)
 
-        if self.iftm.getParameter('algorithm') == 'GNOM':
-            q = self.iftm.q_extrap
-            I = self.iftm.i_extrap
+        fit = self.denss_results[-2]
+        final_chi2 = self.denss_results[-1]
 
-            ext_pts = len(I)-len(self.iftm.i_orig)
-            sigq = np.empty_like(I)
-            sigq[:ext_pts] = I[:ext_pts]*np.mean((self.iftm.err_orig[:10]/self.iftm.i_orig[:10]))
-            sigq[ext_pts:] = I[ext_pts:]*(self.iftm.err_orig/self.iftm.i_orig)
-        else:
-            q = self.iftm.q_orig
-            I = self.iftm.i_fit
-            sigq = I*(self.iftm.err_orig/self.iftm.i_orig)
-        #handle sigq values whose error bounds would go negative and be missing on the log scale
-        sigq2 = np.copy(sigq)
-        sigq2[sigq>I] = I[sigq>I]*.999
-
-        qdata = self.denss_results[0]
-        Idata = self.denss_results[1]
-        qbinsc = self.denss_results[3]
-        Imean = self.denss_results[4]
+        #handle values whose error bounds would go negative and be missing on the log scale
+        yerr = np.copy(fit[:,2])
+        # yerr[yerr>fit[:,1]] = fit[:,1][yerr>fit[:,1]]*.999
+        yerr = np.abs(yerr)
 
         gs = matplotlib.gridspec.GridSpec(2, 1, height_ratios=[3,1])
-
         ax0 = fig.add_subplot(gs[0])
-        self.ax0_err = ax0.errorbar(self.iftm.q_orig, self.iftm.i_orig, color=color, marker='.',
-            yerr=self.iftm.err_orig, mec='none', mew=0, ms=3, alpha=0.3,
-            capsize=0, elinewidth=0.1, ecolor=cc.to_rgba(color_num,alpha=0.5),
-            label='Exp. Data')
-        self.ax0_smooth = ax0.plot(q, I, color=color, linestyle='--',alpha=0.7, lw=1,
-            label='Smoothed Exp. Data')[0]
-        ax0.plot(qdata[qdata<=q[-1]], Idata[qdata<=q[-1]], 'bo',alpha=0.5,
-            label='Interpolated')
-        ax0.plot(qbinsc[qdata<=q[-1]], Imean[qdata<=q[-1]],'r.',label='DENSS Map')
-        handles,labels = ax0.get_legend_handles_labels()
-        handles = [handles[3], handles[0], handles[1],handles[2]]
-        labels = [labels[3], labels[0], labels[1], labels[2]]
-        xmax = np.min([self.iftm.q_orig.max(),q.max(),qdata.max()])*1.1
-        ymin = np.min([np.min(I[q<=xmax]),np.min(Idata[qdata<=xmax]),np.min(Imean[qdata<=xmax])])
-        ymax = np.max([np.max(I[q<=xmax]),np.max(Idata[qdata<=xmax]),np.max(Imean[qdata<=xmax])])
-        ax0.set_xlim([-xmax*.05,xmax])
-        ax0.set_ylim([0.5*ymin,1.5*ymax])
-        ax0.legend(handles,labels, fontsize='small')
-        ax0.semilogy()
-        ax0.set_ylabel('I(q)', fontsize='small')
-        ax0.tick_params(labelbottom=False, labelsize='x-small')
 
-        residuals = np.log10(Imean[np.in1d(qbinsc,qdata)])-np.log10(Idata)
+        ax0.errorbar(fit[:,0], fit[:,1], fmt='{}.'.format(color_num), yerr=yerr, mec='none',
+            mew=0, ms=5, alpha=alpha, capsize=0, elinewidth=0.25,
+            ecolor=cc.to_rgba(color_num, alpha=ealpha),label='Supplied Data',zorder=-1)
+        ax0.plot(fit[:,0],fit[:,3],'r-',label=r'DENSS Map $\chi^2 = %.2f$'%final_chi2)
+
+        handles,labels = ax0.get_legend_handles_labels()
+        handles = [handles[1], handles[0] ]
+        labels = [labels[1], labels[0] ]
+        ax0.legend(handles,labels)
+        ax0.semilogy()
+        ax0.set_ylabel('I(q)')
+
+        # xmax = np.min([self.iftm.q_orig.max(),q.max(),qdata.max()])*1.1
+        # ymin = np.min([np.min(I[q<=xmax]),np.min(Idata[qdata<=xmax]),np.min(Imean[qdata<=xmax])])
+        # ymax = np.max([np.max(I[q<=xmax]),np.max(Idata[qdata<=xmax]),np.max(Imean[qdata<=xmax])])
+        # ax0.set_xlim([-xmax*.05,xmax])
+        # ax0.set_ylim([0.5*ymin,1.5*ymax])
+        # ax0.legend(handles,labels, fontsize='small')
+        # ax0.semilogy()
+        # ax0.set_ylabel('I(q)', fontsize='small')
+        # ax0.tick_params(labelbottom=False, labelsize='x-small')
+
         ax1 = fig.add_subplot(gs[1])
-        self.ax1_hline = ax1.axhline(0, color=color, linewidth=1.0)
-        ax1.plot(qdata[qdata<=q[-1]], residuals[qdata<=q[-1]], 'ro-')
+        ax1.axhline(0, color=color, linewidth=1.0)
+        residuals = (fit[:,1]-fit[:,3])/fit[:,2]
+        ax1.plot(fit[:,0], residuals, 'r.')
         ylim = ax1.get_ylim()
         ymax = np.max(np.abs(ylim))
-        n = int(.9*len(residuals[qdata<=q[-1]]))
-        ymax = np.max(np.abs(residuals[qdata<=q[-1]][:-n]))
+        ymax = np.max(np.abs(residuals))
         ax1.set_ylim([-ymax,ymax])
         ax1.yaxis.major.locator.set_params(nbins=5)
         xlim = ax0.get_xlim()
         ax1.set_xlim(xlim)
-        ax1.set_ylabel('Residuals', fontsize='small')
-        ax1.set_xlabel(r'q ($\mathrm{\AA^{-1}}$)', fontsize='small')
-        ax1.tick_params(labelsize='x-small')
+        ax1.set_ylabel(r'$\Delta{I}/\sigma$')
+        ax1.set_xlabel(r'q ($\mathrm{\AA^{-1}}$)')
+
+        # ylim = ax1.get_ylim()
+        # ymax = np.max(np.abs(ylim))
+        # n = int(.9*len(residuals[qdata<=q[-1]]))
+        # ymax = np.max(np.abs(residuals[qdata<=q[-1]][:-n]))
+        # ax1.set_ylim([-ymax,ymax])
+        # ax1.yaxis.major.locator.set_params(nbins=5)
+        # xlim = ax0.get_xlim()
+        # ax1.set_xlim(xlim)
+        # ax1.set_ylabel('Residuals', fontsize='small')
+        # ax1.set_xlabel(r'q ($\mathrm{\AA^{-1}}$)', fontsize='small')
+        # ax1.tick_params(labelsize='x-small')
 
 
         # canvas.SetBackgroundColour('white')
@@ -10345,12 +10347,12 @@ class DenssPlotPanel(wx.Panel):
 
         self.figures.append(fig)
 
-        chi = self.denss_results[5]
+        chis = self.denss_results[5]
         rg = self.denss_results[6]
-        vol = self.denss_results[7]
+        supportV = self.denss_results[7]
 
         ax0 = fig.add_subplot(311)
-        ax0.plot(chi[chi>0])
+        ax0.plot(chis[chis>0])
         ax0.set_ylabel('$\chi^2$', fontsize='small')
         ax0.semilogy()
         ax0.tick_params(labelbottom=False, labelsize='x-small')
@@ -10361,11 +10363,42 @@ class DenssPlotPanel(wx.Panel):
         ax1.tick_params(labelbottom=False, labelsize='x-small')
 
         ax2 = fig.add_subplot(313)
-        ax2.plot(vol[vol>0])
+        ax2.plot(supportV[supportV>0])
         ax2.set_xlabel('Step', fontsize='small')
         ax2.set_ylabel('Support Volume ($\mathrm{\AA^{3}}$)', fontsize='small')
         ax2.semilogy()
         ax2.tick_params(labelsize='x-small')
+
+        # host = fig.add_subplot(111)
+
+        # par1 = host.twinx()
+        # par2 = host.twinx()
+
+        # host.set_xlabel('Step')
+        # host.set_ylabel('$\chi^2$')
+        # par1.set_ylabel('Rg')
+        # par2.set_ylabel('Support Volume')
+
+        # color1 = matplotlib.cm.viridis(0)
+        # color2 = matplotlib.cm.viridis(0.5)
+        # color3 = matplotlib.cm.viridis(.9)
+
+        # p1, = host.plot(chis[chis>0], color=color1,label="$\chi^2$")
+        # p2, = par1.plot(rg[rg!=0], color=color2, label="Rg")
+        # p3, = par2.plot(supportV[supportV>0], color=color3, label="Support Volume")
+
+        # host.semilogy()
+        # par2.semilogy()
+
+        # lns = [p1, p2, p3]
+        # host.legend(handles=lns, loc='best')
+
+        # # right, left, top, bottom
+        # par2.spines['right'].set_position(('outward', 60))
+
+        # host.yaxis.label.set_color(p1.get_color())
+        # par1.yaxis.label.set_color(p2.get_color())
+        # par2.yaxis.label.set_color(p3.get_color())
 
         # canvas.SetBackgroundColour('white')
         # fig.subplots_adjust(left = 0.2, bottom = 0.15, right = 0.95, top = 0.95)
@@ -10413,6 +10446,11 @@ class DenssAveragePlotPanel(wx.Panel):
     def createFSCPlot(self):
         color = SASUtils.update_mpl_style()
 
+        if color == 'black':
+            alpha=0.1
+        else:
+            alpha=0.75
+
         fig = Figure((3.25,2.5))
         canvas = FigureCanvasWxAgg(self, -1, fig)
 
@@ -10433,11 +10471,11 @@ class DenssAveragePlotPanel(wx.Panel):
         self.ax0_hline = ax0.axhline(0.5, color=color, linestyle='--')
         self.fsc_plots = []
         for i in range(fscs.shape[0]):
-            new_plot = ax0.plot(fscs[i,:,0],fscs[i,:,1],color=color, linestyle='--',alpha=0.1)[0]
+            new_plot = ax0.plot(fscs[i,:,0],fscs[i,:,1],color=color, linestyle='--',alpha=alpha)[0]
             self.fsc_plots.append(new_plot)
 
         ax0.plot(res, fsc, 'bo-')
-        ax0.plot([resx],[0.5],'ro',label='Resolution = '+str(resn)+r'$\mathrm{\AA}$')
+        ax0.plot([resx],[0.5],'ro', label='Resolution = %.2f $\mathrm{\AA}$'%resn)
         ax0.set_xlabel('Resolution ($\\AA^{-1}$)', fontsize='small')
         ax0.set_ylabel('Fourier Shell Correlation', fontsize='small')
         ax0.tick_params(labelsize='x-small')
@@ -10456,10 +10494,12 @@ class DenssAveragePlotPanel(wx.Panel):
 class DenssAlignFrame(wx.Frame):
 
     def __init__(self, parent, title):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
         size = (min(450, client_display.Width), min(450, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self.main_frame = wx.FindWindowByName('MainFrame')
@@ -10851,11 +10891,12 @@ class DenssAlignFrame(wx.Frame):
 class BIFTFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm, manip_item):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
         size = (min(800, client_display.Width), min(700, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -12731,14 +12772,1132 @@ class DIFTControlPanel(wx.Panel):
     def onChangeParams(self, evt):
         self.main_frame.showOptionsDialog(focusHead='DIFT')
 
+class TheoreticalFrame(wx.Frame):
+
+    def __init__(self, parent, calc_type, sasm_list):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, calc_type)
+
+        self.CenterOnParent()
+
+        client_display = wx.GetClientDisplayRect()
+        size = (min(900, client_display.Width), min(800, client_display.Height))
+        self.SetSize(self._FromDIP(size))
+
+        self.calc_type = calc_type
+        self.sasm_list = [copy.deepcopy(sasm) for sasm in sasm_list]
+        self.original_sasm_list = sasm_list
+
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+        self.create_layout()
+
+        SASUtils.set_best_size(self)
+        self.SendSizeEvent()
+
+        self.CenterOnParent()
+
+        self.Raise()
+
+    def create_layout(self):
+        panel = wx.Panel(self)
+
+        splitter = wx.SplitterWindow(panel, style=wx.SP_3D|wx.SP_BORDER)
+
+        sub_panel = wx.Panel(splitter)
+
+        self.plot_panel = ComparisonPlotPanel(sub_panel, 'residual')
+        self.results_list = TheoreticalList(sub_panel, self.calc_type,
+            size=self._FromDIP((-1, 10)))
+        self.ctrl_panel = TheoreticalControlPanel(splitter, self, self.calc_type,
+            self.sasm_list)
+
+        results_sizer = wx.BoxSizer(wx.VERTICAL)
+        results_sizer.Add(self.plot_panel, proportion=5, flag=wx.EXPAND)
+        results_sizer.Add(self.results_list, proportion=1, border=self._FromDIP(5),
+            flag=wx.TOP|wx.EXPAND|wx.BOTTOM)
+        sub_panel.SetSizer(results_sizer)
+
+        splitter.SplitVertically(self.ctrl_panel, sub_panel, self._FromDIP(325))
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            splitter.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
+        else:
+            splitter.SetMinimumPaneSize(self._FromDIP(50))
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(splitter, proportion=1, flag=wx.EXPAND)
+
+        panel.SetSizer(sizer)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
+
+        self.set_plot_view('top')
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def set_plot_view(self, plot_type):
+        if plot_type == 'both':
+            self.plot_panel.show_both()
+
+        else:
+            self.plot_panel.show_top()
+
+    def OnClose(self, event):
+        self.ctrl_panel.save_results_on_close = False
+        self.ctrl_panel.Close(event)
+
+        if event.GetVeto():
+            return
+        else:
+            self.Destroy()
+
+
+class TheoreticalControlPanel(scrolled.ScrolledPanel):
+
+    def __init__(self, parent, theory_frame, calc_type, sasm_list, *args, **kwargs):
+
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style']|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.RAISED_BORDER
+
+        scrolled.ScrolledPanel.__init__(self, parent, *args, **kwargs)
+
+        self.parent = parent
+        self.sasm_list = sasm_list
+        self.theory_frame = theory_frame
+        self.calc_type = calc_type
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.abort_event = threading.Event()
+        self.calc_futures = []
+        self.running_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._on_running_timer, self.running_timer)
+
+        self.current_results = {}
+        self.save_results_on_close = False
+
+        if self.calc_type == 'CRYSOL':
+            self.executor = None
+
+        self.create_layout()
+        self._initialize()
+        self.SetupScrolling(scroll_x=False)
+
+        self.standard_paths = wx.StandardPaths.Get()
+        self.save_names = []
+
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def create_layout(self):
+
+        if self.calc_type == 'CRYSOL':
+            ctrl_sizer = self._create_crysol_ctrls()
+
+
+        model_box = wx.StaticBox(self, label='Models')
+
+        self.structure_list = RAWCustomDialogs.CheckListCtrl(model_box,
+            highlight=True, size=self._FromDIP((-1, 100)))
+
+        add_structure = wx.Button(model_box, label='Add')
+        remove_structure = wx.Button(model_box, label='Remove')
+
+        add_structure.Bind(wx.EVT_BUTTON, self._on_add_structure)
+        remove_structure.Bind(wx.EVT_BUTTON, self._on_remove_structure)
+
+        struct_btn_sizer = wx.BoxSizer(wx.VERTICAL)
+        struct_btn_sizer.Add(add_structure)
+        struct_btn_sizer.Add(remove_structure, flag=wx.TOP, border=self._FromDIP(5))
+
+        model_sizer = wx.StaticBoxSizer(model_box, wx.HORIZONTAL)
+        model_sizer.Add(self.structure_list, flag=wx.EXPAND|wx.ALL,
+            border=self._FromDIP(5), proportion=1)
+        model_sizer.Add(struct_btn_sizer, flag=wx.TOP|wx.BOTTOM|wx.RIGHT,
+            border=self._FromDIP(5))
+
+        data_box = wx.StaticBox(self, label='Experimental data')
+
+        self.data_list = RAWCustomDialogs.CheckListCtrl(data_box,
+            highlight=True, size=self._FromDIP((-1, 100)))
+
+        add_data = wx.Button(data_box, label='Add')
+        remove_data = wx.Button(data_box, label='Remove')
+
+        add_data.Bind(wx.EVT_BUTTON, self._on_add_data)
+        remove_data.Bind(wx.EVT_BUTTON, self._on_remove_data)
+
+        data_btn_sizer = wx.BoxSizer(wx.VERTICAL)
+        data_btn_sizer.Add(add_data)
+        data_btn_sizer.Add(remove_data, flag=wx.TOP, border=self._FromDIP(5))
+
+        data_sizer = wx.StaticBoxSizer(data_box, wx.HORIZONTAL)
+        data_sizer.Add(self.data_list, flag=wx.EXPAND|wx.ALL,
+            border=self._FromDIP(5), proportion=1)
+        data_sizer.Add(data_btn_sizer, flag=wx.TOP|wx.BOTTOM|wx.RIGHT,
+            border=self._FromDIP(5))
+
+
+        status_box = wx.StaticBox(self, label='Status')
+        self.status = wx.StaticText(status_box)
+        self.status.SetForegroundColour('Red')
+
+        status_sizer = wx.StaticBoxSizer(status_box, wx.HORIZONTAL)
+        status_sizer.Add(wx.StaticText(status_box, label='Status:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        status_sizer.Add(self.status, border=self._FromDIP(5),
+            flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+
+
+        info_button = wx.Button(self, -1, 'How To Cite')
+        info_button.Bind(wx.EVT_BUTTON, self._onInfoButton)
+
+        save_button = wx.Button(self, wx.ID_OK, 'OK')
+        save_button.Bind(wx.EVT_BUTTON, self._onSaveButton)
+
+        cancel_button = wx.Button(self, wx.ID_OK, 'Cancel')
+        cancel_button.Bind(wx.EVT_BUTTON, self._onCloseButton)
+
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(info_button,1,wx.RIGHT, border=self._FromDIP(5))
+        button_sizer.Add(save_button,1,wx.RIGHT, border=self._FromDIP(5))
+        button_sizer.Add(cancel_button, 1)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(model_sizer, flag=wx.ALL|wx.EXPAND, border=self._FromDIP(5))
+        top_sizer.Add(data_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(5))
+        top_sizer.Add(ctrl_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(5))
+        top_sizer.Add(status_sizer, border=self._FromDIP(5),
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
+        top_sizer.AddStretchSpacer(1)
+        top_sizer.Add(button_sizer, flag=wx.ALIGN_CENTER_HORIZONTAL|wx.TOP|wx.BOTTOM,
+            border=self._FromDIP(5))
+
+        self.SetSizer(top_sizer)
+
+    def _create_crysol_ctrls(self):
+        ctrl_box = wx.StaticBox(self, label='Controls')
+
+        ctrl_parent = ctrl_box
+
+        self.harmonics = wx.TextCtrl(ctrl_parent, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('int'))
+        self.npts = wx.TextCtrl(ctrl_parent, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('int'))
+        self.qmax = wx.TextCtrl(ctrl_parent, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('float'))
+
+        nprocs_tot = multiprocessing.cpu_count()
+        nprocs_list = [str(i) for i in range(nprocs_tot, 0, -1)]
+        default_proc = str(int(max(nprocs_tot//2 -1, 1)))
+        default_index = nprocs_list.index(default_proc)
+        self.nprocs = wx.Choice(ctrl_parent, choices=nprocs_list)
+        self.nprocs.SetSelection(default_index)
+
+        basic_ctrls = wx.FlexGridSizer(cols=2, vgap=self._FromDIP(5),
+            hgap=self._FromDIP(5))
+        basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Harmonics:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        basic_ctrls.Add(self.harmonics, flag=wx.ALIGN_CENTER_VERTICAL)
+        basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Number of points:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        basic_ctrls.Add(self.npts, flag=wx.ALIGN_CENTER_VERTICAL)
+        basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Maximum q:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        basic_ctrls.Add(self.qmax, flag=wx.ALIGN_CENTER_VERTICAL)
+        basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Simultaneous calcs.:'))
+        basic_ctrls.Add(self.nprocs)
+
+        basic_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        basic_sizer.Add(basic_ctrls)
+        basic_sizer.AddStretchSpacer(1)
+
+
+        adv_panel = wx.CollapsiblePane(ctrl_parent, label="Advanced Settings",
+            style=wx.CP_NO_TLW_RESIZE)
+        adv_panel.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.onCollapse)
+        adv_win = adv_panel.GetPane()
+
+        self.save_all_results = wx.CheckBox(adv_win, label='Save all outputs to folder')
+        self.directory_ctrl = wx.DirPickerCtrl(adv_win, style=wx.DIRP_USE_TEXTCTRL|wx.DIRP_SMALL)
+
+        dir_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        dir_sizer.Add(wx.StaticText(adv_win, label='Save to:'))
+        dir_sizer.Add(self.directory_ctrl, proportion=1, flag=wx.LEFT,
+            border=self._FromDIP(5))
+
+        save_sizer = wx.BoxSizer(wx.VERTICAL)
+        save_sizer.Add(self.save_all_results, flag=wx.ALL, border=self._FromDIP(5))
+        save_sizer.Add(dir_sizer, flag=wx.EXPAND|wx.BOTTOM|wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(5))
+
+
+        self.fib = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('int'))
+        self.dns = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('float'))
+        self.dro = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('float_neg'))
+        self.fit_solvent = wx.CheckBox(adv_win, label='Fit solvent')
+        self.constant = wx.CheckBox(adv_win, label='Subtract constant for fit')
+        self.shell = wx.Choice(adv_win, choices=['directional', 'water'])
+        self.energy = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('float'))
+        self.explicit_hydrogen = wx.CheckBox(adv_win, label='Explicit Hydrogen')
+        self.model_id = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('int'))
+        self.chain_id = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)))
+        self.alt_names = wx.CheckBox(adv_win, label='Alternative (old) atom names')
+        self.implicit_hydrogen = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('int'))
+        self.units = wx.Choice(adv_win, choices=['Unknown', '1 - 1/A, q=4pi*sin(th)/l)',
+            '2 - 1/nm, q=4pi*sin(th)/l', '3 - 1/A, q=2*sin(th)/l',
+            '4 - 1/nm, q=2*sin(th)/l'])
+        self.sub_element = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)))
+        self.result_to_plot = wx.Choice(adv_win, choices=['.abs', '.int', 'both'])
+
+        shell_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        shell_sizer.Add(wx.StaticText(adv_win, label='Hydration shell kind:'),
+            border=self._FromDIP(5), flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        shell_sizer.Add(self.shell, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        units_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        units_sizer.Add(wx.StaticText(adv_win, label='Units:'), border=self._FromDIP(5),
+            flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        units_sizer.Add(self.units, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        adv_ctrls = wx.GridBagSizer(vgap=self._FromDIP(5), hgap=self._FromDIP(5))
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Order of Fib. grid:'),
+            (0,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.fib, (0,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Solvent density [e/A^3]:'),
+            (1,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.dns, (1,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Hydration shell contrast [e/A^3]:'),
+            (2,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.dro, (2,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.fit_solvent, (3,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.constant, (4,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(shell_sizer, (5,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Energy (anomalous only):'),
+            (6,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.energy, (6,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.explicit_hydrogen, (7,0), (1,2),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Model ID:'),
+            (8,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.model_id, (8,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Chain ID:'),
+            (9,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.chain_id, (9,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.alt_names, (10,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Implicit Hydrogen:'),
+            (11,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.implicit_hydrogen, (11,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(units_sizer, (12,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Sub element:'),
+            (13,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.sub_element, (13,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Result to plot (no fit):'),
+            (14,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.result_to_plot, (14,1), flag=wx.ALIGN_CENTER_VERTICAL)
+
+        adv_sizer = wx.BoxSizer(wx.VERTICAL)
+        adv_sizer.Add(save_sizer, border=self._FromDIP(5),
+            flag=wx.LEFT|wx.RIGHT|wx.EXPAND)
+        adv_sizer.Add(adv_ctrls, border=self._FromDIP(5),
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
+
+        adv_win.SetSizer(adv_sizer)
+
+
+        self.start_button = wx.Button(ctrl_parent, label='Start')
+        self.abort_button = wx.Button(ctrl_parent, label='Abort')
+
+        self.start_button.Bind(wx.EVT_BUTTON, self.onStartButton)
+        self.abort_button.Bind(wx.EVT_BUTTON, self.onAbortButton)
+        self.abort_button.Disable()
+
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.Add(self.start_button, flag=wx.RIGHT, border=self._FromDIP(5))
+        button_sizer.Add(self.abort_button)
+
+
+        ctrl_sizer = wx.StaticBoxSizer(ctrl_box, wx.VERTICAL)
+        ctrl_sizer.Add(basic_sizer, flag=wx.ALL|wx.EXPAND, border=self._FromDIP(5))
+        ctrl_sizer.Add(adv_panel, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(5))
+        ctrl_sizer.Add(button_sizer, border=self._FromDIP(5),
+            flag=wx.ALIGN_CENTER_HORIZONTAL|wx.LEFT|wx.RIGHT|wx.BOTTOM)
+
+        return ctrl_sizer
+
+    def _initialize(self):
+        self.data_list.Freeze()
+        for sasm in self.sasm_list:
+            name = sasm.getParameter('filename')
+
+            index = self.data_list.addTextItem(name, copy.deepcopy(sasm))
+            self.data_list.checkItem(index)
+
+        self.onCollapse(None)
+        self.data_list.Thaw()
+
+        if self.calc_type == 'CRYSOL':
+            self._initialize_crysol()
+
+    def _initialize_crysol(self):
+        self.harmonics.ChangeValue(str(self.raw_settings.get('crysolHarmonics')))
+        self.npts.ChangeValue(str(self.raw_settings.get('crysolPoints')))
+        self.qmax.ChangeValue(str(self.raw_settings.get('crysolQmax')))
+        self.fib.ChangeValue(str(self.raw_settings.get('crysolFibGrid')))
+        self.dns.ChangeValue(str(self.raw_settings.get('crysolSolvDensity')))
+        self.dro.ChangeValue(str(self.raw_settings.get('crysolHydrDensity')))
+        self.fit_solvent.SetValue(self.raw_settings.get('crysolFitSolvent'))
+        self.constant.SetValue(self.raw_settings.get('crysolConstant'))
+        self.shell.SetStringSelection(self.raw_settings.get('crysolShell'))
+        self.explicit_hydrogen.SetValue(self.raw_settings.get('crysolExplicitH'))
+        self.alt_names.SetValue(self.raw_settings.get('crysolAltNames'))
+        self.units.SetStringSelection(self.raw_settings.get('crysolUnit'))
+
+        if self.raw_settings.get('crysolEnergy') != 'None':
+            self.energy.ChangeValue(str(self.raw_settings.get('crysolEnergy')))
+
+        if self.raw_settings.get('crysolImplicitH') != 'None':
+            self.implicit_hydrogen.ChangeValue(str(self.raw_settings.get('crysolImplicitH')))
+
+        if self.raw_settings.get('crysolModelID') != 'None':
+            self.model_id.ChangeValue(str(self.raw_settings.get('crysolModelID')))
+
+        if self.raw_settings.get('crysolChainID') != 'None':
+            self.chain_id.ChangeValue(str(self.raw_settings.get('crysolChainID')))
+
+        if self.raw_settings.get('crysolSubElement') != 'None':
+            self.sub_element.ChangeValue(str(self.raw_settings.get('crysolSubElement')))
+
+        self.result_to_plot.SetStringSelection(self.raw_settings.get('crysolResultToPlot'))
+
+    def set_status(self, status):
+        wx.CallAfter(self.status.SetLabel, status)
+
+    def onCollapse(self, event):
+        self.Layout()
+        self.Refresh()
+        self.SendSizeEvent()
+        self.parent.Layout()
+        self.parent.Refresh()
+        self.parent.SendSizeEvent()
+        self.theory_frame.Layout()
+        self.theory_frame.Refresh()
+        self.theory_frame.SendSizeEvent()
+
+    def _on_add_structure(self, event):
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        load_path = dirctrl_panel.getDirLabel()
+
+        if self.calc_type == 'CRYSOL':
+            filters = 'PDB and mmCIF files (*.pdb;*.cif)|*.pdb;*.cif|All files (*.*)|*.*'
+
+        dialog = wx.FileDialog(self, 'Select model files', load_path,
+            style=wx.FD_OPEN|wx.FD_MULTIPLE, wildcard=filters)
+
+        if dialog.ShowModal() == wx.ID_OK:
+            files = dialog.GetPaths()
+        else:
+            files = None
+
+        # Destroy the dialog
+        dialog.Destroy()
+
+        unused_items = []
+
+        if files is not None:
+            self.structure_list.Freeze()
+            for f in files:
+                _, name = os.path.split(f)
+                _, ext = os.path.splitext(name)
+
+                use_item = True
+
+                if self.calc_type == 'CRYSOL':
+                    if ext != '.pdb' and ext != '.cif':
+                        use_item = False
+
+                if use_item:
+                    index = self.structure_list.addTextItem(name, f)
+                    self.structure_list.checkItem(index)
+
+                else:
+                    unused_items.append(name)
+
+            self.onCollapse(None)
+            self.structure_list.Thaw()
+
+        if len(unused_items) > 0:
+            msg = ("The following files were not loaded because they are not "
+                ".pdb or .cif files:")
+            for name in unused_items:
+                msg += "\n{}".format(name)
+
+            dialog = wx.MessageDialog(self, msg, 'Models not loaded',
+                style=wx.OK)
+            dialog.ShowModal()
+            dialog.Destroy()
+
+    def _on_remove_structure(self, event):
+        self.structure_list.removeSelectedItems()
+
+    def _on_add_data(self, event):
+        manip_panel = wx.FindWindowByName('ManipulationPanel')
+
+        names = []
+        item_dict = {}
+
+        for item in manip_panel.all_manipulation_items:
+            sasm = item.getSASM()
+            name = sasm.getParameter('filename')
+
+            names.append(name)
+            item_dict[name] = sasm
+
+        dialog = wx.MultiChoiceDialog(self, 'Select experimental data to fit',
+            'Select data', choices=names)
+        dialog.SendSizeEvent()
+
+        if dialog.ShowModal() == wx.ID_OK:
+            items = dialog.GetSelections()
+        else:
+            items = None
+
+        dialog.Destroy()
+
+        if items is not None:
+            self.data_list.Freeze()
+            for index in items:
+                name = names[index]
+                sasm = item_dict[name]
+
+                index = self.data_list.addTextItem(name, copy.deepcopy(sasm))
+                self.data_list.checkItem(index)
+
+            self.onCollapse(None)
+            self.data_list.Thaw()
+
+    def _on_remove_data(self, event):
+        self.data_list.removeSelectedItems()
+
+    def onStartButton(self, evt):
+        wx.CallAfter(self._start_calculations)
+
+    def onAbortButton(self, evt):
+        wx.CallAfter(self._abort_calculations)
+
+    def _start_calculations(self):
+        models = self._get_models()
+
+        if len(models) == 0:
+            msg = ('One or more models must be checked in order to calculate '
+                'theoretical profiles.')
+            dialog = wx.MessageDialog(self, msg, 'No models selected',
+                style=wx.OK)
+            dialog.ShowModal()
+            dialog.Destroy()
+
+        else:
+            self.set_status('Running calculation')
+            if self.calc_type == 'CRYSOL':
+                self._start_crysol()
+
+    def _start_crysol(self):
+        save_all = self.save_all_results.GetValue()
+        save_path = self.directory_ctrl.GetPath()
+
+        self.start_button.Disable()
+        self.abort_button.Enable()
+
+        settings = self._get_crysol_settings()
+        models = self._get_models()
+        data = self._get_data()
+
+        if len(data) == 0:
+            data = None
+
+        self.abort_event.clear()
+
+        if data is not None:
+            profile_names = self.save_profiles(data)
+        else:
+            profile_names = None
+
+        settings['abort_event'] = self.abort_event
+        settings['profiles'] = profile_names
+        settings['atsas_dir'] = self.raw_settings.get('ATSASDir')
+
+        if save_all:
+            settings['save_output'] = save_all
+            settings['output_dir'] = save_path
+
+        self.crysol_ref = {}
+
+        for model in models:
+            model_name_ext = os.path.split(model)[1]
+            model_name = os.path.splitext(model_name_ext)[0]
+            if data is None:
+                self.crysol_ref[model_name] = [model_name_ext, None]
+            else:
+                for j, profile in enumerate(data):
+                    profile_name = os.path.split(os.path.splitext(profile_names[j])[0])[1]
+                    self.crysol_ref[('{}_{}'.format(model_name,
+                        profile_name))] = [model_name_ext, profile]
+
+        if save_all:
+            path_exists = os.path.exists(save_path)
+
+            if not path_exists:
+                msg = ("Save path doesn't exist, select a new save path.")
+                dialog = wx.MessageDialog(self, msg, 'Invalid save path',
+                    style=wx.OK)
+                dialog.ShowModal()
+                dialog.Destroy()
+
+                self._cleanup()
+
+            else:
+                output_exists = False
+
+                for model_name in self.crysol_ref.keys():
+                    alm_name = '{}.alm'.format(os.path.splitext(model_name)[0])
+                    output_exists = (output_exists or
+                        os.path.exists(os.path.join(save_path, alm_name)))
+
+                    if output_exists:
+                        break
+
+                if output_exists:
+                    msg = ("Some output files already exist and will be "
+                        "overwritten. Do you want continue?")
+                    dialog = wx.MessageDialog(self, msg, 'Invalid save path',
+                        style=wx.YES_NO|wx.NO_DEFAULT)
+                    res = dialog.ShowModal()
+                    dialog.Destroy()
+
+                    if res == wx.ID_NO:
+                        path_exists = False
+                        self._cleanup()
+
+        else:
+            path_exists = True
+
+        if path_exists:
+            self.calc_futures = []
+
+            nprocs = int(self.nprocs.GetStringSelection())
+
+            self.executor = ThreadPoolExecutor(nprocs)
+
+            for model in models:
+                crysol_future = self.executor.submit(RAWAPI.crysol,
+                    [model,], **settings)
+
+                self.calc_futures.append(crysol_future)
+
+            self.running_timer.Start(1000)
+
+    def _get_crysol_settings(self):
+        prefix = None
+        lm = int(self.harmonics.GetValue())
+        fb = int(self.fib.GetValue())
+        ns = int(self.npts.GetValue())
+        smax = float(self.qmax.GetValue())
+
+        unit_choice = self.units.GetStringSelection()
+
+        if unit_choice == 'Unknown':
+            units = None
+        else:
+            units = int(unit_choice.split('-')[0].strip())
+
+        dns = self.dns.GetValue()
+        dro = self.dro.GetValue()
+        constant = self.constant.GetValue()
+        fit_solvent = self.fit_solvent.GetValue()
+
+        energy_val = self.energy.GetValue()
+        try:
+            energy = float(energy_val)
+        except ValueError:
+            energy = None
+
+        shell = self.shell.GetStringSelection()
+        explicit_hydrogen = self.explicit_hydrogen.GetValue()
+
+        implicit_hydrogen_val = self.implicit_hydrogen.GetValue()
+        try:
+            implicit_hydrogen = int(implicit_hydrogen_val)
+        except ValueError:
+            implicit_hydrogen = None
+
+        sub_element_val = self.sub_element.GetValue()
+        if sub_element_val == '':
+            sub_element = None
+        else:
+            sub_element = sub_element_val
+
+        model_id_val = self.model_id.GetValue()
+        if model_id_val == '':
+            model_id = None
+        else:
+            model_id = model_id_val
+
+        chain_id_val = self.chain_id.GetValue()
+        if chain_id_val == '':
+            chain_id = None
+        else:
+            chain_id = chain_id_val
+
+        alternative_names = self.alt_names.GetValue()
+
+
+        crysol_settings = {
+            'prefix'            : prefix,
+            'lm'                : lm,
+            'fb'                : fb,
+            'ns'                : ns,
+            'smax'              : smax,
+            'units'             : units,
+            'dns'               : dns,
+            'dro'               : dro,
+            'constant'          : constant,
+            'fit_solvent'       : fit_solvent,
+            'energy'            : energy,
+            'shell'             : shell,
+            'explicit_hydrogen' : explicit_hydrogen,
+            'implicit_hydrogen' : implicit_hydrogen,
+            'sub_element'       : sub_element,
+            'model_id'          : model_id,
+            'chain_id'          : chain_id,
+            'alternative_names' : alternative_names,
+            }
+
+        return crysol_settings
+
+    def _get_models(self):
+        models = []
+
+        tot = self.structure_list.GetItemCount()
+
+        for i in range(tot):
+            if self.structure_list.IsItemChecked(i):
+                path = self.structure_list.GetItemData(i)
+
+                models.append(path)
+
+        return models
+
+    def _get_data(self):
+        data = []
+
+        tot = self.data_list.GetItemCount()
+
+        for i in range(tot):
+            if self.data_list.IsItemChecked(i):
+                sasm = self.data_list.GetItemData(i)
+
+                data.append(sasm)
+
+        return data
+
+    def _on_running_timer(self, evt):
+        if self.calc_type == 'CRYSOL':
+            calc_finished = all([future.done() for future in self.calc_futures])
+
+            if calc_finished:
+                self.executor.shutdown()
+
+        if calc_finished:
+            self.running_timer.Stop()
+            self._process_results()
+
+    def _process_results(self):
+        if self.calc_type == 'CRYSOL':
+            theory, residuals, data, params = self._process_crysol_results()
+
+        if len(theory) > 0:
+            self.send_to_plot(theory, residuals, data)
+            self.update_results_list(params)
+
+            self.current_results = {
+                'theory'    : theory,
+                'residuals' : residuals,
+                'data'      : data,
+                'params'    : params,
+                }
+
+        self._cleanup()
+
+    def _process_crysol_results(self):
+        results = [future.result() for future in self.calc_futures]
+
+        theory_list = []
+        residual_list = []
+        data_list = []
+        params = []
+
+        for res in results:
+            for key, value in res.items():
+                param_list = []
+
+                crysol_ref_data = self.crysol_ref[key]
+
+                if crysol_ref_data[1] is None:
+                    if self.result_to_plot.GetStringSelection() == '.abs':
+                        profiles = [value[0]]
+                    elif self.result_to_plot.GetStringSelection() == '.int':
+                        profiles = [value[1]]
+                    else:
+                        profiles = value
+                else:
+                    profiles = value
+
+                param_list.append(crysol_ref_data[0])
+
+                theory_list.extend(profiles)
+
+                if crysol_ref_data[1] is not None:
+                    sasm = profiles[0]
+
+                    exp_data = crysol_ref_data[1]
+
+                    if np.round(sasm.getQ()[0]*10,4) == np.round(exp_data.getQ()[0], 4):
+                        profile = exp_data.copy_no_metadata()
+                        profile.scaleRelativeQ(0.1)
+
+                    else:
+                        profile = exp_data
+
+                    diff = SASProc.subtract(profile, sasm, forced=True,
+                        copy_params=False)
+                    temp_p = SASM.SASM(profile.getErr(), profile.getQ(),
+                        profile.getErr(), profile.getAllParameters())
+                    residual = SASProc.divide(diff, temp_p, forced=True,
+                        copy_params=False)
+
+                    residual_list.append([residual.getQ(), residual.getI(), key])
+
+                    if profile not in data_list:
+                        data_list.append(profile)
+
+                    param_list.append(exp_data.getParameter('filename'))
+
+                else:
+                    param_list.append('')
+
+                cd = profiles[0].getParameter('analysis')['crysol']
+                param_list.append(cd['Rg'])
+                param_list.append(cd['Excluded_volume'])
+
+                if 'Chi_squared' in cd:
+                    param_list.append(cd['Chi_squared'])
+                else:
+                    param_list.append('')
+
+                if 'Probability_of_fit' in cd:
+                    param_list.append(cd['Probability_of_fit'])
+                else:
+                    param_list.append('')
+
+                param_list.append(cd['Hydration_shell_contrast'])
+
+                params.append(param_list)
+
+        return theory_list, residual_list, data_list, params
+
+    def _cleanup(self):
+        self.start_button.Enable()
+        self.abort_button.Disable()
+
+        if self.abort_event.is_set():
+            self.set_status('Aborted calculation')
+        else:
+            self.set_status('Finished calculation')
+
+    def send_to_plot(self, theory, residuals, data):
+        if len(residuals) == 0:
+            self.theory_frame.set_plot_view('one')
+            self.theory_frame.plot_panel.plot_theory_data(theory)
+        else:
+            self.theory_frame.set_plot_view('both')
+            self.theory_frame.plot_panel.plot_fit_data(theory, residuals, data)
+
+    def update_results_list(self, params):
+        self.theory_frame.results_list.DeleteAllItems()
+
+        for item in params:
+            self.theory_frame.results_list.Append(item)
+
+    def _abort_calculations(self):
+        self.abort_event.set()
+
+        if self.calc_type == 'CRYSOL':
+            self._abort_crysol()
+
+    def _abort_crysol(self):
+        if self.executor is not None:
+            self.executor.shutdown()
+
+    def save_profiles(self, profiles):
+        tempdir = self.standard_paths.GetTempDir()
+
+        profile_names = []
+
+        if (self.main_frame.OnlineControl.isRunning()
+            and tempdir == self.main_frame.OnlineControl.getTargetDir()):
+            self.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
+        for sasm in profiles:
+            save_sasm = sasm.copy_no_metadata()
+
+            base_name = os.path.splitext(save_sasm.getParameter('filename'))[0]
+            save_name = '{}.dat'.format(base_name)
+
+            i = 1
+            while os.path.join(tempdir, save_name) in profile_names:
+                save_name = '{}_{}.dat'.format(base_name, i)
+                i += 1
+
+            save_sasm.setParameter('filename', save_name)
+
+            try:
+                SASFileIO.saveMeasurement(save_sasm, tempdir, self.raw_settings,
+                    filetype='.dat')
+            except SASExceptions.HeaderSaveError as e:
+                self._showSaveError('header')
+
+            self.save_names.append(save_name)
+            profile_names.append(os.path.join(tempdir, save_name))
+
+        if restart_timer:
+            wx.CallAfter(self.main_frame.controlTimer, True)
+
+        return profile_names
+
+    def _onCloseButton(self, evt):
+        self.save_results_on_close = False
+        self.theory_frame.Close()
+
+    def _onSaveButton(self, evt):
+        self.save_results_on_close = True
+        self.theory_frame.Close()
+        self._on_save_info()
+
+    def _onInfoButton(self, evt):
+        msg = ('If you use CRYSOL in your work, in addition '
+            'to citing the RAW paper please cite the paper given here:\n'
+            'https://www.embl-hamburg.de/biosaxs/manuals/crysol.html')
+        wx.MessageBox(str(msg), "How to cite CRYSOL", style=wx.ICON_INFORMATION|wx.OK)
+
+    def _on_close(self):
+        self._abort_calculations()
+
+        if self.calc_type == 'CRYSOL':
+            if self.executor is not None:
+                self.executor.shutdown()
+
+        for name in self.save_names:
+            if os.path.exists(name):
+                os.remove(name)
+
+    def Close(self, event):
+        process_finished = True
+
+        if self.running_timer.IsRunning():
+            process_finished = False
+
+        if not process_finished and event.CanVeto():
+            msg = ("Warning: {} calculations are still "
+                "running. Closing this window will abort the currently "
+                "running processes. Do you want to continue closing the "
+                "window?".format(self.calc_type))
+            dlg = wx.MessageDialog(self.main_frame, msg, "Abort {}?".format(self.calc_type),
+                style = wx.ICON_WARNING | wx.YES_NO)
+            proceed = dlg.ShowModal()
+            dlg.Destroy()
+
+            if proceed == wx.ID_YES:
+                self.running_timer.Stop()
+                process_finished = True
+
+            else:
+                event.Veto()
+
+        else:
+            process_finished
+
+        if process_finished:
+            if self.save_results_on_close:
+                self.__on_save_info()
+
+            self._on_close()
+
+    def _on_save_info(self):
+        if 'theory' in self.current_results:
+            theory_profiles = self.current_results['theory']
+        else:
+            theory_profiles = []
+
+        if len(theory_profiles) > 0:
+            plotpanel = wx.FindWindowByName('PlotPanel')
+
+            for j, t_profile in enumerate(theory_profiles):
+                params = self.current_results['params']
+
+                exp_data_name = ''
+                plot_num = 1
+
+                if self.calc_type == 'CRYSOL':
+                    exp_data_name = params[j][1]
+
+                if exp_data_name != '':
+                    for sasm in self.theory_frame.original_sasm_list:
+                        if sasm.getParameter('filename') == exp_data_name:
+                            if sasm.axes == plotpanel.subplot1:
+                                plot_num = 1
+                            else:
+                                plot_num = 2
+
+                            break
+
+                RAWGlobals.mainworker_cmd_queue.put(['to_plot_num', [t_profile,
+                    plot_num]])
+
+class TheoreticalList(wx.ListCtrl, wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin,):
+    # wx.lib.mixins.listctrl.ColumnSorterMixin):
+
+    def __init__(self, parent, calc_type, *args, **kwargs):
+        wx.ListCtrl.__init__(self, parent, *args, style=wx.LC_REPORT, **kwargs)
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+
+        self.calc_type = calc_type
+
+        if self.calc_type == 'CRYSOL':
+            self.InsertColumn(0, 'Model')
+            self.InsertColumn(1, 'Data')
+            self.InsertColumn(2, 'Rg')
+            self.InsertColumn(3, 'Ex. Vol.')
+            self.InsertColumn(4, 'Chi^2')
+            self.InsertColumn(5, 'Prob.')
+            self.InsertColumn(6, 'Contrast')
+
+        wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin.__init__(self)
+        # wx.lib.mixins.listctrl.ColumnSorterMixin.__init__(self, 7)
+
+        self.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
+
+    def _onRightMouseButton(self, evt):
+        if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+            wx.CallAfter(self._showPopupMenu)
+        else:
+            self._showPopupMenu()
+
+    def _showPopupMenu(self):
+        menu = wx.Menu()
+
+        menu.Append(1, 'Export Data')
+
+        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
+        self.PopupMenu(menu)
+
+        menu.Destroy()
+
+    def _onPopupMenuChoice(self, evt):
+
+        Mainframe = wx.FindWindowByName('MainFrame')
+
+        if evt.GetId() == 1:
+            #Export data
+            self._export_data()
+
+    def _export_data(self):
+        dirctrl = wx.FindWindowByName('DirCtrlPanel')
+        path = str(dirctrl.getDirLabel())
+
+        filename = 'crysol_results.csv'
+
+        dialog = wx.FileDialog(self, message=("Please select save directory "
+            "and enter save file name"), style=wx.FD_SAVE, defaultDir=path,
+            defaultFile=filename)
+
+        if dialog.ShowModal() == wx.ID_OK:
+            save_path = dialog.GetPath()
+            name, ext = os.path.splitext(save_path)
+            save_path = name + '.csv'
+            dialog.Destroy()
+        else:
+            dialog.Destroy()
+            return
+
+        RAWGlobals.save_in_progress = True
+        self.main_frame.setStatus('Saving CRYSOL data', 0)
+
+        ncols = self.GetColumnCount()
+
+        headers = []
+
+        for i in range(ncols):
+            item = self.GetColumn(i)
+            item_label = item.GetText()
+            headers.append(item_label)
+
+        nitems = self.GetItemCount()
+
+        item_list = []
+
+        for i in range(nitems):
+            item_data = []
+
+            for j in range(ncols):
+                item = self.GetItem(i, j)
+                item_data.append(item.GetText())
+
+            item_list.append(item_data)
+
+        header_str = '#' + ','.join(headers)
+
+        SASFileIO.saveCSVFile(save_path, item_list, header_str)
+
+        RAWGlobals.save_in_progress = False
+        self.main_frame.setStatus('', 0)
+
 class AmbimeterFrame(wx.Frame):
 
     def __init__(self, parent, title, iftm, manip_item):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
         size = (min(450, client_display.Width), min(450, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
@@ -13157,10 +14316,12 @@ class AmbimeterFrame(wx.Frame):
 class SupcombFrame(wx.Frame):
 
     def __init__(self, parent, title):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
         size = (min(450, client_display.Width), min(450, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self.main_frame = wx.FindWindowByName('MainFrame')
@@ -13529,10 +14690,12 @@ class SupcombFrame(wx.Frame):
 class CifsupFrame(wx.Frame):
 
     def __init__(self, parent, title):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
         size = (min(500, client_display.Width), min(250, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
         self.SetMinSize(self._FromDIP((min(500, client_display.Width), -1)))
 
@@ -13898,14 +15061,15 @@ class CifsupFrame(wx.Frame):
 class SVDFrame(wx.Frame):
 
     def __init__(self, parent, title, secm, manip_item):
-
-        client_display = wx.GetClientDisplayRect()
-        size = size = (min(950, client_display.Width), min(750, client_display.Height))
-
         self.secm = secm
         self.manip_item = manip_item
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
+
+        client_display = wx.GetClientDisplayRect()
+        size = size = (min(950, client_display.Width), min(750, client_display.Height))
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -14407,6 +15571,8 @@ class SVDControlPanel(wx.Panel):
             'svd_s'         : [],
             'svd_v'         : [],
             'svd_int_norm'  : [],
+            'acor_u'        : [],
+            'acor_v'        : [],
             'secm_choice'   : 'sub',
             'sub_secm'      : None,
             'bl_secm'       : None,
@@ -15108,6 +16274,12 @@ class SVDControlPanel(wx.Panel):
             elif key == 'svd_int_norm':
                 value = self.svd_a
 
+            elif key == 'acor_u':
+                value = self.svd_U_autocor
+
+            elif key == 'acor_v':
+                value = self.svd_V_autocor
+
             elif key =='secm_choice':
                 profile_window = wx.FindWindowById(self.control_ids['profile'], self)
                 profile_type = profile_window.GetStringSelection()
@@ -15156,10 +16328,12 @@ class SVDControlPanel(wx.Panel):
 class EFAFrame(wx.Frame):
 
     def __init__(self, parent, title, secm, manip_item):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
         size = (min(950, client_display.Width), min(825, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -15867,12 +17041,6 @@ class EFAControlPanel2(wx.Panel):
                         backward_sv = np.roll(backward_sv, -1*bkg_comp)
                         points = np.column_stack((forward_sv, backward_sv))
 
-                        if int(self.bkg_components.GetValue()) == 0:
-
-                            if ('exp_type' in self.panel1_results and
-                                self.panel1_results['exp_type'] == 'IEC/SEC-SAXS'):
-                                wx.CallAfter(self._find_regals_bkg)
-
                     if np.all(np.sort(forward_sv) == forward_sv) and np.all(np.sort(backward_sv) == backward_sv):
                         self.setSVs(points)
                     elif self.ctrl_type == 'REGALS':
@@ -16133,17 +17301,37 @@ class EFAResultsPlotPanel2(wx.Panel):
         a = self.subplots['Forward EFA']
         b = self.subplots['Backward EFA']
 
-        self.f_lines = []
-        self.b_lines = []
+        if ((int(matplotlib.__version__.split('.')[0])==3
+            and int(matplotlib.__version__.split('.')[1]) <5)
+            or int(matplotlib.__version__.split('.')[0]) < 3):
+            self.f_lines = []
+            self.b_lines = []
+            self.f_markers = []
+            self.b_markers = []
 
-        self.f_markers = []
-        self.b_markers = []
+            while len(a.lines) != 0:
+                a.lines.pop(0)
 
-        while len(a.lines) != 0:
-            a.lines.pop(0)
+            while len(b.lines) != 0:
+                b.lines.pop(0)
 
-        while len(b.lines) != 0:
-            b.lines.pop(0)
+        else:
+            for line in self.f_lines:
+                line.remove()
+
+            for line in self.b_lines:
+                line.remove()
+
+            for line in self.f_markers:
+                line.remove()
+
+            for line in self.b_markers:
+                line.remove()
+
+            self.f_lines = []
+            self.b_lines = []
+            self.f_markers = []
+            self.b_markers = []
 
         if ((int(matplotlib.__version__.split('.')[0]) ==1
             and int(matplotlib.__version__.split('.')[1]) >=5)
@@ -16658,11 +17846,16 @@ class EFAControlPanel3(wx.Panel):
 
         if (len(self.secm.getSASM(int_type=int_type).getQ())
             != len(self.panel1_results['int'].T[0])):
+
+            start = svd_results['fstart']
+            end = svd_results['fend']
+
             sasms = self.secm.getSASMList(start, end, int_type=int_type)
 
             (svd_U, svd_s, svd_V, svd_U_autocor, svd_V_autocor, i, err,
                 svd_a, success) = SASCalc.SVDonSASMs(sasms, err_norm=True,
-                do_binning=False)
+                do_binning=False, do_autocorr=False)
+
             self.efa_input_D = svd_a
             self.efa_input_intensity = i
             self.efa_input_err = err
@@ -17419,12 +18612,31 @@ class EFARangePlotPanel(wx.Panel):
     def refresh(self):
         a = self.subplots['SECPlot']
 
-        self.range_lines = []
-        self.range_arrows = []
-        self.cut_line = None
+        if ((int(matplotlib.__version__.split('.')[0])==3
+            and int(matplotlib.__version__.split('.')[1]) <5)
+            or int(matplotlib.__version__.split('.')[0]) < 3):
 
-        while len(a.lines) != 0:
-            a.lines.pop(0)
+            self.range_lines = []
+            self.range_arrows = []
+            self.cut_line = None
+
+            while len(a.lines) != 0:
+                a.lines.pop(0)
+
+        else:
+            for lines in self.range_lines:
+                lines[0].remove()
+                lines[1].remove()
+
+            for line in self.range_arrows:
+                line.remove()
+
+            if self.cut_line is not None:
+                self.cut_line.remove()
+
+            self.range_lines = []
+            self.range_arrows = []
+            self.cut_line = None
 
         if ((int(matplotlib.__version__.split('.')[0]) ==1
                     and int(matplotlib.__version__.split('.')[1]) >=5)
@@ -17472,16 +18684,31 @@ class EFARangePlotPanel(wx.Panel):
 
             if ((int(matplotlib.__version__.split('.')[0]) ==1 and
                 int(matplotlib.__version__.split('.')[1]) >=5) or
-                int(matplotlib.__version__.split('.')[0]) > 1):
+                (int(matplotlib.__version__.split('.')[0]) > 1 and
+                int(matplotlib.__version__.split('.')[0]) < 3) or
+                (int(matplotlib.__version__.split('.')[0]) == 3 and
+                int(matplotlib.__version__.split('.')[1]) <8)):
                 a.set_prop_cycle(None) #Resets the color cycler to the original state
+            elif ((int(matplotlib.__version__.split('.')[0]) == 3 and
+                int(matplotlib.__version__.split('.')[1]) >=8) or
+                (int(matplotlib.__version__.split('.')[0]) > 3)):
+                prop_cycle = copy.deepcopy(matplotlib.rcParams['axes.prop_cycle'])
+                color_cycle = prop_cycle.by_key()['color']
             else:
                 a.set_color_cycle(None)
 
             for i in range(ranges.shape[0]):
                 if ((int(matplotlib.__version__.split('.')[0]) ==1 and
                     int(matplotlib.__version__.split('.')[1]) >=5) or
-                    int(matplotlib.__version__.split('.')[0]) > 1):
+                    (int(matplotlib.__version__.split('.')[0]) > 1 and
+                    int(matplotlib.__version__.split('.')[0]) < 3) or
+                    (int(matplotlib.__version__.split('.')[0]) == 3 and
+                    int(matplotlib.__version__.split('.')[1]) <8)):
                     color = next(a._get_lines.prop_cycler)['color']
+                elif ((int(matplotlib.__version__.split('.')[0]) == 3 and
+                    int(matplotlib.__version__.split('.')[1]) >=8) or
+                    (int(matplotlib.__version__.split('.')[0]) > 3)):
+                    color = color_cycle[i]
                 else:
                     color =next(a._get_lines.color_cycle)
 
@@ -17570,6 +18797,8 @@ class REGALSFrame(wx.Frame):
     def __init__(self, parent, secm, manip_item):
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, "REGALS")
+
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
         size = (min(1500, client_display.Width), min(875, client_display.Height))
@@ -19616,6 +20845,8 @@ class REGALSXCalibration(wx.Dialog):
         wx.Dialog.__init__(self, parent, wx.ID_ANY, 'REGALS X Data Calibration', *args,
             style = wx.RESIZE_BORDER|wx.CAPTION, **kwargs)
 
+        self.CenterOnParent()
+
         self.series = series
         self.regals_frame = regals_frame
         self.start = start
@@ -19801,6 +21032,8 @@ class REGALSBackground(wx.Dialog):
         svd_a_binned, *args, **kwargs):
         wx.Dialog.__init__(self, parent, wx.ID_ANY, 'REGALS Background Components', *args,
             style = wx.RESIZE_BORDER|wx.CAPTION, **kwargs)
+
+        self.CenterOnParent()
 
         self.series = series
         self.start = start
@@ -20183,7 +21416,7 @@ class REGALSBackgroundSVDPlot(wx.Panel):
 
         self.SetSizer(sizer)
 
-    def plot_data(self, xdata, ydata, label, axis, color=None):
+    def plot_data(self, xdata, ydata, label, axis, color):
         #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
         self.canvas.mpl_disconnect(self.cid)
 
@@ -20205,11 +21438,12 @@ class REGALSBackgroundSVDPlot(wx.Panel):
             except Exception:
                 line = None
 
-        if color is None:
-            if axis == 'sv':
-                color = next(self.sv_subplot._get_lines.prop_cycler)['color']
-            else:
-                color = next(self.ac_subplot._get_lines.prop_cycler)['color']
+        # This is broken in matplotlib >=3.8, so for now we require a color
+        # if color is None:
+        #     if axis == 'sv':
+        #         color = next(self.sv_subplot._get_lines.prop_cycler)['color']
+        #     else:
+        #         color = next(self.ac_subplot._get_lines.prop_cycler)['color']
 
         if line is None:
             if axis == 'sv':
@@ -20279,17 +21513,78 @@ class REGALSBackgroundSVDPlot(wx.Panel):
 class SimilarityFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm_list):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(600, client_display.Width), min(400, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        size = (min(800, client_display.Width), min(800, client_display.Height))
         self.SetSize(self._FromDIP(size))
 
 
         self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
         self.sasm_list = sasm_list
+
+        self.create_layout()
+
+        # SASUtils.set_best_size(self)
+        self.SendSizeEvent()
+
+        self.CenterOnParent()
+
+        self.Raise()
+
+    def create_layout(self):
+        panel = wx.Panel(self)
+
+        notebook = wx.Notebook(panel)
+
+        residuals_panel = ResidualsPanel(notebook, self.sasm_list, self)
+        ratio_panel = RatioPanel(notebook, self.sasm_list, self)
+        similiarity_list_panel = SimilarityTestPanel(notebook, self.sasm_list)
+
+        notebook.AddPage(residuals_panel, 'Residuals')
+        notebook.AddPage(ratio_panel, 'Ratios')
+        notebook.AddPage(similiarity_list_panel, 'Similarity Test')
+
+        done_button = wx.Button(panel, -1, 'Close')
+        done_button.Bind(wx.EVT_BUTTON, self._onCloseButton)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(notebook, proportion=1, flag=wx.EXPAND)
+        sizer.Add(done_button, flag=wx.ALL|wx.ALIGN_LEFT, border=self._FromDIP(5))
+
+        panel.SetSizer(sizer)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(panel, proportion=1, flag=wx.EXPAND)
+        self.SetSizer(top_sizer)
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _onCloseButton(self, evt):
+        self._onClose()
+
+    def _onClose(self):
+        self.OnClose(1)
+
+    def OnClose(self, event):
+        self.Destroy()
+
+class SimilarityTestPanel(wx.Panel):
+
+    def __init__(self, parent, sasm_list):
+
+        wx.Panel.__init__(self, parent, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
+
+        self.parent = parent
+        self.sasm_list = [copy.deepcopy(sasm) for sasm in sasm_list]
 
         self.main_frame = wx.FindWindowByName('MainFrame')
         self.raw_settings = self.main_frame.raw_settings
@@ -20375,7 +21670,7 @@ class SimilarityFrame(wx.Frame):
         highlight_diff_sizer.Add(highlight_same_pval, 0, wx.RIGHT,
             border=self._FromDIP(3))
 
-        self.listPanel = similiarityListPanel(parent, (-1, 300))
+        self.listPanel = SimilarityListPanel(parent, (-1, 300))
 
         #Creating the fixed buttons
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -20576,13 +21871,7 @@ class SimilarityFrame(wx.Frame):
         RAWGlobals.save_in_progress = False
         self.main_frame.setStatus('', 0)
 
-    def _onClose(self):
-        self.OnClose(1)
-
-    def OnClose(self, event):
-        self.Destroy()
-
-class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
+class SimilarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
     wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin):
     """Makes a sortable list panel for the similarity data. Right now,
     only has columns for the CorMap test.
@@ -20675,15 +21964,1145 @@ class similiarityListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
 
         self.list_ctrl.SetItemData(items, items)
 
+class SimilarityPlotPanel(wx.Panel):
+
+    def __init__(self, parent):
+
+        wx.Panel.__init__(self, parent, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.line_color = SASUtils.update_mpl_style()
+
+        self.sim_type = 'cormap'
+
+        self._create_layout()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _create_layout(self):
+        self.fig = Figure((5,4), 75)
+
+        self.line_dict = {}
+
+        self.subplot = self.fig.add_subplot(1,1,1)
+        self.label_plots()
+
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+
+        self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
+        self.toolbar.Realize()
+
+        # self.toolbar = NavigationToolbar2WxAgg(self.canvas)
+        # self.toolbar.Realize()
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.EXPAND)
+        sizer.Add(self.toolbar, 0, wx.EXPAND)
+
+        self.SetSizer(sizer)
+
+        # Connect the callback for the draw_event so that window resizing works:
+        self.fig.tight_layout(pad=1, h_pad=1)
+
+        self.canvas.draw()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+        self.canvas.mpl_connect('motion_notify_event', self._onMouseMotionEvent)
+
+    def updateColors(self):
+        color = SASUtils.update_mpl_style()
+
+        # self.hline.set_color(color)
+
+        self.ax_redraw()
+
+    def ax_redraw(self, widget=None):
+        ''' Redraw plots on window resize event '''
+
+        self.canvas.mpl_disconnect(self.cid)
+        self.fig.tight_layout(pad=1, h_pad=1)
+        self.canvas.draw()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def plot_data(self, prob_data, test_data):
+        self.prob_data = prob_data
+        self.test_data = test_data
+
+        length = self.prob_data.shape[0]
+
+        ticks = np.arange(-.5, length-0.5, 1)
+        tick_labels = np.arange(0, length, 1)
+
+        self.fig.clear()
+        self.subplot = self.fig.add_subplot(1,1,1)
+        self.label_plots()
+
+        if self.sim_type == 'cormap':
+            kwargs = {'vmin': 0, 'vmax': 1}
+        else:
+            kwargs = {'vmin': None, 'vmax': None}
+
+        pos = self.subplot.imshow(self.prob_data, interpolation='none',
+            cmap='plasma', **kwargs)
+
+        self.subplot.grid(color=self.line_color, linestyle='--')
+        self.subplot.set_xticks(ticks)
+        self.subplot.set_yticks(ticks)
+        self.subplot.set_xticklabels(tick_labels)
+        self.subplot.set_yticklabels(tick_labels)
+
+        self.fig.colorbar(pos, ax=self.subplot)
+
+        # self.autoscale_plot()
+        self.ax_redraw()
+
+    def label_plots(self):
+        self.subplot.set_xlabel('Profile #')
+        self.subplot.set_ylabel('Profile #')
+
+    def autoscale_plot(self):
+        redraw = False
+
+        plot_list = [self.subplot]
+
+        for plot in plot_list:
+            plot.set_autoscale_on(True)
+
+            oldx = plot.get_xlim()
+            oldy = plot.get_ylim()
+
+            plot.relim(True)
+            plot.autoscale_view()
+
+            newx = plot.get_xlim()
+            newy = plot.get_ylim()
+
+            if newx != oldx or newy != oldy:
+                redraw = True
+
+        if redraw:
+            self.ax_redraw()
+
+    def _onMouseMotionEvent(self, event):
+
+        if event.inaxes:
+            x, y = event.xdata, event.ydata
+            # xlabel = self.subplot.xaxis.get_label().get_text()
+            # ylabel = self.subplot.yaxis.get_label().get_text()
+            xlabel = 'X'
+            ylabel = 'Y'
+
+            x_val = int(x+0.5)
+            y_val = int(y+0.5)
+
+            self.toolbar.set_status(('{}={} {}={} {}={} {}={}'.format(xlabel,
+                x_val, ylabel, y_val, 'Prob.', self.prob_data[x_val, y_val],
+                'Test val', self.test_data[x_val, y_val])))
+
+        else:
+            self.toolbar.set_status('')
+
+
+class ResidualsPanel(wx.Panel):
+
+    def __init__(self, parent, sasm_list, comp_frame):
+
+        wx.Panel.__init__(self, parent)
+
+        self.parent = parent
+        self.sasm_list = sasm_list
+        self.comparison_frame = comp_frame
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = self.main_frame.raw_settings
+
+        sizer = self.create_layout()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def create_layout(self):
+
+        splitter = wx.SplitterWindow(self, style=wx.SP_3D|wx.SP_BORDER)
+
+        self.plot_panel = ComparisonPlotPanel(splitter, 'residual')
+        self.control_panel = ComparisonControlPanel(splitter, self.sasm_list,
+            'residual', self.comparison_frame, self)
+
+        splitter.SplitVertically(self.control_panel, self.plot_panel, self._FromDIP(325))
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            splitter.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
+        else:
+            splitter.SetMinimumPaneSize(self._FromDIP(50))
+
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        top_sizer.Add(splitter, proportion=1, flag=wx.EXPAND)
+
+        self.SetSizer(top_sizer)
+
+    def send_to_plot(self, top_plot, bottom_plot, ref_item):
+        self.plot_panel.plot_data(top_plot, bottom_plot, ref_item)
+
+class RatioPanel(wx.Panel):
+
+    def __init__(self, parent, sasm_list, comp_frame):
+
+        wx.Panel.__init__(self, parent)
+
+        self.parent = parent
+        self.sasm_list = sasm_list
+        self.comparison_frame = comp_frame
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = self.main_frame.raw_settings
+
+        sizer = self.create_layout()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def create_layout(self):
+
+        splitter = wx.SplitterWindow(self, style=wx.SP_3D|wx.SP_BORDER)
+
+        self.plot_panel = ComparisonPlotPanel(splitter, 'ratio')
+        self.control_panel = ComparisonControlPanel(splitter, self.sasm_list,
+            'ratio', self.comparison_frame, self)
+
+        splitter.SplitVertically(self.control_panel, self.plot_panel, self._FromDIP(325))
+
+        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+            splitter.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
+        else:
+            splitter.SetMinimumPaneSize(self._FromDIP(50))
+
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        top_sizer.Add(splitter, proportion=1, flag=wx.EXPAND)
+
+        self.SetSizer(top_sizer)
+
+    def send_to_plot(self, top_plot, bottom_plot, ref_item):
+        self.plot_panel.plot_data(top_plot, bottom_plot, ref_item)
+
+class ComparisonPlotPanel(wx.Panel):
+
+    def __init__(self, parent, plot_type):
+
+        wx.Panel.__init__(self, parent, style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = self.main_frame.raw_settings
+
+        self.plot_type = plot_type
+
+        self.top_plot_data = []
+        self.bottom_plot_data = []
+        self.plot_scale = 'loglin'
+        self.plot_legend = True
+        self._plot_shown = 0
+        self.bottom_legend = False
+
+        self.line_color = SASUtils.update_mpl_style()
+
+        self._create_layout()
+
+        self.top_plot.set_xscale('linear')
+        self.top_plot.set_yscale('log')
+        self.bottom_plot.set_xscale('linear')
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _create_layout(self):
+        self.fig = Figure((5,4), 75)
+
+        self.line_dict = {}
+
+        self.top_plot = self.fig.add_subplot(2,1,1)
+        self.bottom_plot = self.fig.add_subplot(2,1,2)
+
+        self.label_plots()
+
+        self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
+
+        self.toolbar = RAWCustomCtrl.CustomPlotToolbar(self, self.canvas)
+        self.toolbar.Realize()
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.EXPAND)
+        sizer.Add(self.toolbar, 0, wx.EXPAND)
+
+        self.SetSizer(sizer)
+
+        # Connect the callback for the draw_event so that window resizing works:
+        self.fig.tight_layout(pad=1, h_pad=1)
+
+        self.canvas.draw()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+        self.canvas.callbacks.connect('button_release_event', self._onMouseButtonReleaseEvent)
+        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
+
+    def updateColors(self):
+        color = SASUtils.update_mpl_style()
+
+        # self.hline.set_color(color)
+
+        self.ax_redraw()
+
+    def ax_redraw(self, widget=None):
+        ''' Redraw plots on window resize event '''
+
+        self.canvas.mpl_disconnect(self.cid)
+        self.fig.tight_layout(pad=1, h_pad=1)
+        self.canvas.draw()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def plot_data(self, top_plot_data, bottom_plot_data, ref_num):
+        self.top_plot_data = top_plot_data
+        self.bottom_plot_data = bottom_plot_data
+
+        self.top_plot.cla()
+        self.bottom_plot.cla()
+        self.label_plots()
+
+        for j, data in enumerate(self.top_plot_data):
+            sasm, show = data
+
+            name = sasm.getParameter('filename')
+
+            q = sasm.getQ()
+            i = sasm.getI()
+
+            line, = self.top_plot.plot(q, i, label=name)
+
+            if not show:
+                line.set_visible(False)
+
+            if j == ref_num:
+                line.set_linewidth(3)
+                line.set_zorder(10)
+
+        for data, show in bottom_plot_data:
+            line, = self.bottom_plot.plot(data[0], data[1])
+
+            if not show:
+                line.set_visible(False)
+
+        if self.plot_type == 'ratio':
+            self.bottom_plot.axhline(1, color=self.line_color)
+        elif self.plot_type == 'residual':
+            self.bottom_plot.axhline(0, color=self.line_color)
+
+        plot_scale = self.plot_scale
+        self.plot_scale = 'linlin'
+
+        self._updateLegend()
+        self.updatePlot(plot_scale, False)
+        self.ax_redraw()
+
+    def plot_theory_data(self, top_plot_data):
+        self.top_plot_data = [[data, True] for data in top_plot_data]
+        self.bottom_plot_data = []
+
+        self.top_plot.cla()
+        self.bottom_plot.cla()
+        self.label_plots()
+
+        for data in self.top_plot_data:
+            sasm, show = data
+
+            name = sasm.getParameter('filename')
+
+            q = sasm.getQ()
+            i = sasm.getI()
+
+            line, = self.top_plot.plot(q, i, label=name)
+
+            if not show:
+                line.set_visible(False)
+
+        plot_scale = self.plot_scale
+        self.plot_scale = 'linlin'
+
+        self._updateLegend()
+        self.updatePlot(plot_scale, False)
+        self.ax_redraw()
+
+    def plot_fit_data(self, theory, residuals, exp_data):
+        self.top_plot_data = [[data, True] for data in theory]
+        self.top_plot_data = self.top_plot_data + [[data, True] for data in exp_data]
+
+        self.bottom_plot_data = [[data, True] for data in residuals]
+
+        self.top_plot.cla()
+        self.bottom_plot.cla()
+        self.label_plots()
+
+        if len(exp_data) == 1:
+
+            for sasm in theory:
+
+                name = sasm.getParameter('filename')
+
+                q = sasm.getQ()
+                i = sasm.getI()
+
+                line, = self.top_plot.plot(q, i, label=name)
+
+
+            for sasm in exp_data:
+                name = sasm.getParameter('filename')
+
+                q = sasm.getQ()
+                i = sasm.getI()
+
+                line, = self.top_plot.plot(q, i, '.', label=name, color='0.5')
+                line.set_zorder(-1)
+
+            for data in residuals:
+                line, = self.bottom_plot.plot(data[0], data[1], label=data[2])
+
+            self._updateLegend()
+
+        else:
+            for sasm in theory:
+
+                name = sasm.getParameter('filename')
+
+                q = sasm.getQ()
+                i = sasm.getI()
+
+                line, = self.top_plot.plot(q, i, label=name)
+
+
+            for sasm in exp_data:
+                name = sasm.getParameter('filename')
+
+                q = sasm.getQ()
+                i = sasm.getI()
+
+                line, = self.top_plot.plot(q, i, '.', label=name)
+                line.set_zorder(-1)
+
+            for data in residuals:
+                line, = self.bottom_plot.plot(data[0], data[1], label=data[2])
+
+            self._updateLegend(True)
+
+        if self.plot_type == 'ratio':
+            self.bottom_plot.axhline(1, color=self.line_color)
+        elif self.plot_type == 'residual':
+            self.bottom_plot.axhline(0, color=self.line_color)
+
+        plot_scale = self.plot_scale
+        self.plot_scale = 'linlin'
+
+
+        self.updatePlot(plot_scale, False)
+        self.ax_redraw()
+
+    def label_plots(self):
+        self.top_plot.set_title('Profiles')
+        self.top_plot.set_xlabel('q')
+        self.top_plot.set_ylabel('I(q)')
+
+        self.bottom_plot.set_xlabel('q')
+
+        if self.plot_type == 'residual':
+            self.bottom_plot.set_title('Residuals')
+            self.bottom_plot.set_ylabel('I/$\sigma$')
+        elif self.plot_type == 'ratio':
+            self.bottom_plot.set_title('Ratio')
+            self.bottom_plot.set_ylabel('Ratio')
+
+    def autoscale_plot(self, scale_bottom_x_separate=False, draw=True):
+        top_plot_min_x = None
+        top_plot_max_x = None
+        top_plot_min_y = None
+        top_plot_max_y = None
+
+        if self.plot_scale == 'loglin' or self.plot_scale == 'loglog':
+            log_y = True
+        else:
+            log_y = False
+
+        if self.plot_scale == 'linlog' or self.plot_scale == 'loglog':
+            log_x = True
+        else:
+            log_x = False
+
+        for sasm, show in self.top_plot_data:
+            if show:
+                q = sasm.getQ()
+                i = sasm.getI()
+
+                if log_x:
+                    q = q[q>0]
+                if log_y:
+                    i = i[i>0]
+
+                if top_plot_min_x is None:
+                    top_plot_min_x = min(q)
+                else:
+                    top_plot_min_x = min(top_plot_min_x, min(q))
+
+                if top_plot_max_x is None:
+                    top_plot_max_x = max(q)
+                else:
+                    top_plot_max_x = max(top_plot_max_x, max(q))
+
+                if top_plot_min_y is None:
+                    top_plot_min_y = min(i)
+                else:
+                    top_plot_min_y = min(top_plot_min_y, min(i))
+
+                if top_plot_max_y is None:
+                    top_plot_max_y = max(i)
+                else:
+                    top_plot_max_y = max(top_plot_max_y, max(i))
+
+        if top_plot_min_x is not None and top_plot_max_x is not None:
+            self.top_plot.set_xlim(top_plot_min_x, top_plot_max_x)
+
+        if top_plot_min_y is not None and top_plot_max_y is not None:
+            self.top_plot.set_ylim(top_plot_min_y, top_plot_max_y)
+
+        bottom_plot_min_x = None
+        bottom_plot_max_x = None
+        bottom_plot_min_y = None
+        bottom_plot_max_y = None
+
+        for data, show in self.bottom_plot_data:
+            if show:
+                q = data[0]
+                i = data[1]
+
+                if log_x:
+                    q = q[q>0]
+
+                if bottom_plot_min_x is None:
+                    bottom_plot_min_x = min(q)
+                else:
+                    bottom_plot_min_x = min(bottom_plot_min_x, min(q))
+
+                if bottom_plot_max_x is None:
+                    bottom_plot_max_x = max(q)
+                else:
+                    bottom_plot_max_x = max(bottom_plot_max_x, max(q))
+
+                if bottom_plot_min_y is None:
+                    bottom_plot_min_y = min(i)
+                else:
+                    bottom_plot_min_y = min(bottom_plot_min_y, min(i))
+
+                if bottom_plot_max_y is None:
+                    bottom_plot_max_y = max(i)
+                else:
+                    bottom_plot_max_y = max(bottom_plot_max_y, max(i))
+
+        if (scale_bottom_x_separate and bottom_plot_min_x is not None and bottom_plot_max_x is not None):
+            self.bottom_plot.set_xlim(bottom_plot_min_x, bottom_plot_max_x)
+
+        elif top_plot_min_x is not None and top_plot_max_x is not None:
+            self.bottom_plot.set_xlim(top_plot_min_x, top_plot_max_x)
+
+        if bottom_plot_min_y is not None and bottom_plot_max_y is not None:
+            self.bottom_plot.set_ylim(bottom_plot_min_y, bottom_plot_max_y)
+
+        if draw:
+            self.ax_redraw()
+
+    def updatePlot(self, plot_scale, draw=True):
+        if plot_scale != self.plot_scale:
+            self.plot_scale = plot_scale
+
+            self.autoscale_plot(draw=False)
+
+            if self.plot_scale == 'linlin':
+                self.top_plot.set_xscale('linear')
+                self.top_plot.set_yscale('linear')
+                self.bottom_plot.set_xscale('linear')
+
+            elif self.plot_scale == 'loglin':
+                self.top_plot.set_xscale('linear')
+                self.top_plot.set_yscale('log')
+                self.bottom_plot.set_xscale('linear')
+
+            elif self.plot_scale == 'loglog':
+                self.top_plot.set_xscale('log')
+                self.top_plot.set_yscale('log')
+                self.bottom_plot.set_xscale('log')
+
+            elif self.plot_scale == 'linlog':
+                self.top_plot.set_xscale('log')
+                self.top_plot.set_yscale('linear')
+                self.bottom_plot.set_xscale('log')
+
+            if draw:
+                self.ax_redraw()
+
+    def _onMouseButtonReleaseEvent(self, event):
+        ''' Find out where the mouse button was released
+        and show a pop up menu to change the settings
+        of the figure the mouse was over '''
+        if event.button == 3:
+            if float(matplotlib.__version__[:3]) >= 1.2:
+                if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
+                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                        wx.CallAfter(self._showPopupMenu)
+                    else:
+                        self._showPopupMenu()
+
+            else:
+                if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
+                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                        wx.CallAfter(self._showPopupMenu)
+                    else:
+                        self._showPopupMenu()
+
+    def _showPopupMenu(self):
+        menu = wx.Menu()
+
+        menu.AppendCheckItem(1, 'Profiles Legend')
+        menu.Append(2, 'Export Data As CSV')
+
+        legend = self.top_plot.get_legend()
+
+        if self.plot_legend:
+            menu.Check(1, True)
+
+        axes_menu = wx.Menu()
+
+        axes_list = [
+            (3, 'Lin-Lin'),
+            (4, 'Log-Lin'),
+            (5, 'Log-Log'),
+            (6, 'Lin-Log'),
+            ]
+
+        for key, label in axes_list:
+            item = axes_menu.AppendRadioItem(key, label)
+
+            if label.replace('-', '').lower() == self.plot_scale:
+                item.Check(True)
+
+        menu.AppendSubMenu(axes_menu, 'Axes')
+
+        self.PopupMenu(menu)
+
+        menu.Destroy()
+
+    def _onPopupMenuChoice(self, evt):
+        my_id = evt.GetId()
+
+        if my_id == 1:
+            if evt.IsChecked():
+                self.plot_legend = True
+            else:
+                self.plot_legend = False
+
+            self._updateLegend(self.bottom_legend)
+
+            self.ax_redraw()
+
+        elif my_id == 2:
+            self._exportData(self)
+
+        elif my_id == 3:
+            self.updatePlot('linlin')
+        elif my_id == 4:
+            self.updatePlot('loglin')
+        elif my_id == 5:
+            self.updatePlot('loglog')
+        elif my_id == 6:
+            self.updatePlot('linlog')
+
+    def _updateLegend(self, bottom_legend=False):
+        legend_lines = []
+        legend_labels = []
+        bot_leg_lines = []
+        bot_leg_labels = []
+
+        legend = self.top_plot.get_legend()
+        bot_legend = self.bottom_plot.get_legend()
+
+        if legend is not None:
+            legend.remove()
+
+        if bot_legend is not None:
+            bot_legend.remove()
+
+        if self.plot_legend:
+            for each_line in self.top_plot.lines:
+                if (each_line.get_visible() and each_line.get_label() != '_zero_'
+                    and each_line.get_label() != '_nolegend_'
+                    and each_line.get_label() != '_line1'):
+                    legend_lines.append(each_line)
+                    legend_labels.append(each_line.get_label())
+
+            self.top_plot.legend(legend_lines, legend_labels)
+
+            if bottom_legend:
+                self.bottom_legend = True
+                for each_line in self.bottom_plot.lines:
+                    if (each_line.get_visible() and each_line.get_label() != '_zero_'
+                        and each_line.get_label() != '_nolegend_'
+                        and each_line.get_label() != '_line1'):
+                        bot_leg_lines.append(each_line)
+                        bot_leg_labels.append(each_line.get_label())
+
+                self.bottom_plot.legend(bot_leg_lines, bot_leg_labels)
+
+            else:
+                self.bottom_legend = False
+
+    def _exportData(self, evt):
+        data_list = []
+        header = ''
+
+        if len(self.top_plot_data) == len(self.bottom_plot_data):
+            for j in range(len(self.top_plot_data)):
+                sasm, show = self.top_plot_data[j]
+
+                data, show2 = self.bottom_plot_data[j]
+
+                name = sasm.getParameter('filename')
+
+                if show:
+                    q = sasm.getQ()
+                    i = sasm.getI()
+                    err = sasm.getErr()
+
+                    data_list.append(q)
+                    data_list.append(i)
+                    data_list.append(err)
+
+                    xlabel = '{}_{}'.format(name, 'q')
+                    ylabel = '{}_{}'.format(name, 'I(q)')
+                    errlabel = '{}_{}'.format(name, 'err')
+
+                    header = header + '{},{},{},'.format(xlabel, ylabel, errlabel)
+
+
+                    if show2 and self._plot_shown == 0:
+                        bot_data = data[1]
+
+                        data_list.append(bot_data)
+
+                        bot_label = '{}_{}'.format(name, self.plot_type)
+
+                        header = header+'{}, '.format(bot_label)
+                    else:
+                        header = header+' '
+
+        else:
+            for j in range(len(self.top_plot_data)):
+                sasm, show = self.top_plot_data[j]
+
+                name = sasm.getParameter('filename')
+
+                if show:
+                    q = sasm.getQ()
+                    i = sasm.getI()
+                    err = sasm.getErr()
+
+                    data_list.append(q)
+                    data_list.append(i)
+                    data_list.append(err)
+
+                    xlabel = '{}_{}'.format(name, 'q')
+                    ylabel = '{}_{}'.format(name, 'I(q)')
+                    errlabel = '{}_{}'.format(name, 'err')
+
+                    header = header + '{},{},{},'.format(xlabel, ylabel, errlabel)
+
+            if self._plot_shown == 0:
+                for j in range(len(self.bottom_plot_data)):
+                    data, show = self.bottom_plot_data[j]
+
+                    name = data[2]
+
+                    if show:
+                        q = data[0]
+                        i = data[1]
+
+                        data_list.append(q)
+                        data_list.append(i)
+
+                        xlabel = '{}_residual_{}'.format(name, 'q')
+                        ylabel = '{}_residual_{}'.format(name, 'I(q)')
+
+                        header = header + '{},{},'.format(xlabel, ylabel)
+
+        header = header.rstrip(', ')
+
+        if len(data_list) == 0:
+            msg = 'Must have data shown on the plot to export it.'
+            wx.CallAfter(wx.MessageBox, str(msg), "No Data Shown", style = wx.ICON_ERROR | wx.OK)
+        else:
+            dirctrl = wx.FindWindowByName('DirCtrlPanel')
+            path = str(dirctrl.getDirLabel())
+
+            filename = self.plot_type.replace(' ', '_') + '.csv'
+
+            dialog = wx.FileDialog(self, message=("Please select save "
+                "directory and enter save file name"), style = wx.FD_SAVE,
+                defaultDir = path, defaultFile = filename)
+
+            if dialog.ShowModal() == wx.ID_OK:
+                save_path = dialog.GetPath()
+                name, ext = os.path.splitext(save_path)
+                save_path = name + '.csv'
+                dialog.Destroy()
+            else:
+                dialog.Destroy()
+                return
+
+            RAWGlobals.save_in_progress = True
+            self.main_frame.setStatus('Saving Kratky data', 0)
+
+            SASFileIO.saveUnevenCSVFile(save_path, data_list, header)
+
+            RAWGlobals.save_in_progress = False
+            self.main_frame.setStatus('', 0)
+
+    def show_both(self):
+        if self._plot_shown != 0:
+            self.top_plot.set_visible(True)
+            self.bottom_plot.set_visible(True)
+
+            if ((int(matplotlib.__version__.split('.')[0]) == 3
+                and int(matplotlib.__version__.split('.')[1]) >= 4) or
+                int(matplotlib.__version__.split('.')[0]) > 3):
+                gs = matplotlib.gridspec.GridSpec(2,1)
+                self.top_plot.set_subplotspec(gs.new_subplotspec((0,0)))
+                self.bottom_plot.set_subplotspec(gs.new_subplotspec((1,0)))
+            else:
+                self.top_plot.change_geometry(2,1,1)
+                self.bottom_plot.change_geometry(2,1,2)
+
+            self._plot_shown = 0
+            self.canvas.draw()
+
+    def show_top(self):
+        if self._plot_shown != 1:
+            self.top_plot.set_visible(True)
+            self.bottom_plot.set_visible(False)
+
+
+            if ((int(matplotlib.__version__.split('.')[0]) == 3
+                and int(matplotlib.__version__.split('.')[1]) >= 4) or
+                int(matplotlib.__version__.split('.')[0]) > 3):
+                gs = matplotlib.gridspec.GridSpec(1,1)
+                self.top_plot.set_subplotspec(gs.new_subplotspec((0,0)))
+            else:
+                self.top_plot.change_geometry(1,1,1)
+
+            self.top_plot.set_zorder(2)
+            self.bottom_plot.set_zorder(1)
+
+            self._plot_shown = 1
+            self.canvas.draw()
+
+class ComparisonControlPanel(scrolled.ScrolledPanel):
+
+    def __init__(self, parent, sasm_list, plot_type, comp_frame, plot_parent,
+        *args, **kwargs):
+
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style']|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.RAISED_BORDER
+
+        scrolled.ScrolledPanel.__init__(self, parent, *args, **kwargs)
+
+        self.parent = parent
+        self.comparison_frame = comp_frame
+        self.plot_parent = plot_parent
+        self.sasm_list = [copy.deepcopy(sasm) for sasm in sasm_list]
+        self.plot_type = plot_type
+
+        self.reference_item = 0
+        self.scale = 'None'
+        self.norm_residuals = True
+
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        self.raw_settings = self.main_frame.raw_settings
+
+        self._create_layout()
+        self._initialize()
+        self.SetupScrolling()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _create_layout(self):
+
+        ref_parent = self
+
+        filenames = [sasm.getParameter('filename') for sasm in self.sasm_list]
+
+        self.ref_ctrl = wx.Choice(ref_parent, choices=filenames)
+        self.ref_ctrl.SetSelection(self.reference_item)
+        self.ref_ctrl.Bind(wx.EVT_CHOICE, self._on_reference_ctrl)
+
+        ref_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        ref_sizer.Add(wx.StaticText(ref_parent, label='Ref. profile:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        ref_sizer.Add(self.ref_ctrl, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(2))
+
+        self.check_box_list = []
+
+        show_box = wx.StaticBox(self, -1, 'Show on plot')
+        show_sizer = wx.StaticBoxSizer(show_box, wx.VERTICAL)
+
+        check_parent = show_box
+
+        for name in filenames:
+            check = wx.CheckBox(check_parent, label=name)
+            check.SetValue(True)
+            check.Bind(wx.EVT_CHECKBOX, self._on_show_ctrl)
+
+            self.check_box_list.append(check)
+
+            show_sizer.Add(check, flag=wx.LEFT|wx.TOP|wx.RIGHT,
+                border=self._FromDIP(5))
+
+        show_sizer.AddSpacer(self._FromDIP(5))
+
+        scale_parent = self
+
+        self.scale_ctrl = wx.Choice(scale_parent, choices=['None',
+            'Scale, all q', 'Scale, high q', 'I(0), Guinier',
+            'I(0), GNOM', 'I(0), BIFT'])
+        self.scale_ctrl.SetStringSelection(self.scale)
+        self.scale_ctrl.Bind(wx.EVT_CHOICE, self._on_scale_ctrl)
+
+        scale_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        scale_sizer.Add(wx.StaticText(scale_parent, label='Scale:'))
+        scale_sizer.Add(self.scale_ctrl, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(2))
+
+        norm_parent = self
+        self.norm_ctrl = wx.CheckBox(norm_parent, label='Normalize Residuals')
+        self.norm_ctrl.SetValue(self.norm_residuals)
+        self.norm_ctrl.Bind(wx.EVT_CHECKBOX, self._on_norm_ctrl)
+
+        norm_sizer = wx.BoxSizer(wx.VERTICAL)
+        norm_sizer.Add(self.norm_ctrl)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(show_sizer, border=self._FromDIP(5),
+            flag=wx.ALL|wx.EXPAND)
+        top_sizer.Add(ref_sizer, border=self._FromDIP(5),
+             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+        top_sizer.Add(scale_sizer, border=self._FromDIP(5),
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+        top_sizer.Add(norm_sizer, border=self._FromDIP(5),
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM)
+
+        if self.plot_type == 'ratio':
+            top_sizer.Hide(norm_sizer, recursive=True)
+
+        self.SetSizer(top_sizer)
+
+    def _initialize(self):
+        self.original_scales = [copy.copy(sasm.getScale()) for sasm in self.sasm_list]
+
+        self.guinier_i0s = []
+        self.gnom_i0s = []
+        self.bift_i0s = []
+
+        for sasm in self.sasm_list:
+            analysis = sasm.getParameter('analysis')
+
+            if 'guinier' in analysis:
+                i0 = float(analysis['guinier']['I0'])
+                self.guinier_i0s.append(i0)
+            else:
+                self.guinier_i0s.append(None)
+
+            if 'GNOM' in analysis:
+                i0 = float(analysis['GNOM']['Real_Space_I0'])
+                self.gnom_i0s.append(i0)
+            else:
+                self.gnom_i0s.append(None)
+
+            if 'BIFT' in analysis:
+                i0 = float(analysis['BIFT']['Real_Space_I0'])
+                self.bift_i0s.append(i0)
+            else:
+                self.bift_i0s.append(None)
+
+        self._plot_data()
+
+    def _on_show_ctrl(self, evt):
+        wx.CallAfter(self._plot_data)
+
+    def _on_reference_ctrl(self, evt):
+        self.reference_item = self.ref_ctrl.GetSelection()
+
+        wx.CallAfter(self._scale_data)
+
+    def _on_scale_ctrl(self, evt):
+        self.scale = self.scale_ctrl.GetStringSelection()
+
+        wx.CallAfter(self._scale_data)
+
+    def _on_norm_ctrl(self, evt):
+        self.norm_residuals = self.norm_ctrl.GetValue()
+
+        wx.CallAfter(self._plot_data)
+
+    def _scale_data(self):
+        scale_sasms = []
+
+        for j, sasm in enumerate(self.sasm_list):
+            if j == self.reference_item:
+                ref_sasm = sasm
+            else:
+                scale_sasms.append(sasm)
+
+            scale = self.original_scales[j]
+            sasm.scale(scale)
+
+        if self.scale == 'Scale, all q':
+            SASProc.superimpose(ref_sasm, scale_sasms, 'Scale')
+
+        elif self.scale == 'Scale, high q':
+            qmin, qmax = ref_sasm.getQrange()
+            q = ref_sasm.getQ()
+
+            dq = q[-1] - q[0]
+
+            high_q = q[0] + dq*0.67
+            new_qmin = ref_sasm.closest(q, high_q)
+
+            for sasm in self.sasm_list:
+                sasm.setQrange([new_qmin, qmax])
+
+            SASProc.superimpose(ref_sasm, scale_sasms, 'Scale')
+
+            for sasm in self.sasm_list:
+                sasm.setQrange([qmin, qmax])
+
+        elif self.scale == 'I(0), Guinier':
+            has_i0s = [i0 is not None for i0 in self.guinier_i0s]
+
+            if all(has_i0s):
+                for j, sasm in enumerate(self.sasm_list):
+                    sasm.scaleRelative(1/self.guinier_i0s[j])
+
+            else:
+                wx.CallAfter(self.scale_ctrl.SetStringSelection, 'None')
+                msg = ('Not all profiles have Guinier I0 values, reverting '
+                    'to no scale.')
+
+                wx.CallAfter(self.main_frame.showMessageDialog,
+                    self.comparison_frame, msg, "Missing I(0) values",
+                    wx.ICON_ERROR|wx.OK)
+
+        elif self.scale == 'I(0), GNOM':
+            has_i0s = [i0 is not None for i0 in self.gnom_i0s]
+
+            if all(has_i0s):
+                for j, sasm in enumerate(self.sasm_list):
+                    sasm.scaleRelative(1/self.gnom_i0s[j])
+
+            else:
+                wx.CallAfter(self.scale_ctrl.SetStringSelection, 'None')
+                msg = ('Not all profiles have GNOM I0 values, reverting '
+                    'to no scale.')
+
+                wx.CallAfter(self.main_frame.showMessageDialog,
+                    self.comparison_frame, msg, "Missing I(0) values",
+                    wx.ICON_ERROR|wx.OK)
+
+        elif self.scale == 'I(0), BIFT':
+            has_i0s = [i0 is not None for i0 in self.bift_i0s]
+
+            if all(has_i0s):
+                for j, sasm in enumerate(self.sasm_list):
+                    sasm.scaleRelative(1/self.bift_i0s[j])
+
+            else:
+                wx.CallAfter(self.scale_ctrl.SetStringSelection, 'None')
+                msg = ('Not all profiles have GNOM I0 values, reverting '
+                    'to no scale.')
+
+                wx.CallAfter(self.main_frame.showMessageDialog,
+                    self.comparison_frame, msg, "Missing I(0) values",
+                    wx.ICON_ERROR|wx.OK)
+
+        self._plot_data()
+
+    def _plot_data(self):
+        top_plot_data = []
+        bottom_plot_data = []
+
+        ref_sasm = self.sasm_list[self.reference_item]
+        ref_q = ref_sasm.getQ()
+        ref_i = ref_sasm.getI()
+
+        for j, sasm in enumerate(self.sasm_list):
+            show = self.check_box_list[j].GetValue()
+            show2 = show
+
+            if j == self.reference_item:
+                show2 = False
+
+            top_plot_data.append([sasm, show])
+
+            q = sasm.getQ()
+            i = sasm.getI()
+            err = sasm.getErr()
+
+            if self.plot_type == 'residual':
+                residual = i - ref_i
+                if self.norm_residuals:
+                    y_data = residual/err
+                else:
+                    y_data = residual
+            elif self.plot_type == 'ratio':
+                y_data = i/ref_i
+
+            bottom_plot_data.append([[q, y_data], show2])
+
+        self.plot_parent.send_to_plot(top_plot_data, bottom_plot_data, self.reference_item)
 
 class NormKratkyFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm_list):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
         size = (min(800, client_display.Width), min(600, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -20822,7 +23241,17 @@ class NormKratkyPlotPanel(wx.Panel):
         rg = float(analysis_dict['guinier']['Rg'])
         i0 = float(analysis_dict['guinier']['I0'])
         vc = float(analysis_dict['molecularWeight']['VolumeOfCorrelation']['Vcor'])
-        name = sasm.getParameter('filename')
+        filename = sasm.getParameter('filename')
+
+        cur_names = [data.label for data in self.line_dict.values()]
+
+        i = 1
+        temp_name = filename
+        while temp_name in cur_names:
+            temp_name = '{}_{}'.format(filename, i)
+            i += i
+
+        name = temp_name
 
         qmin, qmax = sasm.getQrange()
         q = sasm.q[qmin:qmax]
@@ -20845,9 +23274,11 @@ class NormKratkyPlotPanel(wx.Panel):
             xdata = q*np.sqrt(vc)
             ydata = (q)**2*vc*i/i0
 
-        data_line, = self.subplot.plot(xdata, ydata, animated=True, label=name)
+        data_line, = self.subplot.plot(xdata, ydata, animated=True, label=filename)
 
         self.line_dict[data_line] = self.DataTuple(sasm, rg, i0, vc, data_line, name)
+
+        self._updateLegend()
 
         if len(self.line_dict) == 1:
             self.canvas.mpl_disconnect(self.cid)
@@ -20859,6 +23290,38 @@ class NormKratkyPlotPanel(wx.Panel):
         self.autoscale_plot()
 
         return data_line
+
+    def updatePlotSASMs(self, sasm_list):
+        data_names = []
+
+        for sasm in sasm_list:
+            filename = sasm.getParameter('filename')
+
+            i = 1
+            temp_name = filename
+            while temp_name in data_names:
+                temp_name = '{}_{}'.format(filename, i)
+                i += i
+            name = temp_name
+
+            data_names.append(name)
+
+            for data_line in self.line_dict:
+                line_name = self.line_dict[data_line].label
+
+                if line_name == name:
+                    analysis_dict = sasm.getParameter('analysis')
+
+                    rg = float(analysis_dict['guinier']['Rg'])
+                    i0 = float(analysis_dict['guinier']['I0'])
+                    vc = float(analysis_dict['molecularWeight']['VolumeOfCorrelation']['Vcor'])
+
+                    self.line_dict[data_line] = self.DataTuple(sasm, rg, i0, vc,
+                        data_line, name)
+
+                    break
+
+        self.updatePlot(self.plot_type)
 
     def autoscale_plot(self):
         redraw = False
@@ -20924,9 +23387,8 @@ class NormKratkyPlotPanel(wx.Panel):
 
         for line, data in self.line_dict.items():
             sasm = data.sasm
-            qmin, qmax = sasm.getQrange()
-            q = sasm.q[qmin:qmax]
-            i = sasm.i[qmin:qmax]
+            q = sasm.getQ()
+            i = sasm.getI()
 
             rg = data.rg
             i0 = data.i0
@@ -21044,7 +23506,9 @@ class NormKratkyPlotPanel(wx.Panel):
 
             filename = title.replace(' ', '_') + '.csv'
 
-            dialog = wx.FileDialog(self, message = "Please select save directory and enter save file name", style = wx.FD_SAVE, defaultDir = path, defaultFile = filename)
+            dialog = wx.FileDialog(self, message=("Please select save "
+                "directory and enter save file name"), style=wx.FD_SAVE,
+                defaultDir=path, defaultFile=filename)
 
             if dialog.ShowModal() == wx.ID_OK:
                 save_path = dialog.GetPath()
@@ -21075,10 +23539,8 @@ class NormKratkyControlPanel(wx.Panel):
 
         self.norm_kratky_frame = parent.GetParent().GetParent()
 
-        self.sasm_list = sasm_list
-
-        self.control_ids = {'plot'  : self.NewControlId(),
-                            }
+        self.orig_sasms = sasm_list
+        self.sasm_list = [copy.deepcopy(sasm) for sasm in self.orig_sasms]
 
         self.main_frame = wx.FindWindowByName('MainFrame')
 
@@ -21113,20 +23575,46 @@ class NormKratkyControlPanel(wx.Panel):
         ctrl_box = wx.StaticBox(self, -1, 'Control')
         control_sizer = wx.StaticBoxSizer(ctrl_box, wx.VERTICAL)
 
-        plt_text = wx.StaticText(ctrl_box, -1, 'Plot:')
-        plt_ctrl = wx.Choice(ctrl_box, self.control_ids['plot'], choices=['Normalized', 'Dimensionless (Rg)', 'Dimensionless (Vc)'])
-        plt_ctrl.SetStringSelection('Dimensionless (Rg)')
-        plt_ctrl.Bind(wx.EVT_CHOICE, self._onPlotChoice)
+        self.plt_ctrl = wx.Choice(ctrl_box, choices=['Normalized',
+            'Dimensionless (Rg)', 'Dimensionless (Vc)'])
+        self.plt_ctrl.SetStringSelection('Dimensionless (Rg)')
+        self.plt_ctrl.Bind(wx.EVT_CHOICE, self._onPlotChoice)
 
         plt_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        plt_sizer.Add(plt_text, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(5))
-        plt_sizer.Add(plt_ctrl, 0, wx.RIGHT, border=self._FromDIP(5))
+        plt_sizer.Add(wx.StaticText(ctrl_box, -1, 'Plot:'), 0, wx.LEFT|wx.RIGHT,
+            border=self._FromDIP(5))
+        plt_sizer.Add(self.plt_ctrl, 0, wx.RIGHT, border=self._FromDIP(5))
+
+
+        self.rebin_ctrl = wx.CheckBox(ctrl_box, label='Rebin profiles for plot')
+        self.rebin_ctrl.SetValue(0)
+        self.rebin_ctrl.Bind(wx.EVT_CHECKBOX, self._on_rebin)
+
+        self.rebin_type = wx.Choice(ctrl_box, choices=['Log', 'Linear'])
+        self.rebin_type.SetSelection(0)
+        self.rebin_type.Bind(wx.EVT_CHOICE, self._on_rebin)
+
+        self.rebin_scale = RAWCustomCtrl.IntSpinCtrl(ctrl_box, wx.ID_ANY,
+            min_val=1, TextLength=45)
+        self.rebin_scale.SetValue(2)
+        self.rebin_scale.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_rebin)
+
+        rebin_sizer = wx.GridBagSizer(vgap=self._FromDIP(5), hgap=self._FromDIP(5))
+        rebin_sizer.Add(self.rebin_ctrl, (0,0), span=(1,2))
+        rebin_sizer.Add(wx.StaticText(ctrl_box, label='Rebin mode:'), (1,0),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        rebin_sizer.Add(self.rebin_type, (1,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        rebin_sizer.Add(wx.StaticText(ctrl_box, label='Rebin factor:'), (2,0),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        rebin_sizer.Add(self.rebin_scale, (2,1), flag=wx.ALIGN_CENTER_VERTICAL)
+
 
         self.list = normKratkyListPanel(ctrl_box)
 
-
-        control_sizer.Add(plt_sizer, 0)
-        control_sizer.Add(self.list, 1, wx.EXPAND | wx.TOP, border=self._FromDIP(5))
+        control_sizer.Add(plt_sizer, 0, flag=wx.ALL, border=self._FromDIP(5))
+        control_sizer.Add(rebin_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
+        control_sizer.Add(self.list, 1, wx.EXPAND|wx.BOTTOM, border=self._FromDIP(5))
 
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -21140,7 +23628,7 @@ class NormKratkyControlPanel(wx.Panel):
     def _initialize(self):
         plotpanel = self.norm_kratky_frame.plotPanel
 
-        for sasm in self.sasm_list:
+        for sasm in self.orig_sasms:
             analysis_dict = sasm.getParameter('analysis')
             i0 = float(analysis_dict['guinier']['I0'])
 
@@ -21158,14 +23646,37 @@ class NormKratkyControlPanel(wx.Panel):
 
             self.list.addItem(sasm, line)
 
+    def _on_rebin(self, evt):
+        self._rebin()
+
+    def _rebin(self):
+        rebin_factor = self.rebin_scale.GetValue()
+        rebin_type = self.rebin_type.GetStringSelection()
+        do_rebin = self.rebin_ctrl.GetValue()
+
+        if rebin_type == 'Log':
+            log_rebin = True
+        else:
+            log_rebin = False
+
+        if do_rebin and rebin_factor != 1:
+            self.sasm_list = RAWAPI.rebin(self.orig_sasms, rebin_factor=rebin_factor,
+                log_rebin=log_rebin)
+
+            for sasm in self.sasm_list:
+                sasm.setParameter('filename', sasm.getParameter('filename')[2:])
+
+        else:
+            self.sasm_list = [copy.deepcopy(sasm) for sasm in self.orig_sasms]
+
+        self.norm_kratky_frame.plotPanel.updatePlotSASMs(self.sasm_list)
 
     def _onPlotChoice(self, evt):
         self.updatePlot()
 
 
     def updatePlot(self):
-        plotWindow = wx.FindWindowById(self.control_ids['plot'], self)
-        plot_type = plotWindow.GetStringSelection()
+        plot_type = self.plt_ctrl.GetStringSelection()
 
         plotpanel = self.norm_kratky_frame.plotPanel
 
@@ -21190,7 +23701,7 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
 
         self.list_ctrl.InsertColumn(0, 'Show')
         self.list_ctrl.InsertColumn(1, 'Filename')
-        self.list_ctrl.InsertColumn(2, 'Color')
+        # self.list_ctrl.InsertColumn(2, 'Color')
         self.list_ctrl.InsertColumn(3, 'Rg')
         self.list_ctrl.InsertColumn(4, 'I(0)')
         self.list_ctrl.InsertColumn(5, 'Vc')
@@ -21271,17 +23782,16 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         color = conv.to_rgb(line.get_mfc())
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
 
-        try:
-            index = self.list_ctrl.InsertStringItem(sys.maxsize, '', it_kind=1)
-        except Exception:
-            index = self.list_ctrl.InsertStringItem(sys.maxint, '', it_kind=1)
-        self.list_ctrl.SetStringItem(index, 1, name)
-        self.list_ctrl.SetStringItem(index, 2, '')
-        self.list_ctrl.SetStringItem(index, 3, str(rg))
-        self.list_ctrl.SetStringItem(index, 4, str(i0))
-        self.list_ctrl.SetStringItem(index, 5, str(vc))
+        index = self.list_ctrl.InsertStringItem(self.list_ctrl.GetItemCount(), '', it_kind=1)
 
-        self.itemDataMap[index] = ('', name, '', rg, i0, vc)
+        self.list_ctrl.SetStringItem(index, 1, name)
+        # self.list_ctrl.SetStringItem(index, 2, '')
+        self.list_ctrl.SetStringItem(index, 2, str(rg))
+        self.list_ctrl.SetStringItem(index, 3, str(i0))
+        self.list_ctrl.SetStringItem(index, 4, str(vc))
+
+        # self.itemDataMap[index] = ('', name, '', rg, i0, vc)
+        self.itemDataMap[index] = ('', name,  rg, i0, vc)
 
         self.list_ctrl.SetItemData(index, index)
 
@@ -21289,14 +23799,15 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
         item.Check(True)
         self.list_ctrl.SetItem(item)
 
-        colour_indicator = RAWCustomCtrl.ColourIndicator(self.list_ctrl, index,
-            color, size = self._FromDIP((30,15)))
-        colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onColorButton)
+        # This should work but doesn't due to a bug with the ULC
+        # colour_indicator = RAWCustomCtrl.ColourIndicator(self.list_ctrl, index,
+        #     color, size = self._FromDIP((30,15)))
+        # colour_indicator.Bind(wx.EVT_LEFT_DOWN, self._onColorButton)
 
-        item = self.list_ctrl.GetItem(index, 2)
-        item.SetWindow(colour_indicator)
-        item.SetAlign(ULC.ULC_FORMAT_LEFT)
-        self.list_ctrl.SetItem(item)
+        # item = self.list_ctrl.GetItem(index, 2)
+        # item.SetWindow(colour_indicator)
+        # item.SetAlign(ULC.ULC_FORMAT_LEFT)
+        # self.list_ctrl.SetItem(item)
 
         item = self.list_ctrl.GetItem(index, 0)
         item.SetAlign(ULC.ULC_FORMAT_CENTER)
@@ -21309,7 +23820,7 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
 
         self.list_ctrl.SetColumnWidth(0, wx.LIST_AUTOSIZE_USEHEADER)
         self.list_ctrl.SetColumnWidth(1, self._FromDIP(130))
-        self.list_ctrl.SetColumnWidth(2, wx.LIST_AUTOSIZE_USEHEADER)
+        # self.list_ctrl.SetColumnWidth(2, wx.LIST_AUTOSIZE_USEHEADER)
 
     def _onItemChecked(self, evt):
         item = evt.GetItem()
@@ -21359,11 +23870,12 @@ class normKratkyListPanel(wx.Panel, wx.lib.mixins.listctrl.ColumnSorterMixin,
 class LCSeriesFrame(wx.Frame):
 
     def __init__(self, parent, title, secm, manip_item, raw_settings):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
         size = (min(1000, client_display.Width), min(900, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         panel = wx.Panel(self)
@@ -24037,6 +26549,8 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                 msg = ('RAW found potential issues with the selected baseline '
                     'start/end regions(s).\n')
 
+                show_msg = True
+
                 if not other_results['fit_valid']:
                     msg = msg + ('\nThe linear fit of the selected start region '
                         'does not match the linear fit of the\nselected end region '
@@ -24044,18 +26558,23 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
                         'is not an appropriate correction over the selected '
                         'ranges.')
 
-                wx.CallAfter(self.series_frame.showBusy, False)
+                    if not self.raw_settings.get('warnLinearBaseline'):
+                        show_msg = False
 
-                answer = self._displayQuestionDialog(msg,
-                    'Warning: Selected baseline ranges may be invalid',
-                [('Cancel', wx.ID_CANCEL), ('Continue', wx.ID_YES)],
-                wx.ART_WARNING)
+                if show_msg:
 
-                wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
+                    wx.CallAfter(self.series_frame.showBusy, False)
 
-                if answer[0] != wx.ID_YES:
-                    self.continue_processing = False
-                    return
+                    answer = self._displayQuestionDialog(msg,
+                        'Warning: Selected baseline ranges may be invalid',
+                    [('Cancel', wx.ID_CANCEL), ('Continue', wx.ID_YES)],
+                    wx.ART_WARNING)
+
+                    wx.CallAfter(self.series_frame.showBusy, True, 'Please wait, processing.')
+
+                    if answer[0] != wx.ID_YES:
+                        self.continue_processing = False
+                        return
 
         (bl_sasms, use_subtracted_sasms, bl_corr, fit_results, sub_mean_i,
             sub_total_i, bl_sub_mean_i, bl_sub_total_i) = SASCalc.processBaseline(

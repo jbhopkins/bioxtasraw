@@ -1,0 +1,3 @@
+recursive-include bioxtasraw/definitions *
+include bioxtasraw/resources/*
+include bioxtasraw/denss_resources/*

@@ -1430,8 +1430,8 @@ class SECM(object):
         """
         self.my_semaphore.release()
 
-    def averageFrames(self, range_list, series_type, sim_test, sim_thresh,
-        sim_cor, forced=False):
+    def averageFrames(self, range_list, series_type='unsub', sim_test='CorMap',
+        sim_thresh=0.01, sim_cor='Bonferroni', forced=False):
         """
         Creates an average profile from the frame ranges defined in the range_list.
 
@@ -1449,13 +1449,13 @@ class SECM(object):
         series_type: {'unsub', 'sub', 'baseline'} str, optional
             Determines which type of profile to average. Unsubtracted profiles
             - 'unsub', subtracted profiles - 'sub', baseline corrected profiles
-            - 'baseline'
+            - 'baseline'. Defaults to 'unsub'.
         sim_test: {'CorMap'} str, optional
             Sets the type of similarity test to be used. Currently only CorMap
             is supported as an option.
         sim_thresh: float, optional
             Sets the p value threshold for the similarity test. A higher value
-            is a more strict test (range from 0-1).
+            is a more strict test (range from 0-1). Defaults to 0.01.
         sim_cor: {'Bonferroni', 'None'} str, optional
             Sets the multiple testing correction to be used as part of the
             similarity test. Default is Bonferroni.
@@ -1484,6 +1484,10 @@ class SECM(object):
 
         if series_type == 'unsub':
             sasm_list = [self._sasm_list[idx] for idx in frame_idx]
+        elif series_type == 'sub':
+            sasm_list = [self.subtracted_sasm_list[idx] for idx in frame_idx]
+        elif series_type == 'baseline':
+            sasm_list = [self.baseline_subtracted_sasm_list[idx] for idx in frame_idx]
 
         if not forced:
             ref_sasm = sasm_list[0]
@@ -1563,10 +1567,10 @@ class SECM(object):
             flag for that profile will be set to true. This flag can later be
             used for calculating Rg, M.W., etc, to determine which profiles to
             attempt the calculation for.
-        q_val: float, optional
+        qref: float, optional
             If int_type is 'q_val', the q value used for the intensity is set
             by this parameter.
-        q_range: list, optional
+        qrange: list, optional
             This should have two entries, both floats. The first is the minimum
             q value of the range, the second the maximum q value of the range.
             If int_type is 'q_range', the q range used for the intensity is set
@@ -1646,10 +1650,10 @@ class SECM(object):
             flag for that profile will be set to true. This flag can later be
             used for calculating Rg, M.W., etc, to determine which profiles to
             attempt the calculation for.
-        q_val: float, optional
+        qref: float, optional
             If int_type is 'q_val', the q value used for the intensity is set
             by this parameter.
-        q_range: list, optional
+        qrange: list, optional
             This should have two entries, both floats. The first is the minimum
             q value of the range, the second the maximum q value of the range.
             If int_type is 'q_range', the q range used for the intensity is set

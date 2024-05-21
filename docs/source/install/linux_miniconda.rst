@@ -1,5 +1,5 @@
-Linux install from source instructions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Linux detailed install from source instructions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _lnxsource:
 
 #.  Open a new terminal window (in many distros you can right click on the desktop
@@ -32,7 +32,7 @@ Linux install from source instructions
 
     *   ``conda upgrade conda pip wheel setuptools``
 
-    *   ``conda install numpy scipy matplotlib pillow numba h5py cython numexpr reportlab``
+    *   ``conda install numpy scipy matplotlib pillow numba h5py cython reportlab``
 
     *  ``conda install -c conda-forge wxpython dbus-python fabio pyfai hdf5plugin mmcif_pdbx svglib``
 

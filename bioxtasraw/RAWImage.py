@@ -478,25 +478,26 @@ class ImagePanel(wx.Panel):
 
         try:
             if 'eiger2' in settings.get('Detector'):
-                if settings.get('ExcludeMaskFromImageScale'):
-                    self.plot_parameters['maxImgVal'] = self.img[np.logical_and(self.img<4294967295, bs_mask)].max()
+                if settings.get('ExcludeMaskFromImageScale') and self.img.shape == bs_mask.shape:
+                    self.plot_parameters['maxImgVal'] = self.img[np.logical_and(
+                        self.img<4294967295, bs_mask)].max()
                 else:
                     self.plot_parameters['maxImgVal'] = self.img[self.img<4294967295].max()
 
             else:
-                if settings.get('ExcludeMaskFromImageScale'):
+                if settings.get('ExcludeMaskFromImageScale')and self.img.shape == bs_mask.shape:
                     self.plot_parameters['maxImgVal'] = self.img[bs_mask].max()
                 else:
                     self.plot_parameters['maxImgVal'] = self.img.max()
 
             if 'pilatus' in settings.get('Detector'):
-                if settings.get('ExcludeMaskFromImageScale'):
+                if settings.get('ExcludeMaskFromImageScale')and self.img.shape == bs_mask.shape:
                     self.plot_parameters['minImgVal'] = self.img[np.logical_and(self.img>-1, bs_mask)].min()
                 else:
                     self.plot_parameters['minImgVal'] = self.img[self.img>-1].min()
 
             else:
-                if settings.get('ExcludeMaskFromImageScale'):
+                if settings.get('ExcludeMaskFromImageScale')and self.img.shape == bs_mask.shape:
                     self.plot_parameters['minImgVal'] = self.img[bs_mask].min()
                 else:
                     self.plot_parameters['minImgVal'] = self.img.min()
@@ -1110,12 +1111,26 @@ class ImagePanel(wx.Panel):
 
         a = self.fig.gca()
 
-        if a.lines:
-            del(a.lines[:])     # delete plotted masks
-        if a.patches:
-            del(a.patches[:])
-        if a.collections:
-            del(a.collections[:])
+        if ((int(matplotlib.__version__.split('.')[0])==3
+            and int(matplotlib.__version__.split('.')[1]) <5)
+            or int(matplotlib.__version__.split('.')[0]) < 3):
+            if a.lines:
+                del(a.lines[:])     # delete plotted masks
+            if a.patches:
+                del(a.patches[:])
+            if a.collections:
+                del(a.collections[:])
+
+        else:
+            if a.lines:
+                for line in a.lines:
+                    line.remove()
+            if a.patches:
+                for patch in a.patches:
+                    patch.remove()
+            if a.collections:
+                for col in a.collections:
+                    col.remove()
 
         if self.center_patch:
             a.add_patch(self.center_patch)
@@ -1127,12 +1142,26 @@ class ImagePanel(wx.Panel):
         a = self.fig.gca()        # Get current axis from figure
         stored_masks = self.plot_parameters['storedMasks']
 
-        if a.lines:
-            del(a.lines[:])     # delete plotted masks
-        if a.patches:
-            del(a.patches[:])
-        if a.collections:
-            del(a.collections[:])
+        if ((int(matplotlib.__version__.split('.')[0])==3
+            and int(matplotlib.__version__.split('.')[1]) <5)
+            or int(matplotlib.__version__.split('.')[0]) < 3):
+            if a.lines:
+                del(a.lines[:])     # delete plotted masks
+            if a.patches:
+                del(a.patches[:])
+            if a.collections:
+                del(a.collections[:])
+
+        else:
+            if a.lines:
+                for line in a.lines:
+                    line.remove()
+            if a.patches:
+                for patch in a.patches:
+                    patch.remove()
+            if a.collections:
+                for col in a.collections:
+                    col.remove()
 
         for mask_id, each in enumerate(stored_masks):
             each.setId(mask_id)
@@ -1479,12 +1508,26 @@ class ImagePanel(wx.Panel):
     def clearPatches(self):
         a = self.fig.gca()
 
-        if a.lines:
-            del(a.lines[:])     # delete plotted masks
-        if a.patches:
-            del(a.patches[:])
-        if a.texts:
-            del(a.texts[:])
+        if ((int(matplotlib.__version__.split('.')[0])==3
+            and int(matplotlib.__version__.split('.')[1]) <5)
+            or int(matplotlib.__version__.split('.')[0]) < 3):
+            if a.lines:
+                del(a.lines[:])     # delete plotted masks
+            if a.patches:
+                del(a.patches[:])
+            if a.collections:
+                del(a.collections[:])
+
+        else:
+            if a.lines:
+                for line in a.lines:
+                    line.remove()
+            if a.patches:
+                for patch in a.patches:
+                    patch.remove()
+            if a.collections:
+                for col in a.collections:
+                    col.remove()
 
         self.canvas.draw()
 
@@ -1512,6 +1555,9 @@ class HdrInfoDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, 'Image Header',
             style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX)
+
+        self.CenterOnParent()
+
         self.SetSize(self._FromDIP((500,500)))
 
         self.sasm = sasm

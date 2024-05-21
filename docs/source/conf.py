@@ -37,7 +37,7 @@ version_number = bioxtasraw.__version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.mathjax', 'sphinx.ext.ifconfig', 'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon']
+    'sphinx.ext.napoleon', 'sphinx_rtd_theme']
 
 # Napoleon settings
 napoleon_use_ivar = True
@@ -62,7 +62,7 @@ linux_install = 'install/linux_install'
 
 # General information about the project.
 project = u'BioXTAS RAW'
-copyright = u'2017-2021, Jesse B. Hopkins'
+copyright = u'2017-2023, Jesse B. Hopkins'
 author = u'Jesse B. Hopkins'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -79,7 +79,7 @@ release = version_number
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -100,7 +100,7 @@ todo_include_todos = False
 #
 
 if on_rtd:
-    html_theme = 'default'
+    html_theme = 'sphinx_rtd_theme'
 else:
     html_theme = 'sphinx_rtd_theme'
 

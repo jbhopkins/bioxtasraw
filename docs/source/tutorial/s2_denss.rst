@@ -33,9 +33,11 @@ The written version of the tutorial follows.
         for :ref:`dammif <dammif>`. However, that profile was truncated to a maximum
         q value of 8/Rg, ~0.23. For DENSS you want to use the full q range of the data. As the
         .ift file was generated using all the q range available, it is convenient to
-        use it rather than generating another .out file.
+        use it rather than generating another .out file. Alternatively, use the
+        **glucose_isomerase_full.out** file in the **gi_complete** folder.
 
-#.  Right click on the **glucose_isomerase.ift** item in the IFT list. Select the “Electron Density (DENSS)” option.
+#.  Right click on the **glucose_isomerase.ift** item in the IFT list. Select
+    the “Electron Density (DENSS)” option.
 
 #.  Running DENSS generates a lot of files. Click the “Select” button for the output directory,
     make a new folder in the **reconstruction_data** directory called **gi_denss** and select
@@ -144,6 +146,16 @@ The written version of the tutorial follows.
         **<prefix>_##_aligned.mrc** where ## is the model number of a model.
         For this tutorial, that is **glucose_isomerase_##_aligned.mrc**.
 
+#.  You can save a summary table of the DENSS results with the pdf report that
+    RAW can make. Close the DENSS window, right click on the **glucose_isomerase.ift**
+    item in the IFT control panel and select "Save report". Use the "Add DAMMIF/N results
+    .csv" button to add the ***glucose_isomerase_denss_results.csv** to the
+    report. Then click "Save Report" and save the pdf report. If you open the
+    report you will see a summary of the run parameters and numerical results
+    saved as a table.
+
+    |denss_report_png|
+
 *Note:* **.mrc** files can be opened in Chimera and pyMOL. For tips about how to
 visualize the density and align it with known structures see the appropriate
 sections here: `http://www.tdgrant.com/denss/tips/ <http://www.tdgrant.com/denss/tips/>`_.
@@ -160,5 +172,9 @@ sections here: `http://www.tdgrant.com/denss/tips/ <http://www.tdgrant.com/denss
 
 .. |denss_fsc_png| image:: images/denss_fsc.png
     :target: ../_images/denss_fsc.png
+
+.. |denss_report_png| image:: images/denss_report.png
+    :target: ../_images/denss_report.png
+    :width: 300 px
 
 .. |Rg| replace:: R\ :sub:`g`

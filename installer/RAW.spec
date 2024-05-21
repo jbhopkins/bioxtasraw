@@ -13,6 +13,8 @@ if opsys != 'Linux':
     add_files = [
         (os.path.join('..', 'bioxtasraw', 'resources'), 'resources'),
         (os.path.join('..', 'bioxtasraw', 'definitions'), 'definitions'),
+        (os.path.join('..', 'bioxtasraw', 'denss_resources'),
+            os.path.join('bioxtasraw', 'denss_resources')),
         (os.path.join('..', 'gpl-3.0.txt'), '.'),
         (os.path.join('..', 'docs', 'build', 'html'), 'docs'),
         ]
@@ -20,6 +22,7 @@ else:
     add_files = [
         (os.path.join('..', 'bioxtasraw', 'resources'), os.path.join('share', 'bioxtas-raw', 'resources')),
         (os.path.join('..', 'bioxtasraw', 'definitions'), os.path.join('share', 'bioxtas-raw', 'definitions')),
+        (os.path.join('..', 'bioxtasraw', 'denss_resources'), os.path.join('bioxtasraw', 'denss_resources')),
         (os.path.join('..', 'gpl-3.0.txt'), '.'),
         (os.path.join('..', 'docs', 'build', 'html'), os.path.join('share', 'bioxtas-raw', 'docs')),
         ]
@@ -45,6 +48,11 @@ a = Analysis(
     hookspath=['.'],
     runtime_hooks=[],
     excludes=[],
+    hooksconfig={
+        'matplotlib': {
+            'backends': ['AGG', 'PDF', 'PS', 'SVG', 'PGF', 'Cairo', 'wxAgg'],
+        }
+    },
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=None,
@@ -73,7 +81,7 @@ if opsys == 'Darwin':
         disable_windowed_traceback=False,
 #        target_arch='arm64',
         codesign_identity=None,
-        entitlements_file=None, 
+        entitlements_file=None,
         )
 
     coll = COLLECT(

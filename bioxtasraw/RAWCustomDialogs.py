@@ -66,6 +66,9 @@ class SaveAnalysisInfoDialog(wx.Dialog):
         wx.Dialog.__init__(self, parent, -1, ('Select variables to include in '
             'the comma separated file.'),
              *args, style = wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
+
+        self.CenterOnParent()
+
         self.SetSize(self._FromDIP((900,600)))
 
         self.raw_settings = raw_settings
@@ -87,6 +90,8 @@ class SaveAnalysisInfoDialog(wx.Dialog):
         self.SetSizer(self.sizer)
 
         SASUtils.set_best_size(self)
+
+        self.CenterOnParent()
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -627,6 +632,8 @@ class HdrDataDialog(wx.Dialog):
         wx.Dialog.__init__(self, parent, -1, 'Header Data Display', *args,
             style = wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
 
+        self.CenterOnParent()
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.grid_changed = False
@@ -808,6 +815,8 @@ class DataDialog(wx.Dialog):
         wx.Dialog.__init__(self, parent, -1, 'Scattering Data Display', *args,
             style = wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
 
+        self.CenterOnParent()
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.grid_changed = False
@@ -919,6 +928,8 @@ class SeriesDataDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, 'Series Data Display', *args,
             style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
+
+        self.CenterOnParent()
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1136,6 +1147,8 @@ class IFTDataDialog(wx.Dialog):
         wx.Dialog.__init__(self, parent, -1, 'IFT Data Display', *args,
             style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
 
+        self.CenterOnParent()
+
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.iftm = iftm
@@ -1262,6 +1275,9 @@ class HistoryDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, 'History Display',
             *args, style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
+
+        self.CenterOnParent()
+
         self.SetSize(self._FromDIP((500,600)))
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
@@ -1339,6 +1355,8 @@ class SyncDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, 'Synchronize', *args, **kwargs)
 
+        self.CenterOnParent()
+
         self.chkbox_list = [('q min', 'qmin', wx.ID_ANY),
                        ('q max', 'qmax', wx.ID_ANY),
                        ('n min', 'nmin', wx.ID_ANY),
@@ -1409,6 +1427,8 @@ class QuickReduceDialog(wx.Dialog):
 
         wx.Dialog.__init__(self,parent, -1, 'Quick Reduce Settings', *args,
             **kwargs)
+
+        self.CenterOnParent()
 
         self._path = path
         filecount_label = wx.StaticText(self, -1, '# of files selected : ' + str(len(selected_files)))
@@ -1492,6 +1512,8 @@ class FilenameChangeDialog(wx.Dialog):
 
         wx.Dialog.__init__(self,parent, -1, hdr, *args, **kwargs)
 
+        self.CenterOnParent()
+
         self.ok_button = wx.Button(self, -1, 'OK')
         self.cancel_button = wx.Button(self, -1, 'Cancel')
         self._filename = None
@@ -1551,6 +1573,8 @@ class RebinDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, 'Rebinning', *args, **kwargs)
 
+        self.CenterOnParent()
+
         top_sizer = wx.BoxSizer(wx.VERTICAL)
 
         choices = ['2','3','4','5','6','7','8','9','10']
@@ -1604,6 +1628,9 @@ class ColourChangeDialog(wx.Dialog):
         style = wx.RESIZE_BORDER | wx.CAPTION | wx.CLOSE_BOX, *args, **kwargs):
 
         wx.Dialog.__init__(self, parent, -1, 'Pick a Colour', *args, **kwargs)
+
+        self.CenterOnParent()
+
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -1794,6 +1821,9 @@ class LinePropertyDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, "Line Properties", *args,
             style=style, **kwargs)
+
+        self.CenterOnParent()
+
         self.SetSize(self._FromDIP(size))
 
         self.sasm = sasm
@@ -2175,6 +2205,9 @@ class IFTMLinePropertyDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, "IFT Line Properties", *args,
             style = style, **kwargs)
+
+        self.CenterOnParent()
+
         self.SetSize(self._FromDIP(size))
 
         self.iftm = iftm
@@ -3048,6 +3081,9 @@ class SECMLinePropertyDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, "Series Line Properties", *args,
             style = style, **kwargs)
+
+        self.CenterOnParent()
+
         self.SetSize(self._FromDIP(size))
 
         self.secm = secm
@@ -3612,6 +3648,8 @@ class CustomQuestionDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, title, *args, **kwargs)
 
+        self.CenterOnParent()
+
         self.icon = icon
         self._path = None
         self._filename = filename
@@ -3658,6 +3696,8 @@ class CustomQuestionDialog(wx.Dialog):
         best_height = min(best_height, client_display.Height)
 
         self.SetSize((best_width, best_height))
+
+        self.CenterOnParent()
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -3758,6 +3798,9 @@ class PlotOptionsDialog(wx.Dialog):
 
         wx.Dialog.__init__(self, parent, -1, 'Plot Options',
             *args, style=wx.RESIZE_BORDER|wx.CAPTION|wx.CLOSE_BOX, **kwargs)
+
+        self.CenterOnParent()
+
         self.SetSize(self._FromDIP((576,522)))
 
         self.axes = axes
@@ -4112,18 +4155,34 @@ class PlotOptionsDialog(wx.Dialog):
         else:
             y_tick_label = wx.StaticText(box, -1, 'Y-tick label font size:')
 
-        for tick in self.axes.xaxis.get_major_ticks():
-            x_tick_size = tick.label.get_fontsize()
-            break
-
-        for tick in self.axes.yaxis.get_major_ticks():
-            y_tick_size = tick.label.get_fontsize()
-            break
-
-        if self.is_sec and self.sec_calc != 'None':
-            for tick in self.axes2.yaxis.get_major_ticks():
-                y2_tick_size = tick.label.get_fontsize()
+        if (int(matplotlib.__version__.split('.')[0]) < 3 or
+            (int(matplotlib.__version__.split('.')[0]) == 3 and
+            int(matplotlib.__version__.split('.')[1]) <8)):
+            for tick in self.axes.xaxis.get_major_ticks():
+                x_tick_size = tick.label.get_fontsize()
                 break
+
+            for tick in self.axes.yaxis.get_major_ticks():
+                y_tick_size = tick.label.get_fontsize()
+                break
+
+            if self.is_sec and self.sec_calc != 'None':
+                for tick in self.axes2.yaxis.get_major_ticks():
+                    y2_tick_size = tick.label.get_fontsize()
+                    break
+        else:
+            for tick in self.axes.xaxis.get_major_ticks():
+                x_tick_size = tick.label1.get_fontsize()
+                break
+
+            for tick in self.axes.yaxis.get_major_ticks():
+                y_tick_size = tick.label1.get_fontsize()
+                break
+
+            if self.is_sec and self.sec_calc != 'None':
+                for tick in self.axes2.yaxis.get_major_ticks():
+                    y2_tick_size = tick.label1.get_fontsize()
+                    break
 
 
         x_tick_font_size = wx.SpinCtrl(box, -1, str(x_tick_size), name='xticksize')
@@ -4528,8 +4587,9 @@ class PlotOptionsDialog(wx.Dialog):
 
         try:
             self.parent.canvas.draw()
-        except (matplotlib.pyparsing.ParseFatalException, ValueError) as e:
-            print(e)
+        except ValueError as e:
+            # print(e)
+            pass
 
         event.Skip()
 
@@ -4626,10 +4686,13 @@ class PlotOptionsDialog(wx.Dialog):
 class HelpFrame(wx.Frame):
 
     def __init__(self, parent):
+        wx.Frame.__init__(self, parent, -1, "RAW {} Help".format(RAWGlobals.version))
+
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
         size = (min(1110, client_display.Width), min(768, client_display.Height))
 
-        wx.Frame.__init__(self, parent, -1, "RAW {} Help".format(RAWGlobals.version))
         self.SetSize(self._FromDIP(size))
 
         self.doc_path = RAWGlobals.RAWDocsDir
@@ -4703,10 +4766,12 @@ class HelpFrame(wx.Frame):
 
 class SeriesAdjustmentFrame(wx.Frame):
     def __init__(self, parent, seriesm, series_item_panel):
+        wx.Frame.__init__(self, parent, -1, "Series Adjustment")
+
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
         size = (min(100, client_display.Width), min(100, client_display.Height))
-
-        wx.Frame.__init__(self, parent, -1, "Series Adjustment")
         self.SetSize(self._FromDIP(size))
 
         self.seriesm = seriesm
@@ -5156,10 +5221,12 @@ class ReportFrame(wx.Frame):
 
     def __init__(self, parent, title, all_profiles, all_ifts, all_series,
             selected_profiles, selected_ifts, selected_series):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+
+        self.CenterOnParent()
+
         client_display = wx.GetClientDisplayRect()
         size = (min(450, client_display.Width), min(350, client_display.Height))
-
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self.main_frame = wx.FindWindowByName('MainFrame')
@@ -5223,31 +5290,61 @@ class ReportFrame(wx.Frame):
             self.series_list.addItem(seriesm)
 
         profile_sizer = wx.BoxSizer(wx.VERTICAL)
-        profile_sizer.Add(wx.StaticText(inc_box, label='Profiles:'), flag=wx.ALL,
-            border=self._FromDIP(5))
-        profile_sizer.Add(self.profile_list, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
-            border=self._FromDIP(5), proportion=1)
+        profile_sizer.Add(wx.StaticText(inc_box, label='Profiles:'),
+            flag=wx.BOTTOM, border=self._FromDIP(5))
+        profile_sizer.Add(self.profile_list, flag=wx.EXPAND, proportion=1)
 
         ift_sizer = wx.BoxSizer(wx.VERTICAL)
-        ift_sizer.Add(wx.StaticText(inc_box, label='IFTs:'), flag=wx.ALL,
+        ift_sizer.Add(wx.StaticText(inc_box, label='IFTs:'), flag=wx.BOTTOM,
             border=self._FromDIP(5))
-        ift_sizer.Add(self.ift_list, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
-            border=self._FromDIP(5), proportion=1)
+        ift_sizer.Add(self.ift_list, flag=wx.EXPAND, proportion=1)
 
         series_sizer = wx.BoxSizer(wx.VERTICAL)
-        series_sizer.Add(wx.StaticText(inc_box, label='Series:'), flag=wx.ALL,
+        series_sizer.Add(wx.StaticText(inc_box, label='Series:'), flag=wx.BOTTOM,
             border=self._FromDIP(5))
-        series_sizer.Add(self.series_list, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+        series_sizer.Add(self.series_list, flag=wx.EXPAND, proportion=1)
+
+        self.dammif_list = CheckListCtrl(inc_box, size=self._FromDIP((200, 100)))
+        add_dammif = wx.Button(inc_box, label='Add DAMMIF/N results .csv')
+
+        add_dammif.Bind(wx.EVT_BUTTON, self._on_add_dammif)
+
+        dammif_sizer = wx.BoxSizer(wx.VERTICAL)
+        dammif_sizer.Add(wx.StaticText(inc_box, label='DAMMIF/N results:'),
+            flag=wx.BOTTOM, border=self._FromDIP(5))
+        dammif_sizer.Add(self.dammif_list, flag=wx.EXPAND|wx.BOTTOM,
             border=self._FromDIP(5), proportion=1)
+        dammif_sizer.Add(add_dammif)
+
+        self.denss_list = CheckListCtrl(inc_box, size=self._FromDIP((200, 100)))
+        add_denss = wx.Button(inc_box, label='Add DENSS results .csv')
+
+        add_denss.Bind(wx.EVT_BUTTON, self._on_add_denss)
+
+        denss_sizer = wx.BoxSizer(wx.VERTICAL)
+        denss_sizer.Add(wx.StaticText(inc_box, label='DENSS results:'),
+            flag=wx.BOTTOM, border=self._FromDIP(5))
+        denss_sizer.Add(self.denss_list, flag=wx.EXPAND|wx.BOTTOM,
+            border=self._FromDIP(5), proportion=1)
+        denss_sizer.Add(add_denss)
+
+
+        sel_sub_sizer = wx.FlexGridSizer(cols=3, hgap=self._FromDIP(10),
+            vgap=self._FromDIP(5))
+        sel_sub_sizer.Add(profile_sizer, flag=wx.EXPAND, proportion=1)
+        sel_sub_sizer.Add(ift_sizer, flag=wx.EXPAND, proportion=1)
+        sel_sub_sizer.Add(series_sizer, flag=wx.EXPAND, proportion=1)
+        sel_sub_sizer.Add(dammif_sizer, flag=wx.EXPAND, proportion=1)
+        sel_sub_sizer.Add(denss_sizer, flag=wx.EXPAND, proportion=1)
+        sel_sub_sizer.AddGrowableCol(0)
+        sel_sub_sizer.AddGrowableCol(1)
+        sel_sub_sizer.AddGrowableCol(2)
+        sel_sub_sizer.AddGrowableRow(0)
+        sel_sub_sizer.AddGrowableRow(1)
 
         selector_sizer = wx.StaticBoxSizer(inc_box, wx.HORIZONTAL)
-        selector_sizer.Add(profile_sizer, flag=wx.ALL|wx.EXPAND,
+        selector_sizer.Add(sel_sub_sizer, flag=wx.ALL|wx.EXPAND,
             border=self._FromDIP(5), proportion=1)
-        selector_sizer.Add(ift_sizer, flag=wx.TOP|wx.BOTTOM|wx.RIGHT|wx.EXPAND,
-            border=self._FromDIP(5), proportion=1)
-        selector_sizer.Add(series_sizer, flag=wx.TOP|wx.BOTTOM|wx.RIGHT|wx.EXPAND,
-            border=self._FromDIP(5), proportion=1)
-
 
         ctrl_box = wx.StaticBox(panel, label='Controls')
 
@@ -5290,30 +5387,9 @@ class ReportFrame(wx.Frame):
     # def _update_available_data(profiles, ifts, series):
 
     def _on_make_report(self, evt):
+        report_has_items = self._check_report_items()
 
-        profiles = []
-        ifts = []
-        series = []
-
-        tot = self.profile_list.GetItemCount()
-
-        for i in range(tot):
-            if self.profile_list.IsItemChecked(i):
-                profiles.append(copy.deepcopy(self.all_profiles[i]))
-
-        tot = self.ift_list.GetItemCount()
-
-        for i in range(tot):
-            if self.ift_list.IsItemChecked(i):
-                ifts.append(copy.deepcopy(self.all_ifts[i]))
-
-        tot = self.series_list.GetItemCount()
-
-        for i in range(tot):
-            if self.series_list.IsItemChecked(i):
-                series.append(copy.deepcopy(self.all_series[i]))
-
-        if len(profiles) == 0 and len(ifts) == 0 and len(series) == 0:
+        if not report_has_items:
             msg = 'No items are selected for the report.'
             dlg = wx.MessageDialog(self, msg, "Select items for report",
                 style = wx.ICON_ERROR | wx.OK)
@@ -5341,20 +5417,172 @@ class ReportFrame(wx.Frame):
                 dialog.Destroy()
                 return
 
-            wx.CallAfter(self._make_report, save_name, save_dir, profiles,
-                ifts, series)
+            profiles, ifts, series, dammif, denss = self._get_report_items()
 
-    def _make_report(self, save_name, save_dir, profiles, ifts, series):
+            wx.CallAfter(self._make_report, save_name, save_dir, profiles,
+                ifts, series, dammif, denss)
+
+    def _check_report_items(self):
+        report_has_items = False
+
+        tot = self.profile_list.GetItemCount()
+
+        for i in range(tot):
+            if self.profile_list.IsItemChecked(i):
+                report_has_items = True
+                break
+
+        if not report_has_items:
+            tot = self.ift_list.GetItemCount()
+
+            for i in range(tot):
+                if self.ift_list.IsItemChecked(i):
+                    report_has_items = True
+                    break
+
+        if not report_has_items:
+            tot = self.series_list.GetItemCount()
+
+            for i in range(tot):
+                if self.series_list.IsItemChecked(i):
+                    report_has_items = True
+                    break
+
+        if not report_has_items:
+            tot = self.dammif_list.GetItemCount()
+
+            for i in range(tot):
+                if self.dammif_list.IsItemChecked(i):
+                    report_has_items = True
+                    break
+
+        if not report_has_items:
+            tot = self.denss_list.GetItemCount()
+
+            for i in range(tot):
+                if self.denss_list.IsItemChecked(i):
+                    report_has_items = True
+                    break
+
+        return report_has_items
+
+    def _get_report_items(self):
+        profiles = []
+        ifts = []
+        series = []
+        dammif = []
+        denss = []
+
+        tot = self.profile_list.GetItemCount()
+
+        for i in range(tot):
+            if self.profile_list.IsItemChecked(i):
+                profiles.append(copy.deepcopy(self.all_profiles[i]))
+
+        tot = self.ift_list.GetItemCount()
+
+        for i in range(tot):
+            if self.ift_list.IsItemChecked(i):
+                ifts.append(copy.deepcopy(self.all_ifts[i]))
+
+        tot = self.series_list.GetItemCount()
+
+        for i in range(tot):
+            if self.series_list.IsItemChecked(i):
+                series.append(copy.deepcopy(self.all_series[i]))
+
+        tot = self.dammif_list.GetItemCount()
+
+        for i in range(tot):
+            if self.dammif_list.IsItemChecked(i):
+                path = self.dammif_list.GetItemData(i)
+                dammif.append(path)
+
+        tot = self.denss_list.GetItemCount()
+
+        for i in range(tot):
+            if self.denss_list.IsItemChecked(i):
+                path = self.denss_list.GetItemData(i)
+                denss.append(path)
+
+        return profiles, ifts, series, dammif, denss
+
+    def _make_report(self, save_name, save_dir, profiles, ifts, series,
+        dammif, denss):
         RAWGlobals.save_in_progress = True
         self.main_frame.showBusyDialog('Saving report, please wait . . .')
         self.main_frame.setStatus('Saving report', 0)
 
         RAWReport.make_report_from_raw(save_name, save_dir, profiles, ifts,
-            series, self.raw_settings)
+            series, self.raw_settings, dammif, denss)
 
         self.main_frame.closeBusyDialog()
         RAWGlobals.save_in_progress = False
         self.main_frame.setStatus('', 0)
+
+        wx.CallAfter(SASUtils.update_mpl_style, 'light')
+
+    def _on_add_dammif(self, evt):
+        self._get_model_results('dammif')
+
+    def _on_add_denss(self, evt):
+        self._get_model_results('denss')
+
+    def _get_model_results(self, mode):
+        dirctrl_panel = wx.FindWindowByName('DirCtrlPanel')
+        load_path = dirctrl_panel.getDirLabel()
+
+        filters = 'CSV files (*.csv)|*.csv|All files (*.*)|*.*'
+
+        dialog = wx.FileDialog(self, 'Select model results .csv file', load_path,
+            style=wx.FD_OPEN|wx.FD_MULTIPLE, wildcard=filters)
+
+        if dialog.ShowModal() == wx.ID_OK:
+            files = dialog.GetPaths()
+        else:
+            files = None
+
+        # Destroy the dialog
+        dialog.Destroy()
+
+        unused_items = []
+
+        if files is not None:
+            if mode == 'dammif':
+                model_list = self.dammif_list
+
+            elif mode == 'denss':
+                model_list = self.denss_list
+
+            model_list.Freeze()
+            for f in files:
+                _, name = os.path.split(f)
+                _, ext = os.path.splitext(name)
+
+                use_item = True
+
+                if ext != '.csv':
+                    use_item = False
+
+                if use_item:
+                    index = model_list.addTextItem(name, f)
+                    model_list.checkItem(index)
+
+                else:
+                    unused_items.append(name)
+
+            model_list.Thaw()
+
+        if len(unused_items) > 0:
+            msg = ("The following files were not loaded because they are not "
+                ".csv files:")
+            for name in unused_items:
+                msg += "\n{}".format(name)
+
+            dialog = wx.MessageDialog(self, msg, 'Models results not loaded',
+                style=wx.OK)
+            dialog.ShowModal()
+            dialog.Destroy()
 
     def _onCloseButton(self, evt):
         self.Close()
@@ -5370,10 +5598,14 @@ class CheckListCtrl(ULC.UltimateListCtrl, listmix.ListCtrlAutoWidthMixin):
     https://www.blog.pythonlibrary.org/2011/01/04/wxpython-wx-listctrl-tips-and-tricks/
     https://www.blog.pythonlibrary.org/2011/11/02/wxpython-an-intro-to-the-ultimatelistctrl/
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, highlight=False, **kwargs):
 
-        ULC.UltimateListCtrl.__init__(self, *args, agwStyle=ULC.ULC_REPORT
-            |ULC.ULC_NO_HEADER|ULC.ULC_NO_HIGHLIGHT, **kwargs)
+        if highlight:
+            style = ULC.ULC_REPORT|ULC.ULC_NO_HEADER
+        else:
+            style = ULC.ULC_REPORT|ULC.ULC_NO_HEADER|ULC.ULC_NO_HIGHLIGHT
+
+        ULC.UltimateListCtrl.__init__(self, *args, agwStyle=style, **kwargs)
 
         self.InsertColumn(0, 'Show')
         self.InsertColumn(1, 'Filename')
@@ -5384,6 +5616,13 @@ class CheckListCtrl(ULC.UltimateListCtrl, listmix.ListCtrlAutoWidthMixin):
     def addItem(self, sasm):
         name = sasm.getParameter('filename')
 
+        self._addItem(name)
+
+    def addTextItem(self, descrip, data):
+        index = self._addItem(descrip, data)
+        return index
+
+    def _addItem(self, name, data=None):
         try:
             index = self.InsertStringItem(sys.maxsize, '', it_kind=1)
         except Exception:
@@ -5392,7 +5631,10 @@ class CheckListCtrl(ULC.UltimateListCtrl, listmix.ListCtrlAutoWidthMixin):
 
         self.itemDataMap[index] = ('', name)
 
-        self.SetItemData(index, index)
+        if data is not None:
+            self.SetItemData(index, data)
+        else:
+            self.SetItemData(index, index)
 
         item = self.GetItem(index, 0)
         item.SetAlign(ULC.ULC_FORMAT_CENTER)
@@ -5401,7 +5643,35 @@ class CheckListCtrl(ULC.UltimateListCtrl, listmix.ListCtrlAutoWidthMixin):
         self.SetColumnWidth(0, wx.LIST_AUTOSIZE)
         self.SetColumnWidth(1, wx.LIST_AUTOSIZE)
 
+        return index
+
     def checkItem(self, index):
         item = self.GetItem(index, 0)
         item.Check(True)
         self.SetItem(item)
+
+    def getSelectedItems(self):
+        """    Gets the selected items for the list control.
+          Selection is returned as a list of selected indices,
+          low to high.
+        """
+        selection = []
+        index = self.GetFirstSelected()
+
+        if index == -1:
+            return []
+
+        selection.append(index)
+
+        while len(selection) != self.GetSelectedItemCount():
+            index = self.GetNextSelected(index)
+            selection.append(index)
+
+        return selection
+
+    def removeSelectedItems(self):
+        items = self.getSelectedItems()
+        items = items[::-1]
+
+        for index in items:
+            self.DeleteItem(index)

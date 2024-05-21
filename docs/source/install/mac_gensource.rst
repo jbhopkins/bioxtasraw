@@ -2,8 +2,7 @@ General instructions for installing from source (advanced users)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _macgen:
 
-#.  Install a standalone version of python 3.X (recommended, not required),
-    RAW is tested on 3.7 and 3.8.
+#.  Install a standalone version of python 3.X (recommended, not required).
 
 #.  Install the following python packages (most recent version of each recommended):
 

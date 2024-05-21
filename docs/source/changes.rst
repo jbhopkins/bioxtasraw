@@ -1,12 +1,84 @@
 Changes
 ============
 
+2.2.2
+----------
+
+Release date: 2024-02-12
+
+Overview
+^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 2.2.2. This
+version is mostly minor bug fixes. Of note is that it includes the citation
+for the new RAW paper:
+
+*BioXTAS RAW 2: new developments for a free open-source program for
+small-angle scattering data reduction and analysis.* J. B. Hopkins.
+Journal of Applied Crystallography (2024). 57, 194-208.
+DOI: `10.1107/S1600576723011019 <https://doi.org/10.1107/S1600576723011019>`_
+
+All changes:
+^^^^^^^^^^^^^
+
+*   Fixed several bugs related to using LC analysis, EFA, and REGALS with
+    newer versions of scipy.
+*   Fixed an issue where zero value errors would break the linear baseline
+    correction
+*   Fixed a bug where if the ATSAS path was not found, trying to open the
+    supcomb/cifsup window would result in an error rather than a warning
+    message that ATSAS couldn't be found.
+*   Fixed a bug in automated series loading for MacCHESS header format.
+*   Fixed a bug loading eiger images for the MacCHESS header format.
+*   Removed an extraneous dependence in the requirements files on future.
+*   Added the new RAW paper to the splash screen and about page.
+*   Fixed a bug where setting the q value in the GNOM window range box would
+    cause an error.
+*   Fixed a bug where reports saved when RAW is in dark mode would have
+    dark mode style graphs.
+*   Autocorrelation vectors are now saved with the rest of the EFA and REGALS
+    results.
+*   Fixed a bug with showing one of the EFA and REGALS plots with matplotlib >=3.8.
+*   Fixed a bug where the MW and plot options windows wouldn't open with
+    matplotlib >=3.8.
+*   Fixed an issue where if two or more items in the dimensionless Kratky window
+    had the same name rebinning would only work on the first item.
+*   Fixed an issue where superimpose could fail if the items were identical
+    to within a scale/offset (most noticeable in the comparison window).
+*   Updated DENSS to the newest version. WARNING: Includes a non-backwards
+    compatible change to the DENSS function in the API.
+*   Improved display of DENSS results plots in dark mode.
+*   Fixed various issues with making the frozen builds using the newest
+    version of pyinstaller.
+
+
+2.2.1
+----------
+
+Release date: 2023-06-22
+
+Overview
+^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 2.2.1. This
+version contains a single bug fix:
+
+*   Fixed a bug that prevented some calibration and masking operations from being used.
+
+Because this bug prevented the use of major features it warranted a quick fix.
+
+All changes:
+^^^^^^^^^^^^^
+
+*   Fixed a bug that prevented some calibration and masking operations
+    from being used when running with newer versions of matplotlib (including
+    the prebuilt installers).
 
 
 2.2.0
 -----------
 
-Release date:
+Release date: 2023-06-09
 
 Overview
 ^^^^^^^^^^^
@@ -14,6 +86,23 @@ Overview
 The RAW team is pleased to announce the release of RAW version 2.2.0. Significant
 changes include:
 
+    *   Integration of CRYSOL into the GUI and API. You can now generate theoretical
+        profiles by simply plotting a .pdb or .cif file, or you can open the CRYSOL
+        analysis window and adjust the settings and fit the model to experimental
+        data.
+    *   A new profile comparison window that provides residual and ratio plots,
+        as well as a heatmap of the probability profiles are the same based on
+        the selected similarity test.
+    *   Faster calculation of SVD and forward and backward EFA plots
+    *   Improved PDF report with text wrapping in columns so that tables can't
+        extend off the edge of the page and vector graphics plots.
+
+The new release also includes numerous small bug fixes and improvements. Note
+that this version of RAW introduces a new dependency on svglib.
+
+In order to improve the prebuilt MacOS and Linux installers the oldest version
+of OSes they will work in is now MacOS 11 (Intel) or 12 (Apple Silicon) and
+Ubuntu 18.04 LTS (note that RAW can still be run from source on older versions).
 
 
 All changes:
@@ -56,9 +145,41 @@ All changes:
     if you saved more than one dataset where the technique was used.
 *   Figures in the report are now vector (svg), so they should be higher quality.
 *   Added a dependency on svglib.
-*   Added a new comparison window that has residuals and ratios as well as the
-    old similarity test list.
+*   Added a new comparison window that has residuals, ratios and a heat map as
+    well as the old similarity test list.
 *   Fixed an issue where FoXS fit files could take a long time to load.
+*   Added a GUI for CRYSOL.
+*   PDB and CIF files can now be loaded into RAW and the theoretical profile from
+    CRYSOL is calculated when that happens.
+*   Made subtraction of profiles with mismatched q vectors more robust.
+*   Added ability to average profiles with mismatched q vectors.
+*   Added ability to export data from the main IFT plot.
+*   Fixed a bug where loading series data that doesn't have time data when the
+    series x axis is in time would cause an error.
+*   Fixed a bug where showing an image that was a different size than the beamstop
+    mask array would cause an error.
+*   DENSS resolution now rounds instead of displaying to arbitrary precision.
+*   Added ability to rebin profiles in the dimensionless Kratky plot directly
+    from the panel.
+*   Fixed a bug where GNOM could raise an error if it failed due to having a
+    fixed number of points in the P(r) function.
+*   Added a tutorial on customizing and saving plots, exporting plot data, and
+    opening data saved from RAW externally.
+*   Updated DENSS to the latest version.
+*   Added the ability to add DAMMIF and DENSS results from the saved results.csv
+    files to the pdf reports from the GUI.
+*   Fixed a bug where setting certain TeX values for plot labels could cause an
+    error.
+*   Fixed a bug where loading in a series when the intensity display was set
+    to q value or q range and profiles in the series didn't contain either
+    the q value or start/end of the q range could crash RAW.
+*   Fixed a bug where denss and dammif results plots could end up the wrong size.
+*   The Linux .deb installer now provides a version of RAW that works properly
+    on Ubuntu 22.04 LTS (previously no GUI widgets had borders and ATSAS didn't
+    work).
+*   MacOS .app is now codesigned and notarized, so it should work on any system
+    without requiring a workaround.
+*   Fixed a bug that would prevent installation of the API.
 
 
 2.1.4

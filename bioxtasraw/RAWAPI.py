@@ -872,7 +872,7 @@ def weighted_average(profiles, weight_by_error=True, weight_counter='',
         weight_counter = settings.get('weightCounter')
 
     avg_profile = SASProc.weightedAverage(profiles, weight_by_error,
-        weight_counter, forced = False, copy_params=copy_metadata)
+        weight_counter, forced=forced, copy_params=copy_metadata)
 
     avg_profile.setParameter('filename',
         'A_{}'.format(avg_profile.getParameter('filename')))
@@ -3101,7 +3101,7 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
 
     # Save profile if necessary, truncating q range as appropriate
     if write_profile:
-        if rg is None:
+        if rg is None and cut_dam:
             if use_rg_from == 'guinier':
                 guinier_dict = analysis_dict['guinier']
                 rg = float(guinier_dict['Rg'])
@@ -4389,7 +4389,7 @@ def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
     datadir: str
         The directory containing both the target and ref_file. It is also the
         directory for the output file.
-   method: {'NSD, 'NCC', 'ICP', 'RMSD'} str, optional
+    method: {'NSD, 'NCC', 'ICP', 'RMSD'} str, optional
         What method to use to determine distance between two models. Default
         is ICP.
     selection: {'ALL', 'BACKBONE', 'REGRID', 'SHELL'} str, optional
@@ -4507,11 +4507,12 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
         scattering profiles of the models. Alternatively a list of names of
         experimental profiles on disk, including the full path to the profile.
     lm: int, optional
-        Number of spherical harmonics used in NCC mode. Default 5.
+        Number of spherical harmonics used. Default 20.
     ns: int, optional
-        Number of data points used in NCC mode. Default 51.
+        Number of data points in generated profile. Default 101. Note: ignored
+        if you are fitting a profile.
     smax: float, optional
-        Maximum scattering angle in 1/A used in NCC mode. Default 0.5.
+        Maximum scattering angle in 1/A. Default 0.5.
     dns: float, optional
         Solvent density. Default is 0.334 e/A^3, the electron density of pure
         water. Note that fit_solvent must be False to use the provided parameter.
@@ -4569,19 +4570,17 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
     Returns
     -------
     crysol_results
-        If no more than one model and no more than one profile are provided,
-        a list of the calculated profiles (`bioxtasraw.SASM.SASM`) is returned.
-        Otherwise, a dictionary is returned, where the keys of the dictionary
+        A dictionary is returned, where the keys of the dictionary
         are the names returned by CRYSOL (by default the model name or
         model_profile name) and the values are a list of the calculated profiles
-        for each model/profile combination. If only a model is provided, two
-        results are returned, the first is the calculated profile on an absolute
-        scale (.abs file from CRYSOL) and the second is the calculated profile
-        unscaled (.int file from CRYSOL). If a model and a profile are provided,
-        one result is returned, the fit of the model to the profile (.fit file
-        from CRYSOL). Note that in the SASM parameters dictionary there is a
-        'crysol' item with values for Rg, chi^2, hydration, and other calculated
-        parameters.
+        (`bioxtasraw.SASM.SASM`) for each model/profile combination. If only a
+        model is provided, two results are returned, the first is the
+        calculated profile on an absolute scale (.abs file from CRYSOL) and the
+        second is the calculated profile unscaled (.int file from CRYSOL). If a
+        model and a profile are provided, one result is returned, the fit of t
+        he model to the profile (.fit file from CRYSOL). Note that in the SASM
+        parameters dictionary there is a 'crysol' item with values for Rg,
+        chi^2, hydration, and other calculated parameters.
     """
 
     if settings is None:
@@ -4660,7 +4659,7 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
             'implicit_hydrogen' : settings.get('crysolImplicitH'),
             'sub_element'       : settings.get('crysolSubElement'),
             'model'             : settings.get('crysolModelID'),
-            'chain'             : settings.get('crysolChainId'),
+            'chain'             : settings.get('crysolChainID'),
             'alternative_names' : settings.get('crysolAltNames'),
             }
 
@@ -4670,11 +4669,11 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
         if crysol_settings['energy'] == 'None':
             crysol_settings['energy'] = None
 
-        if crysol_settings['explicit_hydrogen'] == 'None':
-            crysol_settings['explicit_hydrogen'] = None
-
         if crysol_settings['implicit_hydrogen'] == 'None':
             crysol_settings['implicit_hydrogen'] = None
+
+        if crysol_settings['sub_element'] == 'None':
+            crysol_settings['sub_element'] = None
 
         if crysol_settings['model'] == 'None':
             crysol_settings['model'] = None
@@ -4711,7 +4710,6 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
     if not abort_event.is_set():
         crysol_results = {}
 
-        print(exp_fnames)
         if exp_fnames is not None:
             if prefix is not None:
                 data, fit = SASFileIO.loadFitFile(os.path.join(output_dir,
@@ -4723,7 +4721,9 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
                 counters = fit.getParameter('counters')
                 counters.update(log_results)
 
-                fit.setParameter('crysol', counters)
+                analysis = fit.getParameter('analysis')
+                analysis['crysol'] = counters
+                fit.setParameter('analysis', analysis)
 
                 crysol_results[prefix] = [fit]
 
@@ -4741,7 +4741,6 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
                             prefix, '.fit')))
             else:
                 for exp_name in exp_fnames:
-
                     for fname in models:
                         name = '{}_{}'.format(os.path.split(os.path.splitext(fname)[0])[1],
                             os.path.split(os.path.splitext(exp_name)[0])[1])
@@ -4755,7 +4754,9 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
                         counters = fit.getParameter('counters')
                         counters.update(log_results)
 
-                        fit.setParameter('crysol', counters)
+                        analysis = fit.getParameter('analysis')
+                        analysis['crysol'] = counters
+                        fit.setParameter('analysis', analysis)
 
                         crysol_results[name] = [fit]
 
@@ -4788,17 +4789,17 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
                 counters = fit.getParameter('counters')
                 counters.update(log_results)
 
-                fit.setParameter('crysol', counters)
+                analysis = fit.getParameter('analysis')
+                analysis['crysol'] = counters
+                fit.setParameter('analysis', analysis)
 
                 abs_prof = SASFileIO.loadIntFile(os.path.join(output_dir,
                     '{}.abs'.format(prefix)))
 
-                abs_prof.setParameter('crysol',
-                    copy.deepcopy(fit.getParameter('counters')))
+                abs_prof.setParameter('analysis',
+                    copy.deepcopy(fit.getParameter('analysis')))
 
-                crysol_results[name] = [abs_prof, fit]
-
-                crysol_results[prefix] = [fit]
+                crysol_results[prefix] = [abs_prof, fit]
 
                 if not save_output:
                     for ext in crysol_output_exts:
@@ -4821,13 +4822,15 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
                     counters = fit.getParameter('counters')
                     counters.update(log_results)
 
-                    fit.setParameter('crysol', counters)
+                    analysis = fit.getParameter('analysis')
+                    analysis['crysol'] = counters
+                    fit.setParameter('analysis', analysis)
 
                     abs_prof = SASFileIO.loadIntFile(os.path.join(output_dir,
                         '{}.abs'.format(name)))
 
-                    abs_prof.setParameter('crysol',
-                        copy.deepcopy(fit.getParameter('counters')))
+                    abs_prof.setParameter('analysis',
+                        copy.deepcopy(fit.getParameter('analysis')))
 
                     crysol_results[name] = [abs_prof, fit]
 
@@ -4841,31 +4844,25 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
     else:
         crysol_results = {}
 
-
-    if len(models) == 1 and (profiles is None or
-        (profiles is not None and len(profiles) <= 1)):
-        crysol_results = list(crysol_results.values())[0]
-
     if profiles is not None:
         for prof in profiles:
             if isinstance(prof, SASM.SASM):
-                name = os.path.exists(os.path.join(output_dir,
-                    prof.getParameter('filename')))
+                name = os.path.join(output_dir, prof.getParameter('filename'))
                 if os.path.exists(name):
                     os.remove(name)
 
     return crysol_results
 
 def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
-    sym_type='Cyclical', initial_model=None, n_electrons=None, settings=None,
-    voxel=5, oversampling=3, steps=10000,
-    recenter=True, recenter_step=list(range(1001,8002, 500)),
+    sym_type='Cyclical', initial_model=None, n_electrons=10000, settings=None,
+    voxel=5, oversampling=3, steps=None,
+    recenter=True, recenter_step=list(range(501,8002, 500)),
     recenter_mode='com', positivity=True, extrapolate=True, shrinkwrap=True,
-    sw_sigma_start=3.0, sw_sigma_end=1.5, sw_sigma_decay=0.99,
-    sw_sigma_thresh=0.2, sw_iter=20, sw_min_step=5000, connected=True,
-    connectivity_step=[7500], chi_end_frac=0.001, cut_output=False,
-    write_xplor=False, sym_step=[3000, 5000, 7000, 9000], seed=None,
-    abort_event=None, gpu=False):
+    sw_sigma_start=None, sw_sigma_end=None, sw_sigma_decay=0.99,
+    sw_sigma_thresh=0.2, sw_iter=20, sw_min_step=None, connected=True,
+    connectivity_step=None, connected_features=1, chi_end_frac=0.001,
+    cut_output=False, write_xplor=False, sym_step=[3000, 5000, 7000, 9000],
+    seed=None, abort_event=None, gpu=False):
     """
     Generates an electron density reconstruction using DENSS. Function blocks
     until DENSS finishes. Can be used to refine an existing model.
@@ -4895,7 +4892,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     n_electrons: int, optional
         Number of electrons in the molecule. If provided, the output density
         will be scaled so that the sum of the density across the occupied volume
-        is equal to this value.
+        is equal to this value. If no value is provided 10000 is used.
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
         RAW settings containing relevant parameters. If provided, every model
         parameter except mode, symmetry, and sym_axis, and n_electrons is
@@ -4927,10 +4924,8 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
         support. Default is True. Not recommended to change.
     sw_sigma_start: float, optional
         The starting value to use for blurring during the shrinkwrap algorithm.
-        Default is 3.0.
     sw_sigma_end: float, optional
         The ending value to use for blurring during the shrinkwrap algorithm.
-        Default is 1.5.
     sw_sigma_decay: float, optional
         How quickly the sw_sigma value transitions from start to end.
     sw_sigma_thresh: float, optional
@@ -4947,7 +4942,10 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
         True.
     connectivity_step: list, optional
         A list of integers specifying the steps at which connectivity is
-        enforced. Only used in Custom model.
+        enforced. Only used in Custom mode.
+    connected_features: int, optional
+        The number of features (density blobs) to allow during the connectivity
+        steps. Only used in Custom mode. Deafult is 1.
     chi_end_frac: float, optional
         The convergence criteria. Set as the minimum threshold of the chi
         squared standard deviation in the last 100 steps, as a fraction of
@@ -4975,7 +4973,8 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     rho: :class:`numpy.array`
         The calculated electron density of the model.
     chi_sq: float
-        The chi squared value of the model fit to the data.
+        The final reduced chi^2 value of the fit of the density scattering
+        profile to the data (not the regularized IFT intensity)
     rg: float
         The radius of gyration of the model.
     support_vol: float
@@ -5001,6 +5000,10 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     all_support_vol: :class:`numpy.array`
         The value of support volume at all iterations of the DENSS algorithm.
         Useful to check convergence.
+    fit: :class:`numpy.array`
+        A numpy array where the first column is q, the second is the data (not
+        the regularized IFT) intensity, the third column is the data uncertainty,
+        and the fourth column is the fit of the model density to the data.
     """
 
     datadir = os.path.abspath(os.path.expanduser(datadir))
@@ -5029,6 +5032,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
             'swMinStep'         : settings.get('denssShrinkwrapMinStep'),
             'connected'         : settings.get('denssConnected'),
             'conSteps'          : settings.get('denssConnectivitySteps'),
+            'conFeatures'       : raw_settings.get('denssConFeatures'),
             'chiEndFrac'        : settings.get('denssChiEndFrac'),
             'cutOutput'         : settings.get('denssCutOut'),
             'writeXplor'        : settings.get('denssWriteXplor'),
@@ -5066,6 +5070,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
             'swMinStep'         : sw_min_step,
             'connected'         : connected,
             'conSteps'          : str(connectivity_step),
+            'conFeatures'       : connected_features,
             'chiEndFrac'        : chi_end_frac,
             'cutOutput'         : cut_output,
             'writeXplor'        : write_xplor,
@@ -5085,6 +5090,10 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
     q = ift.q_extrap
     I = ift.i_extrap
 
+    q_raw = ift.q_orig
+    i_raw = ift.i_orig
+    err_raw = ift.err_orig
+
     ext_pts = len(I)-len(ift.i_orig)
 
     if ext_pts > 0:
@@ -5096,26 +5105,57 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
 
     D = ift.getParameter('dmax')
 
+    if denss_settings['mode'] != 'Custom':
+        #reset settings to default
+        temp_settings = RAWSettings.RawGuiSettings()
+        denss_settings['voxel'] = temp_settings.get('denssVoxel')
+        denss_settings['oversample'] = temp_settings.get('denssOversampling')
+        denss_settings['steps'] = temp_settings.get('denssSteps')
+        # denss_settings['limitDmax'] = temp_settings.get('denssLimitDmax')
+        # denss_settings['dmaxStep'] = temp_settings.get('denssLimitDmaxStep')
+        denss_settings['recenter'] = temp_settings.get('denssRecenter')
+        denss_settings['recenterStep'] = temp_settings.get('denssRecenterStep')
+        denss_settings['positivity'] = temp_settings.get('denssPositivity')
+        # denss_settings['extrapolate'] = temp_settings.get('denssExtrapolate')
+        denss_settings['shrinkwrap'] = temp_settings.get('denssShrinkwrap')
+        denss_settings['swSigmaStart'] = temp_settings.get('denssShrinkwrapSigmaStart')
+        denss_settings['swSigmaEnd'] = temp_settings.get('denssShrinkwrapSigmaEnd')
+        denss_settings['swSigmaDecay'] = temp_settings.get('denssShrinkwrapSigmaDecay')
+        denss_settings['swThresFrac'] = temp_settings.get('denssShrinkwrapThresFrac')
+        denss_settings['swIter'] = temp_settings.get('denssShrinkwrapIter')
+        denss_settings['swMinStep'] = temp_settings.get('denssShrinkwrapMinStep')
+        denss_settings['connected'] = temp_settings.get('denssConnected')
+        denss_settings['conSteps'] = temp_settings.get('denssConnectivitySteps')
+        denss_settings['conFeatures'] = temp_settings.get('denssConFeatures')
+        denss_settings['chiEndFrac'] = temp_settings.get('denssChiEndFrac')
+        denss_settings['cutOutput'] = temp_settings.get('denssCutOut')
+        denss_settings['writeXplor'] = temp_settings.get('denssWriteXplor')
+        denss_settings['recenterMode'] = temp_settings.get('denssRecenterMode')
+        # denss_settings['minDensity'] = temp_settings.get('denssMinDensity')
+        # denss_settings['maxDensity'] = temp_settings.get('denssMaxDensity')
+        # denss_settings['flattenLowDensity'] = temp_settings.get('denssFlattenLowDensity')
+        denss_settings['ncsSteps'] = temp_settings.get('denssNCSSteps')
+        denss_settings['denssGPU'] = temp_settings.get('denssGPU')
+
     shrinkwrap_sigma_start_in_A = (3.0 * D / 64.0) * 3.0
     shrinkwrap_sigma_end_in_A = (3.0 * D / 64.0) * 1.5
 
     if denss_settings['mode'] == 'Fast':
-        denss_settings['swMinStep'] = 1000
-        denss_settings['conSteps'] = '[2000]'
+        denss_settings['swMinStep'] = 0
+        denss_settings['conSteps'] = '[1000]'
         denss_settings['recenterStep'] = '%s' %(list(range(501,2502,500)))
         denss_settings['steps'] = None
         denss_settings['voxel'] = D*denss_settings['oversample']/32.
 
     elif denss_settings['mode'] == 'Slow':
-        denss_settings['swMinStep'] = 1000
-        denss_settings['conSteps'] = '[2000]'
+        denss_settings['swMinStep'] = 0
+        denss_settings['conSteps'] = '[1000]'
         denss_settings['recenterStep'] = '%s' %(list(range(501,8002,500)))
         denss_settings['steps'] = None
         denss_settings['voxel'] = D*denss_settings['oversample']/64.
 
     elif denss_settings['mode'] == 'Membrane':
         denss_settings['swMinStep'] = 0
-        denss_settings['swThresFrac'] = 0.1
         denss_settings['conSteps'] = '[300, 500, 1000]'
         denss_settings['recenterStep'] = '%s' %(list(range(501,8002,500)))
         denss_settings['steps'] = None
@@ -5125,23 +5165,33 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
         shrinkwrap_sigma_start_in_A *= 2.0
         shrinkwrap_sigma_end_in_A *= 2.0
 
-    if denss_settings['swSigmaStart'] == 'None':
+    elif denss_settings['mode'] == 'Custom':
+        if denss_settings['voxel'] == 'None':
+            denss_settings['voxel'] = dmax * denss_settings['oversample']/64
+
+        if denss_settings['swMinStep'] == 'None':
+            denss_settings['swMinStep'] = 0
+
+        if denss_settings['conSteps'] == 'None':
+            denss_settings['conSteps'] = '[{}]'.format(1000+denss_settings['swMinStep'])
+
+    if denss_settings['swSigmaStart'] == 'None' or denss_settings['swSigmaStart'] is None:
         shrinkwrap_sigma_start_in_vox = shrinkwrap_sigma_start_in_A / denss_settings['voxel']
         denss_settings['swSigmaStart'] = shrinkwrap_sigma_start_in_vox
 
-    if denss_settings['swSigmaEnd'] == 'None':
+    if denss_settings['swSigmaEnd'] == 'None' or denss_settings['swSigmaEnd'] is None:
         shrinkwrap_sigma_end_in_vox = shrinkwrap_sigma_end_in_A / denss_settings['voxel']
         denss_settings['swSigmaEnd'] = shrinkwrap_sigma_end_in_vox
 
-    denss_data = DENSS.runDenss(q, I, sigq, D, prefix, datadir, denss_settings,
-        initial_model, gui=False, abort_event=abort_event)
+    denss_data = DENSS.runDenss(q, I, sigq, D, q_raw, i_raw, err_raw, prefix,
+        datadir, denss_settings, initial_model, gui=False, abort_event=abort_event)
 
     if len(denss_data) == 0:
         raise Exception('DENSS failed to run properly')
 
     if not abort_event.is_set():
         (qdata, I_extrap, err_extrap, q_fit, I_fit, chi_sq, rg, support_vol, rho,
-            side) = denss_data
+            side, fit, final_chi2) = denss_data
 
         last_index = max(np.where(rg !=0)[0])
         all_rg = rg[:last_index+1]
@@ -5158,9 +5208,11 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
         I_fit = -1
         I_extrap = -1
         err_extrap = -1
+        final_chi2 = -1
 
-    return (rho, all_chi_sq[-1], all_rg[-1], all_support_vol[-1], side, q_fit,
-        I_fit, I_extrap, err_extrap, all_chi_sq, all_rg, all_support_vol)
+    return (rho, final_chi2, all_rg[-1], all_support_vol[-1], side, q_fit,
+        I_fit, I_extrap, err_extrap, all_chi_sq, all_rg, all_support_vol,
+        fit)
 
 def denss_average(densities, side, prefix, datadir, n_proc=1,
     abort_event=None):

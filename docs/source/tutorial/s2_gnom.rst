@@ -93,7 +93,14 @@ The written version of the tutorial follows.
     *   *Note:* This saved file is all of the GNOM output, in the GNOM format. It can be used
         as input for any program that needs a GNOM **.out** file.
 
+#.  You can save the IFT in the pdf report that RAW can make. Right click on
+    the **glucose_isomerase.out** item in the IFT control panel and
+    select "Save report". In the window that opens click "Save Report" and
+    save the pdf report. If you open the report you will see a plot of the P(r)
+    function and a summary of the run parameters and numerical results saved
+    as a table.
 
+    |gnom_report_png|
 
 .. |gnom_panel_png| image:: images/gnom_panel.png
     :target: ../_images/gnom_panel.png
@@ -101,6 +108,10 @@ The written version of the tutorial follows.
 .. |gnom_cutrg_png| image:: images/gnom_cutrg.png
     :width: 300 px
     :target: ../_images/gnom_cutrg.png
+
+.. |gnom_report_png| image:: images/gnom_report.png
+    :width: 450 px
+    :target: ../_images/gnom_report.png
 
 .. |Rg| replace:: R\ :sub:`g`
 

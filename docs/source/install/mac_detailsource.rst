@@ -1,5 +1,5 @@
-OS X and macOS install from source instructions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+OS X and macOS detailed install from source instructions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _macsource:
 
 #.  Install Miniconda python distribution
@@ -26,7 +26,7 @@ OS X and macOS install from source instructions
 
     *   Type ``conda upgrade conda pip wheel setuptools`` and hit enter. Agree to all the prompts.
 
-    *   Type ``conda install numpy scipy matplotlib pillow numba h5py cython numexpr reportlab`` and hit enter.
+    *   Type ``conda install numpy scipy matplotlib pillow numba h5py cython reportlab`` and hit enter.
         Agree to all the prompts.
 
     *   Type ``conda install -c conda-forge wxpython hdf5plugin fabio pyfai mmcif_pdbx svglib`` and hit enter. Agree
@@ -71,7 +71,9 @@ OS X and macOS install from source instructions
 
 #.  Run RAW
 
-    *   ``pythonw RAW.py``
+    *   ``python RAW.py``
+
+    *   Note: Older versions of conda will use the command ``pythonw RAW.py``
 
 #.  Enjoy!
 

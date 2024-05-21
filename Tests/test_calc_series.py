@@ -108,7 +108,7 @@ def test_regals(bsa_series):
         comp_settings, framei=130, framef=230)
 
     assert len(regals_profiles) == 2
-    assert len(regals_ifts) == 0
+    assert len(regals_ifts) == 2
     assert np.allclose(regals_profiles[0].getI().sum(), 194.77363667059115)
     assert np.allclose(params['x2'], 1.0332748476863391)
     assert params['total_iter'] == 43
@@ -161,9 +161,9 @@ def test_regals_auto_lambda(bsa_series):
         comp_settings, framei=130, framef=230)
 
     assert len(regals_profiles) == 2
-    assert len(regals_ifts) == 0
-    assert np.allclose(regals_profiles[0].getI().sum(), 200.45514174941226)
-    assert np.allclose(params['x2'], 0.9949186551912603)
+    assert len(regals_ifts) == 2
+    assert np.allclose(regals_profiles[0].getI().sum(), 200.47569599218787, rtol=1e-3)
+    assert np.allclose(params['x2'], 0.9948359960552903, rtol=1e-4)
     assert params['total_iter'] == 33
 
 def test_regals_realspace(bsa_series):
@@ -234,8 +234,8 @@ def test_find_buffer_range(bsa_series):
     success, region_start, region_end = raw.find_buffer_range(bsa_series)
 
     assert success
-    assert region_start == 45
-    assert region_end == 80
+    assert region_start == 81
+    assert region_end == 116
 
 def test_find_buffer_range_list(bsa_series):
     sasms = bsa_series.getAllSASMs()
@@ -243,12 +243,12 @@ def test_find_buffer_range_list(bsa_series):
     success, region_start, region_end = raw.find_buffer_range(sasms)
 
     assert success
-    assert region_start == 45
-    assert region_end == 80
+    assert region_start == 81
+    assert region_end == 116
 
 def test_validate_buffer_range_good(bsa_series):
     (valid, similarity_results, svd_results,
-        intI_results) = raw.validate_buffer_range(bsa_series, [[18, 53]])
+        intI_results) = raw.validate_buffer_range(bsa_series, [[81, 116]])
 
     assert valid
     assert similarity_results['all_similar']
@@ -257,30 +257,30 @@ def test_validate_buffer_range_good(bsa_series):
     assert svd_results['svals'] == 1
     assert intI_results['intI_valid']
     assert intI_results['smoothed_intI_valid']
-    assert intI_results['intI_pval'] == 0.33394404805178013
-    assert np.isclose(intI_results['smoothed_intI_pval'], 0.02474248231802627)
+    assert np.isclose(intI_results['intI_pval'], 0.16014409516640912)
+    assert np.isclose(intI_results['smoothed_intI_pval'], 0.39653903414001357)
 
 def test_validate_buffer_region_bad(bsa_series):
     (valid, similarity_results, svd_results,
         intI_results) = raw.validate_buffer_range(bsa_series, [[50, 100]])
 
     assert not valid
-    assert not similarity_results['all_similar']
+    assert similarity_results['all_similar']
     assert similarity_results['low_q_similar']
-    assert not similarity_results['high_q_similar']
-    assert similarity_results['all_outliers'][0] == 34
-    assert similarity_results['high_q_outliers'][0] == 46
+    assert similarity_results['high_q_similar']
+    assert len(similarity_results['all_outliers']) == 0
+    assert len(similarity_results['high_q_outliers']) == 0
     assert svd_results['svals'] == 1
     assert not intI_results['intI_valid']
     assert not intI_results['smoothed_intI_valid']
     assert np.isclose(intI_results['intI_pval'], 0.0007815284021663028)
-    assert intI_results['smoothed_intI_pval'] == 2.8531443061690295e-19
+    assert np.isclose(intI_results['smoothed_intI_pval'], 2.8531443061690295e-19)
 
 def test_validate_buffer_range_list(bsa_series):
     sasms = bsa_series.getAllSASMs()
 
     (valid, similarity_results, svd_results,
-        intI_results) = raw.validate_buffer_range(sasms, [[18, 53]])
+        intI_results) = raw.validate_buffer_range(sasms, [[81, 116]])
 
     assert valid
     assert similarity_results['all_similar']
@@ -289,8 +289,8 @@ def test_validate_buffer_range_list(bsa_series):
     assert svd_results['svals'] == 1
     assert intI_results['intI_valid']
     assert intI_results['smoothed_intI_valid']
-    assert intI_results['intI_pval'] == 0.33394404805178013
-    assert np.isclose(intI_results['smoothed_intI_pval'], 0.02474248231802627)
+    assert np.isclose(intI_results['intI_pval'], 0.16014409516640912)
+    assert np.isclose(intI_results['smoothed_intI_pval'], 0.39653903414001357)
 
 def test_set_buffer_range(clean_bsa_series):
     (sub_profiles, rg, rger, i0, i0er, vcmw, vcmwer,
@@ -350,7 +350,7 @@ def test_validate_sample_range_good(bsa_series):
     assert param_results['vcmw_valid']
     assert param_results['vpmw_valid']
     assert param_results['rg_pval'] == 0.9488461264555137
-    assert param_results['vcmw_pval'] == 0.3438801731989136
+    assert np.isclose(param_results['vcmw_pval'], 0.3438801731989136)
     assert param_results['vpmw_pval'] == 0.6472068934597522
     assert sn_results['sn_valid']
 
@@ -392,7 +392,7 @@ def test_validate_sample_range_list(bsa_series):
     assert param_results['vcmw_valid']
     assert param_results['vpmw_valid']
     assert param_results['rg_pval'] == 0.9488461264555137
-    assert param_results['vcmw_pval'] == 0.3438801731989136
+    assert np.isclose(param_results['vcmw_pval'], 0.3438801731989136)
     assert param_results['vpmw_pval'] == 0.6472068934597522
     assert sn_results['sn_valid']
 

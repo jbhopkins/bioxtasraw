@@ -49,7 +49,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from svglib.svglib import svg2rlg
 
-import bioxtasraw.RAWAPI as raw
 import bioxtasraw.SASCalc as SASCalc
 
 # mpl.rc('font', size = 8.0, family='Arial')
@@ -126,6 +125,10 @@ SSMWData = collections.namedtuple('Shape_and_size_MW', ['MW', 'Dmax', 'Shape'],
 BayesMWData = collections.namedtuple('Bayes_MW', ['MW', 'Probability',
     'Confidence_interval_lower', 'Confidence_interval_upper',
     'Confidence_interval_probability'], defaults=[-1, -1, -1, -1, -1])
+
+TheoryData = collections.namedtuple('Theory', ['Chi_squared', 'Rg',
+    'Hydration_shell_contrast', 'Excluded_volume', 'Probability_of_fit',
+    'Solvent_density', 'Type'], defaults=[-1, -1, -1, -1, -1, -1, ''])
 
 BIFTData = collections.namedtuple('BIFT', ['Dmax', 'Rg', 'I0', 'Dmax_err',
     'Rg_err', 'I0_err', 'Chi_sq', 'q_min', 'q_max', 'Evidence', 'log_alpha',
@@ -490,6 +493,15 @@ class SAXSData(object):
         'Bayesian'              : (_bayesmw_trans, BayesMWData),
         }
 
+    _theory_trans = {
+        'Chi_squared'               : 'Chi_squared',
+        'Rg'                        : 'Rg',
+        'Hydration_shell_contrast'  : 'Hydration_shell_contrast',
+        'Excluded_volume'           : 'Excluded_volume',
+        'Probability_of_fit'        : 'Probability_of_fit',
+        'Solvent_density'           : 'Solvent_density',
+        }
+
     _bift_trans = {
         'Dmax'              : 'Dmax',
         'Real_Space_Rg'     : 'Rg',
@@ -646,6 +658,21 @@ class SAXSData(object):
             data_tuple = data_method(**data_dict)
 
             self.mw_data[value] = data_tuple
+
+
+        # Get data on theoretical profile. Could be CRYSOL or . . .
+        # Grab CRYSOL data
+        data_dict = {}
+
+        if 'crysol' in self._analysis_data:
+            crysol_analysis = self._analysis_data['crysol']
+            data_dict['Type'] = 'CRYSOL'
+
+            for key, value in self._theory_trans.items():
+                if key in crysol_analysis:
+                    data_dict[value] = float(crysol_analysis[key])
+
+        self.theory_data = TheoryData(**data_dict)
 
         # Grab BIFT data
         data_dict = {}
@@ -1057,6 +1084,8 @@ class overview_plot(object):
 
     def __init__(self, profiles, ifts, series, int_type='Total',
         series_data='Rg', img_width=6, img_height=6):
+        plt.style.use('default')
+
         with mpl.rc_context({'font.size' : 8.0, 'font.family': 'Arial',
             'legend.frameon': False, 'legend.fontsize': 'medium', 'axes.labelsize': 'medium',
             'axes.linewidth': 1, 'axes.facecolor': 'white', 'axes.axisbelow': False,
@@ -1261,11 +1290,13 @@ class overview_plot(object):
 
             if series.buffer_range:
                 for buf in series.buffer_range:
-                    ax.axvspan(buf[0], buf[1], color='#2ca02c', alpha=0.5)
+                    ax.axvspan(buf[0], buf[1], color='#95cf95', alpha=1,
+                        zorder=-1)
 
             if series.sample_range:
                 for sam in series.sample_range:
-                    ax.axvspan(sam[0], sam[1], color='#B879CB', alpha=0.5)
+                    ax.axvspan(sam[0], sam[1], color='#CDA7D8', alpha=1,
+                        zorder=-1)
 
 
         labels = [l.get_label() for l in lines]
@@ -1444,6 +1475,8 @@ class efa_plot(object):
     def __init__(self, series, int_type='Total',
         series_data='Rg', img_width=6, img_height=6, is_regals=False):
 
+        plt.style.use('default')
+
         with mpl.rc_context({'font.size' : 8.0, 'font.family': 'Arial',
             'legend.frameon': False, 'legend.fontsize': 'medium', 'axes.labelsize': 'medium',
             'axes.linewidth': 1, 'axes.facecolor': 'white', 'axes.axisbelow': False,
@@ -1587,10 +1620,36 @@ class efa_plot(object):
         plt.setp(ax.get_yticklabels(), visible=False)
 
         ax.plot(frame_data, int_data, '-', color='k')
-        ax.set_prop_cycle(None)
+
+        if ((int(mpl.__version__.split('.')[0]) ==1 and
+            int(mpl.__version__.split('.')[1]) >=5) or
+            (int(mpl.__version__.split('.')[0]) > 1 and
+            int(mpl.__version__.split('.')[0]) < 3) or
+            (int(mpl.__version__.split('.')[0]) == 3 and
+            int(mpl.__version__.split('.')[1]) <8)):
+            ax.set_prop_cycle(None) #Resets the color cycler to the original state
+        elif ((int(mpl.__version__.split('.')[0]) == 3 and
+            int(mpl.__version__.split('.')[1]) >=8) or
+            (int(mpl.__version__.split('.')[0]) > 3)):
+            prop_cycle = copy.deepcopy(mpl.rcParams['axes.prop_cycle'])
+            color_cycle = prop_cycle.by_key()['color']
+        else:
+            ax.set_color_cycle(None)
 
         for i in range(len(ranges)):
-            color = next(ax._get_lines.prop_cycler)['color']
+            if ((int(mpl.__version__.split('.')[0]) ==1 and
+                int(mpl.__version__.split('.')[1]) >=5) or
+                (int(mpl.__version__.split('.')[0]) > 1 and
+                int(mpl.__version__.split('.')[0]) < 3) or
+                (int(mpl.__version__.split('.')[0]) == 3 and
+                int(mpl.__version__.split('.')[1]) <8)):
+                color = next(ax._get_lines.prop_cycler)['color']
+            elif ((int(mpl.__version__.split('.')[0]) == 3 and
+                int(mpl.__version__.split('.')[1]) >=8) or
+                (int(mpl.__version__.split('.')[0]) > 3)):
+                color = color_cycle[i]
+            else:
+                color =next(ax._get_lines.color_cycle)
 
             ax.annotate('', xy=(ranges[i][0], 0.975-0.05*(i)),
                 xytext=(ranges[i][1], 0.975-0.05*(i)),
@@ -1769,6 +1828,9 @@ def generate_report(fname, datadir, profiles, ifts, series, extra_data=None):
 
         mw = generate_mw_params(profiles, ifts, series)
         elements.extend(mw)
+
+        theory = generate_theory_params(profiles, ifts, series)
+        elements.extend(theory)
 
     if len(ifts) > 0:
         if any(ift.type == 'GNOM' for ift in ifts):
@@ -2848,6 +2910,56 @@ def generate_mw_params(profiles, ifts, series):
         mw_table = KeepTogether([mw_text, mw_table])
 
         elements = [mw_table]
+
+    else:
+        elements = []
+
+    return elements
+
+def generate_theory_params(profiles, ifts, series):
+    styles = getSampleStyleSheet()
+
+    theory_text = Paragraph('Theoretical profiles:', styles['Heading2'])
+
+    table_pairs = [
+        ('', 'name'),
+        ('Date', 'Date'),
+        ('Method', 'Type'),
+        ('Rg', 'Rg'),
+        ('Excluded volume', 'Excluded_volume'),
+        ('Hydration shell contrast', 'Hydration_shell_contrast'),
+        ('Chi^2', 'Chi_squared'),
+        ('Probability of fit', 'Probability_of_fit'),
+        ]
+
+    table_dict = OrderedDict()
+
+    required_data = ['']
+
+    for profile in profiles:
+        for header, key in table_pairs:
+            if key in profile.theory_data._fields:
+                value = getattr(profile.theory_data, key)
+            else:
+                value = ''
+
+            if value != -1:
+                value = str(value)
+            else:
+                value = ''
+
+            if key == 'name':
+                value = profile.filename
+
+            if header in table_dict:
+                table_dict[header].append(value)
+            else:
+                table_dict[header] = [value]
+
+    theory_table, table_data = format_table(table_dict, required_data, 130., 200.)
+
+    if len(table_data) > 1:
+        elements = [theory_text, theory_table]
 
     else:
         elements = []

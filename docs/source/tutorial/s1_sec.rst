@@ -144,7 +144,7 @@ The written version of the tutorial follows.
         where there are minor elution components that you should exclude from
         your buffer selection.
 
-#.  Zoom back out on the plot. Reset the buffer range to 434 to 492 by typing
+#.  Zoom back out on the plot. Reset the buffer range to 504 to 562 by typing
     those values in the Start/End range boxes and hitting enter.
 
 #.  To set the buffer region, create a set of subtracted profiles, and calculate
@@ -212,7 +212,7 @@ The written version of the tutorial follows.
     *   *Tip:* You can manually adjust the sample region range in the same way
         as the buffer range, using the controls in the Start/End boxes.
 
-#.  Once you are satisfied with the region picked (should be 697-711), click the
+#.  Once you are satisfied with the region picked (should be 699-713), click the
     'To Profiles Plot' button. This averages the selected region and sends the resulting
     average to RAW's Profiles Plot.
 
@@ -225,8 +225,8 @@ The written version of the tutorial follows.
 #.  If you adjust the sample or buffer region in a way that could be problematic,
     RAW will warn you. Try this.
 
-    *   Adjust the Buffer end to include more of the elution range, such as
-        ending at 520. You will want to click on the 'Unsubtracted' plot to
+    *   Adjust the Buffer start to include more of the elution range, such as
+        starting at 450. You will want to click on the 'Unsubtracted' plot to
         see the buffer range. Then click 'Set Buffer'. You will see a warning window
         telling you what might be wrong with the selected region. Click 'Cancel'.
 
@@ -243,9 +243,10 @@ The written version of the tutorial follows.
         whether there are multiple singular values in the selected region.
 
         For sample regions, RAW checks frame-wise similarity across the
-        whole *q* range and at low and high *q*, correlations in calculated values,
-        whether there are multiple singular values in the selected region, and
-        if some of the selected frames decrease the signal to noise of the average.
+        whole *q* range and at low and high *q*, correlations in calculated Rg
+        and MW values, whether there are multiple singular values in the selected
+        region, and if some of the selected frames decrease the signal to noise
+        of the average.
 
 #.  Click 'OK' to close the window and save your analysis results. In the Info panel
     above the Series control panel you should see information about the series,
@@ -331,11 +332,11 @@ The written version of the tutorial follows.
     |series_star_png|
 
 #.  In the ‘Data to Profiles plot’ section enter the frame range of interest.
-    For this dataset, try the buffer range you selected: 434 to 492. Then click
+    For this dataset, try the buffer range you selected: 504 to 562. Then click
     the ‘Average’ button. That will send the average buffer to the Profiles plot.
 
     *   *Try:* Send the average of the sample range you selected to the main
-        plot (697 to 711), carry out the subtraction, and verify it’s the same as
+        plot (699 to 713), carry out the subtraction, and verify it’s the same as
         the curve produced by the ‘To Profiles Plot’ button in the LC Series Analysis
         panel.
 
@@ -430,9 +431,12 @@ The written version of the tutorial follows.
     *   *Try:* Clear the Series data and then open one of your saved files from the Files tab
         using either the “Plot” or “Plot Series” button.
 
-#.  With both items selected, right click and select "Save report". Check the profiles
-    associtated with the SEC-SAXS series, so that you're saving a report that includes
-    both the series and the averaged subtracted profiles. Save the report as a pdf.
+#.  Select just the **profile_001** item, right click and select "Save report". Check
+    the profiles associtated with the SEC-SAXS series, so that you're saving a
+    report that includes both the series and the averaged subtracted profile.
+    Save the report as a pdf.
+
+    |series_report_png|
 
 .. |series_load1_png| image:: images/series_load1.png
     :width: 500 px
@@ -528,6 +532,10 @@ The written version of the tutorial follows.
 .. |series_scale_png| image:: images/series_scale.png
     :width: 300 px
     :target: ../_images/series_scale.png
+
+.. |series_report_png| image:: images/series_report.png
+    :width: 450 px
+    :target: ../_images/series_report.png
 
 
 .. |Rg| replace:: R\ :sub:`g`

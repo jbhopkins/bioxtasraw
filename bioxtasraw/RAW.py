@@ -79,7 +79,7 @@ else:
     SplashScreen = wx.SplashScreen
     TaskBarIcon = wx.TaskBarIcon
     AboutDialogInfo = wx.AboutDialogInfo
-    Aboutbox = wx.AboutBox
+    AboutBox = wx.AboutBox
 
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
@@ -106,6 +106,7 @@ import bioxtasraw.SASUtils as SASUtils
 import bioxtasraw.SECM as SECM
 import bioxtasraw.RAWReport as RAWReport
 import bioxtasraw.BIFT as BIFT
+import bioxtasraw.RAWAPI as RAWAPI
 from bioxtasraw.RAWGlobals import mainworker_cmd_queue
 
 thread_wait_event = threading.Event()
@@ -211,6 +212,7 @@ class MainFrame(wx.Frame):
             'dift'                  : self.NewControlId(),
             'runambimeter'          : self.NewControlId(),
             'runatsasalign'         : self.NewControlId(),
+            'runcrysol'             : self.NewControlId(),
             'rundenssalign'         : self.NewControlId(),
             'runsvd'                : self.NewControlId(),
             'runefa'                : self.NewControlId(),
@@ -237,6 +239,7 @@ class MainFrame(wx.Frame):
         self.dammif_frames = []
         self.ambimeter_frames = []
         self.atsasalign_frames = []
+        self.crysol_frames = []
         self.svd_frames = []
         self.efa_frames = []
         self.regals_frames = []
@@ -364,8 +367,6 @@ class MainFrame(wx.Frame):
         thread = threading.Thread(target= self._compileNumbaJits)
         thread.daemon = True
         thread.start()
-
-
 
         wx.CallAfter(self._showWelcomeDialog)
 
@@ -716,6 +717,12 @@ class MainFrame(wx.Frame):
         # self.atsasalign_frames = []
 
         try:
+            for frame in self.crysol_frames:
+                frame.updateColors()
+        except Exception:
+            pass
+
+        try:
             for frame in self.svd_frames:
                 frame.updateColors()
         except Exception:
@@ -772,7 +779,11 @@ class MainFrame(wx.Frame):
         mainworker_cmd_queue.put([taskname, data])
 
     def closeBusyDialog(self):
-        del self._busyDialog
+        try:
+            del self._busyDialog
+        except Exception:
+            pass
+
         self._busyDialog = None
 
     def showBusyDialog(self, text):
@@ -1248,6 +1259,9 @@ class MainFrame(wx.Frame):
             else:
                 alignPath = os.path.join(atsasPath, program)
 
+        else:
+            alignPath = ''
+
         if os.path.exists(alignPath):
             remove = []
             proceed = True
@@ -1298,6 +1312,63 @@ class MainFrame(wx.Frame):
                                     wx.OK | wx.ICON_INFORMATION)
             dial2.ShowModal()
             dial2.Destroy()
+
+    def showCRYSOLFrame(self, sasm_list):
+        atsasPath = self.raw_settings.get('ATSASDir')
+
+        if atsasPath != '':
+            program = 'crysol'
+
+            opsys = platform.system()
+            if opsys == 'Windows':
+                alignPath = os.path.join(atsasPath, '{}.exe'.format(program))
+            else:
+                alignPath = os.path.join(atsasPath, program)
+
+        if os.path.exists(alignPath):
+            remove = []
+            proceed = True
+
+            for crysol_frame in self.crysol_frames:
+                if crysol_frame:
+                    msg = ('There is already a {} window. Do you want to '
+                        'open another?'.format(program.upper()))
+                    answer = wx.MessageBox(msg,
+                        'Open duplicate {} window?'.format(program.upper()),
+                        style=wx.YES_NO)
+
+                    if answer == wx.NO:
+                        proceed = False
+                        crysol_frame.Raise()
+                        crysol_frame.RequestUserAttention()
+
+                    break
+
+                else:
+                    remove.append(crysol_frame)
+
+            if remove:
+                for crysol_frame in remove:
+                    self.crysol_frames.remove(crysol_frame)
+
+            if proceed:
+                crysol_frame = RAWAnalysis.TheoreticalFrame(self, 'CRYSOL',
+                    sasm_list)
+                crysol_frame.SetIcon(self.GetIcon())
+                crysol_frame.Show(True)
+
+                self.crysol_frames.append(crysol_frame)
+
+        else:
+            msg = ('The {} program in the ATSAS package could not be '
+                'found. Please make sure that ATSAS is installed, and that you '
+                'have defined the ATSAS directory in the RAW Advanced Options.'
+                ''.format(program.upper()))
+            dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS",
+                                    wx.OK | wx.ICON_INFORMATION)
+            dial2.ShowModal()
+            dial2.Destroy()
+
 
     def showDenssAlignFrame(self):
 
@@ -1481,11 +1552,38 @@ class MainFrame(wx.Frame):
             for sim_frame in remove:
                 self.sim_frames.remove(sim_frame)
 
-        if proceed:
+        q_match = SASProc.test_equal_q_ranges(sasm_list)
 
-            similarityframe = RAWAnalysis.SimilarityFrame(self, 'Similarity Testing', sasm_list)
-            similarityframe.SetIcon(self.GetIcon())
-            similarityframe.Show(True)
+        if not q_match:
+            msg = ('Not all profiles have matching q vectors. Continuing will '
+                'attempt to find matching q regions in the profiles or '
+                'create matching q regions by binning. Do you wish to continue?')
+            answer = wx.MessageBox(msg, 'O vectors do not match',
+                style=wx.YES_NO)
+
+            if answer == wx.YES:
+                try:
+                    avg_list = SASProc.match_q_vals(sasm_list)
+
+                except SASExceptions.DataNotCompatible:
+                    proceed = False
+                    msg = 'Matching q vectors could not be found/created.'
+                    dlg = wx.MessageDialog(self, msg, "No matching q range available",
+                        style = wx.ICON_INFORMATION | wx.OK)
+                    dlg.ShowModal()
+                    dlg.Destroy()
+
+            else:
+                proceed = False
+
+        else:
+            avg_list = sasm_list
+
+        if proceed:
+            ComparisonFrame = RAWAnalysis.ComparisonFrame(self, 'Compare Profiles',
+                avg_list)
+            ComparisonFrame.SetIcon(self.GetIcon())
+            ComparisonFrame.Show(True)
 
             self.sim_frames.append(similarityframe)
 
@@ -1837,7 +1935,9 @@ class MainFrame(wx.Frame):
                 ('GNOM', self.MenuIDs['rungnom'], self._onToolsMenu, 'normal'),
                 ('DAMMIF/N', self.MenuIDs['rundammif'], self._onToolsMenu, 'normal'),
                 ('AMBIMETER', self.MenuIDs['runambimeter'], self._onToolsMenu, 'normal'),
-                ('Align (SUPCOMB/CIFSUP)', self.MenuIDs['runatsasalign'], self._onToolsMenu, 'normal'),
+                ('Align (SUPCOMB/CIFSUP)', self.MenuIDs['runatsasalign'],
+                    self._onToolsMenu, 'normal'),
+                ('CRYSOL', self.MenuIDs['runcrysol'], self._onToolsMenu, 'normal')
                 ],
         }
 
@@ -2193,6 +2293,22 @@ class MainFrame(wx.Frame):
 
         elif id == self.MenuIDs['runatsasalign']:
             self.showATSASAlignFrame()
+
+        elif id == self.MenuIDs['runcrysol']:
+            manippage = wx.FindWindowByName('ManipulationPanel')
+
+            current_page = self.control_notebook.GetSelection()
+            page = self.control_notebook.GetPage(current_page)
+
+            selected_sasms = []
+
+            if page == manippage:
+                selected_items = manippage.getSelectedItems()
+
+                if selected_items:
+                    selected_sasms = [item.getSASM() for item in selected_items]
+
+            self.showCRYSOLFrame(selected_sasms)
 
         elif id == self.MenuIDs['rundenssalign']:
             self.showDenssAlignFrame()
@@ -2986,17 +3102,17 @@ class MainFrame(wx.Frame):
         info.SetName("RAW")
         info.SetVersion(RAWGlobals.version)
         info.SetCopyright("Copyright(C) 2009 RAW")
-        info.SetDescription(('RAW is a software package primarily for SAXS 2D data '
-                            'reduction and 1D data analysis.\nIt provides an easy '
-                            'GUI for handling multiple files fast, and a\ngood '
-                            'alternative to commercial or protected software packages\n\n'
-                            'Please cite:\n"BioXTAS RAW: improvements to a free open-source program for\n'
-                            'small-angle X-ray scattering data reduction and analysis."\n'
-                            'J. B. Hopkins, R. E. Gillilan, and S. Skou. Journal of Applied\n'
-                            'Crystallography (2017). 50, 1545-1553'))
+        info.SetDescription(('RAW is a software package primarily for '
+                            'biological SAXS 2D data reduction and 1D '
+                            'data analysis.\n\n'
+                            'Please cite:\n"BioXTAS RAW 2: new developments for a '
+                            'free open-source program for small-angle scattering\n'
+                            'data reduction and analysis." J. B. Hopkins. '
+                            'Journal of Applied Crystallography (2024). '
+                            '57, 194-208'))
 
         info.SetWebSite("http://bioxtas-raw.readthedocs.io/", "The RAW Project Homepage")
-        info.SetDevelopers(["Soren Skou", "Jesse B. Hopkins", "Richard E. Gillilan"])
+        info.SetDevelopers(["Jesse B. Hopkins", "Soren Skou"])
         info.SetLicense(('This program is free software: you can redistribute it '
                         'and/or modify it under the terms of the\nGNU General '
                         'Public License as published by the Free Software '
@@ -3011,7 +3127,7 @@ class MainFrame(wx.Frame):
                         'http://www.gnu.org/licenses/'))
 
         # Show the wx.AboutBox
-        AboutBox(info)
+        about = AboutBox(info, self)
 
     def saveBackupData(self):
         file = os.path.join(RAWGlobals.RAWWorkDir,'backup.ini')
@@ -3077,8 +3193,9 @@ class MainFrame(wx.Frame):
                 else:
                     message = ''
 
-                dial2 = wx.MessageDialog(self, 'You have unsaved changes in your ' + message + 'data. Do you want to discard these changes?', 'Discard changes?',
-                                         wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+                dial2 = wx.MessageDialog(self, ('You have unsaved changes in your '
+                    + message + 'data. Do you want to discard these changes?'),
+                    'Discard changes?', wx.YES_NO|wx.NO_DEFAULT|wx.ICON_QUESTION)
                 exit_without_saving = dial2.ShowModal()
                 dial2.Destroy()
 
@@ -3104,17 +3221,32 @@ class MainFrame(wx.Frame):
                 return
 
             if exit_without_saving == wx.ID_YES and dammif_closed and denss_closed:
+                crysol_closed = True
+                for crysol_frame in self.crysol_frames:
+                    if crysol_frame:
+                        dc = crysol_frame.Close()
+
+                        crysol_closed = crysol_closed & dc
+            else:
+                event.Veto()
+                return
+
+            if (exit_without_saving == wx.ID_YES and dammif_closed and denss_closed
+                and crysol_closed):
                 force_quit = wx.ID_YES
                 if RAWGlobals.save_in_progress:
-                    dial = wx.MessageDialog(self, 'RAW is currently saving one or more files. Do you want to force quit (may corrupt files being saved)?', 'Force quit?',
-                                         wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+                    dial = wx.MessageDialog(self, ('RAW is currently saving '
+                        'one or more files. Do you want to force quit (may '
+                        'corrupt files being saved)?'), 'Force quit?',
+                        wx.YES_NO|wx.NO_DEFAULT|wx.ICON_QUESTION)
                     force_quit = dial.ShowModal()
                     dial.Destroy()
             else:
                 event.Veto()
                 return
 
-            if exit_without_saving == wx.ID_YES and dammif_closed and denss_closed and force_quit == wx.ID_YES:
+            if (exit_without_saving == wx.ID_YES and dammif_closed
+                and denss_closed and crysol_closed and force_quit == wx.ID_YES):
                 self._cleanup_and_quit()
             else:
                 event.Veto()
@@ -3173,6 +3305,10 @@ class MainFrame(wx.Frame):
             for frame in self.bift_frames:
                 if frame:
                     frame.controlPanel.BIFT_timer.Stop()
+
+            for frame in self.crysol_frames:
+                if frame:
+                    frame.ctrl_panel.running_timer.Stop()
 
             self.plot_panel.blink_timer.Stop()
             self.ift_plot_panel.blink_timer.Stop()
@@ -3620,6 +3756,7 @@ class MainWorkerThread(threading.Thread):
                         'sec_plot'                      : self._loadAndPlotSEC,
                         'update_secm'                   : self._updateSECM,
                         'to_plot'                       : self._sendSASMToPlot,
+                        'to_plot_num'                   : self._sendSASMToPlotNum,
                         'to_plot_ift'                   : self._plotIFTM,
                         'to_plot_SEC'                   : self._sendSASMToPlotSEC,
                         'save_sec_data'                 : self._saveSeriesData,
@@ -3653,9 +3790,19 @@ class MainWorkerThread(threading.Thread):
                     except Exception:
                         wx.CallAfter(self.main_frame.closeBusyDialog)
                         err = traceback.format_exc()
-                        msg = ("An unexpected error has occurred, please report it to the "
-                            "developers."
-                            "\n\nError:\n%s" %(err))
+
+                        errTxt = err
+                        msg = ("An unexpected error has occurred, please report "
+                            "it to the developers.\n"
+                            "System: {}\n"
+                            "RAW version: {}\n"
+                            "Prebuilt: {}\n".format(platform.platform(),
+                                RAWGlobals.version, RAWGlobals.frozen))
+
+                        if atsas_version != '':
+                            msg = msg + "ATSAS version: {}\n".format(atsas_version)
+
+                        msg = msg + "\nError:\n{}".format(errTxt)
 
                         wx.CallAfter(wx.lib.dialogs.scrolledMessageDialog,
                             None, msg, "Unexpected Error")
@@ -3690,8 +3837,12 @@ class MainWorkerThread(threading.Thread):
         self._sendImageToDisplay(img, bogus_sasm, 0, num_frames)
 
 
-    def _sendIFTMToPlot(self, iftm, item_colour=RAWGlobals.general_text_color, line_color=None,
+    def _sendIFTMToPlot(self, iftm, item_colour=None, line_color=None,
         no_update=False, update_legend=False, notsaved=False):
+
+        if item_colour is None:
+            item_colour = RAWGlobals.general_text_color
+
         wx.CallAfter(self.ift_plot_panel.plotIFTM, iftm)
         wx.CallAfter(self.ift_item_panel.addItem, iftm, item_colour,
             notsaved=notsaved)
@@ -3703,9 +3854,17 @@ class MainWorkerThread(threading.Thread):
         if no_update == False:
             wx.CallAfter(self.ift_plot_panel.fitAxis)
 
+    def _sendSASMToPlotNum(self, data):
+        sasm = data[0]
+        axes_num = data[1]
 
-    def _sendSASMToPlot(self, sasm, axes_num=1, item_colour=RAWGlobals.general_text_color,
+        self._sendSASMToPlot(sasm, axes_num)
+
+    def _sendSASMToPlot(self, sasm, axes_num=1, item_colour=None,
         line_color=None, no_update=False, notsaved=False, update_legend=True):
+
+        if item_colour is None:
+            item_colour = RAWGlobals.general_text_color
 
         wx.CallAfter(self.plot_panel.plotSASM, sasm, axes_num,
             color=line_color)
@@ -3723,7 +3882,7 @@ class MainWorkerThread(threading.Thread):
         line_color=None, no_update=False, notsaved=False, update_legend=True):
 
         if item_colour is None:
-            item_color = RAWGlobals.general_text_color
+            item_colour = RAWGlobals.general_text_color
 
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while plotting frames...')
 
@@ -3741,8 +3900,11 @@ class MainWorkerThread(threading.Thread):
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
 
-    def _sendSECMToPlot(self, secm, item_colour=RAWGlobals.general_text_color, line_color=None,
+    def _sendSECMToPlot(self, secm, item_colour=None, line_color=None,
         no_update=False, notsaved=False, update_legend=True):
+
+        if item_colour is None:
+            item_colour = RAWGlobals.general_text_color
 
         wx.CallAfter(self.sec_plot_panel.plotSECM, secm, color = line_color)
         wx.CallAfter(self.sec_item_panel.addItem, secm, item_colour,
@@ -3755,8 +3917,11 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.sec_plot_panel.fitAxis)
 
 
-    def _updateSECMPlot(self, secm, item_colour=RAWGlobals.general_text_color, line_color=None,
+    def _updateSECMPlot(self, secm, item_colour=None, line_color=None,
         no_update=False, notsaved=False):
+        if item_colour is None:
+            item_colour = RAWGlobals.general_text_color
+
         if isinstance(secm, list):
             wx.CallAfter(self.sec_plot_panel.updatePlotData, secm, draw=False)
 
@@ -4059,6 +4224,10 @@ class MainWorkerThread(threading.Thread):
                     loaded_files, img = SASFileIO.loadFile(each_filename,
                         self._raw_settings, return_all_images=False)
 
+                elif file_ext == '.pdb' or file_ext == '.cif':
+                    loaded_files = self._loadStructureFile(each_filename)
+                    img = None
+
                 else:
                     loaded_files, img = SASFileIO.loadFile(each_filename,
                         self._raw_settings, return_all_images=False)
@@ -4225,6 +4394,21 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(file_list.SetFocus)
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
+
+    def _loadStructureFile(self, filename):
+        structure_calc = self._raw_settings.get('defaultStructureCalc')
+
+        models = [filename]
+
+        if structure_calc == 'CRYSOL':
+            ret_vals = RAWAPI.crysol(models, settings=self._raw_settings)
+
+            profiles = []
+
+            for value in ret_vals.values():
+                profiles.extend(value)
+
+        return profiles
 
     def _loadAndPlotSEC(self, data):
         filename_list=data[0]
@@ -4582,10 +4766,11 @@ class MainWorkerThread(threading.Thread):
 
             result = wx.ID_YES
 
-            qmin, qmax = sasm.getQrange()
-            sub_qmin, sub_qmax = sub_sasm.getQrange()
+            q_match = SASProc.test_equal_q_ranges([sasm, sub_sasm])
 
-            if np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and not yes_to_all:
+            subtract = True
+
+            if not q_match and not yes_to_all:
                 result = self._showQvectorsNotEqualWarning(sasm, sub_sasm)[0]
 
                 if result == wx.ID_YESTOALL:
@@ -4597,9 +4782,13 @@ class MainWorkerThread(threading.Thread):
                         pass
                     secm.releaseSemaphore()
                     return
+                elif result == wx.ID_NO:
+                    subtract = False
+
+            if subtract:
                 try:
                     if result == wx.ID_YES or result == wx.ID_YESTOALL:
-                        subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
+                        subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced=True)
                         self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                         subtracted_sasm_list.append(subtracted_sasm)
@@ -4611,35 +4800,6 @@ class MainWorkerThread(threading.Thread):
                         pass
                     secm.releaseSemaphore()
                     return
-            elif np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
-                try:
-                    subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
-                    self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-
-                    subtracted_sasm_list.append(subtracted_sasm)
-                except SASExceptions.DataNotCompatible:
-                    wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
-                    try:
-                        wx.CallAfter(self.main_frame.closeBusyDialog)
-                    except Exception:
-                        pass
-                    secm.releaseSemaphore()
-                    return
-            else:
-                try:
-                    subtracted_sasm = SASProc.subtract(sasm, sub_sasm)
-                    self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-
-                    subtracted_sasm_list.append(subtracted_sasm)
-                except SASExceptions.DataNotCompatible:
-                    wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
-                    try:
-                        wx.CallAfter(self.main_frame.closeBusyDialog)
-                    except Exception:
-                        pass
-                    secm.releaseSemaphore()
-                    return
-
 
         secm.appendSubtractedSASMs(subtracted_sasm_list, use_subtracted_sasm, window_size)
 
@@ -5065,17 +5225,30 @@ class MainWorkerThread(threading.Thread):
 
         self._showGenericError(msg, title)
 
-    def _showQvectorsNotEqualWarning(self, sasm, sub_sasm):
+    def _showQvectorsNotEqualWarning(self, sasm, sub_sasm, msg_type='subtraction'):
 
         sub_filename = sub_sasm.getParameter('filename')
         filename = sasm.getParameter('filename')
 
-        button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL), ('No', wx.ID_NO), ('Cancel', wx.ID_CANCEL)]
-        question = ('Q vectors for ' + str(filename) + ' and ' + str(sub_filename) +
-            ' are not the same. \nContinuing subtraction will attempt to find '
-            'matching q regions in or create matching q regions by binning.\n'
-            'Do you wish to continue?')
+        if msg_type == 'subtraction':
+            button_list = [('Yes', wx.ID_YES), ('Yes to all', wx.ID_YESTOALL),
+                ('No', wx.ID_NO), ('Cancel', wx.ID_CANCEL)]
+
+            question = ('Q vectors for ' + str(filename) + ' and ' + str(sub_filename) +
+                ' are not the same. \nContinuing {} will attempt to find '
+                'matching q regions in or create matching q regions by binning.\n'
+                'Do you wish to continue?'.format(msg_type))
+
+        else:
+            button_list = [('Yes', wx.ID_YES), ('No', wx.ID_NO)]
+
+            question = ('Q vectors for selected profiles'
+                ' are not the same. \nContinuing {} will attempt to find '
+                'matching q regions in the profiles or create matching q '
+                'regions by binning.\n Do you wish to continue?'.format(msg_type))
+
         label = 'Q vectors do not match'
+
         icon = wx.ART_WARNING
 
         answer = self._displayQuestionDialog(question, label, button_list, icon)
@@ -5378,10 +5551,11 @@ class MainWorkerThread(threading.Thread):
             # result = wx.ID_YES
             sasm = each.getSASM()
 
-            qmin, qmax = sasm.getQrange()
-            sub_qmin, sub_qmax = sub_sasm.getQrange()
+            q_match = SASProc.test_equal_q_ranges([sasm, sub_sasm])
 
-            if np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and not yes_to_all:
+            subtract = True
+
+            if not q_match and not yes_to_all:
                 result = self._showQvectorsNotEqualWarning(sasm, sub_sasm)[0]
 
                 if result == wx.ID_YESTOALL:
@@ -5389,69 +5563,15 @@ class MainWorkerThread(threading.Thread):
                 elif result == wx.ID_CANCEL:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                     return
-                try:
-                    if result == wx.ID_YES or result == wx.ID_YESTOALL:
-                        subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
-                        self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
+                elif result == wx.ID_NO:
+                    subtract = False
 
-                        subtracted_list.append(subtracted_sasm)
-                        # self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
-
-                        if do_auto_save:
-                            save_path = self._raw_settings.get('SubtractedFilePath')
-                            try:
-                                self._saveSASM(subtracted_sasm, '.dat', save_path)
-                            except IOError as e:
-                                self._raw_settings.set('AutoSaveOnSub', False)
-                                do_auto_save = False
-                                msg = (str(e) + '\n\nAutosave of subtracted '
-                                    'images has been disabled. If you are '
-                                    'using a config file from a different '
-                                    'computer please go into Advanced '
-                                    'Options/Autosave to change the save '
-                                    'folders, or save you config file to '
-                                    'avoid this message next time.')
-                                wx.CallAfter(self._showGenericError, msg, 'Autosave Error')
-
-                except SASExceptions.DataNotCompatible:
-                   wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
-                   wx.CallAfter(self.main_frame.closeBusyDialog)
-                   return
-            elif np.all(np.round(sasm.q[qmin:qmax],5) == np.round(sub_sasm.q[sub_qmin:sub_qmax],5)) == False and yes_to_all:
+            if subtract:
                 try:
                     subtracted_sasm = SASProc.subtract(sasm, sub_sasm, forced = True)
                     self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
 
                     subtracted_list.append(subtracted_sasm)
-                    # self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
-
-                    if do_auto_save:
-                        save_path = self._raw_settings.get('SubtractedFilePath')
-                        try:
-                            self._saveSASM(subtracted_sasm, '.dat', save_path)
-                        except IOError as e:
-                            self._raw_settings.set('AutoSaveOnSub', False)
-                            do_auto_save = False
-                            msg = (str(e) + '\n\nAutosave of subtracted '
-                                'images has been disabled. If you are '
-                                'using a config file from a different '
-                                'computer please go into Advanced '
-                                'Options/Autosave to change the save '
-                                'folders, or save you config file to '
-                                'avoid this message next time.')
-                            wx.CallAfter(self._showGenericError, msg, 'Autosave Error')
-
-                except SASExceptions.DataNotCompatible:
-                   wx.CallAfter(self._showSubtractionError, sasm, sub_sasm)
-                   wx.CallAfter(self.main_frame.closeBusyDialog)
-                   return
-            else:
-                try:
-                    subtracted_sasm = SASProc.subtract(sasm, sub_sasm)
-                    self._insertSasmFilenamePrefix(subtracted_sasm, 'S_')
-
-                    subtracted_list.append(subtracted_sasm)
-                    # self._sendSASMToPlot(subtracted_sasm, no_update = True, update_legend = False, axes_num = 2, item_colour = 'red', notsaved = True)
 
                     if do_auto_save:
                         save_path = self._raw_settings.get('SubtractedFilePath')
@@ -5494,54 +5614,67 @@ class MainWorkerThread(threading.Thread):
         weightCounter=None):
         profiles_to_use = wx.ID_YESTOALL
 
+        q_match = SASProc.test_equal_q_ranges(sasm_list)
+
+        if not q_match:
+            result = self._showQvectorsNotEqualWarning(sasm_list[0], sasm_list[1],
+                'averaging')[0]
+
+            if result == wx.ID_NO:
+                wx.CallAfter(self.main_frame.closeBusyDialog)
+                return None
+
+            else:
+                try:
+                    avg_list = SASProc.match_q_vals(sasm_list)
+                except SASExceptions.DataNotCompatible:
+                    wx.CallAfter(self._showAverageError, 3)
+                    return None
+        else:
+            avg_list = sasm_list
+
         if self._raw_settings.get('similarityOnAverage'):
-            ref_sasm = sasm_list[0]
-            qi_ref, qf_ref = ref_sasm.getQrange()
-            pvals = np.ones(len(sasm_list[1:]), dtype=float)
+            ref_sasm = avg_list[0]
+            pvals = np.ones(len(avg_list[1:]), dtype=float)
             threshold = self._raw_settings.get('similarityThreshold')
             sim_test = self._raw_settings.get('similarityTest')
             correction = self._raw_settings.get('similarityCorrection')
 
-            for index, sasm in enumerate(sasm_list[1:]):
-                qi, qf = sasm.getQrange()
-                if not np.all(np.round(sasm.q[qi:qf], 5) == np.round(ref_sasm.q[qi_ref:qf_ref], 5)):
-                    wx.CallAfter(self._showAverageError, 3)
-                    return None
-
-                if sim_test == 'CorMap':
-                    n, c, pval = SASProc.cormap_pval(ref_sasm.i[qi_ref:qf_ref], sasm.i[qi:qf])
-                pvals[index] = pval
-
-            if correction == 'Bonferroni':
-                pvals = pvals*len(sasm_list[1:])
-                pvals[pvals>1] = 1
+            if sim_test == 'CorMap':
+                pvals, corrected_pvals, _ = SASProc.run_cormap_ref(avg_list[1:],
+                    ref_sasm)
 
             if np.any(pvals<threshold):
                 wx.CallAfter(self.main_frame.closeBusyDialog)
-                profiles_to_use = self._showAverageError(4, itertools.compress(sasm_list[1:], pvals<threshold))
+                profiles_to_use = self._showAverageError(4,
+                    itertools.compress(sasm_list[1:], pvals<threshold))
 
                 if profiles_to_use == wx.ID_CANCEL:
                     return None
 
-                wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while averaging and plotting...')
+                wx.CallAfter(self.main_frame.showBusyDialog,
+                    'Please wait while averaging and plotting...')
 
         try:
             if profiles_to_use == wx.ID_YESTOALL:
                 if not weight:
-                    avg_sasm = SASProc.average(sasm_list)
+                    avg_sasm = SASProc.average(avg_list, True)
                 else:
-                    avg_sasm = SASProc.weightedAverage(sasm_list, weightByError, weightCounter)
+                    avg_sasm = SASProc.weightedAverage(avg_list, weightByError,
+                        weightCounter, True)
 
             elif profiles_to_use == wx.ID_YES:
-                reduced_sasm_list = [sasm_list[0]]
-                for i, sasm in enumerate(sasm_list[1:]):
+                reduced_sasm_list = [avg_list[0]]
+
+                for i, sasm in enumerate(avg_list[1:]):
                     if pvals[i] >= threshold:
                         reduced_sasm_list.append(sasm)
 
                 if not weight:
                     avg_sasm = SASProc.average(reduced_sasm_list)
                 else:
-                    avg_sasm = SASProc.weightedAverage(reduced_sasm_list, weightByError, weightCounter)
+                    avg_sasm = SASProc.weightedAverage(reduced_sasm_list,
+                        weightByError, weightCounter, True)
 
         except SASExceptions.DataNotCompatible:
             wx.CallAfter(self._showAverageError, 3)
@@ -7871,8 +8004,11 @@ class ManipulationPanel(wx.Panel):
 
         self.Thaw()
 
-    def addItem(self, sasm, item_colour = RAWGlobals.general_text_color, item_visible = True,
+    def addItem(self, sasm, item_colour = None, item_visible = True,
         notsaved = False, legend_label=''):
+
+        if item_colour is None:
+            item_colour = RAWGlobals.general_text_color
 
         self.underpanel.Freeze()
 
@@ -9058,6 +9194,7 @@ class ManipItemPanel(wx.Panel):
         other_ops_menu.Append(43, 'Set q units')
 
         other_an_menu = wx.Menu()
+        other_an_menu.Append(44, 'Fit model (CRYSOL)')
         other_an_menu.Append(34, 'SVD')
         other_an_menu.Append(35, 'EFA')
         other_an_menu.Append(42, 'REGALS')
@@ -9073,6 +9210,7 @@ class ManipItemPanel(wx.Panel):
         menu.Append(13, 'Guinier fit')
         menu.Append(29, 'Molecular weight')
         menu.Append(32, 'IFT (BIFT)')
+
         if opsys == 'Windows':
             if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'gnom.exe')):
                 menu.Append(31, 'IFT (GNOM)')
@@ -9339,11 +9477,23 @@ class ManipItemPanel(wx.Panel):
                 self.sasm.setParameter('unit', unit)
 
         elif evt.GetId() == 44:
+            #Open crysol window
+            selected_sasms = []
+
+            selected_items = self.manipulation_panel.getSelectedItems()
+
+            if selected_items:
+                selected_sasms = [item.getSASM() for item in selected_items]
+
+            self.main_frame.showCRYSOLFrame(selected_sasms)
+
+        elif evt.GetId() == 45:
             #Open the DENSS IFT window
             selectedSASMList = self.manipulation_panel.getSelectedItems()
 
             sasm = selectedSASMList[0].getSASM()
             Mainframe.showDIFTFrame(sasm, selectedSASMList[0])
+
 
     def _saveAllAnalysisInfo(self):
         selected_items = self.manipulation_panel.getSelectedItems()
@@ -10634,7 +10784,6 @@ class IFTItemPanel(wx.Panel):
         menu.Append(28, 'Electron Density (DENSS)')
         menu.Append(25, 'SVD')
         menu.Append(26, 'EFA')
-        menu.Append(27, 'Similarity Test')
 
         menu.AppendSeparator()
         menu.Append(20, 'Show data')
@@ -10694,18 +10843,6 @@ class IFTItemPanel(wx.Panel):
         elif evt.GetId() == 26:
             #EFA
             self._runEFA()
-
-        elif evt.GetId() == 27:
-            #Similarity testing
-            selected_items = self.ift_panel.getSelectedItems()
-
-            if selected_items:
-                selected_iftms = [item.getIFTM() for item in selected_items]
-                selected_sasms = [SASM.SASM(iftm.p, iftm.r, iftm.err, iftm.getAllParameters()) for iftm in selected_iftms]
-            else:
-                selected_sasms = []
-
-            self.main_frame.showSimilarityFrame(selected_sasms)
 
         elif evt.GetId() == 28:
             #DENSS
@@ -12018,7 +12155,6 @@ class SeriesItemPanel(wx.Panel):
         menu.Append(7, 'SVD')
         menu.Append(8, 'EFA')
         menu.Append(15, 'REGALS')
-        menu.Append(9, 'Similarity Test')
         menu.AppendSeparator()
 
         menu.Append(4, 'Show data')
@@ -12086,32 +12222,6 @@ class SeriesItemPanel(wx.Panel):
 
             secm = selectedSECMList[0].getSECM()
             Mainframe.showREGALSFrame(secm, selectedSECMList[0])
-
-        elif evt.GetId() == 9:
-            #Similarity testing
-            selected_items = self.sec_panel.getSelectedItems()
-
-            if selected_items:
-                selected_secms = [item.getSECM() for item in selected_items]
-                selected_sasms = []
-                ydata_type = self.sec_plot_panel.plotparams['y_axis_display']
-
-                for secm in selected_secms:
-                    if ydata_type == 'q_val':
-                        intensity = secm.I_of_q
-                    elif ydata_type == 'mean':
-                        intensity = secm.mean_i
-                    elif ydata_type == 'q_range':
-                        intensity = secm.qrange_I
-                    else:
-                        intensity = secm.total_i
-
-                    selected_sasms.append(SASM.SASM(intensity, secm.frame_list,
-                        np.sqrt(intensity), secm.getAllParameters()))
-            else:
-                selected_sasms = []
-
-            self.main_frame.showSimilarityFrame(selected_sasms)
 
         elif evt.GetId() == 10:
             #Series analysis
@@ -12795,10 +12905,20 @@ class SeriesControlPanel(wx.Panel):
         elif hdr_format == 'CHESS EIGER 4M':
             if self.image_prefix != '' or self.filename != '':
                 for frame in modified_frame_list:
-                    name = os.path.join(self.directory, '{}_data_{}'.format(self.image_prefix, frame))
+                    name = os.path.join(self.directory,
+                        '{}_data_{}'.format(self.image_prefix, frame))
+
+                    #To match new eiger dat file naming convention
+                    name2 = os.path.join(self.directory,
+                        '{}_data_'.format(self.image_prefix))
+                    flist = glob.glob(name2+'*_{}.dat'.format(frame))
+                    if len(flist) > 0:
+                        fname = flist[0]
 
                     if os.path.isfile(name+'.dat'):
                         file_list.append(name+'.dat')
+                    elif os.path.isfile(fname):
+                        file_list.append(fname)
                     elif os.path.isfile(name+'.h5'):
                         file_list.append(name+'.h5')
                     elif os.path.isfile(name+'.tiff'):
@@ -14329,7 +14449,7 @@ class CenteringPanel(scrolled.ScrolledPanel):
         self.c.refine()
 
         results = self.c.geoRef.getFit2D()
-        print(self.c.geoRef.getPyFAI())
+        # print(self.c.geoRef.getPyFAI())
 
         self._center = [results['centerX'], results['centerY']]
         self._sd_text.SetValue(str(results['directDist']))
@@ -15702,6 +15822,8 @@ class WelcomeDialog(wx.Dialog):
         wx.Dialog.__init__(self,parent, style=wx.RESIZE_BORDER|wx.STAY_ON_TOP,
             *args, **kwargs)
 
+        self.CenterOnParent()
+
         self.panel = wx.Panel(self, wx.ID_ANY, style = wx.BG_STYLE_SYSTEM | wx.RAISED_BORDER)
 
         self.ok_button = wx.Button(self.panel, wx.ID_ANY, 'OK')
@@ -15725,21 +15847,19 @@ class WelcomeDialog(wx.Dialog):
 
         headline = wx.StaticText(self.panel, wx.ID_ANY, 'Welcome to RAW %s!' %(RAWGlobals.version))
 
-        text1 = 'Developers/Contributors:'
-        text2 = '\nSoren Skou'
-        text3 = 'Jesse B. Hopkins'
-        text4 = 'Richard E. Gillilan'
+        text1 = 'Primary Developers:'
+        text2 = 'Jesse B. Hopkins'
+        text3 = 'Soren Skou'
 
-        text7 = ('\nHelp this software become better by reporting bugs to:\n'
-                '     http://bit.ly/rawhelp\n')
+        text7 = ('\nHelp this software become better by reporting bugs to: '
+                'http://bit.ly/rawhelp\n\n')
 
         text8 = 'If you use this software for your SAXS data processing please cite:\n'
-        text9 = ('"BioXTAS RAW: improvements to a free open-source program for\n'
-                'small-angle X-ray scattering data reduction and analysis."\n'
-                'J. B. Hopkins, R. E. Gillilan, and S. Skou. Journal of Applied\n'
-                'Crystallography (2017). 50, 1545-1553\n\n')
+        text9 = ('"BioXTAS RAW 2: new developments for a free open-source program\n'
+                'for small-angle scattering data reduction and analysis." J. B. Hopkins.\n'
+                'Journal of Applied Crystallography (2024). 57, 194-208.\n\n')
 
-        all_text = [text1, text2, text3, text4, text7, text8, text9]
+        all_text = [text1, text2, text3, text7, text8, text9]
 
         final_sizer = wx.BoxSizer(wx.VERTICAL)
         final_sizer.Add(raw_icon, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL,
@@ -15804,17 +15924,27 @@ class MyApp(wx.App):
 
         sys.excepthook = self.ExceptionHook
 
+        opsys = platform.system()
+
         RAWGlobals.RAWWorkDir = standard_paths.GetUserLocalDataDir()
         if not os.path.exists(RAWGlobals.RAWWorkDir):
             os.mkdir(RAWGlobals.RAWWorkDir)
 
         if RAWGlobals.frozen:
-            RAWGlobals.RAWResourcesDir = os.path.join(standard_paths.GetResourcesDir(),
-                'resources')
-            RAWGlobals.RAWDefinitionsDir = os.path.join(standard_paths.GetResourcesDir(),
-                'definitions')
-            RAWGlobals.RAWDocsDir = os.path.join(standard_paths.GetResourcesDir(),
-                'docs')
+            if opsys == 'Windows':
+                RAWGlobals.RAWResourcesDir = os.path.join(standard_paths.GetResourcesDir(),
+                    '_internal', 'resources')
+                RAWGlobals.RAWDefinitionsDir = os.path.join(standard_paths.GetResourcesDir(),
+                    '_internal', 'definitions')
+                RAWGlobals.RAWDocsDir = os.path.join(standard_paths.GetResourcesDir(),
+                    '_internal', 'docs')
+            else:
+                RAWGlobals.RAWResourcesDir = os.path.join(standard_paths.GetResourcesDir(),
+                    'resources')
+                RAWGlobals.RAWDefinitionsDir = os.path.join(standard_paths.GetResourcesDir(),
+                    'definitions')
+                RAWGlobals.RAWDocsDir = os.path.join(standard_paths.GetResourcesDir(),
+                    'docs')
         else:
             RAWGlobals.RAWResourcesDir = os.path.join(raw_path, 'bioxtasraw',
                 'resources')
@@ -15845,8 +15975,16 @@ class MyApp(wx.App):
         err = traceback.format_exception(errType, value, trace)
         errTxt = "\n".join(err)
         msg = ("An unexpected error has occurred, please report it to the "
-                "developers. You may need to restart RAW to continue working."
-                "\n\nError:\n%s" %(errTxt))
+            "developers.\n"
+            "System: {}\n"
+            "RAW version: {}\n"
+            "Prebuilt: {}\n".format(platform.platform(), RAWGlobals.version,
+                RAWGlobals.frozen))
+
+        if atsas_version != '':
+            msg = msg + "ATSAS version: {}\n".format(atsas_version)
+
+        msg = msg + "\nError:\n{}".format(errTxt)
 
         if self and self.IsMainLoopRunning():
             if not self.HandleError(value):

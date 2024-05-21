@@ -296,6 +296,7 @@ class RawGuiSettings(object):
                 'doSVDBinning'          : [True, get_id(), 'bool'],
                 'numSVDBins'            : [150, get_id(), 'int'],
                 'SVDCheckShannonBins'   : [True, get_id(), 'bool'],
+                'warnLinearBaseline'    : [False, get_id(), 'bool'],
 
                 #GUI Settings:
                 'csvIncludeData'      : [None],
@@ -400,8 +401,12 @@ class RawGuiSettings(object):
                 'crysolImplicitH'       : ['None', get_id(), 'str'],
                 'crysolSubElement'      : ['None', get_id(), 'str'],
                 'crysolModelID'         : ['None', get_id(), 'str'],
-                'crysolChainId'         : ['None', get_id(), 'str'],
+                'crysolChainID'         : ['None', get_id(), 'str'],
                 'crysolAltNames'        : [False, get_id(), 'bool'],
+                'crysolResultToPlot'    : ['.abs', get_id(), 'choice'],
+
+                #Default structure prediction
+                'defaultStructureCalc'  : ['CRYSOL', get_id(), 'str'],
 
                 #Weighted Average Settings
                 'weightCounter'         : ['', get_id(), 'choice'],
@@ -426,6 +431,7 @@ class RawGuiSettings(object):
                 # 'denssLimitDmaxStep'    : ['[502]', get_id(), 'text'],
                 'denssRecenter'         : [True, get_id(), 'bool'],
                 'denssRecenterStep'     : ['%s' %(list(range(501, 8002, 500))), get_id(), 'text'],
+                'denssRecenterMode'     : ['com', get_id(), 'choice'],
                 'denssPositivity'       : [True, get_id(), 'bool'],
                 'denssExtrapolate'      : [True, get_id(), 'bool'],
                 'denssShrinkwrap'       : [True, get_id(), 'bool'],
@@ -436,14 +442,14 @@ class RawGuiSettings(object):
                 'denssShrinkwrapIter'   : [20, get_id(), 'int'],
                 'denssShrinkwrapMinStep'    : ['None', get_id(), 'text'],
                 'denssConnected'        : [True, get_id(), 'bool'],
-                'denssConnectivitySteps'    : ['[500]', get_id(), 'text'],
+                'denssConnectivitySteps'    : ['None', get_id(), 'text'],
+                'denssConFeatures'      : [1, get_id(), 'int'],
                 'denssChiEndFrac'       : [0.001, get_id(), 'float'],
                 'denssAverage'          : [True, get_id(), 'bool'],
                 'denssReconstruct'      : [20, get_id(), 'int'],
                 'denssCutOut'           : [False, get_id(), 'bool'],
                 'denssWriteXplor'       : [False, get_id(), 'bool'],
                 'denssMode'             : ['Slow', get_id(), 'choice'],
-                'denssRecenterMode'     : ['com', get_id(), 'choice'],
                 # 'denssMinDensity'       : ['None', get_id(), 'text'],
                 # 'denssMaxDensity'       : ['None', get_id(), 'text'],
                 # 'denssFlattenLowDensity': [True, get_id(), 'bool'],

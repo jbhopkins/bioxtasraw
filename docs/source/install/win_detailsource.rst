@@ -1,8 +1,8 @@
-Windows 7, 8.1, and 10 install from source instructions
+Windows detailed install from source instructions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _winsource:
 
-#.  RAW on windows can be installed using 64 bit (x64) or 32 bit (x86) python. Unless you know
+#.  RAW on windows can be installed using 64 bit or 32 bit python. Unless you know
     you need a 32 bit build, you should install the 64 bit version. Some libraries,
     such as pyFAI, maybe hard to install on 32 bit windows.
 
@@ -36,7 +36,7 @@ Windows 7, 8.1, and 10 install from source instructions
 
     *   ``conda upgrade conda pip wheel setuptools``
 
-    *   ``conda install numpy scipy matplotlib pillow numba h5py cython numexpr reportlab``
+    *   ``conda install numpy scipy matplotlib pillow numba h5py cython reportlab``
 
     *  ``conda install -c conda-forge wxpython hdf5plugin fabio pyfai mmcif_pdbx svglib``
 
@@ -51,8 +51,6 @@ Windows 7, 8.1, and 10 install from source instructions
     *   Right click on the download and select :menuselection:`Extract All`
 
     *   Accept the default location for files to be extracted.
-
-    |1000020100000274000001CAC03003E6F7E944B5_png|
 
 #.  In Windows Explorer, confirm that the file named :file:`setup.py`
     is in your top level expanded raw directory. If it isn’t, it’s likely that
@@ -88,6 +86,3 @@ Windows 7, 8.1, and 10 install from source instructions
 
     *   If you have trouble with the installation, please see the
         :ref:`solutions to common problems <wintrb>` section below.
-
-
-.. |1000020100000274000001CAC03003E6F7E944B5_png| image:: images/win_install/1000020100000274000001CAC03003E6F7E944B5.png

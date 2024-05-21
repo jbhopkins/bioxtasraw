@@ -5,7 +5,7 @@ Using a prebuilt .deb package
 The recommended way to install RAW on Linux is using a prebuilt .deb package. To install
 from a prebuilt app package:
 
-#.  Download the :file:`RAW-x.y.z-linux-amd64.deb`
+#.  Download the :file:`RAW-x.y.z-linux-x86_64.deb`
     (where :file:`x.y.z` is the version number) file from sourceforge:
 
     *   `https://sourceforge.net/projects/bioxtasraw <https://sourceforge.net/projects/bioxtasraw>`_
@@ -20,7 +20,7 @@ from a prebuilt app package:
 
 #.  Run the following command to install, replacing the version number with the correct version:
 
-    *   ``sudo dpkg --install RAW-x.y.z-linux-amd64.deb``
+    *   ``sudo dpkg --install RAW-x.y.z-linux-x86_64.deb``
 
 #.  You may now run RAW either by:
 
@@ -31,3 +31,8 @@ from a prebuilt app package:
 
 Note: if you wish to uninstall a version of RAW installed this way, simply use
 the following command: ``sudo apt-get remove bioxtas-raw``
+
+Alternatively, RAW is available as a standard debian package:
+`https://tracker.debian.org/pkg/bioxtasraw <https://tracker.debian.org/pkg/bioxtasraw>`_.
+So you can use that. However, the RAW developers do not maintain this version
+and cannot guarantee functionality or how up to date it is.

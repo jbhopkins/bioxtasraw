@@ -48,11 +48,365 @@ def test_average(bsa_series_profiles):
     all_i = np.array([sasm.getI() for sasm in profiles])
     avg_i = np.mean(all_i, axis=0)
     all_err = np.array([sasm.getErr() for sasm in profiles])
-    avg_err = np.sqrt(np.sum(np.power(all_err, 2),axis=0))/len(all_err)
+    avg_err = np.sqrt(np.sum(np.square(all_err), axis=0))/len(all_err)
+
+    assert np.allclose(avg_profile.getQ(), profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_average_forced_first_prof_shift_end(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.average(profiles, True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    avg_i = np.mean(all_i, axis=0)
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_err = np.sqrt(np.sum(np.square(all_err), axis=0))/len(all_err)
 
     assert all(avg_profile.getQ() == profiles[0].getQ())
     assert all(avg_profile.getI() == avg_i)
     assert all(avg_profile.getErr() == avg_err)
+
+def test_average_forced_first_prof_shift_start(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax))
+
+    avg_profile = raw.average(profiles, True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    avg_i = np.mean(all_i, axis=0)
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_average_forced_first_prof_shift_both(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax-10))
+
+    avg_profile = raw.average(profiles, True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    avg_i = np.mean(all_i, axis=0)
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_average_forced_mid_prof_shift_end(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.average(profiles, True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    avg_i = np.mean(all_i, axis=0)
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_average_forced_mid_prof_shift_start(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax))
+
+    avg_profile = raw.average(profiles, True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    avg_i = np.mean(all_i, axis=0)
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_average_forced_mid_prof_shift_both(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax-10))
+
+    avg_profile = raw.average(profiles, True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    avg_i = np.mean(all_i, axis=0)
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_average_forced_first_prof_binned(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    profiles[0] = raw.rebin([profiles[0]], rebin_factor=2)[0]
+
+    avg_profile = raw.average(profiles, True)
+
+    assert sum(avg_profile.getQ()) == 33.244632222325
+    assert sum(avg_profile.getI()) == 8990.681290053333
+    assert sum(avg_profile.getErr()) == 32.13838741780659
+
+def test_average_forced_first_prof_binned(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    profiles[3] = raw.rebin([profiles[3]], rebin_factor=2)[0]
+
+    avg_profile = raw.average(profiles, True)
+
+    assert sum(avg_profile.getQ()) == 33.244632222325
+    assert sum(avg_profile.getI()) == 8990.794110054996
+    assert sum(avg_profile.getErr()) == 32.1373285660012
+
+def test_average_forced_first_prof_binned_shifted(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax-10))
+
+    profiles[0] = raw.rebin([profiles[0]], rebin_factor=2)[0]
+
+    avg_profile = raw.average(profiles, True)
+
+    assert sum(avg_profile.getQ()) == 31.8013461095
+    assert sum(avg_profile.getI()) == 8209.160226822501
+    assert sum(avg_profile.getErr()) == 28.453069254783927
+
+def test_average_forced_mid_prof_binned_shifted(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax-10))
+
+    profiles[3] = raw.rebin([profiles[3]], rebin_factor=2)[0]
+
+    avg_profile = raw.average(profiles, True)
+
+    assert sum(avg_profile.getQ()) == 31.8013461095
+    assert sum(avg_profile.getI()) ==  8209.416102609164
+    assert sum(avg_profile.getErr()) == 28.45029013826078
+
+def test_average_no_metadata(bsa_series_profiles):
+    profiles = bsa_series_profiles
+
+    avg_profile = raw.average(profiles, copy_metadata=False)
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    avg_i = np.mean(all_i, axis=0)
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_average_forced_first_prof_shift_end_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.average(profiles, True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    avg_i = np.mean(all_i, axis=0)
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_average_forced_first_prof_shift_start_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax))
+
+    avg_profile = raw.average(profiles, True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    avg_i = np.mean(all_i, axis=0)
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_average_forced_first_prof_shift_both_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax-10))
+
+    avg_profile = raw.average(profiles, True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    avg_i = np.mean(all_i, axis=0)
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_average_forced_mid_prof_shift_end_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.average(profiles, True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    avg_i = np.mean(all_i, axis=0)
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_average_forced_mid_prof_shift_start_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax))
+
+    avg_profile = raw.average(profiles, True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    avg_i = np.mean(all_i, axis=0)
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_average_forced_mid_prof_shift_both_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax-10))
+
+    avg_profile = raw.average(profiles, True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    avg_i = np.mean(all_i, axis=0)
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_err = np.sqrt(np.sum(np.square(all_err),axis=0))/len(all_err)
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_average_forced_first_prof_binned_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    profiles[0] = raw.rebin([profiles[0]], rebin_factor=2)[0]
+
+    avg_profile = raw.average(profiles, True, copy_metadata=False)
+
+    assert sum(avg_profile.getQ()) == 33.244632222325
+    assert sum(avg_profile.getI()) == 8990.681290053333
+    assert sum(avg_profile.getErr()) == 32.13838741780659
+
+def test_average_forced_first_prof_binned_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    profiles[3] = raw.rebin([profiles[3]], rebin_factor=2)[0]
+
+    avg_profile = raw.average(profiles, True, copy_metadata=False)
+
+    assert sum(avg_profile.getQ()) == 33.244632222325
+    assert sum(avg_profile.getI()) == 8990.794110054996
+    assert sum(avg_profile.getErr()) == 32.1373285660012
+
+def test_average_forced_first_prof_binned_shifted_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax-10))
+
+    profiles[0] = raw.rebin([profiles[0]], rebin_factor=2)[0]
+
+    avg_profile = raw.average(profiles, True, copy_metadata=False)
+
+    assert sum(avg_profile.getQ()) == 31.8013461095
+    assert sum(avg_profile.getI()) == 8209.160226822501
+    assert sum(avg_profile.getErr()) == 28.453069254783927
+
+def test_average_forced_mid_prof_binned_shifted_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax-10))
+
+    profiles[3] = raw.rebin([profiles[3]], rebin_factor=2)[0]
+
+    avg_profile = raw.average(profiles, True, copy_metadata=False)
+
+    assert sum(avg_profile.getQ()) == 31.8013461095
+    assert sum(avg_profile.getI()) == 8209.416102609164
+    assert sum(avg_profile.getErr()) == 28.45029013826078
 
 def test_weighted_average(bsa_series_profiles):
     profiles = bsa_series_profiles
@@ -69,8 +423,785 @@ def test_weighted_average(bsa_series_profiles):
     assert all(avg_profile.getI() == avg_i)
     assert all(avg_profile.getErr() == avg_err)
 
-def test_subtract(bsa_series_profiles):
+def test_weighted_average_forced_first_prof_shift_end(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, forced=True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    all_err = 1/(np.square(all_err))
+    avg_i = np.average(all_i, axis=0, weights = all_err)
+    avg_err = np.sqrt(1/np.sum(all_err,0))
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_forced_first_prof_shift_start(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, forced=True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    all_err = 1/(np.square(all_err))
+    avg_i = np.average(all_i, axis=0, weights = all_err)
+    avg_err = np.sqrt(1/np.sum(all_err,0))
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_forced_first_prof_shift_both(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, forced=True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    all_err = 1/(np.square(all_err))
+    avg_i = np.average(all_i, axis=0, weights = all_err)
+    avg_err = np.sqrt(1/np.sum(all_err,0))
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_forced_mid_prof_shift_end(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, forced=True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    all_err = 1/(np.square(all_err))
+    avg_i = np.average(all_i, axis=0, weights = all_err)
+    avg_err = np.sqrt(1/np.sum(all_err,0))
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_forced_mid_prof_shift_start(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, forced=True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    all_err = 1/(np.square(all_err))
+    avg_i = np.average(all_i, axis=0, weights = all_err)
+    avg_err = np.sqrt(1/np.sum(all_err,0))
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_forced_mid_prof_shift_both(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, forced=True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    all_err = 1/(np.square(all_err))
+    avg_i = np.average(all_i, axis=0, weights = all_err)
+    avg_err = np.sqrt(1/np.sum(all_err,0))
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_forced_first_prof_binned(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    profiles[0] = raw.rebin([profiles[0]], rebin_factor=2)[0]
+
+    avg_profile = raw.weighted_average(profiles, forced=True)
+
+    assert sum(avg_profile.getQ()) == 33.244632222325
+    assert sum(avg_profile.getI()) == 8989.378661524233
+    assert sum(avg_profile.getErr()) == 31.99899643529526
+
+def test_weighted_average_forced_mid_prof_binned(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    profiles[3] = raw.rebin([profiles[3]], rebin_factor=2)[0]
+
+    avg_profile = raw.weighted_average(profiles, forced=True)
+
+    assert sum(avg_profile.getQ()) == 33.244632222325
+    assert sum(avg_profile.getI()) == 8989.424127200411
+    assert sum(avg_profile.getErr()) == 32.00011876715525
+
+def test_weighted_average_forced_first_prof_binned_shifted(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax-10))
+
+    profiles[0] = raw.rebin([profiles[0]], rebin_factor=2)[0]
+
+    avg_profile = raw.weighted_average(profiles, forced=True)
+
+    assert sum(avg_profile.getQ()) == 31.8013461095
+    assert sum(avg_profile.getI()) == 8208.348277398985
+    assert sum(avg_profile.getErr()) == 28.360188700922844
+
+def test_weighted_average_forced_mid_prof_binned_shifted(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax-10))
+
+    profiles[3] = raw.rebin([profiles[3]], rebin_factor=2)[0]
+
+    avg_profile = raw.weighted_average(profiles, forced=True)
+
+    assert sum(avg_profile.getQ()) == 31.8013461095
+    assert sum(avg_profile.getI()) == 8208.44847338856
+    assert sum(avg_profile.getErr()) == 28.359995088867155
+
+def test_weighted_average_forced_no_metadata(bsa_series_profiles):
     profiles = bsa_series_profiles
+
+    avg_profile = raw.weighted_average(profiles, copy_metadata=False)
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    all_err = 1/(np.square(all_err))
+    avg_i = np.average(all_i, axis=0, weights = all_err)
+    avg_err = np.sqrt(1/np.sum(all_err,0))
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_forced_first_prof_shift_end_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, forced=True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    all_err = 1/(np.square(all_err))
+    avg_i = np.average(all_i, axis=0, weights = all_err)
+    avg_err = np.sqrt(1/np.sum(all_err,0))
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_forced_first_prof_shift_start_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, forced=True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    all_err = 1/(np.square(all_err))
+    avg_i = np.average(all_i, axis=0, weights = all_err)
+    avg_err = np.sqrt(1/np.sum(all_err,0))
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_forced_first_prof_shift_both_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, forced=True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    all_err = 1/(np.square(all_err))
+    avg_i = np.average(all_i, axis=0, weights = all_err)
+    avg_err = np.sqrt(1/np.sum(all_err,0))
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_forced_mid_prof_shift_end_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, forced=True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    all_err = 1/(np.square(all_err))
+    avg_i = np.average(all_i, axis=0, weights = all_err)
+    avg_err = np.sqrt(1/np.sum(all_err,0))
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_forced_mid_prof_shift_start_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, forced=True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    all_err = 1/(np.square(all_err))
+    avg_i = np.average(all_i, axis=0, weights = all_err)
+    avg_err = np.sqrt(1/np.sum(all_err,0))
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_forced_mid_prof_shift_both_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, forced=True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax-10))
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    all_err = 1/(np.square(all_err))
+    avg_i = np.average(all_i, axis=0, weights = all_err)
+    avg_err = np.sqrt(1/np.sum(all_err,0))
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_forced_first_prof_binned_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    profiles[0] = raw.rebin([profiles[0]], rebin_factor=2)[0]
+
+    avg_profile = raw.weighted_average(profiles, forced=True, copy_metadata=False)
+
+    assert sum(avg_profile.getQ()) == 33.244632222325
+    assert sum(avg_profile.getI()) == 8989.378661524233
+    assert sum(avg_profile.getErr()) == 31.99899643529526
+
+def test_weighted_average_forced_mid_prof_binned_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    profiles[3] = raw.rebin([profiles[3]], rebin_factor=2)[0]
+
+    avg_profile = raw.weighted_average(profiles, forced=True, copy_metadata=False)
+
+    assert sum(avg_profile.getQ()) == 33.244632222325
+    assert sum(avg_profile.getI()) ==  8989.424127200411
+    assert sum(avg_profile.getErr()) == 32.00011876715525
+
+def test_weighted_average_forced_first_prof_binned_shifted_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax-10))
+
+    profiles[0] = raw.rebin([profiles[0]], rebin_factor=2)[0]
+
+    avg_profile = raw.weighted_average(profiles, forced=True, copy_metadata=False)
+
+    assert sum(avg_profile.getQ()) == 31.8013461095
+    assert sum(avg_profile.getI()) == 8208.348277398985
+    assert sum(avg_profile.getErr()) == 28.360188700922844
+
+def test_weighted_average_forced_mid_prof_binned_shifted_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax-10))
+
+    profiles[3] = raw.rebin([profiles[3]], rebin_factor=2)[0]
+
+    avg_profile = raw.weighted_average(profiles, forced=True, copy_metadata=False)
+
+    assert sum(avg_profile.getQ()) == 31.8013461095
+    assert sum(avg_profile.getI()) == 8208.44847338856
+    assert sum(avg_profile.getErr()) == 28.359995088867155
+
+def test_weighted_average_counter(bsa_series_profiles):
+    profiles = bsa_series_profiles
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode')
+
+    weights = np.array([float(sasm.getParameter('counters')['diode']) for sasm in profiles])
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_i = np.average(all_i, axis=0, weights=weights)
+    weights = weights.reshape((len(weights), 1))
+    avg_err = np.sqrt(np.sum(np.square(np.multiply(all_err, weights)), 0))/np.sum(weights)
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_counter_forced_first_prof_shift_end(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    weights = np.array([float(sasm.getParameter('counters')['diode']) for sasm in profiles])
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_i = np.average(all_i, axis=0, weights=weights)
+    weights = weights.reshape((len(weights), 1))
+    avg_err = np.sqrt(np.sum(np.square(np.multiply(all_err, weights)), 0))/np.sum(weights)
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_counter_forced_first_prof_shift_start(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    weights = np.array([float(sasm.getParameter('counters')['diode']) for sasm in profiles])
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_i = np.average(all_i, axis=0, weights=weights)
+    weights = weights.reshape((len(weights), 1))
+    avg_err = np.sqrt(np.sum(np.square(np.multiply(all_err, weights)), 0))/np.sum(weights)
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_counter_forced_first_prof_shift_both(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax-10))
+
+    weights = np.array([float(sasm.getParameter('counters')['diode']) for sasm in profiles])
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_i = np.average(all_i, axis=0, weights=weights)
+    weights = weights.reshape((len(weights), 1))
+    avg_err = np.sqrt(np.sum(np.square(np.multiply(all_err, weights)), 0))/np.sum(weights)
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_counter_forced_mid_prof_shift_end(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    weights = np.array([float(sasm.getParameter('counters')['diode']) for sasm in profiles])
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_i = np.average(all_i, axis=0, weights=weights)
+    weights = weights.reshape((len(weights), 1))
+    avg_err = np.sqrt(np.sum(np.square(np.multiply(all_err, weights)), 0))/np.sum(weights)
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_counter_forced_mid_prof_shift_start(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    weights = np.array([float(sasm.getParameter('counters')['diode']) for sasm in profiles])
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_i = np.average(all_i, axis=0, weights=weights)
+    weights = weights.reshape((len(weights), 1))
+    avg_err = np.sqrt(np.sum(np.square(np.multiply(all_err, weights)), 0))/np.sum(weights)
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_counter_forced_mid_prof_shift_both(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax-10))
+
+    weights = np.array([float(sasm.getParameter('counters')['diode']) for sasm in profiles])
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_i = np.average(all_i, axis=0, weights=weights)
+    weights = weights.reshape((len(weights), 1))
+    avg_err = np.sqrt(np.sum(np.square(np.multiply(all_err, weights)), 0))/np.sum(weights)
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_counter_forced_first_prof_binned(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    profiles[0] = raw.rebin([profiles[0]], rebin_factor=2)[0]
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True)
+
+    assert sum(avg_profile.getQ()) == 33.244632222325
+    assert sum(avg_profile.getI()) == 8990.697232191063
+    assert sum(avg_profile.getErr()) == 32.138613713302135
+
+def test_weighted_average_counter_forced_mid_prof_binned(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    profiles[3] = raw.rebin([profiles[3]], rebin_factor=2)[0]
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True)
+
+    assert sum(avg_profile.getQ()) == 33.244632222325
+    assert sum(avg_profile.getI()) == 8990.809954880648
+    assert sum(avg_profile.getErr()) == 32.13752739589797
+
+def test_weighted_average_counter_forced_first_prof_binned_shifted(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax-10))
+
+    profiles[0] = raw.rebin([profiles[0]], rebin_factor=2)[0]
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True)
+
+    assert sum(avg_profile.getQ()) == 31.8013461095
+    assert sum(avg_profile.getI()) == 8209.167301990014
+    assert sum(avg_profile.getErr()) == 28.453044476009666
+
+def test_weighted_average_counter_forced_mid_prof_binned_shifted(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax-10))
+
+    profiles[3] = raw.rebin([profiles[3]], rebin_factor=2)[0]
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True)
+
+    assert sum(avg_profile.getQ()) == 31.8013461095
+    assert sum(avg_profile.getI()) == 8209.423381420316
+    assert sum(avg_profile.getErr()) == 28.450234681666974
+
+def test_weighted_average_counter_forced_no_metadata(bsa_series_profiles):
+    profiles = bsa_series_profiles
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', copy_metadata=False)
+
+    weights = np.array([float(sasm.getParameter('counters')['diode']) for sasm in profiles])
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_i = np.average(all_i, axis=0, weights=weights)
+    weights = weights.reshape((len(weights), 1))
+    avg_err = np.sqrt(np.sum(np.square(np.multiply(all_err, weights)), 0))/np.sum(weights)
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_counter_forced_first_prof_shift_end_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    weights = np.array([float(sasm.getParameter('counters')['diode']) for sasm in profiles])
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_i = np.average(all_i, axis=0, weights=weights)
+    weights = weights.reshape((len(weights), 1))
+    avg_err = np.sqrt(np.sum(np.square(np.multiply(all_err, weights)), 0))/np.sum(weights)
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_counter_forced_first_prof_shift_start_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    weights = np.array([float(sasm.getParameter('counters')['diode']) for sasm in profiles])
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_i = np.average(all_i, axis=0, weights=weights)
+    weights = weights.reshape((len(weights), 1))
+    avg_err = np.sqrt(np.sum(np.square(np.multiply(all_err, weights)), 0))/np.sum(weights)
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_counter_forced_first_prof_shift_both_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax-10))
+
+    weights = np.array([float(sasm.getParameter('counters')['diode']) for sasm in profiles])
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_i = np.average(all_i, axis=0, weights=weights)
+    weights = weights.reshape((len(weights), 1))
+    avg_err = np.sqrt(np.sum(np.square(np.multiply(all_err, weights)), 0))/np.sum(weights)
+
+    assert all(avg_profile.getQ() == profiles[0].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_counter_forced_mid_prof_shift_end_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    weights = np.array([float(sasm.getParameter('counters')['diode']) for sasm in profiles])
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_i = np.average(all_i, axis=0, weights=weights)
+    weights = weights.reshape((len(weights), 1))
+    avg_err = np.sqrt(np.sum(np.square(np.multiply(all_err, weights)), 0))/np.sum(weights)
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_counter_forced_mid_prof_shift_start_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    weights = np.array([float(sasm.getParameter('counters')['diode']) for sasm in profiles])
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_i = np.average(all_i, axis=0, weights=weights)
+    weights = weights.reshape((len(weights), 1))
+    avg_err = np.sqrt(np.sum(np.square(np.multiply(all_err, weights)), 0))/np.sum(weights)
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_counter_forced_mid_prof_shift_both_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax-10))
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax-10))
+
+    weights = np.array([float(sasm.getParameter('counters')['diode']) for sasm in profiles])
+
+    all_i = np.array([sasm.getI() for sasm in profiles])
+    all_err = np.array([sasm.getErr() for sasm in profiles])
+    avg_i = np.average(all_i, axis=0, weights=weights)
+    weights = weights.reshape((len(weights), 1))
+    avg_err = np.sqrt(np.sum(np.square(np.multiply(all_err, weights)), 0))/np.sum(weights)
+
+    assert all(avg_profile.getQ() == profiles[3].getQ())
+    assert all(avg_profile.getI() == avg_i)
+    assert all(avg_profile.getErr() == avg_err)
+
+def test_weighted_average_counter_forced_first_prof_binned_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    profiles[0] = raw.rebin([profiles[0]], rebin_factor=2)[0]
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True, copy_metadata=False)
+
+    assert sum(avg_profile.getQ()) == 33.244632222325
+    assert sum(avg_profile.getI()) == 8990.697232191063
+    assert sum(avg_profile.getErr()) == 32.138613713302135
+
+def test_weighted_average_counter_forced_mid_prof_binned_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    profiles[3] = raw.rebin([profiles[3]], rebin_factor=2)[0]
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True, copy_metadata=False)
+
+    assert sum(avg_profile.getQ()) == 33.244632222325
+    assert sum(avg_profile.getI()) ==  8990.809954880648
+    assert sum(avg_profile.getErr()) == 32.13752739589797
+
+def test_weighted_average_counter_forced_first_prof_binned_shifted_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax-10))
+
+    profiles[0] = raw.rebin([profiles[0]], rebin_factor=2)[0]
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True, copy_metadata=False)
+
+    assert sum(avg_profile.getQ()) == 31.8013461095
+    assert sum(avg_profile.getI()) == 8209.167301990014
+    assert sum(avg_profile.getErr()) ==28.453044476009666
+
+def test_weighted_average_counter_forced_mid_prof_binned_shifted_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax-10))
+
+    profiles[3] = raw.rebin([profiles[3]], rebin_factor=2)[0]
+
+    avg_profile = raw.weighted_average(profiles, False, 'diode', forced=True, copy_metadata=False)
+
+    assert sum(avg_profile.getQ()) == 31.8013461095
+    assert sum(avg_profile.getI()) == 8209.423381420316
+    assert sum(avg_profile.getErr()) == 28.450234681666974
+
+def test_subtract(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
 
     bkg_profile = profiles.pop(0)
 
@@ -83,6 +1214,439 @@ def test_subtract(bsa_series_profiles):
         assert all(sasm.getQ() == profiles[j].getQ())
         assert all(sasm.getI() == test_sub_i[j])
         assert np.allclose(sasm.getErr(), test_sub_err[j])
+
+def test_subtract_forced_first_prof_shift_end(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin, nmax-10))
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    test_sub_i = [sasm.getI() - bkg_profile.getI() for sasm in profiles]
+    test_sub_err = [np.sqrt(sasm.getErr()**2+bkg_profile.getErr()**2) for sasm in profiles]
+
+    for j, sasm in enumerate(sub_profiles):
+        assert all(sasm.getQ() == profiles[j].getQ())
+        assert all(sasm.getI() == test_sub_i[j])
+        assert np.allclose(sasm.getErr(), test_sub_err[j])
+
+def test_subtract_forced_first_prof_shift_start(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax))
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax))
+
+    test_sub_i = [sasm.getI() - bkg_profile.getI() for sasm in profiles]
+    test_sub_err = [np.sqrt(sasm.getErr()**2+bkg_profile.getErr()**2) for sasm in profiles]
+
+    for j, sasm in enumerate(sub_profiles):
+        assert all(sasm.getQ() == profiles[j].getQ())
+        assert all(sasm.getI() == test_sub_i[j])
+        assert np.allclose(sasm.getErr(), test_sub_err[j])
+
+def test_subtract_forced_first_prof_shift_both(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax-10))
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax-10))
+
+    test_sub_i = [sasm.getI() - bkg_profile.getI() for sasm in profiles]
+    test_sub_err = [np.sqrt(sasm.getErr()**2+bkg_profile.getErr()**2) for sasm in profiles]
+
+    for j, sasm in enumerate(sub_profiles):
+        assert all(sasm.getQ() == profiles[j].getQ())
+        assert all(sasm.getI() == test_sub_i[j])
+        assert np.allclose(sasm.getErr(), test_sub_err[j])
+
+def test_subtract_forced_mid_prof_shift_end(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin, nmax-10))
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True)
+
+    test_sub_i = []
+    test_sub_err = []
+
+    for sasm in profiles:
+        nmin, nmax = sasm.getQrange()
+        bkg_profile.setQrange((nmin, nmax))
+        tmp_i = sasm.getI() - bkg_profile.getI()
+        tmp_err = np.sqrt(sasm.getErr()**2+bkg_profile.getErr()**2)
+        test_sub_i.append(tmp_i)
+        test_sub_err.append(tmp_err)
+
+    for j, sasm in enumerate(sub_profiles):
+        assert all(sasm.getQ() == profiles[j].getQ())
+        assert all(sasm.getI() == test_sub_i[j])
+        assert np.allclose(sasm.getErr(), test_sub_err[j])
+
+def test_subtract_forced_mid_prof_shift_start(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax))
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True)
+
+    test_sub_i = []
+    test_sub_err = []
+
+    for sasm in profiles:
+        nmin, nmax = sasm.getQrange()
+        bkg_profile.setQrange((nmin, nmax))
+        tmp_i = sasm.getI() - bkg_profile.getI()
+        tmp_err = np.sqrt(sasm.getErr()**2+bkg_profile.getErr()**2)
+        test_sub_i.append(tmp_i)
+        test_sub_err.append(tmp_err)
+
+    for j, sasm in enumerate(sub_profiles):
+        assert all(sasm.getQ() == profiles[j].getQ())
+        assert all(sasm.getI() == test_sub_i[j])
+        assert np.allclose(sasm.getErr(), test_sub_err[j])
+
+def test_subtract_forced_mid_prof_shift_both(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax-10))
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True)
+
+    test_sub_i = []
+    test_sub_err = []
+
+    for sasm in profiles:
+        nmin, nmax = sasm.getQrange()
+        bkg_profile.setQrange((nmin, nmax))
+        tmp_i = sasm.getI() - bkg_profile.getI()
+        tmp_err = np.sqrt(sasm.getErr()**2+bkg_profile.getErr()**2)
+        test_sub_i.append(tmp_i)
+        test_sub_err.append(tmp_err)
+
+    for j, sasm in enumerate(sub_profiles):
+        assert all(sasm.getQ() == profiles[j].getQ())
+        assert all(sasm.getI() == test_sub_i[j])
+        assert np.allclose(sasm.getErr(), test_sub_err[j])
+
+def test_subtract_forced_first_prof_binned(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    profiles[0] = raw.rebin([profiles[0]], rebin_factor=2)[0]
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True)
+
+    assert all(sub_profiles[0].getQ() == sub_profiles[1].getQ())
+    assert np.sum(sub_profiles[0].getI()) == 7.40209705000003
+    assert np.sum(sub_profiles[0].getErr()) == 143.80189532537275
+    assert np.sum(sub_profiles[2].getI()) == -3.766517983333344
+    assert np.sum(sub_profiles[2].getErr()) == 143.69901053994207
+
+def test_subtract_forced_first_prof_binned_shifted(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax-10))
+
+    profiles[0] = raw.rebin([profiles[0]], rebin_factor=2)[0]
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True)
+
+    assert all(sub_profiles[0].getQ() == sub_profiles[1].getQ())
+    assert np.sum(sub_profiles[0].getI()) == 2.3934335249999776
+    assert np.sum(sub_profiles[0].getErr()) == 127.21761830020229
+    assert np.sum(sub_profiles[2].getI()) == -1.44165572499994
+    assert np.sum(sub_profiles[2].getErr()) == 127.10766889590823
+
+def test_subtract_forced_mid_prof_binned(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    profiles[3] = raw.rebin([profiles[3]], rebin_factor=2)[0]
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True)
+
+    assert all(sub_profiles[0].getQ() == sub_profiles[1].getQ())
+    assert len(profiles[2].getQ()) == 234
+    assert np.sum(sub_profiles[0].getI()) == 19.439337999999978
+    assert np.sum(sub_profiles[0].getErr()) == 415.434976662051
+    assert np.sum(sub_profiles[2].getI()) == 2.2573056666667384
+    assert np.sum(sub_profiles[2].getErr()) ==  143.67429222045422
+
+def test_subtract_forced_mid_prof_binned_shifted(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[3].setQrange((nmin+10, nmax-10))
+
+    profiles[3] = raw.rebin([profiles[3]], rebin_factor=2)[0]
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True)
+
+    assert all(sub_profiles[0].getQ() == sub_profiles[1].getQ())
+    assert len(profiles[2].getQ()) == 224
+    assert np.sum(sub_profiles[0].getI()) == 19.439337999999978
+    assert np.sum(sub_profiles[0].getErr()) == 415.434976662051
+    assert np.sum(sub_profiles[2].getI()) == 3.145905058333419
+    assert np.sum(sub_profiles[2].getErr()) == 127.04591117161789
+
+def test_subtract_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, copy_metadata=False)
+
+    test_sub_i = [sasm.getI() - bkg_profile.getI() for sasm in profiles]
+    test_sub_err = [np.sqrt(sasm.getErr()**2+bkg_profile.getErr()**2) for sasm in profiles]
+
+    for j, sasm in enumerate(sub_profiles):
+        assert all(sasm.getQ() == profiles[j].getQ())
+        assert all(sasm.getI() == test_sub_i[j])
+        assert np.allclose(sasm.getErr(), test_sub_err[j])
+
+def test_subtract_forced_first_prof_shift_end_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin, nmax-10))
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin, nmax-10))
+
+    test_sub_i = [sasm.getI() - bkg_profile.getI() for sasm in profiles]
+    test_sub_err = [np.sqrt(sasm.getErr()**2+bkg_profile.getErr()**2) for sasm in profiles]
+
+    for j, sasm in enumerate(sub_profiles):
+        assert all(sasm.getQ() == profiles[j].getQ())
+        assert all(sasm.getI() == test_sub_i[j])
+        assert np.allclose(sasm.getErr(), test_sub_err[j])
+
+def test_subtract_forced_first_prof_shift_start_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax))
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax))
+
+    test_sub_i = [sasm.getI() - bkg_profile.getI() for sasm in profiles]
+    test_sub_err = [np.sqrt(sasm.getErr()**2+bkg_profile.getErr()**2) for sasm in profiles]
+
+    for j, sasm in enumerate(sub_profiles):
+        assert all(sasm.getQ() == profiles[j].getQ())
+        assert all(sasm.getI() == test_sub_i[j])
+        assert np.allclose(sasm.getErr(), test_sub_err[j])
+
+def test_subtract_forced_first_prof_shift_both_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax-10))
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True, copy_metadata=False)
+
+    for i in range(len(profiles)):
+        profiles[i].setQrange((nmin+10, nmax-10))
+
+    test_sub_i = [sasm.getI() - bkg_profile.getI() for sasm in profiles]
+    test_sub_err = [np.sqrt(sasm.getErr()**2+bkg_profile.getErr()**2) for sasm in profiles]
+
+    for j, sasm in enumerate(sub_profiles):
+        assert all(sasm.getQ() == profiles[j].getQ())
+        assert all(sasm.getI() == test_sub_i[j])
+        assert np.allclose(sasm.getErr(), test_sub_err[j])
+
+def test_subtract_forced_mid_prof_shift_end_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin, nmax-10))
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True, copy_metadata=False)
+
+    test_sub_i = []
+    test_sub_err = []
+
+    for sasm in profiles:
+        nmin, nmax = sasm.getQrange()
+        bkg_profile.setQrange((nmin, nmax))
+        tmp_i = sasm.getI() - bkg_profile.getI()
+        tmp_err = np.sqrt(sasm.getErr()**2+bkg_profile.getErr()**2)
+        test_sub_i.append(tmp_i)
+        test_sub_err.append(tmp_err)
+
+    for j, sasm in enumerate(sub_profiles):
+        assert all(sasm.getQ() == profiles[j].getQ())
+        assert all(sasm.getI() == test_sub_i[j])
+        assert np.allclose(sasm.getErr(), test_sub_err[j])
+
+def test_subtract_forced_mid_prof_shift_start_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax))
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True, copy_metadata=False)
+
+    test_sub_i = []
+    test_sub_err = []
+
+    for sasm in profiles:
+        nmin, nmax = sasm.getQrange()
+        bkg_profile.setQrange((nmin, nmax))
+        tmp_i = sasm.getI() - bkg_profile.getI()
+        tmp_err = np.sqrt(sasm.getErr()**2+bkg_profile.getErr()**2)
+        test_sub_i.append(tmp_i)
+        test_sub_err.append(tmp_err)
+
+    for j, sasm in enumerate(sub_profiles):
+        assert all(sasm.getQ() == profiles[j].getQ())
+        assert all(sasm.getI() == test_sub_i[j])
+        assert np.allclose(sasm.getErr(), test_sub_err[j])
+
+def test_subtract_forced_mid_prof_shift_both_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[3].getQrange()
+    profiles[3].setQrange((nmin+10, nmax-10))
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True, copy_metadata=False)
+
+    test_sub_i = []
+    test_sub_err = []
+
+    for sasm in profiles:
+        nmin, nmax = sasm.getQrange()
+        bkg_profile.setQrange((nmin, nmax))
+        tmp_i = sasm.getI() - bkg_profile.getI()
+        tmp_err = np.sqrt(sasm.getErr()**2+bkg_profile.getErr()**2)
+        test_sub_i.append(tmp_i)
+        test_sub_err.append(tmp_err)
+
+    for j, sasm in enumerate(sub_profiles):
+        assert all(sasm.getQ() == profiles[j].getQ())
+        assert all(sasm.getI() == test_sub_i[j])
+        assert np.allclose(sasm.getErr(), test_sub_err[j])
+
+def test_subtract_forced_first_prof_binned_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    profiles[0] = raw.rebin([profiles[0]], rebin_factor=2)[0]
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True, copy_metadata=False)
+
+    assert all(sub_profiles[0].getQ() == sub_profiles[1].getQ())
+    assert np.sum(sub_profiles[0].getI()) == 7.40209705000003
+    assert np.sum(sub_profiles[0].getErr()) == 143.80189532537275
+    assert np.sum(sub_profiles[2].getI()) == -3.766517983333344
+    assert np.sum(sub_profiles[2].getErr()) == 143.69901053994207
+
+def test_subtract_forced_first_prof_binned_shifted_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[0].setQrange((nmin+10, nmax-10))
+
+    profiles[0] = raw.rebin([profiles[0]], rebin_factor=2)[0]
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True, copy_metadata=False)
+
+    assert all(sub_profiles[0].getQ() == sub_profiles[1].getQ())
+    assert np.sum(sub_profiles[0].getI()) == 2.3934335249999776
+    assert np.sum(sub_profiles[0].getErr()) == 127.21761830020229
+    assert np.sum(sub_profiles[2].getI()) == -1.44165572499994
+    assert np.sum(sub_profiles[2].getErr()) == 127.10766889590823
+
+def test_subtract_forced_mid_prof_binned_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    profiles[3] = raw.rebin([profiles[3]], rebin_factor=2)[0]
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True, copy_metadata=False)
+
+    assert all(sub_profiles[0].getQ() == sub_profiles[1].getQ())
+    assert len(profiles[2].getQ()) == 234
+    assert np.sum(sub_profiles[0].getI()) == 19.439337999999978
+    assert np.sum(sub_profiles[0].getErr()) == 415.434976662051
+    assert np.sum(sub_profiles[2].getI()) == 2.2573056666667384
+    assert np.sum(sub_profiles[2].getErr()) ==  143.67429222045422
+
+def test_subtract_forced_mid_prof_binned_shifted_no_metadata(bsa_series_profiles):
+    profiles = copy.deepcopy(bsa_series_profiles)
+
+    nmin, nmax = profiles[0].getQrange()
+    profiles[3].setQrange((nmin+10, nmax-10))
+
+    profiles[3] = raw.rebin([profiles[3]], rebin_factor=2)[0]
+
+    bkg_profile = profiles.pop(0)
+
+    sub_profiles = raw.subtract(profiles, bkg_profile, forced=True, copy_metadata=False)
+
+    assert all(sub_profiles[0].getQ() == sub_profiles[1].getQ())
+    assert len(profiles[2].getQ()) == 224
+    assert np.sum(sub_profiles[0].getI()) == 19.439337999999978
+    assert np.sum(sub_profiles[0].getErr()) == 415.434976662051
+    assert np.sum(sub_profiles[2].getI()) == 3.145905058333419
+    assert np.sum(sub_profiles[2].getErr()) == 127.04591117161789
 
 def test_linear_rebin_factor(gi_sub_profile, rebin_factor):
     rebinned = raw.rebin([gi_sub_profile], rebin_factor=rebin_factor)[0]

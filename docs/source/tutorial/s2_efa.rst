@@ -121,7 +121,7 @@ The written version of the tutorial follows.
 
 #.  In the User Input panel, tweak the “Forward” value start frames so that the frame
     number, as indicated by the open circle on the plot, aligns with where the singular
-    value first starts to increase quickly. This should be around 147, 164, and 323.
+    value first starts to increase quickly. This should be around 147, 164, and 322.
 
     *   *Note:* For the Forward EFA plot, SVD is run on just the first two frames, then
         the first three, and so on, until all frames in the range are included. As more
@@ -137,7 +137,7 @@ The written version of the tutorial follows.
 #.  In the User Input panel, tweak the “Backward” value start frames so that the frame
     number, as indicated by the open circle on the plot, aligns with where
     the singular value drops back to near the baseline. This should be around
-    380, 324, and 190.
+    383, 360, and 200.
 
     *   *Note:* For the Backward EFA plot, SVD is run on just the last two frames, then the
         last three, and so on, until all frames in the range are included. As more frames are
@@ -168,14 +168,31 @@ The written version of the tutorial follows.
         ways, either using other methods of deconvolving the peak, other biophysical or
         biochemical data, or both!
 
+#.  This rotation looks quite good, as judged by the reasonable profiles, concentration
+    peaks, and relatively flat chi^2 vs. frame plot. However, you don't always pick the
+    right ranges the first time, sometimes some fine tuning is necessary. To simulate
+    this, in the “Component Range Controls” set the ranges back to the original
+    default values found by RAW: 151 to 193, 164 to 322, and 319 to 347.
+
+#.  After making these adjustments, you should see some spikes in the chi^2 values.
+
+    |efa_poor_rotation_png|
+
 #.  Fine tune the ranges using the controls in the “Component Range Controls” box.
-    Adjust the starts and ends of Range 0 and the start of Range 1 by a few points
+    Adjust the starts and ends of Ranges 0 and 1 and the end of Range 2 by a few points
     until the spikes in the chi-squared plot go away. After these adjustments, Range 0
-    should be about 147 to 197, Range 1 from 161 to 324, and Range 2 from 323 to 380.
+    should be about 142 to 198, Range 1 from 161 to 322, and Range 2 from 319 to 360.
 
-    |efa_comp_range_png|
-
-    |efa_chi2_png|
+    *   *Note:* These ranges are a little different from what you previously found,
+        particularly the end of ranges 1 and 2. This likely means that there is
+        very little (or no) contribution of those components in the extended range.
+        You can verify this by setting the ends of those ranges back to 360 and 383
+        respectively and looking at the concentration profiles, you'll see that the
+        profiles are essentially zero in the more extended ranges. It's usually
+        a good idea to minimize the component range to avoid introducing contamination
+        from other components. In this case, you could do that by narrowing the
+        range of the components until you start to see chi^2 spikes, then returning
+        to the last good value.
 
 #.  To see these changes on the Forward and Backward EFA plots, click the “Back” button
     at the bottom right of the page. Verify that all of your start and end values are
@@ -183,10 +200,20 @@ The written version of the tutorial follows.
 
 #.  Click the “Next” button to return to the final stage of the EFA analysis.
 
-#.  In the Rotation Controls box, you can set the method, the number of iterations, and the
-    convergence threshold. As you can see in the Status window, the rotation was
-    successful for this data. If it was not, you could try changing methods or adjusting
-    the number of iterations or threshold.
+#.  In the Rotation Controls box, you can set the method, the number of iterations, the
+    convergence threshold, and whether you're starting with the previous results.
+    As you can see in the Status window, the rotation was successful for this
+    data. If it was not, you could try changing methods or adjusting the number
+    of iterations or threshold.
+
+    *   *Tip:* If it takes a while to run REGALS every time you change a component,
+        you can speed up the convergence by starting with the previous results.
+        To do so, you would check the "Start with previous results" box. This
+        will allow you to quickly iterate on changes, as long as the magnitude
+        of the change is relatively small. Just be sure to set the convergence
+        criteria back to not using previous results to do your final EFA run,
+        as you can bias the rotation with the previous results and guide the
+        EFA into a solution that is path dependent and thus isn't reproducible later.
 
 #.  Examine the chi-squared plot. It should be uniformly close to 1 for good EFA. For
     this data, it is.
@@ -240,6 +267,12 @@ The written version of the tutorial follows.
         scattering component itself, and so (in theory) even if it is present will be
         separated out by successful EFA.
 
+
+Note: By default, RAW bins the profiles before doing an SVD and calculating the
+evolving factor plots, in order to speed up the process. The final EFA rotation is
+done on the full unbinned dataset. You can turn binning on and off and adjust
+the binning parameters in the Series options panel in the Advanced Options window.
+
 .. |efa_series_plot_png| image:: images/efa_series_plot.png
     :target: ../_images/efa_series_plot.png
 
@@ -259,13 +292,8 @@ The written version of the tutorial follows.
 .. |efa_panel_3_png| image:: images/efa_panel_3.png
     :target: ../_images/efa_panel_3.png
 
-.. |efa_comp_range_png| image:: images/efa_comp_range.png
-    :width: 300 px
-    :target: ../_images/efa_comp_range.png
-
-.. |efa_chi2_png| image:: images/efa_chi2.png
-    :width: 300 px
-    :target: ../_images/efa_chi2.png
+.. |efa_poor_rotation_png| image:: images/efa_poor_rotation.png
+    :target: ../_images/efa_poor_rotation.png
 
 .. |efa_profiles_png| image:: images/efa_profiles.png
     :target: ../_images/efa_profiles.png

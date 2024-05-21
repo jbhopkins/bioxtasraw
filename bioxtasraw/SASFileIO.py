@@ -394,7 +394,7 @@ def parseCHESSF2CTSfile(filename, new_filename=None):
     datePattern = re.compile('#D\s.*\n')
 
 
-    with open(filename[:-3] + 'cts', 'rU') as f:
+    with open(filename[:-3] + 'cts', 'r') as f:
 
         mon1, mon2, exposure_time, closed_shutter_count = None, None, None, None
 
@@ -452,7 +452,7 @@ def parseCHESSEIGER4MCountFile(filename, new_filename=None):
 
     countFilename = os.path.join(dir, countFile)
 
-    with open(countFilename,'rU') as f:
+    with open(countFilename,'r') as f:
         allLines = f.readlines()
 
     line_num = 0
@@ -520,7 +520,7 @@ def parseCHESSG1CountFile(filename, new_filename=None):
 
     countFilename = os.path.join(dir, countFile)
 
-    with open(countFilename,'rU') as f:
+    with open(countFilename,'r') as f:
         allLines = f.readlines()
 
     line_num = 0
@@ -586,7 +586,7 @@ def parseCHESSG1CountFileWAXS(filename, new_filename=None):
 
     countFilename = os.path.join(dir, countFile)
 
-    with open(countFilename,'rU') as f:
+    with open(countFilename,'r') as f:
         allLines = f.readlines()
 
     line_num = 0
@@ -655,7 +655,7 @@ def parseCHESSG1CountFileEiger(filename, new_filename=None):
 
     countFilename = os.path.join(dirname, countFile)
 
-    with open(countFilename,'rU') as f:
+    with open(countFilename,'r') as f:
         allLines = f.readlines()
 
     line_num = 0
@@ -704,7 +704,7 @@ def parseMAXLABI911HeaderFile(filename, new_filename=None):
     filepath, ext = os.path.splitext(filename)
     hdr_file = filename + '.hdr'
 
-    with open(hdr_file,'rU') as f:
+    with open(hdr_file,'r') as f:
         all_lines = f.readlines()
 
     counters = {}
@@ -722,7 +722,7 @@ def parseMAXLABI77HeaderFile(filename, new_filename=None):
     filepath, ext = os.path.splitext(filename)
     hdr_file = filename + '.hdr'
 
-    with open(hdr_file,'rU') as f:
+    with open(hdr_file,'r') as f:
         all_lines = f.readlines()
 
     counters = {}
@@ -790,7 +790,7 @@ def parseBioCATlogfile(filename, new_filename=None):
         countFilename=os.path.join(datadir, '_'.join(fname.split('_')[:-1])+'.log')
         searchName='.'.join(fname.split('.')[:-1])
 
-    with open(countFilename,'rU') as f:
+    with open(countFilename,'r') as f:
         allLines=f.readlines()
 
     line_num=0
@@ -873,26 +873,33 @@ def parseBiocatFilename(filename):
     return (countFilename, frame_number)
 
 def parseCHESSEigerFilename(filename):
-    dir, file = os.path.split(filename)
-    underscores = file.split('_')
+    directory, fname = os.path.split(filename)
 
-    countFile = underscores[0]
+    if '_data_' in fname:
+        fprefix, fnum = fname.rsplit('_data_', maxsplit=1)
+        frame_number = os.path.split(fnum)[0].split('_')[-1]
+        countFile, filenumber = fprefix.rsplit('_', maxsplit=1)
 
-    filenumber = underscores[-3]
+    else:
+        underscores = fname.split('_')
 
-    try:
-        frame_number = underscores[-1].split('.')[0]
-    except Exception:
-        frame_number = 0
+        countFile = underscores[0]
 
-    # REG: if user root file name contains underscores, include those
-    # note: must start at -3 to leave out "data" in image name
+        filenumber = underscores[-3]
 
-    if len(underscores)>3:
-        for each in underscores[1:-3]:
-            countFile += '_' + each
+        try:
+            frame_number = underscores[-1].split('.')[0]
+        except Exception:
+            frame_number = 0
 
-    countFilename = os.path.join(dir, countFile)
+        # REG: if user root file name contains underscores, include those
+        # note: must start at -3 to leave out "data" in image name
+
+        if len(underscores)>3:
+            for each in underscores[1:-3]:
+                countFile += '_' + each
+
+    countFilename = os.path.join(directory, countFile)
 
     return (countFilename, filenumber, frame_number)
 
@@ -903,7 +910,7 @@ def parseBL19U2HeaderFile(filename, new_filename=None):
 
     counters = {}
 
-    with open(countFilename, 'rU') as f:
+    with open(countFilename, 'r') as f:
         for line in f:
             name = line.split(':')[0]
             value = ':'.join(line.split(':')[1:])
@@ -928,7 +935,7 @@ def parsePetraIIIP12EigerFile(filename, new_filename = None):
 
     counters = {}
 
-    with open(countFilename, 'rU') as f:
+    with open(countFilename, 'r') as f:
         for line in f:
             name = line.split(':')[0]
             value = ':'.join(line.split(':')[1:])
@@ -1172,6 +1179,7 @@ def loadFile(filename, raw_settings, no_processing=False, return_all_images=True
     elif file_type == 'hdf5':
         sasm = loadHdf5File(filename, raw_settings)
         img = None
+
     else:
         sasm = loadAsciiFile(filename, file_type)
         img = None
@@ -1739,7 +1747,7 @@ def loadHdf5File(filename, raw_settings):
 
 def loadOutFile(filename):
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
         lines = f.readlines()
 
     iftm = parse_out_file(lines)
@@ -2167,7 +2175,7 @@ def loadSeriesFile(filename, settings):
         except Exception as e:
             print(e)
             file.close()
-            file = open(filename, 'rU')
+            file = open(filename, 'r')
             if six.PY3:
                 secm_data = pickle.load(file, encoding='latin-1')
             else:
@@ -2186,7 +2194,6 @@ def loadSeriesFile(filename, settings):
         raise SASExceptions.UnrecognizedDataFormat('No data could be retrieved from the file, unknown format.')
 
     return new_secm
-
 
 def makeSeriesFile(secm_data, settings):
 
@@ -2472,7 +2479,7 @@ def loadIftFile(filename):
     q_extrap = []
     fit_extrap = []
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
 
         path_noext, ext = os.path.splitext(filename)
 
@@ -2515,7 +2522,7 @@ def loadIftFile(filename):
 
 
     #Check to see if there is any header from RAW, and if so get that.
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
         all_lines = f.readlines()
 
     header = []
@@ -2558,7 +2565,7 @@ def loadFitFile(filename):
     err = []
     fit = []
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
 
         firstLine = f.readline()
 
@@ -2651,7 +2658,7 @@ def loadDamselLogFile(filename):
     """Loads data from a damsel log file"""
     res_pattern = re.compile('\s*Ensemble\s*Resolution\s*=?\s*\d+\.?\d*\s*\+?-?\s*\d+\s*[a-zA-Z]*')
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
         process_includes = False
         result_dict = {}
         include_list = []
@@ -2701,7 +2708,7 @@ def loadDamsupLogFile(filename):
     model_data = []
     representative_model = ''
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
         for line in f:
             results = line.strip().split()
 
@@ -2729,7 +2736,7 @@ def loadDamclustLogFile(filename):
     cluster_list = []
     distance_list = []
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
         for line in f:
             cluster_match = cluster_pattern.match(line)
             distance_match = distance_pattern.match(line)
@@ -2945,7 +2952,7 @@ def loadPDBFile(filename):
     atoms = []
     useful_params = collections.defaultdict(str)
 
-    for line in open(filename, 'rU'):
+    for line in open(filename, 'r'):
         if line.startswith("ATOM"):
             x = float(line[30:38])
             y = float(line[38:46])
@@ -3022,7 +3029,7 @@ def loadmmCIFFile(filename):
 def loadDatFile(filename):
     ''' Loads a .dat format file '''
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
         lines = f.readlines()
 
     if len(lines) == 0:
@@ -3184,7 +3191,7 @@ def loadRadFile(filename):
 
     fileheader = {}
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
 
         for line in f:
 
@@ -3249,7 +3256,7 @@ def loadNewRadFile(filename):
 
     fileheader = {}
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
 
         for line in f:
 
@@ -3308,7 +3315,7 @@ def loadIntFile(filename):
     q = []
     err = []
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
 
         firstLine = f.readline()
 
@@ -3394,7 +3401,7 @@ def loadTxtFile(filename):
     q = []
     err = []
 
-    with open(filename, 'rU') as f:
+    with open(filename, 'r') as f:
 
         firstLine = f.readline()
 
@@ -4343,7 +4350,7 @@ def saveWorkspace(sasm_dict, save_path):
         pickle.dump(sasm_dict, f, protocol=2)
 
 
-def saveCSVFile(filename, data, header = ''):
+def saveCSVFile(filename, data, header=''):
     if isinstance(data, list):
         body_string = ''
         for item in data:
@@ -4359,9 +4366,10 @@ def saveCSVFile(filename, data, header = ''):
 
     else:
         if header != '':
-            np.savetxt(filename, data, delimiter = ',', header = header, comments = '')
+            np.savetxt(filename, data, delimiter=',', header=header,
+                comments='')
         else:
-            np.savetxt(filename, data, delimiter = ',', comments ='')
+            np.savetxt(filename, data, delimiter=',', comments='')
 
 def saveUnevenCSVFile(filename, data, header = ''):
     maxlen = max([len(item) for item in data])
@@ -4525,6 +4533,31 @@ def saveEFAData(filename, panel1_results, panel2_results, panel3_results):
         body_string = body_string+','.join(map(str, line)) + '\n'
 
     body_string = body_string +'\n'
+
+
+    body_string = body_string + '# Autocorrelation of Left Singular Vectors (U)\n'
+    body_string = body_string + '# Index,Autocorrelation\n'
+
+    acor_u = panel1_results['acor_u']
+    acor_u = np.column_stack((list(range(len(acor_u))), acor_u))
+
+    for line in acor_u:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
+
+    body_string = body_string + '# Autocorrelation of Right Singular Vectors (V)\n'
+    body_string = body_string + '# Index,Autocorrelation\n'
+
+    acor_v = panel1_results['acor_v']
+    acor_v = np.column_stack((list(range(len(acor_v))), acor_v))
+
+    for line in acor_v:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
 
     save_string = header_string + body_string
 
@@ -4747,6 +4780,31 @@ def saveREGALSData(filename, panel_results):
         body_string = body_string+','.join(map(str, line)) + '\n'
 
     body_string = body_string +'\n'
+
+
+    body_string = body_string + '# Autocorrelation of Left Singular Vectors (U)\n'
+    body_string = body_string + '# Index,Autocorrelation\n'
+
+    acor_u = svd_results['acor_u']
+    acor_u = np.column_stack((list(range(len(acor_u))), acor_u))
+
+    for line in acor_u:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
+
+    body_string = body_string + '# Autocorrelation of Right Singular Vectors (V)\n'
+    body_string = body_string + '# Index,Autocorrelation\n'
+
+    acor_v = svd_results['acor_v']
+    acor_v = np.column_stack((list(range(len(acor_v))), acor_v))
+
+    for line in acor_v:
+        body_string = body_string+','.join(map(str, line)) + '\n'
+
+    body_string = body_string +'\n'
+
 
     save_string = header_string + comp_str + body_string
 
@@ -5053,15 +5111,17 @@ def checkFileType(filename):
         return 'image'
     elif ext == '.int':
         return 'int'
-    elif ext == '.img' or ext == '.imx_0' or ext == '.dkx_0' or ext == '.dkx_1' or ext == '.png' or ext == '.mpa':
+    elif (ext == '.img' or ext == '.imx_0' or ext == '.dkx_0' or ext == '.dkx_1'
+        or ext == '.png' or ext == '.mpa'):
         return 'image'
     elif ext == '.dat' or ext == '.sub' or ext =='.txt':
         return 'primus'
     elif ext == '.mar1200' or ext == '.mar2400' or ext == '.mar2300' or ext == '.mar3600':
         return 'image'
-    elif (ext == '.img' or ext == '.sfrm' or ext == '.dm3' or ext == '.edf' or ext == '.xml' or ext == '.cbf' or ext == '.kccd' or
-        ext == '.msk' or ext == '.spr' or ext == '.tif' or ext == '.mccd' or ext == '.mar3450' or ext =='.npy' or
-        ext == '.pnm' or ext == '.No'):
+    elif (ext == '.img' or ext == '.sfrm' or ext == '.dm3' or ext == '.edf'
+        or ext == '.xml' or ext == '.cbf' or ext == '.kccd' or ext == '.msk'
+        or ext == '.spr' or ext == '.tif' or ext == '.mccd' or ext == '.mar3450'
+        or ext =='.npy' or ext == '.pnm' or ext == '.No'):
         return 'image'
     elif ext == '.ift':
         return 'ift'
@@ -5069,6 +5129,10 @@ def checkFileType(filename):
         return 'txt'
     elif ext == '.h5':
         return 'hdf5'
+    elif ext == '.pdb':
+        return 'pdb'
+    elif ext == '.cif':
+        return 'cif'
     else:
         try:
             f = fabio.open(filename)

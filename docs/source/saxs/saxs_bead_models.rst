@@ -383,7 +383,7 @@ bead model is simultaneously visible.
 
 The main detail to remember is that to get a correct visualization you have to
 set the correct bead size for the model, which is given in the header of the
-DAMMIF/N .pdb file.
+DAMMIF/N .cif file.
 
 Below are two quick tutorials for visualizing models in Chimera (or ChimeraX)
 and PyMOL.
@@ -396,7 +396,7 @@ Differences for ChimeraX are noted in **bold**.
 
 #.  Open Chimera.
 
-#.  Load in the DAMMIF/N .pdb file of interest.
+#.  Load in the DAMMIF/N .cif file of interest.
 
 #.  If necessary, open the Model Panel and the Command Line from the Tools->
     General Controls menu.
@@ -413,17 +413,9 @@ Differences for ChimeraX are noted in **bold**.
 #.  **In the Camera section of the ChimeraX "Graphics" ribbon, click "View
     selected".**
 
-#.  Open the PDB header by double clicking on the model in the Model Panel,
-    then clicking on "PDB Headers..." at the bottom of the panel that pops up.
+#.  Open the .cif file in a text editor.
 
-    *   *Note:* **This doesn't seem to be available in ChimeraX. You'll have to
-        open the .pdb file in a text editor.**
-
-    *   *Tip:* You can also open the .pdb file in a text editor and read the
-        header there.
-
-#.  Find the "Atomic Radius" (DAMMIF/DAMAVER model) or "DAM packing radius"
-    (DAMMIN model) value. That is the bead size you need to set.
+#.  Find the "Dummy atom radius" value. That is the bead size you need to set.
 
 #.  In the command line, enter the command ``vdwdefine x #y`` where ``x``
     is the bead size from the PDB header and ``y`` is the ID number of the
@@ -473,15 +465,14 @@ Visualizing bead models with PyMOL
 
 #.  Open PyMOL
 
-#.  Load in the DAMMIF/N .pdb file of interest.
+#.  Load in the DAMMIF/N .cif file of interest.
 
 #.  Using the model Hide menu ('H'), hide 'everything'.
 
 #.  Using the model Show menu ('S'), show 'spheres'.
 
-#.  Open the .pdb file in a text editor and find the "Atomic Radius"
-    (DAMMIF/DAMAVER model) or "DAM packing radius" (DAMMIN model) value
-    in the PDB header.
+#.  Open the .cif file in a text editor and find the "Dummy atom radius"
+    value in the header.
 
 #.  In the PyMOL command line, enter the command ``alter <model_name>, vdw=x``
     where ``x`` is the size you found in the previous step. This sets the
