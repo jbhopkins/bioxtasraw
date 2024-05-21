@@ -991,14 +991,14 @@ def estimate_dmax(Iq,dmax=None,clean_up=True):
     q = Iq[:,0]
     I = Iq[:,1]
     nq = len(q)
+    #first, estimate a very rough rg from the first 20 data points
+    nmax = 20
+    try:
+        rg, I0 = calc_rg_I0_by_guinier(Iq,ne=nmax)
+    except:
+        rg = calc_rg_by_guinier_peak(Iq,exp=1,ne=100)
+    #next, dmax is roughly 3.5*rg for most particles
     if dmax is None:
-        #first, estimate a very rough rg from the first 20 data points
-        nmax = 20
-        try:
-            rg, I0 = calc_rg_I0_by_guinier(Iq,ne=nmax)
-        except:
-            rg = calc_rg_by_guinier_peak(Iq,exp=1,ne=100)
-        #next, dmax is roughly 3.5*rg for most particles
         #so calculate P(r) using a larger dmax, say twice as large, so 7*rg
         D = 7*rg
     else:
@@ -4903,6 +4903,7 @@ def denss_3DFs(rho_start, dmax, ne=None, voxel=5., oversampling=3., positivity=T
 def doDIFT(Iq, D, filename, npts=None, first=None, last=None, rmin=None, qc=None, r=None, nr=None, alpha=0.0, ne=2, extrapolate=True,
     queue=None, abort_check=threading.Event(), single_proc=False, nprocs=0):
     
+    D = float(D)
     sasrec = Sasrec(Iq[first:last], D, qc=None, alpha=alpha, extrapolate=extrapolate)
     pr = sasrec.P
     r = sasrec.r
