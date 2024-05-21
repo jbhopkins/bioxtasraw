@@ -214,6 +214,7 @@ class MainFrame(wx.Frame):
             'runatsasalign'         : self.NewControlId(),
             'runcrysol'             : self.NewControlId(),
             'rundenssalign'         : self.NewControlId(),
+            'runpdb2mrc'            : self.NewControlId(),
             'runsvd'                : self.NewControlId(),
             'runefa'                : self.NewControlId(),
             'runregals'             : self.NewControlId(),
@@ -247,6 +248,7 @@ class MainFrame(wx.Frame):
         self.kratky_frames = []
         self.denss_frames = []
         self.denss_align_frames = []
+        self.pdb2mrc_frames = []
         self.lc_series_frames = []
         self.help_frames = []
 
@@ -718,6 +720,12 @@ class MainFrame(wx.Frame):
 
         try:
             for frame in self.crysol_frames:
+                frame.updateColors()
+        except Exception:
+            pass
+
+        try:
+            for frame in self.pdb2mrc_frames:
                 frame.updateColors()
         except Exception:
             pass
@@ -1357,6 +1365,7 @@ class MainFrame(wx.Frame):
                     self.crysol_frames.remove(crysol_frame)
 
             if proceed:
+                print("Launching TheoreticalFrame")
                 crysol_frame = RAWAnalysis.TheoreticalFrame(self, 'CRYSOL',
                     sasm_list)
                 crysol_frame.SetIcon(self.GetIcon())
@@ -1374,6 +1383,39 @@ class MainFrame(wx.Frame):
             dial2.ShowModal()
             dial2.Destroy()
 
+    def showPDB2MRCFrame(self, sasm_list):
+        remove = []
+        proceed = True
+
+        for pdb2mrc_frame in self.pdb2mrc_frames:
+            if pdb2mrc_frame:
+                    msg = ('There is already a {} window. Do you want to '
+                        'open another?'.format(program.upper()))
+                    answer = wx.MessageBox(msg,
+                        'Open duplicate {} window?'.format(program.upper()),
+                        style=wx.YES_NO)
+
+                    if answer == wx.NO:
+                        proceed = False
+                        align_frame.Raise()
+                        align_frame.RequestUserAttention()
+
+                    break
+
+            else:
+                remove.append(pdb2mrc_frame)
+
+        if remove:
+            for pdb2mrc_frame in remove:
+                self.pdb2mrc_frames.remove(pdb2mrc_frame)
+
+        if proceed:
+            print("Launching PDB2MRCFrame")
+            pdb2mrcframe = RAWAnalysis.PDB2MRCFrame(self, 'PDB2MRC', sasm_list)
+            pdb2mrcframe.SetIcon(self.GetIcon())
+            pdb2mrcframe.Show(True)
+
+            self.pdb2mrc_frames.append(pdb2mrcframe)
 
     def showDenssAlignFrame(self):
 
@@ -1944,6 +1986,13 @@ class MainFrame(wx.Frame):
                     self._onToolsMenu, 'normal'),
                 ('CRYSOL', self.MenuIDs['runcrysol'], self._onToolsMenu, 'normal')
                 ],
+
+            'denss' : [
+                ('DENSS', self.MenuIDs['rundenss'], self._onToolsMenu, 'normal'),
+                ('Align', self.MenuIDs['rundenssalign'], self._onToolsMenu, 'normal'),
+                ('PDB2MRC', self.MenuIDs['runpdb2mrc'], self._onToolsMenu, 'normal')
+                ],
+
         }
 
 
@@ -1994,8 +2043,9 @@ class MainFrame(wx.Frame):
                 ('&Molecular weight', self.MenuIDs['molweight'], self._onToolsMenu, 'normal'),
                 ('&BIFT', self.MenuIDs['bift'], self._onToolsMenu, 'normal'),
                 ('&ATSAS', None, submenus['atsas'], 'submenu'),
-                ('&Electron Density (DENSS)', self.MenuIDs['rundenss'], self._onToolsMenu, 'normal'),
-                ('&Electron Density (DENSS) Alignment', self.MenuIDs['rundenssalign'], self._onToolsMenu, 'normal'),
+                ('&DENSS', None, submenus['denss'], 'submenu'),
+                # ('&Electron Density (DENSS)', self.MenuIDs['rundenss'], self._onToolsMenu, 'normal'),
+                # ('&Electron Density (DENSS) Alignment', self.MenuIDs['rundenssalign'], self._onToolsMenu, 'normal'),
                 ('&LC Series Analysis', self.MenuIDs['lcanalysis'], self._onToolsMenu, 'normal'),
                 ('&SVD', self.MenuIDs['runsvd'], self._onToolsMenu, 'normal'),
                 ('&EFA', self.MenuIDs['runefa'], self._onToolsMenu, 'normal'),
@@ -2317,6 +2367,22 @@ class MainFrame(wx.Frame):
 
         elif id == self.MenuIDs['rundenssalign']:
             self.showDenssAlignFrame()
+
+        elif id == self.MenuIDs['runpdb2mrc']:
+            manippage = wx.FindWindowByName('ManipulationPanel')
+
+            current_page = self.control_notebook.GetSelection()
+            page = self.control_notebook.GetPage(current_page)
+
+            selected_sasms = []
+
+            if page == manippage:
+                selected_items = manippage.getSelectedItems()
+
+                if selected_items:
+                    selected_sasms = [item.getSASM() for item in selected_items]
+
+            self.showPDB2MRCFrame(selected_sasms)
 
         elif id == self.MenuIDs['runsvd']:
             secpage = wx.FindWindowByName('SECPanel')
@@ -9506,6 +9572,24 @@ class ManipItemPanel(wx.Panel):
                 selected_sasms = [item.getSASM() for item in selected_items]
 
             self.main_frame.showCRYSOLFrame(selected_sasms)
+
+        elif evt.GetId() == 45:
+            #Open the DENSS IFT window
+            selectedSASMList = self.manipulation_panel.getSelectedItems()
+
+            sasm = selectedSASMList[0].getSASM()
+            Mainframe.showDIFTFrame(sasm, selectedSASMList[0])
+
+        elif evt.GetId() == 46:
+            #Open denss.pdb2mrc.py window
+            selected_sasms = []
+
+            selected_items = self.manipulation_panel.getSelectedItems()
+
+            if selected_items:
+                selected_sasms = [item.getSASM() for item in selected_items]
+
+            self.main_frame.showPDB2MRCFrame(selected_sasms)
 
     def _saveAllAnalysisInfo(self):
         selected_items = self.manipulation_panel.getSelectedItems()

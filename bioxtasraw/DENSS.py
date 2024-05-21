@@ -2981,7 +2981,6 @@ class Sasrec(object):
             lcerr = 1/(2*np.pi*Vc) * s2**(0.5)
         return lcerr
 
-<<<<<<< HEAD
 class PDB(object):
     """Load pdb file."""
     def __init__(self, filename=None, natoms=None, ignore_waters=True):

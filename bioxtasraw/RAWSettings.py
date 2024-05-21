@@ -466,6 +466,26 @@ class RawGuiSettings(object):
                 'diftInitialAlpha'      : [0.0, get_id(), 'float'],
                 'diftExtrapolate'       : [True, get_id(), 'bool'],
 
+                #DENSS PDB2MRC settings
+                # 'crysolHarmonics'       : [20, get_id(), 'int'],
+                # 'crysolFibGrid'         : [17, get_id(), 'int'],
+                'pdb2mrcPoints'          : [101, get_id(), 'int'],
+                'pdb2mrcQmax'            : [0.5, get_id(), 'float'],
+                'pdb2mrcUnit'            : ['Unknown', get_id(), 'choice'],
+                'pdb2mrcSolvDensity'     : [0.334, get_id(), 'float'],
+                'pdb2mrcHydrDensity'     : [0.03, get_id(), 'float'],
+                # 'crysolConstant'        : [False, get_id(), 'bool'],
+                'pdb2mrcFitSolvent'      : [True, get_id(), 'bool'],
+                # 'crysolEnergy'          : ['None', get_id(), 'str'],
+                # 'crysolShell'           : ['directional', get_id(), 'choice'],
+                # 'crysolExplicitH'       : [False, get_id(), 'bool'],
+                # 'crysolImplicitH'       : ['None', get_id(), 'str'],
+                # 'crysolSubElement'      : ['None', get_id(), 'str'],
+                # 'crysolModelID'         : ['None', get_id(), 'str'],
+                # 'crysolChainID'         : ['None', get_id(), 'str'],
+                # 'crysolAltNames'        : [False, get_id(), 'bool'],
+                'pdb2mrcResultToPlot'    : ['.pdb2mrc2sas.dat', get_id(), 'choice'],
+
                 #File definitions
                 'fileDefinitions'       : [file_defs, get_id(), 'dict'],
                 }
