@@ -9217,7 +9217,7 @@ class ManipItemPanel(wx.Panel):
         else:
             if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'gnom')):
                 menu.Append(31, 'IFT (GNOM)')
-        menu.Append(44, 'IFT (DENSS)')
+        menu.Append(45, 'IFT (DENSS)')
 
         menu.Append(37, 'Similarity Test')
         menu.Append(38, 'Dimensionless Kratky Plot')
