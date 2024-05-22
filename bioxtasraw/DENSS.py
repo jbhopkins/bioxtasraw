@@ -5231,7 +5231,7 @@ def run_align(allrhos, sides, ref_file, avg_q=None, abort_event=None, center=Tru
 
 def run_pdb2mrc(pdb_fname, output_dir, exp_fname=None, prefix=None,
     qmax=None, units=None, rho0=None, shell_contrast=None,
-    fit_solvent=True, ):
+    fit_solvent=True, explicitH=None):
     #based on denss.pdb2mrc.py
 
     if os.path.splitext(pdb_fname)[1] != '.pdb':
@@ -5259,10 +5259,22 @@ def run_pdb2mrc(pdb_fname, output_dir, exp_fname=None, prefix=None,
     if shell_contrast is not None:
         shell_contrast = float(shell_contrast)
 
+    #if pdb contains an H atomtype, set explicit hydrogens to True
+    if explicitH is None and np.any(np.core.defchararray.find(pdb.atomtype,"H")!=-1):
+        #if explicitH not set, and there are hydrogens, set explicitH to true
+        explicitH = True
+    elif explicitH is None:
+        #if explicitH not set, and there are no hydrogens, set explicitH to false, to use implicit hydrogens
+        explicitH = False
+        print("#"*90)
+        print("#  WARNING: use of implicit hydrogens is an experimental feature.                        #")
+        print("#  Recommend adding explicit hydrogens using a tool such as Reduce, CHARMM, PyMOL, etc.  #")
+        print("#"*90)
+
     pdb2mrc = PDB2MRC(
         pdb=pdb,
         # ignore_waters=args.ignore_waters,
-        # explicitH=args.explicitH,
+        explicitH=explicitH,
         # modifiable_atom_types=None,
         # center_coords=args.center,
         # radii_sf=args.radii_sf,
@@ -5387,13 +5399,12 @@ def run_pdb2mrc(pdb_fname, output_dir, exp_fname=None, prefix=None,
 
     header = ' '.join('%s: %.5e ; '%(pdb2mrc.param_names[i],pdb2mrc.params[i]) for i in range(len(pdb2mrc.params)))
     header_dat = header + "\n q_calc I_calc err_calc"
-    print(os.path.join(output_dir, pdb_basename)+'_'+exp_basename+'.pdb2mrc2sas.fit')
-    np.savetxt(os.path.join(output_dir, pdb_basename)+'.pdb2mrc2sas.dat',pdb2mrc.Iq_calc[pdb2mrc.q_calc<=qmax],delimiter=' ',fmt='%.8e',header=header_dat)
+    np.savetxt(os.path.join(output_dir, pdb_basename)+'.pdb2mrc.dat',pdb2mrc.Iq_calc[pdb2mrc.q_calc<=qmax],delimiter=' ',fmt='%.8e',header=header_dat)
 
     if exp_fname is not None:
         chi2 = pdb2mrc.optimized_chi2
         header_fit = header + '\n q, I, error, fit ; chi2= %.3e'%(chi2 if chi2 is not None else 0)
-        np.savetxt(os.path.join(output_dir, pdb_basename)+'_'+exp_basename+'.pdb2mrc2sas.fit', fit, delimiter=' ',fmt='%.5e',header=header_fit)
+        np.savetxt(os.path.join(output_dir, pdb_basename)+'_'+exp_basename+'.pdb2mrc.fit', fit, delimiter=' ',fmt='%.5e',header=header_fit)
 
     return pdb2mrc
 

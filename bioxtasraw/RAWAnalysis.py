@@ -12357,7 +12357,7 @@ class DIFTControlPanel(wx.Panel):
         self.dift_frame.OnClose()
 
     def _onInfoButton(self, evt):
-        msg = ('If you use DIFT in your work, in addition to citing '
+        msg = ('If you use the DENSS IFT (denss.fit_data.py) in your work, in addition to citing '
             'the RAW paper please cite the paper given here:'
             '\nhttps://journals.iucr.org/j/issues/2022/05/00/vg5144/index.html')
         wx.MessageBox(str(msg), "How to cite DIFT", style = wx.ICON_INFORMATION | wx.OK)
@@ -12651,7 +12651,7 @@ class DIFTControlPanel(wx.Panel):
 
         if dmax is None:
             dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-            dmax = dmaxWindow.GetValue()
+            dmax = float(dmaxWindow.GetValue())
 
         try:
             # dmax = RAWAPI.auto_dmax(save_sasm, single_proc=True)
@@ -12671,7 +12671,7 @@ class DIFTControlPanel(wx.Panel):
     def _finishScanAlpha(self, alpha):
         if alpha != -1:
             dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-            dmax = dmaxWindow.GetValue()
+            dmax = float(dmaxWindow.GetValue())
 
             alphaWindow = wx.FindWindowById(self.spinctrlIDs['alpha'], self)
             alphaWindow.SetValue(round(np.log10(alpha),2))
@@ -14693,14 +14693,24 @@ class PDB2MRCControlPanel(scrolled.ScrolledPanel):
                 else:
                     profiles = value
 
+                #pdb2mrc_ref_data[0] is the pdb filename
                 param_list.append(pdb2mrc_ref_data[0])
 
                 theory_list.extend(profiles)
 
                 if pdb2mrc_ref_data[1] is not None:
+                    #pdb2mrc_ref_data[1] is the given exp data as a SASM object
+                    #profiles[0] is the calculated pdb2mrc fit
                     sasm = profiles[0]
 
                     exp_data = pdb2mrc_ref_data[1]
+                    #for pdb2mrc, replace the original experimental data with the
+                    #new scaled experimental data. We hacked RAWAPI.pdb2mrc to attach
+                    #the new scaled experimental data to sasm.i_data
+                    exp_data = sasm.copy()
+                    exp_data.i = sasm.i_data
+                    print(sasm.i[:10])
+                    print(exp_data.i[:10])
 
                     if np.round(sasm.getQ()[0]*10,4) == np.round(exp_data.getQ()[0], 4):
                         profile = exp_data.copy_no_metadata()
@@ -14713,7 +14723,6 @@ class PDB2MRCControlPanel(scrolled.ScrolledPanel):
                         copy_params=False)
                     temp_p = SASM.SASM(profile.getErr(), profile.getQ(),
                         profile.getErr(), profile.getAllParameters())
-                    print(profile.getAllParameters())
                     residual = SASProc.divide(diff, temp_p, forced=True,
                         copy_params=False)
 
@@ -14728,7 +14737,6 @@ class PDB2MRCControlPanel(scrolled.ScrolledPanel):
                     param_list.append('')
 
                 cd = profiles[0].getParameter('analysis')['pdb2mrc']
-                print(profiles[0])
 
                 if 'Rg' in cd:
                     param_list.append(cd['Rg'])

@@ -5602,6 +5602,7 @@ def pdb2mrc(models, profiles=None, qmax=0.5, rho0=None, shell_contrast=None,
         # if crysol_settings['chain'] == 'None':
         #     crysol_settings['chain'] = None
 
+    #currently this will only run the first model against the first data
     pdb2mrc = DENSS.run_pdb2mrc(models[0], output_dir, exp_fnames[0],
         **pdb2mrc_settings)
 
@@ -5637,7 +5638,7 @@ def pdb2mrc(models, profiles=None, qmax=0.5, rho0=None, shell_contrast=None,
         if exp_fnames is not None:
             if prefix is not None:
                 data, fit = SASFileIO.loadFitFile(os.path.join(output_dir,
-                    '{}.pdb2mrc2sas.fit'.format(prefix)))
+                    '{}.pdb2mrc.fit'.format(prefix)))
 
                 log_results = SASFileIO.loadPDB2MRCLogFile(os.path.join(output_dir,
                         '{}.log'.format(prefix)))
@@ -5670,7 +5671,15 @@ def pdb2mrc(models, profiles=None, qmax=0.5, rho0=None, shell_contrast=None,
                             os.path.split(os.path.splitext(exp_name)[0])[1])
 
                         data, fit = SASFileIO.loadFitFile(os.path.join(output_dir,
-                            '{}.pdb2mrc2sas.fit'.format(name)))
+                            '{}.pdb2mrc.fit'.format(name)))
+
+                        #for now, let's hack this together. For PDB2MRC we need to carry
+                        #the data along with the fit, since the original data will have
+                        #the wrong scale factor, and PDB2MRC scales the experimental
+                        #data to the calculated profile, not the other way around, since the 
+                        #calculated profile has a meaningful scale whereas experimental profile
+                        #has an arbitrary scale.
+                        fit.i_data = data.i
 
                         log_results = SASFileIO.loadPDB2MRCLogFile(os.path.join(output_dir,
                             '{}.log'.format(name)))
@@ -5683,6 +5692,8 @@ def pdb2mrc(models, profiles=None, qmax=0.5, rho0=None, shell_contrast=None,
                         fit.setParameter('analysis', analysis)
 
                         pdb2mrc_results[name] = [fit]
+                        # what if we pass back the actual pdb2mrc object?
+                        # pdb2mrc_results[name] = []
 
                         if not save_output:
                             for ext in pdb2mrc_output_exts:
@@ -5703,9 +5714,10 @@ def pdb2mrc(models, profiles=None, qmax=0.5, rho0=None, shell_contrast=None,
                                 os.remove(os.path.join(output_dir, '{}{}'.format(
                                     name, '.log')))
         else:
+            #if no experimental data given to fit
             if prefix is not None:
-                fit = SASFileIO.loadFitFile(os.path.join(output_dir,
-                    '{}.int'.format(prefix)))
+                fit = SASFileIO.loadDatFile(os.path.join(output_dir,
+                    '{}.pdb2mrc.dat'.format(prefix)))
 
                 log_results = SASFileIO.loadPDB2MRCLogFile(os.path.join(output_dir,
                         '{}.log'.format(prefix)))
@@ -5718,7 +5730,7 @@ def pdb2mrc(models, profiles=None, qmax=0.5, rho0=None, shell_contrast=None,
                 fit.setParameter('analysis', analysis)
 
                 abs_prof = SASFileIO.loadDatFile(os.path.join(output_dir,
-                    '{}.pdb2mrc2sas.dat'.format(prefix)))
+                    '{}.pdb2mrc.dat'.format(prefix)))
 
                 abs_prof.setParameter('analysis',
                     copy.deepcopy(fit.getParameter('analysis')))
@@ -5738,7 +5750,7 @@ def pdb2mrc(models, profiles=None, qmax=0.5, rho0=None, shell_contrast=None,
                     name = os.path.split(os.path.splitext(fname)[0])[1]
 
                     fit = SASFileIO.loadDatFile(os.path.join(output_dir,
-                        '{}.pdb2mrc2sas.dat'.format(name)))
+                        '{}.pdb2mrc.dat'.format(name)))
 
                     log_results = SASFileIO.loadPDB2MRCLogFile(os.path.join(output_dir,
                         '{}.log'.format(name)))
@@ -5751,7 +5763,7 @@ def pdb2mrc(models, profiles=None, qmax=0.5, rho0=None, shell_contrast=None,
                     fit.setParameter('analysis', analysis)
 
                     abs_prof = SASFileIO.loadDatFile(os.path.join(output_dir,
-                        '{}.pdb2mrc2sas.dat'.format(name)))
+                        '{}.pdb2mrc.dat'.format(name)))
 
                     abs_prof.setParameter('analysis',
                         copy.deepcopy(fit.getParameter('analysis')))
