@@ -5602,13 +5602,16 @@ def pdb2mrc(models, profiles=None, qmax=0.5, rho0=None, shell_contrast=None,
         # if crysol_settings['chain'] == 'None':
         #     crysol_settings['chain'] = None
 
-    proc = DENSS.run_pdb2mrc(models[0], output_dir, exp_fnames[0],
+    pdb2mrc = DENSS.run_pdb2mrc(models[0], output_dir, exp_fnames[0],
         **pdb2mrc_settings)
 
-    readout_t = threading.Thread(target=SASUtils.enqueue_output,
-        args=(proc, readback_queue, read_semaphore))
-    readout_t.daemon = True
-    readout_t.start()
+    # proc = DENSS.run_pdb2mrc(models[0], output_dir, exp_fnames[0],
+    #     **pdb2mrc_settings)
+
+    # readout_t = threading.Thread(target=SASUtils.enqueue_output,
+    #     args=(proc, readback_queue, read_semaphore))
+    # readout_t.daemon = True
+    # readout_t.start()
 
     # if proc is not None:
     #     while proc.poll() is None:
@@ -5634,10 +5637,10 @@ def pdb2mrc(models, profiles=None, qmax=0.5, rho0=None, shell_contrast=None,
         if exp_fnames is not None:
             if prefix is not None:
                 data, fit = SASFileIO.loadFitFile(os.path.join(output_dir,
-                    '{}_pdb.pdb2mrc2sas.fit'.format(prefix)))
+                    '{}.pdb2mrc2sas.fit'.format(prefix)))
 
                 log_results = SASFileIO.loadPDB2MRCLogFile(os.path.join(output_dir,
-                        '{}_pdb.log'.format(prefix)))
+                        '{}.log'.format(prefix)))
 
                 counters = fit.getParameter('counters')
                 counters.update(log_results)
@@ -5667,10 +5670,10 @@ def pdb2mrc(models, profiles=None, qmax=0.5, rho0=None, shell_contrast=None,
                             os.path.split(os.path.splitext(exp_name)[0])[1])
 
                         data, fit = SASFileIO.loadFitFile(os.path.join(output_dir,
-                            '{}_pdb.pdb2mrc2sas.fit'.format(name)))
+                            '{}.pdb2mrc2sas.fit'.format(name)))
 
                         log_results = SASFileIO.loadPDB2MRCLogFile(os.path.join(output_dir,
-                            '{}_pdb.log'.format(name)))
+                            '{}.log'.format(name)))
 
                         counters = fit.getParameter('counters')
                         counters.update(log_results)
@@ -5715,7 +5718,7 @@ def pdb2mrc(models, profiles=None, qmax=0.5, rho0=None, shell_contrast=None,
                 fit.setParameter('analysis', analysis)
 
                 abs_prof = SASFileIO.loadDatFile(os.path.join(output_dir,
-                    '{}_pdb.pdb2mrc2sas.dat'.format(prefix)))
+                    '{}.pdb2mrc2sas.dat'.format(prefix)))
 
                 abs_prof.setParameter('analysis',
                     copy.deepcopy(fit.getParameter('analysis')))
@@ -5735,10 +5738,10 @@ def pdb2mrc(models, profiles=None, qmax=0.5, rho0=None, shell_contrast=None,
                     name = os.path.split(os.path.splitext(fname)[0])[1]
 
                     fit = SASFileIO.loadDatFile(os.path.join(output_dir,
-                        '{}_pdb.pdb2mrc2sas.dat'.format(name)))
+                        '{}.pdb2mrc2sas.dat'.format(name)))
 
                     log_results = SASFileIO.loadPDB2MRCLogFile(os.path.join(output_dir,
-                        '{}_pdb.log'.format(name)))
+                        '{}.log'.format(name)))
 
                     counters = fit.getParameter('counters')
                     counters.update(log_results)
@@ -5748,7 +5751,7 @@ def pdb2mrc(models, profiles=None, qmax=0.5, rho0=None, shell_contrast=None,
                     fit.setParameter('analysis', analysis)
 
                     abs_prof = SASFileIO.loadDatFile(os.path.join(output_dir,
-                        '{}_pdb.pdb2mrc2sas.dat'.format(name)))
+                        '{}.pdb2mrc2sas.dat'.format(name)))
 
                     abs_prof.setParameter('analysis',
                         copy.deepcopy(fit.getParameter('analysis')))

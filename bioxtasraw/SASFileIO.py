@@ -2934,6 +2934,71 @@ def loadCrysolLogFile(filename):
 
     return results
 
+def loadPDB2MRCLogFile(filename):
+    rho0 = -1
+    shell_contrast = -1
+    chisq = -1
+    rg = -1
+    i0 = -1
+    exvol = -1
+
+    with open(filename, 'r') as f:
+        for line in f:
+            if 'rho0' in line.lower():
+                try:
+                    rho0 = float(line.split(' ')[-1].strip())
+                except Exception:
+                    pass
+
+            if 'shell_contrast' in line.lower():
+                try:
+                    shell_contrast = float(line.split(' ')[-1].strip())
+                except Exception:
+                    pass
+
+            if 'chi2' in line.lower():
+                try:
+                    chisq = float(line.split(' ')[-1].strip())
+                except Exception:
+                    pass
+
+            if 'Radius of gyration (Rg)' in line.lower():
+                try:
+                    rg = float(line.split(' ')[-1].strip())
+                except Exception:
+                    pass
+
+            if 'Forward scattering (I0)' in line.lower():
+                try:
+                    i0 = float(line.split(' ')[-1].strip())
+                except Exception:
+                    pass
+
+            if 'Calculated excluded volume' in line.lower():
+                try:
+                    exvol = float(line.split(' ')[-1].strip())
+                except Exception:
+                    pass
+
+    results = {'Solvent_density' : rho0}
+
+    if shell_contrast != -1:
+        results['Hydration_shell_contrast'] = shell_contrast
+
+    if chisq != -1:
+        results['Chi_squared'] = chisq
+
+    if rg != -1:
+        results['Rg'] = rg
+
+    if i0 != -1:
+        results['I0'] = i0
+
+    if exvol != -1:
+        results['Excluded_volume'] = exvol
+
+    return results
+
 def loadPDBFile(filename):
     """
     Read the PDB file,
