@@ -14717,9 +14717,9 @@ class PDB2MRCControlPanel(scrolled.ScrolledPanel):
                 pdb2mrc_ref_data = self.pdb2mrc_ref[key]
 
                 if pdb2mrc_ref_data[1] is None:
-                    if self.result_to_plot.GetStringSelection() == '.abs':
+                    if self.result_to_plot.GetStringSelection() == '.fit':
                         profiles = [value[0]]
-                    elif self.result_to_plot.GetStringSelection() == '.int':
+                    elif self.result_to_plot.GetStringSelection() == '.fit':
                         profiles = [value[1]]
                     else:
                         profiles = value
@@ -14746,6 +14746,7 @@ class PDB2MRCControlPanel(scrolled.ScrolledPanel):
                         copy_params=False)
                     temp_p = SASM.SASM(profile.getErr(), profile.getQ(),
                         profile.getErr(), profile.getAllParameters())
+                    print(profile.getAllParameters())
                     residual = SASProc.divide(diff, temp_p, forced=True,
                         copy_params=False)
 
@@ -14760,8 +14761,17 @@ class PDB2MRCControlPanel(scrolled.ScrolledPanel):
                     param_list.append('')
 
                 cd = profiles[0].getParameter('analysis')['pdb2mrc']
-                param_list.append(cd['Rg'])
-                param_list.append(cd['Excluded_volume'])
+                print(profiles[0])
+
+                if 'Rg' in cd:
+                    param_list.append(cd['Rg'])
+                else:
+                    param_list.append('')
+
+                if 'Excluded_volume' in cd:
+                    param_list.append(cd['Excluded_volume'])
+                else:
+                    param_list.append('')
 
                 if 'Chi_squared' in cd:
                     param_list.append(cd['Chi_squared'])
