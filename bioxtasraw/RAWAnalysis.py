@@ -13157,12 +13157,12 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         ctrl_parent = ctrl_box
 
-        # self.harmonics = wx.TextCtrl(ctrl_parent, size=self._FromDIP((60,-1)),
-        #     validator=RAWCustomCtrl.CharValidator('int'))
-        # self.npts = wx.TextCtrl(ctrl_parent, size=self._FromDIP((60,-1)),
-        #     validator=RAWCustomCtrl.CharValidator('int'))
-        self.qmax = wx.TextCtrl(ctrl_parent, size=self._FromDIP((60,-1)),
+        self.voxel = wx.TextCtrl(ctrl_parent, size=self._FromDIP((60,-1)),
             validator=RAWCustomCtrl.CharValidator('float'))
+        self.side = wx.TextCtrl(ctrl_parent, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('float'))
+        self.nsamples = wx.TextCtrl(ctrl_parent, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('int'))
 
         nprocs_tot = multiprocessing.cpu_count()
         nprocs_list = [str(i) for i in range(nprocs_tot, 0, -1)]
@@ -13173,18 +13173,22 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         basic_ctrls = wx.FlexGridSizer(cols=2, vgap=self._FromDIP(5),
             hgap=self._FromDIP(5))
+
         # basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Harmonics:'),
         #     flag=wx.ALIGN_CENTER_VERTICAL)
         # basic_ctrls.Add(self.harmonics, flag=wx.ALIGN_CENTER_VERTICAL)
-        # basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Number of points:'),
-        #     flag=wx.ALIGN_CENTER_VERTICAL)
-        # basic_ctrls.Add(self.npts, flag=wx.ALIGN_CENTER_VERTICAL)
-        basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Maximum q:'),
-            flag=wx.ALIGN_CENTER_VERTICAL)
-        basic_ctrls.Add(self.qmax, flag=wx.ALIGN_CENTER_VERTICAL)
+
         basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Simultaneous calcs.:'))
         basic_ctrls.Add(self.nprocs)
-
+        basic_ctrls.Add(wx.StaticText(ctrl_parent, label='N samples:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        basic_ctrls.Add(self.nsamples, flag=wx.ALIGN_CENTER_VERTICAL)
+        basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Side (A):'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        basic_ctrls.Add(self.side, flag=wx.ALIGN_CENTER_VERTICAL)
+        basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Voxel size (A):'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        basic_ctrls.Add(self.voxel, flag=wx.ALIGN_CENTER_VERTICAL)
         basic_sizer = wx.BoxSizer(wx.HORIZONTAL)
         basic_sizer.Add(basic_ctrls)
         basic_sizer.AddStretchSpacer(1)
@@ -13208,34 +13212,16 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         save_sizer.Add(dir_sizer, flag=wx.EXPAND|wx.BOTTOM|wx.LEFT|wx.RIGHT,
             border=self._FromDIP(5))
 
-
-        # self.fib = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
-            # validator=RAWCustomCtrl.CharValidator('int'))
+        self.qmax = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('float'))
         self.rho0 = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
             validator=RAWCustomCtrl.CharValidator('float'))
         self.shell_contrast = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
             validator=RAWCustomCtrl.CharValidator('float_neg'))
         self.fit_solvent = wx.CheckBox(adv_win, label='Fit solvent')
-        # self.constant = wx.CheckBox(adv_win, label='Subtract constant for fit')
-        # self.shell = wx.Choice(adv_win, choices=['directional', 'water'])
-        # self.energy = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
-        #     validator=RAWCustomCtrl.CharValidator('float'))
-        # self.explicit_hydrogen = wx.CheckBox(adv_win, label='Explicit Hydrogen')
-        # self.model_id = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
-        #     validator=RAWCustomCtrl.CharValidator('int'))
-        # self.chain_id = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)))
-        # self.alt_names = wx.CheckBox(adv_win, label='Alternative (old) atom names')
-        # self.implicit_hydrogen = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
-        #     validator=RAWCustomCtrl.CharValidator('int'))
-        self.units = wx.Choice(adv_win, choices=['Unknown', '1 - 1/A, q=4pi*sin(th)/l)',
+        self.fit_shell = wx.CheckBox(adv_win, label='Fit hydration shell')
+        self.units = wx.Choice(adv_win, choices=['1 - 1/A, q=4pi*sin(th)/l)',
             '2 - 1/nm, q=4pi*sin(th)/l'])
-        # self.sub_element = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)))
-        # self.result_to_plot = wx.Choice(adv_win, choices=['.pdb2mrc2sas.dat'])
-
-        # shell_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        # shell_sizer.Add(wx.StaticText(adv_win, label='Hydration shell kind:'),
-        #     border=self._FromDIP(5), flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
-        # shell_sizer.Add(self.shell, flag=wx.ALIGN_CENTER_VERTICAL)
 
         units_sizer = wx.BoxSizer(wx.HORIZONTAL)
         units_sizer.Add(wx.StaticText(adv_win, label='Units:'), border=self._FromDIP(5),
@@ -13243,40 +13229,18 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         units_sizer.Add(self.units, flag=wx.ALIGN_CENTER_VERTICAL)
 
         adv_ctrls = wx.GridBagSizer(vgap=self._FromDIP(5), hgap=self._FromDIP(5))
-        adv_ctrls.Add(wx.StaticText(adv_win, label='Order of Fib. grid:'),
-            (0,0), flag=wx.ALIGN_CENTER_VERTICAL)
-        # adv_ctrls.Add(self.fib, (0,1), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(wx.StaticText(adv_win, label='Solvent density [e/A^3]:'),
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Maximum q:'),
             (1,0), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(self.rho0, (1,1), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(wx.StaticText(adv_win, label='Hydration shell contrast [e/A^3]:'),
+        adv_ctrls.Add(self.qmax, (1,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Solvent density [e/A^3]:'),
             (2,0), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(self.shell_contrast, (2,1), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(self.fit_solvent, (3,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
-        # adv_ctrls.Add(self.constant, (4,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
-        # adv_ctrls.Add(shell_sizer, (5,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
-        # adv_ctrls.Add(wx.StaticText(adv_win, label='Energy (anomalous only):'),
-        #     (6,0), flag=wx.ALIGN_CENTER_VERTICAL)
-        # adv_ctrls.Add(self.energy, (6,1), flag=wx.ALIGN_CENTER_VERTICAL)
-        # adv_ctrls.Add(self.explicit_hydrogen, (7,0), (1,2),
-        #     flag=wx.ALIGN_CENTER_VERTICAL)
-        # adv_ctrls.Add(wx.StaticText(adv_win, label='Model ID:'),
-        #     (8,0), flag=wx.ALIGN_CENTER_VERTICAL)
-        # adv_ctrls.Add(self.model_id, (8,1), flag=wx.ALIGN_CENTER_VERTICAL)
-        # adv_ctrls.Add(wx.StaticText(adv_win, label='Chain ID:'),
-        #     (9,0), flag=wx.ALIGN_CENTER_VERTICAL)
-        # adv_ctrls.Add(self.chain_id, (9,1), flag=wx.ALIGN_CENTER_VERTICAL)
-        # adv_ctrls.Add(self.alt_names, (10,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
-        # adv_ctrls.Add(wx.StaticText(adv_win, label='Implicit Hydrogen:'),
-        #     (11,0), flag=wx.ALIGN_CENTER_VERTICAL)
-        # adv_ctrls.Add(self.implicit_hydrogen, (11,1), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(units_sizer, (12,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
-        # adv_ctrls.Add(wx.StaticText(adv_win, label='Sub element:'),
-        #     (13,0), flag=wx.ALIGN_CENTER_VERTICAL)
-        # adv_ctrls.Add(self.sub_element, (13,1), flag=wx.ALIGN_CENTER_VERTICAL)
-        # adv_ctrls.Add(wx.StaticText(adv_win, label='Result to plot (no fit):'),
-        #     (14,0), flag=wx.ALIGN_CENTER_VERTICAL)
-        # adv_ctrls.Add(self.result_to_plot, (14,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.rho0, (2,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Hydration shell contrast [e/A^3]:'),
+            (3,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.shell_contrast, (3,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.fit_solvent, (4,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.fit_shell, (5,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(units_sizer, (6,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
 
         adv_sizer = wx.BoxSizer(wx.VERTICAL)
         adv_sizer.Add(save_sizer, border=self._FromDIP(5),
@@ -13360,11 +13324,11 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         self.rho0.ChangeValue(str(self.raw_settings.get('pdb2mrcSolvDensity')))
         self.shell_contrast.ChangeValue(str(self.raw_settings.get('pdb2mrcHydrDensity')))
         self.fit_solvent.SetValue(self.raw_settings.get('pdb2mrcFitSolvent'))
-        # self.explicit_hydrogen.SetValue(self.raw_settings.get('crysolExplicitH'))
+        self.fit_shell.SetValue(self.raw_settings.get('pdb2mrcFitShell'))
         self.units.SetStringSelection(self.raw_settings.get('pdb2mrcUnit'))
-
-        # self.result_to_plot.SetStringSelection(self.raw_settings.get('pdb2mrcResultToPlot'))
-
+        self.voxel.SetValue(self.raw_settings.get('pdb2mrcVoxel'))
+        self.side.SetValue(self.raw_settings.get('pdb2mrcSide'))
+        self.nsamples.ChangeValue(str(self.raw_settings.get('pdb2mrcNsamples')))
 
     def set_status(self, status):
         wx.CallAfter(self.status.SetLabel, status)
@@ -13773,19 +13737,17 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         return crysol_settings
 
     def _get_pdb2mrc_settings(self):
+
         prefix = None
-        qmax = float(self.qmax.GetValue())
-
-        unit_choice = self.units.GetStringSelection()
-
-        if unit_choice == 'Unknown':
-            units = None
-        else:
-            units = int(unit_choice.split('-')[0].strip())
-
+        qmax = self.qmax.GetValue()
+        units = self.units.GetStringSelection()
         rho0 = self.rho0.GetValue()
         shell_contrast = self.shell_contrast.GetValue()
         fit_solvent = self.fit_solvent.GetValue()
+        fit_shell = self.fit_shell.GetValue()
+        voxel = self.voxel.GetValue()
+        side = self.side.GetValue()
+        nsamples = self.nsamples.GetValue()
 
         pdb2mrc_settings = {
             'prefix'            : prefix,
@@ -13794,6 +13756,10 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
             'rho0'              : rho0,
             'shell_contrast'    : shell_contrast,
             'fit_solvent'       : fit_solvent,
+            'fit_shell'         : fit_shell,
+            'voxel'             : voxel,
+            'side'              : side,
+            'nsamples'          : nsamples,
             }
 
         return pdb2mrc_settings

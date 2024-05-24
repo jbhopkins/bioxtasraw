@@ -3674,8 +3674,8 @@ class PDB2MRC(object):
                 Voxel size is greater than 1 A. This may lead to less accurate I(q) estimates at high q."""
             nsamples_warning = """
                 To avoid long computation times and excessive memory requirements, the number of voxels
-                has been limited to 256 and the voxel size has been set to {v:.2f},
-                which may be too large and lead to less accurate I(q) estimates at high q.""".format(v=voxel)
+                has been limited to {n:d} and the voxel size has been set to {v:.2f},
+                which may be too large and lead to less accurate I(q) estimates at high q.""".format(v=voxel,n=nsamples)
             optimal_values_warning = """
                 To ensure the highest accuracy, manually set the -s option to {os:.2f} and
                 the -v option to {ov:.2f}, which will set -n option to {on:d} and thus 
@@ -5260,28 +5260,39 @@ def run_align(allrhos, sides, ref_file, avg_q=None, abort_event=None, center=Tru
 
     return aligned, scores
 
-def run_pdb2mrc(pdb_fname, output_dir, exp_fname=None, prefix=None,
-    qmax=None, units=None, rho0=None, shell_contrast=None,
-    fit_solvent=True, explicitH=None):
+def run_pdb2mrc(pdb_fname, output_dir, 
+    exp_fname=None, 
+    prefix=None,
+    qmax=None, 
+    units=None, 
+    rho0=None, 
+    shell_contrast=None,
+    fit_solvent=True, 
+    fit_shell=True, 
+    explicitH=None,
+    ignore_waters=None,
+    voxel=None,
+    side=None,
+    nsamples=None,):
     #based on denss.pdb2mrc.py
 
-    if os.path.splitext(pdb_fname)[1] != '.pdb':
-        print("ERROR: Only .pdb files allowed for denss.pdb2mrc.py")
     pdb_fname_nopath = os.path.basename(pdb_fname)
     pdb_basename, pdb_ext = os.path.splitext(pdb_fname_nopath)
     pdb = PDB(pdb_fname)
-    log_fname = os.path.join(output_dir, pdb_basename)+'.log'
+
     if exp_fname is not None:
         exp_fname_nopath = os.path.basename(exp_fname)
         exp_basename, exp_ext = os.path.splitext(exp_fname_nopath)
-        log_fname = os.path.join(output_dir, pdb_basename)+'_'+exp_basename+'.log'
 
-    logging.basicConfig(filename=log_fname,level=logging.INFO,filemode='w',
-                        format='%(asctime)s %(message)s') #, datefmt='%Y-%m-%d %I:%M:%S %p')
-    logging.info('BEGIN')
-    logging.info('Command: %s', "No command line. Run from within BioXTAS RAW.")
-    # logging.info('DENSS Version: %s', __version__)
-    logging.info('PDB filename: %s', pdb_fname)
+    #RAW returns 'None' the string or '' empty string, convert to proper None for PDB2MRC
+    qmax = None if (qmax == 'None') | (qmax == '') else qmax
+    rho0 = None if (rho0 == 'None') | (rho0 == '') else rho0
+    shell_contrast = None if (shell_contrast == 'None') | (shell_contrast == '') else shell_contrast
+    voxel = None if (voxel == 'None') | (voxel == '') else voxel
+    side = None if (side == 'None') | (side == '') else side
+    nsamples = None if (nsamples == 'None') | (nsamples == '')  else nsamples
+    explicitH = None if (explicitH == 'None') | (explicitH == '') else explicitH
+    units = None if (units == 'None') | (units == '') else units
 
     if qmax is not None:
         qmax = float(qmax)
@@ -5289,6 +5300,12 @@ def run_pdb2mrc(pdb_fname, output_dir, exp_fname=None, prefix=None,
         rho0 = float(rho0)
     if shell_contrast is not None:
         shell_contrast = float(shell_contrast)
+    if voxel is not None:
+        voxel = float(voxel)
+    if side is not None:
+        side = float(side)
+    if nsamples is not None:
+        nsamples = int(nsamples)
 
     #if pdb contains an H atomtype, set explicit hydrogens to True
     if explicitH is None and np.any(np.core.defchararray.find(pdb.atomtype,"H")!=-1):
@@ -5304,7 +5321,7 @@ def run_pdb2mrc(pdb_fname, output_dir, exp_fname=None, prefix=None,
 
     pdb2mrc = PDB2MRC(
         pdb=pdb,
-        # ignore_waters=args.ignore_waters,
+        ignore_waters=ignore_waters,
         explicitH=explicitH,
         # modifiable_atom_types=None,
         # center_coords=args.center,
@@ -5314,9 +5331,9 @@ def run_pdb2mrc(pdb_fname, output_dir, exp_fname=None, prefix=None,
         # use_b=args.use_b,
         # global_B=args.global_B,
         # resolution=args.resolution,
-        # voxel=args.voxel,
-        # side=args.side,
-        # nsamples=args.nsamples,
+        voxel=voxel,
+        side=side,
+        nsamples=nsamples,
         rho0=rho0,
         shell_contrast=shell_contrast,
         # shell_mrcfile=args.shell_mrcfile,
@@ -5333,106 +5350,20 @@ def run_pdb2mrc(pdb_fname, output_dir, exp_fname=None, prefix=None,
         # penalty_weight=args.penalty_weight,
         # penalty_weights=args.penalty_weights,
         fit_rho0=fit_solvent,
-        # fit_shell=args.fit_shell,
+        fit_shell=fit_shell,
         # fit_all=args.fit_all,
         # min_method=args.method,
         # min_opts=args.minopts,
         quiet=True, #for RAW we'll suppress all the print statements
         )
 
-    # logging.info('Data filename: %s', pdb2mrc.data_filename)
-    # logging.info('First data point: %s', pdb2mrc.n1)
-    # logging.info('Last data point: %s', pdb2mrc.n2)
-    # logging.info('Use atomic B-factors: %s', pdb2mrc.use_b)
-    # logging.info('Use explicit Hydrogens: %s', pdb2mrc.explicitH)
-    # logging.info('Center PDB: %s', pdb2mrc.center_coords)
-    # logging.info('Ignore waters: %s', pdb2mrc.ignore_waters)
-    # logging.info('Excluded volume type: %s', pdb2mrc.exvol_type)
-    # logging.info('Number of atoms: %s' % (pdb2mrc.pdb.natoms))
-    # types, n_per_type = np.unique(pdb2mrc.pdb.atomtype,return_counts=True)
-    # for i in range(len(types)):
-    #     logging.info('Number of %s atoms: %s' % (types[i], n_per_type[i]))
-
     pdb2mrc.scale_radii()
     pdb2mrc.make_grids()
     pdb2mrc.calculate_global_B()
-
-    # logging.info('Optimal Side length: %.2f', pdb2mrc.optimal_side)
-    # logging.info('Optimal N samples:   %d', pdb2mrc.optimal_nsamples)
-    # logging.info('Optimal Voxel size:  %.4f', pdb2mrc.optimal_voxel)
-    # logging.info('Actual  Side length: %.2f', pdb2mrc.side)
-    # logging.info('Actual  N samples:   %d', pdb2mrc.n)
-    # logging.info('Actual  Voxel size:  %.4f', pdb2mrc.dx)
-    # logging.info('Global B-factor:  %.4f', pdb2mrc.global_B)
-
-    # logging.info('Calculating in vacuo density...')
     pdb2mrc.calculate_invacuo_density()
-    # logging.info('Finished in vacuo density.')
-
-    # logging.info('Calculating excluded volume...')
     pdb2mrc.calculate_excluded_volume()
-    # logging.info('Finished excluded volume.')
-
-    # logging.info('Calculating hydration shell...')
     pdb2mrc.calculate_hydration_shell()
-    # logging.info('Finished hydration shell.')
-
-    # logging.info('Calculating structure factors...')
     pdb2mrc.calculate_structure_factors()
-    # logging.info('Finished structure factors.')
-
-    # if exp_fname is not None:
-    #     pdb2mrc.load_data(filename=exp_fname)
-    #     if fit_solvent:
-    #         # logging.info('Optimizing parameters...')
-    #         pdb2mrc.minimize_parameters()
-
-    # logging.info('Final Parameter Values:')
-    # for i in range(len(pdb2mrc.params)):
-        # logging.info("%s : %.5e" % (pdb2mrc.param_names[i],pdb2mrc.params[i]))
-
-    # pdb2mrc.calc_rho_with_modified_params(pdb2mrc.params)
-    # pdb2mrc.shell_mean_density = np.mean(pdb2mrc.rho_shell[pdb2mrc.water_shell_idx])
-    # qmax = pdb2mrc.qr.max()-1e-8
-    # pdb2mrc.qidx = np.where((pdb2mrc.qr<qmax))
-    # pdb2mrc.calc_I_with_modified_params(pdb2mrc.params)
-    # rho = pdb2mrc.rho_insolvent
-    # write_mrc(rho,pdb2mrc.side,filename=pdb_basename+'_pdb.mrc')
-
-    # if exp_fname is not None:
-    #     optimized_chi2, exp_scale_factor, offset, fit = calc_chi2(pdb2mrc.Iq_exp, pdb2mrc.Iq_calc,interpolation=pdb2mrc.Icalc_interpolation,scale=True,offset=False,return_sf=True,return_fit=True)
-    #     pdb2mrc.optimized_chi2 = optimized_chi2
-    #     logging.info("Scale factor: %.5e " % exp_scale_factor)
-    #     logging.info("Offset: %.5e " % offset)
-    #     logging.info("chi2 of fit:  %.5e " % optimized_chi2)
-
-    # logging.info("Calculated average radii:")
-    # pdb2mrc.calculate_average_radii()
-    # for i in range(len(pdb2mrc.modifiable_atom_types)):
-    #     logging.info("%s: %.3f"%(pdb2mrc.modifiable_atom_types[i],pdb2mrc.mean_radius[i]))
-
-    # pdb2mrc.exvol_in_A3 = np.sum(sphere_volume_from_radius(pdb2mrc.pdb.radius)) + np.sum(sphere_volume_from_radius(pdb2mrc.pdb.exvolHradius)*pdb2mrc.pdb.numH)
-    # logging.info("Calculated excluded volume: %.2f"%(pdb2mrc.exvol_in_A3))
-
-    # #RAW asks for rg, since crysol also asks for Rg, we can calculate it easily here:
-    # rg = calc_rg_by_guinier_first_2_points(pdb2mrc.q_calc, pdb2mrc.I_calc)
-    # i0 = pdb2mrc.I_calc[0]
-    # pdb2mrc.Rg = rg
-    # pdb2mrc.I0 = i0
-    # logging.info("Radius of gyration (Rg):  %.3e " % rg)
-    # logging.info("Forward scattering (I0):  %.3e " % i0)
-
-    # header = ' '.join('%s: %.5e ; '%(pdb2mrc.param_names[i],pdb2mrc.params[i]) for i in range(len(pdb2mrc.params)))
-    # header_dat = header + "\n q_calc I_calc err_calc"
-    # np.savetxt(os.path.join(output_dir, pdb_basename)+'.pdb2mrc.dat',pdb2mrc.Iq_calc[pdb2mrc.q_calc<=qmax],delimiter=' ',fmt='%.8e',header=header_dat)
-
-    # if exp_fname is not None:
-    #     chi2 = pdb2mrc.optimized_chi2
-    #     # header_fit = header + '\n q, I, error, fit ; chi2= %.3e'%(chi2 if chi2 is not None else 0)
-    #     # np.savetxt(os.path.join(output_dir, pdb_basename)+'_'+exp_basename+'.pdb2mrc.fit', fit, delimiter=' ',fmt='%.5e',header=header_fit)
-
-    #     pdb2mrc.chi2 = chi2
-    #     pdb2mrc.fit = fit
 
     return pdb2mrc
 

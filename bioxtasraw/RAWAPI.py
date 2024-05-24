@@ -5409,10 +5409,25 @@ def denss_align(density, side, ref_file, ref_datadir='.',  prefix='',
 
     return aligned_density, score
 
-def pdb2mrc(models, profiles=None, qmax=0.5, rho0=None, shell_contrast=None,
-    prefix=None, units=None, fit_solvent=True,
-    settings=None, save_output=False,
-    output_dir=None, abort_event=None, readback_queue=None):
+def pdb2mrc(models, 
+    profiles=None, 
+    prefix=None,
+    qmax=None, 
+    units=None, 
+    rho0=None, 
+    shell_contrast=None,
+    fit_solvent=True, 
+    fit_shell=True, 
+    explicitH=None,
+    ignore_waters=None,
+    voxel=None,
+    side=None,
+    nsamples=None,
+    settings=None, 
+    save_output=False,
+    output_dir=None, 
+    abort_event=None, 
+    readback_queue=None):
     """
     Calculates the theoretical scattering profile from an atomic or bead model
     using CRYSOL from the ATSAS package (requires ATSAS >=3.1.0). Can be used
@@ -5544,48 +5559,29 @@ def pdb2mrc(models, profiles=None, qmax=0.5, rho0=None, shell_contrast=None,
     if settings is None:
         pdb2mrc_settings = {
             'prefix'            : prefix,
-            # 'lm'                : lm,
-            # 'fb'                : fb,
-            # 'ns'                : ns,
             'qmax'              : qmax,
             'units'             : units,
             'rho0'              : rho0,
             'shell_contrast'    : shell_contrast,
-            # 'constant'          : constant,
             'fit_solvent'       : fit_solvent,
-            # 'energy'            : energy,
-            # 'shell'             : shell,
-            # 'explicit_hydrogen' : explicit_hydrogen,
-            # 'implicit_hydrogen' : implicit_hydrogen,
-            # 'sub_element'       : sub_element,
-            # 'model'             : model_id,
-            # 'chain'             : chain_id,
-            # 'alternative_names' : alternative_names,
+            'fit_shell'         : fit_shell,
+            'voxel'             : voxel,
+            'side'              : side,
+            'nsamples'          : nsamples,
             }
     else:
         pdb2mrc_settings = {
             'prefix'            : prefix,
-            # 'lm'                : settings.get('crysolHarmonics'),
-            # 'fb'                : settings.get('crysolFibGrid'),
-            # 'ns'                : settings.get('crysolPoints'),
             'qmax'              : settings.get('pdb2mrcQmax'),
             'units'             : settings.get('pdb2mrcUnit'),
             'rho0'              : settings.get('pdb2mrcSolvDensity'),
             'shell_contrast'    : settings.get('pdb2mrcHydrDensity'),
-            # 'constant'          : settings.get('crysolConstant'),
             'fit_solvent'       : settings.get('pdb2mrcFitSolvent'),
-            # 'energy'            : settings.get('crysolEnergy'),
-            # 'shell'             : settings.get('crysolShell'),
-            # 'explicit_hydrogen' : settings.get('crysolExplicitH'),
-            # 'implicit_hydrogen' : settings.get('crysolImplicitH'),
-            # 'sub_element'       : settings.get('crysolSubElement'),
-            # 'model'             : settings.get('crysolModelID'),
-            # 'chain'             : settings.get('crysolChainID'),
-            # 'alternative_names' : settings.get('crysolAltNames'),
+            'fit_shell'         : settings.get('pdb2mrcFitShell'),
+            'voxel'             : settings.get('pdb2mrcVoxel'),
+            'side'              : settings.get('pdb2mrcSide'),
+            'nsamples'          : settings.get('pdb2mrcNsamples'),
             }
-
-        if pdb2mrc_settings['units'] == 'Unknown':
-            pdb2mrc_settings['units'] = None
 
     pdb2mrc_output_exts = ['dat', '.fit', '.pdb', '.mrc', '.log']
 
