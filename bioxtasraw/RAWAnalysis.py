@@ -14096,10 +14096,17 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         self._on_save_info()
 
     def _onInfoButton(self, evt):
-        msg = ('If you use CRYSOL in your work, in addition '
-            'to citing the RAW paper please cite the paper given here:\n'
-            'https://www.embl-hamburg.de/biosaxs/manuals/crysol.html')
-        wx.MessageBox(str(msg), "How to cite CRYSOL", style=wx.ICON_INFORMATION|wx.OK)
+        if self.calc_type == 'CRYSOL':
+            msg = ('If you use CRYSOL in your work, in addition '
+                'to citing the RAW paper please cite the paper given here:\n'
+                'https://www.embl-hamburg.de/biosaxs/manuals/crysol.html')
+            wx.MessageBox(str(msg), "How to cite CRYSOL", style=wx.ICON_INFORMATION|wx.OK)
+        if self.calc_type == 'PDB2MRC':
+            msg = ('If you use DENSS PDB2MRC in your work, in addition '
+                'to citing the RAW paper please cite the paper given here:\n'
+                'https://www.sciencedirect.com/science/article/abs/pii/S0006349523006707')
+            wx.MessageBox(str(msg), "How to cite PDB2MRC", style=wx.ICON_INFORMATION|wx.OK)
+
 
     def _on_close(self):
         self._abort_calculations()
