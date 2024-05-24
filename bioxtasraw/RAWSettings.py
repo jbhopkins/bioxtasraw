@@ -407,6 +407,13 @@ class RawGuiSettings(object):
                 'crysolAltNames'        : [False, get_id(), 'bool'],
                 'crysolResultToPlot'    : ['.abs', get_id(), 'choice'],
 
+                #PDB2MRC settings
+                'pdb2mrcQmax'            : ['None', get_id(), 'str'],
+                'pdb2mrcUnit'            : ['Unknown', get_id(), 'choice'],
+                'pdb2mrcSolvDensity'     : [0.334, get_id(), 'float'],
+                'pdb2mrcHydrDensity'     : [0.011, get_id(), 'float'],
+                'pdb2mrcFitSolvent'      : [True, get_id(), 'bool'],
+
                 #Default structure prediction
                 'defaultStructureCalc'  : ['CRYSOL', get_id(), 'str'],
 

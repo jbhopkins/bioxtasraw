@@ -1411,7 +1411,7 @@ class MainFrame(wx.Frame):
 
         if proceed:
             print("Launching PDB2MRCFrame")
-            pdb2mrcframe = RAWAnalysis.PDB2MRCFrame(self, 'PDB2MRC', sasm_list)
+            pdb2mrcframe = RAWAnalysis.TheoreticalFrame(self, 'PDB2MRC', sasm_list)
             pdb2mrcframe.SetIcon(self.GetIcon())
             pdb2mrcframe.Show(True)
 
