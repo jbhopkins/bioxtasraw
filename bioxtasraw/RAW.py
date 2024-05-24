@@ -1410,7 +1410,6 @@ class MainFrame(wx.Frame):
                 self.pdb2mrc_frames.remove(pdb2mrc_frame)
 
         if proceed:
-            print("Launching PDB2MRCFrame")
             pdb2mrcframe = RAWAnalysis.TheoreticalFrame(self, 'PDB2MRC', sasm_list)
             pdb2mrcframe.SetIcon(self.GetIcon())
             pdb2mrcframe.Show(True)
