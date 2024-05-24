@@ -2999,6 +2999,7 @@ class PDB(object):
         self.unique_volume = None
 
     def read_pdb(self, filename, ignore_waters=True):
+        self.filename = filename
         self.natoms = 0
         with open(filename) as f:
             for line in f:
@@ -3463,8 +3464,10 @@ class PDB2MRC(object):
         min_method='Nelder-Mead',
         min_opts='{"adaptive": True}',
         ignore_warnings=False,
+        quiet=False,
         run_all_on_init=False,
         ):
+        self.quiet = quiet
         self.pdb = pdb
         self.ignore_waters = ignore_waters
         self.explicitH = explicitH
@@ -3477,7 +3480,7 @@ class PDB2MRC(object):
                 self.explicitH = True
         if not self.explicitH:
             self.pdb.add_ImplicitH()
-            print("Implicit hydrogens used")
+            if not self.quiet: print("Implicit hydrogens used")
         #add a line here that will delete alternate conformations if they exist
         if 'B' in self.pdb.atomalt:
             self.pdb.remove_atomalt()
@@ -3489,11 +3492,11 @@ class PDB2MRC(object):
         if self.center_coords:
             self.pdb.coords -= self.pdb.coords.mean(axis=0)
         if recalculate_atomic_volumes:
-            print("Calculating unique atomic volumes...")
+            if not self.quiet: print("Calculating unique atomic volumes...")
             self.pdb.unique_volume = np.zeros(self.pdb.natoms)
             self.pdb.calculate_unique_volume()
         elif self.pdb.unique_volume is None:
-            print("Looking up unique atomic volumes...")
+            if not self.quiet: print("Looking up unique atomic volumes...")
             self.pdb.lookup_unique_volume()
         self.pdb.unique_radius = sphere_radius_from_volume(self.pdb.unique_volume)
         if radii_sf is None:
@@ -3549,6 +3552,7 @@ class PDB2MRC(object):
         self.param_names = ['rho0', 'shell_contrast']
         self.params = np.array([self.rho0, self.shell_contrast])
         self.params_target = np.copy(self.params)
+        self.penalties_initialized = False
         self.ignore_warnings = ignore_warnings
         if run_all_on_init:
             self.run_all()
@@ -3766,16 +3770,16 @@ class PDB2MRC(object):
             self.global_B = u2B(1.5)
 
     def calculate_invacuo_density(self):
-        print('Calculating in vacuo density...')
+        if not self.quiet: print('Calculating in vacuo density...')
         self.rho_invacuo, self.support = pdb2map_multigauss(self.pdb,
             x=self.x,y=self.y,z=self.z,
             global_B=self.global_B,
             use_b=self.use_b,
             ignore_waters=self.ignore_waters)
-        print('Finished in vacuo density.')
+        if not self.quiet: print('Finished in vacuo density.')
 
     def calculate_excluded_volume(self, quiet=False):
-        if not quiet: print('Calculating excluded volume...')
+        if not self.quiet: print('Calculating excluded volume...')
         if self.exvol_type == "gaussian":
             #generate excluded volume assuming gaussian dummy atoms
             #this function outputs in electron count units
@@ -3800,10 +3804,10 @@ class PDB2MRC(object):
             # self.rho_exvol = ndimage.gaussian_filter(self.supportexvol*1.0,sigma=sigma,mode='wrap')
             self.rho_exvol = 1.0 * self.supportexvol
             self.rho_exvol *= ne/self.rho_exvol.sum() #put in electron count units
-        if not quiet: print('Finished excluded volume.')
+        if not self.quiet: print('Finished excluded volume.')
 
     def calculate_hydration_shell(self):
-        print('Calculating hydration shell...')
+        if not self.quiet: print('Calculating hydration shell...')
         self.r_water = r_water = 1.4 
         uniform_shell = calc_uniform_shell(self.pdb,self.x,self.y,self.z,thickness=self.r_water*2, distance=self.r_water)
         self.water_shell_idx = water_shell_idx = uniform_shell.astype(bool)
@@ -3829,7 +3833,7 @@ class PDB2MRC(object):
             #the center of the water shell halfway between the inner and outer halves of the shell
             protein_idx = pdb2support_fast(self.pdb,self.x,self.y,self.z,radius=self.pdb.vdW,probe=0)
             protein_rw_idx = pdb2support_fast(self.pdb,self.x,self.y,self.z,radius=self.pdb.vdW,probe=self.r_water-self.dx/2)
-            print('Calculating dist transform...')
+            if not self.quiet: print('Calculating dist transform...')
             #calculate the distance of each voxel outside the particle to the surface of the protein+water support
             dist1 = np.zeros(self.x.shape)
             dist1 = ndimage.distance_transform_edt(protein_rw_idx)
@@ -3843,7 +3847,7 @@ class PDB2MRC(object):
             dist *= self.dx
             #for form factor calculation, look at only the voxels near the shell for efficiency
             rho_shell = np.zeros(self.x.shape)
-            print('Calculating shell values...')
+            if not self.quiet: print('Calculating shell values...')
             shell_idx = np.where(dist<2*r_water)
             shell_idx_bool = np.zeros(self.x.shape, dtype=bool)
             shell_idx_bool[shell_idx] = True
@@ -3862,10 +3866,10 @@ class PDB2MRC(object):
             print("Error: no valid shell_type given (water or uniform). Disabling hydration shell.")
             rho_shell = self.x*0.0
         self.rho_shell = rho_shell
-        print('Finished hydration shell.')
+        if not self.quiet: print('Finished hydration shell.')
 
     def calculate_structure_factors(self):
-        print('Calculating structure factors...')
+        if not self.quiet: print('Calculating structure factors...')
         #F_invacuo
         self.F_invacuo = myfftn(self.rho_invacuo)
         
@@ -3880,10 +3884,10 @@ class PDB2MRC(object):
 
         #shell invacuo F_shell
         self.F_shell = myfftn(self.rho_shell)
-        print('Finished structure factors.')
+        if not self.quiet: print('Finished structure factors.')
 
     def load_data(self, filename=None, units=None):
-        print('Loading data...')
+        if not self.quiet: print('Loading data...')
         if filename is None and self.data_filename is None:
             print("ERROR: No data filename given.")
         elif filename is None:
@@ -3942,9 +3946,25 @@ class PDB2MRC(object):
             self.I_exp = self.I_exp[idx]
             self.sigq_exp = self.sigq_exp[idx]
             self.Iq_exp = self.Iq_exp[idx]
-        print('Data loaded.')
+        if not self.quiet: print('Data loaded.')
+
+    def initialize_penalties(self, penalty_weight=None):
+        #get initial chi2 without fitting
+        self.params_target = self.params
+        self.penalty_weight = 0.0
+        self.calc_I_with_modified_params(self.params)
+        self.calc_score_with_modified_params(self.params)
+        chi2_nofit = self.chi2
+        if penalty_weight is None:
+            self.penalty_weight = chi2_nofit * 100.0
+        else:
+            self.penalty_weight = penalty_weight
+        self.penalties_initialized = True
 
     def minimize_parameters(self, fit_radii=False):
+
+        if not self.penalties_initialized:
+            self.initialize_penalties()
 
         if fit_radii:
             self.param_names += self.modifiable_atom_types
@@ -3983,12 +4003,14 @@ class PDB2MRC(object):
         self.params_target = self.params_guess
 
         if self.fit_params:
-            print('Optimizing parameters...')
+            if not self.quiet: print('Optimizing parameters...')
             if self.penalty_weight != 0:
-                print(["scale_factor"], self.param_names, ["penalty"], ["chi2"])
+                if not self.quiet:
+                    print(["scale_factor"], self.param_names, ["penalty"], ["chi2"])
             else:
-                print(["scale_factor"], self.param_names, ["chi2"])
-            print("-"*100)
+                if not self.quiet:
+                    print(["scale_factor"], self.param_names, ["chi2"])
+                    print("-"*100)
             results = optimize.minimize(self.calc_score_with_modified_params, self.params_guess,
                 bounds = self.bounds,
                 method=self.min_method,
@@ -3997,7 +4019,7 @@ class PDB2MRC(object):
                 )
             self.optimized_params = results.x
             self.optimized_chi2 = results.fun
-            print('Finished minimizing parameters.')
+            if not self.quiet: print('Finished minimizing parameters.')
         else:
             self.calc_score_with_modified_params(self.params)
             self.optimized_params = self.params_guess
@@ -4012,9 +4034,11 @@ class PDB2MRC(object):
         if self.fit_params:
             if self.penalty_weight != 0:
                 #include printing of penalties if that option is give
-                print("%.5e"%self.exp_scale_factor, ' '.join("%.5e"%param for param in params), "%.3f"%self.penalty, "%.3f"%self.chi2)
+                if not self.quiet:
+                    print("%.5e"%self.exp_scale_factor, ' '.join("%.5e"%param for param in params), "%.3f"%self.penalty, "%.3f"%self.chi2)
             else:
-                print("%.5e"%self.exp_scale_factor, ' '.join("%.5e"%param for param in params), "%.3f"%self.chi2)
+                if not self.quiet:
+                    print("%.5e"%self.exp_scale_factor, ' '.join("%.5e"%param for param in params), "%.3f"%self.chi2)
         return self.score
 
     def calc_penalty(self, params):
@@ -4074,6 +4098,9 @@ class PDB2MRC(object):
         self.I3D = abs2(self.F)
         self.I_calc = mybinmean(self.I3D.ravel(), self.qblravel, xcount=self.xcount)
         self.Iq_calc = np.vstack((self.qbinsc, self.I_calc, self.I_calc*.01 + self.I_calc[0]*0.002)).T
+        #calculate Rg and I0 and store it:
+        self.Rg = calc_rg_by_guinier_first_2_points(self.q_calc, self.I_calc)
+        self.I0 = self.I_calc[0]
 
     def calc_rho_with_modified_params(self,params):
         """Calculates electron density map for protein in solution. Includes the excluded volume and
@@ -4087,6 +4114,10 @@ class PDB2MRC(object):
         self.rho_exvol *= sf_ex
         self.rho_shell *= sf_sh
         self.rho_insolvent = self.rho_invacuo - self.rho_exvol + self.rho_shell
+
+    def calculate_excluded_volume_in_A3(self):
+        self.exvol_in_A3 = np.sum(sphere_volume_from_radius(self.pdb.radius)) + np.sum(sphere_volume_from_radius(self.pdb.exvolHradius)*self.pdb.numH)
+
 
 class PDB2SAS(object):
     """Calculate the scattering of an object from a set of 3D coordinates using the Debye formula.
@@ -5306,105 +5337,102 @@ def run_pdb2mrc(pdb_fname, output_dir, exp_fname=None, prefix=None,
         # fit_all=args.fit_all,
         # min_method=args.method,
         # min_opts=args.minopts,
+        quiet=True, #for RAW we'll suppress all the print statements
         )
 
-    logging.info('Data filename: %s', pdb2mrc.data_filename)
-    logging.info('First data point: %s', pdb2mrc.n1)
-    logging.info('Last data point: %s', pdb2mrc.n2)
-    logging.info('Use atomic B-factors: %s', pdb2mrc.use_b)
-    logging.info('Use explicit Hydrogens: %s', pdb2mrc.explicitH)
-    logging.info('Center PDB: %s', pdb2mrc.center_coords)
-    logging.info('Ignore waters: %s', pdb2mrc.ignore_waters)
-    logging.info('Excluded volume type: %s', pdb2mrc.exvol_type)
-    logging.info('Number of atoms: %s' % (pdb2mrc.pdb.natoms))
-    types, n_per_type = np.unique(pdb2mrc.pdb.atomtype,return_counts=True)
-    for i in range(len(types)):
-        logging.info('Number of %s atoms: %s' % (types[i], n_per_type[i]))
+    # logging.info('Data filename: %s', pdb2mrc.data_filename)
+    # logging.info('First data point: %s', pdb2mrc.n1)
+    # logging.info('Last data point: %s', pdb2mrc.n2)
+    # logging.info('Use atomic B-factors: %s', pdb2mrc.use_b)
+    # logging.info('Use explicit Hydrogens: %s', pdb2mrc.explicitH)
+    # logging.info('Center PDB: %s', pdb2mrc.center_coords)
+    # logging.info('Ignore waters: %s', pdb2mrc.ignore_waters)
+    # logging.info('Excluded volume type: %s', pdb2mrc.exvol_type)
+    # logging.info('Number of atoms: %s' % (pdb2mrc.pdb.natoms))
+    # types, n_per_type = np.unique(pdb2mrc.pdb.atomtype,return_counts=True)
+    # for i in range(len(types)):
+    #     logging.info('Number of %s atoms: %s' % (types[i], n_per_type[i]))
 
     pdb2mrc.scale_radii()
     pdb2mrc.make_grids()
     pdb2mrc.calculate_global_B()
 
-    logging.info('Optimal Side length: %.2f', pdb2mrc.optimal_side)
-    logging.info('Optimal N samples:   %d', pdb2mrc.optimal_nsamples)
-    logging.info('Optimal Voxel size:  %.4f', pdb2mrc.optimal_voxel)
-    logging.info('Actual  Side length: %.2f', pdb2mrc.side)
-    logging.info('Actual  N samples:   %d', pdb2mrc.n)
-    logging.info('Actual  Voxel size:  %.4f', pdb2mrc.dx)
-    logging.info('Global B-factor:  %.4f', pdb2mrc.global_B)
+    # logging.info('Optimal Side length: %.2f', pdb2mrc.optimal_side)
+    # logging.info('Optimal N samples:   %d', pdb2mrc.optimal_nsamples)
+    # logging.info('Optimal Voxel size:  %.4f', pdb2mrc.optimal_voxel)
+    # logging.info('Actual  Side length: %.2f', pdb2mrc.side)
+    # logging.info('Actual  N samples:   %d', pdb2mrc.n)
+    # logging.info('Actual  Voxel size:  %.4f', pdb2mrc.dx)
+    # logging.info('Global B-factor:  %.4f', pdb2mrc.global_B)
 
-    logging.info('Calculating in vacuo density...')
+    # logging.info('Calculating in vacuo density...')
     pdb2mrc.calculate_invacuo_density()
-    logging.info('Finished in vacuo density.')
+    # logging.info('Finished in vacuo density.')
 
-    logging.info('Calculating excluded volume...')
+    # logging.info('Calculating excluded volume...')
     pdb2mrc.calculate_excluded_volume()
-    logging.info('Finished excluded volume.')
+    # logging.info('Finished excluded volume.')
 
-    logging.info('Calculating hydration shell...')
+    # logging.info('Calculating hydration shell...')
     pdb2mrc.calculate_hydration_shell()
-    logging.info('Finished hydration shell.')
+    # logging.info('Finished hydration shell.')
 
-    logging.info('Calculating structure factors...')
+    # logging.info('Calculating structure factors...')
     pdb2mrc.calculate_structure_factors()
-    logging.info('Finished structure factors.')
+    # logging.info('Finished structure factors.')
 
-    if exp_fname is not None:
-        pdb2mrc.load_data()
-        #get initial chi2 without fitting
-        pdb2mrc.params_target = pdb2mrc.params
-        pdb2mrc.penalty_weight = 0.0
-        pdb2mrc.calc_I_with_modified_params(pdb2mrc.params)
-        pdb2mrc.calc_score_with_modified_params(pdb2mrc.params)
+    # if exp_fname is not None:
+    #     pdb2mrc.load_data(filename=exp_fname)
+    #     if fit_solvent:
+    #         # logging.info('Optimizing parameters...')
+    #         pdb2mrc.minimize_parameters()
 
-        chi2_nofit = pdb2mrc.chi2
-        pdb2mrc.penalty_weight = chi2_nofit * 100.0
-        if fit_solvent:
-            logging.info('Optimizing parameters...')
-            pdb2mrc.minimize_parameters()
+    # logging.info('Final Parameter Values:')
+    # for i in range(len(pdb2mrc.params)):
+        # logging.info("%s : %.5e" % (pdb2mrc.param_names[i],pdb2mrc.params[i]))
 
-    logging.info('Final Parameter Values:')
-    for i in range(len(pdb2mrc.params)):
-        logging.info("%s : %.5e" % (pdb2mrc.param_names[i],pdb2mrc.params[i]))
+    # pdb2mrc.calc_rho_with_modified_params(pdb2mrc.params)
+    # pdb2mrc.shell_mean_density = np.mean(pdb2mrc.rho_shell[pdb2mrc.water_shell_idx])
+    # qmax = pdb2mrc.qr.max()-1e-8
+    # pdb2mrc.qidx = np.where((pdb2mrc.qr<qmax))
+    # pdb2mrc.calc_I_with_modified_params(pdb2mrc.params)
+    # rho = pdb2mrc.rho_insolvent
+    # write_mrc(rho,pdb2mrc.side,filename=pdb_basename+'_pdb.mrc')
 
-    pdb2mrc.calc_rho_with_modified_params(pdb2mrc.params)
-    pdb2mrc.shell_mean_density = np.mean(pdb2mrc.rho_shell[pdb2mrc.water_shell_idx])
-    qmax = pdb2mrc.qr.max()-1e-8
-    pdb2mrc.qidx = np.where((pdb2mrc.qr<qmax))
-    pdb2mrc.calc_I_with_modified_params(pdb2mrc.params)
-    rho = pdb2mrc.rho_insolvent
-    write_mrc(rho,pdb2mrc.side,filename=pdb_basename+'_pdb.mrc')
+    # if exp_fname is not None:
+    #     optimized_chi2, exp_scale_factor, offset, fit = calc_chi2(pdb2mrc.Iq_exp, pdb2mrc.Iq_calc,interpolation=pdb2mrc.Icalc_interpolation,scale=True,offset=False,return_sf=True,return_fit=True)
+    #     pdb2mrc.optimized_chi2 = optimized_chi2
+    #     logging.info("Scale factor: %.5e " % exp_scale_factor)
+    #     logging.info("Offset: %.5e " % offset)
+    #     logging.info("chi2 of fit:  %.5e " % optimized_chi2)
 
-    if exp_fname is not None:
-        optimized_chi2, exp_scale_factor, offset, fit = calc_chi2(pdb2mrc.Iq_exp, pdb2mrc.Iq_calc,interpolation=pdb2mrc.Icalc_interpolation,scale=True,offset=False,return_sf=True,return_fit=True)
-        pdb2mrc.optimized_chi2 = optimized_chi2
-        logging.info("Scale factor: %.5e " % exp_scale_factor)
-        logging.info("Offset: %.5e " % offset)
-        logging.info("chi2 of fit:  %.5e " % optimized_chi2)
+    # logging.info("Calculated average radii:")
+    # pdb2mrc.calculate_average_radii()
+    # for i in range(len(pdb2mrc.modifiable_atom_types)):
+    #     logging.info("%s: %.3f"%(pdb2mrc.modifiable_atom_types[i],pdb2mrc.mean_radius[i]))
 
-    logging.info("Calculated average radii:")
-    pdb2mrc.calculate_average_radii()
-    for i in range(len(pdb2mrc.modifiable_atom_types)):
-        logging.info("%s: %.3f"%(pdb2mrc.modifiable_atom_types[i],pdb2mrc.mean_radius[i]))
+    # pdb2mrc.exvol_in_A3 = np.sum(sphere_volume_from_radius(pdb2mrc.pdb.radius)) + np.sum(sphere_volume_from_radius(pdb2mrc.pdb.exvolHradius)*pdb2mrc.pdb.numH)
+    # logging.info("Calculated excluded volume: %.2f"%(pdb2mrc.exvol_in_A3))
 
-    logging.info("Calculated excluded volume: %.2f"%(np.sum(sphere_volume_from_radius(pdb2mrc.pdb.radius)) + np.sum(sphere_volume_from_radius(pdb2mrc.pdb.exvolHradius)*pdb2mrc.pdb.numH)))
+    # #RAW asks for rg, since crysol also asks for Rg, we can calculate it easily here:
+    # rg = calc_rg_by_guinier_first_2_points(pdb2mrc.q_calc, pdb2mrc.I_calc)
+    # i0 = pdb2mrc.I_calc[0]
+    # pdb2mrc.Rg = rg
+    # pdb2mrc.I0 = i0
+    # logging.info("Radius of gyration (Rg):  %.3e " % rg)
+    # logging.info("Forward scattering (I0):  %.3e " % i0)
 
-    #RAW asks for rg, since crysol also asks for Rg, we can calculate it easily here:
-    rg = calc_rg_by_guinier_first_2_points(pdb2mrc.q_calc, pdb2mrc.I_calc)
-    i0 = pdb2mrc.I_calc[0]
-    pdb2mrc.Rg = rg
-    pdb2mrc.I0 = i0
-    logging.info("Radius of gyration (Rg):  %.3e " % rg)
-    logging.info("Forward scattering (I0):  %.3e " % i0)
+    # header = ' '.join('%s: %.5e ; '%(pdb2mrc.param_names[i],pdb2mrc.params[i]) for i in range(len(pdb2mrc.params)))
+    # header_dat = header + "\n q_calc I_calc err_calc"
+    # np.savetxt(os.path.join(output_dir, pdb_basename)+'.pdb2mrc.dat',pdb2mrc.Iq_calc[pdb2mrc.q_calc<=qmax],delimiter=' ',fmt='%.8e',header=header_dat)
 
-    header = ' '.join('%s: %.5e ; '%(pdb2mrc.param_names[i],pdb2mrc.params[i]) for i in range(len(pdb2mrc.params)))
-    header_dat = header + "\n q_calc I_calc err_calc"
-    np.savetxt(os.path.join(output_dir, pdb_basename)+'.pdb2mrc.dat',pdb2mrc.Iq_calc[pdb2mrc.q_calc<=qmax],delimiter=' ',fmt='%.8e',header=header_dat)
+    # if exp_fname is not None:
+    #     chi2 = pdb2mrc.optimized_chi2
+    #     # header_fit = header + '\n q, I, error, fit ; chi2= %.3e'%(chi2 if chi2 is not None else 0)
+    #     # np.savetxt(os.path.join(output_dir, pdb_basename)+'_'+exp_basename+'.pdb2mrc.fit', fit, delimiter=' ',fmt='%.5e',header=header_fit)
 
-    if exp_fname is not None:
-        chi2 = pdb2mrc.optimized_chi2
-        header_fit = header + '\n q, I, error, fit ; chi2= %.3e'%(chi2 if chi2 is not None else 0)
-        np.savetxt(os.path.join(output_dir, pdb_basename)+'_'+exp_basename+'.pdb2mrc.fit', fit, delimiter=' ',fmt='%.5e',header=header_fit)
+    #     pdb2mrc.chi2 = chi2
+    #     pdb2mrc.fit = fit
 
     return pdb2mrc
 
