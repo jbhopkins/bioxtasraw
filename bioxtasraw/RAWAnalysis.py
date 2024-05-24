@@ -12230,7 +12230,7 @@ class DIFTControlPanel(wx.Panel):
 
                 self.updatePlot()
 
-                wx.CallAfter(self.dift_frame.showBusy, True)
+                wx.CallAfter(self.dift_frame.showBusy, False)
 
             else:
                 self._runFindDmax(scanalpha=True)
@@ -14313,33 +14313,12 @@ class PDB2MRCControlPanel(scrolled.ScrolledPanel):
             self._initialize_pdb2mrc()
 
     def _initialize_pdb2mrc(self):
-        # self.harmonics.ChangeValue(str(self.raw_settings.get('crysolHarmonics')))
-        # self.npts.ChangeValue(str(self.raw_settings.get('pdb2mrcPoints')))
         self.qmax.ChangeValue(str(self.raw_settings.get('pdb2mrcQmax')))
-        # self.fib.ChangeValue(str(self.raw_settings.get('crysolFibGrid')))
         self.rho0.ChangeValue(str(self.raw_settings.get('pdb2mrcSolvDensity')))
         self.shell_contrast.ChangeValue(str(self.raw_settings.get('pdb2mrcHydrDensity')))
         self.fit_solvent.SetValue(self.raw_settings.get('pdb2mrcFitSolvent'))
-        # self.constant.SetValue(self.raw_settings.get('crysolConstant'))
-        # self.shell.SetStringSelection(self.raw_settings.get('crysolShell'))
         # self.explicit_hydrogen.SetValue(self.raw_settings.get('crysolExplicitH'))
-        # self.alt_names.SetValue(self.raw_settings.get('crysolAltNames'))
         self.units.SetStringSelection(self.raw_settings.get('pdb2mrcUnit'))
-
-        # if self.raw_settings.get('crysolEnergy') != 'None':
-        #     self.energy.ChangeValue(str(self.raw_settings.get('crysolEnergy')))
-
-        # if self.raw_settings.get('crysolImplicitH') != 'None':
-        #     self.implicit_hydrogen.ChangeValue(str(self.raw_settings.get('crysolImplicitH')))
-
-        # if self.raw_settings.get('crysolModelID') != 'None':
-        #     self.model_id.ChangeValue(str(self.raw_settings.get('crysolModelID')))
-
-        # if self.raw_settings.get('crysolChainID') != 'None':
-        #     self.chain_id.ChangeValue(str(self.raw_settings.get('crysolChainID')))
-
-        # if self.raw_settings.get('crysolSubElement') != 'None':
-        #     self.sub_element.ChangeValue(str(self.raw_settings.get('crysolSubElement')))
 
         self.result_to_plot.SetStringSelection(self.raw_settings.get('pdb2mrcResultToPlot'))
 
@@ -14498,7 +14477,6 @@ class PDB2MRCControlPanel(scrolled.ScrolledPanel):
 
         settings['abort_event'] = self.abort_event
         settings['profiles'] = profile_names
-        # settings['atsas_dir'] = self.raw_settings.get('ATSASDir')
 
         if save_all:
             settings['save_output'] = save_all
@@ -14586,64 +14564,15 @@ class PDB2MRCControlPanel(scrolled.ScrolledPanel):
 
         rho0 = self.rho0.GetValue()
         shell_contrast = self.shell_contrast.GetValue()
-        # constant = self.constant.GetValue()
         fit_solvent = self.fit_solvent.GetValue()
-
-        # energy_val = self.energy.GetValue()
-        # try:
-        #     energy = float(energy_val)
-        # except ValueError:
-        #     energy = None
-
-        # shell = self.shell.GetStringSelection()
-        # explicit_hydrogen = self.explicit_hydrogen.GetValue()
-
-        # implicit_hydrogen_val = self.implicit_hydrogen.GetValue()
-        # try:
-        #     implicit_hydrogen = int(implicit_hydrogen_val)
-        # except ValueError:
-        #     implicit_hydrogen = None
-
-        # sub_element_val = self.sub_element.GetValue()
-        # if sub_element_val == '':
-        #     sub_element = None
-        # else:
-        #     sub_element = sub_element_val
-
-        # model_id_val = self.model_id.GetValue()
-        # if model_id_val == '':
-        #     model_id = None
-        # else:
-        #     model_id = model_id_val
-
-        # chain_id_val = self.chain_id.GetValue()
-        # if chain_id_val == '':
-        #     chain_id = None
-        # else:
-        #     chain_id = chain_id_val
-
-        # alternative_names = self.alt_names.GetValue()
-
 
         pdb2mrc_settings = {
             'prefix'            : prefix,
-            # 'lm'                : lm,
-            # 'fb'                : fb,
-            # 'npts'              : npts,
             'qmax'              : qmax,
             'units'             : units,
             'rho0'              : rho0,
             'shell_contrast'    : shell_contrast,
-            # 'constant'          : constant,
             'fit_solvent'       : fit_solvent,
-            # 'energy'            : energy,
-            # 'shell'             : shell,
-            # 'explicit_hydrogen' : explicit_hydrogen,
-            # 'implicit_hydrogen' : implicit_hydrogen,
-            # 'sub_element'       : sub_element,
-            # 'model_id'          : model_id,
-            # 'chain_id'          : chain_id,
-            # 'alternative_names' : alternative_names,
             }
 
         return pdb2mrc_settings
@@ -14712,86 +14641,64 @@ class PDB2MRCControlPanel(scrolled.ScrolledPanel):
 
         for res in results:
             for key, value in res.items():
+                name = key
+                pdb2mrc = value[0]
+
                 param_list = []
 
                 pdb2mrc_ref_data = self.pdb2mrc_ref[key]
 
-                if pdb2mrc_ref_data[1] is None:
-                    if self.result_to_plot.GetStringSelection() == '.fit':
-                        profiles = [value[0]]
-                    elif self.result_to_plot.GetStringSelection() == '.fit':
-                        profiles = [value[1]]
-                    else:
-                        profiles = value
-                else:
-                    profiles = value
+                pdb_fn = os.path.basename(pdb2mrc.pdb.filename)
 
-                #pdb2mrc_ref_data[0] is the pdb filename
-                param_list.append(pdb2mrc_ref_data[0])
-
-                theory_list.extend(profiles)
+                param_list.append(pdb_fn)
 
                 if pdb2mrc_ref_data[1] is not None:
-                    #pdb2mrc_ref_data[1] is the given exp data as a SASM object
-                    #profiles[0] is the calculated pdb2mrc fit
-                    sasm = profiles[0]
+                    #here since we have data we will use the fit attribute with experimental errors
+                    theory = SASM.SASM(
+                        i=pdb2mrc.fit[:,3]/pdb2mrc.exp_scale_factor, #scale to the data for plotting
+                        q=pdb2mrc.fit[:,0], 
+                        err=pdb2mrc.fit[:,2]/pdb2mrc.exp_scale_factor, 
+                        parameters={"filename":pdb_fn})
+                    data_fn = os.path.basename(pdb2mrc.data_filename)
+                    exp_data = SASM.SASM(
+                        i=pdb2mrc.fit[:,1]/pdb2mrc.exp_scale_factor, 
+                        q=pdb2mrc.fit[:,0], 
+                        err=pdb2mrc.fit[:,2]/pdb2mrc.exp_scale_factor, 
+                        parameters={"filename":data_fn})
 
-                    exp_data = pdb2mrc_ref_data[1]
-                    #for pdb2mrc, replace the original experimental data with the
-                    #new scaled experimental data. We hacked RAWAPI.pdb2mrc to attach
-                    #the new scaled experimental data to sasm.i_data
-                    exp_data = sasm.copy()
-                    exp_data.i = sasm.i_data
-                    print(sasm.i[:10])
-                    print(exp_data.i[:10])
-
-                    if np.round(sasm.getQ()[0]*10,4) == np.round(exp_data.getQ()[0], 4):
-                        profile = exp_data.copy_no_metadata()
-                        profile.scaleRelativeQ(0.1)
-
-                    else:
-                        profile = exp_data
-
-                    diff = SASProc.subtract(profile, sasm, forced=True,
+                    diff = SASProc.subtract(exp_data, theory, forced=True,
                         copy_params=False)
-                    temp_p = SASM.SASM(profile.getErr(), profile.getQ(),
-                        profile.getErr(), profile.getAllParameters())
+                    temp_p = SASM.SASM(exp_data.getErr(), exp_data.getQ(),
+                        exp_data.getErr(), exp_data.getAllParameters())
                     residual = SASProc.divide(diff, temp_p, forced=True,
                         copy_params=False)
 
                     residual_list.append([residual.getQ(), residual.getI(), key])
 
-                    if profile not in data_list:
-                        data_list.append(profile)
+                    if exp_data not in data_list:
+                        data_list.append(exp_data)
 
                     param_list.append(exp_data.getParameter('filename'))
 
                 else:
+                    #here since we don't have data we will use the simulated (terrible) errors from pdb2mrc
+                    theory = SASM.SASM(
+                        i=pdb2mrc.Iq_calc[:,1], 
+                        q=pdb2mrc.Iq_calc[:,0], 
+                        err=pdb2mrc.Iq_calc[:,2], 
+                        parameters={"filename":pdb_fn})
                     param_list.append('')
 
-                cd = profiles[0].getParameter('analysis')['pdb2mrc']
+                theory_list.append(theory)
 
-                if 'Rg' in cd:
-                    param_list.append(cd['Rg'])
+                param_list.append(f'{pdb2mrc.Rg:.2f}')
+                param_list.append(f'{pdb2mrc.exvol_in_A3:.2f}')
+                if exp_data:
+                    param_list.append(f'{pdb2mrc.chi2:.3f}')
                 else:
                     param_list.append('')
-
-                if 'Excluded_volume' in cd:
-                    param_list.append(cd['Excluded_volume'])
-                else:
-                    param_list.append('')
-
-                if 'Chi_squared' in cd:
-                    param_list.append(cd['Chi_squared'])
-                else:
-                    param_list.append('')
-
-                if 'Probability_of_fit' in cd:
-                    param_list.append(cd['Probability_of_fit'])
-                else:
-                    param_list.append('')
-
-                param_list.append(cd['Hydration_shell_contrast'])
+                param_list.append(f'{pdb2mrc.params[0]:.4f}') #solvent density
+                param_list.append(f'{pdb2mrc.params[1]:.4f}') #shell contrast
 
                 params.append(param_list)
 
@@ -14974,7 +14881,7 @@ class PDB2MRCList(wx.ListCtrl, wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin,):
             self.InsertColumn(2, 'Rg')
             self.InsertColumn(3, 'Ex. Vol.')
             self.InsertColumn(4, 'Chi^2')
-            self.InsertColumn(5, 'Prob.')
+            self.InsertColumn(5, 'Sol. Den.')
             self.InsertColumn(6, 'Contrast')
 
         wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin.__init__(self)

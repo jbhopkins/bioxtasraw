@@ -5677,205 +5677,44 @@ def pdb2mrc(models, profiles=None, qmax=0.5, rho0=None, shell_contrast=None,
         if pdb2mrc_settings['units'] == 'Unknown':
             pdb2mrc_settings['units'] = None
 
-        # if crysol_settings['energy'] == 'None':
-        #     crysol_settings['energy'] = None
-
-        # if crysol_settings['implicit_hydrogen'] == 'None':
-        #     crysol_settings['implicit_hydrogen'] = None
-
-        # if crysol_settings['sub_element'] == 'None':
-        #     crysol_settings['sub_element'] = None
-
-        # if crysol_settings['model'] == 'None':
-        #     crysol_settings['model'] = None
-
-        # if crysol_settings['chain'] == 'None':
-        #     crysol_settings['chain'] = None
-
-    #currently this will only run the first model against the first data
-    pdb2mrc = DENSS.run_pdb2mrc(models[0], output_dir, exp_fnames[0],
-        **pdb2mrc_settings)
-
-    # proc = DENSS.run_pdb2mrc(models[0], output_dir, exp_fnames[0],
-    #     **pdb2mrc_settings)
-
-    # readout_t = threading.Thread(target=SASUtils.enqueue_output,
-    #     args=(proc, readback_queue, read_semaphore))
-    # readout_t.daemon = True
-    # readout_t.start()
-
-    # if proc is not None:
-    #     while proc.poll() is None:
-    #         if abort_event.is_set():
-    #             proc.terminate()
-    #             break
-    #         time.sleep(0.1)
-
-    #     with read_semaphore: #see if there's any last data that we missed
-    #         new_text = proc.stdout.read()
-
-    #         if not isinstance(new_text, str):
-    #             new_text = str(new_text, encoding='UTF-8')
-
-    #         if new_text != '':
-    #             readback_queue.put_nowait([new_text])
-
     pdb2mrc_output_exts = ['dat', '.fit', '.pdb', '.mrc', '.log']
 
     if not abort_event.is_set():
         pdb2mrc_results = {}
 
-        if exp_fnames is not None:
-            if prefix is not None:
-                data, fit = SASFileIO.loadFitFile(os.path.join(output_dir,
-                    '{}.pdb2mrc.fit'.format(prefix)))
+        for fname in models:
+            pdb2mrc = DENSS.run_pdb2mrc(fname, output_dir,
+                **pdb2mrc_settings)
 
-                log_results = SASFileIO.loadPDB2MRCLogFile(os.path.join(output_dir,
-                        '{}.log'.format(prefix)))
-
-                counters = fit.getParameter('counters')
-                counters.update(log_results)
-
-                analysis = fit.getParameter('analysis')
-                analysis['pdb2mrc'] = counters
-                fit.setParameter('analysis', analysis)
-
-                pdb2mrc_results[prefix] = [fit]
-
-                if not save_output:
-                    for ext in pdb2mrc_output_exts:
-                        tname = os.path.join(output_dir, '{}{}'.format(
-                            prefix, ext))
-
-                        if os.path.exists(tname):
-                            os.remove(tname)
-
-                    if os.path.exists(os.path.join(output_dir, '{}{}'.format(
-                        prefix, '.fit'))):
-                        os.remove(os.path.join(output_dir, '{}{}'.format(
-                            prefix, '.fit')))
-            else:
+            if exp_fnames is not None:
                 for exp_name in exp_fnames:
-                    for fname in models:
-                        name = '{}_{}'.format(os.path.split(os.path.splitext(fname)[0])[1],
-                            os.path.split(os.path.splitext(exp_name)[0])[1])
+                    name = '{}_{}'.format(os.path.split(os.path.splitext(fname)[0])[1],
+                        os.path.split(os.path.splitext(exp_name)[0])[1])
 
-                        data, fit = SASFileIO.loadFitFile(os.path.join(output_dir,
-                            '{}.pdb2mrc.fit'.format(name)))
-
-                        #for now, let's hack this together. For PDB2MRC we need to carry
-                        #the data along with the fit, since the original data will have
-                        #the wrong scale factor, and PDB2MRC scales the experimental
-                        #data to the calculated profile, not the other way around, since the 
-                        #calculated profile has a meaningful scale whereas experimental profile
-                        #has an arbitrary scale.
-                        fit.i_data = data.i
-
-                        log_results = SASFileIO.loadPDB2MRCLogFile(os.path.join(output_dir,
-                            '{}.log'.format(name)))
-
-                        counters = fit.getParameter('counters')
-                        counters.update(log_results)
-
-                        analysis = fit.getParameter('analysis')
-                        analysis['pdb2mrc'] = counters
-                        fit.setParameter('analysis', analysis)
-
-                        pdb2mrc_results[name] = [fit]
-                        # what if we pass back the actual pdb2mrc object?
-                        # pdb2mrc_results[name] = []
-
-                        if not save_output:
-                            for ext in pdb2mrc_output_exts:
-                                tname = os.path.join(output_dir, '{}{}'.format(
-                                    os.path.split(os.path.splitext(fname)[0])[1],
-                                    ext))
-
-                                if os.path.exists(tname):
-                                    os.remove(tname)
-
-                            if os.path.exists(os.path.join(output_dir, '{}{}'.format(
-                                name, '.fit'))):
-                                os.remove(os.path.join(output_dir, '{}{}'.format(
-                                    name, '.fit')))
-
-                            if os.path.exists(os.path.join(output_dir, '{}{}'.format(
-                                name, '.log'))):
-                                os.remove(os.path.join(output_dir, '{}{}'.format(
-                                    name, '.log')))
-        else:
-            #if no experimental data given to fit
-            if prefix is not None:
-                fit = SASFileIO.loadDatFile(os.path.join(output_dir,
-                    '{}.pdb2mrc.dat'.format(prefix)))
-
-                log_results = SASFileIO.loadPDB2MRCLogFile(os.path.join(output_dir,
-                        '{}.log'.format(prefix)))
-
-                counters = fit.getParameter('counters')
-                counters.update(log_results)
-
-                analysis = fit.getParameter('analysis')
-                analysis['pdb2mrc'] = counters
-                fit.setParameter('analysis', analysis)
-
-                abs_prof = SASFileIO.loadDatFile(os.path.join(output_dir,
-                    '{}.pdb2mrc.dat'.format(prefix)))
-
-                abs_prof.setParameter('analysis',
-                    copy.deepcopy(fit.getParameter('analysis')))
-
-                pdb2mrc_results[prefix] = [abs_prof, fit]
-
-                if not save_output:
-                    for ext in pdb2mrc_output_exts:
-                        tname = os.path.join(output_dir, '{}{}'.format(
-                            prefix, ext))
-
-                        if os.path.exists(tname):
-                            os.remove(tname)
+                    pdb2mrc.load_data(filename=exp_name)
+                    if pdb2mrc.fit_rho0 or pdb2mrc.fit_shell:
+                        pdb2mrc.initialize_penalties()
+                        pdb2mrc.minimize_parameters()
+                    qmax = pdb2mrc.qr.max()-1e-8
+                    pdb2mrc.qidx = np.where((pdb2mrc.qr<qmax))
+                    pdb2mrc.calc_I_with_modified_params(pdb2mrc.params)
+                    pdb2mrc.optimized_chi2, pdb2mrc.exp_scale_factor, pdb2mrc.offset, pdb2mrc.fit = DENSS.calc_chi2(pdb2mrc.Iq_exp, pdb2mrc.Iq_calc,interpolation=pdb2mrc.Icalc_interpolation,scale=True,offset=False,return_sf=True,return_fit=True)
+                    pdb2mrc.chi2 = pdb2mrc.optimized_chi2
+                    pdb2mrc.calculate_excluded_volume_in_A3()
+                    pdb2mrc_results[name] = [pdb2mrc]
 
             else:
-                for fname in models:
-                    name = os.path.split(os.path.splitext(fname)[0])[1]
+                #if no experimental data given to fit
+                name = os.path.split(os.path.splitext(fname)[0])[1]
 
-                    fit = SASFileIO.loadDatFile(os.path.join(output_dir,
-                        '{}.pdb2mrc.dat'.format(name)))
+                qmax = pdb2mrc.qr.max()-1e-8
+                pdb2mrc.qidx = np.where((pdb2mrc.qr<qmax))
+                pdb2mrc.calc_I_with_modified_params(pdb2mrc.params)
+                pdb2mrc.calculate_excluded_volume_in_A3()
 
-                    log_results = SASFileIO.loadPDB2MRCLogFile(os.path.join(output_dir,
-                        '{}.log'.format(name)))
-
-                    counters = fit.getParameter('counters')
-                    counters.update(log_results)
-
-                    analysis = fit.getParameter('analysis')
-                    analysis['pdb2mrc'] = counters
-                    fit.setParameter('analysis', analysis)
-
-                    abs_prof = SASFileIO.loadDatFile(os.path.join(output_dir,
-                        '{}.pdb2mrc.dat'.format(name)))
-
-                    abs_prof.setParameter('analysis',
-                        copy.deepcopy(fit.getParameter('analysis')))
-
-                    pdb2mrc_results[name] = [abs_prof, fit]
-
-                    if not save_output:
-                        for ext in pdb2mrc_output_exts:
-                            tname = os.path.join(output_dir, '{}{}'.format(
-                                name, ext))
-
-                            if os.path.exists(tname):
-                                os.remove(tname)
+                pdb2mrc_results[name] = [pdb2mrc]
     else:
         pdb2mrc_results = {}
-
-    if profiles is not None:
-        for prof in profiles:
-            if isinstance(prof, SASM.SASM):
-                name = os.path.join(output_dir, prof.getParameter('filename'))
-                if os.path.exists(name):
-                    os.remove(name)
 
     return pdb2mrc_results
 
