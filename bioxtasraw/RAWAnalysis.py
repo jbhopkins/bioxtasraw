@@ -11873,15 +11873,8 @@ class DIFTControlPanel(wx.Panel):
             self.old_analysis = copy.deepcopy(self.sasm.getParameter('analysis')['DIFT'])
 
         self.dift_settings = {
-            # 'rmin_zero'     : self.raw_settings.get('gnomForceRminZero'),
-            # 'rmax_zero'     : self.raw_settings.get('gnomForceRmaxZero'),
-            # 'npts'          : self.raw_settings.get('diftNPoints'),
-            # 'alpha'         : self.raw_settings.get('diftInitialAlpha'),
             'first'         : 0,
             'last'          : len(self.sasm.q),
-            # 'system'        : self.raw_settings.get('gnomSystem'),
-            # 'radius56'      : self.raw_settings.get('gnomRadius56'),
-            # 'rmin'          : self.raw_settings.get('gnomRmin'),
             }
 
         self.out_list = {}
@@ -11910,8 +11903,6 @@ class DIFTControlPanel(wx.Panel):
                          'diftI0_err'    :('I0 Err. :', self.NewControlId()),
                          'diftI0'    : ('I0 :', self.NewControlId()),
                          'diftRg'    : ('Rg :', self.NewControlId()),
-                         'TE': ('Total Estimate :', self.NewControlId()),
-                         'diftQuality': ('DIFT says :', self.NewControlId()),
                          'chisq': ('Chi^2 (fit) :', self.NewControlId()),
                          'alpha':   ('Alpha :', self.NewControlId()),
                          }
@@ -12023,25 +12014,14 @@ class DIFTControlPanel(wx.Panel):
         self.alpha = wx.TextCtrl(parent, self.infodata['alpha'][1], ''
             , size=self._FromDIP((80,-1)), style=wx.TE_READONLY)
 
-        teLabel = wx.StaticText(parent, -1, self.infodata['TE'][0])
-        self.totalEstimate = wx.TextCtrl(parent, self.infodata['TE'][1], '0',
-            size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
-
         chisqLabel = wx.StaticText(parent, -1, self.infodata['chisq'][0])
         self.chisq = wx.TextCtrl(parent, self.infodata['chisq'][1], '0',
             size = self._FromDIP((80,-1)), style = wx.TE_READONLY)
 
-        qualityLabel = wx.StaticText(parent, -1, self.infodata['diftQuality'][0])
-        self.quality = wx.TextCtrl(parent, self.infodata['diftQuality'][1], '', style = wx.TE_READONLY)
-
         res_sizer2 = wx.FlexGridSizer(rows=4, cols=2, vgap=self._FromDIP(5),
             hgap=self._FromDIP(5))
-        res_sizer2.Add(teLabel)
-        res_sizer2.Add(self.totalEstimate)
         res_sizer2.Add(chisqLabel)
         res_sizer2.Add(self.chisq)
-        res_sizer2.Add(qualityLabel)
-        res_sizer2.Add(self.quality, flag=wx.EXPAND)
         res_sizer2.Add(wx.StaticText(parent, label=self.infodata['alpha'][0]))
         res_sizer2.Add(self.alpha)
         res_sizer2.AddGrowableCol(1)
@@ -12280,8 +12260,8 @@ class DIFTControlPanel(wx.Panel):
         diftI0Window = wx.FindWindowById(self.infodata['diftI0'][1], self)
         diftRgerrWindow = wx.FindWindowById(self.infodata['diftRg_err'][1], self)
         diftI0errWindow = wx.FindWindowById(self.infodata['diftI0_err'][1], self)
-        diftTEWindow = wx.FindWindowById(self.infodata['TE'][1], self)
-        diftQualityWindow = wx.FindWindowById(self.infodata['diftQuality'][1], self)
+        # diftTEWindow = wx.FindWindowById(self.infodata['TE'][1], self)
+        # diftQualityWindow = wx.FindWindowById(self.infodata['diftQuality'][1], self)
         diftChisqWindow = wx.FindWindowById(self.infodata['chisq'][1], self)
         diftAlphaWindow = wx.FindWindowById(self.infodata['alpha'][1], self)
 
@@ -12302,17 +12282,9 @@ class DIFTControlPanel(wx.Panel):
         except Exception:
             diftI0errWindow.SetValue('')
         try:
-            diftTEWindow.SetValue(str(iftm.getParameter('TE')))
-        except Exception:
-            diftTEWindow.SetValue('')
-        try:
             diftChisqWindow.SetValue(self.formatNumStr(iftm.getParameter('chisq')))
         except Exception:
-            diftTEWdiftChisqWindowindow.SetValue('')
-        try:
-            diftQualityWindow.SetValue(str(iftm.getParameter('quality')))
-        except Exception:
-            diftQualityWindow.SetValue('')
+            diftChisqWindow.SetValue('')
         try:
             diftAlphaWindow.SetValue(str(iftm.getParameter('alpha')))
         except Exception:
@@ -12768,7 +12740,7 @@ class DIFTControlPanel(wx.Panel):
         iftm = DENSS.doDIFT(Iq, dmax, self.sasm.getParameter('filename'),
                 npts=None, first=None, last=None, rmin=None,
                 qc=None, r=None, nr=None, alpha=alpha, ne=2, extrapolate=True,
-                queue=None, abort_check=threading.Event(), single_proc=False, nprocs=0)
+                queue=None, abort_check=threading.Event())
 
         self.out_list[str(dmax)] = iftm
 
@@ -12788,12 +12760,9 @@ class DIFTControlPanel(wx.Panel):
         self.old_settings = copy.deepcopy(self.dift_settings)
 
         self.dift_settings = {
-            # 'npts'      : self.raw_settings.get('diftNPoints'),
-            # 'alpha'     : wx.FindWindowById(self.staticTxtIDs['alpha']).GetValue(),
             'alpha'     : wx.FindWindowById(self.spinctrlIDs['alpha']).GetValue(),
             'first'     : int( wx.FindWindowById(self.spinctrlIDs['qstart'], self).GetValue()),
             'last'      : int( wx.FindWindowById(self.spinctrlIDs['qend'], self).GetValue()),
-            # 'rmin'      : self.raw_settings.get('gnomRmin'),
             }
 
         if self.old_settings != self.dift_settings:
@@ -12921,7 +12890,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         if self.calc_type == 'CRYSOL':
             self.executor = None
-        elif self.calc_type == 'PDB2MRC':
+        elif self.calc_type == 'PDB2SAS':
             self.executor = None
 
         self.create_layout()
@@ -12943,7 +12912,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         if self.calc_type == 'CRYSOL':
             ctrl_sizer = self._create_crysol_ctrls()
-        elif self.calc_type == 'PDB2MRC':
+        elif self.calc_type == 'PDB2SAS':
             ctrl_sizer = self._create_pdb2mrc_ctrls()
 
         model_box = wx.StaticBox(self, label='Models')
@@ -13318,7 +13287,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         if self.calc_type == 'CRYSOL':
             self._initialize_crysol()
-        elif self.calc_type == 'PDB2MRC':
+        elif self.calc_type == 'PDB2SAS':
             self._initialize_pdb2mrc()
 
     def _initialize_crysol(self):
@@ -13383,7 +13352,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         if self.calc_type == 'CRYSOL':
             filters = 'PDB and mmCIF files (*.pdb;*.cif)|*.pdb;*.cif|All files (*.*)|*.*'
-        elif self.calc_type == 'PDB2MRC':
+        elif self.calc_type == 'PDB2SAS':
             filters = 'PDB (*.pdb)|*.pdb|All files (*.*)|*.*'
 
         dialog = wx.FileDialog(self, 'Select model files', load_path,
@@ -13411,7 +13380,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                     if ext != '.pdb' and ext != '.cif':
                         use_item = False
 
-                if self.calc_type == 'PDB2MRC':
+                if self.calc_type == 'PDB2SAS':
                     if ext != '.pdb':
                         use_item = False
 
@@ -13499,7 +13468,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
             self.set_status('Running calculation')
             if self.calc_type == 'CRYSOL':
                 self._start_crysol()
-            if self.calc_type == 'PDB2MRC':
+            if self.calc_type == 'PDB2SAS':
                 self._start_pdb2mrc()
 
     def _start_crysol(self):
@@ -13654,9 +13623,9 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                 output_exists = False
 
                 for model_name in self.pdb2mrc_ref.keys():
-                    alm_name = '{}.alm'.format(os.path.splitext(model_name)[0])
+                    pdb2mrc_dat_name = '{}.dat'.format(os.path.splitext(model_name)[0])
                     output_exists = (output_exists or
-                        os.path.exists(os.path.join(save_path, alm_name)))
+                        os.path.exists(os.path.join(save_path, pdb2mrc_dat_name)))
 
                     if output_exists:
                         break
@@ -13828,7 +13797,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
             calc_finished = all([future.done() for future in self.calc_futures])
             if calc_finished:
                 self.executor.shutdown()
-        elif self.calc_type == 'PDB2MRC':
+        elif self.calc_type == 'PDB2SAS':
             calc_finished = all([future.done() for future in self.calc_futures])
 
             if calc_finished:
@@ -13842,7 +13811,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
     def _process_results(self):
         if self.calc_type == 'CRYSOL':
             theory, residuals, data, params = self._process_crysol_results()
-        elif self.calc_type == 'PDB2MRC':
+        elif self.calc_type == 'PDB2SAS':
             theory, residuals, data, params = self._process_pdb2mrc_results()
 
         if len(theory) > 0:
@@ -13970,6 +13939,8 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                         err=pdb2mrc.fit[:,2]/pdb2mrc.exp_scale_factor, 
                         parameters={"filename":data_fn})
 
+                    # print(key, pdb_fn, data_fn)
+
                     diff = SASProc.subtract(exp_data, theory, forced=True,
                         copy_params=False)
                     temp_p = SASM.SASM(exp_data.getErr(), exp_data.getQ(),
@@ -13979,8 +13950,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
                     residual_list.append([residual.getQ(), residual.getI(), key])
 
-                    if exp_data not in data_list:
-                        data_list.append(exp_data)
+                    data_list.append(exp_data)
 
                     param_list.append(exp_data.getParameter('filename'))
 
@@ -14036,7 +14006,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         if self.calc_type == 'CRYSOL':
             self._abort_crysol()
-        elif self.calc_type == 'PDB2MRC':
+        elif self.calc_type == 'PDB2SAS':
             self._abort_pdb2mrc()
 
     def _abort_crysol(self):
@@ -14101,11 +14071,11 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                 'to citing the RAW paper please cite the paper given here:\n'
                 'https://www.embl-hamburg.de/biosaxs/manuals/crysol.html')
             wx.MessageBox(str(msg), "How to cite CRYSOL", style=wx.ICON_INFORMATION|wx.OK)
-        if self.calc_type == 'PDB2MRC':
-            msg = ('If you use DENSS PDB2MRC in your work, in addition '
+        if self.calc_type == 'PDB2SAS':
+            msg = ('If you use DENSS PDB2SAS in your work, in addition '
                 'to citing the RAW paper please cite the paper given here:\n'
                 'https://www.sciencedirect.com/science/article/abs/pii/S0006349523006707')
-            wx.MessageBox(str(msg), "How to cite PDB2MRC", style=wx.ICON_INFORMATION|wx.OK)
+            wx.MessageBox(str(msg), "How to cite PDB2SAS", style=wx.ICON_INFORMATION|wx.OK)
 
 
     def _on_close(self):
@@ -14114,7 +14084,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         if self.calc_type == 'CRYSOL':
             if self.executor is not None:
                 self.executor.shutdown()
-        elif self.calc_type == 'PDB2MRC':
+        elif self.calc_type == 'PDB2SAS':
             if self.executor is not None:
                 self.executor.shutdown()
 
@@ -14171,7 +14141,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
                 if self.calc_type == 'CRYSOL': 
                     exp_data_name = params[j][1]
-                elif self.calc_type == 'PDB2MRC':
+                elif self.calc_type == 'PDB2SAS':
                     exp_data_name = params[j][1]
 
                 if exp_data_name != '':
@@ -14205,7 +14175,7 @@ class TheoreticalList(wx.ListCtrl, wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin
             self.InsertColumn(4, 'Chi^2')
             self.InsertColumn(5, 'Prob.')
             self.InsertColumn(6, 'Contrast')
-        elif self.calc_type == 'PDB2MRC':
+        elif self.calc_type == 'PDB2SAS':
             self.InsertColumn(0, 'Model')
             self.InsertColumn(1, 'Data')
             self.InsertColumn(2, 'Rg')
@@ -14250,7 +14220,7 @@ class TheoreticalList(wx.ListCtrl, wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin
 
         if self.calc_type == 'CRYSOL':
             filename = 'crysol_results.csv'
-        if self.calc_type == 'PDB2MRC':
+        if self.calc_type == 'PDB2SAS':
             filename = 'pdb2mrc_results.csv'
 
         dialog = wx.FileDialog(self, message=("Please select save directory "
@@ -14269,8 +14239,8 @@ class TheoreticalList(wx.ListCtrl, wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin
         RAWGlobals.save_in_progress = True
         if self.calc_type == 'CRYSOL':
             self.main_frame.setStatus('Saving CRYSOL data', 0)
-        if self.calc_type == 'PDB2MRC':
-            self.main_frame.setStatus('Saving PDB2MRC data', 0)
+        if self.calc_type == 'PDB2SAS':
+            self.main_frame.setStatus('Saving PDB2SAS data', 0)
 
         ncols = self.GetColumnCount()
 

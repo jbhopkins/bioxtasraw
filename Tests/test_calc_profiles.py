@@ -870,3 +870,14 @@ def test_crysol_fit_settings(temp_directory, old_settings):
     assert fit_params['Excluded_volume'] == 213838
     assert fit_params['Chi_squared'] ==  1.089
     assert np.allclose(fit_profile.getI().sum(), 3.72612387712)
+
+@pytest.mark.slow
+def test_dift(clean_gi_sub_profile, old_settings, gi_bift_ift):
+    (ift, dmax, rg, i0, dmax_err, rg_err, i0_err, chi_sq, log_alpha,
+        log_alpha_err, evidence, evidence_err) = raw.dift(clean_gi_sub_profile,
+        settings=old_settings, single_proc=False)
+
+    assert np.allclose(dmax, gi_bift_ift.getParameter('dmax'))
+    assert np.allclose(rg, gi_bift_ift.getParameter('rg'))
+    assert np.allclose(ift.r, gi_bift_ift.r)
+    assert np.allclose(ift.p, gi_bift_ift.p)

@@ -1365,7 +1365,6 @@ class MainFrame(wx.Frame):
                     self.crysol_frames.remove(crysol_frame)
 
             if proceed:
-                print("Launching TheoreticalFrame")
                 crysol_frame = RAWAnalysis.TheoreticalFrame(self, 'CRYSOL',
                     sasm_list)
                 crysol_frame.SetIcon(self.GetIcon())
@@ -1383,7 +1382,7 @@ class MainFrame(wx.Frame):
             dial2.ShowModal()
             dial2.Destroy()
 
-    def showPDB2MRCFrame(self, sasm_list):
+    def showPDB2SASFrame(self, sasm_list):
         remove = []
         proceed = True
 
@@ -1410,7 +1409,7 @@ class MainFrame(wx.Frame):
                 self.pdb2mrc_frames.remove(pdb2mrc_frame)
 
         if proceed:
-            pdb2mrcframe = RAWAnalysis.TheoreticalFrame(self, 'PDB2MRC', sasm_list)
+            pdb2mrcframe = RAWAnalysis.TheoreticalFrame(self, 'PDB2SAS', sasm_list)
             pdb2mrcframe.SetIcon(self.GetIcon())
             pdb2mrcframe.Show(True)
 
@@ -1987,9 +1986,10 @@ class MainFrame(wx.Frame):
                 ],
 
             'denss' : [
-                ('DENSS', self.MenuIDs['rundenss'], self._onToolsMenu, 'normal'),
+                ('DENSS IFT', self.MenuIDs['dift'], self._onToolsMenu, 'normal'),
+                ('DENSS (Ab initio)', self.MenuIDs['rundenss'], self._onToolsMenu, 'normal'),
                 ('Align', self.MenuIDs['rundenssalign'], self._onToolsMenu, 'normal'),
-                ('PDB2MRC', self.MenuIDs['runpdb2mrc'], self._onToolsMenu, 'normal')
+                ('PDB2SAS', self.MenuIDs['runpdb2mrc'], self._onToolsMenu, 'normal')
                 ],
 
         }
@@ -2043,8 +2043,6 @@ class MainFrame(wx.Frame):
                 ('&BIFT', self.MenuIDs['bift'], self._onToolsMenu, 'normal'),
                 ('&ATSAS', None, submenus['atsas'], 'submenu'),
                 ('&DENSS', None, submenus['denss'], 'submenu'),
-                # ('&Electron Density (DENSS)', self.MenuIDs['rundenss'], self._onToolsMenu, 'normal'),
-                # ('&Electron Density (DENSS) Alignment', self.MenuIDs['rundenssalign'], self._onToolsMenu, 'normal'),
                 ('&LC Series Analysis', self.MenuIDs['lcanalysis'], self._onToolsMenu, 'normal'),
                 ('&SVD', self.MenuIDs['runsvd'], self._onToolsMenu, 'normal'),
                 ('&EFA', self.MenuIDs['runefa'], self._onToolsMenu, 'normal'),
@@ -2381,7 +2379,22 @@ class MainFrame(wx.Frame):
                 if selected_items:
                     selected_sasms = [item.getSASM() for item in selected_items]
 
-            self.showPDB2MRCFrame(selected_sasms)
+            self.showPDB2SASFrame(selected_sasms)
+
+        elif id == self.MenuIDs['dift']:
+            manippage = wx.FindWindowByName('ManipulationPanel')
+
+            current_page = self.control_notebook.GetSelection()
+            page = self.control_notebook.GetPage(current_page)
+            if page !=manippage:
+                wx.MessageBox('The selected operation cannot be performed unless the Profiles window is selected.', 'Select Profiles Window', style = wx.ICON_INFORMATION)
+                return
+
+            if len(manippage.getSelectedItems()) > 0:
+                sasm = manippage.getSelectedItems()[0].getSASM()
+                self.showDIFTFrame(sasm, manippage.getSelectedItems()[0])
+            else:
+                wx.MessageBox("Please select a scattering profile from the list on the Profiles page.", "No profile selected")
 
         elif id == self.MenuIDs['runsvd']:
             secpage = wx.FindWindowByName('SECPanel')
@@ -9280,6 +9293,7 @@ class ManipItemPanel(wx.Panel):
 
         other_an_menu = wx.Menu()
         other_an_menu.Append(44, 'Fit model (CRYSOL)')
+        other_an_menu.Append(44, 'Fit model (DENSS PDB2SAS)')
         other_an_menu.Append(34, 'SVD')
         other_an_menu.Append(35, 'EFA')
         other_an_menu.Append(42, 'REGALS')
@@ -9580,7 +9594,7 @@ class ManipItemPanel(wx.Panel):
             Mainframe.showDIFTFrame(sasm, selectedSASMList[0])
 
         elif evt.GetId() == 46:
-            #Open denss.pdb2mrc.py window
+            #Open DENSS PDB2SAS window
             selected_sasms = []
 
             selected_items = self.manipulation_panel.getSelectedItems()
@@ -9588,7 +9602,7 @@ class ManipItemPanel(wx.Panel):
             if selected_items:
                 selected_sasms = [item.getSASM() for item in selected_items]
 
-            self.main_frame.showPDB2MRCFrame(selected_sasms)
+            self.main_frame.showPDB2SASFrame(selected_sasms)
 
     def _saveAllAnalysisInfo(self):
         selected_items = self.manipulation_panel.getSelectedItems()
