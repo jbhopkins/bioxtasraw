@@ -2520,19 +2520,17 @@ def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
     return (ift, dmax, rg, i0, dmax_err, rg_err, i0_err, chi_sq, log_alpha,
         log_alpha_err, evidence, evidence_err)
 
-def denss_ift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
-    alpha_max=1e10, alpha_pts=16, dmax_min=10, dmax_max=400, dmax_pts=10,
-    mc_runs=300, use_guinier_start=True, single_proc=True, nprocs=None,
-    settings=None):
+def denss_ift(profile, idx_min=None, idx_max=None,
+    use_guinier_start=True):
     """
-    Calculates the Bayesian indirect Fourier transform (BIFT) of a scattering
+    Calculates the DENSS indirect Fourier transform (DIFT) of a scattering
     profile to generate a P(r) function and determine the maximum dimension
-    Dmax. Returns None and -1 values if BIFT fails.
+    Dmax. Returns None and -1 values if DIFT fails.
 
     Parameters
     ----------
     profile: :class:`bioxtasraw.SASM.SASM`
-        The profile to calculate the BIFT for.
+        The profile to calculate the DIFT for.
     idx_min: int, optional
         The index of the q vector that corresponds to the minimum q point
         to be used in the IFT. Default is to use the first point of the q
@@ -2541,74 +2539,21 @@ def denss_ift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
         The index of the q vector that corresponds to the maximum q point
         to be used in the IFT. Default is to use the last point of the
         q vector.
-    pr_pts: int, optional
-        The number of points in the calculated P(r) function. This should
-        be less than the number of points in the scattering profile.
-        If settings are provided, this is overridden by the value in the
-        settings.
-    alpha_min: float, optional
-        The minimum value of alpha for the parameter search step. If settings
-        are provided, this is overridden by the value in the settings. The
-        value of alpha can go beyond this bound in the optimization step,
-        so this is not a hard limit on alpha.
-    alpha_max: float, optional
-        The maximum value of alpha for the parameter search step. If settings
-        are provided, this is overridden by the value in the settings. The
-        value of alpha can go beyond this bound in the optimization step,
-        so this is not a hard limit on alpha.
-    alpha_pts: int, optional
-        The number of points in the alpha search space, which will be
-        logarithmically spaced between alpha_min and alpha_max. If settings
-        are provided, this is overridden by the value in the settings.
-    dmax_min: float, optional
-        The minimum value of Dmax for the parameter search step. If settings
-        are provided, this is overridden by the value in the settings. The
-        value of Dmax can go beyond this bound in the optimization step,
-        so this is not a hard limit on Dmax.
-    dmax_max: float, optional
-        The maximum value of Dmax for the parameter search step. If settings
-        are provided, this is overridden by the value in the settings. The
-        value of Dmax can go beyond this bound in the optimization step,
-        so this is not a hard limit on Dmax.
-    dmax_pts: int, optional
-        The number of points in the Dmax search space, which will be linearly
-        spaced between dmax_min and dmax_max. If settings are provided, this
-        is overridden by the value in the settings.
-    mc_runs: int, optional
-        The number of monte carlo runs used to generate the uncertainty
-        estimates for the P(r) function.
     use_guiner_start: bool, optional
         If set to True, and no idx_min idx_min is provided, if a Guinier fit has
         been done for the input profile, the start point of the Guinier fit is
         used as the start point for the IFT.
-    single_proc: bool, optional
-        Whether to use one or multiple processors. Defaults to True. In limited
-        testing the single processor version has been found to be 2-3x faster
-        than the multiprocessor version, but actual results may depend on
-        the computer and the number of gird search points.
-    nprocs: int, optional
-        If specified, and single_proc is False, determines the number of processors
-        to use for BIFT. Otherwise defaults to number of processors in the computer
-        -1 (minimum 1).
-    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
-        RAW settings containing relevant parameters. If provided, the
-        pr_Pts, alpha_min, alpha_max, alpha_pts, dmax_min, dmax_max, dmax_pts,
-        and mc_runs parameters will be overridden with the values in the
-        settings. Default is None.
 
     Returns
     -------
     ift: :class:`bioxtasraw.SASM.IFTM`
-        The IFT calculated by BIFT from the input profile.
+        The IFT calculated by DIFT from the input profile.
     dmax: float
-        The maximum dimension of the P(r) function found by BIFT.
+        The maximum dimension of the P(r) function found by DIFT.
     rg: float
         The real space radius of gyration (Rg) from the P(r) function.
     i0: float
         The real space scattering at zero angle (I(0)) from the P(r) function.
-    dmax_err: float
-        The uncertainty in the maximum dimension of the P(r) function found
-        by BIFT.
     rg_err: float
         The uncertainty in the real space radius of gyration (Rg) from the P(r)
         function.
@@ -2618,25 +2563,9 @@ def denss_ift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
     chi_sq: float
         The chi squared value of the fit of the scattering profile calculated
         from the P(r) function to the input scattering profile.
-    log_alpha: float
-        Log base 10 of the alpha value for the IFT.
-    log_alpha_err: float
-        Log base 10 of the uncertainty in the alpha value for the IFT.
-    evidence: float
-        The Bayesian evidence of the IFT.
-    evidence_err: float
-        The uncertainty in the Bayesian evidence of the IFT.
+    alpha: float
+        The alpha value for the IFT.
     """
-
-    if settings is not None:
-        pr_pts = settings.get('PrPoints')
-        alpha_min = settings.get('minAlpha')
-        alpha_max = settings.get('maxAlpha')
-        alpha_pts = settings.get('AlphaPoints')
-        dmax_min = settings.get('maxDmax')
-        dmax_max = settings.get('minDmax')
-        dmax_pts = settings.get('DmaxPoints')
-        mc_runs = settings.get('mcRuns')
 
     q = profile.getQ()
     i = profile.getI()
@@ -2663,26 +2592,15 @@ def denss_ift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
         i = i[idx_min:]
         err = err[idx_min:]
 
-    if nprocs is None:
-        nprocs = 0
-
-    bift_settings = {
-        'npts'      : pr_pts,
-        'alpha_max' : alpha_max,
-        'alpha_min' : alpha_min,
-        'alpha_n'   : alpha_pts,
-        'dmax_min'  : dmax_min,
-        'dmax_max'  : dmax_max,
-        'dmax_n'    : dmax_pts,
-        'mc_runs'   : mc_runs,
-        'single_proc' : single_proc,
-        'nprocs'    : nprocs,
-        }
-
     Iq = np.vstack((q,i,err)).T
 
     #guess the initial D and alpha values
-    dmax_guess = auto_dmax(profile)
+    if use_guinier_start and 'guinier' in analysis_dict:
+        guinier_dict = analysis_dict['guinier']
+        rg = float(guinier_dict['Rg'])
+        dmax_guess = DENSS.estimate_dmax(Iq, dmax=3.5*rg)
+    else:
+        dmax_guess = DENSS.estimate_dmax(Iq)
     sasrec = DENSS.Sasrec(Iq, D=dmax_guess, extrapolate=True)
     alpha = sasrec.optimize_alpha()
     #recalculate with the new D, alpha values with extrapolation to high q
@@ -5568,6 +5486,7 @@ def pdb2mrc(models,
             'voxel'             : voxel,
             'side'              : side,
             'nsamples'          : nsamples,
+            'save_output'       : save_output,
             }
     else:
         pdb2mrc_settings = {
@@ -5581,6 +5500,7 @@ def pdb2mrc(models,
             'voxel'             : settings.get('pdb2mrcVoxel'),
             'side'              : settings.get('pdb2mrcSide'),
             'nsamples'          : settings.get('pdb2mrcNsamples'),
+            'save_output'       : save_output,
             }
 
     pdb2mrc_output_exts = ['dat', '.fit', '.pdb', '.mrc', '.log']
@@ -5597,17 +5517,33 @@ def pdb2mrc(models,
                     name = '{}_{}'.format(os.path.split(os.path.splitext(fname)[0])[1],
                         os.path.split(os.path.splitext(exp_name)[0])[1])
 
-                    pdb2mrc.load_data(filename=exp_name)
-                    if pdb2mrc.fit_rho0 or pdb2mrc.fit_shell:
-                        pdb2mrc.initialize_penalties()
-                        pdb2mrc.minimize_parameters()
-                    qmax = pdb2mrc.qr.max()-1e-8
-                    pdb2mrc.qidx = np.where((pdb2mrc.qr<qmax))
-                    pdb2mrc.calc_I_with_modified_params(pdb2mrc.params)
-                    pdb2mrc.optimized_chi2, pdb2mrc.exp_scale_factor, pdb2mrc.offset, pdb2mrc.fit = DENSS.calc_chi2(pdb2mrc.Iq_exp, pdb2mrc.Iq_calc,interpolation=pdb2mrc.Icalc_interpolation,scale=True,offset=False,return_sf=True,return_fit=True)
-                    pdb2mrc.chi2 = pdb2mrc.optimized_chi2
-                    pdb2mrc.calculate_excluded_volume_in_A3()
-                    pdb2mrc_results[name] = [pdb2mrc]
+                    #need to make a copy of pdb2mrc to keep them distinct for each dataset,
+                    #otherwise the pointers overwrite
+                    pdb2mrc_i = copy.deepcopy(pdb2mrc)
+
+                    pdb2mrc_i.load_data(filename=exp_name)
+                    if pdb2mrc_i.fit_rho0 or pdb2mrc_i.fit_shell:
+                        pdb2mrc_i.initialize_penalties()
+                        pdb2mrc_i.minimize_parameters()
+                    qmax = pdb2mrc_i.qr.max()-1e-8
+                    pdb2mrc_i.qidx = np.where((pdb2mrc_i.qr<qmax))
+                    pdb2mrc_i.calc_I_with_modified_params(pdb2mrc_i.params)
+                    pdb2mrc_i.optimized_chi2, pdb2mrc_i.exp_scale_factor, pdb2mrc_i.offset, pdb2mrc_i.fit = DENSS.calc_chi2(pdb2mrc_i.Iq_exp, pdb2mrc_i.Iq_calc,interpolation=pdb2mrc_i.Icalc_interpolation,scale=True,offset=False,return_sf=True,return_fit=True)
+                    pdb2mrc_i.chi2 = pdb2mrc_i.optimized_chi2
+                    pdb2mrc_i.calculate_excluded_volume_in_A3()
+                    pdb2mrc_results[name] = [pdb2mrc_i]
+
+                    if prefix is None:
+                        prefix = name
+
+                    if save_output:
+                        if output_dir is not None:
+                            path_prefix = os.path.join(output_dir, prefix)
+                        else:
+                            path_prefix = prefix
+
+                        pdb2mrc_i.save_Iq_calc(prefix=path_prefix)
+                        pdb2mrc_i.save_fit(prefix=path_prefix)
 
             else:
                 #if no experimental data given to fit
@@ -5619,6 +5555,18 @@ def pdb2mrc(models,
                 pdb2mrc.calculate_excluded_volume_in_A3()
 
                 pdb2mrc_results[name] = [pdb2mrc]
+
+                if prefix is None:
+                    prefix = name
+
+                if save_output:
+                    if output_dir is not None:
+                        path_prefix = os.path.join(output_dir, prefix)
+                    else:
+                        path_prefix = prefix
+
+                    pdb2mrc_i.save_Iq_calc(prefix=path_prefix)
+
     else:
         pdb2mrc_results = {}
 

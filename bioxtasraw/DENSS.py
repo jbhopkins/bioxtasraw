@@ -3466,6 +3466,7 @@ class PDB2MRC(object):
         ignore_warnings=False,
         quiet=False,
         run_all_on_init=False,
+        logger=None,
         ):
         self.quiet = quiet
         self.pdb = pdb
@@ -3554,6 +3555,26 @@ class PDB2MRC(object):
         self.params_target = np.copy(self.params)
         self.penalties_initialized = False
         self.ignore_warnings = ignore_warnings
+        fname_nopath = os.path.basename(self.pdb.filename)
+        self.pdb_basename, ext = os.path.splitext(fname_nopath)
+        if logger is not None:
+            self.logger = logger
+        else:
+            logging.basicConfig(filename=self.pdb_basename+'.log',level=logging.INFO,filemode='w',
+                        format='%(asctime)s %(message)s') #, datefmt='%Y-%m-%d %I:%M:%S %p')
+            self.logger = logging.getLogger()
+        self.logger.info('Current Directory: %s', os.getcwd())
+        self.logger.info('PDB Filename: %s', self.pdb.filename)
+        self.logger.info('Center PDB: %s', self.center_coords)
+        self.logger.info('Ignore waters: %s', self.ignore_waters)
+        self.logger.info('Excluded volume type: %s', self.exvol_type)
+        self.logger.info('Number of atoms: %s' % (self.pdb.natoms))
+        types, n_per_type = np.unique(self.pdb.atomtype,return_counts=True)
+        for i in range(len(types)):
+            self.logger.info('Number of %s atoms: %s' % (types[i], n_per_type[i]))
+        self.logger.info('Use atomic B-factors: %s', self.use_b)
+        self.logger.info('Use explicit Hydrogens: %s', self.explicitH)
+
         if run_all_on_init:
             self.run_all()
 
@@ -3602,6 +3623,9 @@ class PDB2MRC(object):
                 self.mean_radius[i] = self.pdb.exvolHradius[i]
             else:
                 self.mean_radius[i] = self.pdb.radius[self.pdb.atomtype==self.modifiable_atom_types[i]].mean()
+        self.logger.info("Calculated average radii:")
+        for i in range(len(self.modifiable_atom_types)):
+            self.logger.info("%s: %.3f"%(self.modifiable_atom_types[i],self.mean_radius[i]))
 
     def make_grids(self):
         optimal_side = self.optimal_side
@@ -3674,8 +3698,8 @@ class PDB2MRC(object):
                 Voxel size is greater than 1 A. This may lead to less accurate I(q) estimates at high q."""
             nsamples_warning = """
                 To avoid long computation times and excessive memory requirements, the number of voxels
-                has been limited to {n:d} and the voxel size has been set to {v:.2f},
-                which may be too large and lead to less accurate I(q) estimates at high q.""".format(v=voxel,n=nsamples)
+                has been limited to 256 and the voxel size has been set to {v:.2f},
+                which may be too large and lead to less accurate I(q) estimates at high q.""".format(v=voxel)
             optimal_values_warning = """
                 To ensure the highest accuracy, manually set the -s option to {os:.2f} and
                 the -v option to {ov:.2f}, which will set -n option to {on:d} and thus 
@@ -3757,6 +3781,13 @@ class PDB2MRC(object):
         qmax4calc = self.qx_.max()*1.1
         self.qidx = np.where((self.qr<=qmax4calc))
 
+        self.logger.info('Optimal Side length: %.2f', self.optimal_side)
+        self.logger.info('Optimal N samples:   %d', self.optimal_nsamples)
+        self.logger.info('Optimal Voxel size:  %.4f', self.optimal_voxel)
+        self.logger.info('Actual  Side length: %.2f', self.side)
+        self.logger.info('Actual  N samples:   %d', self.n)
+        self.logger.info('Actual  Voxel size:  %.4f', self.dx)
+
     def calculate_global_B(self):
         if self.dx is None:
             #if make_grids has not been run yet, run it
@@ -3768,6 +3799,8 @@ class PDB2MRC(object):
         #greater than 2A causes problems
         if self.limit_global_B and (B2u(self.global_B) > 1.5):
             self.global_B = u2B(1.5)
+
+        self.logger.info('Global B-factor:  %.4f', self.global_B)
 
     def calculate_invacuo_density(self):
         if not self.quiet: print('Calculating in vacuo density...')
@@ -3948,6 +3981,10 @@ class PDB2MRC(object):
             self.Iq_exp = self.Iq_exp[idx]
         if not self.quiet: print('Data loaded.')
 
+        self.logger.info('Data filename: %s', self.data_filename)
+        self.logger.info('First data point: %s', self.n1)
+        self.logger.info('Last data point: %s', self.n2)
+
     def initialize_penalties(self, penalty_weight=None):
         #get initial chi2 without fitting
         self.params_target = self.params
@@ -4004,9 +4041,11 @@ class PDB2MRC(object):
 
         if self.fit_params:
             if not self.quiet: print('Optimizing parameters...')
+            # self.logger.info('Optimizing parameters...')
             if self.penalty_weight != 0:
                 if not self.quiet:
                     print(["scale_factor"], self.param_names, ["penalty"], ["chi2"])
+                    print("-"*100)
             else:
                 if not self.quiet:
                     print(["scale_factor"], self.param_names, ["chi2"])
@@ -4025,6 +4064,16 @@ class PDB2MRC(object):
             self.optimized_params = self.params_guess
             self.optimized_chi2 = self.chi2
         self.params = np.copy(self.optimized_params)
+
+        self.logger.info('Final Parameter Values:')
+        for i in range(len(self.params)):
+            self.logger.info("%s : %.5e" % (self.param_names[i],self.params[i]))
+
+    def calc_chi2(self):
+        self.optimized_chi2, self.exp_scale_factor, self.offset, self.fit = calc_chi2(self.Iq_exp, self.Iq_calc,interpolation=self.Icalc_interpolation,scale=self.fit_scale,offset=self.fit_offset,return_sf=True,return_fit=True)
+        self.logger.info("Scale factor: %.5e " % self.exp_scale_factor)
+        self.logger.info("Offset: %.5e " % self.offset)
+        self.logger.info("chi2 of fit:  %.5e " % self.optimized_chi2)
 
     def calc_score_with_modified_params(self, params):
         self.calc_I_with_modified_params(params)
@@ -4116,7 +4165,29 @@ class PDB2MRC(object):
         self.rho_insolvent = self.rho_invacuo - self.rho_exvol + self.rho_shell
 
     def calculate_excluded_volume_in_A3(self):
+        """Calculate the excluded volume of the particle in angstroms cubed."""
         self.exvol_in_A3 = np.sum(sphere_volume_from_radius(self.pdb.radius)) + np.sum(sphere_volume_from_radius(self.pdb.exvolHradius)*self.pdb.numH)
+        self.logger.info("Calculated excluded volume: %.2f"%(self.exvol_in_A3))
+
+    def save_Iq_calc(self, prefix=None):
+        """Save the calculated Iq curve to a .dat file."""
+        header = ' '.join('%s: %.5e ; '%(self.param_names[i],self.params[i]) for i in range(len(self.params)))
+        header_dat = header + "\n q_calc I_calc err_calc"
+        qmax = self.qx_.max()-1e-8
+        if prefix is None:
+            prefix = self.pdb_basename
+        np.savetxt(prefix+'.dat',self.Iq_calc[self.q_calc<=qmax],delimiter=' ',fmt='%.8e',header=header_dat)
+
+    def save_fit(self, prefix=None):
+        """Save the combined experimental and calculted Iq curve to a .fit file."""
+        if self.fit is not None:
+            header = ' '.join('%s: %.5e ; '%(self.param_names[i],self.params[i]) for i in range(len(self.params)))
+            header_fit = header + '\n q, I, error, fit ; chi2= %.3e'%(self.chi2 if self.chi2 is not None else 0)
+            if prefix is None:
+                prefix = self.pdb_basename
+            np.savetxt(prefix+'.fit',self.fit,delimiter=' ',fmt='%.8e',header=header_fit)
+        else:
+            print("No fit exists. First calculate a fit with pdb2mrc.calc_chi2()")
 
 
 class PDB2SAS(object):
@@ -4932,7 +5003,7 @@ def denss_3DFs(rho_start, dmax, ne=None, voxel=5., oversampling=3., positivity=T
 ######################
 
 def doDIFT(Iq, D, filename, npts=None, first=None, last=None, rmin=None, qc=None, r=None, nr=None, alpha=0.0, ne=2, extrapolate=True,
-    queue=None, abort_check=threading.Event(), single_proc=False, nprocs=0):
+    queue=None, abort_check=threading.Event()):
     
     D = float(D)
     sasrec = Sasrec(Iq[first:last], D, qc=None, alpha=alpha, extrapolate=extrapolate)
@@ -5260,7 +5331,9 @@ def run_align(allrhos, sides, ref_file, avg_q=None, abort_event=None, center=Tru
 
     return aligned, scores
 
-def run_pdb2mrc(pdb_fname, output_dir, 
+def run_pdb2mrc(
+    pdb_fname, 
+    output_dir, 
     exp_fname=None, 
     prefix=None,
     qmax=None, 
@@ -5273,12 +5346,21 @@ def run_pdb2mrc(pdb_fname, output_dir,
     ignore_waters=None,
     voxel=None,
     side=None,
-    nsamples=None,):
+    nsamples=None,
+    save_output=None,
+    ):
     #based on denss.pdb2mrc.py
 
     pdb_fname_nopath = os.path.basename(pdb_fname)
     pdb_basename, pdb_ext = os.path.splitext(pdb_fname_nopath)
     pdb = PDB(pdb_fname)
+
+    logging.basicConfig(filename=pdb_basename+'.log',level=logging.INFO,filemode='w',
+                        format='%(asctime)s %(message)s') #, datefmt='%Y-%m-%d %I:%M:%S %p')
+    logging.info('BEGIN')
+    # logging.info('Command: %s', ' '.join(sys.argv))
+    # logging.info('DENSS Version: %s', __version__)
+    # logging.info('PDB filename: %s', pdb_fname)
 
     if exp_fname is not None:
         exp_fname_nopath = os.path.basename(exp_fname)
