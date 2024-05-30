@@ -3443,8 +3443,8 @@ class PDB2MRC(object):
         voxel=None,
         side=None,
         nsamples=None,
-        rho0=0.334,
-        shell_contrast=0.011,
+        rho0=None,
+        shell_contrast=None,
         shell_mrcfile=None,
         shell_type='water',
         Icalc_interpolation=True,
@@ -3529,8 +3529,14 @@ class PDB2MRC(object):
         self.voxel=voxel
         self.side=side
         self.nsamples=nsamples
-        self.rho0 = rho0
-        self.shell_contrast = shell_contrast
+        if rho0 is None:
+            self.rho0 = 0.334
+        else:
+            self.rho0 = rho0
+        if shell_contrast is None:
+            self.shell_contrast = 0.011
+        else:
+            self.shell_contrast = shell_contrast
         self.shell_mrcfile = shell_mrcfile
         self.shell_type = shell_type
         self.Icalc_interpolation=Icalc_interpolation
@@ -5002,7 +5008,7 @@ def denss_3DFs(rho_start, dmax, ne=None, voxel=5., oversampling=3., positivity=T
 # RAW specific stuff
 ######################
 
-def doDIFT(Iq, D, filename, npts=None, first=None, last=None, rmin=None, qc=None, r=None, nr=None, alpha=0.0, ne=2, extrapolate=True,
+def doDIFT(Iq, D, filename, first=None, last=None, qc=None, alpha=0.0, extrapolate=True,
     queue=None, abort_check=threading.Event()):
     
     D = float(D)
@@ -5333,7 +5339,6 @@ def run_align(allrhos, sides, ref_file, avg_q=None, abort_event=None, center=Tru
 
 def run_pdb2mrc(
     pdb_fname, 
-    output_dir, 
     exp_fname=None, 
     prefix=None,
     qmax=None, 
