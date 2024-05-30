@@ -2520,7 +2520,7 @@ def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
     return (ift, dmax, rg, i0, dmax_err, rg_err, i0_err, chi_sq, log_alpha,
         log_alpha_err, evidence, evidence_err)
 
-def denss_ift(profile, idx_min=None, idx_max=None,
+def denss_ift(profile, dmax=None, alpha=None, extrapolate=True, idx_min=None, idx_max=None,
     use_guinier_start=True):
     """
     Calculates the DENSS indirect Fourier transform (DIFT) of a scattering
@@ -2531,6 +2531,15 @@ def denss_ift(profile, idx_min=None, idx_max=None,
     ----------
     profile: :class:`bioxtasraw.SASM.SASM`
         The profile to calculate the DIFT for.
+    dmax: float, optional
+        The maximum dimension of the particle to use for IFT calculation. If 
+        not given, dmax will be estimated automatically.
+    alpha: float, optional
+        The smoothing factor alpha to use for IFT calculation. If 
+        not given, alpha will be estimated automatically.
+    extrapolate: bool, optional
+        If set to True (default), dift will extrapolate the calculation of the I(q)
+        curve to high q values to improve the smoothness of the P(r) curve.
     idx_min: int, optional
         The index of the q vector that corresponds to the minimum q point
         to be used in the IFT. Default is to use the first point of the q
@@ -2594,17 +2603,33 @@ def denss_ift(profile, idx_min=None, idx_max=None,
 
     Iq = np.vstack((q,i,err)).T
 
-    #guess the initial D and alpha values
-    if use_guinier_start and 'guinier' in analysis_dict:
-        guinier_dict = analysis_dict['guinier']
-        rg = float(guinier_dict['Rg'])
-        dmax_guess = DENSS.estimate_dmax(Iq, dmax=3.5*rg)
+    if dmax is None:
+        #guess the initial D and alpha values
+        if use_guinier_start and 'guinier' in analysis_dict:
+            guinier_dict = analysis_dict['guinier']
+            rg = float(guinier_dict['Rg'])
+            dmax, sasrec = DENSS.estimate_dmax(Iq, dmax=3.5*rg)
+        else:
+            dmax, sasrec = DENSS.estimate_dmax(Iq)
+
+    if alpha is None:
+        sasrec = DENSS.Sasrec(Iq, D=dmax, extrapolate=extrapolate)
+        alpha = sasrec.optimize_alpha()
     else:
-        dmax_guess = DENSS.estimate_dmax(Iq)
-    sasrec = DENSS.Sasrec(Iq, D=dmax_guess, extrapolate=True)
-    alpha = sasrec.optimize_alpha()
+        sasrec = DENSS.Sasrec(Iq, D=dmax, alpha=alpha, extrapolate=extrapolate)
     #recalculate with the new D, alpha values with extrapolation to high q
     sasrec.estimate_Vp_etal()
+
+    dift_settings = {
+            'first'         : None, #let the given profile itself define the first and last points
+            'last'          : None,
+            'qc'            : None,
+            'alpha'         : alpha,
+            'extrapolate'   : extrapolate,
+        }
+
+    #now create the SASM iftm object
+    ift = DENSS.doDIFT(Iq=Iq, D=dmax, filename=filename, **dift_settings)
 
     if sasrec is not None:
 
@@ -2644,7 +2669,7 @@ def denss_ift(profile, idx_min=None, idx_max=None,
         qmin = q[0]
         qmax = q[-1]
 
-    return (sasrec, dmax, rg, i0, rg_err, i0_err, chi_sq, alpha)
+    return (ift, dmax, rg, i0, rg_err, i0_err, chi_sq, alpha)
 
 def datgnom(profile, rg=None, idx_min=None, idx_max=None, atsas_dir=None,
     use_rg_from='guinier', use_guinier_start=True, cut_8rg=False,
@@ -5453,53 +5478,44 @@ def pdb2mrc(models,
         A list of `bioxtasraw.SASM.SASM` profiles to be fit by the theoretical
         scattering profiles of the models. Alternatively a list of names of
         experimental profiles on disk, including the full path to the profile.
-    lm: int, optional
-        Number of spherical harmonics used. Default 20.
-    ns: int, optional
-        Number of data points in generated profile. Default 101. Note: ignored
-        if you are fitting a profile.
-    smax: float, optional
-        Maximum scattering angle in 1/A. Default 0.5.
-    dns: float, optional
+    qmax: float, optional
+        Maximum scattering angle in 1/A. Default None.
+    rho0: float, optional
         Solvent density. Default is 0.334 e/A^3, the electron density of pure
         water. Note that fit_solvent must be False to use the provided parameter.
-    dro: float, optional
-        Contrast of the hydration shell. Default 0.03 e/A^3. Note that
-        fit_solvent must be False to use the provided parameter.
+    shell_contrast: float, optional
+        Contrast of the hydration shell. Default 0.011 e/A^3. Note that
+        fit_shell must be False to use the provided parameter.
     prefix: str, optional
         The prefix perpended to the output files. Should only be used if a single
         model (or single model and profile) are supplied.
-    fb: int, optional
-        Order of Fibonacci grid. Default 17. Only used if shell='directional'.
     units: int, optional
-        Values 1 - 1/A (4pi*sin(th)/lm). 2 - 1/nm (4pi*sin(th)/lm). 3 - 1/A
-        ((2pi*sin(th)/lm)). 4 - 1/nm (2pi*sin(th)/lm). By default, units are
-        estimated.
-    constant: bool, optional
-        If True, a constant is subtracted to better fit the data. Default False.
+        Values a - 1/A (4pi*sin(th)/lm). nm - 1/nm (4pi*sin(th)/lm). 
+        By default, units are angstrom (a).
     fit_solvent: bool, optional
-        If False, input dns and dro parameters are used, otherwise they are fit
+        If False, input rho0 parameter is used, otherwise it is fit
         to the data. Default True.
-    energy: float, optional
-        X-ray energy in eV, used for calculating anomalous SAXS signals.
-    shell: str, optional
-        Hydration shell type, either 'directional' (classic CRYSOL) or 'water'
-        (previously CRYSOL3).
-    explicit_hydrogen: bool, optional
+    fit_shell: bool, optional
+        If False, input shell_contrast parameter is used, otherwise it is fit
+        to the data. Default True.
+    explicitH: bool, optional
         Use explicit hydrogens provided in the model file. Default False.
-    implicit_hydrogen: int, optional
-        Set this to >0 to override 'unable to determine number of hydrogens' errors.
-    sub_element: str, optional
-        Set this to a valid element to override 'unable to determine element' errors.
-    model_id: int, optional
-        Select a specific model ID from the model file. Deafult is all model IDs.
-    chain_id: str, optional
-        Select a specific chain ID from the model file. Default is all chain IDs.
-    alternative_names: bool, optional
-        Enable alternative (old) atom naming for all model files. Default is False.
-    atsas_dir: str, optional
-        The directory of the atsas programs (the bin directory). If not provided,
-        the API uses the auto-detected directory.
+    voxel: float, optional
+        Set the voxel size of the density map to this value in angstroms.
+        Smaller values yield higher real space sampling. Default is 1 A, adjusted
+        based on side and nsamples which take precendence.
+    side: float, optional
+        The side length of the box the density of the particle is contained in. Larger
+        side length yields better sampling in reciprocal space. Default = 3*dmax 
+        (where dmax is estimated from coordinates). A minimum of 2*dmax is required for 
+        adequate sampling of information content.
+    nsamples: int, optional
+        The number of samples in a single dimension of the density map. More samples
+        yields better real space or reciprocal space sampling, depending on side and 
+        voxel values. By default, nsamples will be int(side/voxel), where voxel=1. However,
+        if the default value is greater than 256, the voxel size will be increased to 
+        avoid using too much memory. To override this, explicitly set nsamples to a number
+        larger than 256 (powers of 2 are most efficient for the FFT).
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
         RAW settings containing relevant parameters. If provided, every
         parameter is overridden with the value in the settings file. Default is None.
@@ -5516,18 +5532,15 @@ def pdb2mrc(models,
 
     Returns
     -------
-    crysol_results
+    pdb2mrc_results
         A dictionary is returned, where the keys of the dictionary
-        are the names returned by CRYSOL (by default the model name or
-        model_profile name) and the values are a list of the calculated profiles
-        (`bioxtasraw.SASM.SASM`) for each model/profile combination. If only a
-        model is provided, two results are returned, the first is the
-        calculated profile on an absolute scale (.abs file from CRYSOL) and the
-        second is the calculated profile unscaled (.int file from CRYSOL). If a
-        model and a profile are provided, one result is returned, the fit of t
-        he model to the profile (.fit file from CRYSOL). Note that in the SASM
-        parameters dictionary there is a 'crysol' item with values for Rg,
-        chi^2, hydration, and other calculated parameters.
+        are the names of the model (by default the model name or
+        model_profile name) and the values are a list of the pdb2mrc objects
+        (`bioxtasraw.DENSS.PDB2MRC`) for each model/profile combination, where
+        the pdb2mrc object has several attributes containing the calculated profile,
+        fit, chi2, rg, density maps, etc. (see PDB2MRC for details). The pdb2mrc.Iq_calc
+        attribute contains the calculated profile. If a profile is given for fitting,
+        the fit is contained in the pdb2mrc.fit attribute.
     """
 
     if settings is None:
@@ -5599,7 +5612,7 @@ def pdb2mrc(models,
         pdb2mrc_results = {}
 
         for fname in models:
-            pdb2mrc = DENSS.run_pdb2mrc(fname, output_dir,
+            pdb2mrc = DENSS.run_pdb2mrc(fname,
                 **pdb2mrc_settings)
 
             if exp_fnames is not None:

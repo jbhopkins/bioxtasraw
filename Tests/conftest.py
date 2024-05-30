@@ -39,6 +39,24 @@ def gi_bift_ift():
     return ift
 
 @pytest.fixture(scope="package")
+def gi_dift_ift():
+    ift = raw.load_ifts([os.path.join('.', 'data',
+            'glucose_isomerase_dift.ift')])[0]
+    return ift
+
+@pytest.fixture(scope="package")
+def gi_pdb2mrc_modelonly_ift():
+    ift = raw.load_ifts([os.path.join('.', 'data',
+            'gi_pdb2mrc_modelonly.ift')])[0]
+    return ift
+
+@pytest.fixture(scope="package")
+def gi_pdb2mrc_fit_ift():
+    ift = raw.load_ifts([os.path.join('.', 'data',
+            'gi_pdb2mrc_fit.ift')])[0]
+    return ift
+
+@pytest.fixture(scope="package")
 def series_dats():
     series = raw.load_series([os.path.join('.', 'data',
             'series_new_dats.hdf5')])[0]

@@ -871,13 +871,52 @@ def test_crysol_fit_settings(temp_directory, old_settings):
     assert fit_params['Chi_squared'] ==  1.089
     assert np.allclose(fit_profile.getI().sum(), 3.72612387712)
 
-@pytest.mark.slow
-def test_dift(clean_gi_sub_profile, old_settings, gi_bift_ift):
-    (ift, dmax, rg, i0, dmax_err, rg_err, i0_err, chi_sq, log_alpha,
-        log_alpha_err, evidence, evidence_err) = raw.dift(clean_gi_sub_profile,
-        settings=old_settings, single_proc=False)
+@pytest.mark.new
+def test_dift(clean_gi_sub_profile, old_settings, gi_dift_ift):
+    (ift, dmax, rg, i0, rg_err, i0_err, chi_sq, alpha) = raw.denss_ift(clean_gi_sub_profile,)
 
-    assert np.allclose(dmax, gi_bift_ift.getParameter('dmax'))
-    assert np.allclose(rg, gi_bift_ift.getParameter('rg'))
-    assert np.allclose(ift.r, gi_bift_ift.r)
-    assert np.allclose(ift.p, gi_bift_ift.p)
+    assert np.allclose(dmax, gi_dift_ift.getParameter('dmax'))
+    assert np.allclose(rg, gi_dift_ift.getParameter('rg'))
+    assert np.allclose(ift.r, gi_dift_ift.r)
+    assert np.allclose(ift.p, gi_dift_ift.p)
+
+@pytest.mark.new
+def test_dift_dmax_alpha(clean_gi_sub_profile, old_settings, gi_dift_ift):
+    (ift, dmax, rg, i0, rg_err, i0_err, chi_sq, alpha) = raw.denss_ift(clean_gi_sub_profile,
+        dmax=114.81772123448121, alpha=8119093695685.446)
+
+    assert np.allclose(dmax, gi_dift_ift.getParameter('dmax'))
+    assert np.allclose(rg, gi_dift_ift.getParameter('rg'))
+    assert np.allclose(ift.r, gi_dift_ift.r)
+    assert np.allclose(ift.p, gi_dift_ift.p)
+
+@pytest.mark.new
+def test_pdb2mrc_modelonly(temp_directory, gi_pdb2mrc_modelonly_ift):
+    shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
+            os.path.join(temp_directory, '1XIB_4mer.pdb'))
+
+    results = raw.pdb2mrc([os.path.join(temp_directory, '1XIB_4mer.pdb')])
+
+    pdb2mrc = results['1XIB_4mer'][0]
+
+    assert np.allclose(pdb2mrc.Rg,gi_pdb2mrc_modelonly_ift.getParameter('rg'))
+    assert np.allclose(pdb2mrc.I0,gi_pdb2mrc_modelonly_ift.getParameter('i0'))
+    assert np.allclose(pdb2mrc.side,gi_pdb2mrc_modelonly_ift.getParameter('dmax'))
+
+@pytest.mark.new
+def test_pdb2mrc_fit(temp_directory, clean_gi_sub_profile, gi_pdb2mrc_fit_ift):
+    shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
+            os.path.join(temp_directory, '1XIB_4mer.pdb'))
+
+    results = raw.pdb2mrc([os.path.join(temp_directory, '1XIB_4mer.pdb')], profiles=[clean_gi_sub_profile])
+
+    pdb2mrc = results['1XIB_4mer_glucose_isomerase'][0]
+
+    assert np.allclose(pdb2mrc.Rg,gi_pdb2mrc_fit_ift.getParameter('rg'))
+    assert np.allclose(pdb2mrc.I0,gi_pdb2mrc_fit_ift.getParameter('i0'))
+    assert np.allclose(pdb2mrc.side,gi_pdb2mrc_fit_ift.getParameter('dmax'))
+    assert np.allclose(pdb2mrc.chi2,gi_pdb2mrc_fit_ift.getParameter('chisq'))
+
+
+
+
