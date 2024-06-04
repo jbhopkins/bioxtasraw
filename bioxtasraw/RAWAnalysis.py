@@ -12705,8 +12705,8 @@ class DIFTControlPanel(wx.Panel):
         kwargs['extrapolate'] = True
 
         iftm = DENSS.doDIFT(Iq, dmax, self.sasm.getParameter('filename'), 
-                npts=None, first=None, last=None, rmin=None, 
-                qc=None, r=None, nr=None, alpha=alpha, ne=2, extrapolate=True,
+                first=None, last=None,
+                qc=None, alpha=alpha, extrapolate=True,
                 queue=None, abort_check=threading.Event())
 
         self.out_list[str(dmax)] = iftm
