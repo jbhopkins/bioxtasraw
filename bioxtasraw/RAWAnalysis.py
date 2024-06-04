@@ -4102,12 +4102,12 @@ class IFTPlotPanel(wx.Panel):
             if subplotLabels[i][0] == 'Normalized Residual':
                 #link residuals x axis to data x axis
                 subplot = self.fig.add_subplot(gridspec[i],
-                    title = subplotLabels[i][0], 
+                    title = subplotLabels[i][0],
                     label = subplotLabels[i][0],
                     sharex = self.subplots['Data/Fit'])
             else:
                 subplot = self.fig.add_subplot(gridspec[i],
-                    title = subplotLabels[i][0], 
+                    title = subplotLabels[i][0],
                     label = subplotLabels[i][0])
             subplot.set_xlabel(subplotLabels[i][1])
             subplot.set_ylabel(subplotLabels[i][2])
@@ -12691,37 +12691,7 @@ class DIFTControlPanel(wx.Panel):
 
         self.dift_frame.showBusy(show=False)
 
-    def runDIFT(self, dmax, alpha):
-        tempdir = self.dift_frame.standard_paths.GetTempDir()
-
-        save_sasm = copy.deepcopy(self.sasm)
-
-        savename = os.path.splitext(save_sasm.getParameter('filename'))[0] + '.dat'
-
-        outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
-        while os.path.isfile(outname):
-            outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
-
-        outname = os.path.split(outname)[1]
-        outname = outname+'.out'
-
-        if not os.path.isfile(os.path.join(self.dift_frame.tempdir, self.dift_frame.savename)):
-            self.dift_frame.saveDIFTProfile()
-
-        if (self.dift_frame.main_frame.OnlineControl.isRunning()
-            and tempdir == self.dift_frame.main_frame.OnlineControl.getTargetDir()):
-            self.dift_frame.main_frame.controlTimer(False)
-            restart_timer = True
-        else:
-            restart_timer = False
-
-        try:
-            SASFileIO.saveMeasurement(save_sasm, tempdir, self.raw_settings, filetype = '.dat')
-        except SASExceptions.HeaderSaveError as e:
-            self._showSaveError('header')
-
-        # self.updateStatus({'status': 'Scanning alpha'})
-
+    def runDIFT(self, dmax, alpha, scan_alpha=False):
         start = int(self.startSpin.GetValue())
         end = int(self.endSpin.GetValue())+1
 
@@ -12737,10 +12707,20 @@ class DIFTControlPanel(wx.Panel):
         kwargs['alpha'] = alpha
         kwargs['extrapolate'] = True
 
+        dmax = float(dmax)
+        alpha = float(alpha)
+
+        extrap = self.raw_settings.get('diftExtrapolate')
+
         iftm = DENSS.doDIFT(Iq, dmax, self.sasm.getParameter('filename'),
-                npts=None, first=None, last=None, rmin=None,
-                qc=None, r=None, nr=None, alpha=alpha, ne=2, extrapolate=True,
+                first=None, last=None,
+                qc=None, alpha=alpha, extrapolate=extrap, scan_alpha=scan_alpha,
                 queue=None, abort_check=threading.Event())
+
+        if scan_alpha:
+            alpha = iftm.getParameter('alpha')
+            alphaWindow = wx.FindWindowById(self.spinctrlIDs['alpha'], self)
+            wx.CallAfter(alphaWindow.SetValue, round(np.log10(alpha),2))
 
         self.out_list[str(dmax)] = iftm
 
@@ -13929,14 +13909,14 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                     #here since we have data we will use the fit attribute with experimental errors
                     theory = SASM.SASM(
                         i=pdb2mrc.fit[:,3]/pdb2mrc.exp_scale_factor, #scale to the data for plotting
-                        q=pdb2mrc.fit[:,0], 
-                        err=pdb2mrc.fit[:,2]/pdb2mrc.exp_scale_factor, 
+                        q=pdb2mrc.fit[:,0],
+                        err=pdb2mrc.fit[:,2]/pdb2mrc.exp_scale_factor,
                         parameters={"filename":pdb_fn})
                     data_fn = os.path.basename(pdb2mrc.data_filename)
                     exp_data = SASM.SASM(
-                        i=pdb2mrc.fit[:,1]/pdb2mrc.exp_scale_factor, 
-                        q=pdb2mrc.fit[:,0], 
-                        err=pdb2mrc.fit[:,2]/pdb2mrc.exp_scale_factor, 
+                        i=pdb2mrc.fit[:,1]/pdb2mrc.exp_scale_factor,
+                        q=pdb2mrc.fit[:,0],
+                        err=pdb2mrc.fit[:,2]/pdb2mrc.exp_scale_factor,
                         parameters={"filename":data_fn})
 
                     # print(key, pdb_fn, data_fn)
@@ -13957,9 +13937,9 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                 else:
                     #here since we don't have data we will use the simulated (terrible) errors from pdb2mrc
                     theory = SASM.SASM(
-                        i=pdb2mrc.Iq_calc[:,1], 
-                        q=pdb2mrc.Iq_calc[:,0], 
-                        err=pdb2mrc.Iq_calc[:,2], 
+                        i=pdb2mrc.Iq_calc[:,1],
+                        q=pdb2mrc.Iq_calc[:,0],
+                        err=pdb2mrc.Iq_calc[:,2],
                         parameters={"filename":pdb_fn})
                     param_list.append('')
 
@@ -14139,7 +14119,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                 exp_data_name = ''
                 plot_num = 1
 
-                if self.calc_type == 'CRYSOL': 
+                if self.calc_type == 'CRYSOL':
                     exp_data_name = params[j][1]
                 elif self.calc_type == 'PDB2SAS':
                     exp_data_name = params[j][1]
