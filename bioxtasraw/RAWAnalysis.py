@@ -13102,7 +13102,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         nprocs_tot = multiprocessing.cpu_count()
         nprocs_list = [str(i) for i in range(nprocs_tot, 0, -1)]
-        default_proc = str(int(max(nprocs_tot//2 -1, 1)))
+        default_proc = str(int(max(nprocs_tot -1, 1)))
         default_index = nprocs_list.index(default_proc)
         self.nprocs = wx.Choice(ctrl_parent, choices=nprocs_list)
         self.nprocs.SetSelection(default_index)

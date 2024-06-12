@@ -1347,7 +1347,7 @@ class MainFrame(wx.Frame):
                     msg = ('There is already a {} window. Do you want to '
                         'open another?'.format(program.upper()))
                     answer = wx.MessageBox(msg,
-                        'Open duplicate {} window?'.format(program.upper()),
+                        'Open new {} window?'.format(program.upper()),
                         style=wx.YES_NO)
 
                     if answer == wx.NO:
@@ -1388,16 +1388,15 @@ class MainFrame(wx.Frame):
 
         for pdb2mrc_frame in self.pdb2mrc_frames:
             if pdb2mrc_frame:
-                    msg = ('There is already a {} window. Do you want to '
-                        'open another?'.format(program.upper()))
-                    answer = wx.MessageBox(msg,
-                        'Open duplicate {} window?'.format(program.upper()),
+                    msg = ('There is already a PDB2SAS window. Do you want to '
+                        'open another?')
+                    answer = wx.MessageBox(msg, 'Open new PDB2SAS window?',
                         style=wx.YES_NO)
 
                     if answer == wx.NO:
                         proceed = False
-                        align_frame.Raise()
-                        align_frame.RequestUserAttention()
+                        pdb2mrc_frame.Raise()
+                        pdb2mrc_frame.RequestUserAttention()
 
                     break
 
@@ -9293,7 +9292,7 @@ class ManipItemPanel(wx.Panel):
 
         other_an_menu = wx.Menu()
         other_an_menu.Append(44, 'Fit model (CRYSOL)')
-        other_an_menu.Append(44, 'Fit model (DENSS PDB2SAS)')
+        other_an_menu.Append(46, 'Fit model (DENSS PDB2SAS)')
         other_an_menu.Append(34, 'SVD')
         other_an_menu.Append(35, 'EFA')
         other_an_menu.Append(42, 'REGALS')
