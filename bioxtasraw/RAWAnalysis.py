@@ -3930,7 +3930,7 @@ class GNOMFrame(wx.Frame):
 
         panel.SetSizer(sizer)
 
-        self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY)
+        self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY, 'gnom')
         self.controlPanel = GNOMControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(315))
@@ -4069,7 +4069,7 @@ class GNOMFrame(wx.Frame):
 
 class IFTPlotPanel(wx.Panel):
 
-    def __init__(self, parent, panel_id):
+    def __init__(self, parent, panel_id, ift_type='gnom'):
 
         wx.Panel.__init__(self, parent, panel_id,
             style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER)
@@ -4083,6 +4083,16 @@ class IFTPlotPanel(wx.Panel):
         self.fig = Figure((5,4), 75)
 
         self.ift = None
+        self.ift_type = ift_type
+        self.orig_q = None
+        self.orig_i = None
+        self.orig_err = None
+        self.orig_r = None
+        self.orig_p = None
+        self.orig_perr = None
+        self.orig_qfit = None
+        self.orig_fit = None
+        self.orig_residual = None
 
         self.norm_residuals = self.raw_settings.get('normalizedResiduals')
 
@@ -4196,9 +4206,11 @@ class IFTPlotPanel(wx.Panel):
         q_extrap = iftm.q_extrap
         i_extrap = iftm.i_extrap
 
-        self.updateDataPlot(q, i, err, r, p, perr, qfit, fit, q_extrap, i_extrap, autoscale=autoscale)
+        self.updateDataPlot(q, i, err, r, p, perr, qfit, fit, q_extrap,
+            i_extrap, autoscale=autoscale)
 
-    def updateDataPlot(self, q, i, err, r, p, perr, qfit, fit, q_extrap=None, i_extrap=None, autoscale=True):
+    def updateDataPlot(self, q, i, err, r, p, perr, qfit, fit, q_extrap=None,
+        i_extrap=None, autoscale=True):
 
         #Save for resizing:
         self.orig_q = q
@@ -4220,6 +4232,8 @@ class IFTPlotPanel(wx.Panel):
         residual = i - np.interp(q,qfit,fit)
         if self.norm_residuals:
             residual = residual/err
+
+        self.orig_residual = residual
 
         a = self.subplots['P(r)']
         b = self.subplots['Data/Fit']
@@ -4287,20 +4301,34 @@ class IFTPlotPanel(wx.Panel):
             self.canvas.blit(c.bbox)
 
     def autoscale_plot(self):
-
         redraw = False
 
         plot_list = [self.subplots['P(r)'], self.subplots['Data/Fit'],
             self.subplots['Residual']]
 
         for plot in plot_list:
-            plot.set_autoscale_on(True)
-
             oldx = plot.get_xlim()
             oldy = plot.get_ylim()
+            if (plot == self.subplots['Data/Fit'] and self.ift_type == 'dift'):
+                if self.orig_q is not None:
+                    data_yvals = self.orig_i[self.orig_i>0]
+                    fit_yvals = self.orig_fit[self.orig_fit>0]
+                    ymin = min(data_yvals.min(), fit_yvals.min())
+                    ymax = max(data_yvals.max(), fit_yvals.max())
+                    plot.set_xlim(left=0.0, right=self.orig_q.max()*1.05)
+                    plot.set_ylim(bottom=0.5*ymin, top=2.0*ymax)
 
-            plot.relim()
-            plot.autoscale_view()
+            elif (plot == self.subplots['Residual'] and self.ift_type == 'dift'):
+                if self.orig_q is not None:
+                    # plot.set_xlim(left=0.0, right=self.orig_q.max()*1.05)
+                    plot.set_ylim(bottom=0.95*self.orig_residual.min(),
+                               top=1.05*self.orig_residual.max())
+
+            else:
+                plot.set_autoscale_on(True)
+
+                plot.relim()
+                plot.autoscale_view()
 
             newx = plot.get_xlim()
             newy = plot.get_ylim()
@@ -5124,14 +5152,6 @@ class GNOMControlPanel(wx.Panel):
 
         if str(dmax) in self.out_list:
             self.updateGNOMInfo(self.out_list[str(dmax)])
-
-            a = plotpanel.subplots['P(r)']
-            b = plotpanel.subplots['Data/Fit']
-            if not a.get_autoscale_on():
-                a.set_autoscale_on(True)
-            if not b.get_autoscale_on():
-                b.set_autoscale_on(True)
-
             plotpanel.plotPr(self.out_list[str(dmax)])
         else:
             plotpanel.clearDataPlot()
@@ -10945,7 +10965,7 @@ class BIFTFrame(wx.Frame):
 
         panel.SetSizer(sizer)
 
-        self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY)
+        self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY, 'bift')
         self.controlPanel = BIFTControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(290))
@@ -11721,7 +11741,7 @@ class DIFTFrame(wx.Frame):
 
         panel.SetSizer(sizer)
 
-        self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY)
+        self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY, 'dift')
         self.controlPanel = DIFTControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(625))
@@ -12128,18 +12148,19 @@ class DIFTControlPanel(wx.Panel):
             dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
             self._runFindDmax(scan_alpha=True)
         else:
-            dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
+
             try:
                 dmax = float(dift_analysis['Dmax'])
             except Exception:
                 dmax = -1
 
-            alphaWindow = wx.FindWindowById(self.spinctrlIDs['alpha'], self)
-
             try:
-                alpha = float(dift_analysis['alpha'])
+                alpha = float(dift_analysis['Alpha'])
             except Exception:
                 alpha = 0.0
+
+            alphaWindow = wx.FindWindowById(self.spinctrlIDs['alpha'], self)
+            alphaWindow.SetValue(round(np.log10(alpha),2))
 
             self.updateDIFTSettings(update_plot=False)
 
@@ -12147,13 +12168,10 @@ class DIFTControlPanel(wx.Panel):
                 self.old_dmax = dmax
                 self.old_alpha = alpha
 
+                dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
+                dmaxWindow.SetValue(dmax)
+
                 self.runDIFT(dmax, alpha)
-
-                dmaxWindow.SetValue(round(dmax,2))
-                alphaWindow.SetValue(round(alpha,2))
-
-                self.updateDIFTInfo(self.out_list[str(dmax)])
-
                 self.updatePlot()
 
                 wx.CallAfter(self.dift_frame.showBusy, False)
@@ -12506,24 +12524,7 @@ class DIFTControlPanel(wx.Panel):
 
         if str(dmax) in self.out_list:
             self.updateDIFTInfo(self.out_list[str(dmax)])
-
-            a = plotpanel.subplots['P(r)']
-            b = plotpanel.subplots['Data/Fit']
-            # if not a.get_autoscale_on():
-            #     a.set_autoscale_on(True)
-            # if not b.get_autoscale_on():
-            #     b.set_autoscale_on(True)
-            #for DENSS IFT, Data/Fit panel should not autoscale as that will show
-            #all the extrapolated values at high q. Instead, scale to qmax of the data
-            iftm = self.out_list[str(dmax)]
-            a.set_xlim(left=0.0, right=1.05*iftm.r.max())
-            a.set_ylim(bottom=iftm.p.min()-0.1*np.abs(iftm.p.max()),
-                       top=1.1*iftm.p.max())
-            b.set_xlim(left=0.0, right=iftm.q_orig.max())
-            b.set_ylim(bottom=0.5*iftm.i_fit.min(),
-                       top=2.0*iftm.i_fit.max())
-            plotpanel.plotPr(self.out_list[str(dmax)], autoscale=False)
-            plotpanel.ax_redraw()
+            plotpanel.plotPr(self.out_list[str(dmax)])
         else:
             plotpanel.clearDataPlot()
 
