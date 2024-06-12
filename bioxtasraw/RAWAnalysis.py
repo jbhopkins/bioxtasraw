@@ -11711,7 +11711,7 @@ class DIFTFrame(wx.Frame):
         self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY, 'dift')
         self.controlPanel = DIFTControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(625))
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(315))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
             splitter1.SetMinimumPaneSize(self._FromDIP(315))   #Back compatability with older wxpython versions
