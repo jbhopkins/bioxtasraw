@@ -2152,7 +2152,7 @@ def generate_overview(profiles, ifts, series):
             i0 = profile.gnom_data.I0
             i0_err = profile.gnom_data.I0_err
 
-            gnom_dmax = '{}'.format(text_round(dmax, 2))
+            gnom_dmax = '{}'.format(text_round(dmax, 0))
 
             gnom_rg = '{} +/- {}'.format(text_round(rg, 2),
                 text_round(rg_err, 2))
@@ -2172,8 +2172,8 @@ def generate_overview(profiles, ifts, series):
             i0 = profile.bift_data.I0
             i0_err = profile.bift_data.I0_err
 
-            bift_dmax = '{} +/- {}'.format(text_round(dmax, 2),
-                text_round(dmax_err, 2))
+            bift_dmax = '{} +/- {}'.format(text_round(dmax, 1),
+                text_round(dmax_err, 1))
 
             bift_rg = '{} +/- {}'.format(text_round(rg, 2),
                 text_round(rg_err, 2))
@@ -2187,13 +2187,12 @@ def generate_overview(profiles, ifts, series):
 
         if profile.dift_data.Dmax != -1:
             dmax = profile.dift_data.Dmax
-            dmax_err = profile.dift_data.Dmax_err
             rg = profile.dift_data.Rg
             rg_err = profile.dift_data.Rg_err
             i0 = profile.dift_data.I0
             i0_err = profile.dift_data.I0_err
 
-            dift_dmax = '{} '.format(text_round(dmax, 2))
+            dift_dmax = '{} '.format(text_round(dmax, 0))
 
             dift_rg = '{} +/- {}'.format(text_round(rg, 2),
                 text_round(rg_err, 2))
@@ -3197,6 +3196,80 @@ def generate_bift_params(profiles, ifts, series):
         bift_table = KeepTogether([bift_text, bift_table])
 
         elements = [bift_table]
+
+    else:
+        elements = []
+
+    return elements
+
+def generate_dift_params(profiles, ifts, series):
+    styles = getSampleStyleSheet()
+
+    dift_text = Paragraph('DIFT:', styles['Heading2'])
+
+    table_pairs = [
+        ('', 'name'),
+        ('Dmax', 'dmax'),
+        ('Rg', 'rg'),
+        ('I(0)', 'i0'),
+        ('Chi^2', 'chi_sq'),
+        ('q-range', 'q_range'),
+        ]
+
+    table_dict = OrderedDict()
+
+    required_data = ['']
+
+
+    for ift in ifts:
+
+        if ift.type == 'DIFT':
+            filename = ift.filename
+
+            dmax = ift.dmax
+            rg = ift.rg
+            rg_err = ift.rg_err
+            i0 = ift.i0
+            i0_err = ift.i0_err
+            chi_sq = ift.chi_sq
+
+            dmax = '{}'.format(text_round(dmax, 0))
+
+            rg = '{} +/- {}'.format(text_round(rg, 2),
+                text_round(rg_err, 2))
+            i0 = '{} +/- {}'.format(text_round(i0, 2),
+                text_round(i0_err, 2))
+
+            chi_sq = '{}'.format(text_round(chi_sq, 3))
+
+            q_range = '{} to {}'.format(text_round(ift.q[0], 4),
+                text_round(ift.q[-1], 4))
+
+            for header, key in table_pairs:
+                if key == 'name':
+                    value = filename
+                elif key == 'dmax':
+                    value = dmax
+                elif key == 'rg':
+                    value = rg
+                elif key == 'i0':
+                    value = i0
+                elif key == 'chi_sq':
+                    value = chi_sq
+                elif key == 'q_range':
+                    value = q_range
+
+                if header in table_dict:
+                    table_dict[header].append(value)
+                else:
+                    table_dict[header] = [value]
+
+    dift_table, table_data = format_table(table_dict, required_data, 55., 150.)
+
+    if len(table_data) > 1:
+        dift_table = KeepTogether([dift_text, dift_table])
+
+        elements = [dift_table]
 
     else:
         elements = []
