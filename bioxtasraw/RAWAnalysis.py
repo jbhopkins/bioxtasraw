@@ -12295,7 +12295,7 @@ class DIFTControlPanel(wx.Panel):
         dift_results['Alpha'] = alpha
         dift_results['qStart'] = self.sasm.q[start_idx]
         dift_results['qEnd'] = self.sasm.q[end_idx]
-        dift_results['DIFT_ChiSquared'] = self.out_list[dmax].getParameter('chisq')
+        dift_results['ChiSquared'] = self.out_list[dmax].getParameter('chisq')
 
         analysis_dict = self.sasm.getParameter('analysis')
         analysis_dict['DIFT'] = dift_results

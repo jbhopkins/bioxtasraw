@@ -14936,6 +14936,8 @@ class InformationPanel(scrolled.ScrolledPanel):
             style=wx.TE_READONLY)
         gnom_te_ctrl = wx.TextCtrl(gnom_box, size=self._FromDIP((50, -1)),
             style=wx.TE_READONLY)
+        gnom_chisq_ctrl = wx.TextCtrl(gnom_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
         gnom_alpha_ctrl = wx.TextCtrl(gnom_box, size=self._FromDIP((50, -1)),
             style=wx.TE_READONLY)
         gnom_qstart_ctrl = wx.TextCtrl(gnom_box, size=self._FromDIP((50, -1)),
@@ -14971,6 +14973,9 @@ class InformationPanel(scrolled.ScrolledPanel):
         gnom_sub_info_sizer.Add(wx.StaticText(gnom_box, label='T.E.:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         gnom_sub_info_sizer.Add(gnom_te_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        gnom_sub_info_sizer.Add(wx.StaticText(gnom_box, label='Chi^2:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        gnom_sub_info_sizer.Add(gnom_chisq_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
         gnom_sub_info_sizer.Add(wx.StaticText(gnom_box, label='Alpha:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         gnom_sub_info_sizer.Add(gnom_alpha_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -14987,6 +14992,82 @@ class InformationPanel(scrolled.ScrolledPanel):
             |wx.EXPAND)
         gnom_sizer.Add(gnom_sub_sizer, border=self._FromDIP(2), flag=wx.LEFT
             |wx.RIGHT|wx.BOTTOM)
+
+
+
+        dift_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "DIFT")
+        dift_box = dift_sizer.GetStaticBox()
+
+        dift_show_item = wx.Button(dift_box, wx.ID_ANY,
+            style=wx.BORDER_NONE|wx.BU_EXACTFIT|wx.BU_NOTEXT)
+        dift_show_item.SetBitmap(self.collapse_png)
+        dift_show_item.SetBitmapMargins(0,0)
+        dift_show_item.Bind(wx.EVT_BUTTON, self._onShowItem)
+
+        dift_dmax_ctrl = wx.TextCtrl(dift_box, size=self._FromDIP((40, -1)),
+            style=wx.TE_READONLY)
+        dift_rg_ctrl = wx.TextCtrl(dift_box, size=self._FromDIP((40, -1)),
+            style=wx.TE_READONLY)
+        dift_rg_err_ctrl = wx.TextCtrl(dift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        dift_i0_ctrl = wx.TextCtrl(dift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        dift_i0_err_ctrl = wx.TextCtrl(dift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        dift_chisq_ctrl = wx.TextCtrl(dift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        dift_alpha_ctrl = wx.TextCtrl(dift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        dift_qstart_ctrl = wx.TextCtrl(dift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+        dift_qend_ctrl = wx.TextCtrl(dift_box, size=self._FromDIP((50, -1)),
+            style=wx.TE_READONLY)
+
+        dift_main_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        dift_main_sizer.Add(dift_show_item, border=self._FromDIP(2),
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        dift_main_sizer.Add(wx.StaticText(dift_box, label='Dmax:'),
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        dift_main_sizer.Add(dift_dmax_ctrl, border=self._FromDIP(2),
+            flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        dift_main_sizer.Add(wx.StaticText(dift_box, label='Rg:'),
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        dift_main_sizer.Add(dift_rg_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        dift_main_sizer.Add(wx.StaticText(dift_box, label='+/-'),
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        dift_main_sizer.Add(dift_rg_err_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        dift_main_sizer.Add(wx.StaticText(dift_box, label='I(0):'),
+            border=self._FromDIP(2), flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT)
+        dift_main_sizer.Add(dift_i0_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        dift_main_sizer.Add(wx.StaticText(dift_box, label='+/-'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        dift_main_sizer.Add(dift_i0_err_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        dift_main_sizer.AddStretchSpacer(1)
+
+        dift_sub_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        dift_sub_info_sizer = wx.FlexGridSizer(cols=6, hgap=self._FromDIP(2),
+            vgap=self._FromDIP(2))
+        dift_sub_info_sizer.Add(wx.StaticText(dift_box, label='Chi^2:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        dift_sub_info_sizer.Add(dift_chisq_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        dift_sub_info_sizer.Add(wx.StaticText(dift_box, label='Alpha:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        dift_sub_info_sizer.Add(dift_alpha_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        dift_sub_info_sizer.Add(wx.StaticText(dift_box, label='q min:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        dift_sub_info_sizer.Add(dift_qstart_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+        dift_sub_info_sizer.Add(wx.StaticText(dift_box, label='q max:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        dift_sub_info_sizer.Add(dift_qend_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        dift_sub_sizer.Add(dift_sub_info_sizer)
+
+        dift_sizer.Add(dift_main_sizer, border=self._FromDIP(2), flag=wx.ALL
+            |wx.EXPAND)
+        dift_sizer.Add(dift_sub_sizer, border=self._FromDIP(2), flag=wx.LEFT
+            |wx.RIGHT|wx.BOTTOM)
+
 
 
         bift_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, "BIFT")
@@ -15163,9 +15244,20 @@ class InformationPanel(scrolled.ScrolledPanel):
         self.sasm_info['GNOM_Real_Space_I0'] = (gnom_i0_ctrl, 'float', 2)
         self.sasm_info['GNOM_Real_Space_I0_Err'] = (gnom_i0_err_ctrl, 'float', 2)
         self.sasm_info['GNOM_Total_Estimate'] = (gnom_te_ctrl, 'float', 3)
+        self.sasm_info['GNOM_GNOM_ChiSquared'] = (gnom_chisq_ctrl, 'float', 3)
         self.sasm_info['GNOM_Alpha'] = (gnom_alpha_ctrl, 'float', 1)
         self.sasm_info['GNOM_qStart'] = (gnom_qstart_ctrl, 'float', 3)
         self.sasm_info['GNOM_qEnd'] = (gnom_qend_ctrl, 'float', 3)
+
+        self.sasm_info['DIFT_Dmax'] = (dift_dmax_ctrl, 'float', 1)
+        self.sasm_info['DIFT_Real_Space_Rg'] = (dift_rg_ctrl, 'float', 2)
+        self.sasm_info['DIFT_Real_Space_Rg_Err'] = (dift_rg_err_ctrl, 'float', 2)
+        self.sasm_info['DIFT_Real_Space_I0'] = (dift_i0_ctrl, 'float', 2)
+        self.sasm_info['DIFT_Real_Space_I0_Err'] = (dift_i0_err_ctrl, 'float', 2)
+        self.sasm_info['DIFT_ChiSquared'] = (dift_chisq_ctrl, 'float', 3)
+        self.sasm_info['DIFT_Alpha'] = (dift_alpha_ctrl, 'float', 1)
+        self.sasm_info['DIFT_qStart'] = (dift_qstart_ctrl, 'float', 3)
+        self.sasm_info['DIFT_qEnd'] = (dift_qend_ctrl, 'float', 3)
 
         self.sasm_info['BIFT_Dmax'] = (bift_dmax_ctrl, 'float', 1)
         self.sasm_info['BIFT_Dmax_Err'] = (bift_dmax_err_ctrl, 'float', 1)
@@ -15192,6 +15284,8 @@ class InformationPanel(scrolled.ScrolledPanel):
         self.shown_items[mw_show_item] = [False, mw_sizer, mw_sub_sizer, 'profile']
         self.shown_items[gnom_show_item] = [False, gnom_sizer, gnom_sub_sizer,
             'profile']
+        self.shown_items[dift_show_item] = [False, dift_sizer, dift_sub_sizer,
+            'profile']
         self.shown_items[bift_show_item] = [False, bift_sizer, bift_sub_sizer,
             'profile']
 
@@ -15203,6 +15297,8 @@ class InformationPanel(scrolled.ScrolledPanel):
         profiles_info_sizer.Add(mw_sizer, border=self._FromDIP(1),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
         profiles_info_sizer.Add(gnom_sizer, border=self._FromDIP(1),
+            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
+        profiles_info_sizer.Add(dift_sizer, border=self._FromDIP(1),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
         profiles_info_sizer.Add(bift_sizer, border=self._FromDIP(1),
             flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
@@ -15305,7 +15401,7 @@ class InformationPanel(scrolled.ScrolledPanel):
         ift_sub_info_sizer.Add(wx.StaticText(ift_box, label='+/-'),
             flag=wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_CENTER_HORIZONTAL)
         ift_sub_info_sizer.Add(ift_logalpha_err_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
-        ift_sub_info_sizer.Add(wx.StaticText(ift_box, label='Alpha (G):'),
+        ift_sub_info_sizer.Add(wx.StaticText(ift_box, label='Alpha (G/D):'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         ift_sub_info_sizer.Add(ift_alpha_ctrl, flag=wx.ALIGN_CENTER_VERTICAL)
         ift_sub_info_sizer.Add(wx.StaticText(ift_box, label='Evidence (B):'),
