@@ -2628,7 +2628,7 @@ class Sasrec(object):
     def estimate_Vp_etal(self):
         """Estimate Porod volume using modified method based on oversmoothing.
 
-        Oversmooth the P(r) curve with a high alpha. This helps to remove shape 
+        Oversmooth the P(r) curve with a high alpha. This helps to remove shape
         scattering that distorts Porod assumptions. """
         #how much to oversmooth by, i.e. multiply alpha times this factor
         oversmoothing = 1.0e1
@@ -3182,7 +3182,7 @@ class PDB(object):
             #grab atoms nearby this atom just based on xyz coordinates
             #first, recenter all coordinates in this frame
             coordstmp = self.coords - p
-            #next, get all atoms whose x, y, and z coordinates are within the nearby box 
+            #next, get all atoms whose x, y, and z coordinates are within the nearby box
             #of length 4 A (more than the sum of two atoms vdW radii, with the limit being about 2.5 A)
             bl = 5.0
             idx_close = np.where(
@@ -3252,7 +3252,7 @@ class PDB(object):
             res = self.resname[i]
             atom = self.atomname[i]
 
-            #For each atom, atom should be a key in "numH", so now just look up value 
+            #For each atom, atom should be a key in "numH", so now just look up value
             # associated with atom
             try:
                 H_count = np.rint(numH[res][atom]) #the number of H attached
@@ -3428,7 +3428,7 @@ def rotate_coordinates(coordinates, degrees_x=0, degrees_y=0, degrees_z=0):
 
 
 class PDB2MRC(object):
-    def __init__(self, 
+    def __init__(self,
         pdb,
         ignore_waters=True,
         explicitH=True,
@@ -3606,7 +3606,7 @@ class PDB2MRC(object):
         for i in range(len(self.modifiable_atom_types)):
             if not self.explicitH:
                 if self.modifiable_atom_types[i]=='H':
-                    self.pdb.exvolHradius = radii_sf[i] * self.pdb.unique_exvolHradius 
+                    self.pdb.exvolHradius = radii_sf[i] * self.pdb.unique_exvolHradius
                 else:
                     self.pdb.radius[self.pdb.atomtype==self.modifiable_atom_types[i]] = radii_sf[i] * self.pdb.unique_radius[self.pdb.atomtype==self.modifiable_atom_types[i]]
             else:
@@ -3708,9 +3708,9 @@ class PDB2MRC(object):
                 which may be too large and lead to less accurate I(q) estimates at high q.""".format(v=voxel)
             optimal_values_warning = """
                 To ensure the highest accuracy, manually set the -s option to {os:.2f} and
-                the -v option to {ov:.2f}, which will set -n option to {on:d} and thus 
+                the -v option to {ov:.2f}, which will set -n option to {on:d} and thus
                 may take a long time to calculate and use a lot of memory.
-                If that requires too much computation, set -s first, and -n to the 
+                If that requires too much computation, set -s first, and -n to the
                 limit you prefer (n=512 may approach an upper limit for many computers).
                 """.format(os=optimal_side, ov=optimal_voxel, on=optimal_nsamples)
 
@@ -3734,7 +3734,7 @@ class PDB2MRC(object):
         #make the real space grid
         halfside = side/2
         n = int(side/voxel)
-        #want n to be even for speed/memory optimization with the FFT, 
+        #want n to be even for speed/memory optimization with the FFT,
         #ideally a power of 2, but wont enforce that
         if n%2==1: n += 1
         dx = side/n
@@ -3847,7 +3847,7 @@ class PDB2MRC(object):
 
     def calculate_hydration_shell(self):
         if not self.quiet: print('Calculating hydration shell...')
-        self.r_water = r_water = 1.4 
+        self.r_water = r_water = 1.4
         uniform_shell = calc_uniform_shell(self.pdb,self.x,self.y,self.z,thickness=self.r_water*2, distance=self.r_water)
         self.water_shell_idx = water_shell_idx = uniform_shell.astype(bool)
 
@@ -3911,7 +3911,7 @@ class PDB2MRC(object):
         if not self.quiet: print('Calculating structure factors...')
         #F_invacuo
         self.F_invacuo = myfftn(self.rho_invacuo)
-        
+
         #perform B-factor sharpening to correct for B-factor sampling workaround
         Bsharp = -self.global_B
         Bsharp3D = np.exp(-(Bsharp)*(self.qr/(4*np.pi))**2)
@@ -4106,7 +4106,7 @@ class PDB2MRC(object):
         penalty_weight = self.penalty_weight
         penalty_weights = self.penalty_weights
         #set the individual parameter penalty weights
-        #to be 1/params_target, so that each penalty 
+        #to be 1/params_target, so that each penalty
         #is weighted as a fraction of the target rather than an
         #absolute number.
         for i in range(nparams):
@@ -4262,11 +4262,11 @@ if numba:
     def numba_cdist(A,B):
         assert A.shape[1]==B.shape[1]
         C=np.empty((A.shape[0],B.shape[0]),A.dtype)
-        
+
         #workaround to get the right datatype for acc
         init_val_arr=np.zeros(1,A.dtype)
         init_val=init_val_arr[0]
-        
+
         for i in nb.prange(A.shape[0]):
             for j in range(B.shape[0]):
                 acc=init_val
@@ -4405,7 +4405,7 @@ def pdb2map_multigauss(pdb,x,y,z,cutoff=3.0,global_B=None,use_b=False,ignore_wat
     x,y,z - meshgrids for x, y, and z (required)
     cutoff - maximum distance from atom to calculate density
     global_B - desired resolution of density map, calculated as a B-factor
-    corresonding to atomic displacement equal to resolution. 
+    corresonding to atomic displacement equal to resolution.
     """
     side = x[-1,0,0] - x[0,0,0]
     halfside = side/2
@@ -4790,7 +4790,7 @@ def estimate_side_from_pdb(pdb):
         #rather than calculating the whole distance
         #matrix, which can be slow and memory intensive
         #for large models, just approximate the maximum
-        #length as the max of the range of x, y, or z 
+        #length as the max of the range of x, y, or z
         #values of the coordinates.
         xmin = np.min(pdb.coords[:,0]) - 1.7
         xmax = np.max(pdb.coords[:,0]) + 1.7
@@ -4806,7 +4806,7 @@ def estimate_side_from_pdb(pdb):
     return side
 
 def calc_chi2(Iq_exp, Iq_calc, scale=True, offset=False, interpolation=True,return_sf=False,return_fit=False):
-    """Calculates a chi2 comparing experimental vs calculated intensity profiles using interpolation. 
+    """Calculates a chi2 comparing experimental vs calculated intensity profiles using interpolation.
 
     Iq_exp (ndarray) - Experimental data, q, I, sigq (required)
     Iq_calc (ndarray) - calculated scattering profile's q, I, and sigq (required)
@@ -4836,7 +4836,7 @@ def calc_chi2(Iq_exp, Iq_calc, scale=True, offset=False, interpolation=True,retu
         q_exp = np.copy(q_calc)
 
     if scale and offset:
-        #the offset is effectively a constant that is the same for each 
+        #the offset is effectively a constant that is the same for each
         #data point (i.e., a bunch of ones times a number),
         #so we fit two vectors to Icalc (one is Iexp and the other is the array of ones),
         #such that Icalc = c*Iexp + b*ones
@@ -5008,11 +5008,14 @@ def denss_3DFs(rho_start, dmax, ne=None, voxel=5., oversampling=3., positivity=T
 # RAW specific stuff
 ######################
 
-def doDIFT(Iq, D, filename, first=None, last=None, qc=None, alpha=0.0, extrapolate=True,
-    queue=None, abort_check=threading.Event()):
-    
+def doDIFT(Iq, D, filename, first=None, last=None, qc=None, alpha=0.0,
+    extrapolate=True, scan_alpha=False, queue=None,
+    abort_check=threading.Event()):
     D = float(D)
     sasrec = Sasrec(Iq[first:last], D, qc=None, alpha=alpha, extrapolate=extrapolate)
+    if scan_alpha:
+        sasrec.optimize_alpha()
+
     pr = sasrec.P
     r = sasrec.r
     perr = sasrec.Perr
@@ -5038,6 +5041,7 @@ def doDIFT(Iq, D, filename, first=None, last=None, qc=None, alpha=0.0, extrapola
         'algorithm'     : 'DIFT',       # Lets us know what algorithm was used to find the IFT
         'filename'      : os.path.splitext(filename)[0]+'.ift'
         }
+
     iftm = SASM.IFTM(pr, r, perr, i, q, err, fit, results, fit_extrap, q_extrap)
 
     return iftm
@@ -5338,15 +5342,15 @@ def run_align(allrhos, sides, ref_file, avg_q=None, abort_event=None, center=Tru
     return aligned, scores
 
 def run_pdb2mrc(
-    pdb_fname, 
-    exp_fname=None, 
+    pdb_fname,
+    exp_fname=None,
     prefix=None,
-    qmax=None, 
-    units=None, 
-    rho0=None, 
+    qmax=None,
+    units=None,
+    rho0=None,
     shell_contrast=None,
-    fit_solvent=True, 
-    fit_shell=True, 
+    fit_solvent=True,
+    fit_shell=True,
     explicitH=None,
     ignore_waters=None,
     voxel=None,

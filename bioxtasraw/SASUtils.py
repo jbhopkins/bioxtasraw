@@ -614,6 +614,9 @@ def set_best_size(window, shrink=False):
         else:
             best_size.SetHeight(best_height)
 
+    print(best_size)
+    print(current_size)
+
     window.SetSize(best_size)
 
 

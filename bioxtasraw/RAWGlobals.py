@@ -72,3 +72,4 @@ if has_wx:
     list_item_bkg_color = 'white'
     tab_color = 'white'
     bift_item_color = 'blue'
+    denss_item_color = 'red'
