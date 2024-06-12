@@ -139,6 +139,10 @@ GNOMData = collections.namedtuple('GNOM', ['Dmax', 'Rg', 'I0', 'Rg_err',
     'I0_err', 'Chi_sq', 'Total_estimate', 'Quality', 'q_min', 'q_max'],
     defaults=[-1, -1, -1, -1, -1, -1, -1, '', -1, -1])
 
+DIFTData = collections.namedtuple('GNOM', ['Dmax', 'Rg', 'I0', 'Rg_err',
+    'I0_err', 'Chi_sq', 'q_min', 'q_max'],
+    defaults=[-1, -1, -1, -1, -1, -1, -1, -1])
+
 Metadata = collections.namedtuple('Metadata', ['Sample_to_detector_distance',
     'Wavelength', 'Exposure_time', 'Exposure_period', 'Flow_rate', 'Detector',
     'Instrument', 'Absolute_scale', 'File_prefix', 'Date', 'RAW_version',
@@ -531,6 +535,17 @@ class SAXSData(object):
         'qEnd'                      : 'q_max',
         }
 
+    _dift_trans = {
+        'Dmax'                      : 'Dmax',
+        'Real_Space_Rg'             : 'Rg',
+        'Real_Space_I0'             : 'I0',
+        'Real_Space_Rg_Err'         : 'Rg_err',
+        'Real_Space_I0_Err'         : 'I0_err',
+        'ChiSquared'                : 'Chi_sq',
+        'qStart'                    : 'q_min',
+        'qEnd'                      : 'q_max',
+        }
+
     _calib_trans = {
         'Sample-to-detector distance (mm)'  : 'Sample_to_detector_distance',
         'Sample_Detector_Distance'          : 'Sample_to_detector_distance',
@@ -702,6 +717,18 @@ class SAXSData(object):
                     data_dict[value] = val
 
         self.gnom_data = GNOMData(**data_dict)
+
+        # Grab DIFT data
+        data_dict = {}
+
+        if 'DIFT' in self._analysis_data:
+            dift_analysis = self._analysis_data['DIFT']
+
+            for key, value in self._dift_trans.items():
+                if key in dift_analysis:
+                    data_dict[value] = float(dift_analysis[key])
+
+        self.dift_data = DIFTData(**data_dict)
 
 
     def _extract_metadata(self, all_params):
@@ -1841,6 +1868,10 @@ def generate_report(fname, datadir, profiles, ifts, series, extra_data=None):
             bift = generate_bift_params(profiles, ifts, series)
             elements.extend(bift)
 
+        if any(ift.type == 'DIFT' for ift in ifts):
+            dift = generate_dift_params(profiles, ifts, series)
+            elements.extend(dift)
+
     if (extra_data is not None and 'dammif' in extra_data and
         len(extra_data['dammif']) > 0 and
         any(dam_data is not None for dam_data in extra_data['dammif'])):
@@ -2059,6 +2090,9 @@ def generate_overview(profiles, ifts, series):
         ('BIFT Dmax', 'b_dmax'),
         ('BIFT Rg', 'b_rg'),
         ('BIFT I(0)', 'b_i0'),
+        ('DIFT Dmax', 'd_dmax'),
+        ('DIFT Rg', 'd_rg'),
+        ('DIFT I(0)', 'd_i0'),
         ]
 
     table_dict = OrderedDict()
@@ -2118,7 +2152,7 @@ def generate_overview(profiles, ifts, series):
             i0 = profile.gnom_data.I0
             i0_err = profile.gnom_data.I0_err
 
-            gnom_dmax = '{}'.format(text_round(dmax, 0))
+            gnom_dmax = '{}'.format(text_round(dmax, 2))
 
             gnom_rg = '{} +/- {}'.format(text_round(rg, 2),
                 text_round(rg_err, 2))
@@ -2138,8 +2172,8 @@ def generate_overview(profiles, ifts, series):
             i0 = profile.bift_data.I0
             i0_err = profile.bift_data.I0_err
 
-            bift_dmax = '{} +/- {}'.format(text_round(dmax, 0),
-                text_round(dmax_err, 0))
+            bift_dmax = '{} +/- {}'.format(text_round(dmax, 2),
+                text_round(dmax_err, 2))
 
             bift_rg = '{} +/- {}'.format(text_round(rg, 2),
                 text_round(rg_err, 2))
@@ -2150,6 +2184,26 @@ def generate_overview(profiles, ifts, series):
             bift_dmax = ''
             bift_rg = ''
             bift_i0 = ''
+
+        if profile.dift_data.Dmax != -1:
+            dmax = profile.dift_data.Dmax
+            dmax_err = profile.dift_data.Dmax_err
+            rg = profile.dift_data.Rg
+            rg_err = profile.dift_data.Rg_err
+            i0 = profile.dift_data.I0
+            i0_err = profile.dift_data.I0_err
+
+            dift_dmax = '{} '.format(text_round(dmax, 2))
+
+            dift_rg = '{} +/- {}'.format(text_round(rg, 2),
+                text_round(rg_err, 2))
+            dift_i0 = '{} +/- {}'.format(text_round(i0, 2),
+                text_round(i0_err, 2))
+
+        else:
+            dift_dmax = ''
+            dift_rg = ''
+            dift_i0 = ''
 
         for header, key in table_pairs:
             if key == 'name':
@@ -2172,6 +2226,12 @@ def generate_overview(profiles, ifts, series):
                 value = bift_rg
             elif key == 'b_i0':
                 value = bift_i0
+            elif key == 'd_dmax':
+                value = dift_dmax
+            elif key == 'd_rg':
+                value = dift_rg
+            elif key == 'd_i0':
+                value = dift_i0
 
             if header in table_dict:
                 table_dict[header].append(value)
