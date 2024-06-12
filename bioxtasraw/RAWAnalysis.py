@@ -5114,7 +5114,7 @@ class GNOMControlPanel(wx.Panel):
 
     def updatePlot(self):
         dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-        dmax = dmaxWindow.GetValue()
+        dmax = float(dmaxWindow.GetValue())
 
         plotpanel = self.gnom_frame.plotPanel
 
@@ -11724,7 +11724,7 @@ class DIFTFrame(wx.Frame):
         self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY)
         self.controlPanel = DIFTControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(315))
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(625))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
             splitter1.SetMinimumPaneSize(self._FromDIP(315))   #Back compatability with older wxpython versions
@@ -11743,10 +11743,6 @@ class DIFTFrame(wx.Frame):
         self.CenterOnParent()
         self.Raise()
 
-        self.getDiftVersion()
-
-        self.standard_paths = wx.StandardPaths.Get()
-
         self.showBusy()
         t = threading.Thread(target=self.initDIFT, args=(sasm,))
         t.daemon=True
@@ -11763,17 +11759,11 @@ class DIFTFrame(wx.Frame):
         self.plotPanel.updateColors()
 
     def initDIFT(self, sasm):
-
-        self.saveDIFTProfile()
-
         analysis_dict = sasm.getParameter('analysis')
         if 'DIFT' in analysis_dict:
             wx.CallAfter(self.controlPanel.initDiftValues, sasm, 'dift')
         else:
             wx.CallAfter(self.controlPanel.initDiftValues, sasm, 'auto')
-
-    def getDiftVersion(self):
-        self.new_dift = False
 
     def showBusy(self, show=True, msg=''):
         if show:
@@ -11791,58 +11781,8 @@ class DIFTFrame(wx.Frame):
     def updateDIFTSettings(self):
         self.controlPanel.updateDIFTSettings()
 
-    def saveDIFTProfile(self):
-        tempdir = self.standard_paths.GetTempDir()
-
-        save_sasm = copy.deepcopy(self.sasm)
-
-        savename = os.path.splitext(save_sasm.getParameter('filename'))[0] + '.dat'
-
-        outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
-        while os.path.isfile(outname):
-            outname = tempfile.NamedTemporaryFile(dir=os.path.abspath(tempdir)).name
-
-        outname = os.path.split(outname)[1]
-        outname = outname+'.out'
-
-        if (self.main_frame.OnlineControl.isRunning()
-            and tempdir == self.main_frame.OnlineControl.getTargetDir()):
-            self.main_frame.controlTimer(False)
-            restart_timer = True
-        else:
-            restart_timer = False
-
-        try:
-            SASFileIO.saveMeasurement(save_sasm, tempdir, self._raw_settings, filetype = '.dat')
-        except SASExceptions.HeaderSaveError as e:
-            self._showSaveError('header')
-
-        self.tempdir = tempdir
-        self.savename = savename
-        self.outname = outname
-
-        if restart_timer:
-            wx.CallAfter(self.main_frame.controlTimer, True)
-
     def cleanupDIFT(self):
-        savefile = os.path.join(self.tempdir, self.savename)
-        outfile = os.path.join(self.tempdir, self.outname)
-
-        if self.savename != '':
-            if os.path.isfile(savefile):
-                try:
-                    os.remove(savefile)
-                except Exception as e:
-                    print(e)
-                    print('DIFT cleanup failed to remove the .dat file!')
-
-        if self.outname != '':
-            if os.path.isfile(outfile):
-                try:
-                    os.remove(outfile)
-                except Exception as e:
-                    print(e)
-                    print('DIFT cleanup failed to remove the .out file!')
+        pass
 
     def OnClose(self):
         self.cleanupDIFT()
@@ -11938,7 +11878,7 @@ class DIFTControlPanel(wx.Panel):
         box2 = wx.StaticBox(self, -1, 'Control')
         controlSizer = self._createControls(box2)
         boxSizer2 = wx.StaticBoxSizer(box2, wx.VERTICAL)
-        boxSizer2.Add(controlSizer, 0, wx.EXPAND|wx.ALL, border=self._FromDIP(5))
+        boxSizer2.Add(controlSizer, 0, wx.EXPAND, border=self._FromDIP(5))
 
 
         box = wx.StaticBox(self, -1, 'Parameters')
@@ -12110,6 +12050,10 @@ class DIFTControlPanel(wx.Panel):
         scan_alpha = wx.Button(parent, -1, 'Scan Alpha')
         scan_alpha.Bind(wx.EVT_BUTTON, self.onScanAlphaButton)
 
+        self.update_alpha_ctrl = wx.CheckBox(parent,
+            label='Update alpha when changing params')
+        self.update_alpha_ctrl.SetValue(True)
+
         da_sizer = wx.BoxSizer(wx.HORIZONTAL)
         da_sizer.Add(find_dmax, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL,
             self._FromDIP(2))
@@ -12117,12 +12061,14 @@ class DIFTControlPanel(wx.Panel):
             self._FromDIP(2))
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(sizer, 0, wx.EXPAND|wx.BOTTOM, self._FromDIP(5))
-        top_sizer.Add(ctrl2_sizer, 0, wx.EXPAND | wx.BOTTOM,
+        top_sizer.Add(sizer, 0, wx.EXPAND|wx.ALL, self._FromDIP(5))
+        top_sizer.Add(ctrl2_sizer, 0, wx.EXPAND|wx.BOTTOM|wx.LEFT|wx.RIGHT,
             self._FromDIP(5))
-        top_sizer.Add(da_sizer, 0, wx.CENTER | wx.BOTTOM,
+        top_sizer.Add(self.update_alpha_ctrl, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(5))
+        top_sizer.Add(da_sizer, 0, wx.CENTER|wx.BOTTOM|wx.LEFT|wx.RIGHT,
             self._FromDIP(5))
-        top_sizer.Add(advancedParams, 0, wx.CENTER | wx.BOTTOM, self._FromDIP(5))
+        top_sizer.Add(advancedParams, 0, wx.CENTER|wx.BOTTOM|wx.LEFT|wx.RIGHT, self._FromDIP(5))
 
         return top_sizer
 
@@ -12180,7 +12126,7 @@ class DIFTControlPanel(wx.Panel):
 
         if mode == 'auto':
             dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-            self._runFindDmax(scanalpha=True)
+            self._runFindDmax(scan_alpha=True)
         else:
             dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
             try:
@@ -12213,7 +12159,7 @@ class DIFTControlPanel(wx.Panel):
                 wx.CallAfter(self.dift_frame.showBusy, False)
 
             else:
-                self._runFindDmax(scanalpha=True)
+                self._runFindDmax(scan_alpha=True)
 
     def setGuinierInfo(self, sasm):
         guinierRgWindow = wx.FindWindowById(self.infodata['guinierRg'][1], self)
@@ -12286,7 +12232,7 @@ class DIFTControlPanel(wx.Panel):
         except Exception:
             diftChisqWindow.SetValue('')
         try:
-            diftAlphaWindow.SetValue(str(iftm.getParameter('alpha')))
+            diftAlphaWindow.SetValue(self.formatNumStr(iftm.getParameter('alpha')))
         except Exception:
             diftAlphaWindow.SetValue('')
 
@@ -12309,7 +12255,7 @@ class DIFTControlPanel(wx.Panel):
         dift_results = {}
 
         dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-        dmax = str(dmaxWindow.GetValue())
+        dmax = str(float(dmaxWindow.GetValue()))
 
         alphaWindow = wx.FindWindowById(self.spinctrlIDs['alpha'], self)
         alpha = str(10**float(alphaWindow.GetValue()))
@@ -12342,16 +12288,24 @@ class DIFTControlPanel(wx.Panel):
                 wx.CallAfter(self.manip_item.updateInfoPanel)
 
         iftm = self.out_list[dmax]
-        iftm.setParameter('filename', os.path.splitext(self.sasm.getParameter('filename'))[0]+'.out')
+        iftm.setParameter('filename', os.path.splitext(
+            self.sasm.getParameter('filename'))[0]+'.ift')
 
         if self.raw_settings.get('AutoSaveOnDift'):
             if os.path.isdir(self.raw_settings.get('DiftFilePath')):
                 RAWGlobals.mainworker_cmd_queue.put(['save_iftm', [iftm, self.raw_settings.get('DiftFilePath')]])
             else:
                 self.raw_settings.set('DiftFilePath', False)
-                wx.CallAfter(wx.MessageBox, 'The folder:\n' +self.raw_settings.get('DIFTFilePath')+ '\ncould not be found. Autosave of DIFT files has been disabled. If you are using a config file from a different computer please go into Advanced Options/Autosave to change the save folders, or save you config file to avoid this message next time.', 'Autosave Error', style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
+                wx.CallAfter(wx.MessageBox, ('The folder:\n'
+                    +self.raw_settings.get('DIFTFilePath')+ '\ncould not '
+                    'be found. Autosave of DIFT files has been disabled. If '
+                    'you are using a config file from a different computer '
+                    'please go into Advanced Options/Autosave to change the '
+                    'save folders, or save you config file to avoid this '
+                    'message next time.'), 'Autosave Error',
+                    style = wx.ICON_ERROR | wx.OK | wx.STAY_ON_TOP)
 
-        RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [iftm, RAWGlobals.general_text_color,
+        RAWGlobals.mainworker_cmd_queue.put(['to_plot_ift', [iftm, RAWGlobals.denss_item_color,
             None, not self.raw_settings.get('AutoSaveOnDift')]])
 
 
@@ -12369,14 +12323,15 @@ class DIFTControlPanel(wx.Panel):
 
     def onFindDmaxButton(self, evt):
         self.dift_frame.showBusy(True, 'Finding Dmax')
-        self._runFindDmax()
+        scan_alpha = self.update_alpha_ctrl.GetValue()
+        self._runFindDmax(scan_alpha)
 
     def onScanAlphaButton(self, evt):
         self.dift_frame.showBusy(True, 'Scanning Alpha')
         self._runScanAlpha()
 
-    def _runFindDmax(self, scanalpha=False):
-        t = threading.Thread(target=self.findDmax, kwargs={'scanalpha':scanalpha})
+    def _runFindDmax(self, scan_alpha=False):
+        t = threading.Thread(target=self.findDmax, kwargs={'scan_alpha': scan_alpha})
         t.daemon=True
         t.start()
 
@@ -12471,6 +12426,7 @@ class DIFTControlPanel(wx.Panel):
         myid = evt.GetId()
 
         update_plot = False
+        scan_alpha = True
 
         if myid != self.spinctrlIDs['dmax'] and myid != self.spinctrlIDs['alpha']:
             spin = wx.FindWindowById(myid, self)
@@ -12520,28 +12476,33 @@ class DIFTControlPanel(wx.Panel):
             alpha = 10**float(wx.FindWindowById(self.spinctrlIDs['alpha'], self).GetValue())
             if self.old_alpha != alpha:
                 update_plot = True
+                self.out_list = {}
             self.old_alpha = alpha
+            scan_alpha = False
 
         if update_plot:
             #Important, since it's a slow function to update (could do it in a
             #timer instead) otherwise this spin event might loop!
-            wx.CallAfter(self.updatePlot)
+            wx.CallAfter(self.updatePlot, scan_alpha)
 
 
-    def updatePlot(self):
+    def updatePlot(self, update_alpha=False):
         dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-        dmax = dmaxWindow.GetValue()
+        dmax = float(dmaxWindow.GetValue())
 
         alphaWindow = wx.FindWindowById(self.spinctrlIDs['alpha'], self)
         alpha = 10**float(alphaWindow.GetValue())
 
         plotpanel = self.dift_frame.plotPanel
 
+        if update_alpha and self.update_alpha_ctrl.GetValue():
+            scan_alpha = True
+        else:
+            scan_alpha = False
+
         if str(dmax) not in self.out_list:
             self.updateDIFTSettings(update_plot=False)
-            self.runDIFT(dmax, alpha)
-        else:
-            self.runDIFT(dmax, alpha)
+            self.runDIFT(dmax, alpha, scan_alpha)
 
         if str(dmax) in self.out_list:
             self.updateDIFTInfo(self.out_list[str(dmax)])
@@ -12566,7 +12527,7 @@ class DIFTControlPanel(wx.Panel):
         else:
             plotpanel.clearDataPlot()
 
-    def findDmax(self, scanalpha=False):
+    def findDmax(self, scan_alpha=False):
         self.updateDIFTSettings(update_plot=False)
 
         start = self.dift_settings['first']
@@ -12584,7 +12545,6 @@ class DIFTControlPanel(wx.Panel):
             RAWAPI.auto_guinier(save_sasm, error_weight)
 
         try:
-            # dmax = RAWAPI.auto_dmax(save_sasm, single_proc=True)
             Iq = np.vstack((save_sasm.q, save_sasm.i, save_sasm.err)).T
             #give a ballpark estimate of dmax as 3.5 * rg,
             #note, twice this value will be used inside estimate_dmax
@@ -12598,40 +12558,44 @@ class DIFTControlPanel(wx.Panel):
                 wx.ICON_WARNING|wx.OK)
             traceback.print_exc()
 
-        if dmax == -1:
+        units = save_sasm.getParameter('unit')
+
+        if units == '':
             try:
-                analysis = save_sasm.getParameter('analysis')
                 rg = float(analysis['guinier']['Rg'])
             except Exception:
                 rg = 10
 
             units = SASUtils.guess_units(save_sasm.getQ(), rg, False)
 
-            if units == '1/A':
-                dmax = int(round(rg*3))
-            else:
-                dmax = round(rg*3, 1)
 
-        wx.CallAfter(self._finishFindDmax, dmax)
+        if dmax == -1:
+            dmax = rg*3
 
-        if scanalpha:
-            #run scanalpha after Dmax is found just to be sure it uses the new dmax
-            # self.dift_frame.showBusy(True, 'Scanning Alpha')
-            self.scanAlpha(dmax)
+        if units == '1/A':
+            dmax = int(round(dmax))
+        else:
+            dmax = round(dmax, 1)
 
-    def _finishFindDmax(self, dmax):
+        wx.CallAfter(self._finishFindDmax, dmax, scan_alpha)
+
+    def _finishFindDmax(self, dmax, scan_alpha=False):
         if dmax != -1:
             dmaxWindow = wx.FindWindowById(self.spinctrlIDs['dmax'], self)
-            dmaxWindow.SetValue(round(dmax,2))
+            dmaxWindow.SetValue(dmax)
             self.old_dmax = dmax
 
-            # alpha = self.dift_settings['alpha']
             alphaWindow = wx.FindWindowById(self.spinctrlIDs['alpha'], self)
             alpha = 10**float(alphaWindow.GetValue())
             self.old_alpha = alpha
 
-            self.runDIFT(dmax, alpha)
-            self.updateDIFTInfo(self.out_list[str(dmax)])
+            self.runDIFT(dmax, alpha, scan_alpha=scan_alpha)
+
+            if scan_alpha:
+                dmax = float(dmax)
+                alpha = self.out_list[str(dmax)].getParameter('alpha')
+                alphaWindow = wx.FindWindowById(self.spinctrlIDs['alpha'], self)
+                alphaWindow.SetValue(round(np.log10(alpha),2))
 
             self.updatePlot()
 
@@ -12659,7 +12623,6 @@ class DIFTControlPanel(wx.Panel):
             dmax = float(dmaxWindow.GetValue())
 
         try:
-            # dmax = RAWAPI.auto_dmax(save_sasm, single_proc=True)
             Iq = np.vstack((save_sasm.q, save_sasm.i, save_sasm.err)).T
             sasrec = DENSS.Sasrec(Iq, dmax)
             alpha = sasrec.optimize_alpha()
@@ -12685,7 +12648,6 @@ class DIFTControlPanel(wx.Panel):
             self.old_alpha = alpha
 
             self.runDIFT(dmax, alpha)
-            self.updateDIFTInfo(self.out_list[str(dmax)])
 
             self.updatePlot()
 
@@ -12723,15 +12685,6 @@ class DIFTControlPanel(wx.Panel):
             wx.CallAfter(alphaWindow.SetValue, round(np.log10(alpha),2))
 
         self.out_list[str(dmax)] = iftm
-
-    def _onSuccess(self):
-        self.updateStatus({'status' : 'DIFT done'})
-        self.updatePlot()
-        self.updateDIFTInfo()
-        self.finishedProcessing()
-
-        if self.DIFT_timer.IsRunning():
-            self.DIFT_timer.Stop()
 
     def onSettingsChange(self, evt):
         self.updateDIFTSettings()
