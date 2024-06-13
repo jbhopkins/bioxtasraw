@@ -43,7 +43,7 @@ import traceback
 import tempfile
 import shutil
 import glob
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 import numpy as np
 import wx
@@ -9674,7 +9674,7 @@ class DenssRunPanel(wx.Panel):
 
 
     def _onAdvancedButton(self, evt):
-        self.main_frame.showOptionsDialog(focusHead='DENSS')
+        self.main_frame.showOptionsDialog(focusHead='DENSS (Ab initio)')
 
     def onCheckBox(self,evt):
         refine = wx.FindWindowById(self.ids['refine'], self)
@@ -12706,7 +12706,7 @@ class DIFTControlPanel(wx.Panel):
             self.updatePlot()
 
     def onChangeParams(self, evt):
-        self.main_frame.showOptionsDialog(focusHead='DIFT')
+        self.main_frame.showOptionsDialog(focusHead='DENSS IFT (DIFT)')
 
 class TheoreticalFrame(wx.Frame):
 
@@ -12814,7 +12814,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         self.main_frame = wx.FindWindowByName('MainFrame')
         self.raw_settings = self.main_frame.raw_settings
 
-        self.abort_event = threading.Event()
+
         self.calc_futures = []
         self.running_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._on_running_timer, self.running_timer)
@@ -12822,10 +12822,21 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         self.current_results = {}
         self.save_results_on_close = False
 
+        if platform.system() == 'Darwin' and six.PY3 and RAWGlobals.frozen:
+            self.single_proc = True
+        else:
+            self.single_proc = False
+
         if self.calc_type == 'CRYSOL':
             self.executor = None
+            self.abort_event = threading.Event()
         elif self.calc_type == 'PDB2SAS':
             self.executor = None
+            if not self.single_proc:
+                self.manager = multiprocessing.Manager()
+                self.abort_event = self.manager.Event()
+            else:
+                self.abort_event = threading.Event()
 
         self.create_layout()
         self._initialize()
@@ -13093,16 +13104,15 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         ctrl_parent = ctrl_box
 
-        self.voxel = wx.TextCtrl(ctrl_parent, size=self._FromDIP((60,-1)),
-            validator=RAWCustomCtrl.CharValidator('float'))
-        self.side = wx.TextCtrl(ctrl_parent, size=self._FromDIP((60,-1)),
-            validator=RAWCustomCtrl.CharValidator('float'))
         self.nsamples = wx.TextCtrl(ctrl_parent, size=self._FromDIP((60,-1)),
             validator=RAWCustomCtrl.CharValidator('int'))
 
-        nprocs_tot = multiprocessing.cpu_count()
-        nprocs_list = [str(i) for i in range(nprocs_tot, 0, -1)]
-        default_proc = str(int(max(nprocs_tot -1, 1)))
+        if self.single_proc:
+            nprocs_list = ['1']
+        else:
+            nprocs_tot = multiprocessing.cpu_count()
+            nprocs_list = [str(i) for i in range(nprocs_tot, 0, -1)]
+        default_proc = str(1)
         default_index = nprocs_list.index(default_proc)
         self.nprocs = wx.Choice(ctrl_parent, choices=nprocs_list)
         self.nprocs.SetSelection(default_index)
@@ -13116,15 +13126,9 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Simultaneous calcs.:'))
         basic_ctrls.Add(self.nprocs)
-        basic_ctrls.Add(wx.StaticText(ctrl_parent, label='N samples:'),
+        basic_ctrls.Add(wx.StaticText(ctrl_parent, label='N samples (real space):'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         basic_ctrls.Add(self.nsamples, flag=wx.ALIGN_CENTER_VERTICAL)
-        basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Side (A):'),
-            flag=wx.ALIGN_CENTER_VERTICAL)
-        basic_ctrls.Add(self.side, flag=wx.ALIGN_CENTER_VERTICAL)
-        basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Voxel size (A):'),
-            flag=wx.ALIGN_CENTER_VERTICAL)
-        basic_ctrls.Add(self.voxel, flag=wx.ALIGN_CENTER_VERTICAL)
         basic_sizer = wx.BoxSizer(wx.HORIZONTAL)
         basic_sizer.Add(basic_ctrls)
         basic_sizer.AddStretchSpacer(1)
@@ -13158,6 +13162,10 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         self.fit_shell = wx.CheckBox(adv_win, label='Fit hydration shell')
         self.units = wx.Choice(adv_win, choices=['1 - 1/A, q=4pi*sin(th)/l)',
             '2 - 1/nm, q=4pi*sin(th)/l'])
+        self.voxel = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('float'))
+        self.side = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('float'))
 
         units_sizer = wx.BoxSizer(wx.HORIZONTAL)
         units_sizer.Add(wx.StaticText(adv_win, label='Units:'), border=self._FromDIP(5),
@@ -13177,6 +13185,12 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         adv_ctrls.Add(self.fit_solvent, (4,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
         adv_ctrls.Add(self.fit_shell, (5,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
         adv_ctrls.Add(units_sizer, (6,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Side (A):'), (7,0),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.side, (7,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Voxel size (A):'),
+            (8,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.voxel, (8,1), flag=wx.ALIGN_CENTER_VERTICAL)
 
         adv_sizer = wx.BoxSizer(wx.VERTICAL)
         adv_sizer.Add(save_sizer, border=self._FromDIP(5),
@@ -13584,7 +13598,10 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
             nprocs = int(self.nprocs.GetStringSelection())
 
-            self.executor = ThreadPoolExecutor(nprocs)
+            if self.single_proc:
+                self.executor = ThreadPoolExecutor(nprocs)
+            else:
+                self.executor = ProcessPoolExecutor(nprocs)
 
             for model in models:
                 pdb2mrc_future = self.executor.submit(RAWAPI.pdb2mrc,
@@ -13729,17 +13746,12 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
     def _on_running_timer(self, evt):
         if self.calc_type == 'CRYSOL':
             calc_finished = all([future.done() for future in self.calc_futures])
-            if calc_finished:
-                self.executor.shutdown()
         elif self.calc_type == 'PDB2SAS':
             calc_finished = all([future.done() for future in self.calc_futures])
 
-            if calc_finished:
-                self.executor.shutdown()
-
-
         if calc_finished:
             self.running_timer.Stop()
+            self.executor.shutdown()
             self._process_results()
 
     def _process_results(self):
@@ -13945,11 +13957,11 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
     def _abort_crysol(self):
         if self.executor is not None:
-            self.executor.shutdown()
+            self.executor.shutdown(cancel_futures=True)
 
     def _abort_pdb2mrc(self):
         if self.executor is not None:
-            self.executor.shutdown()
+            self.executor.shutdown(cancel_futures=True)
 
     def save_profiles(self, profiles):
         tempdir = self.standard_paths.GetTempDir()

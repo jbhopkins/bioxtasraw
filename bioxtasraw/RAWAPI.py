@@ -2521,21 +2521,22 @@ def bift(profile, idx_min=None, idx_max=None, pr_pts=100, alpha_min=150,
         log_alpha_err, evidence, evidence_err)
 
 def denss_ift(profile, dmax=None, alpha=None, extrapolate=True, idx_min=None, idx_max=None,
-    use_guinier_start=True):
+    use_guinier_start=True, settings=None):
     """
     Calculates the DENSS indirect Fourier transform (DIFT) of a scattering
     profile to generate a P(r) function and determine the maximum dimension
-    Dmax. Returns None and -1 values if DIFT fails.
+    Dmax. Returns None and -1 values if DIFT fails. Includes options for
+    automatic Dmax determination and automatic alpha determination.
 
     Parameters
     ----------
     profile: :class:`bioxtasraw.SASM.SASM`
         The profile to calculate the DIFT for.
     dmax: float, optional
-        The maximum dimension of the particle to use for IFT calculation. If 
+        The maximum dimension of the particle to use for IFT calculation. If
         not given, dmax will be estimated automatically.
     alpha: float, optional
-        The smoothing factor alpha to use for IFT calculation. If 
+        The smoothing factor alpha to use for IFT calculation. If
         not given, alpha will be estimated automatically.
     extrapolate: bool, optional
         If set to True (default), dift will extrapolate the calculation of the I(q)
@@ -2551,7 +2552,11 @@ def denss_ift(profile, dmax=None, alpha=None, extrapolate=True, idx_min=None, id
     use_guiner_start: bool, optional
         If set to True, and no idx_min idx_min is provided, if a Guinier fit has
         been done for the input profile, the start point of the Guinier fit is
-        used as the start point for the IFT.
+        used as the start point for the IFT. Default is True.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, the
+        extrapolate parameter will be overridden with the value in the
+        settings. Default is None.
 
     Returns
     -------
@@ -2575,6 +2580,9 @@ def denss_ift(profile, dmax=None, alpha=None, extrapolate=True, idx_min=None, id
     alpha: float
         The alpha value for the IFT.
     """
+
+    if settings is not None:
+        extrapolate = settings.get('diftExtrapolate')
 
     q = profile.getQ()
     i = profile.getI()
@@ -5442,24 +5450,24 @@ def denss_align(density, side, ref_file, ref_datadir='.',  prefix='',
 
     return aligned_density, score
 
-def pdb2mrc(models, 
-    profiles=None, 
+def pdb2mrc(models,
+    profiles=None,
     prefix=None,
-    qmax=None, 
-    units=None, 
-    rho0=None, 
+    qmax=None,
+    units=None,
+    rho0=None,
     shell_contrast=None,
-    fit_solvent=True, 
-    fit_shell=True, 
+    fit_solvent=True,
+    fit_shell=True,
     explicitH=None,
     ignore_waters=None,
     voxel=None,
     side=None,
     nsamples=None,
-    settings=None, 
+    settings=None,
     save_output=False,
-    output_dir=None, 
-    abort_event=None, 
+    output_dir=None,
+    abort_event=None,
     readback_queue=None):
     """
     Calculates the theoretical scattering profile from an atomic or bead model
@@ -5490,7 +5498,7 @@ def pdb2mrc(models,
         The prefix perpended to the output files. Should only be used if a single
         model (or single model and profile) are supplied.
     units: int, optional
-        Values a - 1/A (4pi*sin(th)/lm). nm - 1/nm (4pi*sin(th)/lm). 
+        Values a - 1/A (4pi*sin(th)/lm). nm - 1/nm (4pi*sin(th)/lm).
         By default, units are angstrom (a).
     fit_solvent: bool, optional
         If False, input rho0 parameter is used, otherwise it is fit
@@ -5506,14 +5514,14 @@ def pdb2mrc(models,
         based on side and nsamples which take precendence.
     side: float, optional
         The side length of the box the density of the particle is contained in. Larger
-        side length yields better sampling in reciprocal space. Default = 3*dmax 
-        (where dmax is estimated from coordinates). A minimum of 2*dmax is required for 
+        side length yields better sampling in reciprocal space. Default = 3*dmax
+        (where dmax is estimated from coordinates). A minimum of 2*dmax is required for
         adequate sampling of information content.
     nsamples: int, optional
         The number of samples in a single dimension of the density map. More samples
-        yields better real space or reciprocal space sampling, depending on side and 
+        yields better real space or reciprocal space sampling, depending on side and
         voxel values. By default, nsamples will be int(side/voxel), where voxel=1. However,
-        if the default value is greater than 256, the voxel size will be increased to 
+        if the default value is greater than 256, the voxel size will be increased to
         avoid using too much memory. To override this, explicitly set nsamples to a number
         larger than 256 (powers of 2 are most efficient for the FFT).
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
@@ -5615,6 +5623,9 @@ def pdb2mrc(models,
             pdb2mrc = DENSS.run_pdb2mrc(fname,
                 **pdb2mrc_settings)
 
+            if abort_event.is_set():
+                break
+
             if exp_fnames is not None:
                 for exp_name in exp_fnames:
                     name = '{}_{}'.format(os.path.split(os.path.splitext(fname)[0])[1],
@@ -5648,6 +5659,9 @@ def pdb2mrc(models,
                         pdb2mrc_i.save_Iq_calc(prefix=path_prefix)
                         pdb2mrc_i.save_fit(prefix=path_prefix)
 
+                    if abort_event.is_set():
+                        break
+
             else:
                 #if no experimental data given to fit
                 name = os.path.split(os.path.splitext(fname)[0])[1]
@@ -5670,7 +5684,13 @@ def pdb2mrc(models,
 
                     pdb2mrc_i.save_Iq_calc(prefix=path_prefix)
 
+            if abort_event.is_set():
+                        break
+
     else:
+        pdb2mrc_results = {}
+
+    if abort_event.is_set():
         pdb2mrc_results = {}
 
     return pdb2mrc_results
