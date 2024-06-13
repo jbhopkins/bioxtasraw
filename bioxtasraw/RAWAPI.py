@@ -3482,7 +3482,7 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
         available for ATSAS >= 4.0.
     abort_event: :class:`threading.Event`, optional
         A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
-        event is set it will abort the dammin run.
+        event is set it will abort the dammif run.
     readback_queue: :class:`queue.Queue`, optional
         If provided, any command line output (STDIN, STDERR) is placed in the
         queue.
@@ -3734,7 +3734,7 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
         available for ATSAS >= 4.0.
     abort_event: :class:`threading.Event`, optional
         A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
-        event is set it will abort the dammif run.
+        event is set it will abort the dammin run.
     readback_queue: :class:`queue.Queue`, optional
         If provided, any command line output (STDIN, STDERR) is placed in the
         queue.
@@ -4550,7 +4550,7 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
         Directory to save the CRYSOL output. Default None.
     abort_event: :class:`threading.Event`, optional
         A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
-        event is set it will abort the dammin run.
+        event is set it will abort the crysol run.
     readback_queue: :class:`queue.Queue`, optional
         If provided, any command line output (STDIN, STDERR) is placed in the
         queue.
@@ -5450,7 +5450,7 @@ def denss_align(density, side, ref_file, ref_datadir='.',  prefix='',
 
     return aligned_density, score
 
-def pdb2mrc(models,
+def pdb2sas(models,
     profiles=None,
     prefix=None,
     qmax=None,
@@ -5471,11 +5471,7 @@ def pdb2mrc(models,
     readback_queue=None):
     """
     Calculates the theoretical scattering profile from an atomic or bead model
-    using CRYSOL from the ATSAS package (requires ATSAS >=3.1.0). Can be used
-    to fit theoretical scattering profiles to experimental profiles. Note that
-    if multiple models and profiles are supplied they are run in a single CRYSOL
-    command. If you want to use multiple processors, you should supply a single
-    model/profile, and instead multithread the function call.
+    using the theoretiacl profile calculator from DENSS (pdb2mrc).
 
     Parameters
     ----------
@@ -5484,22 +5480,21 @@ def pdb2mrc(models,
         Should include the full path to the model.
     profiles: list, optional
         A list of `bioxtasraw.SASM.SASM` profiles to be fit by the theoretical
-        scattering profiles of the models. Alternatively a list of names of
-        experimental profiles on disk, including the full path to the profile.
+        scattering profiles of the models.
+    prefix: str, optional
+        The prefix perpended to the output files. Should only be used if a single
+        model (or single model and profile) are supplied.
     qmax: float, optional
         Maximum scattering angle in 1/A. Default None.
+    units: str, optional
+        Values: a - 1/A (4pi*sin(th)/lm). nm - 1/nm (4pi*sin(th)/lm).
+        By default, units are angstrom (a).
     rho0: float, optional
         Solvent density. Default is 0.334 e/A^3, the electron density of pure
         water. Note that fit_solvent must be False to use the provided parameter.
     shell_contrast: float, optional
         Contrast of the hydration shell. Default 0.011 e/A^3. Note that
         fit_shell must be False to use the provided parameter.
-    prefix: str, optional
-        The prefix perpended to the output files. Should only be used if a single
-        model (or single model and profile) are supplied.
-    units: int, optional
-        Values a - 1/A (4pi*sin(th)/lm). nm - 1/nm (4pi*sin(th)/lm).
-        By default, units are angstrom (a).
     fit_solvent: bool, optional
         If False, input rho0 parameter is used, otherwise it is fit
         to the data. Default True.
@@ -5528,12 +5523,12 @@ def pdb2mrc(models,
         RAW settings containing relevant parameters. If provided, every
         parameter is overridden with the value in the settings file. Default is None.
     save_output: bool, optional
-        Saves the CRYSOL output in output_dir. Default False.
+        Saves the output in output_dir. Default False.
     output_dir: str, optional
-        Directory to save the CRYSOL output. Default None.
+        Directory to save the output. Default None.
     abort_event: :class:`threading.Event`, optional
         A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
-        event is set it will abort the dammin run.
+        event is set it will abort the calculation.
     readback_queue: :class:`queue.Queue`, optional
         If provided, any command line output (STDIN, STDERR) is placed in the
         queue.
@@ -5543,12 +5538,11 @@ def pdb2mrc(models,
     pdb2mrc_results
         A dictionary is returned, where the keys of the dictionary
         are the names of the model (by default the model name or
-        model_profile name) and the values are a list of the pdb2mrc objects
-        (`bioxtasraw.DENSS.PDB2MRC`) for each model/profile combination, where
-        the pdb2mrc object has several attributes containing the calculated profile,
-        fit, chi2, rg, density maps, etc. (see PDB2MRC for details). The pdb2mrc.Iq_calc
-        attribute contains the calculated profile. If a profile is given for fitting,
-        the fit is contained in the pdb2mrc.fit attribute.
+        model_profile name) and the values are a list the calculated scattering
+        profiles (`bioxtasraw.SASM.SASM`). Each list contains two items. The
+        first is the theoretical curve at default intensity values. If a fit
+        to data was done, the second item is the theoretical curve scaled to
+        the data. If a fit to data was not done, the second item is None.
     """
 
     if settings is None:
@@ -5560,30 +5554,18 @@ def pdb2mrc(models,
         abort_event = threading.Event()
     if readback_queue is None:
         readback_queue = queue.Queue()
-    read_semaphore = threading.BoundedSemaphore(1)
 
 
     if output_dir is not None:
         output_dir = os.path.abspath(os.path.expanduser(output_dir))
-    else:
-        output_dir = os.path.abspath(os.path.expanduser(tempfile.gettempdir()))
+
+        if profiles is not None:
+            for i in range(len(profiles)):
+                if isinstance(profiles[i], SASM.SASM):
+                    save_profile(profiles[i], datadir=output_dir, settings=use_settings)
 
     for i in range(len(models)):
         models[i] = os.path.abspath(os.path.expanduser(models[i]))
-
-    if profiles is not None:
-        exp_fnames = []
-        for i in range(len(profiles)):
-            if isinstance(profiles[i], SASM.SASM):
-                save_profile(profiles[i], datadir=output_dir, settings=use_settings)
-                exp_fnames.append(os.path.join(output_dir,
-                    profiles[i].getParameter('filename')))
-            else:
-                profiles[i] = os.path.abspath(os.path.expanduser(profiles[i]))
-
-                exp_fnames.append(profiles[i])
-    else:
-        exp_fnames = None
 
     if settings is None:
         pdb2mrc_settings = {
@@ -5620,32 +5602,65 @@ def pdb2mrc(models,
         pdb2mrc_results = {}
 
         for fname in models:
-            pdb2mrc = DENSS.run_pdb2mrc(fname,
-                **pdb2mrc_settings)
+            pdb2mrc = DENSS.run_pdb2mrc(fname, **pdb2mrc_settings)
 
             if abort_event.is_set():
                 break
 
-            if exp_fnames is not None:
-                for exp_name in exp_fnames:
+            if profiles is not None:
+                for profile in profiles:
                     name = '{}_{}'.format(os.path.split(os.path.splitext(fname)[0])[1],
-                        os.path.split(os.path.splitext(exp_name)[0])[1])
+                        os.path.split(os.path.splitext(profile.getParameter('filename'))[0])[1])
+
+                    profile_name = profile.getParameter('filename')
 
                     #need to make a copy of pdb2mrc to keep them distinct for each dataset,
                     #otherwise the pointers overwrite
                     pdb2mrc_i = copy.deepcopy(pdb2mrc)
 
-                    pdb2mrc_i.load_data(filename=exp_name)
+                    pdb2mrc_i.add_exp_data(profile.getQ(), profile.getI(),
+                        profile.getErr(), profile_name)
                     if pdb2mrc_i.fit_rho0 or pdb2mrc_i.fit_shell:
                         pdb2mrc_i.initialize_penalties()
                         pdb2mrc_i.minimize_parameters()
                     qmax = pdb2mrc_i.qr.max()-1e-8
                     pdb2mrc_i.qidx = np.where((pdb2mrc_i.qr<qmax))
                     pdb2mrc_i.calc_I_with_modified_params(pdb2mrc_i.params)
-                    pdb2mrc_i.optimized_chi2, pdb2mrc_i.exp_scale_factor, pdb2mrc_i.offset, pdb2mrc_i.fit = DENSS.calc_chi2(pdb2mrc_i.Iq_exp, pdb2mrc_i.Iq_calc,interpolation=pdb2mrc_i.Icalc_interpolation,scale=True,offset=False,return_sf=True,return_fit=True)
+
+                    (pdb2mrc_i.optimized_chi2, pdb2mrc_i.exp_scale_factor,
+                        pdb2mrc_i.offset, pdb2mrc_i.fit) = DENSS.calc_chi2(
+                        pdb2mrc_i.Iq_exp, pdb2mrc_i.Iq_calc,
+                        interpolation=pdb2mrc_i.Icalc_interpolation,
+                        scale=True,offset=False,return_sf=True,return_fit=True)
+
                     pdb2mrc_i.chi2 = pdb2mrc_i.optimized_chi2
                     pdb2mrc_i.calculate_excluded_volume_in_A3()
-                    pdb2mrc_results[name] = [pdb2mrc_i]
+
+                    theory, fit = DENSS.pdb2mrc_to_sasm(pdb2mrc_i)
+
+                    # Seems like this should be feasible, but leads to slight
+                    # differences in the fit. I don't understand why. Tom might?
+                    # pdb2mrc.add_exp_data(profile.getQ(), profile.getI(),
+                    #     profile.getErr(), profile_name)
+                    # if pdb2mrc.fit_rho0 or pdb2mrc.fit_shell:
+                    #     pdb2mrc.initialize_penalties()
+                    #     pdb2mrc.minimize_parameters()
+                    # qmax = pdb2mrc.qr.max()-1e-8
+                    # pdb2mrc.qidx = np.where((pdb2mrc.qr<qmax))
+                    # pdb2mrc.calc_I_with_modified_params(pdb2mrc.params)
+
+                    # (pdb2mrc.optimized_chi2, pdb2mrc.exp_scale_factor,
+                    #     pdb2mrc.offset, pdb2mrc.fit) = DENSS.calc_chi2(
+                    #     pdb2mrc.Iq_exp, pdb2mrc.Iq_calc,
+                    #     interpolation=pdb2mrc.Icalc_interpolation,
+                    #     scale=True,offset=False,return_sf=True,return_fit=True)
+
+                    # pdb2mrc.chi2 = pdb2mrc.optimized_chi2
+                    # pdb2mrc.calculate_excluded_volume_in_A3()
+
+                    # theory, fit = DENSS.pdb2mrc_to_sasm(pdb2mrc)
+
+                    pdb2mrc_results[name] = [theory, fit]
 
                     if prefix is None:
                         prefix = name
@@ -5659,6 +5674,9 @@ def pdb2mrc(models,
                         pdb2mrc_i.save_Iq_calc(prefix=path_prefix)
                         pdb2mrc_i.save_fit(prefix=path_prefix)
 
+                        # pdb2mrc.save_Iq_calc(prefix=path_prefix)
+                        # pdb2mrc.save_fit(prefix=path_prefix)
+
                     if abort_event.is_set():
                         break
 
@@ -5671,7 +5689,8 @@ def pdb2mrc(models,
                 pdb2mrc.calc_I_with_modified_params(pdb2mrc.params)
                 pdb2mrc.calculate_excluded_volume_in_A3()
 
-                pdb2mrc_results[name] = [pdb2mrc]
+                theory, fit = DENSS.pdb2mrc_to_sasm(pdb2mrc)
+                pdb2mrc_results[name] = [theory, None]
 
                 if prefix is None:
                     prefix = name

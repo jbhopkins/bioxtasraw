@@ -12858,7 +12858,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         if self.calc_type == 'CRYSOL':
             ctrl_sizer = self._create_crysol_ctrls()
         elif self.calc_type == 'PDB2SAS':
-            ctrl_sizer = self._create_pdb2mrc_ctrls()
+            ctrl_sizer = self._create_pdb2sas_ctrls()
 
         model_box = wx.StaticBox(self, label='Models')
 
@@ -13099,7 +13099,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         return ctrl_sizer
 
-    def _create_pdb2mrc_ctrls(self):
+    def _create_pdb2sas_ctrls(self):
         ctrl_box = wx.StaticBox(self, label='Controls')
 
         ctrl_parent = ctrl_box
@@ -13119,10 +13119,6 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         basic_ctrls = wx.FlexGridSizer(cols=2, vgap=self._FromDIP(5),
             hgap=self._FromDIP(5))
-
-        # basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Harmonics:'),
-        #     flag=wx.ALIGN_CENTER_VERTICAL)
-        # basic_ctrls.Add(self.harmonics, flag=wx.ALIGN_CENTER_VERTICAL)
 
         basic_ctrls.Add(wx.StaticText(ctrl_parent, label='Simultaneous calcs.:'))
         basic_ctrls.Add(self.nprocs)
@@ -13148,9 +13144,8 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
             border=self._FromDIP(5))
 
         save_sizer = wx.BoxSizer(wx.VERTICAL)
-        save_sizer.Add(self.save_all_results, flag=wx.ALL, border=self._FromDIP(5))
-        save_sizer.Add(dir_sizer, flag=wx.EXPAND|wx.BOTTOM|wx.LEFT|wx.RIGHT,
-            border=self._FromDIP(5))
+        save_sizer.Add(self.save_all_results, flag=wx.BOTTOM, border=self._FromDIP(5))
+        save_sizer.Add(dir_sizer, flag=wx.EXPAND)
 
         self.qmax = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
             validator=RAWCustomCtrl.CharValidator('float'))
@@ -13174,29 +13169,29 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         adv_ctrls = wx.GridBagSizer(vgap=self._FromDIP(5), hgap=self._FromDIP(5))
         adv_ctrls.Add(wx.StaticText(adv_win, label='Maximum q:'),
-            (1,0), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(self.qmax, (1,1), flag=wx.ALIGN_CENTER_VERTICAL)
+            (0,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.qmax, (0,1), flag=wx.ALIGN_CENTER_VERTICAL)
         adv_ctrls.Add(wx.StaticText(adv_win, label='Solvent density [e/A^3]:'),
-            (2,0), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(self.rho0, (2,1), flag=wx.ALIGN_CENTER_VERTICAL)
+            (1,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.rho0, (1,1), flag=wx.ALIGN_CENTER_VERTICAL)
         adv_ctrls.Add(wx.StaticText(adv_win, label='Hydration shell contrast [e/A^3]:'),
-            (3,0), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(self.shell_contrast, (3,1), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(self.fit_solvent, (4,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(self.fit_shell, (5,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(units_sizer, (6,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(wx.StaticText(adv_win, label='Side (A):'), (7,0),
+            (2,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.shell_contrast, (2,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.fit_solvent, (3,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.fit_shell, (4,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(units_sizer, (5,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Side (A):'), (6,0),
             flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(self.side, (7,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.side, (6,1), flag=wx.ALIGN_CENTER_VERTICAL)
         adv_ctrls.Add(wx.StaticText(adv_win, label='Voxel size (A):'),
-            (8,0), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(self.voxel, (8,1), flag=wx.ALIGN_CENTER_VERTICAL)
+            (7,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.voxel, (7,1), flag=wx.ALIGN_CENTER_VERTICAL)
 
         adv_sizer = wx.BoxSizer(wx.VERTICAL)
         adv_sizer.Add(save_sizer, border=self._FromDIP(5),
-            flag=wx.LEFT|wx.RIGHT|wx.EXPAND)
+            flag=wx.BOTTOM|wx.EXPAND)
         adv_sizer.Add(adv_ctrls, border=self._FromDIP(5),
-            flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND)
+            flag=wx.EXPAND)
 
         adv_win.SetSizer(adv_sizer)
 
@@ -13236,7 +13231,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         if self.calc_type == 'CRYSOL':
             self._initialize_crysol()
         elif self.calc_type == 'PDB2SAS':
-            self._initialize_pdb2mrc()
+            self._initialize_pdb2sas()
 
     def _initialize_crysol(self):
         self.harmonics.ChangeValue(str(self.raw_settings.get('crysolHarmonics')))
@@ -13269,7 +13264,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         self.result_to_plot.SetStringSelection(self.raw_settings.get('crysolResultToPlot'))
 
-    def _initialize_pdb2mrc(self):
+    def _initialize_pdb2sas(self):
         self.qmax.ChangeValue(str(self.raw_settings.get('pdb2mrcQmax')))
         self.rho0.ChangeValue(str(self.raw_settings.get('pdb2mrcSolvDensity')))
         self.shell_contrast.ChangeValue(str(self.raw_settings.get('pdb2mrcHydrDensity')))
@@ -13417,7 +13412,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
             if self.calc_type == 'CRYSOL':
                 self._start_crysol()
             if self.calc_type == 'PDB2SAS':
-                self._start_pdb2mrc()
+                self._start_pdb2sas()
 
     def _start_crysol(self):
         save_all = self.save_all_results.GetValue()
@@ -13514,14 +13509,14 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
             self.running_timer.Start(1000)
 
-    def _start_pdb2mrc(self):
+    def _start_pdb2sas(self):
         save_all = self.save_all_results.GetValue()
         save_path = self.directory_ctrl.GetPath()
 
         self.start_button.Disable()
         self.abort_button.Enable()
 
-        settings = self._get_pdb2mrc_settings()
+        settings = self._get_pdb2sas_settings()
         models = self._get_models()
         data = self._get_data()
 
@@ -13530,29 +13525,29 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         self.abort_event.clear()
 
-        if data is not None:
-            profile_names = self.save_profiles(data)
-        else:
-            profile_names = None
+        # if data is not None:
+        #     profile_names = self.save_profiles(data)
+        # else:
+        #     profile_names = None
 
         settings['abort_event'] = self.abort_event
-        settings['profiles'] = profile_names
+        settings['profiles'] = data
 
         if save_all:
             settings['save_output'] = save_all
             settings['output_dir'] = save_path
 
-        self.pdb2mrc_ref = {}
+        self.pdb2sas_ref = {}
 
         for model in models:
             model_name_ext = os.path.split(model)[1]
             model_name = os.path.splitext(model_name_ext)[0]
             if data is None:
-                self.pdb2mrc_ref[model_name] = [model_name_ext, None]
+                self.pdb2sas_ref[model_name] = [model_name_ext, None]
             else:
-                for j, profile in enumerate(data):
-                    profile_name = os.path.split(os.path.splitext(profile_names[j])[0])[1]
-                    self.pdb2mrc_ref[('{}_{}'.format(model_name,
+                for profile in data:
+                    profile_name = os.path.split(os.path.splitext(profile.getParameter('filename'))[0])[1]
+                    self.pdb2sas_ref[('{}_{}'.format(model_name,
                         profile_name))] = [model_name_ext, profile]
 
         if save_all:
@@ -13570,10 +13565,10 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
             else:
                 output_exists = False
 
-                for model_name in self.pdb2mrc_ref.keys():
-                    pdb2mrc_dat_name = '{}.dat'.format(os.path.splitext(model_name)[0])
+                for model_name in self.pdb2sas_ref.keys():
+                    pdb2sas_dat_name = '{}.dat'.format(os.path.splitext(model_name)[0])
                     output_exists = (output_exists or
-                        os.path.exists(os.path.join(save_path, pdb2mrc_dat_name)))
+                        os.path.exists(os.path.join(save_path, pdb2sas_dat_name)))
 
                     if output_exists:
                         break
@@ -13604,10 +13599,10 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                 self.executor = ProcessPoolExecutor(nprocs)
 
             for model in models:
-                pdb2mrc_future = self.executor.submit(RAWAPI.pdb2mrc,
+                pdb2sas_future = self.executor.submit(RAWAPI.pdb2sas,
                     [model,], **settings)
 
-                self.calc_futures.append(pdb2mrc_future)
+                self.calc_futures.append(pdb2sas_future)
 
             self.running_timer.Start(1000)
 
@@ -13689,7 +13684,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         return crysol_settings
 
-    def _get_pdb2mrc_settings(self):
+    def _get_pdb2sas_settings(self):
 
         prefix = None
         qmax = self.qmax.GetValue()
@@ -13702,7 +13697,12 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         side = self.side.GetValue()
         nsamples = self.nsamples.GetValue()
 
-        pdb2mrc_settings = {
+        if units.startswith('1'):
+            units = 'a'
+        elif units.startswith('2'):
+            units = 'nm'
+
+        pdb2sas_settings = {
             'prefix'            : prefix,
             'qmax'              : qmax,
             'units'             : units,
@@ -13715,7 +13715,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
             'nsamples'          : nsamples,
             }
 
-        return pdb2mrc_settings
+        return pdb2sas_settings
 
     def _get_models(self):
         models = []
@@ -13758,7 +13758,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         if self.calc_type == 'CRYSOL':
             theory, residuals, data, params = self._process_crysol_results()
         elif self.calc_type == 'PDB2SAS':
-            theory, residuals, data, params = self._process_pdb2mrc_results()
+            theory, residuals, data, params = self._process_pdb2sas_results()
 
         if len(theory) > 0:
             self.send_to_plot(theory, residuals, data)
@@ -13850,7 +13850,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         return theory_list, residual_list, data_list, params
 
-    def _process_pdb2mrc_results(self):
+    def _process_pdb2sas_results(self):
         results = [future.result() for future in self.calc_futures]
 
         theory_list = []
@@ -13860,65 +13860,64 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         for res in results:
             for key, value in res.items():
-                name = key
-                pdb2mrc = value[0]
-
                 param_list = []
 
-                pdb2mrc_ref_data = self.pdb2mrc_ref[key]
+                pdb2sas_ref_data = self.pdb2sas_ref[key]
 
-                pdb_fn = os.path.basename(pdb2mrc.pdb.filename)
+                if pdb2sas_ref_data[1] is None:
+                    profiles = [value[0]]
+                else:
+                    profiles = [value[1]]
 
-                param_list.append(pdb_fn)
+                param_list.append(pdb2sas_ref_data[0])
 
-                if pdb2mrc_ref_data[1] is not None:
-                    #here since we have data we will use the fit attribute with experimental errors
-                    theory = SASM.SASM(
-                        i=pdb2mrc.fit[:,3]/pdb2mrc.exp_scale_factor, #scale to the data for plotting
-                        q=pdb2mrc.fit[:,0],
-                        err=pdb2mrc.fit[:,2]/pdb2mrc.exp_scale_factor,
-                        parameters={"filename":pdb_fn})
-                    data_fn = os.path.basename(pdb2mrc.data_filename)
-                    exp_data = SASM.SASM(
-                        i=pdb2mrc.fit[:,1]/pdb2mrc.exp_scale_factor,
-                        q=pdb2mrc.fit[:,0],
-                        err=pdb2mrc.fit[:,2]/pdb2mrc.exp_scale_factor,
-                        parameters={"filename":data_fn})
+                theory_list.extend(profiles)
 
-                    # print(key, pdb_fn, data_fn)
+                if pdb2sas_ref_data[1] is not None:
+                    sasm = profiles[0]
 
-                    diff = SASProc.subtract(exp_data, theory, forced=True,
+                    exp_data = pdb2sas_ref_data[1]
+
+                    if np.round(sasm.getQ()[0]*10,4) == np.round(exp_data.getQ()[0], 4):
+                        profile = exp_data.copy_no_metadata()
+                        profile.scaleRelativeQ(0.1)
+
+                    else:
+                        profile = exp_data
+
+                    diff = SASProc.subtract(profile, sasm, forced=True,
                         copy_params=False)
-                    temp_p = SASM.SASM(exp_data.getErr(), exp_data.getQ(),
-                        exp_data.getErr(), exp_data.getAllParameters())
+                    temp_p = SASM.SASM(profile.getErr(), profile.getQ(),
+                        profile.getErr(), profile.getAllParameters())
                     residual = SASProc.divide(diff, temp_p, forced=True,
                         copy_params=False)
 
                     residual_list.append([residual.getQ(), residual.getI(), key])
 
-                    data_list.append(exp_data)
+                    if profile not in data_list:
+                        data_list.append(profile)
 
                     param_list.append(exp_data.getParameter('filename'))
 
                 else:
-                    #here since we don't have data we will use the simulated (terrible) errors from pdb2mrc
-                    theory = SASM.SASM(
-                        i=pdb2mrc.Iq_calc[:,1],
-                        q=pdb2mrc.Iq_calc[:,0],
-                        err=pdb2mrc.Iq_calc[:,2],
-                        parameters={"filename":pdb_fn})
                     param_list.append('')
 
-                theory_list.append(theory)
+                dd = profiles[0].getParameter('analysis')['denss']
+                rg = dd['Rg']
+                ex_vol = dd['Excluded_volume']
+                param_list.append(f'{rg:.2f}')
+                param_list.append(f'{ex_vol:.2f}')
 
-                param_list.append(f'{pdb2mrc.Rg:.2f}')
-                param_list.append(f'{pdb2mrc.exvol_in_A3:.2f}')
-                if pdb2mrc_ref_data[1] is not None:
-                    param_list.append(f'{pdb2mrc.chi2:.3f}')
+                if 'Chi_squared' in dd:
+                    chi2 = dd['Chi_squared']
+                    param_list.append(f'{chi2:.3f}')
                 else:
                     param_list.append('')
-                param_list.append(f'{pdb2mrc.params[0]:.4f}') #solvent density
-                param_list.append(f'{pdb2mrc.params[1]:.4f}') #shell contrast
+
+                sol_dens = dd['Solvent_density']
+                contrast = dd['Hydration_shell_contrast']
+                param_list.append(f'{sol_dens:.4f}')
+                param_list.append(f'{contrast:.4f}')
 
                 params.append(param_list)
 
@@ -13953,13 +13952,13 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         if self.calc_type == 'CRYSOL':
             self._abort_crysol()
         elif self.calc_type == 'PDB2SAS':
-            self._abort_pdb2mrc()
+            self._abort_pdb2sas()
 
     def _abort_crysol(self):
         if self.executor is not None:
             self.executor.shutdown(cancel_futures=True)
 
-    def _abort_pdb2mrc(self):
+    def _abort_pdb2sas(self):
         if self.executor is not None:
             self.executor.shutdown(cancel_futures=True)
 
@@ -14167,7 +14166,7 @@ class TheoreticalList(wx.ListCtrl, wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin
         if self.calc_type == 'CRYSOL':
             filename = 'crysol_results.csv'
         if self.calc_type == 'PDB2SAS':
-            filename = 'pdb2mrc_results.csv'
+            filename = 'pdb2sas_results.csv'
 
         dialog = wx.FileDialog(self, message=("Please select save directory "
             "and enter save file name"), style=wx.FD_SAVE, defaultDir=path,
