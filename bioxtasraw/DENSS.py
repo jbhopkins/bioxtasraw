@@ -50,6 +50,7 @@ import threading
 import datetime, time
 from time import sleep
 import warnings
+import copy
 
 import pickle
 
@@ -3563,6 +3564,13 @@ class PDB2MRC(object):
         self.ignore_warnings = ignore_warnings
         fname_nopath = os.path.basename(self.pdb.filename)
         self.pdb_basename, ext = os.path.splitext(fname_nopath)
+
+        self.Iq_exp = None
+        self.q_exp = None
+        self.I_exp = None
+        self.sigq_exp = None
+        self.fit_params = False
+
         if logger is not None:
             self.logger = logger
         else:
@@ -3944,33 +3952,54 @@ class PDB2MRC(object):
             if Iq_exp.shape[1] < 3:
                 print("Not enough columns (data must have 3 columns: q, I, errors).")
                 exit()
-            Iq_exp = Iq_exp[~np.isnan(Iq_exp).any(axis = 1)]
-            #get rid of any data points equal to zero in the intensities or errors columns
-            idx = np.where((Iq_exp[:,1]!=0)&(Iq_exp[:,2]!=0))
-            Iq_exp = Iq_exp[idx]
-            if self.data_units == "nm":
-                Iq_exp[:,0] *= 0.1
-            Iq_exp_orig = np.copy(Iq_exp)
-            if self.n1 is None:
-                self.n1 = 0
-            if self.n2 is None:
-                self.n2 = len(Iq_exp[:,0])
-            if self.qmin4fitting is not None:
-                #determine n1 value associated with qmin4fitting
-                self.n1 = find_nearest_i(Iq_exp[:,0],self.qmin4fitting)
-            if self.qmax4fitting is not None:
-                #determine n2 value associated with qmax4fitting
-                self.n2 = find_nearest_i(Iq_exp[:,0],self.qmax4fitting)
-            self.Iq_exp = Iq_exp[self.n1:self.n2]
-            self.q_exp = self.Iq_exp[:,0]
-            self.I_exp = self.Iq_exp[:,1]
-            self.sigq_exp = self.Iq_exp[:,2]
+
+            self._process_input_data(Iq_exp)
         else:
             self.Iq_exp = None
             self.q_exp = None
             self.I_exp = None
             self.sigq_exp = None
             self.fit_params = False
+
+        if not self.quiet: print('Data loaded.')
+
+        self.logger.info('Data filename: %s', self.data_filename)
+        self.logger.info('First data point: %s', self.n1)
+        self.logger.info('Last data point: %s', self.n2)
+
+    def add_exp_data(self, q, I, Ierr, data_name, units=None):
+        if units is not None:
+            self.data_units = units
+
+        self.data_filename = data_name
+
+        Iq_exp = np.column_stack((q, I, Ierr))
+
+        self._process_input_data(Iq_exp)
+
+
+    def _process_input_data(self, Iq_exp):
+        Iq_exp = Iq_exp[~np.isnan(Iq_exp).any(axis = 1)]
+        #get rid of any data points equal to zero in the intensities or errors columns
+        idx = np.where((Iq_exp[:,1]!=0)&(Iq_exp[:,2]!=0))
+        Iq_exp = Iq_exp[idx]
+        if self.data_units == "nm":
+            Iq_exp[:,0] *= 0.1
+        Iq_exp_orig = np.copy(Iq_exp)
+        if self.n1 is None:
+            self.n1 = 0
+        if self.n2 is None:
+            self.n2 = len(Iq_exp[:,0])
+        if self.qmin4fitting is not None:
+            #determine n1 value associated with qmin4fitting
+            self.n1 = find_nearest_i(Iq_exp[:,0],self.qmin4fitting)
+        if self.qmax4fitting is not None:
+            #determine n2 value associated with qmax4fitting
+            self.n2 = find_nearest_i(Iq_exp[:,0],self.qmax4fitting)
+        self.Iq_exp = Iq_exp[self.n1:self.n2]
+        self.q_exp = self.Iq_exp[:,0]
+        self.I_exp = self.Iq_exp[:,1]
+        self.sigq_exp = self.Iq_exp[:,2]
 
         #save an array of indices containing only desired q range for speed
         if self.data_filename:
@@ -3985,11 +4014,6 @@ class PDB2MRC(object):
             self.I_exp = self.I_exp[idx]
             self.sigq_exp = self.sigq_exp[idx]
             self.Iq_exp = self.Iq_exp[idx]
-        if not self.quiet: print('Data loaded.')
-
-        self.logger.info('Data filename: %s', self.data_filename)
-        self.logger.info('First data point: %s', self.n1)
-        self.logger.info('Last data point: %s', self.n2)
 
     def initialize_penalties(self, penalty_weight=None):
         #get initial chi2 without fitting
@@ -5045,6 +5069,57 @@ def doDIFT(Iq, D, filename, first=None, last=None, qc=None, alpha=0.0,
     iftm = SASM.IFTM(pr, r, perr, i, q, err, fit, results, fit_extrap, q_extrap)
 
     return iftm
+
+def pdb2mrc_to_sasm(pdb2mrc):
+    pdb_fn = os.path.basename(pdb2mrc.pdb.filename)
+
+    calc_results = {
+        'Rg'                        : pdb2mrc.Rg,
+        'Excluded_volume'           : pdb2mrc.exvol_in_A3,
+        'Solvent_density'           : pdb2mrc.params[0],
+        'Hydration_shell_contrast'  : pdb2mrc.params[1],
+    }
+
+    if pdb2mrc.q_exp is not None:
+        #here since we have data we will use the fit attribute with experimental errors
+
+        calc_results['Chi_squared'] = pdb2mrc.chi2
+
+        fit = SASM.SASM(
+            i=pdb2mrc.fit[:,3]/pdb2mrc.exp_scale_factor, #scale to the data for plotting
+            q=pdb2mrc.fit[:,0],
+            err=pdb2mrc.fit[:,2]/pdb2mrc.exp_scale_factor,
+            parameters={"filename":pdb_fn})
+
+        analysis = fit.getParameter('analysis')
+        analysis['denss'] = calc_results
+        fit.setParameter('analysis', analysis)
+
+        theory = SASM.SASM(
+            i=pdb2mrc.fit[:,3], #Absolute scale
+            q=pdb2mrc.fit[:,0],
+            err=pdb2mrc.fit[:,2],
+            parameters={"filename":pdb_fn})
+
+        theory.setParameter('analysis',
+            copy.deepcopy(fit.getParameter('analysis')))
+
+    else:
+        #here since we don't have data we will use the simulated (terrible) errors from pdb2mrc
+        theory = SASM.SASM(
+            i=pdb2mrc.Iq_calc[:,1],
+            q=pdb2mrc.Iq_calc[:,0],
+            err=pdb2mrc.Iq_calc[:,2],
+            parameters={"filename":pdb_fn})
+
+        analysis = theory.getParameter('analysis')
+        analysis['denss'] = calc_results
+        theory.setParameter('analysis', analysis)
+
+
+        fit = None
+
+    return theory, fit
 
 def runDenss(q, I, sigq, D, qraw, iraw, sigqraw, prefix, path, denss_settings,
     avg_model=None, comm_list=None, my_lock=None, thread_num_q=None, wx_queue=None,
