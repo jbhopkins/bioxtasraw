@@ -5580,6 +5580,7 @@ def pdb2sas(models,
             'side'              : side,
             'nsamples'          : nsamples,
             'save_output'       : save_output,
+            'abort_event'       : abort_event,
             }
     else:
         pdb2mrc_settings = {
@@ -5594,6 +5595,7 @@ def pdb2sas(models,
             'side'              : settings.get('pdb2mrcSide'),
             'nsamples'          : settings.get('pdb2mrcNsamples'),
             'save_output'       : save_output,
+            'abort_event'       : abort_event,
             }
 
     pdb2mrc_output_exts = ['dat', '.fit', '.pdb', '.mrc', '.log']
@@ -5701,7 +5703,7 @@ def pdb2sas(models,
                     else:
                         path_prefix = prefix
 
-                    pdb2mrc_i.save_Iq_calc(prefix=path_prefix)
+                    pdb2mrc.save_Iq_calc(prefix=path_prefix)
 
             if abort_event.is_set():
                         break
