@@ -5014,6 +5014,17 @@ class FittingPanel(scrolled.ScrolledPanel):
 
         return sizer
 
+class DenssGeneralPanel(scrolled.ScrolledPanel):
+
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
+
 class DenssPanel(scrolled.ScrolledPanel):
 
     def __init__(self, parent, id, raw_settings, *args, **kwargs):
@@ -5210,6 +5221,74 @@ class DenssPanel(scrolled.ScrolledPanel):
 
         return top_sizer
 
+
+class DIFTPanel(scrolled.ScrolledPanel):
+
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
+
+        self.raw_settings = raw_settings
+
+        self.update_keys = ['diftExtrapolate',
+            ]
+
+        self.options = (('Extrapolate fit to high q (recommended)',
+            raw_settings.getId('diftExtrapolate'), 'bool'),
+            )
+
+        layoutSizer = self._createLayout(self)
+
+        self.SetSizer(layoutSizer)
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _createLayout(self, parent):
+        default_box = wx.StaticBox(parent, wx.ID_ANY, 'Settings')
+        default_sizer = wx.StaticBoxSizer(default_box, wx.VERTICAL)
+
+        for item in self.options:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(default_box, -1, label)
+                ctrl = wx.Choice(default_box, myId, choices = item[3])
+
+                sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(2))
+                sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
+
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(default_box, -1, label)
+                ctrl = wx.TextCtrl(default_box, myId, '', size=self._FromDIP((475,-1)),
+                    style = wx.TE_PROCESS_ENTER)
+
+                sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(2))
+                sizer.Add(ctrl, 1, wx.ALL|wx.EXPAND, border=self._FromDIP(2))
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(default_box, myId, label)
+                sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
+
+            default_sizer.Add(sizer, 0)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(default_sizer)
+
+        return top_sizer
 
 
 def ExtractFilenameAndFrameNumber(filename, frameregexp, nameregexp):
@@ -5554,7 +5633,9 @@ class OptionsDialog(wx.Dialog):
             [ (10,0,0), wx.Window.NewControlId(), "Weighted Average", WeightedAveragePanel],
             [ (11,0,0), wx.Window.NewControlId(), "Similarity Testing", SimilarityPanel],
             [ (12,0,0), wx.Window.NewControlId(), "Fitting", FittingPanel],
-            [ (13,0,0), wx.Window.NewControlId(), "DENSS", DenssPanel],
+            [ (13,0,0), wx.Window.NewControlId(), "DENSS", DenssGeneralPanel],
+            [ (13,1,0), wx.Window.NewControlId(), "DENSS (Ab initio)", DenssPanel],
+            [ (13,2,0), wx.Window.NewControlId(), "DENSS IFT (DIFT)", DIFTPanel],
             ]
 
         self._raw_settings = raw_settings
@@ -5731,6 +5812,10 @@ class OptionsDialog(wx.Dialog):
         for bift_window in main_frame.bift_frames:
             if bift_window:
                 bift_window.updateBIFTSettings()
+
+        for dift_window in main_frame.dift_frames:
+            if dift_window:
+                dift_window.updateDIFTSettings()
 
         # Load flatfield and dark images
 

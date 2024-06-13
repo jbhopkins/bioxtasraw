@@ -472,7 +472,7 @@ class RawGuiSettings(object):
                 'denssGPU'              : [False, get_id(), 'bool'],
 
                 #DIFT settings
-                'diftInitialAlpha'      : [0.0, get_id(), 'float'],
+                # 'diftInitialAlpha'      : [0.0, get_id(), 'float'],
                 'diftExtrapolate'       : [True, get_id(), 'bool'],
 
                 #File definitions
