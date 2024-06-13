@@ -13449,7 +13449,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                 if output_exists:
                     msg = ("Some output files already exist and will be "
                         "overwritten. Do you want continue?")
-                    dialog = wx.MessageDialog(self, msg, 'Invalid save path',
+                    dialog = wx.MessageDialog(self, msg, 'Overwrite existing files?',
                         style=wx.YES_NO|wx.NO_DEFAULT)
                     res = dialog.ShowModal()
                     dialog.Destroy()
@@ -13543,7 +13543,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                 if output_exists:
                     msg = ("Some output files already exist and will be "
                         "overwritten. Do you want continue?")
-                    dialog = wx.MessageDialog(self, msg, 'Invalid save path',
+                    dialog = wx.MessageDialog(self, msg, 'Overwrite existing files?',
                         style=wx.YES_NO|wx.NO_DEFAULT)
                     res = dialog.ShowModal()
                     dialog.Destroy()

@@ -3853,7 +3853,7 @@ class PDB2MRC(object):
             self.rho_exvol *= ne/self.rho_exvol.sum() #put in electron count units
         if not self.quiet: print('Finished excluded volume.')
 
-    def calculate_hydration_shell(self):
+    def calculate_hydration_shell(self, abort_event=None):
         if not self.quiet: print('Calculating hydration shell...')
         self.r_water = r_water = 1.4
         uniform_shell = calc_uniform_shell(self.pdb,self.x,self.y,self.z,thickness=self.r_water*2, distance=self.r_water)
@@ -3881,9 +3881,19 @@ class PDB2MRC(object):
             protein_idx = pdb2support_fast(self.pdb,self.x,self.y,self.z,radius=self.pdb.vdW,probe=0)
             protein_rw_idx = pdb2support_fast(self.pdb,self.x,self.y,self.z,radius=self.pdb.vdW,probe=self.r_water-self.dx/2)
             if not self.quiet: print('Calculating dist transform...')
+
+            if abort_event is not None:
+                if abort_event.is_set():
+                    return
+
             #calculate the distance of each voxel outside the particle to the surface of the protein+water support
             dist1 = np.zeros(self.x.shape)
             dist1 = ndimage.distance_transform_edt(protein_rw_idx)
+
+            if abort_event is not None:
+                if abort_event.is_set():
+                    return
+
             #now calculate the distance of each voxel inside the protein+water support by inverting it, but first add one voxel
             protein_rw_idx2 = ndimage.binary_dilation(protein_rw_idx)
             dist2 = np.zeros(self.x.shape)
@@ -5432,6 +5442,7 @@ def run_pdb2mrc(
     side=None,
     nsamples=None,
     save_output=None,
+    abort_event = None,
     ):
     #based on denss.pdb2mrc.py
 
@@ -5445,10 +5456,6 @@ def run_pdb2mrc(
     # logging.info('Command: %s', ' '.join(sys.argv))
     # logging.info('DENSS Version: %s', __version__)
     # logging.info('PDB filename: %s', pdb_fname)
-
-    if exp_fname is not None:
-        exp_fname_nopath = os.path.basename(exp_fname)
-        exp_basename, exp_ext = os.path.splitext(exp_fname_nopath)
 
     #RAW returns 'None' the string or '' empty string, convert to proper None for PDB2MRC
     qmax = None if (qmax == 'None') | (qmax == '') else qmax
@@ -5523,12 +5530,33 @@ def run_pdb2mrc(
         quiet=True, #for RAW we'll suppress all the print statements
         )
 
+    if abort_event.is_set():
+        return None
+
     pdb2mrc.scale_radii()
+    if abort_event.is_set():
+        return None
+
     pdb2mrc.make_grids()
+    if abort_event.is_set():
+        return None
+
     pdb2mrc.calculate_global_B()
+    if abort_event.is_set():
+        return None
+
     pdb2mrc.calculate_invacuo_density()
+    if abort_event.is_set():
+        return None
+
     pdb2mrc.calculate_excluded_volume()
-    pdb2mrc.calculate_hydration_shell()
+    if abort_event.is_set():
+        return None
+
+    pdb2mrc.calculate_hydration_shell(abort_event)
+    if abort_event.is_set():
+        return None
+
     pdb2mrc.calculate_structure_factors()
 
     return pdb2mrc

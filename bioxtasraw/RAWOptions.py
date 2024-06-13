@@ -5291,6 +5291,92 @@ class DIFTPanel(scrolled.ScrolledPanel):
         return top_sizer
 
 
+class PDB2SASPanel(scrolled.ScrolledPanel):
+
+    def __init__(self, parent, id, raw_settings, *args, **kwargs):
+
+        if 'style' in kwargs:
+            kwargs['style'] = kwargs['style'] |wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        else:
+            kwargs['style'] = wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER
+        scrolled.ScrolledPanel.__init__(self, parent, id, *args, **kwargs)
+        self.SetScrollRate(20,20)
+
+        self.raw_settings = raw_settings
+
+        self.update_keys = ['pdb2mrcQmax', 'pdb2mrcUnit', 'pdb2mrcSolvDensity',
+            'pdb2mrcHydrDensity', 'pdb2mrcFitSolvent', 'pdb2mrcFitShell',
+            'pdb2mrcVoxel', 'pdb2mrcSide', 'pdb2mrcNsamples',
+            ]
+
+        unit_choices = ['1 - 1/A, q=4pi*sin(th)/l)', '2 - 1/nm, q=4pi*sin(th)/l']
+
+        self.options = (
+            ('Maximum q:', raw_settings.getId('pdb2mrcQmax'), 'text'),
+            ('q unit:', raw_settings.getId('pdb2mrcUnit'), 'choice', unit_choices),
+            ('Solvent density [e/A^3]', raw_settings.getId('pdb2mrcSolvDensity'),
+                'float'),
+            ('Hydration shell contrast [e/A^3]:',
+                raw_settings.getId('pdb2mrcHydrDensity'), 'float'),
+            ('Fit solvent density:', raw_settings.getId('pdb2mrcFitSolvent'),
+                'bool'),
+            ('Fit hydration shell contrast:',
+                raw_settings.getId('pdb2mrcFitShell'), 'bool'),
+            ('Voxel size (A):', raw_settings.getId('pdb2mrcVoxel'), 'text'),
+            ('Side (A):', raw_settings.getId('pdb2mrcSide'), 'text'),
+            ('Number of samples (real space):',
+                raw_settings.getId('pdb2mrcNsamples'), 'int'),
+            )
+
+        layoutSizer = self._createLayout(self)
+
+        self.SetSizer(layoutSizer)
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _createLayout(self, parent):
+        default_box = wx.StaticBox(parent, wx.ID_ANY, 'Default Settings')
+        default_sizer = wx.StaticBoxSizer(default_box, wx.VERTICAL)
+
+        for item in self.options:
+            label = item[0]
+            myId = item[1]
+            itemType = item[2]
+
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+            if itemType == 'choice':
+                labeltxt = wx.StaticText(default_box, -1, label)
+                ctrl = wx.Choice(default_box, myId, choices = item[3])
+
+                sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(2))
+                sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
+
+            elif itemType == 'text' or itemType == 'int' or itemType =='float':
+                labeltxt = wx.StaticText(default_box, -1, label)
+                ctrl = wx.TextCtrl(default_box, myId, '', size=self._FromDIP((100,-1)),
+                    style = wx.TE_PROCESS_ENTER)
+
+                sizer.Add(labeltxt, 0, wx.ALL, border=self._FromDIP(2))
+                sizer.Add(ctrl, 1, wx.ALL|wx.EXPAND, border=self._FromDIP(2))
+
+            elif itemType == 'bool':
+                ctrl = wx.CheckBox(default_box, myId, label)
+                sizer.Add(ctrl, 0, wx.ALL, border=self._FromDIP(2))
+
+            default_sizer.Add(sizer, 0)
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(default_sizer)
+
+        return top_sizer
+
+
 def ExtractFilenameAndFrameNumber(filename, frameregexp, nameregexp):
 
     frame = 'No Match'
@@ -5636,6 +5722,7 @@ class OptionsDialog(wx.Dialog):
             [ (13,0,0), wx.Window.NewControlId(), "DENSS", DenssGeneralPanel],
             [ (13,1,0), wx.Window.NewControlId(), "DENSS (Ab initio)", DenssPanel],
             [ (13,2,0), wx.Window.NewControlId(), "DENSS IFT (DIFT)", DIFTPanel],
+            [ (13,3,0), wx.Window.NewControlId(), "PDB2SAS", PDB2SASPanel],
             ]
 
         self._raw_settings = raw_settings
