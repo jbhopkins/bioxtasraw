@@ -4539,10 +4539,48 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
 
     crysol_output_exts = ['.abs', '.alm', '.int', '.log']
 
+    timeout = 5
+    start = time.time()
+
+    if prefix is not None:
+        if exp_fnames is not None:
+            while not os.path.exists(os.path.join(output_dir,
+                '{}.fit'.format(prefix))):
+                time.sleep(0.1)
+                if time.time() - start > timeout:
+                    break
+        else:
+            while not os.path.exists(os.path.join(output_dir,
+                '{}.int'.format(prefix))):
+                time.sleep(0.1)
+                if time.time() - start > timeout:
+                    break
+
+    else:
+        if exp_fnames is not None:
+            name = '{}_{}'.format(os.path.split(os.path.splitext(models[-1])[0])[1],
+                os.path.split(os.path.splitext(exp_fnames[-1])[0])[1])
+
+            while not os.path.exists(os.path.join(output_dir,
+                '{}.fit'.format(name))):
+                time.sleep(0.1)
+                if time.time() - start > timeout:
+                    break
+        else:
+            name = os.path.split(os.path.splitext(models[-1])[0])[1]
+
+            while not os.path.exists(os.path.join(output_dir,
+                '{}.int'.format(name))):
+                time.sleep(0.1)
+                if time.time() - start > timeout:
+                    break
+
+
     if not abort_event.is_set():
         crysol_results = {}
 
         if exp_fnames is not None:
+
             if prefix is not None:
                 data, fit = SASFileIO.loadFitFile(os.path.join(output_dir,
                     '{}.fit'.format(prefix)))
