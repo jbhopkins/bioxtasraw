@@ -3791,7 +3791,8 @@ class ATSASDammix(scrolled.ScrolledPanel):
 
         self.update_keys = ['dammifProgram', 'dammifMode', 'dammifSymmetry',
             'dammifAnisometry', 'dammifUnit', 'dammifReconstruct',
-            'dammifDamaver', 'dammifDamclust', 'dammifRefine']
+            'dammifDamaver', 'dammifDamclust', 'dammifRefine',
+            'dammifModelFormat']
 
         modeChoices = ['Fast', 'Slow', 'Custom']
 
@@ -3803,6 +3804,8 @@ class ATSASDammix(scrolled.ScrolledPanel):
         anisometryChoices = ['Unknown', 'Prolate', 'Oblate']
 
         programChoices = ['DAMMIF', 'DAMMIN']
+
+        modelChoices = ['cif', 'pdb']
 
         self.default_options = (
             ("Program:", raw_settings.getId('dammifProgram'), 'choice',
@@ -3823,8 +3826,11 @@ class ATSASDammix(scrolled.ScrolledPanel):
 
         unitChoices = ['Unknown', 'Angstrom', 'Nanometer']
 
-        self.standard_options = (('Units:', raw_settings.getId('dammifUnit'),
-            'choice', unitChoices), None) #stupid, but to keep it a list it needs another item . . .
+        self.standard_options = (
+            ('Units:', raw_settings.getId('dammifUnit'), 'choice', unitChoices),
+            ('Model format:', raw_settings.getId('dammifModelFormat'),
+                'choice', modelChoices),
+            )
 
         layoutSizer = self._createLayout(self)
 
@@ -4434,7 +4440,10 @@ class ATSASDamaver(scrolled.ScrolledPanel):
             'damaverHarmonics',
             'damaverPoints',
             'damaverQmax',
+            'damaverModelFormat'
             ]
+
+        modelChoices = ['cif', 'pdb']
 
         layout_settings = (
             (("Method (ATSAS >=3.1.0):"), raw_settings.getId('damaverMethod'),
@@ -4448,7 +4457,9 @@ class ATSASDamaver(scrolled.ScrolledPanel):
             ('Number of points (NCC method):',
                 raw_settings.getId('damaverPoints'), 'int'),
             ('Maximum q (NCC method):',
-                raw_settings.getId('damaverQmax'), 'float')
+                raw_settings.getId('damaverQmax'), 'float'),
+            ('Model format:', raw_settings.getId('damaverModelFormat'),
+                'choice', modelChoices),
             )
 
         options_sizer = self.createDAMAVEROptions(layout_settings)

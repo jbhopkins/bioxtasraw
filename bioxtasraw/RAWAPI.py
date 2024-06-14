@@ -3159,7 +3159,8 @@ def cormap(profiles, ref_profile=None, correction='Bonferroni', settings=None):
 # Operations on IFTs
 
 def ambimeter(ift, qRg_max=4, save_models='none', save_prefix=None,
-    datadir=None, write_ift=True, filename=None, atsas_dir=None):
+    model_format='cif', datadir=None, write_ift=True, filename=None,
+    atsas_dir=None):
     """
     Evaluates ambiguity of a potential 3D reconstruction from a GNOM IFT (.out
     file) by running Ambimeter from the ATSAS package. Requires separate
@@ -3181,6 +3182,9 @@ def ambimeter(ift, qRg_max=4, save_models='none', save_prefix=None,
         be provided.
     save_prefix: str, optional
         The prefix to use for the saved modes, if any are saved.
+    model_format: str, optional
+        Output model format. Maybe 'pdb' or 'cif'. Default is 'cif'. Only
+        available for ATSAS >= 4.0.
     datadir: str, optional
         The datadir to use for reading a IFT already on disk and saving
         models from ambimeter.
@@ -3218,7 +3222,8 @@ def ambimeter(ift, qRg_max=4, save_models='none', save_prefix=None,
         atsas_dir = __default_settings.get('ATSASDir')
 
     score, categories, evaluation = SASCalc.run_ambimeter_from_ift(ift, atsas_dir,
-        qRg_max, save_models, save_prefix, datadir, write_ift, filename)
+        qRg_max, save_models, model_format, save_prefix, datadir, write_ift,
+        filename)
 
     return score, categories, evaluation
 
@@ -3228,7 +3233,7 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
     constant='', max_bead_count=-1, dam_radius=-1, harmonics=-1, prop_to_fit=-1,
     curve_weight='e', max_steps=-1, max_iters=-1, max_success=-1,
     min_success=-1, T_factor=-1, rg_penalty=-1, center_penalty=-1,
-    loose_penalty=-1, abort_event=None, readback_queue=None):
+    loose_penalty=-1, model_format='cif', abort_event=None, readback_queue=None):
     """
     Creates a bead model (dummy atom) reconstruction using DAMMIF from the ATSAS
     package. Requires a separate installation of the ATSAS package. Function
@@ -3316,6 +3321,9 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
         Center penalty weight. Default is the DAMMIF default.
     loose_penalty: float, optional
         Looseness penalty weight. Default is the DAMMIF default.
+    model_format: str, optional
+        Output model format. Maybe 'pdb' or 'cif'. Default is 'cif'. Only
+        available for ATSAS >= 4.0.
     abort_event: :class:`threading.Event`, optional
         A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
         event is set it will abort the dammin run.
@@ -3377,6 +3385,7 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
             'cenWeight'         : center_penalty,
             'looseWeight'       : loose_penalty,
             'shape'             : expected_shape,
+            'modelFormat'       : model_format,
             }
     else:
         dam_settings = {
@@ -3402,6 +3411,7 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
             'cenWeight'         : settings.get('dammifCenPen'),
             'looseWeight'       : settings.get('dammifLoosePen'),
             'shape'             : settings.get('dammifExpectedShape'),
+            'modelFormat'       : settings.get('dammifModelFormat'),
             }
 
     proc = SASCalc.runDammif(ift_name, prefix, dam_settings, datadir, atsas_dir)
@@ -3440,6 +3450,14 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
             dam_name = os.path.join(datadir, prefix+'-1.pdb')
             _, _, model_data = SASFileIO.loadPDBFile(dam_name)
 
+        elif int(version[0]) >= 4:
+            dam_name = os.path.join(datadir, prefix+'-1.{}'.format(model_format))
+
+            if model_format == 'cif':
+                _, _, model_data = SASFileIO.loadmmCIFFile(dam_name)
+            else:
+                _, _, model_data = SASFileIO.loadPDBFile(dam_name)
+
         else:
             dam_name = os.path.join(datadir, prefix+'-1.cif')
             _, _, model_data = SASFileIO.loadmmCIFFile(dam_name)
@@ -3468,7 +3486,7 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
     harmonics=-1, prop_to_fit=-1, curve_weight='1', max_steps=-1, max_iters=-1,
     max_success=-1, min_success=-1, T_factor=-1, loose_penalty=-1, knots=20,
     sphere_diam=-1, coord_sphere=-1, disconnect_penalty=-1, periph_penalty=1,
-    abort_event=None, readback_queue=None):
+    model_format='cif', abort_event=None, readback_queue=None):
     """
     Creates a bead model (dummy atom) reconstruction using DAMMIN from the ATSAS
     package. Requires a separate installation of the ATSAS package. Function
@@ -3555,6 +3573,9 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
         Disconnectivity penalty weight. Default is DAMMIN default.
     periph_penalty: float, optional
         Peripheral penalty weight. Default is DAMMIN default.
+    model_format: str, optional
+        Output model format. Maybe 'pdb' or 'cif'. Default is 'cif'. Only
+        available for ATSAS >= 4.0.
     abort_event: :class:`threading.Event`, optional
         A :class:`threading.Event` or :class:`multiprocessing.Event`. If this
         event is set it will abort the dammif run.
@@ -3620,6 +3641,7 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
             'damminCurveWeight' : curve_weight,
             'annealSched'       : T_factor,
             'seed'              : random_seed,
+            'modelFormat'       : model_format,
             }
     else:
         dam_settings = {
@@ -3646,6 +3668,7 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
             'damminCurveWeight' : settings.get('damminCurveWeight'),
             'annealSched'       : settings.get('damminAnealSched'),
             'seed'              : random_seed,
+            'modelFormat'       : settings.get('dammifModelFormat'),
             }
 
     proc = SASCalc.runDammin(ift_name, prefix, dam_settings, datadir, atsas_dir)
@@ -3685,6 +3708,15 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
         if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
             dam_name = os.path.join(datadir, prefix+'-1.pdb')
             _, _, model_data = SASFileIO.loadPDBFile(dam_name)
+
+        elif int(version[0]) >= 4:
+            dam_name = os.path.join(datadir, prefix+'-1.{}'.format(model_format))
+
+            if model_format == 'cif':
+                _, _, model_data = SASFileIO.loadmmCIFFile(dam_name)
+            else:
+                _, _, model_data = SASFileIO.loadPDBFile(dam_name)
+
         else:
             dam_name = os.path.join(datadir, prefix+'-1.cif')
             _, _, model_data = SASFileIO.loadmmCIFFile(dam_name)
@@ -3723,8 +3755,8 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
     return chi_sq, rg, dmax, mw, excluded_volume
 
 def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
-    nbeads=5000, method='NSD', lm=5, ns=51, smax=0.5, atsas_dir=None,
-    settings=None, abort_event=None, readback_queue=None):
+    nbeads=5000, method='NSD', lm=5, ns=51, smax=0.5, model_format='cif',
+    atsas_dir=None, settings=None, abort_event=None, readback_queue=None):
     """
     Runs DAMAVER from the ATSAS package on a set of files. Requires a
     separate installation of the ATSAS package. Function blocks until
@@ -3761,6 +3793,9 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
     smax: float, optional
         Maximum scattering angle in 1/A used in NCC mode. Only used in ATSAS
         version >=3.1.0. Default 0.5.
+    model_format: str, optional
+        Output model format. Maybe 'pdb' or 'cif'. Default is 'cif'. Only
+        available for ATSAS >= 4.0.
     atsas_dir: str, optional
         The directory of the atsas programs (the bin directory). If not provided,
         the API uses the auto-detected directory.
@@ -3822,6 +3857,7 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
             'lm'            : lm,
             'ns'            : ns,
             'smax'          : smax,
+            'model_format'  : model_format,
             }
     else:
         damaver_settings = {
@@ -3832,6 +3868,7 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
             'lm'            : settings.get('damaverHarmonics'),
             'ns'            : settings.get('damaverPoints'),
             'smax'          : settings.get('damaverQmax'),
+            'model_format'  : settings.get('damaverModelFormat'),
             }
 
     datadir = os.path.abspath(os.path.expanduser(datadir))

@@ -347,6 +347,7 @@ class RawGuiSettings(object):
                 'dammifRefine'          : [True, get_id(), 'bool'],
                 'dammifProgram'         : ['DAMMIF', get_id(), 'choice'],
                 'dammifExpectedShape'   : ['u', get_id(), 'choice'],
+                'dammifModelFormat'     : ['cif', get_id(), 'choice'],
 
                 #DAMMIN settings that are not included in DAMMIF settings
                 'damminInitial'         : ['S', get_id(), 'choice'], #Initial DAM
@@ -367,6 +368,7 @@ class RawGuiSettings(object):
                 'damaverHarmonics'      : [5, get_id(), 'int'],
                 'damaverPoints'         : [51, get_id(), 'int'],
                 'damaverQmax'           : [0.51, get_id(), 'float'],
+                'damaverModelFormat'    : ['cif', get_id(), 'choice'],
 
                 #CIFSUP and SUPCOMB settings
                 'cifsupMethod'          : ['ICP', get_id(), 'choice'],

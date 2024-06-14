@@ -1759,7 +1759,9 @@ def runDammif(fname, prefix, args, path, atsasDir):
 
         if args['mode'].lower() == 'fast' or args['mode'].lower() == 'slow':
 
-            command = '"%s" --mode=%s --prefix="%s" --unit=%s --symmetry=%s --anisometry=%s' %(dammifDir, args['mode'], prefix, args['unit'], args['sym'], args['anisometry'])
+            command = ('"%s" --mode=%s --prefix="%s" --unit=%s --symmetry=%s '
+                '--anisometry=%s' %(dammifDir, args['mode'], prefix, args['unit'],
+                    args['sym'], args['anisometry']))
 
             if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
                 if args['omitSolvent']:
@@ -1769,6 +1771,13 @@ def runDammif(fname, prefix, args, path, atsasDir):
                 command = command + ' --chained'
             if args['constant'] != '':
                 command = command + ' --constant=%s' %(args['constant'])
+
+            if (int(version[0]) >= 4):
+                command = command + ' --model-format=%s' %(args['modelFormat'])
+                command = command + ' --shape=%s' %(args['shape'])
+
+                if args['maxBead'] and args['maxBead'] >0:
+                    command = command + '--max-bead-count=%s' %(args['maxBead'])
 
             command = command + ' "%s"' %(fname)
 
@@ -1838,6 +1847,9 @@ def runDammif(fname, prefix, args, path, atsasDir):
 
                     elif previous_line.find('Output file prefix?') > -1:
                         proc.stdin.write('%s\r\n' %(prefix)) #Dammif output file prefix, default dammif
+
+                    elif previous_line.find('() cif,') > -1:
+                        proc.stdin.write('%s\r\n' %(args['modelFormat'])) #Dammif output model format, default cif
 
                     elif previous_line.find('Omit output of solvent') > -1:
                         if args['omitSolvent']:
@@ -1952,6 +1964,7 @@ def runDammif(fname, prefix, args, path, atsasDir):
                             proc.stdin.write('%f\r\n' %(args['looseWeight'])) #Maximum number of successes per T step, before T is decrease, defaul 20000
                         else:
                             proc.stdin.write('\r\n')
+
                     elif data.find('Log opened') > -1:
                         dammifStarted = True
 
@@ -1973,7 +1986,7 @@ def runDammif(fname, prefix, args, path, atsasDir):
 
 
 def runDamaver(flist, path, atsasDir, prefix, symmetry='P1', enantiomorphs='YES',
-   nbeads=5000, method='NSD', lm=5, ns=51, smax=0.5):
+   nbeads=5000, method='NSD', lm=5, ns=51, smax=0.5, model_format='cif'):
 
     opsys = platform.system()
 
@@ -1996,6 +2009,9 @@ def runDamaver(flist, path, atsasDir, prefix, symmetry='P1', enantiomorphs='YES'
         if (int(version[0]) == 3 and int(version[1]) >= 1) or int(version[0]) > 3:
             command += ' --method={} --prefix={} --lm={} --ns={} --smax={}'.format(method,
                 prefix, lm, ns, smax)
+
+        if (int(version[0]) >= 4):
+            command = command + ' --model-format=%s' %(model_format)
 
         for item in flist:
             command = command + ' "%s"' %(item)
@@ -2082,13 +2098,22 @@ def runAmbimeter(fname, prefix, args, path, atsasDir):
 
     opsys = platform.system()
 
+    version = getATSASVersion(atsasDir).split('.')
+
     if opsys == 'Windows':
         ambimeterDir = os.path.join(atsasDir, 'ambimeter.exe')
     else:
         ambimeterDir = os.path.join(atsasDir, 'ambimeter')
 
     if os.path.exists(ambimeterDir):
-        command = '"%s" --srg=%s --prefix="%s" --files=%s "%s"' %(ambimeterDir, args['sRg'], prefix, args['files'], fname)
+        command = ('"%s" --srg=%s --prefix="%s" --files=%s'
+            %(ambimeterDir, args['sRg'], prefix, args['files']))
+
+        if int(version[0]) >= 4:
+            if 'modelFormat' in args:
+                command = command + ' --model-format=%s' %(args['modelFormat'])
+
+        command = command + ' "%s"' %(fname)
 
         my_env = setATSASEnv(atsasDir)
 
@@ -2098,7 +2123,8 @@ def runAmbimeter(fname, prefix, args, path, atsasDir):
         start = time.time()
         while process.poll() is None:
             if time.time()-start > 120:
-                raise SASExceptions.NoATSASError('Ambimeter timed out. Try running it from the command line to diagnose this problem.')
+                raise SASExceptions.NoATSASError(('Ambimeter timed out. Try '
+                    'running it from the command line to diagnose this problem.'))
                 return None
 
         output, error = process.communicate()
@@ -2110,9 +2136,15 @@ def runAmbimeter(fname, prefix, args, path, atsasDir):
             error = str(error, encoding='UTF-8')
 
         lines = output.split('\n')
-        ambiCats = lines[0].split(':')[-1].strip()
-        ambiScore = lines[1].split(':')[-1].strip()
-        ambiEval = lines[2]
+
+        if int(version[0]) >= 4:
+            ambiCats = lines[0].split(':')[-1].strip()
+            ambiScore = lines[2].split(':')[-1].strip()
+            ambiEval = lines[3]
+        else:
+            ambiCats = lines[0].split(':')[-1].strip()
+            ambiScore = lines[1].split(':')[-1].strip()
+            ambiEval = lines[2]
 
         return ambiCats, ambiScore, ambiEval
 
@@ -2157,6 +2189,8 @@ def runDammin(fname, prefix, args, path, atsasDir):
 
     opsys = platform.system()
 
+    version = getATSASVersion(atsasDir).split('.')
+
     if opsys == 'Windows':
         dammifDir = os.path.join(atsasDir, 'dammin.exe')
     else:
@@ -2185,6 +2219,9 @@ def runDammin(fname, prefix, args, path, atsasDir):
 
             if args['seed'] != '':
                 command = command + ' --seed={}'.format(args['seed'])
+
+            if (int(version[0]) >= 4):
+                command = command + ' --model-format=%s' %(args['modelFormat'])
 
             command = command + ' "%s"' %(fname)
 
@@ -2416,7 +2453,8 @@ def runDammin(fname, prefix, args, path, atsasDir):
 
 
 def run_ambimeter_from_ift(ift, atsas_dir, qRg_max=4, save_models='none',
-        save_prefix=None, datadir=None, write_ift=True, filename=None):
+        model_format='cif', save_prefix=None, datadir=None, write_ift=True,
+        filename=None):
     """
     Evaluates ambiguity of a potential 3D reconstruction from a GNOM IFT (.out
     file) by running Ambimeter from the ATSAS package. Requires separate
@@ -2436,6 +2474,9 @@ def run_ambimeter_from_ift(ift, atsas_dir, qRg_max=4, save_models='none',
         ambimeter finds to be similar to the input ift. Default is 'none'.
         If set to 'all' or 'best', save_prefix and datadir parameters must
         be provided.
+    model_format: str, optional
+        Output model format. Maybe 'pdb' or 'cif'. Default is 'cif'. Only
+        available for ATSAS >= 4.0.
     save_prefix: str, optional
         The prefix to use for the saved modes, if any are saved.
     datadir: str, optional
@@ -2493,8 +2534,9 @@ def run_ambimeter_from_ift(ift, atsas_dir, qRg_max=4, save_models='none',
 
     # Run ambimeter
     ambimeter_settings = {
-        'sRg'   : qRg_max,
-        'files' : save_models,
+        'sRg'           : qRg_max,
+        'files'         : save_models,
+        'modelFormat'   : model_format,
         }
 
     ret = runAmbimeter(filename, save_prefix, ambimeter_settings, datadir,

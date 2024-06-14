@@ -2960,13 +2960,15 @@ def loadPDBFile(filename):
             atoms.append([x, y, z])
         elif not line.startswith("TER"):
             header.append(line)
-            if 'atom radius' in line.lower() or 'packing radius' in line.lower() or 'atomic radius' in line.lower():
+            if ('atom radius' in line.lower() or 'packing radius' in line.lower()
+                or 'atomic radius' in line.lower()):
                 useful_params['atom_radius'] = str(float(line.split(':')[-1].strip()))
             elif 'excluded dam volume' in line.lower() or 'average excluded volume' in line.lower():
                 useful_params['excluded_volume'] = str(float(line.split(':')[-1].strip()))
             elif 'filtered volume' in line.lower():
                 useful_params['excluded_volume'] = str(float(line.split(':')[-1].strip()))
-            elif 'maximum diameter' in line.lower() or 'maximum phase diameter' in line.lower():
+            elif ('maximum diameter' in line.lower() or 'maximum phase diameter' in line.lower()
+                or 'maximum distance' in line.lower()):
                 useful_params['dmax'] = str(float(line.split(':')[-1].strip()))
             elif 'radius of gyration' in line.lower():
                 useful_params['rg'] = str(float(line.split(':')[-1].strip()))
@@ -4849,7 +4851,7 @@ def saveDammixData(filename, ambi_data, nsd_data, res_data, clust_num, clist_dat
 
 
     body_string = body_string + '\n# Individual model results\n'
-    body_string = body_string + '# Model,Chi^2,Rg,Dmax,Excluded_Vol,Est_Protein_MW,Mean_NSD\n'
+    body_string = body_string + '# Model,Chi^2,Rg,Dmax,Excluded_Vol,Est_Protein_MW,Mean_NSD,DA_radius\n'
     for item in model_data:
         body_string =  body_string + '%s\n' %(','.join(map(str, item)))
 

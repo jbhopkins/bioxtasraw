@@ -37,7 +37,6 @@ def test_dammif(gi_gnom_ift, temp_directory):
     assert os.path.exists(os.path.join(temp_directory, 'dammif.fir'))
     assert os.path.exists(os.path.join(temp_directory, 'dammif.in'))
 
-
 @pytest.mark.atsas
 @pytest.mark.slow
 def test_dammif_interactive(gi_gnom_ift, temp_directory):

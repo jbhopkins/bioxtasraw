@@ -5722,6 +5722,7 @@ class DammifRunPanel(wx.Panel):
         self.align_file_name = None
 
         self.model_ext = self.dammif_frame.model_ext
+        self.damaver_model_ext = self.model_ext
 
     def onStartButton(self, evt):
         #Set the dammif settings
@@ -5754,6 +5755,19 @@ class DammifRunPanel(wx.Panel):
         refine = refine_window.GetValue()
 
         align = self.align_result.GetValue()
+
+
+        if int(self.dammif_frame.atsas_version.split('.')[0]) >= 4:
+            if program == 'DAMMIN' and self.dammif_settings['mode'] == 'Custom':
+                self.model_ext = '.cif'
+                self.damaver_model_ext = '.'+self.dammif_settings['damaver_modelf']
+            else:
+                self.model_ext = '.'+self.dammif_settings['dammif_modelf']
+                self.damaver_model_ext = '.'+self.dammif_settings['damaver_modelf']
+
+        else:
+            self.damaver_model_ext = self.model_ext
+
 
         if len(prefix)>30:
             msg = ("Warning: The file prefix '{}'' is too long (>30 characters). It "
@@ -5872,16 +5886,16 @@ class DammifRunPanel(wx.Panel):
                     damaver_names.append(os.path.split(name)[1])
             else:
                 damaver_names = [
-                    prefix+'_damfilt' + self.model_ext,
+                    prefix+'_damfilt' + self.damaver_model_ext,
                     prefix+'_damsel.log',
-                    prefix+'_damstart' + self.model_ext,
+                    prefix+'_damstart' + self.damaver_model_ext,
                     prefix+'_damsup.log',
-                    prefix+'_damaver' + self.model_ext,
-                    'damfilt' + self.model_ext,
+                    prefix+'_damaver' + self.damaver_model_ext,
+                    'damfilt' + self.damaver_model_ext,
                     'damsel.log',
-                    'damstart' + self.model_ext,
+                    'damstart' + self.damaver_model_ext,
                     'damsup.log',
-                    'damaver' + self.model_ext
+                    'damaver' + self.damaver_model_ext
                     ]
 
             for item in damaver_names:
@@ -5945,6 +5959,11 @@ class DammifRunPanel(wx.Panel):
                     elif result == wx.ID_YESTOALL:
                         yes_to_all = True
 
+                    os.remove(os.path.join(path, item))
+
+                elif os.path.exists(os.path.join(path, item)) and yes_to_all:
+                    os.remove(os.path.join(path, item))
+
             self.dammif_ids['damclust'] = self.NewControlId()
             text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['damclust'], '',
                 style = wx.TE_MULTILINE | wx.TE_READONLY)
@@ -5960,15 +5979,15 @@ class DammifRunPanel(wx.Panel):
                 and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
                 or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
                 if nruns > 1 and damaver:
-                    filenames.extend(['{}-global-damfilt_aligned{}'.format(prefix, self.model_ext),
-                        '{}-global-damaver_aligned{}'.format(prefix, self.model_ext)])
+                    filenames.extend(['{}-global-damfilt_aligned{}'.format(prefix, self.damaver_model_ext),
+                        '{}-global-damaver_aligned{}'.format(prefix, self.damaver_model_ext)])
 
                 if nruns > 1 and refine:
                     filenames.append('{}_refined-1_aligned{}'.format(prefix, self.model_ext))
             else:
                 if nruns > 1 and damaver:
-                    filenames.extend(['{}_damfilt_aligned{}'.format(prefix, self.model_ext),
-                        '{}_damaver_aligned{}'.format(prefix, self.model_ext)])
+                    filenames.extend(['{}_damfilt_aligned{}'.format(prefix, self.damaver_model_ext),
+                        '{}_damaver_aligned{}'.format(prefix, self.damaver_model_ext)])
 
                 if nruns > 1 and refine:
                     filenames.append('{}_refined-1_aligned{}'.format(prefix, self.model_ext))
@@ -5995,6 +6014,11 @@ class DammifRunPanel(wx.Panel):
                         return
                     elif result == wx.ID_YESTOALL:
                         yes_to_all = True
+
+                    os.remove(os.path.join(path, item))
+
+                elif os.path.exists(os.path.join(path, item)) and yes_to_all:
+                    os.remove(os.path.join(path, item))
 
             self.dammif_ids['align'] = self.NewControlId()
             text_ctrl = wx.TextCtrl(self.logbook, self.dammif_ids['align'], '',
@@ -6188,9 +6212,9 @@ class DammifRunPanel(wx.Panel):
                 if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
                     and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
                     or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
-                    dam_args['initialDAM'] = prefix+'-global-damstart'+self.model_ext
+                    dam_args['initialDAM'] = prefix+'-global-damstart'+self.damaver_model_ext
                 else:
-                    dam_args['initialDAM'] = prefix+'_damstart'+self.model_ext
+                    dam_args['initialDAM'] = prefix+'_damstart'+self.damaver_model_ext
 
             if refine:
                 wx.CallAfter(self.status.AppendText, 'Starting Refinement\n')
@@ -6216,6 +6240,7 @@ class DammifRunPanel(wx.Panel):
                     'max_success'   : dam_args['maxSuccess'],
                     'min_success'   : dam_args['minSuccess'],
                     'loose_penalty' : dam_args['looseWeight'],
+                    'model_format'  : dam_args['dammif_modelf'],
                     'atsas_dir'     : self.raw_settings.get('ATSASDir'),
                     'abort_event'   : self.abort_event,
                     'readback_queue': readback_queue,
@@ -6232,7 +6257,6 @@ class DammifRunPanel(wx.Panel):
                 api_settings['T_factor'] = dam_args['TFactor']
                 api_settings['rg_penalty'] = dam_args['RgWeight']
                 api_settings['center_penalty'] = dam_args['cenWeight']
-                api_settings['loose_penalty'] = dam_args['looseWeight']
                 api_settings['expected_shape'] = dam_args['shape']
 
                 dammif_thread = threading.Thread(target=RAWAPI.dammif,
@@ -6325,22 +6349,22 @@ class DammifRunPanel(wx.Panel):
             if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
                 and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
                 or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
-                old_files = [os.path.join(path, prefix+'-global-damfilt'+self.model_ext),
-                    os.path.join(path, prefix+'-global-damstart'+self.model_ext),
-                    os.path.join(path, prefix+'-global-damaver'+self.model_ext),
-                    os.path.join(path, prefix+'-global-damfilt_aligned'+self.model_ext),
-                    os.path.join(path, prefix+'-global-damaver_aligned'+self.model_ext),
+                old_files = [os.path.join(path, prefix+'-global-damfilt'+self.damaver_model_ext),
+                    os.path.join(path, prefix+'-global-damstart'+self.damaver_model_ext),
+                    os.path.join(path, prefix+'-global-damaver'+self.damaver_model_ext),
+                    os.path.join(path, prefix+'-global-damfilt_aligned'+self.damaver_model_ext),
+                    os.path.join(path, prefix+'-global-damaver_aligned'+self.damaver_model_ext),
                     os.path.join(path, prefix+'-distances.txt'),
                     os.path.join(path, prefix+'-global-summary.txt'),
                     ]
             else:
-                old_files = [os.path.join(path, prefix+'_damfilt'+self.model_ext),
+                old_files = [os.path.join(path, prefix+'_damfilt'+self.damaver_model_ext),
                     os.path.join(path, prefix+'_damsel.log'),
-                    os.path.join(path, prefix+'_damstart'+self.model_ext),
+                    os.path.join(path, prefix+'_damstart'+self.damaver_model_ext),
                     os.path.join(path, prefix+'_damsup.log'),
-                    os.path.join(path, prefix+'_damaver'+self.model_ext),
-                    os.path.join(path, prefix+'_damfilt_aligned'+self.model_ext),
-                    os.path.join(path, prefix+'_damaver_aligned'+self.model_ext),
+                    os.path.join(path, prefix+'_damaver'+self.damaver_model_ext),
+                    os.path.join(path, prefix+'_damfilt_aligned'+self.damaver_model_ext),
+                    os.path.join(path, prefix+'_damaver_aligned'+self.damaver_model_ext),
                     ]
 
             for item in old_files:
@@ -6348,7 +6372,6 @@ class DammifRunPanel(wx.Panel):
                     os.remove(item)
 
             wx.CallAfter(self.status.AppendText, 'Starting DAMAVER\n')
-
 
             nruns_window = wx.FindWindowById(self.ids['runs'], self)
             nruns = int(nruns_window.GetValue())
@@ -6366,6 +6389,7 @@ class DammifRunPanel(wx.Panel):
                 'lm'                : self.dammif_settings['damaver_lm'],
                 'ns'                : self.dammif_settings['damaver_ns'],
                 'smax'              : self.dammif_settings['damaver_smax'],
+                'model_format'      : self.dammif_settings['damaver_modelf'],
                 'atsas_dir'         : self.raw_settings.get('ATSASDir'),
                 'readback_queue'    : readback_queue,
                 'abort_event'       : self.abort_event,
@@ -6461,9 +6485,9 @@ class DammifRunPanel(wx.Panel):
 
             for i in range(1, nruns+1):
                 old_files.append(os.path.join(path, '{}-1-avr{}'.format(prefix,
-                    self.model_ext)))
+                    self.damaver_model_ext)))
                 old_files.append(os.path.join(path, '{}-1-flt{}'.format(prefix,
-                    self.model_ext)))
+                    self.damaver_model_ext)))
 
             for item in old_files:
                 if os.path.exists(item):
@@ -6566,8 +6590,8 @@ class DammifRunPanel(wx.Panel):
                 filename = os.path.join(path, name)
                 _, rep_model = SASFileIO.loadDamsupLogFile(filename)
 
-                target_filenames.extend(['{}_damaver{}'.format(prefix, self.model_ext),
-                    '{}_damfilt{}'.format(prefix, self.model_ext), rep_model])
+                target_filenames.extend(['{}_damaver{}'.format(prefix, self.damaver_model_ext),
+                    '{}_damfilt{}'.format(prefix, self.damaver_model_ext), rep_model])
 
             if 'refine' in self.dammif_ids:
                 target_filenames.append('refine_{}-1{}'.format(prefix, self.model_ext))
@@ -6581,8 +6605,8 @@ class DammifRunPanel(wx.Panel):
                     if cluster.rep_model not in target_filenames:
                         name, ext = os.path.splitext(cluster.rep_model)
                         target_filenames.append(cluster.rep_model)
-                        target_filenames.append('{}-avr{}'.format(name, self.model_ext))
-                        target_filenames.append('{}-flt{}'.format(name, self.model_ext))
+                        target_filenames.append('{}-avr{}'.format(name, self.damaver_model_ext))
+                        target_filenames.append('{}-flt{}'.format(name, self.damaver_model_ext))
 
             if ('damaver' not in self.dammif_ids and 'refine' not in self.dammif_ids
                 and 'damclust' not in self.dammif_ids):
@@ -6683,8 +6707,8 @@ class DammifRunPanel(wx.Panel):
                 summary_path = os.path.join(path, prefix+'-global-summary.txt')
                 rep_model, _ = SASFileIO.loadDamaverGlobalSummaryFile(summary_path)
 
-                target_filenames.extend(['{}-global-damaver{}'.format(prefix, self.model_ext),
-                    '{}-global-damfilt{}'.format(prefix, self.model_ext), rep_model])
+                target_filenames.extend(['{}-global-damaver{}'.format(prefix, self.damaver_model_ext),
+                    '{}-global-damfilt{}'.format(prefix, self.damaver_model_ext), rep_model])
 
             if 'refine' in self.dammif_ids:
                 target_filenames.append('refine_{}-1{}'.format(prefix, self.model_ext))
@@ -6871,6 +6895,7 @@ class DammifRunPanel(wx.Panel):
             'RgWeight'          : self.raw_settings.get('dammifRgPen'),
             'cenWeight'         : self.raw_settings.get('dammifCenPen'),
             'looseWeight'       : self.raw_settings.get('dammifLoosePen'),
+            'dammif_modelf'     : self.raw_settings.get('dammifModelFormat'),
             'initialDAM'        : self.raw_settings.get('damminInitial'),
             'knots'             : self.raw_settings.get('damminKnots'),
             'damminConstant'    : self.raw_settings.get('damminConstant'),
@@ -6888,6 +6913,7 @@ class DammifRunPanel(wx.Panel):
             'damaver_lm'        : self.raw_settings.get('damaverHarmonics'),
             'damaver_ns'        : self.raw_settings.get('damaverPoints'),
             'damaver_smax'      : self.raw_settings.get('damaverQmax'),
+            'damaver_modelf'    : self.raw_settings.get('damaverModelFormat'),
             'cifsup_method'     : self.raw_settings.get('cifsupMethod'),
             'cifsup_selection'  : self.raw_settings.get('cifsupSelection'),
             'cifsup_lm'         : self.raw_settings.get('cifsupHarmonics'),
@@ -7277,7 +7303,8 @@ class DammifResultsPanel(wx.Panel):
         path_window = wx.FindWindowById(run_window.ids['save'], run_window)
         # path = path_window.GetValue()
 
-        self.model_ext = self.dammif_frame.model_ext
+        self.model_ext = self.dammif_frame.RunPanel.model_ext
+        self.damaver_model_ext = self.dammif_frame.RunPanel.damaver_model_ext
 
         opsys = platform.system()
         if opsys == 'Windows':
@@ -7461,12 +7488,12 @@ class DammifResultsPanel(wx.Panel):
             if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
                 and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
                 or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
-                damaver_name = os.path.join(path, prefix+'-global-damaver'+self.model_ext)
-                damfilt_name = os.path.join(path, prefix+'-global-damfilt'+self.model_ext)
+                damaver_name = os.path.join(path, prefix+'-global-damaver'+self.damaver_model_ext)
+                damfilt_name = os.path.join(path, prefix+'-global-damfilt'+self.damaver_model_ext)
 
             else:
-                damaver_name = os.path.join(path, prefix+'_damaver'+self.model_ext)
-                damfilt_name = os.path.join(path, prefix+'_damfilt'+self.model_ext)
+                damaver_name = os.path.join(path, prefix+'_damaver'+self.damaver_model_ext)
+                damfilt_name = os.path.join(path, prefix+'_damfilt'+self.damaver_model_ext)
 
             atoms, header, model_data = self._loadModelFile(damaver_name)
 
@@ -7595,6 +7622,9 @@ class DammifResultsPanel(wx.Panel):
         self.topsizer.Hide(self.res_sizer, recursive=True)
         self.topsizer.Hide(self.clust_sizer, recursive=True)
 
+        self.model_ext = self.dammif_frame.RunPanel.model_ext
+        self.damaver_model_ext = self.dammif_frame.RunPanel.damaver_model_ext
+
         if settings['damaver'] and int(settings['runs']) > 1:
             self.topsizer.Show(self.nsd_sizer, recursive=True)
             result_dict, rep_model = self.getDamaverResults(settings)
@@ -7611,11 +7641,11 @@ class DammifResultsPanel(wx.Panel):
             filename = os.path.join(settings['path'],name)
             self.getClust(filename)
 
-        model_list = self.getModels(settings, result_dict, rep_model)
+        self.model_list = self.getModels(settings, result_dict, rep_model)
 
         self.Layout()
 
-        self.dammif_frame.ViewerPanel.updateResults(model_list)
+        self.dammif_frame.ViewerPanel.updateResults(self.model_list)
 
         self._saveResults()
 
@@ -7700,11 +7730,14 @@ class DammifResultsPanel(wx.Panel):
 
         model_data = [[] for k in range(models_list.GetItemCount())]
         for i in range(models_list.GetItemCount()):
-            item_data = [[] for k in range(models_list.GetColumnCount())]
+            item_data = [[] for k in range(models_list.GetColumnCount()+1)]
             for j in range(models_list.GetColumnCount()):
                 item = models_list.GetItem(i, j)
                 data = item.GetText()
                 item_data[j] = data
+
+            dam_rad = self.model_list[i][1]['atom_radius']
+            item_data[-1] = dam_rad
 
             model_data[i] = item_data
 
@@ -7760,9 +7793,9 @@ class DammifResultsPanel(wx.Panel):
         self.main_frame.setStatus('', 0)
 
     def _loadModelFile(self, filename):
-        if self.model_ext == '.pdb':
+        if os.path.splitext(filename)[1] == '.pdb':
             results = SASFileIO.loadPDBFile(filename)
-        elif self.model_ext == '.cif':
+        elif os.path.splitext(filename)[1] == '.cif':
             results = SASFileIO.loadmmCIFFile(filename)
 
         return results
@@ -12800,10 +12833,14 @@ class AmbimeterFrame(wx.Frame):
                     'save'          : self.NewControlId(),
                     'ambiCats'      : self.NewControlId(),
                     'ambiScore'     : self.NewControlId(),
-                    'ambiEval'      : self.NewControlId()}
+                    'ambiEval'      : self.NewControlId(),
+                    'modelFormat'   : self.NewControlId(),
+                    }
 
 
         self.ambi_settings = {}
+        self.atsas_version = SASCalc.getATSASVersion(
+            self.raw_settings.get('ATSASDir')).split('.')
 
 
         topsizer = self._createLayout(self.panel)
@@ -12918,6 +12955,15 @@ class AmbimeterFrame(wx.Frame):
             border=self._FromDIP(5))
         prefix_sizer.AddStretchSpacer(1)
 
+        if int(self.atsas_version[0]) >= 4:
+            model_format = wx.Choice(settings_box, self.ids['modelFormat'],
+             choices=['cif', 'pdb'])
+            model_format.SetSelection(0)
+
+            model_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            model_sizer.Add(wx.StaticText(settings_box, label='Model format:'))
+            model_sizer.Add(model_format, border=self._FromDIP(5), flag=wx.LEFT)
+
 
         start_button = wx.Button(settings_box, -1, 'Run')
         start_button.Bind(wx.EVT_BUTTON, self.onStartButton)
@@ -12930,6 +12976,11 @@ class AmbimeterFrame(wx.Frame):
         settings_sizer.Add(shape_sizer, 0)
         settings_sizer.Add(savedir_sizer, 0, wx.EXPAND)
         settings_sizer.Add(prefix_sizer, 0, wx.EXPAND)
+
+        if int(self.atsas_version[0]) >= 4:
+            settings_sizer.Add(model_sizer, flag=wx.LEFT|wx.RIGHT|wx.TOP,
+                border=self._FromDIP(5))
+
         settings_sizer.Add(start_button, 0, wx.ALL | wx.ALIGN_CENTER,
             border=self._FromDIP(5))
 
@@ -13036,6 +13087,10 @@ class AmbimeterFrame(wx.Frame):
         outfiles_window = wx.FindWindowById(self.ids['files'], self)
         self.ambi_settings['files'] = outfiles_window.GetStringSelection()
 
+        if int(self.atsas_version[0]) >= 4:
+            model_format_window = wx.FindWindowById(self.ids['modelFormat'], self)
+            self.ambi_settings['modelFormat'] = model_format_window.GetStringSelection()
+
 
     def onStartButton(self, evt):
         self._getSettings()
@@ -13060,7 +13115,8 @@ class AmbimeterFrame(wx.Frame):
         outname = os.path.split(outname)[-1] + '.out'
 
 
-        if self.main_frame.OnlineControl.isRunning() and path == self.main_frame.OnlineControl.getTargetDir():
+        if (self.main_frame.OnlineControl.isRunning()
+            and path == self.main_frame.OnlineControl.getTargetDir()):
             self.main_frame.controlTimer(False)
             restart_timer = True
         else:
@@ -13717,8 +13773,8 @@ class CifsupFrame(wx.Frame):
         self.abort_button.Disable()
 
         button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        button_sizer.Add(self.start_button, flag=wx.ALL)
-        button_sizer.Add(self.abort_button, flag=wx.ALL)
+        button_sizer.Add(self.start_button, flag=wx.RIGHT, border=self._FromDIP(5))
+        button_sizer.Add(self.abort_button)
 
         self.status = wx.StaticText(panel)
         self.status.SetForegroundColour('Red')
@@ -13744,8 +13800,9 @@ class CifsupFrame(wx.Frame):
         panel_sizer.Add(adv_panel, border=self._FromDIP(5), flag=wx.ALL|wx.EXPAND)
         panel_sizer.Add(status_sizer, border=self._FromDIP(5),
             flag=wx.ALL|wx.EXPAND)
-        panel_sizer.Add(button_sizer, flag=wx.ALIGN_CENTER_HORIZONTAL)
-        panel_sizer.Add(bottom_button_sizer, 0, wx.TOP|wx.BOTTOM|wx.LEFT|wx.RIGHT
+        panel_sizer.Add(button_sizer, flag=wx.ALIGN_CENTER_HORIZONTAL|
+            wx.BOTTOM|wx.LEFT|wx.RIGHT, border=self._FromDIP(5))
+        panel_sizer.Add(bottom_button_sizer, 0, flag=wx.BOTTOM|wx.LEFT|wx.RIGHT
             |wx.ALIGN_CENTER_HORIZONTAL, border=self._FromDIP(5))
 
         panel.SetSizer(panel_sizer)

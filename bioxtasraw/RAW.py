@@ -1152,6 +1152,11 @@ class MainFrame(wx.Frame):
 
             rev = output.split('\n')[0].split()[-1].strip().strip(')(rM').strip('aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ')
 
+            try:
+                rev = int(rev)
+            except:
+                rev = 6700
+
             if int(rev) >= 6669:
                 remove = []
                 proceed = True
