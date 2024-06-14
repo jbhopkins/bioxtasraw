@@ -1563,7 +1563,7 @@ class MainFrame(wx.Frame):
 
             self.regals_frames.append(regals_frame)
 
-    def showSimilarityFrame(self, sasm_list):
+    def showComparisonFrame(self, sasm_list):
         if not sasm_list or len(sasm_list) == 1:
             msg = 'You must select at least 2 items to test similarity.'
             dlg = wx.MessageDialog(self, msg, "Select more items", style = wx.ICON_INFORMATION | wx.OK)
@@ -1577,9 +1577,9 @@ class MainFrame(wx.Frame):
         for sim_frame in self.sim_frames:
             if sim_frame:
                 if sim_frame.sasm_list == sasm_list:
-                    msg = ('There is already a similarity window open for this dataset.'
+                    msg = ('There is already a comparison window open for this dataset.'
                         'Do you want to open another?')
-                    answer = wx.MessageBox(msg, 'Open duplicate similarity window?',
+                    answer = wx.MessageBox(msg, 'Open duplicate comparison window?',
                         style=wx.YES_NO)
 
                     if answer == wx.NO:
@@ -1629,7 +1629,7 @@ class MainFrame(wx.Frame):
             ComparisonFrame.SetIcon(self.GetIcon())
             ComparisonFrame.Show(True)
 
-            self.sim_frames.append(similarityframe)
+            self.sim_frames.append(ComparisonFrame)
 
     def showNormKratkyFrame(self, sasm_list):
         if not sasm_list or sasm_list is None:
@@ -2046,7 +2046,7 @@ class MainFrame(wx.Frame):
                 ('&SVD', self.MenuIDs['runsvd'], self._onToolsMenu, 'normal'),
                 ('&EFA', self.MenuIDs['runefa'], self._onToolsMenu, 'normal'),
                 ('&REGALS', self.MenuIDs['runregals'], self._onToolsMenu, 'normal'),
-                ('&Similarity Test', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
+                ('&Compare Profiles', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
                 ('&Dimensionless Kratky Plots', self.MenuIDs['normalizedKratky'], self._onToolsMenu, 'normal'),
                 (None, None, None, 'separator'),
                 ('&Centering/Calibration', self.MenuIDs['centering'], self._onToolsMenu, 'normal'),
@@ -2700,7 +2700,7 @@ class MainFrame(wx.Frame):
 
                         selected_sasms.append(SASM.SASM(intensity, secm.frame_list, np.sqrt(intensity), secm.getAllParameters()))
 
-            self.showSimilarityFrame(selected_sasms)
+            self.showComparisonFrame(selected_sasms)
 
         elif id == self.MenuIDs['normalizedKratky']:
             manippage = wx.FindWindowByName('ManipulationPanel')
@@ -3871,6 +3871,21 @@ class MainWorkerThread(threading.Thread):
                         self._commands[command](data)
                     except Exception:
                         wx.CallAfter(self.main_frame.closeBusyDialog)
+                        RAWGlobals.save_in_progress = False
+                        wx.CallAfter(self.main_frame.setStatus, '', 0)
+
+                        try:
+                            main_frame = wx.FindWindowByName('MainFrame')
+                            atsasPath = main_frame.raw_settings.get('ATSASDir')
+
+                            if atsasPath != '':
+                                atsas_version = SASCalc.getATSASVersion(atsasPath)
+                            else:
+                                atsas_version = ''
+
+                        except Exception:
+                            atsas_version = ''
+
                         err = traceback.format_exc()
 
                         errTxt = err
@@ -9302,7 +9317,7 @@ class ManipItemPanel(wx.Panel):
                 menu.Append(31, 'IFT (GNOM)')
         menu.Append(45, 'IFT (DENSS)')
 
-        menu.Append(37, 'Similarity Test')
+        menu.Append(37, 'Compare Profiles')
         menu.Append(38, 'Dimensionless Kratky Plot')
         menu.AppendSubMenu(other_an_menu, 'Other Analysis')
 
@@ -9505,7 +9520,7 @@ class ManipItemPanel(wx.Panel):
             else:
                 selected_sasms = []
 
-            Mainframe.showSimilarityFrame(selected_sasms)
+            Mainframe.showComparisonFrame(selected_sasms)
 
         elif evt.GetId() == 38:
             #Normalized Kratky Plots
@@ -16196,6 +16211,10 @@ class MyApp(wx.App):
 
                 if top_window is not None:
                     parent = top_window.FindWindowByName("MainFrame")
+                    wx.CallAfter(parent.closeBusyDialog)
+
+                    RAWGlobals.save_in_progress = False
+                    wx.CallAfter(parent.setStatus, '', 0)
                 else:
                     parent = None
 
