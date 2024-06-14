@@ -4521,6 +4521,8 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
     readout_t.daemon = True
     readout_t.start()
 
+    crysol_output = ''
+
     if proc is not None:
         while proc.poll() is None:
             if abort_event.is_set():
@@ -4536,6 +4538,7 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
 
             if new_text != '':
                 readback_queue.put_nowait([new_text])
+                crysol_output += new_text
 
     crysol_output_exts = ['.abs', '.alm', '.int', '.log']
 
@@ -4579,44 +4582,113 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
     if not abort_event.is_set():
         crysol_results = {}
 
-        if exp_fnames is not None:
+        try:
+            if exp_fnames is not None:
 
-            if prefix is not None:
-                data, fit = SASFileIO.loadFitFile(os.path.join(output_dir,
-                    '{}.fit'.format(prefix)))
+                if prefix is not None:
+                    data, fit = SASFileIO.loadFitFile(os.path.join(output_dir,
+                        '{}.fit'.format(prefix)))
 
-                log_results = SASFileIO.loadCrysolLogFile(os.path.join(output_dir,
-                        '{}.log'.format(prefix)))
+                    log_results = SASFileIO.loadCrysolLogFile(os.path.join(output_dir,
+                            '{}.log'.format(prefix)))
 
-                counters = fit.getParameter('counters')
-                counters.update(log_results)
+                    counters = fit.getParameter('counters')
+                    counters.update(log_results)
 
-                analysis = fit.getParameter('analysis')
-                analysis['crysol'] = counters
-                fit.setParameter('analysis', analysis)
+                    analysis = fit.getParameter('analysis')
+                    analysis['crysol'] = counters
+                    fit.setParameter('analysis', analysis)
 
-                crysol_results[prefix] = [fit]
+                    crysol_results[prefix] = [fit]
 
-                if not save_output:
-                    for ext in crysol_output_exts:
-                        tname = os.path.join(output_dir, '{}{}'.format(
-                            prefix, ext))
+                    if not save_output:
+                        for ext in crysol_output_exts:
+                            tname = os.path.join(output_dir, '{}{}'.format(
+                                prefix, ext))
 
-                        if os.path.exists(tname):
-                            os.remove(tname)
+                            if os.path.exists(tname):
+                                os.remove(tname)
 
-                    if os.path.exists(os.path.join(output_dir, '{}{}'.format(
-                        prefix, '.fit'))):
-                        os.remove(os.path.join(output_dir, '{}{}'.format(
-                            prefix, '.fit')))
+                        if os.path.exists(os.path.join(output_dir, '{}{}'.format(
+                            prefix, '.fit'))):
+                            os.remove(os.path.join(output_dir, '{}{}'.format(
+                                prefix, '.fit')))
+                else:
+                    for exp_name in exp_fnames:
+                        for fname in models:
+                            name = '{}_{}'.format(os.path.split(os.path.splitext(fname)[0])[1],
+                                os.path.split(os.path.splitext(exp_name)[0])[1])
+
+                            data, fit = SASFileIO.loadFitFile(os.path.join(output_dir,
+                                '{}.fit'.format(name)))
+
+                            log_results = SASFileIO.loadCrysolLogFile(os.path.join(output_dir,
+                                '{}.log'.format(name)))
+
+                            counters = fit.getParameter('counters')
+                            counters.update(log_results)
+
+                            analysis = fit.getParameter('analysis')
+                            analysis['crysol'] = counters
+                            fit.setParameter('analysis', analysis)
+
+                            crysol_results[name] = [fit]
+
+                            if not save_output:
+                                for ext in crysol_output_exts:
+                                    tname = os.path.join(output_dir, '{}{}'.format(
+                                        os.path.split(os.path.splitext(fname)[0])[1],
+                                        ext))
+
+                                    if os.path.exists(tname):
+                                        os.remove(tname)
+
+                                if os.path.exists(os.path.join(output_dir, '{}{}'.format(
+                                    name, '.fit'))):
+                                    os.remove(os.path.join(output_dir, '{}{}'.format(
+                                        name, '.fit')))
+
+                                if os.path.exists(os.path.join(output_dir, '{}{}'.format(
+                                    name, '.log'))):
+                                    os.remove(os.path.join(output_dir, '{}{}'.format(
+                                        name, '.log')))
             else:
-                for exp_name in exp_fnames:
-                    for fname in models:
-                        name = '{}_{}'.format(os.path.split(os.path.splitext(fname)[0])[1],
-                            os.path.split(os.path.splitext(exp_name)[0])[1])
+                if prefix is not None:
+                    fit = SASFileIO.loadFitFile(os.path.join(output_dir,
+                        '{}.int'.format(prefix)))
 
-                        data, fit = SASFileIO.loadFitFile(os.path.join(output_dir,
-                            '{}.fit'.format(name)))
+                    log_results = SASFileIO.loadCrysolLogFile(os.path.join(output_dir,
+                            '{}.log'.format(prefix)))
+
+                    counters = fit.getParameter('counters')
+                    counters.update(log_results)
+
+                    analysis = fit.getParameter('analysis')
+                    analysis['crysol'] = counters
+                    fit.setParameter('analysis', analysis)
+
+                    abs_prof = SASFileIO.loadIntFile(os.path.join(output_dir,
+                        '{}.abs'.format(prefix)))
+
+                    abs_prof.setParameter('analysis',
+                        copy.deepcopy(fit.getParameter('analysis')))
+
+                    crysol_results[prefix] = [abs_prof, fit]
+
+                    if not save_output:
+                        for ext in crysol_output_exts:
+                            tname = os.path.join(output_dir, '{}{}'.format(
+                                prefix, ext))
+
+                            if os.path.exists(tname):
+                                os.remove(tname)
+
+                else:
+                    for fname in models:
+                        name = os.path.split(os.path.splitext(fname)[0])[1]
+
+                        fit = SASFileIO.loadIntFile(os.path.join(output_dir,
+                            '{}.int'.format(name)))
 
                         log_results = SASFileIO.loadCrysolLogFile(os.path.join(output_dir,
                             '{}.log'.format(name)))
@@ -4628,89 +4700,32 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
                         analysis['crysol'] = counters
                         fit.setParameter('analysis', analysis)
 
-                        crysol_results[name] = [fit]
+                        abs_prof = SASFileIO.loadIntFile(os.path.join(output_dir,
+                            '{}.abs'.format(name)))
+
+                        abs_prof.setParameter('analysis',
+                            copy.deepcopy(fit.getParameter('analysis')))
+
+                        crysol_results[name] = [abs_prof, fit]
 
                         if not save_output:
                             for ext in crysol_output_exts:
                                 tname = os.path.join(output_dir, '{}{}'.format(
-                                    os.path.split(os.path.splitext(fname)[0])[1],
-                                    ext))
+                                    name, ext))
 
                                 if os.path.exists(tname):
                                     os.remove(tname)
 
-                            if os.path.exists(os.path.join(output_dir, '{}{}'.format(
-                                name, '.fit'))):
-                                os.remove(os.path.join(output_dir, '{}{}'.format(
-                                    name, '.fit')))
+        except FileNotFoundError:
+            raise SASExceptions.ATSASError(('Failed to find CRYSOL output files. '
+                'May indicate a crysol error. CRYSOL had the following output: '
+                '{}'.format(crysol_output)))
+        except Exception:
+            err = traceback.format_exc()
+            raise SASExceptions.ATSASError(('An unknown error occured while '
+                'running CRYSOL. The error was:\n{}\n\nCRYSOL had the following output:\n'
+                '{}'.format(err, crysol_output)))
 
-                            if os.path.exists(os.path.join(output_dir, '{}{}'.format(
-                                name, '.log'))):
-                                os.remove(os.path.join(output_dir, '{}{}'.format(
-                                    name, '.log')))
-        else:
-            if prefix is not None:
-                fit = SASFileIO.loadFitFile(os.path.join(output_dir,
-                    '{}.int'.format(prefix)))
-
-                log_results = SASFileIO.loadCrysolLogFile(os.path.join(output_dir,
-                        '{}.log'.format(prefix)))
-
-                counters = fit.getParameter('counters')
-                counters.update(log_results)
-
-                analysis = fit.getParameter('analysis')
-                analysis['crysol'] = counters
-                fit.setParameter('analysis', analysis)
-
-                abs_prof = SASFileIO.loadIntFile(os.path.join(output_dir,
-                    '{}.abs'.format(prefix)))
-
-                abs_prof.setParameter('analysis',
-                    copy.deepcopy(fit.getParameter('analysis')))
-
-                crysol_results[prefix] = [abs_prof, fit]
-
-                if not save_output:
-                    for ext in crysol_output_exts:
-                        tname = os.path.join(output_dir, '{}{}'.format(
-                            prefix, ext))
-
-                        if os.path.exists(tname):
-                            os.remove(tname)
-
-            else:
-                for fname in models:
-                    name = os.path.split(os.path.splitext(fname)[0])[1]
-
-                    fit = SASFileIO.loadIntFile(os.path.join(output_dir,
-                        '{}.int'.format(name)))
-
-                    log_results = SASFileIO.loadCrysolLogFile(os.path.join(output_dir,
-                        '{}.log'.format(name)))
-
-                    counters = fit.getParameter('counters')
-                    counters.update(log_results)
-
-                    analysis = fit.getParameter('analysis')
-                    analysis['crysol'] = counters
-                    fit.setParameter('analysis', analysis)
-
-                    abs_prof = SASFileIO.loadIntFile(os.path.join(output_dir,
-                        '{}.abs'.format(name)))
-
-                    abs_prof.setParameter('analysis',
-                        copy.deepcopy(fit.getParameter('analysis')))
-
-                    crysol_results[name] = [abs_prof, fit]
-
-                    if not save_output:
-                        for ext in crysol_output_exts:
-                            tname = os.path.join(output_dir, '{}{}'.format(
-                                name, ext))
-
-                            if os.path.exists(tname):
-                                os.remove(tname)
     else:
         crysol_results = {}
 
