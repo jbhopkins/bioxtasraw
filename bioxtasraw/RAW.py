@@ -2046,7 +2046,7 @@ class MainFrame(wx.Frame):
                 ('&SVD', self.MenuIDs['runsvd'], self._onToolsMenu, 'normal'),
                 ('&EFA', self.MenuIDs['runefa'], self._onToolsMenu, 'normal'),
                 ('&REGALS', self.MenuIDs['runregals'], self._onToolsMenu, 'normal'),
-                ('&Similarity Test', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
+                ('&Compare Profiles', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
                 ('&Dimensionless Kratky Plots', self.MenuIDs['normalizedKratky'], self._onToolsMenu, 'normal'),
                 (None, None, None, 'separator'),
                 ('&Centering/Calibration', self.MenuIDs['centering'], self._onToolsMenu, 'normal'),
@@ -9317,7 +9317,7 @@ class ManipItemPanel(wx.Panel):
                 menu.Append(31, 'IFT (GNOM)')
         menu.Append(45, 'IFT (DENSS)')
 
-        menu.Append(37, 'Similarity Test')
+        menu.Append(37, 'Compare Profiles')
         menu.Append(38, 'Dimensionless Kratky Plot')
         menu.AppendSubMenu(other_an_menu, 'Other Analysis')
 
@@ -12330,32 +12330,6 @@ class SeriesItemPanel(wx.Panel):
 
             secm = selectedSECMList[0].getSECM()
             Mainframe.showREGALSFrame(secm, selectedSECMList[0])
-
-        elif evt.GetId() == 9:
-            #Similarity testing
-            selected_items = self.sec_panel.getSelectedItems()
-
-            if selected_items:
-                selected_secms = [item.getSECM() for item in selected_items]
-                selected_sasms = []
-                ydata_type = self.sec_plot_panel.plotparams['y_axis_display']
-
-                for secm in selected_secms:
-                    if ydata_type == 'q_val':
-                        intensity = secm.I_of_q
-                    elif ydata_type == 'mean':
-                        intensity = secm.mean_i
-                    elif ydata_type == 'q_range':
-                        intensity = secm.qrange_I
-                    else:
-                        intensity = secm.total_i
-
-                    selected_sasms.append(SASM.SASM(intensity, secm.frame_list,
-                        np.sqrt(intensity), secm.getAllParameters()))
-            else:
-                selected_sasms = []
-
-            self.main_frame.showComparisonFrame(selected_sasms)
 
         elif evt.GetId() == 10:
             #Series analysis
@@ -16237,6 +16211,10 @@ class MyApp(wx.App):
 
                 if top_window is not None:
                     parent = top_window.FindWindowByName("MainFrame")
+                    wx.CallAfter(parent.closeBusyDialog)
+
+                    RAWGlobals.save_in_progress = False
+                    wx.CallAfter(parent.setStatus, '', 0)
                 else:
                     parent = None
 

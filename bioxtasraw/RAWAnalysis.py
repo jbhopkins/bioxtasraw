@@ -16309,19 +16309,22 @@ class SVDControlPanel(wx.Panel):
         n_bins = max(n_shannon_bins, self._num_svd_bins)
 
         if svd_val_key in self._full_svd_vals:
-            self.svd_a_full, self.i_full, self.err_full = self._full_svd_vals[svd_val_key]
+            (self.svd_a_full, self.i_full, self.err_full,
+                self.q_full) = self._full_svd_vals[svd_val_key]
 
         else:
             sasms = secm.getAllSASMs()
 
-            svd_a_full, i_full, err_full = SASCalc.prepareSASMsforSVD(sasms,
+            svd_a_full, i_full, err_full, q_full = SASCalc.prepareSASMsforSVD(sasms,
                 err_norm, do_binning=self._do_svd_binning, bin_to=n_bins)
 
-            self._full_svd_vals[svd_val_key] = (svd_a_full, i_full, err_full)
+            self._full_svd_vals[svd_val_key] = (svd_a_full, i_full, err_full,
+                q_full)
 
             self.svd_a_full = svd_a_full
             self.i_full = i_full
             self.err_full = err_full
+            self.q_full = q_full
 
     #This function is called when the profiles used are changed between subtracted and unsubtracted.
     def _onProfileChoice(self, evt):
@@ -16656,15 +16659,7 @@ class SVDControlPanel(wx.Panel):
                 value = filename_window.GetValue()
 
             elif key == 'q':
-                profile_window = wx.FindWindowById(self.control_ids['profile'], self)
-                profile_type = profile_window.GetStringSelection()
-
-                if profile_type == 'Unsubtracted':
-                    value = self.secm.getSASM().getQ()
-                elif profile_type == 'Subtracted':
-                    value = self.subtracted_secm.getSASM().getQ()
-                elif profile_type == 'Baseline Corrected':
-                    value = self.bl_subtracted_secm.getSASM().getQ()
+                value = self.q_full
 
             self.results[key] = value
 
@@ -18461,7 +18456,7 @@ class EFAControlPanel3(wx.Panel):
 
         conc_data = [self.rotation_data['C'], list(range(framei, framef+1))]
 
-        self.efa_frame.plotPanel3.plotEFA(self.sasms, rmsd_data, conc_data)
+        self.efa_frame.plotPanel3.plotEFAresults(self.sasms, rmsd_data, conc_data)
 
     def clearResultsPlot(self):
         self.efa_frame.plotPanel3.refresh()
@@ -18506,7 +18501,7 @@ class EFAResultsPlotPanel3(wx.Panel):
         except AttributeError:
             self.raw_settings = RAWSettings.RawGuiSettings()
 
-        SASUtils.update_mpl_style()
+        self.base_color = SASUtils.update_mpl_style()
 
         self.fig = Figure((5,4), 75)
 
@@ -18516,8 +18511,8 @@ class EFAResultsPlotPanel3(wx.Panel):
         self.c_reg_lines = []
         self.d_lines = []
 
-        subplotLabels = [('Scattering Profiles', 'q ($\AA^{-1}$)', 'I', 0.1),
-            ('P(r)', 'r ($\AA$)', '', 0.1),
+        subplotLabels = [('Scattering Profiles', 'q', 'I', 0.1),
+            ('P(r)', 'r', '', 0.1),
             ('Mean Error Weighted $\chi^2$', 'Index', '$\chi^2$', 0.1),
             ('Concentration', 'Index', 'Arb.', 0.1)]
 
@@ -18696,13 +18691,20 @@ class EFAResultsPlotPanel3(wx.Panel):
         self.ax_redraw()
 
 
-    def plotEFA(self, profile_data, rmsd_data, conc_data, ift_data=[],
+    def plotEFAresults(self, profile_data, rmsd_data, conc_data, ift_data=[],
         reg_conc_data=[]):
         if (len(profile_data) != len(self.a_lines)
             or len(ift_data) != len(self.d_lines)):
             self.refresh()
 
-        if len(ift_data) > 0:
+
+        if ift_data is not None and len(ift_data) > 0:
+            plot_ift = not all([x is None for x in ift_data])
+
+        else:
+            plot_ift = False
+
+        if plot_ift:
             if not self.show_pr:
                 self.show_pr = True
                 self.update_layout()
@@ -18739,6 +18741,8 @@ class EFAResultsPlotPanel3(wx.Panel):
 
             self.b_lines.append(line)
 
+            c.axhline(0, color=self.base_color, linewidth=1.0)
+
             if isinstance(conc_data[0], np.ndarray):
                 for j in range(conc_data[0].shape[1]):
                     line, = c.plot(conc_data[1], conc_data[0][:,j], animated = True)
@@ -18759,10 +18763,14 @@ class EFAResultsPlotPanel3(wx.Panel):
                         line.set_color(color)
                         self.c_reg_lines.append(line)
 
+            d.axhline(0, color=self.base_color, linewidth=1.0)
+
             for j in range(len(ift_data)):
-                line, = d.plot(ift_data[j].r, ift_data[j].p/ift_data[j].getParameter('i0'),
-                    animated=True)
-                self.d_lines.append(line)
+                if ift_data[j] is not None:
+                    color = self.a_lines[j].get_color()
+                    line, = d.plot(ift_data[j].r, ift_data[j].p/ift_data[j].getParameter('i0'),
+                        animated=True, color=color)
+                    self.d_lines.append(line)
 
             a.legend(fontsize = 12)
 
@@ -21179,7 +21187,7 @@ class REGALSResults(wx.Panel):
         self.iters.SetLabel('{}'.format(total_iter))
         self.chisq.SetLabel('{}'.format(round(aver_chisq,3)))
 
-        self.results_plot.plotEFA(sasms, rmsd_data, conc_data, ifts, reg_concs)
+        self.results_plot.plotEFAresults(sasms, rmsd_data, conc_data, ifts, reg_concs)
 
     def refresh_results(self):
         self.iters.SetLabel('')
@@ -23458,6 +23466,7 @@ class ComparisonControlPanel(scrolled.ScrolledPanel):
 
         self.plot_parent.send_to_plot(top_plot_data, bottom_plot_data, self.reference_item)
 
+
 class NormKratkyFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm_list):
@@ -23518,7 +23527,6 @@ class NormKratkyFrame(wx.Frame):
     def OnClose(self):
 
         self.Destroy()
-
 
 
 class NormKratkyPlotPanel(wx.Panel):
