@@ -755,7 +755,7 @@ def save_settings(settings, fname, datadir='.'):
     return success
 
 def save_report(fname, datadir='.', profiles=[], ifts=[], series=[],
-    dammif_data=[], denss_data=[]):
+    dammif_data=[]):
     """
     Saves a .pdf report/summary of the input data.
 
@@ -775,16 +775,13 @@ def save_report(fname, datadir='.', profiles=[], ifts=[], series=[],
     dammif_data: list
         A list of paths to the summary files of dammif runs from RAW (.csv files)
         to add to the report.
-    denss_data: list
-        A list of paths to the summary files of denss runs from RAW (.csv files)
-        to add to the report.
     """
     datadir = os.path.abspath(os.path.expanduser(datadir))
 
     fname = os.path.splitext(fname)[0] + '.pdf'
 
     RAWReport.make_report_from_raw(fname, datadir, profiles, ifts, series,
-        __default_settings, dammif_data, denss_data)
+        __default_settings, dammif_data)
 
 def average(profiles, forced=False, copy_metadata=True):
     """
