@@ -39,6 +39,7 @@ if int(matplotlib.__version__.split('.')[0]) >= 2:
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 import matplotlib.font_manager as fm
+import matplotlib
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -202,15 +203,15 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.Realize()
 
     def _getIcons(self):
-        errbars_icon = wx.Bitmap(self.main_frame.errbars_icon)
-        showboth_icon = wx.Bitmap(self.main_frame.showboth_icon)
-        showtop_icon = wx.Bitmap(self.main_frame.showtop_icon)
-        showbottom_icon = wx.Bitmap(self.main_frame.showbottom_icon)
+        errbars_icon = self.main_frame.errbars_icon
+        showboth_icon = self.main_frame.showboth_icon
+        showtop_icon = self.main_frame.showtop_icon
+        showbottom_icon = self.main_frame.showbottom_icon
 
-        errbars_icon_toggled = wx.Bitmap(self.main_frame.errbars_icon_toggled)
-        showboth_icon_toggled = wx.Bitmap(self.main_frame.showboth_icon_toggled)
-        showtop_icon_toggled = wx.Bitmap(self.main_frame.showtop_icon_toggled)
-        showbottom_icon_toggled = wx.Bitmap(self.main_frame.showbottom_icon_toggled)
+        errbars_icon_toggled = self.main_frame.errbars_icon_toggled
+        showboth_icon_toggled = self.main_frame.showboth_icon_toggled
+        showtop_icon_toggled = self.main_frame.showtop_icon_toggled
+        showbottom_icon_toggled = self.main_frame.showbottom_icon_toggled
 
         self._bitmaps['errbars'] = {'Normal': errbars_icon,
             'Toggled': errbars_icon_toggled}
@@ -1432,7 +1433,7 @@ class IftPlotPanel(PlotPanel):
             'subtracted'  : ('Data/Fit', '$q$', '$I(q)$'),
             'kratky'      : ('Kratky', '$q$ [1/A]', '$I(q)q^2$'),
             'porod'       : ('Porod', '$q$ [1/A]', '$I(q)q^4$'),
-            'guinier'     : ('Guinier', '$q^2$ [1/A^2]', '$\ln(I(q)$'),
+            'guinier'     : ('Guinier', '$q^2$ [1/A^2]', r'$\ln(I(q)$'),
             'unnormalized': ('Pair Distance Distribution Function', '$r$', '$P(r)$'),
             'normalized'  : ('Pair Distance Distribution Function', '$r$', '$P(r)/I(0)$'),
             }

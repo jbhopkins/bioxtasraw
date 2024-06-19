@@ -1402,9 +1402,11 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         :param wx.Window parent: The parent window
         :param matplotlib.Canvas: The canvas associated with the toolbar.
         """
-        if (float(mpl.__version__.split('.')[0]) == 3 and
+        if ((float(mpl.__version__.split('.')[0]) == 3 and
             float(mpl.__version__.split('.')[1]) >= 3 and
-            float(mpl.__version__.split('.')[2]) >= 1 or
+            float(mpl.__version__.split('.')[2]) >= 1) or
+            (float(mpl.__version__.split('.')[0]) == 3 and
+            float(mpl.__version__.split('.')[1]) >= 4) or
             float(mpl.__version__.split('.')[0]) > 3):
             NavigationToolbar2WxAgg.__init__(self, canvas, coordinates=False)
         else:

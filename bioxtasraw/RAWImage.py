@@ -123,11 +123,11 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         self._current_tool = None
 
     def _getIcons(self):
-        hdrInfoIcon = wx.Bitmap(self.main_frame.hdrInfoIcon)
-        ImgSetIcon = wx.Bitmap(self.main_frame.ImgSetIcon)
-        prevImgIcon = wx.Bitmap(self.main_frame.prevImgIcon)
-        nextImgIcon = wx.Bitmap(self.main_frame.nextImgIcon)
-        goToIcon = wx.Bitmap(self.main_frame.goToIcon)
+        hdrInfoIcon = self.main_frame.hdrInfoIcon
+        ImgSetIcon = self.main_frame.ImgSetIcon
+        prevImgIcon = self.main_frame.prevImgIcon
+        nextImgIcon = self.main_frame.nextImgIcon
+        goToIcon = self.main_frame.goToIcon
 
         self._bitmaps = {
             'hdrinfo'   : hdrInfoIcon,
@@ -384,7 +384,13 @@ class ImagePanel(wx.Panel):
         self.canvas.draw()
         self.draw_cid = self.canvas.mpl_connect('draw_event', self.safe_draw)
 
-        if wx.FindWindowByName('CenteringPanel').IsShown() and self.img is not None:
+        cen_window = wx.FindWindowByName('CenteringPanel')
+        if cen_window is not None:
+            is_shown = cen_window.IsShown()
+        else:
+            is_shown = False
+
+        if is_shown and self.img is not None:
             self.background = self.canvas.copy_from_bbox(self.fig.bbox)
 
             self.canvas.restore_region(self.background)

@@ -134,6 +134,7 @@ class MainFrame(wx.Frame):
             self.CenterOnScreen()
 
 
+
         self.MenuIDs = {
             'exit'                  : self.NewControlId(),
             'advancedOptions'       : self.NewControlId(),
@@ -539,11 +540,11 @@ class MainFrame(wx.Frame):
         hide_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-hide-16.png')
         select_all = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-select-all-16.png')
 
-        self.collapse_all = SASUtils.load_DIP_image(collapse_all, wx.BITMAP_TYPE_PNG)
-        self.expand_all = SASUtils.load_DIP_image(expand_all, wx.BITMAP_TYPE_PNG)
-        self.show_all = SASUtils.load_DIP_image(show_all, wx.BITMAP_TYPE_PNG)
-        self.hide_all = SASUtils.load_DIP_image(hide_all, wx.BITMAP_TYPE_PNG)
-        self.select_all = SASUtils.load_DIP_image(select_all, wx.BITMAP_TYPE_PNG)
+        self.collapse_all_dict = SASUtils.load_DIP_bitmap(collapse_all, wx.BITMAP_TYPE_PNG)
+        self.expand_all_dict = SASUtils.load_DIP_bitmap(expand_all, wx.BITMAP_TYPE_PNG)
+        self.show_all_dict = SASUtils.load_DIP_bitmap(show_all, wx.BITMAP_TYPE_PNG)
+        self.hide_all_dict = SASUtils.load_DIP_bitmap(hide_all, wx.BITMAP_TYPE_PNG)
+        self.select_all_dict = SASUtils.load_DIP_bitmap(select_all, wx.BITMAP_TYPE_PNG)
 
         #Items for ManipItemPanel
         gray_star = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-star-filled-gray-16.png')
@@ -554,13 +555,13 @@ class MainFrame(wx.Frame):
         expand = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-down-filled-16.png')
         collapse = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-up-filled-16.png')
 
-        self.gray = SASUtils.load_DIP_image(gray_star, wx.BITMAP_TYPE_PNG)
-        self.star = SASUtils.load_DIP_image(orange_star, wx.BITMAP_TYPE_PNG)
-        self.target = SASUtils.load_DIP_image(target, wx.BITMAP_TYPE_PNG)
-        self.target_on = SASUtils.load_DIP_image(target_on, wx.BITMAP_TYPE_PNG)
-        self.info = SASUtils.load_DIP_image(info, wx.BITMAP_TYPE_PNG)
-        self.expand = SASUtils.load_DIP_image(expand, wx.BITMAP_TYPE_PNG)
-        self.collapse = SASUtils.load_DIP_image(collapse, wx.BITMAP_TYPE_PNG)
+        self.gray_dict = SASUtils.load_DIP_bitmap(gray_star, wx.BITMAP_TYPE_PNG)
+        self.star_dict = SASUtils.load_DIP_bitmap(orange_star, wx.BITMAP_TYPE_PNG)
+        self.target_dict = SASUtils.load_DIP_bitmap(target, wx.BITMAP_TYPE_PNG)
+        self.target_on_dict = SASUtils.load_DIP_bitmap(target_on, wx.BITMAP_TYPE_PNG)
+        self.info_dict = SASUtils.load_DIP_bitmap(info, wx.BITMAP_TYPE_PNG)
+        self.expand_dict = SASUtils.load_DIP_bitmap(expand, wx.BITMAP_TYPE_PNG)
+        self.collapse_dict = SASUtils.load_DIP_bitmap(collapse, wx.BITMAP_TYPE_PNG)
 
         #Plot icons
         errbars = os.path.join(RAWGlobals.RAWResourcesDir, 'box-plot-graphic-24.png')
@@ -573,15 +574,15 @@ class MainFrame(wx.Frame):
         showtop_toggled = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-1-toggled-24.png')
         showbottom_toggled = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-2-toggled-24.png')
 
-        self.errbars_icon = SASUtils.load_DIP_image(errbars, wx.BITMAP_TYPE_PNG)
-        self.showboth_icon = SASUtils.load_DIP_image(showboth, wx.BITMAP_TYPE_PNG)
-        self.showtop_icon = SASUtils.load_DIP_image(showtop, wx.BITMAP_TYPE_PNG)
-        self.showbottom_icon = SASUtils.load_DIP_image(showbottom, wx.BITMAP_TYPE_PNG)
+        self.errbars_icon_dict = SASUtils.load_DIP_bitmap(errbars, wx.BITMAP_TYPE_PNG)
+        self.showboth_icon_dict = SASUtils.load_DIP_bitmap(showboth, wx.BITMAP_TYPE_PNG)
+        self.showtop_icon_dict = SASUtils.load_DIP_bitmap(showtop, wx.BITMAP_TYPE_PNG)
+        self.showbottom_icon_dict = SASUtils.load_DIP_bitmap(showbottom, wx.BITMAP_TYPE_PNG)
 
-        self.errbars_icon_toggled = SASUtils.load_DIP_image(errbars_toggled, wx.BITMAP_TYPE_PNG)
-        self.showboth_icon_toggled = SASUtils.load_DIP_image(showboth_toggled, wx.BITMAP_TYPE_PNG)
-        self.showtop_icon_toggled = SASUtils.load_DIP_image(showtop_toggled, wx.BITMAP_TYPE_PNG)
-        self.showbottom_icon_toggled = SASUtils.load_DIP_image(showbottom_toggled, wx.BITMAP_TYPE_PNG)
+        self.errbars_icon_toggled_dict = SASUtils.load_DIP_bitmap(errbars_toggled, wx.BITMAP_TYPE_PNG)
+        self.showboth_icon_toggled_dict = SASUtils.load_DIP_bitmap(showboth_toggled, wx.BITMAP_TYPE_PNG)
+        self.showtop_icon_toggled_dict = SASUtils.load_DIP_bitmap(showtop_toggled, wx.BITMAP_TYPE_PNG)
+        self.showbottom_icon_toggled_dict = SASUtils.load_DIP_bitmap(showbottom_toggled, wx.BITMAP_TYPE_PNG)
 
         #Image plot icons
         hdrinfo = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-view-details-24.png')
@@ -590,11 +591,11 @@ class MainFrame(wx.Frame):
         forward = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-green-pointing-right-24.png')
         go_to = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-arrow_mod_go_to-24.png')
 
-        self.hdrInfoIcon = SASUtils.load_DIP_image(hdrinfo, wx.BITMAP_TYPE_PNG)
-        self.ImgSetIcon = SASUtils.load_DIP_image(imgctrl, wx.BITMAP_TYPE_PNG)
-        self.prevImgIcon = SASUtils.load_DIP_image(back, wx.BITMAP_TYPE_PNG)
-        self.nextImgIcon = SASUtils.load_DIP_image(forward, wx.BITMAP_TYPE_PNG)
-        self.goToIcon = SASUtils.load_DIP_image(go_to, wx.BITMAP_TYPE_PNG)
+        self.hdrInfoIcon_dict = SASUtils.load_DIP_bitmap(hdrinfo, wx.BITMAP_TYPE_PNG)
+        self.ImgSetIcon_dict = SASUtils.load_DIP_bitmap(imgctrl, wx.BITMAP_TYPE_PNG)
+        self.prevImgIcon_dict = SASUtils.load_DIP_bitmap(back, wx.BITMAP_TYPE_PNG)
+        self.nextImgIcon_dict = SASUtils.load_DIP_bitmap(forward, wx.BITMAP_TYPE_PNG)
+        self.goToIcon_dict = SASUtils.load_DIP_bitmap(go_to, wx.BITMAP_TYPE_PNG)
 
         #Centering panel icons
         up = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-up-32.png')
@@ -603,11 +604,11 @@ class MainFrame(wx.Frame):
         left = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-pointing-left-32.png')
         target = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-center-of-gravity-filled-32.png')
 
-        self.up_arrow_bmp = SASUtils.load_DIP_image(up, wx.BITMAP_TYPE_PNG)
-        self.right_arrow_bmp = SASUtils.load_DIP_image(right, wx.BITMAP_TYPE_PNG)
-        self.down_arrow_bmp = SASUtils.load_DIP_image(down, wx.BITMAP_TYPE_PNG)
-        self.left_arrow_bmp = SASUtils.load_DIP_image(left, wx.BITMAP_TYPE_PNG)
-        self.center_target_bmp = SASUtils.load_DIP_image(target, wx.BITMAP_TYPE_PNG)
+        self.up_arrow_bmp_dict = SASUtils.load_DIP_bitmap(up, wx.BITMAP_TYPE_PNG)
+        self.right_arrow_bmp_dict = SASUtils.load_DIP_bitmap(right, wx.BITMAP_TYPE_PNG)
+        self.down_arrow_bmp_dict = SASUtils.load_DIP_bitmap(down, wx.BITMAP_TYPE_PNG)
+        self.left_arrow_bmp_dict = SASUtils.load_DIP_bitmap(left, wx.BITMAP_TYPE_PNG)
+        self.center_target_bmp_dict = SASUtils.load_DIP_bitmap(target, wx.BITMAP_TYPE_PNG)
 
         self._updateIconColors()
 
@@ -621,43 +622,115 @@ class MainFrame(wx.Frame):
             is_dark = False
 
         if is_dark:
-            self.collapse_all.Replace(0,0,0,255,255,255)
-            self.expand_all.Replace(0,0,0,255,255,255)
-            self.show_all.Replace(0,0,0,255,255,255)
-            self.hide_all.Replace(0,0,0,255,255,255)
-            self.target.Replace(0,0,0,255,255,255)
-            self.expand.Replace(0,0,0,255,255,255)
-            self.collapse.Replace(0,0,0,255,255,255)
+            # self.collapse_all.Replace(0,0,0,255,255,255)
+            # self.expand_all.Replace(0,0,0,255,255,255)
+            # self.show_all.Replace(0,0,0,255,255,255)
+            # self.hide_all.Replace(0,0,0,255,255,255)
+            # self.target.Replace(0,0,0,255,255,255)
+            # self.expand.Replace(0,0,0,255,255,255)
+            # self.collapse.Replace(0,0,0,255,255,255)
 
-            self.errbars_icon.Replace(0,0,0,255,255,255)
-            self.showboth_icon.Replace(0,0,0,255,255,255)
-            self.showtop_icon.Replace(0,0,0,255,255,255)
-            self.showbottom_icon.Replace(0,0,0,255,255,255)
+            # self.errbars_icon.Replace(0,0,0,255,255,255)
+            # self.showboth_icon.Replace(0,0,0,255,255,255)
+            # self.showtop_icon.Replace(0,0,0,255,255,255)
+            # self.showbottom_icon.Replace(0,0,0,255,255,255)
 
-            self.hdrInfoIcon.Replace(0,0,0,255,255,255)
-            self.ImgSetIcon.Replace(0,0,0,255,255,255)
-            self.goToIcon.Replace(0,0,0,255,255,255)
+            # self.hdrInfoIcon.Replace(0,0,0,255,255,255)
+            # self.ImgSetIcon.Replace(0,0,0,255,255,255)
+            # self.goToIcon.Replace(0,0,0,255,255,255)
 
-            self.center_target_bmp.Replace(0,0,0,255,255,255)
+            # self.center_target_bmp.Replace(0,0,0,255,255,255)
+
+            self.collapse_all = self.collapse_all_dict['dark']
+            self.expand_all = self.expand_all_dict['dark']
+            self.show_all = self.show_all_dict['dark']
+            self.hide_all = self.hide_all_dict['dark']
+            self.select_all = self.select_all_dict['dark']
+
+            self.gray = self.gray_dict['light']
+            self.star = self.star_dict['light']
+            self.target = self.target_dict['dark']
+            self.target_on = self.target_on_dict['light']
+            self.info = self.info_dict['light']
+            self.expand = self.expand_dict['dark']
+            self.collapse = self.collapse_dict['dark']
+
+            self.errbars_icon = self.errbars_icon_dict['dark']
+            self.showboth_icon = self.showboth_icon_dict['dark']
+            self.showtop_icon = self.showtop_icon_dict['dark']
+            self.showbottom_icon = self.showbottom_icon_dict['dark']
+
+            self.errbars_icon_toggled = self.errbars_icon_toggled_dict['light']
+            self.showboth_icon_toggled = self.showboth_icon_toggled_dict['light']
+            self.showtop_icon_toggled = self.showtop_icon_toggled_dict['light']
+            self.showbottom_icon_toggled = self.showbottom_icon_toggled_dict['light']
+
+            self.hdrInfoIcon = self.hdrInfoIcon_dict['dark']
+            self.ImgSetIcon = self.ImgSetIcon_dict['dark']
+            self.prevImgIcon = self.prevImgIcon_dict['light']
+            self.nextImgIcon = self.nextImgIcon_dict['light']
+            self.goToIcon = self.goToIcon_dict['dark']
+
+            self.up_arrow_bmp = self.up_arrow_bmp_dict['light']
+            self.right_arrow_bmp = self.right_arrow_bmp_dict['light']
+            self.down_arrow_bmp = self.down_arrow_bmp_dict['light']
+            self.left_arrow_bmp = self.left_arrow_bmp_dict['light']
+            self.center_target_bmp = self.center_target_bmp_dict['dark']
         else:
-            self.collapse_all.Replace(255,255,255,0,0,0)
-            self.expand_all.Replace(255,255,255,0,0,0)
-            self.show_all.Replace(255,255,255,0,0,0)
-            self.hide_all.Replace(255,255,255,0,0,0)
-            self.target.Replace(255,255,255,0,0,0)
-            self.expand.Replace(255,255,255,0,0,0)
-            self.collapse.Replace(255,255,255,0,0,0)
+        #     self.collapse_all.Replace(255,255,255,0,0,0)
+        #     self.expand_all.Replace(255,255,255,0,0,0)
+        #     self.show_all.Replace(255,255,255,0,0,0)
+        #     self.hide_all.Replace(255,255,255,0,0,0)
+        #     self.target.Replace(255,255,255,0,0,0)
+        #     self.expand.Replace(255,255,255,0,0,0)
+        #     self.collapse.Replace(255,255,255,0,0,0)
 
-            self.errbars_icon.Replace(255,255,255,0,0,0)
-            self.showboth_icon.Replace(255,255,255,0,0,0)
-            self.showtop_icon.Replace(255,255,255,0,0,0)
-            self.showbottom_icon.Replace(255,255,255,0,0,0)
+        #     self.errbars_icon.Replace(255,255,255,0,0,0)
+        #     self.showboth_icon.Replace(255,255,255,0,0,0)
+        #     self.showtop_icon.Replace(255,255,255,0,0,0)
+        #     self.showbottom_icon.Replace(255,255,255,0,0,0)
 
-            self.hdrInfoIcon.Replace(255,255,255,0,0,0)
-            self.ImgSetIcon.Replace(255,255,255,0,0,0)
-            self.goToIcon.Replace(255,255,255,0,0,0)
+        #     self.hdrInfoIcon.Replace(255,255,255,0,0,0)
+        #     self.ImgSetIcon.Replace(255,255,255,0,0,0)
+        #     self.goToIcon.Replace(255,255,255,0,0,0)
 
-            self.center_target_bmp.Replace(255,255,255,0,0,0)
+        #     self.center_target_bmp.Replace(255,255,255,0,0,0)
+
+            self.collapse_all = self.collapse_all_dict['light']
+            self.expand_all = self.expand_all_dict['light']
+            self.show_all = self.show_all_dict['light']
+            self.hide_all = self.hide_all_dict['light']
+            self.select_all = self.select_all_dict['light']
+
+            self.gray = self.gray_dict['light']
+            self.star = self.star_dict['light']
+            self.target = self.target_dict['light']
+            self.target_on = self.target_on_dict['light']
+            self.info = self.info_dict['light']
+            self.expand = self.expand_dict['light']
+            self.collapse = self.collapse_dict['light']
+
+            self.errbars_icon = self.errbars_icon_dict['light']
+            self.showboth_icon = self.showboth_icon_dict['light']
+            self.showtop_icon = self.showtop_icon_dict['light']
+            self.showbottom_icon = self.showbottom_icon_dict['light']
+
+            self.errbars_icon_toggled = self.errbars_icon_toggled_dict['light']
+            self.showboth_icon_toggled = self.showboth_icon_toggled_dict['light']
+            self.showtop_icon_toggled = self.showtop_icon_toggled_dict['light']
+            self.showbottom_icon_toggled = self.showbottom_icon_toggled_dict['light']
+
+            self.hdrInfoIcon = self.hdrInfoIcon_dict['light']
+            self.ImgSetIcon = self.ImgSetIcon_dict['light']
+            self.prevImgIcon = self.prevImgIcon_dict['light']
+            self.nextImgIcon = self.nextImgIcon_dict['light']
+            self.goToIcon = self.goToIcon_dict['light']
+
+            self.up_arrow_bmp = self.up_arrow_bmp_dict['light']
+            self.right_arrow_bmp = self.right_arrow_bmp_dict['light']
+            self.down_arrow_bmp = self.down_arrow_bmp_dict['light']
+            self.left_arrow_bmp = self.left_arrow_bmp_dict['light']
+            self.center_target_bmp = self.center_target_bmp_dict['light']
 
     def _onColorChanged(self, evt):
         self._getSystemColors()
@@ -7205,14 +7278,20 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
         dir_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-folder-16.png')
         doc_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-document-16.png')
         up_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-thick-arrow-blue-pointing-up-16.png')
-        sort_up_png = wx.Bitmap(self.mainframe.collapse)
-        sort_down_png = wx.Bitmap(self.mainframe.expand)
+        sort_down_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-down-filled-16.png')
+        sort_up_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-sort-up-filled-16.png')
 
-        self.documentimg = self.il.Add(SASUtils.load_DIP_bitmap(doc_png, wx.BITMAP_TYPE_PNG))
-        self.folderimg = self.il.Add(SASUtils.load_DIP_bitmap(dir_png, wx.BITMAP_TYPE_PNG))
-        self.upimg = self.il.Add(SASUtils.load_DIP_bitmap(up_png, wx.BITMAP_TYPE_PNG))
-        self.sm_up = self.il.Add(sort_up_png)
-        self.sm_dn = self.il.Add(sort_down_png)
+        self.dir_bpm_dict = SASUtils.load_DIP_bitmap(doc_png, wx.BITMAP_TYPE_PNG, False)
+        self.folderimg_bmp_dict = SASUtils.load_DIP_bitmap(dir_png, wx.BITMAP_TYPE_PNG, False)
+        self.upimg_bmp_dict = SASUtils.load_DIP_bitmap(up_png, wx.BITMAP_TYPE_PNG, False)
+        self.sm_up_bmp_dict = SASUtils.load_DIP_bitmap(sort_up_png, wx.BITMAP_TYPE_PNG, False)
+        self.sm_dn_bmp_dict = SASUtils.load_DIP_bitmap(sort_down_png, wx.BITMAP_TYPE_PNG, False)
+
+        self.documentimg = self.il.Add(self.dir_bpm_dict['light'])
+        self.folderimg = self.il.Add(self.folderimg_bmp_dict['light'])
+        self.upimg = self.il.Add(self.upimg_bmp_dict['light'])
+        self.sm_up = self.il.Add(self.sm_up_bmp_dict['light'])
+        self.sm_dn = self.il.Add(self.sm_dn_bmp_dict['light'])
         self.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
         #Init the list:
@@ -7243,11 +7322,20 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
             return size
 
     def updateColors(self):
-        sort_up_png = wx.Bitmap(self.mainframe.collapse)
-        sort_down_png = wx.Bitmap(self.mainframe.expand)
+        system_settings = wx.SystemSettings()
 
-        self.il.Replace(self.sm_up, sort_up_png)
-        self.il.Replace(self.sm_dn, sort_down_png)
+        try:
+            system_appearance = system_settings.GetAppearance()
+            is_dark = system_appearance.IsDark()
+        except Exception:
+            is_dark = False
+
+        if is_dark:
+            self.il.Replace(self.sm_up, self.sm_up_bmp_dict['dark'])
+            self.il.Replace(self.sm_dn, self.sm_dn_bmp_dict['dark'])
+        else:
+            self.il.Replace(self.sm_up, self.sm_up_bmp_dict['light'])
+            self.il.Replace(self.sm_dn, self.sm_dn_bmp_dict['light'])
 
     def OnGetItemText(self, item, col):
         index=self.itemIndexMap[item]
@@ -7827,8 +7915,8 @@ class DirCtrlPanel(wx.Panel):
         refresh_png = os.path.join(RAWGlobals.RAWResourcesDir,
             'icons8-synchronize-16.png')
 
-        dir_bitmap = SASUtils.load_DIP_bitmap(dir_png, wx.BITMAP_TYPE_PNG)
-        refresh_bitmap = SASUtils.load_DIP_bitmap(refresh_png, wx.BITMAP_TYPE_PNG)
+        dir_bitmap = SASUtils.load_DIP_bitmap(dir_png, wx.BITMAP_TYPE_PNG)['light']
+        refresh_bitmap = SASUtils.load_DIP_bitmap(refresh_png, wx.BITMAP_TYPE_PNG)['light']
 
         self.dir_button = wx.BitmapButton(self, -1, dir_bitmap)
         self.dir_button.Bind(wx.EVT_BUTTON, self._onSetDirButton)
@@ -7982,19 +8070,19 @@ class ManipulationPanel(wx.Panel):
 
     def _initializeIcons(self):
 
-        self.collapse_all_png = wx.Bitmap(self.main_frame.collapse_all)
-        self.expand_all_png = wx.Bitmap(self.main_frame.expand_all)
-        self.show_all_png = wx.Bitmap(self.main_frame.show_all)
-        self.hide_all_png = wx.Bitmap(self.main_frame.hide_all)
-        self.select_all_png = wx.Bitmap(self.main_frame.select_all)
+        self.collapse_all_png = self.main_frame.collapse_all
+        self.expand_all_png = self.main_frame.expand_all
+        self.show_all_png = self.main_frame.show_all
+        self.hide_all_png = self.main_frame.hide_all
+        self.select_all_png = self.main_frame.select_all
 
-        self.gray_png = wx.Bitmap(self.main_frame.gray)
-        self.star_png = wx.Bitmap(self.main_frame.star)
-        self.target_png = wx.Bitmap(self.main_frame.target)
-        self.target_on_png = wx.Bitmap(self.main_frame.target_on)
-        self.info_png = wx.Bitmap(self.main_frame.info)
-        self.expand_png = wx.Bitmap(self.main_frame.expand)
-        self.collapse_png = wx.Bitmap(self.main_frame.collapse)
+        self.gray_png = self.main_frame.gray
+        self.star_png = self.main_frame.star
+        self.target_png = self.main_frame.target
+        self.target_on_png = self.main_frame.target_on
+        self.info_png = self.main_frame.info
+        self.expand_png = self.main_frame.expand
+        self.collapse_png = self.main_frame.collapse
 
     def _createToolbar(self):
 
@@ -10021,12 +10109,12 @@ class IFTPanel(wx.Panel):
             return size
 
     def _initializeIcons(self):
-        self.show_all_png = wx.Bitmap(self.main_frame.show_all)
-        self.hide_all_png = wx.Bitmap(self.main_frame.hide_all)
-        self.select_all_png = wx.Bitmap(self.main_frame.select_all)
-        self.target_png = wx.Bitmap(self.main_frame.target)
-        self.target_on_png = wx.Bitmap(self.main_frame.target_on)
-        self.info_png = wx.Bitmap(self.main_frame.info)
+        self.show_all_png = self.main_frame.show_all
+        self.hide_all_png = self.main_frame.hide_all
+        self.select_all_png = self.main_frame.select_all
+        self.target_png = self.main_frame.target
+        self.target_on_png = self.main_frame.target_on
+        self.info_png = self.main_frame.info
 
     def _createToolbar(self):
 
@@ -11253,15 +11341,15 @@ class SECPanel(wx.Panel):
 
     def _initializeIcons(self):
 
-        self.show_all_png = wx.Bitmap(self.main_frame.show_all)
-        self.hide_all_png = wx.Bitmap(self.main_frame.hide_all)
-        self.select_all_png = wx.Bitmap(self.main_frame.select_all)
+        self.show_all_png = self.main_frame.show_all
+        self.hide_all_png = self.main_frame.hide_all
+        self.select_all_png = self.main_frame.select_all
 
-        self.gray_png = wx.Bitmap(self.main_frame.gray)
-        self.star_png = wx.Bitmap(self.main_frame.star)
-        self.target_png = wx.Bitmap(self.main_frame.target)
-        self.target_on_png = wx.Bitmap(self.main_frame.target_on)
-        self.info_png = wx.Bitmap(self.main_frame.info)
+        self.gray_png = self.main_frame.gray
+        self.star_png = self.main_frame.star
+        self.target_png = self.main_frame.target
+        self.target_on_png = self.main_frame.target_on
+        self.info_png = self.main_frame.info
 
 
     def _createToolbar(self):
@@ -13785,9 +13873,9 @@ class MaskingPanel(scrolled.ScrolledPanel):
         rectangle_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-rectangular-48.png')
         polygon_png = os.path.join(RAWGlobals.RAWResourcesDir, 'icons8-polygon-48.png')
 
-        self.circle_bmp = SASUtils.load_DIP_bitmap(circle_png, wx.BITMAP_TYPE_PNG)
-        self.rectangle_bmp = SASUtils.load_DIP_bitmap(rectangle_png, wx.BITMAP_TYPE_PNG)
-        self.polygon_bmp = SASUtils.load_DIP_bitmap(polygon_png, wx.BITMAP_TYPE_PNG)
+        self.circle_bmp = SASUtils.load_DIP_bitmap(circle_png, wx.BITMAP_TYPE_PNG, False)['light']
+        self.rectangle_bmp = SASUtils.load_DIP_bitmap(rectangle_png, wx.BITMAP_TYPE_PNG, False)['light']
+        self.polygon_bmp = SASUtils.load_DIP_bitmap(polygon_png, wx.BITMAP_TYPE_PNG, False)['light']
 
 
 
@@ -13887,11 +13975,11 @@ class CenteringPanel(scrolled.ScrolledPanel):
 
     def _initBitmaps(self):
 
-        self.up_arrow_bmp = wx.Bitmap(self._main_frame.up_arrow_bmp)
-        self.right_arrow_bmp = wx.Bitmap(self._main_frame.right_arrow_bmp)
-        self.down_arrow_bmp = wx.Bitmap(self._main_frame.down_arrow_bmp)
-        self.left_arrow_bmp = wx.Bitmap(self._main_frame.left_arrow_bmp)
-        self.target_bmp = wx.Bitmap(self._main_frame.center_target_bmp)
+        self.up_arrow_bmp = self._main_frame.up_arrow_bmp
+        self.right_arrow_bmp = self._main_frame.right_arrow_bmp
+        self.down_arrow_bmp = self._main_frame.down_arrow_bmp
+        self.left_arrow_bmp = self._main_frame.left_arrow_bmp
+        self.target_bmp = self._main_frame.center_target_bmp
 
     def updateColors(self):
         self._initBitmaps()
@@ -14654,8 +14742,8 @@ class InformationPanel(scrolled.ScrolledPanel):
     def _getIcons(self):
         main_frame = wx.FindWindowByName('MainFrame')
 
-        self.expand_png = wx.Bitmap(main_frame.expand)
-        self.collapse_png = wx.Bitmap(main_frame.collapse)
+        self.expand_png = main_frame.expand
+        self.collapse_png = main_frame.collapse
 
     def updateColors(self):
         self._getIcons()
@@ -16178,9 +16266,9 @@ class MyApp(wx.App):
 
     def ExceptionHook(self, errType, value, trace):
         err = traceback.format_exception(errType, value, trace)
+        top_window = self.GetTopWindow()
 
         try:
-            top_window = self.GetTopWindow()
             main_frame = top_window.FindWindowByName('MainFrame')
             atsasPath = main_frame.raw_settings.get('ATSASDir')
 
@@ -16220,7 +16308,7 @@ class MyApp(wx.App):
                     parent = None
 
                 wx.CallAfter(wx.lib.dialogs.scrolledMessageDialog, parent, msg,
-                    "Unexpected Error")
+                    "Unexpected Error", size=top_window._FromDIP((500,300)))
         else:
             sys.stderr.write(msg)
 
@@ -16306,6 +16394,13 @@ class MySplashScreen(SplashScreen):
 
         self.fc = wx.CallLater(1, self.ShowMain)
 
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
     def OnExit(self, evt):
         if self.fc.IsRunning():
             self.fc.Stop()
@@ -16387,17 +16482,22 @@ def main():
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__
 
-    # # Windows high DPI support
-    # try:
-    #     # ctypes.windll.shcore.SetProcessDpiAwareness(True)
-    #     ctypes.windll.shcore.SetProcessDpiAwareness(2)
-    # except:
-    #     pass
+    # Windows high DPI support
+    try:
+        # ctypes.windll.shcore.SetProcessDpiAwareness(True)
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)
+    except:
+        pass
 
     setup_thread_excepthook()
     global app
     app = MyApp(0)   #MyApp(redirect = True)
     app.MainLoop()
+
+    # app = wx.App()
+    # frm = MainFrame('Hello World 2', -1)
+    # frm.Show()
+    # app.MainLoop()
 
 if __name__ == '__main__':
     main()

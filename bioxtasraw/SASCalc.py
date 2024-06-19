@@ -1062,7 +1062,7 @@ def getATSASVersion(atsasDir):
         output = output.strip()
         error = error.strip()
 
-        dammif_re = 'ATSAS\s*\d+[.]\d+[.]\d*'
+        dammif_re = r'ATSAS\s*\d+[.]\d+[.]\d*'
         version_match = re.search(dammif_re, output)
         version = version_match.group().split()[-1]
 

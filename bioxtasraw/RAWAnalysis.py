@@ -20613,7 +20613,7 @@ class REGALSComponentGrid(scrolled.ScrolledPanel):
         *args, **kwargs):
         scrolled.ScrolledPanel.__init__(self, parent, *args, **kwargs)
 
-        self.SetMinSize((800, 425))
+        self.SetMinSize(self._FromDIP((800, 425)))
 
         self.component_panels = []
         self.range_callback = range_callback
@@ -21284,7 +21284,7 @@ class REGALSResults(wx.Panel):
 
         self.regals_frame = regals_frame
 
-        self.SetMinSize((600, 400))
+        self.SetMinSize(self._FromDIP((600, 400)))
         self._create_layout()
 
     def _FromDIP(self, size):
