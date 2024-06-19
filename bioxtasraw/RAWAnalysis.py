@@ -391,11 +391,11 @@ class GuinierPlotPanel(wx.Panel):
 
         norm_residuals = self.raw_settings.get('normalizedResiduals')
         if norm_residuals:
-            self.subplotLabels = [('Guinier', '$q^2$', '$\ln(I(q))$', .1),
-            ('Normalized Residual', '$q^2$', '$\Delta \ln (I(q))/\sigma (q)$', 0.1)]
+            self.subplotLabels = [('Guinier', r'$q^2$', r'$\ln(I(q))$', .1),
+            ('Normalized Residual', r'$q^2$', r'$\Delta \ln (I(q))/\sigma (q)$', 0.1)]
         else:
-            self.subplotLabels = [('Guinier', '$q^2$', '$\ln(I(q))$', .1),
-            ('Residual', '$q^2$', '$\Delta \ln (I(q))$', 0.1)]
+            self.subplotLabels = [('Guinier', r'$q^2$', r'$\ln(I(q))$', .1),
+            ('Residual', r'$q^2$', r'$\Delta \ln (I(q))$', 0.1)]
 
 
         self.fig.subplots_adjust(hspace = 0.26)
@@ -433,11 +433,23 @@ class GuinierPlotPanel(wx.Panel):
         self.SetSizer(sizer)
         # self.canvas.SetBackgroundColour('white')
 
+        self.toolbar.update()
+
         # Connect the callback for the draw_event so that window resizing works:
         self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
         self.canvas.callbacks.connect('button_release_event', self._onMouseButtonReleaseEvent)
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
+        self.ax_redraw()
+
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
 
     def updateColors(self):
         color = SASUtils.update_mpl_style()
@@ -446,14 +458,9 @@ class GuinierPlotPanel(wx.Panel):
 
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
-
-        a = self.subplots['Guinier']
-        b = self.subplots['Residual']
-
         self.canvas.mpl_disconnect(self.cid)
         self.canvas.draw()
-        self.background = self.canvas.copy_from_bbox(a.bbox)
-        self.err_background = self.canvas.copy_from_bbox(b.bbox)
+        self.background = self.canvas.copy_from_bbox(self.fig.bbox)
         self.redrawLines()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
@@ -587,8 +594,7 @@ class GuinierPlotPanel(wx.Panel):
             self.canvas.mpl_disconnect(self.cid)
             self.canvas.draw()
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
-            self.background = self.canvas.copy_from_bbox(a.bbox)
-            self.err_background = self.canvas.copy_from_bbox(b.bbox)
+            self.background = self.canvas.copy_from_bbox(self.fig.bbox)
         else:
             self.data_line.set_ydata(y)
             self.data_line.set_xdata(x)
@@ -599,8 +605,8 @@ class GuinierPlotPanel(wx.Panel):
             self.interp_line.set_xdata(xg)
             self.interp_line.set_ydata(yg)
 
-            self.lim_back_line.set_xdata(x_fit[-1])
-            self.lim_front_line.set_xdata(x_fit[0])
+            self.lim_back_line.set_xdata([x_fit[-1]])
+            self.lim_front_line.set_xdata([x_fit[0]])
 
             #Error lines:
             self.error_line.set_xdata(x_fit)
@@ -609,24 +615,18 @@ class GuinierPlotPanel(wx.Panel):
         self.autoscale_plot()
 
     def redrawLines(self):
-        a = self.subplots['Guinier']
-        b = self.subplots['Residual']
-
         if self.data_line is not None:
-
             self.canvas.restore_region(self.background)
-            self.canvas.restore_region(self.err_background)
 
-            a.draw_artist(self.data_line)
-            a.draw_artist(self.fit_line)
-            a.draw_artist(self.interp_line)
-            a.draw_artist(self.lim_front_line)
-            a.draw_artist(self.lim_back_line)
+            self.fig.draw_artist(self.data_line)
+            self.fig.draw_artist(self.fit_line)
+            self.fig.draw_artist(self.interp_line)
+            self.fig.draw_artist(self.lim_front_line)
+            self.fig.draw_artist(self.lim_back_line)
 
-            b.draw_artist(self.error_line)
+            self.fig.draw_artist(self.error_line)
 
-            self.canvas.blit(a.bbox)
-            self.canvas.blit(b.bbox)
+            self.canvas.blit(self.fig.bbox)
 
     def autoscale_plot(self):
         redraw = False
@@ -645,7 +645,7 @@ class GuinierPlotPanel(wx.Panel):
             newx = plot.get_xlim()
             newy = plot.get_ylim()
 
-            if newx != oldx or newy != oldy:
+            if not (all(np.isclose(newx, oldx)) and all(np.isclose(newy, oldy))):
                 redraw = True
 
         if redraw:
@@ -3776,7 +3776,7 @@ class MWPlotPanel(wx.Panel):
 
         self.data_line = None
 
-        subplotLabels = [('Integrated Area of q*I(q)', 'q', '$\int q \cdot I(q) dq$', 'VC')]
+        subplotLabels = [('Integrated Area of q*I(q)', 'q', r'$\int q \cdot I(q) dq$', 'VC')]
 
         self.subplots = {}
 
@@ -3821,6 +3821,15 @@ class MWPlotPanel(wx.Panel):
         self.fig.tight_layout(pad=0.4)
 
         self.canvas.draw()
+
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
 
     def updateColors(self):
         color = SASUtils.update_mpl_style()
@@ -4100,10 +4109,10 @@ class IFTPlotPanel(wx.Panel):
             ('Data/Fit', 'q', 'I(q)', 0.1)]
 
         if self.norm_residuals:
-            subplotLabels.append(('Normalized Residual', '$q$',
-                '$\Delta I(q)/\sigma (q)$', 0.1))
+            subplotLabels.append(('Normalized Residual', r'$q$',
+                r'$\Delta I(q)/\sigma (q)$', 0.1))
         else:
-            subplotLabels.append(('Residual', '$q$', '$\Delta I(q)$', 0.1))
+            subplotLabels.append(('Residual', r'$q$', r'$\Delta I(q)$', 0.1))
 
         gridspec = matplotlib.gridspec.GridSpec(3, 1, height_ratios=[1, 1, 0.3])
         self.subplots = {}
@@ -4167,6 +4176,15 @@ class IFTPlotPanel(wx.Panel):
         self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
+
     def updateColors(self):
         color = SASUtils.update_mpl_style()
 
@@ -4185,9 +4203,7 @@ class IFTPlotPanel(wx.Panel):
         self.canvas.mpl_disconnect(self.cid) #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
         self.fig.tight_layout(pad=1, h_pad=1)
         self.canvas.draw()
-        self.background = self.canvas.copy_from_bbox(a.bbox)
-        self.err_background = self.canvas.copy_from_bbox(b.bbox)
-        self.residual_background = self.canvas.copy_from_bbox(c.bbox)
+        self.background = self.canvas.copy_from_bbox(self.fig.bbox)
         self.redrawLines()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) #Reconnect draw_event
 
@@ -4252,9 +4268,7 @@ class IFTPlotPanel(wx.Panel):
             self.fig.tight_layout(pad=1, h_pad=1)
             self.canvas.draw()
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
-            self.background = self.canvas.copy_from_bbox(a.bbox)
-            self.err_background = self.canvas.copy_from_bbox(b.bbox)
-            self.residual_background = self.canvas.copy_from_bbox(c.bbox)
+            self.background = self.canvas.copy_from_bbox(self.fig.bbox)
 
         else:
             self.ift.set_ydata(p)
@@ -4281,24 +4295,14 @@ class IFTPlotPanel(wx.Panel):
             self.autoscale_plot()
 
     def redrawLines(self):
-        a = self.subplots['P(r)']
-        b = self.subplots['Data/Fit']
-        c = self.subplots['Residual']
-
         if self.ift is not None:
             self.canvas.restore_region(self.background)
-            a.draw_artist(self.ift)
+            self.fig.draw_artist(self.ift)
+            self.fig.draw_artist(self.data_line)
+            self.fig.draw_artist(self.fit_line)
+            self.fig.draw_artist(self.residual_line)
 
-            self.canvas.restore_region(self.err_background)
-            b.draw_artist(self.data_line)
-            b.draw_artist(self.fit_line)
-
-            self.canvas.restore_region(self.residual_background)
-            c.draw_artist(self.residual_line)
-
-            self.canvas.blit(a.bbox)
-            self.canvas.blit(b.bbox)
-            self.canvas.blit(c.bbox)
+            self.canvas.blit(self.fig.bbox)
 
     def autoscale_plot(self):
         redraw = False
@@ -5361,6 +5365,9 @@ class DammifFrame(wx.Frame):
         self.notebook.AddPage(self.ResultsPanel, 'Results')
         self.notebook.AddPage(self.ViewerPanel, 'Viewer')
 
+        # Hels with DPI changes
+        self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._on_page_change)
+
         sizer = self._createLayout(self.panel)
 
         panel_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -5401,6 +5408,10 @@ class DammifFrame(wx.Frame):
     def updateColors(self):
         self.ResultsPanel.updateColors()
         self.ViewerPanel.updateColors()
+
+    def _on_page_change(self, evt):
+        if evt.GetSelection() == self.notebook.FindPage(self.ViewerPanel):
+            self.ViewerPanel._onDPIChanged(None)
 
     def _createLayout(self, parent):
         close_button = wx.Button(parent, -1, 'Close')
@@ -7301,6 +7312,8 @@ class DammifResultsPanel(wx.Panel):
         self.models.SetActiveTabColour(RAWGlobals.tab_color)
         self.models.DeleteAllPages()
 
+        self.models.Bind(flatNB.EVT_FLATNOTEBOOK_PAGE_CHANGED, self._on_nb_change)
+
         summary_panel = wx.Panel(self.models)
 
         models_list = wx.ListCtrl(summary_panel, self.ids['model_sum'],
@@ -7370,6 +7383,11 @@ class DammifResultsPanel(wx.Panel):
         self.topsizer.Hide(self.clust_sizer, recursive=True)
         self.topsizer.Hide(self.res_sizer, recursive=True)
         # self.topsizer.Hide(self.models_sizer, recursive=True)
+
+    def _on_nb_change(self, evt):
+        if evt.GetSelection() > 0:
+            page = self.models.GetPage(evt.GetSelection())
+            page._onDPIChanged(None)
 
     def runAmbimeter(self):
         standard_paths = wx.StandardPaths.Get()
@@ -7828,7 +7846,8 @@ class DammifResultsPanel(wx.Panel):
         self.main_frame.setStatus('Saving DAMMIF/N data', 0)
 
         SASFileIO.saveDammixData(save_path, ambi_data, nsd_data, res_data, clust_num,
-            clist_data, dlist_data, model_data, setup_data, model_plots)
+            clist_data, dlist_data, model_data, setup_data, model_plots,
+            self.GetDPIScaleFactor())
 
         RAWGlobals.save_in_progress = False
         self.main_frame.setStatus('', 0)
@@ -7866,6 +7885,18 @@ class DammifPlotPanel(wx.Panel):
 
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        self.ax_redraw()
+
+        if evt is not None:
+            evt.Skip()
+
     def updateColors(self):
         color = SASUtils.update_mpl_style()
 
@@ -7873,7 +7904,6 @@ class DammifPlotPanel(wx.Panel):
 
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
-
         self.canvas.mpl_disconnect(self.cid) #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
         for fig in self.figures:
             fig.tight_layout(pad=1, h_pad=1)
@@ -7883,7 +7913,7 @@ class DammifPlotPanel(wx.Panel):
     def createPlot(self):
         color = SASUtils.update_mpl_style()
 
-        fig = Figure((5,4), 75)
+        fig = Figure((5,4))
         self.figures.append(fig)
 
         canvas = FigureCanvasWxAgg(self, -1, fig)
@@ -7910,9 +7940,9 @@ class DammifPlotPanel(wx.Panel):
         ax1.plot(q, residual, 'bo')
         ax1.set_xlabel('q')
         if self.norm_residuals:
-            ax1.set_ylabel('$\Delta I(q)/\sigma (q)$')
+            ax1.set_ylabel(r'$\Delta I(q)/\sigma (q)$')
         else:
-            ax1.set_ylabel('$\Delta I(q)$')
+            ax1.set_ylabel(r'$\Delta I(q)$')
 
         # canvas.SetBackgroundColour('white')
         # fig.subplots_adjust(left = 0.1, bottom = 0.12, right = 0.95, top = 0.95,
@@ -7944,6 +7974,20 @@ class DammifViewerPanel(wx.Panel):
 
         self.SetSizer(top_sizer)
 
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        self.ax_redraw()
+
+        if evt is not None:
+            evt.Skip()
+
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
         try:
@@ -7954,6 +7998,13 @@ class DammifViewerPanel(wx.Panel):
     def updateColors(self):
         color = SASUtils.update_mpl_style()
         self.canvas.draw()
+
+    def ax_redraw(self, widget=None):
+        ''' Redraw plots on window resize event '''
+
+        self.canvas.mpl_disconnect(self.cid) #Disconnect draw_event to avoid ax_redraw on self.canvas.draw()
+        self.canvas.draw()
+        self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw) #Reconnect draw_event
 
     def _createLayout(self, parent):
         ctrls_box = wx.StaticBox(parent, wx.ID_ANY, 'Viewer Controls')
@@ -10296,6 +10347,15 @@ class DenssPlotPanel(wx.Panel):
 
         self.cid = self.sc_canvas.mpl_connect('draw_event', self.ax_redraw)
 
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
+
     def updateColors(self):
         SASUtils.update_mpl_style()
         self.ax_redraw()
@@ -10410,7 +10470,7 @@ class DenssPlotPanel(wx.Panel):
 
         ax0 = fig.add_subplot(311)
         ax0.plot(chis[chis>0])
-        ax0.set_ylabel('$\chi^2$', fontsize='small')
+        ax0.set_ylabel(r'$\chi^2$', fontsize='small')
         ax0.semilogy()
         ax0.tick_params(labelbottom=False, labelsize='x-small')
 
@@ -10422,7 +10482,7 @@ class DenssPlotPanel(wx.Panel):
         ax2 = fig.add_subplot(313)
         ax2.plot(supportV[supportV>0])
         ax2.set_xlabel('Step', fontsize='small')
-        ax2.set_ylabel('Support Volume ($\mathrm{\AA^{3}}$)', fontsize='small')
+        ax2.set_ylabel(r'Support Volume ($\mathrm{\AA^{3}}$)', fontsize='small')
         ax2.semilogy()
         ax2.tick_params(labelsize='x-small')
 
@@ -10487,6 +10547,15 @@ class DenssAveragePlotPanel(wx.Panel):
 
         self.cid = self.fsc_canvas.mpl_connect('draw_event', self.ax_redraw)
 
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
+
     def updateColors(self):
         SASUtils.update_mpl_style()
         self.ax_redraw()
@@ -10532,8 +10601,8 @@ class DenssAveragePlotPanel(wx.Panel):
             self.fsc_plots.append(new_plot)
 
         ax0.plot(res, fsc, 'bo-')
-        ax0.plot([resx],[0.5],'ro', label='Resolution = %.2f $\mathrm{\AA}$'%resn)
-        ax0.set_xlabel('Resolution ($\\AA^{-1}$)', fontsize='small')
+        ax0.plot([resx],[0.5],'ro', label=r'Resolution = %.2f $\mathrm{\AA}$'%resn)
+        ax0.set_xlabel(r'Resolution ($\AA^{-1}$)', fontsize='small')
         ax0.set_ylabel('Fourier Shell Correlation', fontsize='small')
         ax0.tick_params(labelsize='x-small')
         ax0.legend(fontsize='small')
@@ -12630,7 +12699,7 @@ class DIFTControlPanel(wx.Panel):
         try:
             Iq = np.vstack((save_sasm.q, save_sasm.i, save_sasm.err)).T
             sasrec = DENSS.Sasrec(Iq, dmax)
-            alpha = sasrec.optimize_alpha()
+            alpha = sasrec.optimize_alpha(quiet=True)
         except Exception as e:
             alpha = 0.0
             msg = ("Automatic Alpha determination failed with the following error:\n"
@@ -13600,13 +13669,22 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
             if self.single_proc:
                 self.executor = ThreadPoolExecutor(nprocs)
             else:
-                self.executor = ProcessPoolExecutor(nprocs)
+                # This would be easy, but seems to have some bugs, so we do it the hard way
+                # self.executor = ProcessPoolExecutor(nprocs)
+                self.executor = multiprocessing.Pool(nprocs)
 
             for model in models:
-                pdb2sas_future = self.executor.submit(RAWAPI.pdb2sas,
-                    [model,], **settings)
+                if self.single_proc:
+                    pdb2sas_future = self.executor.submit(RAWAPI.pdb2sas,
+                        [model,], **settings)
+                else:
+                    pdb2sas_future = self.executor.apply_async(RAWAPI.pdb2sas,
+                        args=([model,],), kwds=settings)
 
                 self.calc_futures.append(pdb2sas_future)
+
+            if not self.single_proc:
+                self.executor.close()
 
             self.running_timer.Start(1000)
 
@@ -13748,14 +13826,27 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         return data
 
     def _on_running_timer(self, evt):
+
+        if self.abort_event.is_set():
+            self.running_timer.Stop()
+            self._cleanup()
+            return
+
         if self.calc_type == 'CRYSOL':
             calc_finished = all([future.done() for future in self.calc_futures])
         elif self.calc_type == 'PDB2SAS':
-            calc_finished = all([future.done() for future in self.calc_futures])
+            if not self.single_proc:
+                calc_finished = all([future.ready() for future in self.calc_futures])
+            else:
+                calc_finished = all([future.done() for future in self.calc_futures])
 
         if calc_finished:
+            if self.calc_type == 'PDB2SAS' and not self.single_proc:
+                self.executor.join()
+            else:
+                self.executor.shutdown()
+
             self.running_timer.Stop()
-            self.executor.shutdown()
             self._process_results()
 
     def _process_results(self):
@@ -13778,7 +13869,14 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         self._cleanup()
 
     def _process_crysol_results(self):
-        results = [future.result() for future in self.calc_futures]
+        try:
+            results = [future.result() for future in self.calc_futures]
+
+        except SASExceptions.ATSASError as e:
+            wx.CallAfter(self.main_frame.showMessageDialog, self, str(e),
+                "Error running CRYSOL", wx.ICON_ERROR|wx.OK)
+            return [], [], []
+
 
         theory_list = []
         residual_list = []
@@ -13855,7 +13953,10 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         return theory_list, residual_list, data_list, params
 
     def _process_pdb2sas_results(self):
-        results = [future.result() for future in self.calc_futures]
+        if not self.single_proc:
+            results = [future.get() for future in self.calc_futures]
+        else:
+            results = [future.result() for future in self.calc_futures]
 
         theory_list = []
         residual_list = []
@@ -13964,7 +14065,11 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
     def _abort_pdb2sas(self):
         if self.executor is not None:
-            self.executor.shutdown(cancel_futures=True)
+            if not self.single_proc:
+                self.executor.terminate()
+                self.executor.join()
+            else:
+                self.executor.shutdown(cancel_futures=True)
 
     def save_profiles(self, profiles):
         tempdir = self.standard_paths.GetTempDir()
@@ -14005,6 +14110,21 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         return profile_names
 
+    def _showSaveError(self, err_type, msg=None):
+        if err_type == 'header':
+            msg = 'Header values could not be saved, file was saved without them.'
+            title = 'Invalid Header Values'
+
+        elif err_type == 'generic':
+            msg = msg
+            title = 'Unexpected error while saving'
+
+        self._showGenericError(msg, title)
+
+    def _showGenericError(self, msg, title):
+        wx.CallAfter(self.main_frame.showMessageDialog, self.main_frame, msg, title,
+            wx.ICON_ERROR|wx.OK|wx.STAY_ON_TOP)
+
     def _onCloseButton(self, evt):
         self.save_results_on_close = False
         self.theory_frame.Close()
@@ -14029,13 +14149,6 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
     def _on_close(self):
         self._abort_calculations()
-
-        if self.calc_type == 'CRYSOL':
-            if self.executor is not None:
-                self.executor.shutdown()
-        elif self.calc_type == 'PDB2SAS':
-            if self.executor is not None:
-                self.executor.shutdown()
 
         for name in self.save_names:
             if os.path.exists(name):
@@ -15597,6 +15710,15 @@ class SVDResultsPlotPanel(wx.Panel):
         self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
+
     def updateColors(self):
         SASUtils.update_mpl_style()
         self.ax_redraw()
@@ -15610,8 +15732,7 @@ class SVDResultsPlotPanel(wx.Panel):
         self.canvas.mpl_disconnect(self.cid)
         self.fig.tight_layout(pad=1, h_pad=1)
         self.canvas.draw()
-        self.background = self.canvas.copy_from_bbox(a.bbox)
-        self.err_background = self.canvas.copy_from_bbox(b.bbox)
+        self.background = self.canvas.copy_from_bbox(self.fig.bbox)
         self.redrawLines()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
@@ -15642,18 +15763,17 @@ class SVDResultsPlotPanel(wx.Panel):
         if self.svd is None:
             self.svd, = a.semilogy(xdata, ydata1, 'r.-', animated = True)
 
-            self.u_autocor, = b.plot(xdata, ydata2, 'r.-', label = 'U (Left singular vectors)', animated = True)
-            self.v_autocor, = b.plot(xdata, ydata3, 'b.-', label = 'V (Right singular vectors)', animated = True)
+            self.u_autocor, = b.plot(xdata, ydata2, 'r.-',
+                label = 'U (Left singular vectors)', animated = True)
+            self.v_autocor, = b.plot(xdata, ydata3, 'b.-',
+                label = 'V (Right singular vectors)', animated = True)
             b.legend(fontsize = 12)
-
-            #self.lim_back_line, = a.plot([x_lim_back, x_lim_back], [y_lim_back-0.2, y_lim_back+0.2], transform=a.transAxes, animated = True)
 
             self.canvas.mpl_disconnect(self.cid)
             self.fig.tight_layout(pad=1, h_pad=1)
             self.canvas.draw()
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
-            self.background = self.canvas.copy_from_bbox(a.bbox)
-            self.err_background = self.canvas.copy_from_bbox(b.bbox)
+            self.background = self.canvas.copy_from_bbox(self.fig.bbox)
         else:
             self.svd.set_xdata(xdata)
             self.svd.set_ydata(ydata1)
@@ -15673,15 +15793,10 @@ class SVDResultsPlotPanel(wx.Panel):
 
         if self.svd is not None:
             self.canvas.restore_region(self.background)
-            a.draw_artist(self.svd)
-
-            #restore white background in error plot and draw new error:
-            self.canvas.restore_region(self.err_background)
-            b.draw_artist(self.u_autocor)
-            b.draw_artist(self.v_autocor)
-
-            self.canvas.blit(a.bbox)
-            self.canvas.blit(b.bbox)
+            self.fig.draw_artist(self.svd)
+            self.fig.draw_artist(self.u_autocor)
+            self.fig.draw_artist(self.v_autocor)
+            self.canvas.blit(self.fig.bbox)
 
     def autoscale_plot(self):
         redraw = False
@@ -15771,19 +15886,25 @@ class SVDSECPlotPanel(wx.Panel):
         self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
+
     def updateColors(self):
         SASUtils.update_mpl_style()
         self.ax_redraw()
 
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
-
-        a = self.subplots['SECPlot']
-
         self.canvas.mpl_disconnect(self.cid)
         self.fig.tight_layout(pad=0.4)
         self.canvas.draw()
-        self.background = self.canvas.copy_from_bbox(a.bbox)
+        self.background = self.canvas.copy_from_bbox(self.fig.bbox)
         self.redrawLines()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
@@ -15821,7 +15942,7 @@ class SVDSECPlotPanel(wx.Panel):
             self.fig.tight_layout(pad=0.4)
             self.canvas.draw()
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
-            self.background = self.canvas.copy_from_bbox(a.bbox)
+            self.background = self.canvas.copy_from_bbox(self.fig.bbox)
         else:
             self.secm.set_ydata(intensity)
             self.secm.set_xdata(frame_list)
@@ -15834,14 +15955,12 @@ class SVDSECPlotPanel(wx.Panel):
 
     def redrawLines(self):
         if self.secm is not None:
-            a = self.subplots['SECPlot']
-
             self.canvas.restore_region(self.background)
 
-            a.draw_artist(self.secm)
-            a.draw_artist(self.cut_line)
+            self.fig.draw_artist(self.secm)
+            self.fig.draw_artist(self.cut_line)
 
-            self.canvas.blit(a.bbox)
+            self.canvas.blit(self.fig.bbox)
 
     def autoscale_plot(self):
         redraw = False
@@ -17628,6 +17747,15 @@ class EFAResultsPlotPanel2(wx.Panel):
         self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
+
     def updateColors(self):
         SASUtils.update_mpl_style()
 
@@ -17636,14 +17764,10 @@ class EFAResultsPlotPanel2(wx.Panel):
     def ax_redraw(self, widget=None):
         ''' Redraw plots on window resize event '''
 
-        a = self.subplots['Forward EFA']
-        b = self.subplots['Backward EFA']
-
         self.canvas.mpl_disconnect(self.cid)
         self.fig.tight_layout(pad=1, h_pad=1)
         self.canvas.draw()
-        self.f_background = self.canvas.copy_from_bbox(a.bbox)
-        self.b_background = self.canvas.copy_from_bbox(b.bbox)
+        self.background = self.canvas.copy_from_bbox(self.fig.bbox)
         self.redrawLines()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
@@ -17752,8 +17876,7 @@ class EFAResultsPlotPanel2(wx.Panel):
             self.fig.tight_layout(pad=1, h_pad=1)
             self.canvas.draw()
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
-            self.f_background = self.canvas.copy_from_bbox(a.bbox)
-            self.b_background = self.canvas.copy_from_bbox(b.bbox)
+            self.background = self.canvas.copy_from_bbox(self.fig.bbox)
 
         else:
             for j in range(len(self.f_lines)):
@@ -17763,8 +17886,8 @@ class EFAResultsPlotPanel2(wx.Panel):
 
             for j in range(len(self.f_markers)):
                 marker = self.f_markers[j]
-                marker.set_xdata(f_points[j])
-                marker.set_ydata(f_slist[j][fp_index[j]])
+                marker.set_xdata([f_points[j]])
+                marker.set_ydata([f_slist[j][fp_index[j]]])
 
             for k in range(len(self.b_lines)):
                 line = self.b_lines[k]
@@ -17773,35 +17896,29 @@ class EFAResultsPlotPanel2(wx.Panel):
 
             for k in range(len(self.b_markers)):
                 marker = self.b_markers[k]
-                marker.set_xdata(b_points[k])
-                marker.set_ydata(b_slist[k][bp_index[k]])
+                marker.set_xdata([b_points[k]])
+                marker.set_ydata([b_slist[k][bp_index[k]]])
 
         self.autoscale_plot()
 
     def redrawLines(self):
-        if len(self.f_lines) != 0:
-            a = self.subplots['Forward EFA']
-            b = self.subplots['Backward EFA']
 
-            self.canvas.restore_region(self.f_background)
+        if len(self.f_lines) != 0:
+            self.canvas.restore_region(self.background)
 
             for line in self.f_lines:
-                a.draw_artist(line)
+                self.fig.draw_artist(line)
 
             for marker in self.f_markers:
-                a.draw_artist(marker)
-
-            #restore white background in error plot and draw new error:
-            self.canvas.restore_region(self.b_background)
+                self.fig.draw_artist(marker)
 
             for line in self.b_lines:
-                b.draw_artist(line)
+                self.fig.draw_artist(line)
 
             for marker in self.b_markers:
-                b.draw_artist(marker)
+                self.fig.draw_artist(marker)
 
-            self.canvas.blit(a.bbox)
-            self.canvas.blit(b.bbox)
+            self.canvas.blit(self.fig.bbox)
 
     def autoscale_plot(self):
         redraw = False
@@ -18517,7 +18634,7 @@ class EFAResultsPlotPanel3(wx.Panel):
 
         subplotLabels = [('Scattering Profiles', 'q', 'I', 0.1),
             ('P(r)', 'r', '', 0.1),
-            ('Mean Error Weighted $\chi^2$', 'Index', '$\chi^2$', 0.1),
+            (r'Mean Error Weighted $\chi^2$', 'Index', r'$\chi^2$', 0.1),
             ('Concentration', 'Index', 'Arb.', 0.1)]
 
         # self.fig.subplots_adjust(hspace = 0.26)
@@ -18555,6 +18672,15 @@ class EFAResultsPlotPanel3(wx.Panel):
         self.show_pr = False
         self.update_layout()
 
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
+
     def updateColors(self):
         SASUtils.update_mpl_style()
         self.ax_redraw()
@@ -18563,23 +18689,20 @@ class EFAResultsPlotPanel3(wx.Panel):
         ''' Redraw plots on window resize event '''
 
         a = self.subplots['Scattering Profiles']
-        b = self.subplots['Mean Error Weighted $\chi^2$']
+        b = self.subplots[r'Mean Error Weighted $\chi^2$']
         c = self.subplots['Concentration']
         d = self.subplots['P(r)']
 
         self.canvas.mpl_disconnect(self.cid)
         self.fig.tight_layout(pad=1, h_pad=1, w_pad=1)
         self.canvas.draw()
-        self.a_background = self.canvas.copy_from_bbox(a.bbox)
-        self.b_background = self.canvas.copy_from_bbox(b.bbox)
-        self.c_background = self.canvas.copy_from_bbox(c.bbox)
-        self.d_background = self.canvas.copy_from_bbox(d.bbox)
+        self.background = self.canvas.copy_from_bbox(self.fig.bbox)
         self.redrawLines()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
     def refresh(self):
         a = self.subplots['Scattering Profiles']
-        b = self.subplots['Mean Error Weighted $\chi^2$']
+        b = self.subplots[r'Mean Error Weighted $\chi^2$']
         c = self.subplots['Concentration']
         d = self.subplots['P(r)']
 
@@ -18644,7 +18767,7 @@ class EFAResultsPlotPanel3(wx.Panel):
     def update_layout(self):
 
         a = self.subplots['Scattering Profiles']
-        b = self.subplots['Mean Error Weighted $\chi^2$']
+        b = self.subplots[r'Mean Error Weighted $\chi^2$']
         c = self.subplots['Concentration']
         d = self.subplots['P(r)']
 
@@ -18729,7 +18852,7 @@ class EFAResultsPlotPanel3(wx.Panel):
         self.orig_conc_data = conc_data
 
         a = self.subplots['Scattering Profiles']
-        b = self.subplots['Mean Error Weighted $\chi^2$']
+        b = self.subplots[r'Mean Error Weighted $\chi^2$']
         c = self.subplots['Concentration']
         d = self.subplots['P(r)']
 
@@ -18782,10 +18905,7 @@ class EFAResultsPlotPanel3(wx.Panel):
             self.fig.tight_layout(pad=1, h_pad=1, w_pad=1)
             self.canvas.draw()
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
-            self.a_background = self.canvas.copy_from_bbox(a.bbox)
-            self.b_background = self.canvas.copy_from_bbox(b.bbox)
-            self.c_background = self.canvas.copy_from_bbox(c.bbox)
-            self.d_background = self.canvas.copy_from_bbox(d.bbox)
+            self.background = self.canvas.copy_from_bbox(self.fig.bbox)
 
         else:
             for j in range(len(self.a_lines)):
@@ -18819,47 +18939,31 @@ class EFAResultsPlotPanel3(wx.Panel):
         self.autoscale_plot()
 
     def redrawLines(self):
-        a = self.subplots['Scattering Profiles']
-        b = self.subplots['Mean Error Weighted $\chi^2$']
-        c = self.subplots['Concentration']
-        d = self.subplots['P(r)']
-
-        self.canvas.restore_region(self.a_background)
+        self.canvas.restore_region(self.background)
 
         for line in self.a_lines:
-            a.draw_artist(line)
-
-        self.canvas.restore_region(self.b_background)
+            self.fig.draw_artist(line)
 
         for line in self.b_lines:
-            b.draw_artist(line)
-
-        self.canvas.restore_region(self.c_background)
+            self.fig.draw_artist(line)
 
         for line in self.c_lines:
-            c.draw_artist(line)
+            self.fig.draw_artist(line)
 
         for line in self.c_reg_lines:
-            c.draw_artist(line)
+            self.fig.draw_artist(line)
 
         if self.show_pr:
-            self.canvas.restore_region(self.d_background)
-
             for line in self.d_lines:
-                d.draw_artist(line)
+                self.fig.draw_artist(line)
 
-        self.canvas.blit(a.bbox)
-        self.canvas.blit(b.bbox)
-        self.canvas.blit(c.bbox)
-
-        if self.show_pr:
-            self.canvas.blit(d.bbox)
+        self.canvas.blit(self.fig.bbox)
 
     def autoscale_plot(self):
         redraw = False
 
         plot_list = [self.subplots['Scattering Profiles'],
-            self.subplots['Mean Error Weighted $\chi^2$'],
+            self.subplots[r'Mean Error Weighted $\chi^2$'],
             self.subplots['Concentration'],
             self.subplots['P(r)']]
 
@@ -18904,7 +19008,8 @@ class EFARangePlotPanel(wx.Panel):
         if ((int(matplotlib.__version__.split('.')[0]) ==1
             and int(matplotlib.__version__.split('.')[1]) >=5)
             or int(matplotlib.__version__.split('.')[0])) > 1:
-            self.fig = Figure((1,4), 75)
+            # self.fig = Figure((1,4), 75)
+            self.fig = Figure(np.array([3,3.25])*self.GetDPIScaleFactor())
         else:
             self.fig = Figure((275./75,4), dpi = 75)
 
@@ -18921,9 +19026,10 @@ class EFARangePlotPanel(wx.Panel):
         for i in range(0, len(subplotLabels)):
             subplot = self.fig.add_subplot(len(subplotLabels),1,i+1,
                 label=subplotLabels[i][0])
-            subplot.set_xlabel(subplotLabels[i][1])
-            subplot.set_ylabel(subplotLabels[i][2])
+            subplot.set_xlabel(subplotLabels[i][1], fontsize='small')
+            subplot.set_ylabel(subplotLabels[i][2], fontsize='small')
             self.subplots[subplotLabels[i][0]] = subplot
+            subplot.tick_params(labelsize='x-small')
 
         # self.fig.subplots_adjust(left = 0.18, bottom = 0.13, right = 0.93,
         #     top = 0.93, hspace = 0.26)
@@ -18945,6 +19051,15 @@ class EFARangePlotPanel(wx.Panel):
         self.fig.tight_layout(pad=0.4)
         self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
+
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -18968,7 +19083,7 @@ class EFARangePlotPanel(wx.Panel):
         self.canvas.mpl_disconnect(self.cid)
         self.fig.tight_layout(pad=0.4)
         self.canvas.draw()
-        self.background = self.canvas.copy_from_bbox(a.bbox)
+        self.background = self.canvas.copy_from_bbox(self.fig.bbox)
         self.redrawLines()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
@@ -19093,7 +19208,7 @@ class EFARangePlotPanel(wx.Panel):
             self.fig.tight_layout(pad=0.4)
             self.canvas.draw()
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
-            self.background = self.canvas.copy_from_bbox(a.bbox)
+            self.background = self.canvas.copy_from_bbox(self.fig.bbox)
 
         else:
             self.cut_line.set_ydata(intensity[framei:framef+1])
@@ -19107,27 +19222,25 @@ class EFARangePlotPanel(wx.Panel):
 
                 lines = self.range_lines[i]
 
-                lines[0].set_xdata(ranges[i][0])
-                lines[1].set_xdata(ranges[i][1])
+                lines[0].set_xdata([ranges[i][0]])
+                lines[1].set_xdata([ranges[i][1]])
 
         self.autoscale_plot()
 
     def redrawLines(self):
         if self.cut_line is not None:
-            a = self.subplots['SECPlot']
-
             self.canvas.restore_region(self.background)
 
-            a.draw_artist(self.cut_line)
+            self.fig.draw_artist(self.cut_line)
 
             for anno in self.range_arrows:
-                a.draw_artist(anno)
+                self.fig.draw_artist(anno)
 
             for lines in self.range_lines:
-                a.draw_artist(lines[0])
-                a.draw_artist(lines[1])
+                self.fig.draw_artist(lines[0])
+                self.fig.draw_artist(lines[1])
 
-            self.canvas.blit(a.bbox)
+            self.canvas.blit(self.fig.bbox)
 
     def autoscale_plot(self):
         redraw = False
@@ -21747,6 +21860,15 @@ class REGALSBackgroundSVDPlot(wx.Panel):
         # Connect the callback for the draw_event so that window resizing works:
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
+
     def updateColors(self):
         SASUtils.update_mpl_style()
         self.canvas.ax_redraw()
@@ -22355,6 +22477,15 @@ class SimilarityPlotPanel(wx.Panel):
 
         self._create_layout()
 
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
+
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
         try:
@@ -22601,6 +22732,15 @@ class ComparisonPlotPanel(wx.Panel):
         self.top_plot.set_yscale('log')
         self.bottom_plot.set_xscale('linear')
 
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
+
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
         try:
@@ -22805,7 +22945,7 @@ class ComparisonPlotPanel(wx.Panel):
 
         if self.plot_type == 'residual':
             self.bottom_plot.set_title('Residuals')
-            self.bottom_plot.set_ylabel('I/$\sigma$')
+            self.bottom_plot.set_ylabel(r'I/$\sigma$')
         elif self.plot_type == 'ratio':
             self.bottom_plot.set_title('Ratio')
             self.bottom_plot.set_ylabel('Ratio')
@@ -23593,6 +23733,15 @@ class NormKratkyPlotPanel(wx.Panel):
         self.canvas.callbacks.connect('button_release_event', self._onMouseButtonReleaseEvent)
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
 
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
+
     def updateColors(self):
         color = SASUtils.update_mpl_style()
 
@@ -23606,7 +23755,7 @@ class NormKratkyPlotPanel(wx.Panel):
         self.canvas.mpl_disconnect(self.cid)
         self.fig.tight_layout(pad=1, h_pad=1)
         self.canvas.draw()
-        self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
+        self.background = self.canvas.copy_from_bbox(self.fig.bbox)
         self.redrawLines()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
@@ -23660,7 +23809,7 @@ class NormKratkyPlotPanel(wx.Panel):
             self.canvas.mpl_disconnect(self.cid)
             self.fig.tight_layout(pad=1, h_pad=1)
             self.canvas.draw()
-            self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
+            self.background = self.canvas.copy_from_bbox(self.fig.bbox)
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
         self.autoscale_plot()
@@ -23730,15 +23879,15 @@ class NormKratkyPlotPanel(wx.Panel):
             self.canvas.restore_region(self.background)
 
         for line in self.line_dict:
-            self.subplot.draw_artist(line)
+            self.fig.draw_artist(line)
 
             legend = self.subplot.get_legend()
             if legend is not None:
                 if legend.get_visible():
-                    self.subplot.draw_artist(legend)
+                    self.fig.draw_artist(legend)
 
         if len(self.line_dict) > 0:
-            self.canvas.blit(self.subplot.bbox)
+            self.canvas.blit(self.fig.bbox)
 
     def updatePlot(self, plot_type):
         self.plot_type = plot_type
@@ -24385,6 +24534,17 @@ class SeriesPlotPanel(wx.Panel):
         self.canvas.mpl_connect('motion_notify_event', self._onMouseMotionEvent)
         self.canvas.mpl_connect('button_press_event', self._onMousePressEvent)
 
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+
+        if evt is not None:
+            evt.Skip()
+
     def updateColors(self):
         color = SASUtils.update_mpl_style()
 
@@ -24502,18 +24662,31 @@ class SeriesPlotPanel(wx.Panel):
                     alpha=0.5)
 
             self.canvas.draw()
-            self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
+            self.background = self.canvas.copy_from_bbox(self.fig.bbox)
             self.plot_ranges[index] = line
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
         else:
             if start<end:
-                pts = line.get_xy()
-                pts[:,0] = [start, start, end, end, start]
-                line.set_xy(pts)
+                if ((int(matplotlib.__version__.split('.')[0]) == 3
+                    and int(matplotlib.__version__.split('.')[1]) >= 9) or
+                    int(matplotlib.__version__.split('.')[0]) > 3):
+                    line.set_x(start)
+                    line.set_width(end-start)
+                else:
+                    pts = line.get_xy()
+                    pts[:,0] = [start, start, end, end, start]
+                    line.set_xy(pts)
+
             else:
-                pts = line.get_xy()
-                pts[:,0] = [start-0.5, start-0.5, end+0.5, end+0.5, start-0.5]
-                line.set_xy(pts)
+                if ((int(matplotlib.__version__.split('.')[0]) == 3
+                    and int(matplotlib.__version__.split('.')[1]) >= 9) or
+                    int(matplotlib.__version__.split('.')[0]) > 3):
+                    line.set_x(start)
+                    line.set_width(start-end+1)
+                else:
+                    pts = line.get_xy()
+                    pts[:,0] = [start-0.5, start-0.5, end+0.5, end+0.5, start-0.5]
+                    line.set_xy(pts)
 
         self.redrawLines()
 
@@ -24632,9 +24805,16 @@ class SeriesPlotPanel(wx.Panel):
                     self.range_line.set_xdata([x, x])
                 else:
                     x = int(round(x))
-                    pts = self.plot_ranges[self.range_index].get_xy()
-                    pts[:,0] = [self.start_range, self.start_range, x, x, self.start_range]
-                    self.plot_ranges[self.range_index].set_xy(pts)
+
+                    if ((int(matplotlib.__version__.split('.')[0]) == 3
+                        and int(matplotlib.__version__.split('.')[1]) >= 9) or
+                        int(matplotlib.__version__.split('.')[0]) > 3):
+                        self.plot_ranges[self.range_index].set_width(x - self.start_range)
+
+                    else:
+                        pts = self.plot_ranges[self.range_index].get_xy()
+                        pts[:,0] = [self.start_range, self.start_range, x, x, self.start_range]
+                        self.plot_ranges[self.range_index].set_xy(pts)
 
                 self.redrawLines()
         else:
@@ -24646,20 +24826,34 @@ class SeriesPlotPanel(wx.Panel):
 
             if self.start_range == -1:
                 self.start_range = int(round(x))
-                pts = self.plot_ranges[self.range_index].get_xy()
-                pts[:,0] = [self.start_range, self.start_range, self.start_range+1,
-                    self.start_range+1, self.start_range]
-                self.plot_ranges[self.range_index].set_xy(pts)
+
+                if ((int(matplotlib.__version__.split('.')[0]) == 3
+                    and int(matplotlib.__version__.split('.')[1]) >= 9) or
+                    int(matplotlib.__version__.split('.')[0]) > 3):
+                    self.plot_ranges[self.range_index].set_x(self.start_range)
+                    self.plot_ranges[self.range_index].set_width(1)
+                else:
+                    pts = self.plot_ranges[self.range_index].get_xy()
+                    pts[:,0] = [self.start_range, self.start_range, self.start_range+1,
+                        self.start_range+1, self.start_range]
+                    self.plot_ranges[self.range_index].set_xy(pts)
 
                 self.range_line.set_visible(False)
                 self.plot_ranges[self.range_index].set_visible(True)
 
             else:
                 self.end_range = int(round(x))
-                pts = self.plot_ranges[self.range_index].get_xy()
-                pts[:,0] = [self.start_range, self.start_range, self.end_range,
-                    self.end_range, self.start_range]
-                self.plot_ranges[self.range_index].set_xy(pts)
+
+                if ((int(matplotlib.__version__.split('.')[0]) == 3
+                    and int(matplotlib.__version__.split('.')[1]) >= 9) or
+                    int(matplotlib.__version__.split('.')[0]) > 3):
+                    self.plot_ranges[self.range_index].set_x(self.start_range)
+                    self.plot_ranges[self.range_index].set_width(self.end_range-self.start_range)
+                else:
+                    pts = self.plot_ranges[self.range_index].get_xy()
+                    pts[:,0] = [self.start_range, self.start_range, self.end_range,
+                        self.end_range, self.start_range]
+                    self.plot_ranges[self.range_index].set_xy(pts)
 
                 self.range_pick = False
                 self.range_line.remove()
@@ -24681,7 +24875,7 @@ class SeriesPlotPanel(wx.Panel):
         if self.ctrl_type == 'REGALS':
             self.fig.tight_layout(pad=0.4)
         self.canvas.draw()
-        self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
+        self.background = self.canvas.copy_from_bbox(self.fig.bbox)
         self.redrawLines()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
@@ -24726,19 +24920,19 @@ class SeriesPlotPanel(wx.Panel):
         self.canvas.restore_region(self.background)
 
         for line in self.plot_lines.values():
-            self.subplot.draw_artist(line)
+            self.fig.draw_artist(line)
 
         for line in self.plot_ranges.values():
-            self.subplot.draw_artist(line)
+            self.fig.draw_artist(line)
 
         if self.range_pick:
-            self.subplot.draw_artist(self.range_line)
+            self.fig.draw_artist(self.range_line)
 
         if self.ryaxis is not None:
             for line in self.r_plot_lines.values():
                 self.ryaxis.draw_artist(line)
 
-        self.canvas.blit(self.subplot.bbox)
+        self.canvas.blit(self.fig.bbox)
 
     def updatePlot(self):
         self.autoscale_plot()
@@ -24841,11 +25035,17 @@ class LCSeriesPlotPage(wx.Panel):
         self.notebook.AddPage(self.baseline_panel, 'Baseline Corrected')
         # self.notebook.AddPage(self.uv_panel, 'UV')
 
+        #Helps with DPI changes
+        self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._on_page_change)
+
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(control_sizer, flag=wx.EXPAND)
         top_sizer.Add(self.notebook, 1, flag=wx.EXPAND|wx.TOP,
             border=self._FromDIP(5))
         self.SetSizer(top_sizer)
+
+    def _on_page_change(self, evt):
+        self.notebook.GetPage(evt.GetSelection())._onDPIChanged(None)
 
     def initialize(self, secm):
 

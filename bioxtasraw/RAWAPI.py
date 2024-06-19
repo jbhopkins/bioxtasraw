@@ -5538,7 +5538,7 @@ def pdb2sas(models,
 
     Returns
     -------
-    pdb2mrc_results
+    pdb2sas_results
         A dictionary is returned, where the keys of the dictionary
         are the names of the model (by default the model name or
         model_profile name) and the values are a list the calculated scattering

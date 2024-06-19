@@ -70,9 +70,11 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
             'goto'      : self._MTB_GOTO,
             }
 
-        if (float(matplotlib.__version__.split('.')[0]) == 3 and
+        if ((float(matplotlib.__version__.split('.')[0]) == 3 and
             float(matplotlib.__version__.split('.')[1]) >= 3 and
-            float(matplotlib.__version__.split('.')[2]) >= 1 or
+            float(matplotlib.__version__.split('.')[2]) >= 1) or
+            (float(matplotlib.__version__.split('.')[0]) == 3 and
+            float(matplotlib.__version__.split('.')[1]) >= 4) or
             float(matplotlib.__version__.split('.')[0]) > 3):
             NavigationToolbar2WxAgg.__init__(self, canvas, coordinates=False)
         else:
@@ -82,27 +84,27 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
 
         if wx.version().split()[0].strip()[0] >= '4':
             self.AddSeparator()
-            self.AddTool(self._MTB_HDRINFO, '', self._bitmaps['hdrinfo'], 
+            self.AddTool(self._MTB_HDRINFO, '', self._bitmaps['hdrinfo'],
                 shortHelp='Show Header Information')
-            self.AddTool(self._MTB_IMGSET, '', self._bitmaps['imgset'], 
+            self.AddTool(self._MTB_IMGSET, '', self._bitmaps['imgset'],
                 shortHelp='Image Display Settings')
             self.AddSeparator()
-            self.AddTool(self._MTB_PREVIMG, '', self._bitmaps['previmg'], 
+            self.AddTool(self._MTB_PREVIMG, '', self._bitmaps['previmg'],
                 shortHelp='Previous Image')
-            self.AddTool(self._MTB_NEXTIMG, '', self._bitmaps['nextimg'], 
+            self.AddTool(self._MTB_NEXTIMG, '', self._bitmaps['nextimg'],
                 shortHelp='Next Image')
             self.AddTool(self._MTB_GOTO, '', self._bitmaps['goto'],
                 shortHelp='Go To Image')
         else:
             self.AddSeparator()
-            self.AddSimpleTool(self._MTB_HDRINFO, self._bitmaps['hdrinfo'], 
+            self.AddSimpleTool(self._MTB_HDRINFO, self._bitmaps['hdrinfo'],
                 'Show Header Information')
-            self.AddSimpleTool(self._MTB_IMGSET, self._bitmaps['imgset'], 
+            self.AddSimpleTool(self._MTB_IMGSET, self._bitmaps['imgset'],
                 'Image Display Settings')
             self.AddSeparator()
-            self.AddSimpleTool(self._MTB_PREVIMG, self._bitmaps['previmg'], 
+            self.AddSimpleTool(self._MTB_PREVIMG, self._bitmaps['previmg'],
                 'Previous Image')
-            self.AddSimpleTool(self._MTB_NEXTIMG, self._bitmaps['nextimg'], 
+            self.AddSimpleTool(self._MTB_NEXTIMG, self._bitmaps['nextimg'],
                 'Next Image')
             self.AddSimpleTool(self._MTB_GOTO, '', self._bitmaps['goto'],
                 'Go To Image')
@@ -338,6 +340,15 @@ class ImagePanel(wx.Panel):
 
         self.draw_cid = self.canvas.mpl_connect('draw_event', self.safe_draw)
 
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
+
     def updateColors(self):
         SASUtils.update_mpl_style()
 
@@ -374,15 +385,16 @@ class ImagePanel(wx.Panel):
         self.draw_cid = self.canvas.mpl_connect('draw_event', self.safe_draw)
 
         if wx.FindWindowByName('CenteringPanel').IsShown() and self.img is not None:
-            a = self.fig.gca()
-            self.background = self.canvas.copy_from_bbox(a.bbox)
+            self.background = self.canvas.copy_from_bbox(self.fig.bbox)
 
             self.canvas.restore_region(self.background)
+            a = self.fig.gca()
 
             for patch in a.patches:
                 if patch.get_animated():
-                    a.draw_artist(patch)
-            self.canvas.blit(a.bbox)
+                    self.fig.draw_artist(patch)
+
+            self.canvas.blit(self.fig.bbox)
 
     def fitAxis(self):
 
@@ -563,14 +575,6 @@ class ImagePanel(wx.Panel):
 
     def enableAutoCentMode(self, state = True):
         self.pyfai_cent_mode = state
-
-    def _initOnNewImage(self, img, sasm):
-        ''' Inserts information about the newly displayed image
-        into the plot parameters '''
-
-        # if not self._canvas_cursor:
-        #     a = self.fig.gca()
-        #     self._canvas_cursor = Cursor(a, useblit=True, color='red', linewidth=1 )
 
     def _onMouseScroll(self, event):
 
@@ -878,9 +882,9 @@ class ImagePanel(wx.Panel):
                 self._movement_in_progress = True
                 self._selected_patch.set_animated(True)
                 self.canvas.draw()
-                self.background = self.canvas.copy_from_bbox(self.fig.gca().bbox)
-                self.fig.gca().draw_artist(self._selected_patch)
-                self.canvas.blit(self.fig.gca().bbox)
+                self.background = self.canvas.copy_from_bbox(self.fig.bbox)
+                self.fig.draw_artist(self._selected_patch)
+                self.canvas.blit(self.fig.bbox)
 
     def _onPickRightClick(self, event):
         ''' If a patch (mask) is selected, then set the
@@ -1005,8 +1009,8 @@ class ImagePanel(wx.Panel):
                 masking_panel = wx.FindWindowByName('MaskingPanel')
                 masking_panel.mask_modified = True
 
-                self.fig.gca().draw_artist(patch)
-                self.canvas.blit(self.fig.gca().bbox)
+                self.fig.draw_artist(patch)
+                self.canvas.blit(self.fig.bbox)
 
 
     def _toggleMaskSelection(self):
@@ -1216,17 +1220,17 @@ class ImagePanel(wx.Panel):
 
                 self._circle_guide_line.set_radius(radius_c)
 
-                self.fig.gca().draw_artist(self._circle_guide_line)
-                self.canvas.blit(self.fig.gca().bbox)
+                self.fig.draw_artist(self._circle_guide_line)
+                self.canvas.blit(self.fig.bbox)
             else:
                 self._circle_guide_line = matplotlib.patches.Circle((self._chosen_points_x[-1],
                     self._chosen_points_y[-1]), radius_c, color = 'r', fill = False,
                     linewidth = 2, animated = True)
                 a.add_patch(self._circle_guide_line)
                 self.canvas.draw()
-                self.background = self.canvas.copy_from_bbox(self.fig.gca().bbox)
-                self.fig.gca().draw_artist(self._circle_guide_line)
-                self.canvas.blit(self.fig.gca().bbox)
+                self.background = self.canvas.copy_from_bbox(self.fig.bbox)
+                self.fig.draw_artist(self._circle_guide_line)
+                self.canvas.blit(self.fig.bbox)
 
         elif tool == 'rectangle':
             xPoints = [self._chosen_points_x[-1], x, x, self._chosen_points_x[-1], self._chosen_points_x[-1]]
@@ -1237,14 +1241,14 @@ class ImagePanel(wx.Panel):
                 self._rectangle_line[0].set_ydata(yPoints)
                 self._rectangle_line[0].set_xdata(xPoints)
 
-                self.fig.gca().draw_artist(self._rectangle_line[0])
-                self.canvas.blit(self.fig.gca().bbox)
+                self.fig.draw_artist(self._rectangle_line[0])
+                self.canvas.blit(self.fig.bbox)
             else:
                 self._rectangle_line = a.plot(xPoints, yPoints, 'r', animated = True)
                 self.canvas.draw()
-                self.background = self.canvas.copy_from_bbox(self.fig.gca().bbox)
-                self.fig.gca().draw_artist(self._rectangle_line[0])
-                self.canvas.blit(self.fig.gca().bbox)
+                self.background = self.canvas.copy_from_bbox(self.fig.bbox)
+                self.fig.draw_artist(self._rectangle_line[0])
+                self.canvas.blit(self.fig.bbox)
 
 
         elif tool == 'polygon':
@@ -1257,13 +1261,13 @@ class ImagePanel(wx.Panel):
                 self._polygon_guide_line[0].set_ydata([yPoint, y])
                 self._polygon_guide_line[0].set_xdata([xPoint, x])
 
-                self.fig.gca().draw_artist(self._polygon_guide_line[0])
-                self.canvas.blit(self.fig.gca().bbox)
+                self.fig.draw_artist(self._polygon_guide_line[0])
+                self.canvas.blit(self.fig.bbox)
 
             else:
                 self._polygon_guide_line = a.plot([xPoint, x], [yPoint, y], 'r', animated = True)
                 self.canvas.draw()
-                self.background = self.canvas.copy_from_bbox(self.fig.gca().bbox)
+                self.background = self.canvas.copy_from_bbox(self.fig.bbox)
 
 
         #self.canvas.draw()
@@ -1363,9 +1367,9 @@ class ImagePanel(wx.Panel):
                     patch.center = x
                     if i>0:
                         patch.set_radius(r_list[i-1])
-                    a.draw_artist(patch)
+                    self.fig.draw_artist(patch)
 
-                self.canvas.blit(self.fig.gca().bbox)
+                self.canvas.blit(self.fig.bbox)
 
     def drawCenteringPoints(self, points):
 
@@ -1449,8 +1453,8 @@ class ImagePanel(wx.Panel):
                     self.fig.gca().plot(new_line_x, new_line_y,'r')
                     self.canvas.draw()
 
-                    #update blitz background region for guideline:
-                    self.background = self.canvas.copy_from_bbox(self.fig.gca().bbox)
+                    #update blit background region for guideline:
+                    self.background = self.canvas.copy_from_bbox(self.fig.bbox)
         else:
             self._chosen_points_x.append(round(x))
             self._chosen_points_y.append(round(y))

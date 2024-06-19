@@ -779,6 +779,7 @@ class MainFrame(wx.Frame):
 
     def _onDPIChanged(self, evt):
         SASUtils.update_mpl_style()
+        evt.Skip()
 
     def getRawSettings(self):
         return self.raw_settings
@@ -16388,7 +16389,8 @@ def main():
 
     # # Windows high DPI support
     # try:
-    #     ctypes.windll.shcore.SetProcessDpiAwareness(True)
+    #     # ctypes.windll.shcore.SetProcessDpiAwareness(True)
+    #     ctypes.windll.shcore.SetProcessDpiAwareness(2)
     # except:
     #     pass
 

@@ -515,7 +515,6 @@ def signal_handler(sig, frame):
 
 
 def load_DIP_bitmap(filepath, bitmap_type):
-
     if platform.system() == 'Darwin':
         bmp = wx.Bitmap(filepath, bitmap_type)
     else:
@@ -553,7 +552,6 @@ def load_DIP_bitmap(filepath, bitmap_type):
     return bmp
 
 def load_DIP_image(filepath, bitmap_type):
-
     if platform.system() == 'Darwin':
         img = wx.Image(filepath, bitmap_type)
     else:

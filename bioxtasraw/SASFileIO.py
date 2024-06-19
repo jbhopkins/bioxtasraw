@@ -389,9 +389,9 @@ def parseSAXSLAB300Header(tag_with_data):
 
 def parseCHESSF2CTSfile(filename, new_filename=None):
 
-    timeMonitorPattern = re.compile('\d*-second\s[a-z]*\s[()A-Z,]*\s\d*\s\d*')
-    closedShutterCountPattern = re.compile('closed\s\d*')
-    datePattern = re.compile('#D\s.*\n')
+    timeMonitorPattern = re.compile(r'\d*-second\s[a-z]*\s[()A-Z,]*\s\d*\s\d*')
+    closedShutterCountPattern = re.compile(r'closed\s\d*')
+    datePattern = re.compile(r'#D\s.*\n')
 
 
     with open(filename[:-3] + 'cts', 'r') as f:
@@ -1220,11 +1220,11 @@ def postProcessProfile(sasm, raw_settings, no_processing):
             raise
 
 # Define regular expressions for ascii files
-start_match = '\s*'
-end_match = '\s*$'
-num_match = '[\+-]?\d+\.?\d*[+eE-]*\d*'
-sep_match = '\s*[\s,]\s*'
-alt_sep_match = '\s*[\s,]?\s*'
+start_match = r'\s*'
+end_match = r'\s*$'
+num_match = r'[\+-]?\d+\.?\d*[+eE-]*\d*'
+sep_match = r'\s*[\s,]\s*'
+alt_sep_match = r'\s*[\s,]?\s*'
 
 two_col_fit = re.compile(start_match + (num_match+sep_match)*1 + num_match + end_match)
 i_q_match = re.compile(start_match + (num_match+sep_match)*1 + num_match + alt_sep_match)
@@ -1757,19 +1757,19 @@ def loadOutFile(filename):
     return [iftm]
 
 def parse_out_file(lines):
-    results_fit = re.compile('\s*Current\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s*\d*[.]?\d*[+eE-]*\d*\s*$')
+    results_fit = re.compile(r'\s*Current\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s+\d*[.]\d*[+eE-]*\d*\s*\d*[.]?\d*[+eE-]*\d*\s*$')
 
-    te_fit = re.compile('\s*Total\s+[Ee]stimate\s*:\s+\d*[.]\d+\s*\(?[A-Za-z\s]+\)?\s*$')
-    te_num_fit = re.compile('\d*[.]\d+')
-    te_quality_fit = re.compile('[Aa][A-Za-z\s]+\)?\s*$')
+    te_fit = re.compile(r'\s*Total\s+[Ee]stimate\s*:\s+\d*[.]\d+\s*\(?[A-Za-z\s]+\)?\s*$')
+    te_num_fit = re.compile(r'\d*[.]\d+')
+    te_quality_fit = re.compile(r'[Aa][A-Za-z\s]+\)?\s*$')
 
-    p_rg_fit = re.compile('\s*Real\s+space\s*\:?\s*Rg\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*\+-\s*\d*[.]\d+[+eE-]*\d*')
-    q_rg_fit = re.compile('\s*Reciprocal\s+space\s*\:?\s*Rg\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*')
+    p_rg_fit = re.compile(r'\s*Real\s+space\s*\:?\s*Rg\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*\+-\s*\d*[.]\d+[+eE-]*\d*')
+    q_rg_fit = re.compile(r'\s*Reciprocal\s+space\s*\:?\s*Rg\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*')
 
-    p_i0_fit = re.compile('\s*Real\s+space\s*\:?[A-Za-z0-9\s\.,+-=]*\(0\)\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*\+-\s*\d*[.]\d+[+eE-]*\d*')
-    q_i0_fit = re.compile('\s*Reciprocal\s+space\s*\:?[A-Za-z0-9\s\.,+-=]*\(0\)\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*')
+    p_i0_fit = re.compile(r'\s*Real\s+space\s*\:?[A-Za-z0-9\s\.,+-=]*\(0\)\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*\+-\s*\d*[.]\d+[+eE-]*\d*')
+    q_i0_fit = re.compile(r'\s*Reciprocal\s+space\s*\:?[A-Za-z0-9\s\.,+-=]*\(0\)\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*')
 
-    alpha_fit = re.compile('\s*Current\s+ALPHA\s*\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*')
+    alpha_fit = re.compile(r'\s*Current\s+ALPHA\s*\:?\s*\=?\s*\d*[.]\d+[+eE-]*\d*\s*')
 
     qfull = []
     qshort = []
@@ -2656,7 +2656,7 @@ def _match_fit_lines(line, q, i, err, fit, sasref):
 
 def loadDamselLogFile(filename):
     """Loads data from a damsel log file"""
-    res_pattern = re.compile('\s*Ensemble\s*Resolution\s*=?\s*\d+\.?\d*\s*\+?-?\s*\d+\s*[a-zA-Z]*')
+    res_pattern = re.compile(r'\s*Ensemble\s*Resolution\s*=?\s*\d+\.?\d*\s*\+?-?\s*\d+\s*[a-zA-Z]*')
 
     with open(filename, 'r') as f:
         process_includes = False
@@ -2727,8 +2727,8 @@ def loadDamsupLogFile(filename):
 
 def loadDamclustLogFile(filename):
     """Loads data from a damclust log file"""
-    cluster_pattern = re.compile('\s*Cluster\s*\d')
-    distance_pattern = re.compile('\s*\d\s*\d\s*\d+[.]\d+\s*$')
+    cluster_pattern = re.compile(r'\s*Cluster\s*\d')
+    distance_pattern = re.compile(r'\s*\d\s*\d\s*\d+[.]\d+\s*$')
 
     cluster_tuple = collections.namedtuple('Clusters', ['num', 'rep_model', 'dev'])
     distance_tuple = collections.namedtuple('Distances', ['cluster1', 'cluster2', 'cluster_dist'])
@@ -3249,7 +3249,7 @@ def loadRadFile(filename):
     ''' Loads a .rad file into a SASM object and attaches the filename and header into the parameters  '''
 
     iq_pattern = four_col_fit
-    param_pattern = re.compile('[a-zA-Z0-9_]*\s*[:]\s+.*')
+    param_pattern = re.compile(r'[a-zA-Z0-9_]*\s*[:]\s+.*')
 
     i = []
     q = []
@@ -3314,7 +3314,7 @@ def loadNewRadFile(filename):
     ''' Loads a .rad file into a SASM object and attaches the filename and header into the parameters  '''
 
     iq_pattern = three_col_fit
-    param_pattern = re.compile('[a-zA-Z0-9_]*\s*[:]\s+.*')
+    param_pattern = re.compile(r'[a-zA-Z0-9_]*\s*[:]\s+.*')
 
     i = []
     q = []
@@ -4881,7 +4881,7 @@ def saveREGALSData(filename, panel_results):
 
 
 def saveDammixData(filename, ambi_data, nsd_data, res_data, clust_num, clist_data,
-                dlist_data, model_data, setup_data, model_plots):
+                dlist_data, model_data, setup_data, model_plots, plot_scale):
 
     header_string = '# DAMMIF/N results summary\n'
     for item in setup_data:
@@ -4929,6 +4929,7 @@ def saveDammixData(filename, ambi_data, nsd_data, res_data, clust_num, clist_dat
 
     for data in model_plots:
         for fig in data[1]:
+            fig.set_size_inches(size*plot_scale)
             fig.suptitle('Model: %s' %(data[0]))
             fig.subplots_adjust(top=0.9)
             pdf.savefig(fig)

@@ -2529,7 +2529,7 @@ class Sasrec(object):
         self.Ierr = np.hstack((self.Ierr, Ierre))
         self.qc = np.hstack((self.qc, qce))
 
-    def optimize_alpha(self):
+    def optimize_alpha(self, quiet=False):
         """Scan alpha values to find optimal alpha"""
         ideal_chi2 = self.calc_chi2()
         al = []
@@ -2541,8 +2541,9 @@ class Sasrec(object):
         nalphas = len(alphas)
         for alpha in alphas:
             i += 1
-            sys.stdout.write("\rScanning alphas... {:.0%} complete".format(i*1./nalphas))
-            sys.stdout.flush()
+            if not quiet:
+                sys.stdout.write("\rScanning alphas... {:.0%} complete".format(i*1./nalphas))
+                sys.stdout.flush()
             try:
                 self.alpha = 10.**alpha
                 # self.update()
@@ -5048,7 +5049,7 @@ def doDIFT(Iq, D, filename, first=None, last=None, qc=None, alpha=0.0,
     D = float(D)
     sasrec = Sasrec(Iq[first:last], D, qc=None, alpha=alpha, extrapolate=extrapolate)
     if scan_alpha:
-        sasrec.optimize_alpha()
+        sasrec.optimize_alpha(quiet=True)
 
     pr = sasrec.P
     r = sasrec.r
@@ -5084,16 +5085,16 @@ def pdb2mrc_to_sasm(pdb2mrc):
     pdb_fn = os.path.basename(pdb2mrc.pdb.filename)
 
     calc_results = {
-        'Rg'                        : pdb2mrc.Rg,
-        'Excluded_volume'           : pdb2mrc.exvol_in_A3,
-        'Solvent_density'           : pdb2mrc.params[0],
-        'Hydration_shell_contrast'  : pdb2mrc.params[1],
+        'Rg'                        : round(pdb2mrc.Rg, 2),
+        'Excluded_volume'           : round(pdb2mrc.exvol_in_A3),
+        'Solvent_density'           : round(pdb2mrc.params[0], 4),
+        'Hydration_shell_contrast'  : round(pdb2mrc.params[1], 4),
     }
 
     if pdb2mrc.q_exp is not None:
         #here since we have data we will use the fit attribute with experimental errors
 
-        calc_results['Chi_squared'] = pdb2mrc.chi2
+        calc_results['Chi_squared'] = round(pdb2mrc.chi2, 3)
 
         fit = SASM.SASM(
             i=pdb2mrc.fit[:,3]/pdb2mrc.exp_scale_factor, #scale to the data for plotting

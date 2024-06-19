@@ -891,31 +891,31 @@ def test_dift_dmax_alpha(clean_gi_sub_profile, old_settings, gi_dift_ift):
     assert np.allclose(ift.p, gi_dift_ift.p)
 
 @pytest.mark.new
-def test_pdb2mrc_modelonly(temp_directory, gi_pdb2mrc_modelonly_ift):
+def test_pdb2sas_modelonly(temp_directory, gi_pdb2sas_modelonly_ift):
     shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
             os.path.join(temp_directory, '1XIB_4mer.pdb'))
 
-    results = raw.pdb2mrc([os.path.join(temp_directory, '1XIB_4mer.pdb')])
+    results = raw.pdb2sas([os.path.join(temp_directory, '1XIB_4mer.pdb')])
 
-    pdb2mrc = results['1XIB_4mer'][0]
+    pdb2sas = results['1XIB_4mer'][0]
 
-    assert np.allclose(pdb2mrc.Rg,gi_pdb2mrc_modelonly_ift.getParameter('rg'))
-    assert np.allclose(pdb2mrc.I0,gi_pdb2mrc_modelonly_ift.getParameter('i0'))
-    assert np.allclose(pdb2mrc.side,gi_pdb2mrc_modelonly_ift.getParameter('dmax'))
+    assert np.allclose(pdb2sas.Rg,gi_pdb2sas_modelonly_ift.getParameter('rg'))
+    assert np.allclose(pdb2sas.I0,gi_pdb2sas_modelonly_ift.getParameter('i0'))
+    assert np.allclose(pdb2sas.side,gi_pdb2sas_modelonly_ift.getParameter('dmax'))
 
 @pytest.mark.new
-def test_pdb2mrc_fit(temp_directory, clean_gi_sub_profile, gi_pdb2mrc_fit_ift):
+def test_pdb2sas_fit(temp_directory, clean_gi_sub_profile, gi_pdb2sas_fit_ift):
     shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
             os.path.join(temp_directory, '1XIB_4mer.pdb'))
 
-    results = raw.pdb2mrc([os.path.join(temp_directory, '1XIB_4mer.pdb')], profiles=[clean_gi_sub_profile])
+    results = raw.pdb2sas([os.path.join(temp_directory, '1XIB_4mer.pdb')], profiles=[clean_gi_sub_profile])
 
-    pdb2mrc = results['1XIB_4mer_glucose_isomerase'][0]
+    pdb2sas = results['1XIB_4mer_glucose_isomerase'][0]
 
-    assert np.allclose(pdb2mrc.Rg,gi_pdb2mrc_fit_ift.getParameter('rg'))
-    assert np.allclose(pdb2mrc.I0,gi_pdb2mrc_fit_ift.getParameter('i0'))
-    assert np.allclose(pdb2mrc.side,gi_pdb2mrc_fit_ift.getParameter('dmax'))
-    assert np.allclose(pdb2mrc.chi2,gi_pdb2mrc_fit_ift.getParameter('chisq'))
+    assert np.allclose(pdb2sas.Rg,gi_pdb2sas_fit_ift.getParameter('rg'))
+    assert np.allclose(pdb2sas.I0,gi_pdb2sas_fit_ift.getParameter('i0'))
+    assert np.allclose(pdb2sas.side,gi_pdb2sas_fit_ift.getParameter('dmax'))
+    assert np.allclose(pdb2sas.chi2,gi_pdb2sas_fit_ift.getParameter('chisq'))
 
 
 

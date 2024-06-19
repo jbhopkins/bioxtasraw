@@ -687,6 +687,14 @@ class SAXSData(object):
                 if key in crysol_analysis:
                     data_dict[value] = float(crysol_analysis[key])
 
+        if 'denss' in self._analysis_data:
+            denss_analysis = self._analysis_data['denss']
+            data_dict['Type'] = 'DENSS PDB2SAS'
+
+            for key, value in self._theory_trans.items():
+                if key in denss_analysis:
+                    data_dict[value] = float(denss_analysis[key])
+
         self.theory_data = TheoryData(**data_dict)
 
         # Grab BIFT data
@@ -2986,6 +2994,7 @@ def generate_theory_params(profiles, ifts, series):
         ('Method', 'Type'),
         ('Rg', 'Rg'),
         ('Excluded volume', 'Excluded_volume'),
+        ('Solvent density', 'Solvent_density'),
         ('Hydration shell contrast', 'Hydration_shell_contrast'),
         ('Chi^2', 'Chi_squared'),
         ('Probability of fit', 'Probability_of_fit'),

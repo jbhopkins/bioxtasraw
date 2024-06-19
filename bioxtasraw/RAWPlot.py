@@ -137,9 +137,11 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self._MTB_CLR2 = self.NewControlId()
         self._MTB_SHOWBOTTOM = self.NewControlId()
 
-        if (float(matplotlib.__version__.split('.')[0]) == 3 and
+        if ((float(matplotlib.__version__.split('.')[0]) == 3 and
             float(matplotlib.__version__.split('.')[1]) >= 3 and
-            float(matplotlib.__version__.split('.')[2]) >= 1 or
+            float(matplotlib.__version__.split('.')[2]) >= 1) or
+            (float(matplotlib.__version__.split('.')[0]) == 3 and
+            float(matplotlib.__version__.split('.')[1]) >= 4) or
             float(matplotlib.__version__.split('.')[0]) > 3):
             NavigationToolbar2WxAgg.__init__(self, canvas, coordinates=False)
         else:
@@ -161,25 +163,25 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
 
             if int(wx.version().split()[0].strip()[0]) >= 4:
                 self.AddSeparator()
-                self.AddCheckTool(self._MTB_ERRBARS, '', self._bitmaps['errbars']['Normal'], 
+                self.AddCheckTool(self._MTB_ERRBARS, '', self._bitmaps['errbars']['Normal'],
                     shortHelp='Show Errorbars')
                 self.AddSeparator()
-                self.AddCheckTool(self._MTB_SHOWBOTH, '', self._bitmaps['showboth']['Normal'], 
+                self.AddCheckTool(self._MTB_SHOWBOTH, '', self._bitmaps['showboth']['Normal'],
                     shortHelp='Show Both Plots')
-                self.AddCheckTool(self._MTB_SHOWTOP, '', self._bitmaps['showtop']['Normal'],  
+                self.AddCheckTool(self._MTB_SHOWTOP, '', self._bitmaps['showtop']['Normal'],
                     shortHelp='Show Top Plot')
-                self.AddCheckTool(self._MTB_SHOWBOTTOM, '', self._bitmaps['showbottom']['Normal'], 
+                self.AddCheckTool(self._MTB_SHOWBOTTOM, '', self._bitmaps['showbottom']['Normal'],
                     shortHelp='Show Bottom Plot')
             else:
                 self.AddSeparator()
-                self.AddCheckTool(self._MTB_ERRBARS, self._bitmaps['errbars']['Normal'], 
+                self.AddCheckTool(self._MTB_ERRBARS, self._bitmaps['errbars']['Normal'],
                     shortHelp='Show Errorbars')
                 self.AddSeparator()
-                self.AddCheckTool(self._MTB_SHOWBOTH, self._bitmaps['showboth']['Normal'], 
+                self.AddCheckTool(self._MTB_SHOWBOTH, self._bitmaps['showboth']['Normal'],
                     shortHelp='Show Both Plots')
-                self.AddCheckTool(self._MTB_SHOWTOP, self._bitmaps['showtop']['Normal'],  
+                self.AddCheckTool(self._MTB_SHOWTOP, self._bitmaps['showtop']['Normal'],
                     shortHelp='Show Top Plot')
-                self.AddCheckTool(self._MTB_SHOWBOTTOM, self._bitmaps['showbottom']['Normal'], 
+                self.AddCheckTool(self._MTB_SHOWBOTTOM, self._bitmaps['showbottom']['Normal'],
                     shortHelp='Show Bottom Plot')
 
             self.Bind(wx.EVT_TOOL, self.errbars, id = self._MTB_ERRBARS)
@@ -462,6 +464,15 @@ class PlotPanel(wx.Panel):
         # self._canvas_cursor = Cursor(self.subplot1, useblit=True, color='red', linewidth=1, linestyle ='--', label = '_cursor_')
         # self._canvas_cursor.horizOn = False
 
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
+
     def _initFigure(self):
         SASUtils.update_mpl_style()
 
@@ -508,13 +519,13 @@ class PlotPanel(wx.Panel):
     def setFrameStyle(self, axes, style):
 
         system_settings = wx.SystemSettings()
-        
+
         try:
             system_appearance = system_settings.GetAppearance()
             is_dark = system_appearance.IsDark()
         except Exception:
             is_dark = False
-            
+
         if is_dark:
             color = 'white'
         else:
@@ -1446,6 +1457,14 @@ class IftPlotPanel(PlotPanel):
         # self._canvas_cursor = Cursor(self.subplot1, useblit=True, color='red', linewidth=1, linestyle ='--' )
         # self._canvas_cursor.horizOn = False
 
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
 
     def _initFigure(self):
         SASUtils.update_mpl_style()
@@ -1494,13 +1513,13 @@ class IftPlotPanel(PlotPanel):
     def setFrameStyle(self, axes, style):
 
         system_settings = wx.SystemSettings()
-        
+
         try:
             system_appearance = system_settings.GetAppearance()
             is_dark = system_appearance.IsDark()
         except Exception:
             is_dark = False
-            
+
         if is_dark:
             color = 'white'
         else:
@@ -2749,6 +2768,15 @@ class SeriesPlotPanel(wx.Panel):
         self.canvas.callbacks.connect('button_release_event', self._onMouseButtonReleaseEvent)
         self.canvas.callbacks.connect('scroll_event', self._onMouseScrollEvent)
 
+        try:
+            self.Bind(wx.EVT_DPI_CHANGED, self._onDPIChanged)
+        except Exception:
+            pass
+
+    def _onDPIChanged(self, evt):
+        self.SendSizeEvent()
+        evt.Skip()
+
     def _initFigure(self):
         SASUtils.update_mpl_style()
 
@@ -2799,13 +2827,13 @@ class SeriesPlotPanel(wx.Panel):
     def setFrameStyle(self, axes, style):
 
         system_settings = wx.SystemSettings()
-        
+
         try:
             system_appearance = system_settings.GetAppearance()
             is_dark = system_appearance.IsDark()
         except Exception:
             is_dark = False
-            
+
         if is_dark:
             color = 'white'
         else:
