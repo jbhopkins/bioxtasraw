@@ -622,25 +622,6 @@ class MainFrame(wx.Frame):
             is_dark = False
 
         if is_dark:
-            # self.collapse_all.Replace(0,0,0,255,255,255)
-            # self.expand_all.Replace(0,0,0,255,255,255)
-            # self.show_all.Replace(0,0,0,255,255,255)
-            # self.hide_all.Replace(0,0,0,255,255,255)
-            # self.target.Replace(0,0,0,255,255,255)
-            # self.expand.Replace(0,0,0,255,255,255)
-            # self.collapse.Replace(0,0,0,255,255,255)
-
-            # self.errbars_icon.Replace(0,0,0,255,255,255)
-            # self.showboth_icon.Replace(0,0,0,255,255,255)
-            # self.showtop_icon.Replace(0,0,0,255,255,255)
-            # self.showbottom_icon.Replace(0,0,0,255,255,255)
-
-            # self.hdrInfoIcon.Replace(0,0,0,255,255,255)
-            # self.ImgSetIcon.Replace(0,0,0,255,255,255)
-            # self.goToIcon.Replace(0,0,0,255,255,255)
-
-            # self.center_target_bmp.Replace(0,0,0,255,255,255)
-
             self.collapse_all = self.collapse_all_dict['dark']
             self.expand_all = self.expand_all_dict['dark']
             self.show_all = self.show_all_dict['dark']
@@ -660,10 +641,10 @@ class MainFrame(wx.Frame):
             self.showtop_icon = self.showtop_icon_dict['dark']
             self.showbottom_icon = self.showbottom_icon_dict['dark']
 
-            self.errbars_icon_toggled = self.errbars_icon_toggled_dict['light']
-            self.showboth_icon_toggled = self.showboth_icon_toggled_dict['light']
-            self.showtop_icon_toggled = self.showtop_icon_toggled_dict['light']
-            self.showbottom_icon_toggled = self.showbottom_icon_toggled_dict['light']
+            self.errbars_icon_toggled = self.errbars_icon_toggled_dict['dark']
+            self.showboth_icon_toggled = self.showboth_icon_toggled_dict['dark']
+            self.showtop_icon_toggled = self.showtop_icon_toggled_dict['dark']
+            self.showbottom_icon_toggled = self.showbottom_icon_toggled_dict['dark']
 
             self.hdrInfoIcon = self.hdrInfoIcon_dict['dark']
             self.ImgSetIcon = self.ImgSetIcon_dict['dark']
@@ -677,25 +658,6 @@ class MainFrame(wx.Frame):
             self.left_arrow_bmp = self.left_arrow_bmp_dict['light']
             self.center_target_bmp = self.center_target_bmp_dict['dark']
         else:
-        #     self.collapse_all.Replace(255,255,255,0,0,0)
-        #     self.expand_all.Replace(255,255,255,0,0,0)
-        #     self.show_all.Replace(255,255,255,0,0,0)
-        #     self.hide_all.Replace(255,255,255,0,0,0)
-        #     self.target.Replace(255,255,255,0,0,0)
-        #     self.expand.Replace(255,255,255,0,0,0)
-        #     self.collapse.Replace(255,255,255,0,0,0)
-
-        #     self.errbars_icon.Replace(255,255,255,0,0,0)
-        #     self.showboth_icon.Replace(255,255,255,0,0,0)
-        #     self.showtop_icon.Replace(255,255,255,0,0,0)
-        #     self.showbottom_icon.Replace(255,255,255,0,0,0)
-
-        #     self.hdrInfoIcon.Replace(255,255,255,0,0,0)
-        #     self.ImgSetIcon.Replace(255,255,255,0,0,0)
-        #     self.goToIcon.Replace(255,255,255,0,0,0)
-
-        #     self.center_target_bmp.Replace(255,255,255,0,0,0)
-
             self.collapse_all = self.collapse_all_dict['light']
             self.expand_all = self.expand_all_dict['light']
             self.show_all = self.show_all_dict['light']
@@ -848,6 +810,8 @@ class MainFrame(wx.Frame):
             pass
 
         # self.help_frames = []
+
+        evt.Skip()
 
 
     def _onDPIChanged(self, evt):

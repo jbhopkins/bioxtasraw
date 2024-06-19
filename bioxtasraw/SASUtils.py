@@ -516,12 +516,17 @@ def signal_handler(sig, frame):
 
 def load_DIP_bitmap(filepath, bitmap_type, bundle=True):
     if platform.system() == 'Darwin':
-        return_bmp = wx.Bitmap(filepath, bitmap_type)
+        bmp = wx.Bitmap(filepath, bitmap_type)
+
+        img = wx.Image(filepath, bitmap_type)
+        img.Replace(0,0,0,255,255,255)
+        dark_bmp = img.ConvertToBitmap()
+
+        return_dict = {'light': bmp, 'dark': dark_bmp}
     else:
 
         if bundle:
             img_prefix, ext = os.path.splitext(filepath)
-            # imgs = glob.glob('{}*{}'.format(img_prefix, ext))
             filepaths = [filepath,]
             for i in range(1,10):
                 img_name = '{}@{}x{}'.format(img_prefix, i, ext)
@@ -584,45 +589,6 @@ def load_DIP_bitmap(filepath, bitmap_type, bundle=True):
             return_dict = {'light': return_bmp, 'dark': dark_return_bmp}
 
     return return_dict
-
-# def load_DIP_image(filepath, bitmap_type):
-#     if platform.system() == 'Darwin':
-#         img = wx.Image(filepath, bitmap_type)
-#     else:
-
-#         try:
-#             content_scale = wx.GetApp().GetTopWindow().GetDPIScaleFactor()
-#         except Exception:
-#             content_scale = wx.GetApp().GetTopWindow().GetContentScaleFactor()
-
-#         img_scale = math.ceil(content_scale)
-
-#         img = None
-
-#         current_scale = img_scale
-
-#         while current_scale > 1:
-#             path, ext = os.path.splitext(filepath)
-#             imgpath = '{}@{}x{}'.format(path, current_scale, ext)
-#             print(imgpath)
-#             if os.path.isfile(imgpath):
-#                 img = wx.Image(imgpath, bitmap_type)
-#                 break
-#             else:
-#                 current_scale = current_scale -1
-
-#         if img is None:
-#             img = wx.Image(filepath, bitmap_type)
-
-#         print(current_scale)
-#         print(content_scale)
-
-#         # Should I rescale for intermediate resolutions? Or just have larger crisp icons?
-#         w, h = img.GetSize()
-#         extra_scale = content_scale/current_scale
-#         img.Rescale(int(w*extra_scale), int(h*extra_scale))
-
-#     return img
 
 def set_best_size(window, shrink=False):
 
