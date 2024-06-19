@@ -3770,8 +3770,13 @@ class MWPlotPanel(wx.Panel):
 
         SASUtils.update_mpl_style()
 
-        # self.fig = Figure((5,4), 75)
-        self.fig = Figure((3.25,2.5), tight_layout=True)
+        if ((int(matplotlib.__version__.split('.')[0]) == 3
+            and int(matplotlib.__version__.split('.')[1]) >= 9) or
+            int(matplotlib.__version__.split('.')[0]) > 3):
+            scale = self.GetDPIScaleFactor()
+        else:
+            scale = 1
+        self.fig = Figure(np.array([3.25,2.5])*scale, tight_layout=True)
         self.canvas = FigureCanvasWxAgg(self, -1, self.fig)
 
         self.data_line = None
@@ -7845,9 +7850,16 @@ class DammifResultsPanel(wx.Panel):
         RAWGlobals.save_in_progress = True
         self.main_frame.setStatus('Saving DAMMIF/N data', 0)
 
+        if ((int(matplotlib.__version__.split('.')[0]) == 3
+            and int(matplotlib.__version__.split('.')[1]) >= 9) or
+            int(matplotlib.__version__.split('.')[0]) > 3):
+            scale = self.GetDPIScaleFactor()
+        else:
+            scale = 1
+
         SASFileIO.saveDammixData(save_path, ambi_data, nsd_data, res_data, clust_num,
             clist_data, dlist_data, model_data, setup_data, model_plots,
-            self.GetDPIScaleFactor())
+            scale)
 
         RAWGlobals.save_in_progress = False
         self.main_frame.setStatus('', 0)
@@ -15840,10 +15852,17 @@ class SVDSECPlotPanel(wx.Panel):
 
         SASUtils.update_mpl_style()
 
+        if ((int(matplotlib.__version__.split('.')[0]) == 3
+            and int(matplotlib.__version__.split('.')[1]) >= 9) or
+            int(matplotlib.__version__.split('.')[0]) > 3):
+            scale = self.GetDPIScaleFactor()
+        else:
+            scale = 1
+
         if ((int(matplotlib.__version__.split('.')[0]) == 1
             and int(matplotlib.__version__.split('.')[1]) >= 5)
             or int(matplotlib.__version__.split('.')[0]) > 1):
-            self.fig = Figure((1,4), 75)
+            self.fig = Figure(np.array([1,3])*scale)
         else:
             if not svd:
                 self.fig = Figure((300./75,4), 75)
@@ -15861,9 +15880,10 @@ class SVDSECPlotPanel(wx.Panel):
         for i in range(0, len(subplotLabels)):
             subplot = self.fig.add_subplot(len(subplotLabels),1,i+1,
                 label = subplotLabels[i][0])
-            subplot.set_xlabel(subplotLabels[i][1])
-            subplot.set_ylabel(subplotLabels[i][2])
+            subplot.set_xlabel(subplotLabels[i][1], fontsize='small')
+            subplot.set_ylabel(subplotLabels[i][2], fontsize='small')
             self.subplots[subplotLabels[i][0]] = subplot
+            subplot.tick_params(labelsize='small')
 
         # self.fig.subplots_adjust(left = 0.18, bottom = 0.13, right = 0.93,
         #     top = 0.93, hspace = 0.26)
@@ -19005,11 +19025,18 @@ class EFARangePlotPanel(wx.Panel):
 
         SASUtils.update_mpl_style()
 
+        if ((int(matplotlib.__version__.split('.')[0]) == 3
+            and int(matplotlib.__version__.split('.')[1]) >= 9) or
+            int(matplotlib.__version__.split('.')[0]) > 3):
+            scale = self.GetDPIScaleFactor()
+        else:
+            scale = 1
+
         if ((int(matplotlib.__version__.split('.')[0]) ==1
             and int(matplotlib.__version__.split('.')[1]) >=5)
             or int(matplotlib.__version__.split('.')[0])) > 1:
             # self.fig = Figure((1,4), 75)
-            self.fig = Figure(np.array([3,3.25])*self.GetDPIScaleFactor())
+            self.fig = Figure(np.array([3,3.25])*scale)
         else:
             self.fig = Figure((275./75,4), dpi = 75)
 
@@ -21532,6 +21559,7 @@ class REGALSBackground(wx.Dialog):
 
         self.Fit()
         SASUtils.set_best_size(self)
+        self.series_plot.fig.tight_layout(pad=0.4)
         self.CenterOnParent()
 
     def _FromDIP(self, size):
@@ -21552,6 +21580,7 @@ class REGALSBackground(wx.Dialog):
         ctrl_box = ctrl_sizer.GetStaticBox()
 
         self.series_plot = SeriesPlotPanel(ctrl_box, self.plot_type, 'REGALS')
+        self.series_plot.SetMinSize(self._FromDIP((400,300)))
 
 
         self.bkg_region_list = SeriesRangeItemList(self, 'buffer', ctrl_box,
