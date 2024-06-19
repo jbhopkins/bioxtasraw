@@ -7317,7 +7317,8 @@ class DammifResultsPanel(wx.Panel):
         self.models.SetActiveTabColour(RAWGlobals.tab_color)
         self.models.DeleteAllPages()
 
-        self.models.Bind(flatNB.EVT_FLATNOTEBOOK_PAGE_CHANGED, self._on_nb_change)
+        # This should work, and would help with DPI stuff, but causes a SEGFAULT
+        # self.models.Bind(flatNB.EVT_FLATNOTEBOOK_PAGE_CHANGED, self._on_nb_change)
 
         summary_panel = wx.Panel(self.models)
 
@@ -7925,7 +7926,7 @@ class DammifPlotPanel(wx.Panel):
     def createPlot(self):
         color = SASUtils.update_mpl_style()
 
-        fig = Figure((5,4))
+        fig = Figure((5,4), dpi=75)
         self.figures.append(fig)
 
         canvas = FigureCanvasWxAgg(self, -1, fig)
@@ -19036,7 +19037,7 @@ class EFARangePlotPanel(wx.Panel):
             and int(matplotlib.__version__.split('.')[1]) >=5)
             or int(matplotlib.__version__.split('.')[0])) > 1:
             # self.fig = Figure((1,4), 75)
-            self.fig = Figure(np.array([3,3.25])*scale)
+            self.fig = Figure(np.array([1,3])*scale)
         else:
             self.fig = Figure((275./75,4), dpi = 75)
 
@@ -21580,7 +21581,7 @@ class REGALSBackground(wx.Dialog):
         ctrl_box = ctrl_sizer.GetStaticBox()
 
         self.series_plot = SeriesPlotPanel(ctrl_box, self.plot_type, 'REGALS')
-        self.series_plot.SetMinSize(self._FromDIP((400,300)))
+        # self.series_plot.SetMinSize(self._FromDIP((400,300)))
 
 
         self.bkg_region_list = SeriesRangeItemList(self, 'buffer', ctrl_box,
@@ -24585,7 +24586,14 @@ class SeriesPlotPanel(wx.Panel):
     def create_layout(self):
         color = SASUtils.update_mpl_style()
 
-        self.fig = Figure((5,4), 75)
+        if ((int(matplotlib.__version__.split('.')[0]) == 3
+            and int(matplotlib.__version__.split('.')[1]) >= 9) or
+            int(matplotlib.__version__.split('.')[0]) > 3):
+            scale = self.GetDPIScaleFactor()
+        else:
+            scale = 1
+
+        self.fig = Figure(np.array([5,4])*scale, 75)
 
         self.subplot = self.fig.add_subplot(1,1,1,
             title=self.all_plot_types[self.plot_type]['title'])

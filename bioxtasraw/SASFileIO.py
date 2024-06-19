@@ -4929,6 +4929,7 @@ def saveDammixData(filename, ambi_data, nsd_data, res_data, clust_num, clist_dat
 
     for data in model_plots:
         for fig in data[1]:
+            size=fig.get_size_inches()
             fig.set_size_inches(size*plot_scale)
             fig.suptitle('Model: %s' %(data[0]))
             fig.subplots_adjust(top=0.9)
