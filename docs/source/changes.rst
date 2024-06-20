@@ -1,6 +1,51 @@
 Changes
 ============
 
+2.3.0
+----------
+
+Release date: 2024-06-30
+
+Overview
+^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 2.3.0. Significant
+changes include:
+
+*   Added the DENSS IFT method, which provides an open-source alternative
+    to GNOM for IFTs with an adjustable Dmax parameter (unlike BIFT, which
+    has a fixed, automatically determined, Dmax).
+*   Added the DENSS PDB2SAS method, which provides an open-source alternative
+    to CRYSOL for predicting scattering profiles from models.
+*   High DPI support for plots on MacOS (requires matplotlib >= 3.9).
+*   High DPI support for the entire program on Windows (requires matplotlib >= 3.9).
+*   Compatibility updates for ATSAS 4.0.
+
+Special thanks to Tom Grant, who did the major work on adding in the new DENSS
+IFT and PDB2SAS functions.
+
+All changes:
+^^^^^^^^^^^^^
+*   Added the DENSS IFT method, which provides an open-source alternative
+    to GNOM for IFTs with adjustable Dmax parameters (unlike BIFT, which
+    has a fixed, automatically determined, Dmax).
+*   Added the DENSS PDB2SAS method, which provides an open-source alternative
+    to CRYSOL for predicting scattering profiles from models.
+*   High DPI support for plots on MacOS (requires matplotlib >= 3.9).
+*   High DPI support for the entire program on Windows (requires matplotlib >= 3.9).
+*   Fixed issues with pip installation.
+*   Fixed an API bug where the averageFrames method of the SECM object wouldn't work
+    on subtracted or baseline corrected series.
+*   Fixed a bug with running GNOM in the API.
+*   Added the dummy atom radius to the dammif/n results csv.
+*   Fixed an issue where CRYSOL could return an error if it didn't find the
+    model file.
+*   Added error dialogs for CRYSOL with more information on the problem.
+*   Fixed matplotlib 3.9 compatibility issues.
+*   Icons on MacOS (light mode) are now high DPI.
+
+
+
 2.2.2
 ----------
 
