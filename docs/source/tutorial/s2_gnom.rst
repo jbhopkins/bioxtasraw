@@ -100,6 +100,8 @@ The written version of the tutorial follows.
     function and a summary of the run parameters and numerical results saved
     as a table.
 
+    *   *Try:* Save both the GI profile and the IFT in the same report.
+
     |gnom_report_png|
 
 .. |gnom_panel_png| image:: images/gnom_panel.png

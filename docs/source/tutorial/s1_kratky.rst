@@ -45,7 +45,7 @@ The written version of the tutorial follows.
     *   *Note:* The **unfolded.dat** file is the scattering profile of an unfolded lysine
         riboswitch. The **partially_folded.dat** file is same lysine riboswitch, but in the
         biologically functional configuration. The data were downloaded from the
-        `BIOISIS database <https://www.bioisis.net/>`_, and has the BIOISIS ids of 2LYSRR and 3LYSRR.
+        (now defunct) BIOISIS database, and had the BIOISIS ids of 2LYSRR and 3LYSRR.
 
 #.  SAXS data can be presented on an arbitrary scale, which is why these two profiles have
     intensity that is much larger than the lysozyme and GI data (which is on an absolute scale).

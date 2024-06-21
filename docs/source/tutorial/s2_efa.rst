@@ -206,7 +206,7 @@ The written version of the tutorial follows.
     data. If it was not, you could try changing methods or adjusting the number
     of iterations or threshold.
 
-    *   *Tip:* If it takes a while to run REGALS every time you change a component,
+    *   *Tip:* If it takes a while to run EFA every time you change a component,
         you can speed up the convergence by starting with the previous results.
         To do so, you would check the "Start with previous results" box. This
         will allow you to quickly iterate on changes, as long as the magnitude
@@ -272,6 +272,9 @@ Note: By default, RAW bins the profiles before doing an SVD and calculating the
 evolving factor plots, in order to speed up the process. The final EFA rotation is
 done on the full unbinned dataset. You can turn binning on and off and adjust
 the binning parameters in the Series options panel in the Advanced Options window.
+
+Note 2: If you save a pdf report of a series that has EFA analysis done on it, a
+summary of the EFA analysis and the various plots is saved in the report.
 
 .. |efa_series_plot_png| image:: images/efa_series_plot.png
     :target: ../_images/efa_series_plot.png

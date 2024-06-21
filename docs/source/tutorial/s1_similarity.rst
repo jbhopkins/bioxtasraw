@@ -187,7 +187,7 @@ The written version of the tutorial follows.
     window. This tab shows the results of the pairwise tests done using the
     CorMap method. On the top is a heatmap of the probability that the profiles
     are similar, while on the bottom is a list of the pairwise comparisons
-    an the actual probabilities.
+    and the actual probabilities.
 
     |similarity_window_png|
 
@@ -206,8 +206,8 @@ The written version of the tutorial follows.
         getting a result that is 2 standard deviations from the mean is a
         significant difference. However, if you make 100 measurements and
         compare them all to the first, you expect that 5% of the measurements
-        you make will be outside of 2 standard deviations different, so multiple
-        testing attempts to correct for that factor.
+        you make will be outside of 2 standard deviations different, so a multiple
+        testing correction attempts to correct for that factor.
 
     |similarity_highlight_png|
 

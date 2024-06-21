@@ -432,7 +432,7 @@ The written version of the tutorial follows.
         using either the “Plot” or “Plot Series” button.
 
 #.  Select just the **profile_001** item, right click and select "Save report". Check
-    the profiles associtated with the SEC-SAXS series, so that you're saving a
+    the profiles associated with the SEC-SAXS series, so that you're saving a
     report that includes both the series and the averaged subtracted profile.
     Save the report as a pdf.
 
