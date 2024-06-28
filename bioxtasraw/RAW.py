@@ -4360,7 +4360,43 @@ class MainWorkerThread(threading.Thread):
                         self._raw_settings, return_all_images=False)
 
                 elif file_ext == '.pdb' or file_ext == '.cif':
-                    loaded_files = self._loadStructureFile(each_filename)
+                    structure_calc = self._raw_settings.get('defaultStructureCalc')
+
+                    if structure_calc == 'CRYSOL':
+                        opsys = platform.system()
+                        if opsys == 'Windows':
+                            if os.path.exists(os.path.join(self._raw_settings.get('ATSASDir'),
+                                'crysol.exe')):
+                                has_atsas = True
+                            else:
+                                has_atsas = False
+                        else:
+                            if os.path.exists(os.path.join(self._raw_settings.get('ATSASDir'),
+                                'crysol')):
+                                has_atsas = True
+                            else:
+                                has_atsas = False
+
+                        if has_atsas:
+                            loaded_files = self._loadStructureFile(each_filename)
+                        else:
+                            msg = ('CRYSOL is not available. Either change your '
+                                'default calculator or make sure the '
+                                'appropriate ATSAS location is specified in the '
+                                'options panel in order to load a structure as '
+                                'a theoretical profile.')
+                            wx.CallAfter(self._showGenericError, msg, 'Theoretical calculator error')
+                            loaded_files = []
+
+                    elif structure_calc == 'PDB2SAS':
+                        if file_ext == '.pdb':
+                            loaded_files = self._loadStructureFile(each_filename)
+                        else:
+                            msg = ('PDB2SAS cannot load .cif files. Either change '
+                                'the default calculator to CRYSOL or load the structure '
+                                'as a .pdb file to generate the theoretical profile.')
+                            wx.CallAfter(self._showGenericError, msg, 'Theoretical calculator error')
+                            loaded_files = []
                     img = None
 
                 else:
