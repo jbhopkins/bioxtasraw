@@ -14,7 +14,7 @@ DENSS paper: T. D. Grant. Nature Methods (2018) 15, 191–193.
 DOI: `10.1038/nmeth.4581 <https://doi.org/10.1038/nmeth.4581>`_
 
 If you use RAW to run CIFSUP, in addition to citing the RAW paper, please
-cite the paper given in the `CIFSUP manual. <https://www.embl-hamburg.de/biosaxs/manuals/cifsup.html>`_
+cite the paper given in the `CIFSUP manual. <hhttps://biosaxs-com.github.io/atsas/4.0.0/manuals/cifsup.html>`_
 Note that CIFSUP is only available in ATSAS >=3.1.0. For older versions of ATSAS
 a similar SUPCOMB window is available, the full tutorial for that can be found
 in previous versions of this tutorial.
@@ -67,7 +67,7 @@ one model (the reference) is the high resolution structure while the other
 
 #.  Advanced settings can be accessed by clicking on the 'Advanced Settings' text
     to expand the section. These settings are described in the `CIFSUP manual
-    <https://www.embl-hamburg.de/biosaxs/manuals/cifsup.html>`_.
+    <https://biosaxs-com.github.io/atsas/4.0.0/manuals/cifsup.html>`_.
 
     |align_atsas_advanced_png|
 

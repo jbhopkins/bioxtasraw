@@ -134,11 +134,11 @@ Installing the ATSAS package
 
 The ATSAS package is available from EMBL, and can be downloaded here:
 
-`https://www.embl-hamburg.de/biosaxs/download.html <https://www.embl-hamburg.de/biosaxs/download.html>`_
+`https://github.com/biosaxs-com/atsas-community <https://github.com/biosaxs-com/atsas-community>`_
 
 Installation instructions are available here:
 
-`https://www.embl-hamburg.de/biosaxs/manuals/install.html <https://www.embl-hamburg.de/biosaxs/manuals/install.html>`_
+`https://biosaxs-com.github.io/atsas/4.0.0/install/ <https://biosaxs-com.github.io/atsas/4.0.0/install/>`_
 
 We recommend installing the packages in the default installation location.
 

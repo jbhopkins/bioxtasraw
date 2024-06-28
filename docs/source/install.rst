@@ -25,7 +25,7 @@ Installation on other Linux distributions requires building from source.
 RAW is also available through `SBGrid <https://sbgrid.org/software/titles/bioxtas-raw>`_.
 
 Some features in RAW require a separate installation of the
-`ATSAS <https://www.embl-hamburg.de/biosaxs/software.html>`_ package.
+`ATSAS <https://github.com/biosaxs-com/atsas-community>`_ package.
 
 For installation instructions for the API, see the :ref:`API documentation.<api>`
 

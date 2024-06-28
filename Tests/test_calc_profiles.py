@@ -871,7 +871,6 @@ def test_crysol_fit_settings(temp_directory, old_settings):
     assert fit_params['Chi_squared'] ==  1.089
     assert np.allclose(fit_profile.getI().sum(), 3.72612387712)
 
-@pytest.mark.new
 def test_dift(clean_gi_sub_profile, old_settings, gi_dift_ift):
     (ift, dmax, rg, i0, rg_err, i0_err, chi_sq, alpha) = raw.denss_ift(clean_gi_sub_profile,)
 
@@ -880,7 +879,6 @@ def test_dift(clean_gi_sub_profile, old_settings, gi_dift_ift):
     assert np.allclose(ift.r, gi_dift_ift.r)
     assert np.allclose(ift.p, gi_dift_ift.p)
 
-@pytest.mark.new
 def test_dift_dmax_alpha(clean_gi_sub_profile, old_settings, gi_dift_ift):
     (ift, dmax, rg, i0, rg_err, i0_err, chi_sq, alpha) = raw.denss_ift(clean_gi_sub_profile,
         dmax=114.81772123448121, alpha=8119093695685.446)
@@ -890,7 +888,6 @@ def test_dift_dmax_alpha(clean_gi_sub_profile, old_settings, gi_dift_ift):
     assert np.allclose(ift.r, gi_dift_ift.r)
     assert np.allclose(ift.p, gi_dift_ift.p)
 
-@pytest.mark.new
 def test_pdb2sas_modelonly(temp_directory, gi_pdb2sas_modelonly_ift):
     shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
             os.path.join(temp_directory, '1XIB_4mer.pdb'))
@@ -898,12 +895,11 @@ def test_pdb2sas_modelonly(temp_directory, gi_pdb2sas_modelonly_ift):
     results = raw.pdb2sas([os.path.join(temp_directory, '1XIB_4mer.pdb')])
 
     pdb2sas = results['1XIB_4mer'][0]
+    denss_analysis = pdb2sas.getParameter('analysis')['denss']
 
-    assert np.allclose(pdb2sas.Rg,gi_pdb2sas_modelonly_ift.getParameter('rg'))
-    assert np.allclose(pdb2sas.I0,gi_pdb2sas_modelonly_ift.getParameter('i0'))
-    assert np.allclose(pdb2sas.side,gi_pdb2sas_modelonly_ift.getParameter('dmax'))
+    assert np.allclose(denss_analysis['Rg'], 33.33)
+    assert np.allclose(pdb2sas.getI().sum(), 12509445156.456285)
 
-@pytest.mark.new
 def test_pdb2sas_fit(temp_directory, clean_gi_sub_profile, gi_pdb2sas_fit_ift):
     shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
             os.path.join(temp_directory, '1XIB_4mer.pdb'))
@@ -911,11 +907,11 @@ def test_pdb2sas_fit(temp_directory, clean_gi_sub_profile, gi_pdb2sas_fit_ift):
     results = raw.pdb2sas([os.path.join(temp_directory, '1XIB_4mer.pdb')], profiles=[clean_gi_sub_profile])
 
     pdb2sas = results['1XIB_4mer_glucose_isomerase'][0]
+    denss_analysis = pdb2sas.getParameter('analysis')['denss']
 
-    assert np.allclose(pdb2sas.Rg,gi_pdb2sas_fit_ift.getParameter('rg'))
-    assert np.allclose(pdb2sas.I0,gi_pdb2sas_fit_ift.getParameter('i0'))
-    assert np.allclose(pdb2sas.side,gi_pdb2sas_fit_ift.getParameter('dmax'))
-    assert np.allclose(pdb2sas.chi2,gi_pdb2sas_fit_ift.getParameter('chisq'))
+    assert np.allclose(denss_analysis['Rg'], 33.92)
+    assert np.allclose(pdb2sas.getI().sum(), 20496743823.859074)
+    assert np.allclose(denss_analysis['Chi_squared'], 1.088)
 
 
 

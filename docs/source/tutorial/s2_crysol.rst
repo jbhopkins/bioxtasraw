@@ -25,7 +25,7 @@ is the CRYSOL program in the ATSAS package. We will use RAW to run CRYSOL. Note
 that you need :ref:`ATSAS installed <atsas>` to do this part of the tutorial.
 
 If you use RAW to run CRYSOL, in addition to citing the RAW paper, please
-cite the paper given in the `CRYSOL manual. <https://www.embl-hamburg.de/biosaxs/crysol.html>`_
+cite the paper given in the `CRYSOL manual. <https://biosaxs-com.github.io/atsas/4.0.0/manuals/crysol.html>`_
 
 The written version of the tutorial follows.
 

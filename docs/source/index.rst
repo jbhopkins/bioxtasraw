@@ -21,7 +21,7 @@ Features
 *   Analysis of molecular weight via I(0) comparison to standards, absolute
     calibration, correlation volume (V\ :sub:`c`), corrected Porod volume
     (V\ :sub:`p`), the ATSAS Shape&Size and the ATSAS Bayesian methods.
-*   Calculation of inverse Fourier transforms (IFTs) via GNOM and a Bayesian
+*   Calculation of inverse Fourier transforms (IFTs) via GNOM, DENSS (DIFT) and a Bayesian
     indirect Fourier transform (BIFT).
 *   Calculation of envelopes (dummy atom models) using DAMMIF, DAMMIN, DAMAVER, and DAMCLUST.
 *   Calculation of electron density using the DENSS algorithm

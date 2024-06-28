@@ -5456,8 +5456,8 @@ def denss_align(density, side, ref_file, ref_datadir='.',  prefix='',
 def pdb2sas(models,
     profiles=None,
     prefix=None,
-    qmax=None,
-    nq=None,
+    qmax=0.5,
+    nq=501,
     units=None,
     rho0=None,
     shell_contrast=None,
@@ -5489,9 +5489,11 @@ def pdb2sas(models,
         The prefix perpended to the output files. Should only be used if a single
         model (or single model and profile) are supplied.
     qmax: float, optional
-        Maximum scattering angle in 1/A. Default None.
+        Maximum scattering angle in 1/A. Default 0.5.
     nq: float, optional
-        Number of points in theoretical profile. Default None.
+        Number of points in theoretical profile. Default 501. Note that this
+        is ignored for fitting to profile, where the q points of the profile
+        are used.
     units: str, optional
         Values: a - 1/A (4pi*sin(th)/lm). nm - 1/nm (4pi*sin(th)/lm).
         By default, units are angstrom (a).

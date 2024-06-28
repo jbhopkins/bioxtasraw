@@ -45,13 +45,13 @@ def gi_dift_ift():
     return ift
 
 @pytest.fixture(scope="package")
-def gi_pdb2mrc_modelonly_ift():
+def gi_pdb2sas_modelonly_ift():
     ift = raw.load_ifts([os.path.join('.', 'data',
             'gi_pdb2mrc_modelonly.ift')])[0]
     return ift
 
 @pytest.fixture(scope="package")
-def gi_pdb2mrc_fit_ift():
+def gi_pdb2sas_fit_ift():
     ift = raw.load_ifts([os.path.join('.', 'data',
             'gi_pdb2mrc_fit.ift')])[0]
     return ift

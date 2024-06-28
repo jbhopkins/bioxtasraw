@@ -4951,7 +4951,7 @@ class GNOMControlPanel(wx.Panel):
     def _onInfoButton(self, evt):
         msg = ('If you use GNOM in your work, in addition to citing '
             'the RAW paper please cite the paper given here:'
-            '\nhttps://www.embl-hamburg.de/biosaxs/gnom.html')
+            '\nhttps://biosaxs-com.github.io/atsas/4.0.0/manuals/gnom.html')
         wx.MessageBox(str(msg), "How to cite GNOM", style = wx.ICON_INFORMATION | wx.OK)
 
     def onFindDmaxButton(self, evt):
@@ -5449,21 +5449,21 @@ class DammifFrame(wx.Frame):
     def _onInfoButton(self, evt):
         msg = ('In addition to citing the RAW paper:\n If you use DAMMIF '
         'in your work please cite the paper given here:\n'
-        'https://www.embl-hamburg.de/biosaxs/dammif.html\n\nIf you use '
+        'https://biosaxs-com.github.io/atsas/4.0.0/manuals/dammif.html\n\nIf you use '
         'DAMMIN in your work please cite the paper given here:\n'
-        'https://www.embl-hamburg.de/biosaxs/dammin.html\n\nIIf you use '
+        'https://biosaxs-com.github.io/atsas/4.0.0/manuals/dammin.html\n\nIIf you use '
         'DAMAVER in your work, please cite the paper given here:\n'
-        'https://www.embl-hamburg.de/biosaxs/damaver.html\n\nIf you use '
+        'https://biosaxs-com.github.io/atsas/4.0.0/manuals/damaver.html\n\nIf you use '
         'DAMCLUST in your work please cite the paper given here:\n'
         'https://www.embl-hamburg.de/biosaxs/manuals/damclust.html\n\n'
         'If you use AMBIMETER in your work please cite the paper given here:\n'
-        'https://www.embl-hamburg.de/biosaxs/manuals/ambimeter.html.\n\n'
+        'https://biosaxs-com.github.io/atsas/4.0.0/manuals/ambimeter.html.\n\n'
         'If you use SASRES in your work please cite the paper given here:\n'
-        'https://www.embl-hamburg.de/biosaxs/manuals/sasres.html\n\n'
+        'https://biosaxs-com.github.io/atsas/4.0.0/manuals/sasres.html\n\n'
         'If you use SUPCOMB in your work please cite the paper given here:\n'
         'https://www.embl-hamburg.de/biosaxs/supcomb.html\n\n'
         'If you use CIFSUP in your work please cite the paper given here:\n'
-        'https://www.embl-hamburg.de/biosaxs/manuals/cifsup.html')
+        'https://biosaxs-com.github.io/atsas/4.0.0/manuals/cifsup.html')
         wx.MessageBox(str(msg), "How to cite AMBIMETER/DAMMIF/DAMMIN/DAMAVER/DAMCLUST/SASRES/SUPCOMB/CIFSUP",
             style = wx.ICON_INFORMATION | wx.OK)
 
@@ -13807,7 +13807,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         pdb2sas_settings = {
             'prefix'            : prefix,
             'qmax'              : qmax,
-            'nq'                : nq, 
+            'nq'                : nq,
             'units'             : units,
             'rho0'              : rho0,
             'shell_contrast'    : shell_contrast,
@@ -14159,7 +14159,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         if self.calc_type == 'CRYSOL':
             msg = ('If you use CRYSOL in your work, in addition '
                 'to citing the RAW paper please cite the paper given here:\n'
-                'https://www.embl-hamburg.de/biosaxs/manuals/crysol.html')
+                'https://biosaxs-com.github.io/atsas/4.0.0/manuals/crysol.html')
             wx.MessageBox(str(msg), "How to cite CRYSOL", style=wx.ICON_INFORMATION|wx.OK)
         if self.calc_type == 'PDB2SAS':
             msg = ('If you use DENSS PDB2SAS in your work, in addition '
@@ -15537,7 +15537,7 @@ class CifsupFrame(wx.Frame):
 
     def _onInfoButton(self, evt):
         msg = ('If you use CIFSUP in your work please cite the paper given here:\n'
-        'https://www.embl-hamburg.de/biosaxs/manuals/cifsup.html')
+        'https://biosaxs-com.github.io/atsas/4.0.0/manuals/cifsup.html')
         wx.MessageBox(str(msg), "How to cite CIFSUP", style=wx.ICON_INFORMATION|wx.OK)
 
     def OnClose(self, event):

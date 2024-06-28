@@ -19,13 +19,13 @@ This tutorial covers SAXS data processing with RAW. You will learn how to:
     deconvolve SAXS data.
 *   Do baseline correction on SEC-SAXS data
 *   Merge SAXS/WAXS data from two detectors
-*   Carry out Pair-distance distribution analysis (BIFT and GNOM)
+*   Carry out Pair-distance distribution analysis (BIFT, DIFT and GNOM)
 *   Evaluate ambiguity of 3D shape reconstructions (AMBIMETER)
 *   3D reconstructions with bead models (DAMMIF/N and DAMAVER)
 *   3D reconstructions with electron density (DENSS)
 *   Align 3D reconstructions with high resolution models (DENSS and CIFSUP)
 *   Calculate theoretical scattering profiles from models and fit the
-    theoretical scattering against experimental data (CRYSOL)
+    theoretical scattering against experimental data (CRYSOL and PDB2SAS)
 *   Save your analysis information and plots
 *   Calibrate RAW for integrating images
 *   Mask images for integration
@@ -47,7 +47,7 @@ covers some basic processing and analysis best practices.
 
 Requirements
 ^^^^^^^^^^^^
-*  BioXTAS RAW >= v2.2.0 (most recent is best).
+*  BioXTAS RAW >= v2.3.0 (most recent is best).
 
     *   :ref:`Install instructions <install>`
 
@@ -65,7 +65,7 @@ Requirements
     the tutorial).
 
     *   Download and installation instructions are available from:
-        `https://www.embl-hamburg.de/biosaxs/download.html <https://www.embl-hamburg.de/biosaxs/download.html>`_
+        `https://github.com/biosaxs-com/atsas-community <https://github.com/biosaxs-com/atsas-community>`_
 
     *   Requires a free registration for academic users. Proprietary users must pay to use.
 
@@ -84,8 +84,8 @@ Other useful materials
 
 #.  ATSAS resources:
 
-    *   Manuals: `https://www.embl-hamburg.de/biosaxs/manuals/ <https://www.embl-hamburg.de/biosaxs/manuals/>`_
-    *   User forum: `https://www.saxier.org/forum/ <https://www.saxier.org/forum/>`_
+    *   Manuals: `https://biosaxs-com.github.io/atsas/4.0.0/manuals/ <https://biosaxs-com.github.io/atsas/4.0.0/manuals/>`_
+    *   User forum: `https://github.com/biosaxs-com/atsas-community/discussions <https://github.com/biosaxs-com/atsas-community/discussions>`_
 
 #.  Electron density (DENSS) resources available at `DENSS.org <denss.org>`_
 

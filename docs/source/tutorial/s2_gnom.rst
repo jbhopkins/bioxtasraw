@@ -13,7 +13,7 @@ on basic principles and best practices for doing an IFT or analysis of the
 resulting P(r) function. For that, please see the :ref:`SAXS tutorial <saxs_ift>`.
 
 If you use RAW to run GNOM, in addition to citing the RAW paper, please
-cite the paper given in the `GNOM manual. <https://www.embl-hamburg.de/biosaxs/manuals/gnom.html>`_
+cite the paper given in the `GNOM manual. <https://biosaxs-com.github.io/atsas/4.0.0/manuals/gnom.html>`_
 
 A video version of this tutorial is available:
 
@@ -59,8 +59,6 @@ The written version of the tutorial follows.
 
 #.  Try varying the |Dmax| value up and down in the range of 80-110. Observe what
     happens to the P(r) and the quality of the solution.
-
-    *   *Note:* |Dmax| is in units of Å.
 
 #.  Return the |Dmax| value to that found by RAW by clicking the "Auto Dmax" button.
     |Dmax| should be 102. By default, GNOM forces the P(r) function to zero at |Dmax|.

@@ -132,7 +132,7 @@ with no anisometry, to verify that the symmetry did not overly constrain the
 reconstructions.
 
 Additional advanced options are available, and are described in the
-`DAMMIF manual <https://www.embl-hamburg.de/biosaxs/manuals/dammif.html>`_.
+`DAMMIF manual <https://biosaxs-com.github.io/atsas/4.0.0/manuals/dammif.html>`_.
 
 If you only want a quick look at the shape (such as when collecting data
 at a beamline) 3 reconstructions  in Fast mode will work for that purpose.
@@ -355,7 +355,7 @@ many of which are mentioned in previous parts of the tutorial. In summary:
 *   The most common bead modeling programs cannot model multiple electron
     densities within a sample, such a protein-nucleic acid complex or
     a membrane protein with a detergent halo. There are specialized
-    programs (such as `MONSA <https://www.embl-hamburg.de/biosaxs/monsa.html>`_
+    programs (such as `MONSA <https://biosaxs-com.github.io/atsas/4.0.0/manuals/monsa.html>`_
     or `Memprot <https://pubmed.ncbi.nlm.nih.gov/25615863/>`_) that can handle
     these cases, but these require the input of additional information to provide
     extra constraints.
@@ -541,7 +541,7 @@ by the packing of the macromolecule into the crystal.
 
 Of course, the best way to compare your high resolution structure to SAXS data
 isn't by docking it in a bead model, but by fitting it against the data using
-a program like `CRYSOL <https://www.embl-hamburg.de/biosaxs/crysol.html>`_ or
+a program like `CRYSOL <https://biosaxs-com.github.io/atsas/4.0.0/manuals/crysol.html>`_ or
 `FoXS <https://modbase.compbio.ucsf.edu/foxs/>`_. If these fits are bad, then
 your high resolution structure doesn't match the data, regardless of what the
 bead model shows. If these fits are good, and the bead model doesn't agree with
@@ -554,13 +554,13 @@ There are many more approaches available than I can list here, but a couple
 of the more common ones are:
 
 *   If your data is flexible, you can try some kind of ensemble based approach,
-    such as `EOM <https://www.embl-hamburg.de/biosaxs/eom.html>`_,
+    such as `EOM <hhttps://biosaxs-com.github.io/atsas/4.0.0/manuals/eom.html>`_,
     `SASSIE <https://sassie-web.chem.utk.edu/sassie2/>`_, or
     `BilboMD <https://bl1231.als.lbl.gov/bilbomd>`_.
 
 *   If your data is more rigid and consists of several subunits you can consider
     rigid body modeling such as
-    `SASREF <https://www.embl-hamburg.de/biosaxs/manuals/sasres.html>`_.
+    `SASREF <https://biosaxs-com.github.io/atsas/4.0.0/manuals/sasref.html>`_.
 
 
 

@@ -2,11 +2,11 @@ Theoretical profiles and fitting from models – PDB2SAS (DENSS) in RAW
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _denss_pdb2sas_tutorial:
 
-RAW has a built-in method to calculate theoretical scattering profiles from atomic 
-models and fit them to experimental data. This method is based on the DENSS PDB2SAS 
-calculator (corresponding to the DENSS command line tool called denss.pdb2mrc.py). 
-The purpose and output of PDB2SAS is similar to that of CRYSOL, but uses a fundamentally 
-different algorithm. PDB2SAS calculates a theoretical scattering profile from an atomic 
+RAW has a built-in method to calculate theoretical scattering profiles from atomic
+models and fit them to experimental data. This method is based on the DENSS PDB2SAS
+calculator (corresponding to the DENSS command line tool called denss.pdb2mrc.py).
+The purpose and output of PDB2SAS is similar to that of CRYSOL, but uses a fundamentally
+different algorithm. PDB2SAS calculates a theoretical scattering profile from an atomic
 model by first calculating a real space electron density map for the atoms in vacuo, the
 excluded solvent, and the hydration shell, and then performs a Fourier transform and
 spherical averaging of intensities to generate the 1D SAXS profile. PDB2SAS allows you
@@ -22,11 +22,11 @@ The written version of the tutorial follows.
     Panel go to the **theory_data** folder, select the **1XIB_4mer.pdb**
     and click the plot button.
 
-    #   *Note:* **.cif** files are not currently supported in PDB2SAS.
+    *   *Note:* **.cif** files are not currently supported in PDB2SAS.
 
-    #   *Note:* PDB2SAS is the default calculator in RAW. However, 
-        it is possible that it has been changed to CRYSOL by a user. 
-        If so, you can reset the default calculator to PDB2MRC by going to 
+    *   *Note:* PDB2SAS is the default calculator in RAW. However,
+        it is possible that it has been changed to CRYSOL by a user.
+        If so, you can reset the default calculator to PDB2MRC by going to
         Options->Advanced Options->General Settings and selecting PDB2SAS
         in the "Default structure calculator" drop down menu.
 
@@ -38,7 +38,7 @@ The written version of the tutorial follows.
 
 #.  You can also generate a theoretical profile using the PDB2SAS window in RAW.
     This gives you more control over the parameters used to generate the profile,
-    using the plot button simply uses the default parameters. Select the 
+    using the plot button simply uses the default parameters. Select the
     "Tools->DENSS->PDB2SAS" menu option to open the PDB2SAS window.
 
     |theory_pdb2sas_menu_png|
@@ -170,13 +170,13 @@ The written version of the tutorial follows.
 #.  Run the PDB2SAS fitting with the default settings.
 
     *   *Note:* Notice that the maximum q value for the theoretical fit does
-        not extend all the way to the experimental maximum. This is because 
+        not extend all the way to the experimental maximum. This is because
         the default number of samples (128) is too small. This protein is elongated
         causing the real space voxel size to be quite large, which results
         in the maximum q value to be too small.
 
 #.  Open a second PDB2MRC window and add the same model and data to it.
-    Set the N samples (real space) option to 256. Run the PDB2SAS fitting 
+    Set the N samples (real space) option to 256. Run the PDB2SAS fitting
     with these updated settings.
 
     |theory_pdb2sas_nsamples_png|

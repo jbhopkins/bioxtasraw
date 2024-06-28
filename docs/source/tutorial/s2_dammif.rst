@@ -18,11 +18,11 @@ model reconstructions. For that, please see the :ref:`SAXS tutorial <saxs_bead_m
 If you use RAW to run DAMMIF or associated programs, in addition to citing the
 RAW paper, please cite the papers given in the:
 
-    *    `DAMMIF manual <https://www.embl-hamburg.de/biosaxs/manuals/dammif.html>`_
-    *    `DAMMIN manual <https://www.embl-hamburg.de/biosaxs/manuals/dammin.html>`_
-    *    `DAMAVER manual <https://www.embl-hamburg.de/biosaxs/manuals/damaver.html>`_
-    *    `SASRES manual <https://www.embl-hamburg.de/biosaxs/manuals/sasres.html>`_
-    *    `CIFSUP manual <https://www.embl-hamburg.de/biosaxs/manuals/cifsup.html>`_
+    *    `DAMMIF manual <https://biosaxs-com.github.io/atsas/4.0.0/manuals/dammif.html>`_
+    *    `DAMMIN manual <https://biosaxs-com.github.io/atsas/4.0.0/manuals/dammin.html>`_
+    *    `DAMAVER manual <https://biosaxs-com.github.io/atsas/4.0.0/manuals/damaver.html>`_
+    *    `SASRES manual <https://biosaxs-com.github.io/atsas/4.0.0/manuals/sasres.html>`_
+    *    `CIFSUP manual <https://biosaxs-com.github.io/atsas/4.0.0/manuals/cifsup.html>`_
 
 as appropriate.
 
@@ -147,14 +147,14 @@ The written version of the tutorial follows.
 #.  The results from individual DAMMIF runs are saved in the selected output folder
     with the name **<prefix>_xx**, where *xx* is the run number: 01, 02, etc. For
     this tutorial, that would be **glucose_isomerase_01**, **glucose_isomerase_02**, and so on. The
-    different files produced are described in the `DAMMIF manual <https://www.embl-hamburg.de/biosaxs/manuals/dammif.html#output>`_.
+    different files produced are described in the `DAMMIF manual <hhttps://biosaxs-com.github.io/atsas/4.0.0/manuals/dammif.html#dammif-output-files>`_.
 
     *   *Note:* Generally, the file of interest is the **-1.cif** file, in this case
         **glucose_isomerase_01-1.cif**, **glucose_isomerase_02-1.cif**, etc.
 
 #.  If averaging was done with DAMAVER, the results are saved in the selected output
     folder with the given prefix, in this case **glucose_isomerase**. The output
-    files generated are described in the `DAMAVER manual <https://www.embl-hamburg.de/biosaxs/manuals/damaver.html>`_.
+    files generated are described in the `DAMAVER manual <https://biosaxs-com.github.io/atsas/4.0.0/manuals/damaver.html>`_.
 
     *   *Note:* Generally, the file of interest is the generated damfilt mmCIF:
         **<prefix>_damfilt.cif**. For this tutorial, that would be
@@ -162,11 +162,11 @@ The written version of the tutorial follows.
 
 #.  If multiple clusters were found, the results are saved in the selected output
     folder with the given prefix (for this tutorial, **glucose_isomerase**). The files generated
-    are described in the `DAMAVER manual <https://www.embl-hamburg.de/biosaxs/manuals/damaver.html#output>`_.
+    are described in the `DAMAVER manual <https://www.embl-hamburg.de/biosaxs/manuals/damaver.html#>`_.
 
 #.  If refinement was done with DAMMIN, the results are saved in the selected output
     folder as **refine_<prefix>**, e.g. for this tutorial **refine_glucose_isomerase**. The files
-    generated are described in the `DAMMIN manual <https://www.embl-hamburg.de/biosaxs/manuals/dammin.html#output>`_.
+    generated are described in the `DAMMIN manual <https://biosaxs-com.github.io/atsas/4.0.0/manuals/dammin.html#dammin-output-files>`_.
 
     *   *Note:* Generally, the file of interest is the **-1.cif** file, in this case
         **refine_glucose_isomerase-1.cif**.
