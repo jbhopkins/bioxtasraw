@@ -2684,7 +2684,7 @@ class GeneralOptionsPanel(scrolled.ScrolledPanel):
         hsizer2.Add(hdrldsetdir_button, 0, wx.LEFT, border=self._FromDIP(5))
 
         default_structure_calc_ctrl = wx.Choice(box,
-            raw_settings.getId('defaultStructureCalc'), choices=['CRYSOL'])
+            raw_settings.getId('defaultStructureCalc'), choices=['CRYSOL', 'PDB2SAS'])
 
         calc_sizer = wx.BoxSizer(wx.HORIZONTAL)
         calc_sizer.Add(wx.StaticText(box, label='Default structure calculator:'),

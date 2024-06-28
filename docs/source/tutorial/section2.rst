@@ -20,11 +20,13 @@ the bottom of the page to navigate through it in order.
 
    s2_gnom
    s2_bift
+   s2_dift
    s2_ambimeter
    s2_dammif
    s2_denss
    s2_align
    s2_crysol
+   s2_pdb2sas
    s2_svd
    s2_efa
    s2_regals

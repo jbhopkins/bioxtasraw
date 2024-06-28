@@ -408,7 +408,8 @@ class RawGuiSettings(object):
                 'crysolResultToPlot'    : ['.abs', get_id(), 'choice'],
 
                 #PDB2MRC settings
-                'pdb2mrcQmax'            : ['None', get_id(), 'text'],
+                'pdb2mrcQmax'            : ['0.5', get_id(), 'text'],
+                'pdb2mrcNumQ'            : [501, get_id(), 'int'],
                 'pdb2mrcUnit'            : ['1 - 1/A, q=4pi*sin(th)/l)', get_id(), 'choice'],
                 'pdb2mrcSolvDensity'     : [0.334, get_id(), 'float'],
                 'pdb2mrcHydrDensity'     : [0.011, get_id(), 'float'],
@@ -419,7 +420,7 @@ class RawGuiSettings(object):
                 'pdb2mrcNsamples'        : [128, get_id(), 'int'],
 
                 #Default structure prediction
-                'defaultStructureCalc'  : ['CRYSOL', get_id(), 'choice'],
+                'defaultStructureCalc'  : ['PDB2SAS', get_id(), 'choice'],
 
                 #Weighted Average Settings
                 'weightCounter'         : ['', get_id(), 'choice'],

@@ -13235,6 +13235,8 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         self.qmax = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
             validator=RAWCustomCtrl.CharValidator('float'))
+        self.nq = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
+            validator=RAWCustomCtrl.CharValidator('int'))
         self.rho0 = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
             validator=RAWCustomCtrl.CharValidator('float'))
         self.shell_contrast = wx.TextCtrl(adv_win, size=self._FromDIP((60,-1)),
@@ -13257,21 +13259,24 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         adv_ctrls.Add(wx.StaticText(adv_win, label='Maximum q:'),
             (0,0), flag=wx.ALIGN_CENTER_VERTICAL)
         adv_ctrls.Add(self.qmax, (0,1), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(wx.StaticText(adv_win, label='Solvent density [e/A^3]:'),
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Number of points:'),
             (1,0), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(self.rho0, (1,1), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(wx.StaticText(adv_win, label='Hydration shell contrast [e/A^3]:'),
+        adv_ctrls.Add(self.nq, (1,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Solvent density [e/A^3]:'),
             (2,0), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(self.shell_contrast, (2,1), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(self.fit_solvent, (3,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(self.fit_shell, (4,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(units_sizer, (5,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(wx.StaticText(adv_win, label='Side (A):'), (6,0),
+        adv_ctrls.Add(self.rho0, (2,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Hydration shell contrast [e/A^3]:'),
+            (3,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.shell_contrast, (3,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.fit_solvent, (4,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.fit_shell, (5,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(units_sizer, (6,0), (1,2), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(wx.StaticText(adv_win, label='Side (A):'), (7,0),
             flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(self.side, (6,1), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.side, (7,1), flag=wx.ALIGN_CENTER_VERTICAL)
         adv_ctrls.Add(wx.StaticText(adv_win, label='Voxel size (A):'),
-            (7,0), flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_ctrls.Add(self.voxel, (7,1), flag=wx.ALIGN_CENTER_VERTICAL)
+            (8,0), flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_ctrls.Add(self.voxel, (8,1), flag=wx.ALIGN_CENTER_VERTICAL)
 
         adv_sizer = wx.BoxSizer(wx.VERTICAL)
         adv_sizer.Add(save_sizer, border=self._FromDIP(5),
@@ -13352,6 +13357,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
     def _initialize_pdb2sas(self):
         self.qmax.ChangeValue(str(self.raw_settings.get('pdb2mrcQmax')))
+        self.nq.ChangeValue(str(self.raw_settings.get('pdb2mrcNumQ')))
         self.rho0.ChangeValue(str(self.raw_settings.get('pdb2mrcSolvDensity')))
         self.shell_contrast.ChangeValue(str(self.raw_settings.get('pdb2mrcHydrDensity')))
         self.fit_solvent.SetValue(self.raw_settings.get('pdb2mrcFitSolvent'))
@@ -13783,6 +13789,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
         prefix = None
         qmax = self.qmax.GetValue()
+        nq = self.nq.GetValue()
         units = self.units.GetStringSelection()
         rho0 = self.rho0.GetValue()
         shell_contrast = self.shell_contrast.GetValue()
@@ -13800,6 +13807,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         pdb2sas_settings = {
             'prefix'            : prefix,
             'qmax'              : qmax,
+            'nq'                : nq, 
             'units'             : units,
             'rho0'              : rho0,
             'shell_contrast'    : shell_contrast,
