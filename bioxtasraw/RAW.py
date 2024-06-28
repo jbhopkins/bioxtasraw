@@ -4543,6 +4543,14 @@ class MainWorkerThread(threading.Thread):
             for value in ret_vals.values():
                 profiles.extend(value)
 
+        elif structure_calc == 'PDB2SAS':
+            ret_vals = RAWAPI.pdb2sas(models, settings=self._raw_settings)
+
+            profiles = []
+
+            for value in ret_vals.values():
+                profiles.extend(value)
+
         return profiles
 
     def _loadAndPlotSEC(self, data):

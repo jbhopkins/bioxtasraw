@@ -4210,6 +4210,22 @@ class PDB2MRC(object):
         self.exvol_in_A3 = np.sum(sphere_volume_from_radius(self.pdb.radius)) + np.sum(sphere_volume_from_radius(self.pdb.exvolHradius)*self.pdb.numH)
         self.logger.info("Calculated excluded volume: %.2f"%(self.exvol_in_A3))
 
+    def regrid_Iq_calc(self, qmax=None, nq=501):
+        #interpolate Iq_calc to desired qgrid
+        if qmax is None:
+            if self.qmax is None:
+                qmax = 0.5
+            else:
+                qmax = self.qmax
+        qc = np.linspace(0,qmax,nq)
+        I_interpolator = interpolate.interp1d(self.Iq_calc[:,0],self.Iq_calc[:,1],kind='cubic',fill_value='extrapolate')
+        Ic = I_interpolator(qc)
+        err_interpolator = interpolate.interp1d(self.Iq_calc[:,0],self.Iq_calc[:,2],kind='cubic',fill_value='extrapolate')
+        errc = err_interpolator(qc)
+        Iq_calc_interp = np.vstack((qc,Ic,errc)).T
+        self.Iq_calc_nointerp = np.copy(self.Iq_calc) #save the original
+        self.Iq_calc = Iq_calc_interp
+
     def save_Iq_calc(self, prefix=None):
         """Save the calculated Iq curve to a .dat file."""
         header = ' '.join('%s: %.5e ; '%(self.param_names[i],self.params[i]) for i in range(len(self.params)))
@@ -5096,37 +5112,42 @@ def pdb2mrc_to_sasm(pdb2mrc):
 
         calc_results['Chi_squared'] = round(pdb2mrc.chi2, 3)
 
+        #create a filename from the pdb filename for the calculated fit
+        data_bn = os.path.splitext(os.path.basename(pdb2mrc.data_filename))[0]
+        pdb_bn = os.path.splitext(pdb_fn)[0] 
+        fit_fn = '%s_%s_FIT.dat'%(pdb_bn,data_bn)
         fit = SASM.SASM(
             i=pdb2mrc.fit[:,3]/pdb2mrc.exp_scale_factor, #scale to the data for plotting
             q=pdb2mrc.fit[:,0],
             err=pdb2mrc.fit[:,2]/pdb2mrc.exp_scale_factor,
-            parameters={"filename":pdb_fn})
+            parameters={"filename":fit_fn})
 
         analysis = fit.getParameter('analysis')
         analysis['denss'] = calc_results
         fit.setParameter('analysis', analysis)
 
+        theory_fn = os.path.splitext(pdb_fn)[0] + '_EXP.dat' #replace .pdb with .dat
         theory = SASM.SASM(
             i=pdb2mrc.fit[:,3], #Absolute scale
             q=pdb2mrc.fit[:,0],
             err=pdb2mrc.fit[:,2],
-            parameters={"filename":pdb_fn})
+            parameters={"filename":theory_fn})
 
         theory.setParameter('analysis',
             copy.deepcopy(fit.getParameter('analysis')))
 
     else:
         #here since we don't have data we will use the simulated (terrible) errors from pdb2mrc
+        theory_fn = os.path.splitext(pdb_fn)[0] + '.dat' #replace .pdb with .dat
         theory = SASM.SASM(
             i=pdb2mrc.Iq_calc[:,1],
             q=pdb2mrc.Iq_calc[:,0],
             err=pdb2mrc.Iq_calc[:,2],
-            parameters={"filename":pdb_fn})
+            parameters={"filename":theory_fn})
 
         analysis = theory.getParameter('analysis')
         analysis['denss'] = calc_results
         theory.setParameter('analysis', analysis)
-
 
         fit = None
 
@@ -5432,6 +5453,7 @@ def run_pdb2mrc(
     exp_fname=None,
     prefix=None,
     qmax=None,
+    nq=None,
     units=None,
     rho0=None,
     shell_contrast=None,
@@ -5460,6 +5482,7 @@ def run_pdb2mrc(
 
     #RAW returns 'None' the string or '' empty string, convert to proper None for PDB2MRC
     qmax = None if (qmax == 'None') | (qmax == '') else qmax
+    nq = None if (nq == 'None') | (nq == '') else nq
     rho0 = None if (rho0 == 'None') | (rho0 == '') else rho0
     shell_contrast = None if (shell_contrast == 'None') | (shell_contrast == '') else shell_contrast
     voxel = None if (voxel == 'None') | (voxel == '') else voxel
@@ -5470,6 +5493,8 @@ def run_pdb2mrc(
 
     if qmax is not None:
         qmax = float(qmax)
+    if nq is not None:
+        nq = float(nq)
     if rho0 is not None:
         rho0 = float(rho0)
     if shell_contrast is not None:

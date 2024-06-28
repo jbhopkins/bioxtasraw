@@ -5457,6 +5457,7 @@ def pdb2sas(models,
     profiles=None,
     prefix=None,
     qmax=None,
+    nq=None,
     units=None,
     rho0=None,
     shell_contrast=None,
@@ -5489,6 +5490,8 @@ def pdb2sas(models,
         model (or single model and profile) are supplied.
     qmax: float, optional
         Maximum scattering angle in 1/A. Default None.
+    nq: float, optional
+        Number of points in theoretical profile. Default None.
     units: str, optional
         Values: a - 1/A (4pi*sin(th)/lm). nm - 1/nm (4pi*sin(th)/lm).
         By default, units are angstrom (a).
@@ -5574,6 +5577,7 @@ def pdb2sas(models,
         pdb2mrc_settings = {
             'prefix'            : prefix,
             'qmax'              : qmax,
+            'nq'                : nq,
             'units'             : units,
             'rho0'              : rho0,
             'shell_contrast'    : shell_contrast,
@@ -5589,6 +5593,7 @@ def pdb2sas(models,
         pdb2mrc_settings = {
             'prefix'            : prefix,
             'qmax'              : settings.get('pdb2mrcQmax'),
+            'nq'                : settings.get('pdb2mrcNumQ'),
             'units'             : settings.get('pdb2mrcUnit'),
             'rho0'              : settings.get('pdb2mrcSolvDensity'),
             'shell_contrast'    : settings.get('pdb2mrcHydrDensity'),
@@ -5692,6 +5697,9 @@ def pdb2sas(models,
                 qmax = pdb2mrc.qr.max()-1e-8
                 pdb2mrc.qidx = np.where((pdb2mrc.qr<qmax))
                 pdb2mrc.calc_I_with_modified_params(pdb2mrc.params)
+                qmax = float(pdb2mrc_settings['qmax'])
+                nq = int(pdb2mrc_settings['nq'])
+                pdb2mrc.regrid_Iq_calc(qmax=qmax,nq=nq)
                 pdb2mrc.calculate_excluded_volume_in_A3()
 
                 theory, fit = DENSS.pdb2mrc_to_sasm(pdb2mrc)
