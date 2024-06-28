@@ -3575,7 +3575,10 @@ class PDB2MRC(object):
         if logger is not None:
             self.logger = logger
         else:
-            logging.basicConfig(filename=self.pdb_basename+'.log',level=logging.INFO,filemode='w',
+            if quiet:
+                logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
+            else:
+                logging.basicConfig(filename=self.pdb_basename+'.log',level=logging.INFO,filemode='w',
                         format='%(asctime)s %(message)s') #, datefmt='%Y-%m-%d %I:%M:%S %p')
             self.logger = logging.getLogger()
         self.logger.info('Current Directory: %s', os.getcwd())
@@ -5114,7 +5117,7 @@ def pdb2mrc_to_sasm(pdb2mrc):
 
         #create a filename from the pdb filename for the calculated fit
         data_bn = os.path.splitext(os.path.basename(pdb2mrc.data_filename))[0]
-        pdb_bn = os.path.splitext(pdb_fn)[0] 
+        pdb_bn = os.path.splitext(pdb_fn)[0]
         fit_fn = '%s_%s_FIT.dat'%(pdb_bn,data_bn)
         fit = SASM.SASM(
             i=pdb2mrc.fit[:,3]/pdb2mrc.exp_scale_factor, #scale to the data for plotting
