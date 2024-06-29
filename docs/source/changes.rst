@@ -22,7 +22,7 @@ changes include:
 *   Compatibility updates for ATSAS 4.0.
 
 Special thanks to Dr. Tom Grant, who did the major work on adding in the new DENSS
-IFT and PDB2SAS functions and documentation.
+IFT and PDB2SAS functions and documentation (along with developing the methods).
 
 All changes:
 ^^^^^^^^^^^^^
