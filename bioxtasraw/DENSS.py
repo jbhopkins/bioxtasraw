@@ -3571,11 +3571,12 @@ class PDB2MRC(object):
         self.I_exp = None
         self.sigq_exp = None
         self.fit_params = False
+        self.Iq_calc_nointerp = None
 
         if logger is not None:
             self.logger = logger
         else:
-            if quiet:
+            if self.quiet:
                 logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(message)s')
             else:
                 logging.basicConfig(filename=self.pdb_basename+'.log',level=logging.INFO,filemode='w',
@@ -4233,10 +4234,15 @@ class PDB2MRC(object):
         """Save the calculated Iq curve to a .dat file."""
         header = ' '.join('%s: %.5e ; '%(self.param_names[i],self.params[i]) for i in range(len(self.params)))
         header_dat = header + "\n q_calc I_calc err_calc"
-        qmax = self.qx_.max()-1e-8
+
         if prefix is None:
             prefix = self.pdb_basename
-        np.savetxt(prefix+'.dat',self.Iq_calc[self.q_calc<=qmax],delimiter=' ',fmt='%.8e',header=header_dat)
+
+        if self.Iq_calc_nointerp is None:
+            qmax = self.qx_.max()-1e-8
+            np.savetxt(prefix+'.dat',self.Iq_calc[self.q_calc<=qmax],delimiter=' ',fmt='%.8e',header=header_dat)
+        else:
+            np.savetxt(prefix+'.dat',self.Iq_calc,delimiter=' ',fmt='%.8e',header=header_dat)
 
     def save_fit(self, prefix=None):
         """Save the combined experimental and calculted Iq curve to a .fit file."""
@@ -5468,6 +5474,7 @@ def run_pdb2mrc(
     side=None,
     nsamples=None,
     save_output=None,
+    output_dir=None,
     abort_event = None,
     ):
     #based on denss.pdb2mrc.py
@@ -5476,9 +5483,15 @@ def run_pdb2mrc(
     pdb_basename, pdb_ext = os.path.splitext(pdb_fname_nopath)
     pdb = PDB(pdb_fname)
 
-    logging.basicConfig(filename=pdb_basename+'.log',level=logging.INFO,filemode='w',
-                        format='%(asctime)s %(message)s') #, datefmt='%Y-%m-%d %I:%M:%S %p')
-    logging.info('BEGIN')
+    if save_output:
+        logging.basicConfig(filename=os.path.join(output_dir, pdb_basename+'.log'),level=logging.INFO,filemode='w',
+                            format='%(asctime)s %(message)s') #, datefmt='%Y-%m-%d %I:%M:%S %p')
+        logging.info('BEGIN')
+
+        logger = logging.getLogger()
+
+    else:
+        logger = None
     # logging.info('Command: %s', ' '.join(sys.argv))
     # logging.info('DENSS Version: %s', __version__)
     # logging.info('PDB filename: %s', pdb_fname)
@@ -5557,6 +5570,7 @@ def run_pdb2mrc(
         # min_method=args.method,
         # min_opts=args.minopts,
         quiet=True, #for RAW we'll suppress all the print statements
+        logger=logger
         )
 
     if abort_event.is_set():

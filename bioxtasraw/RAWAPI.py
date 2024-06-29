@@ -5567,10 +5567,11 @@ def pdb2sas(models,
     if output_dir is not None:
         output_dir = os.path.abspath(os.path.expanduser(output_dir))
 
-        if profiles is not None:
-            for i in range(len(profiles)):
-                if isinstance(profiles[i], SASM.SASM):
-                    save_profile(profiles[i], datadir=output_dir, settings=use_settings)
+        if save_output:
+            if profiles is not None:
+                for i in range(len(profiles)):
+                    if isinstance(profiles[i], SASM.SASM):
+                        save_profile(profiles[i], datadir=output_dir, settings=use_settings)
 
     for i in range(len(models)):
         models[i] = os.path.abspath(os.path.expanduser(models[i]))
@@ -5589,6 +5590,7 @@ def pdb2sas(models,
             'side'              : side,
             'nsamples'          : nsamples,
             'save_output'       : save_output,
+            'output_dir'        : output_dir,
             'abort_event'       : abort_event,
             }
     else:
@@ -5605,6 +5607,7 @@ def pdb2sas(models,
             'side'              : settings.get('pdb2mrcSide'),
             'nsamples'          : settings.get('pdb2mrcNsamples'),
             'save_output'       : save_output,
+            'output_dir'        : output_dir,
             'abort_event'       : abort_event,
             }
 

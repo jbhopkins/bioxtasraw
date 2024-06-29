@@ -14004,7 +14004,9 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
 
                     exp_data = pdb2sas_ref_data[1]
 
-                    if np.round(sasm.getQ()[0]*10,4) == np.round(exp_data.getQ()[0], 4):
+                    if ((np.round(sasm.getQ()[0]*10,4) == np.round(exp_data.getQ()[0], 4)
+                        and np.round(sasm.getQ()[0]*10,4) != 0) or
+                        (np.round(sasm.getQ()[1]*10,4) == np.round(exp_data.getQ()[1], 4))):
                         profile = exp_data.copy_no_metadata()
                         profile.scaleRelativeQ(0.1)
 
