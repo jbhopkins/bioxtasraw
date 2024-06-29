@@ -4,7 +4,7 @@ Changes
 2.3.0
 ----------
 
-Release date: 2024-06-30
+Release date: 2024-06-29
 
 Overview
 ^^^^^^^^^^
@@ -21,8 +21,8 @@ changes include:
 *   High DPI support for the entire program on Windows (requires matplotlib >= 3.9).
 *   Compatibility updates for ATSAS 4.0.
 
-Special thanks to Tom Grant, who did the major work on adding in the new DENSS
-IFT and PDB2SAS functions.
+Special thanks to Dr. Tom Grant, who did the major work on adding in the new DENSS
+IFT and PDB2SAS functions and documentation.
 
 All changes:
 ^^^^^^^^^^^^^
