@@ -24661,7 +24661,7 @@ class SeriesPlotPanel(wx.Panel):
                     self.fig.tight_layout(pad=0.4)
 
                 self.canvas.draw()
-                self.background = self.canvas.copy_from_bbox(self.subplot.bbox)
+                self.background = self.canvas.copy_from_bbox(self.fig.bbox)
                 self.plot_lines[label] = line
             else:
                 if self.plot_type != 'uv':
@@ -24675,7 +24675,7 @@ class SeriesPlotPanel(wx.Panel):
                     self.fig.tight_layout(pad=0.4)
 
                 self.canvas.draw()
-                self.r_background = self.canvas.copy_from_bbox(self.ryaxis.bbox)
+                self.background = self.canvas.copy_from_bbox(self.fig.bbox)
                 self.r_plot_lines[label] = line
         else:
             line.set_xdata(xdata)
