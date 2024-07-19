@@ -61,6 +61,7 @@ RAW is used at various beamlines, including:
     at CHESS
 *   `LiX <https://www.bnl.gov/nsls2/beamlines/beamline.php?r=16-ID>`_ at NSLS II
 *   `SIBYLS <https://bl1231.als.lbl.gov/htsaxs>`_ at ALS
+*   `BIO-SANS at ORNL <https://neutrons.ornl.gov/biosans>`_
 *   BL19U2 at SSRF
 
 Xenocs distributes RAW with some of its homesources, and RAW is used at
