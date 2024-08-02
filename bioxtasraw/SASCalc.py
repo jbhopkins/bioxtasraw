@@ -48,7 +48,6 @@ import copy
 import tempfile
 
 import numpy as np
-from scipy import integrate as integrate
 import scipy.interpolate
 import scipy.signal
 import scipy.stats as stats
@@ -372,12 +371,12 @@ def calcAbsMW(i0, conc, rho_Mprot, rho_solv, nu_bar, r0):
 def volumeOfCorrelation(q, i, i0):
     """Calculates the volume of correlation as the ratio of i0 to $\int q*I dq$
     """
-    tot=integrate.trapz(q*i,q)
+    tot=np.trapz(q*i,q)
     vc=i0/tot
     return vc
 
 def porodInvariant(q, i,start=0,stop=-1):
-    return integrate.trapz(i[start:stop]*np.square(q[start:stop]),q[start:stop])
+    return np.trapz(i[start:stop]*np.square(q[start:stop]),q[start:stop])
 
 def porodVolume(q, i, err, rg, i0, start = 0, stop = -1, interp = True, rg_qmin=0):
 

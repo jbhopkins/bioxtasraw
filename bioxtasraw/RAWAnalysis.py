@@ -51,7 +51,6 @@ import wx.lib.agw.flatnotebook as flatNB
 from wx.lib.agw import ultimatelistctrl as ULC
 import wx.lib.scrolledpanel as scrolled
 import wx.grid
-from scipy import integrate
 import scipy.stats as stats
 import matplotlib
 
@@ -3889,7 +3888,7 @@ class MWPlotPanel(wx.Panel):
         qi = q*i
 
         for a in range(2,len(q)+1):
-            y[a-1] = integrate.trapz(qi[:a],q[:a])
+            y[a-1] = np.trapz(qi[:a],q[:a])
 
         return q, y
 
