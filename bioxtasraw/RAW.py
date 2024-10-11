@@ -1236,12 +1236,17 @@ class MainFrame(wx.Frame):
             if not isinstance(error, str):
                 error = str(error, encoding='UTF-8')
 
-            rev = output.split('\n')[0].split()[-1].strip().strip(')(rM').strip('aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ')
-
             try:
-                rev = int(rev)
-            except:
+                rev = output.split('\n')[0].split()[-1].strip().strip(')(rM').strip('aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ')
+
+                try:
+                    rev = int(rev)
+                except Exception:
+                    rev = 6700
+
+            except Exception:
                 rev = 6700
+
 
             if int(rev) >= 6669:
                 remove = []
