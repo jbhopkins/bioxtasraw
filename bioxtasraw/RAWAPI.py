@@ -3026,8 +3026,11 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
         The GNOM qualitative interpretation of the total estimate.
     """
 
+    if settings is None:
+        settings = __default_settings
+
     if atsas_dir is None:
-        atsas_dir = __default_settings.get('ATSASDir')
+        atsas_dir = settings.get('ATSASDir')
 
     # Set input and output filenames and directory
     if not save_ift and write_profile:
@@ -3126,8 +3129,6 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
             }
 
     else:
-        settings = __default_settings
-
         if dmin_zero:
             dmin_zero = 'Y'
         else:

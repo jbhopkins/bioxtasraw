@@ -13903,6 +13903,8 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         data_list = []
         params = []
 
+        result_to_plot = self.result_to_plot.GetStringSelection()
+
         for res in results:
             for key, value in res.items():
                 param_list = []
@@ -13910,9 +13912,9 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                 crysol_ref_data = self.crysol_ref[key]
 
                 if crysol_ref_data[1] is None:
-                    if self.result_to_plot.GetStringSelection() == '.abs':
+                    if result_to_plot == '.abs':
                         profiles = [value[0]]
-                    elif self.result_to_plot.GetStringSelection() == '.int':
+                    elif result_to_plot == '.int':
                         profiles = [value[1]]
                     else:
                         profiles = value
@@ -13969,6 +13971,9 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                 param_list.append(cd['Hydration_shell_contrast'])
 
                 params.append(param_list)
+
+                if crysol_ref_data[1] is None and result_to_plot == 'both':
+                    params.append(param_list)
 
         return theory_list, residual_list, data_list, params
 
