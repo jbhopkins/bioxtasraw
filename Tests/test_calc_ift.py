@@ -267,6 +267,7 @@ def test_denss_average_single_proc(temp_directory):
     assert os.path.exists(os.path.join(temp_directory, 'denss_average.mrc'))
 
 @pytest.mark.very_slow
+@pytest.mark.new
 def test_denss_align(temp_directory):
     rhos, sides = raw.load_mrc(['./data/denss_data/glucose_isomerase_01.mrc'])
 

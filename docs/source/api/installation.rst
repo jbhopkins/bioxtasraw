@@ -26,8 +26,6 @@ When you install the RAW package, it creates a bioxtas_raw script that
 should be in the system path. You can simply run bioxtas_raw from the
 command line and the RAW GUI should start.
 
-The only catch to this is, that on MacOS using the anaconda python distribution,
-that doesn't work. This has to do with the fact that using the anaconda python
-you have to run GUI programs as pythonw, not python (on a deeper level this
-is an issue with Framework builds of python), which can't be done for this
-script.
+Note: Does not work for older versions of conda on MacOS due to the need
+to use the pythonw command to run GUI programs. Works on modern versions
+of conda.

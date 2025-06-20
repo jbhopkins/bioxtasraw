@@ -5458,7 +5458,7 @@ def denss_align(density, side, ref_file, ref_datadir='.',  prefix='',
     aligned_rhos, scores = DENSS.run_align(rho_list, side_list, ref_name,
         center=center, resolution=resolution, enantiomer=enantiomer,
         cores=n_proc, single_proc=single_proc, gui=False,
-        abort_event=abort_event)
+        abort_event=abort_event, savedir=save_datadir)
 
     if abort_event is not None and abort_event.is_set():
         return np.array([-1]), -1

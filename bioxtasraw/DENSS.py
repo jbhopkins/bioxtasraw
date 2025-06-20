@@ -5393,16 +5393,25 @@ def run_enantiomers(rhos, cores, num=0, avg_q=None, my_lock=None, wx_queue=None,
 
 def run_align(allrhos, sides, ref_file, avg_q=None, abort_event=None, center=True,
     resolution=15.0, enantiomer=True, cores=1, single_proc=False, gui=True,
-    ignore_waters=True):
+    ignore_waters=True, savedir=''):
     #based on denss.align.py
+    # HAS RAW SPECIFIC BITS SO BE CAREFUL UPDATING IT
 
     if gui:
         avg_q.put_nowait('Loading reference model...\n')
 
     if os.path.splitext(ref_file)[1] == '.pdb':
+        # RAW specific
+        if savedir == '':
+            savedir = os.path.split(ref_file)[0]
+
         # reffname_nopath = os.path.basename(ref_file)
         refbasename, refext = os.path.splitext(ref_file)
         refoutput = refbasename+"_centered.pdb"
+
+        #RAW specific
+        refoutput = os.path.join(savedir, os.path.split(refoutput)[-1])
+
         refside = sides[0]
         voxel = (refside/allrhos[0].shape)[0]
         halfside = refside/2
@@ -5423,6 +5432,7 @@ def run_align(allrhos, sides, ref_file, avg_q=None, abort_event=None, center=Tru
             side=refside,
             nsamples=n,
             ignore_warnings=True,
+            quiet=True
             )
         pdb2mrc.scale_radii()
         pdb2mrc.make_grids()
@@ -5434,7 +5444,11 @@ def run_align(allrhos, sides, ref_file, avg_q=None, abort_event=None, center=Tru
         pdb2mrc.calc_rho_with_modified_params(pdb2mrc.params)
         refrho = pdb2mrc.rho_insolvent
         refrho = refrho*np.sum(allrhos[0])/np.sum(refrho)
-        write_mrc(refrho,pdb2mrc.side,filename=refbasename+'_pdb.mrc')
+
+        # RAW specific
+        mrcbasename = os.path.join(savedir, os.path.split(refbasename)[-1])
+
+        write_mrc(refrho,pdb2mrc.side,filename=mrcbasename+'_pdb.mrc')
 
     elif os.path.splitext(ref_file)[1] == '.mrc':
         refrho, refside = read_mrc(ref_file)
