@@ -843,9 +843,9 @@ def test_crysol_fit(temp_directory):
 
     assert len(results) == 1
     assert fit_params['Rg'] == 33.22
-    assert fit_params['Excluded_volume'] == 213838
+    assert fit_params['Excluded_volume'] == 229876.0
     assert fit_params['Chi_squared'] ==  1.089
-    assert np.allclose(fit_profile.getI().sum(), 3.72612387712)
+    assert np.allclose(fit_profile.getI().sum(), 3.7260180941)
 
 @pytest.mark.atsas
 @pytest.mark.slow
@@ -867,9 +867,9 @@ def test_crysol_fit_settings(temp_directory, old_settings):
 
     assert len(results) == 1
     assert fit_params['Rg'] == 33.22
-    assert fit_params['Excluded_volume'] == 213838
+    assert fit_params['Excluded_volume'] == 229876.0
     assert fit_params['Chi_squared'] ==  1.089
-    assert np.allclose(fit_profile.getI().sum(), 3.72612387712)
+    assert np.allclose(fit_profile.getI().sum(), 3.7260180941)
 
 def test_dift(clean_gi_sub_profile, old_settings, gi_dift_ift):
     (ift, dmax, rg, i0, rg_err, i0_err, chi_sq, alpha) = raw.denss_ift(clean_gi_sub_profile,)

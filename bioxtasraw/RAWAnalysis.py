@@ -52,6 +52,7 @@ from wx.lib.agw import ultimatelistctrl as ULC
 import wx.lib.scrolledpanel as scrolled
 import wx.grid
 import scipy.stats as stats
+import scipy.integrate as integrate
 import matplotlib
 
 matplotlib.rcParams['backend'] = 'WxAgg'
@@ -3888,7 +3889,7 @@ class MWPlotPanel(wx.Panel):
         qi = q*i
 
         for a in range(2,len(q)+1):
-            y[a-1] = np.trapz(qi[:a],q[:a])
+            y[a-1] = integrate.trapezoid(qi[:a],q[:a])
 
         return q, y
 

@@ -51,6 +51,7 @@ import numpy as np
 import scipy.interpolate
 import scipy.signal
 import scipy.stats as stats
+import scipy.integrate as integrate
 from scipy.constants import Avogadro
 from numba import jit
 
@@ -371,12 +372,12 @@ def calcAbsMW(i0, conc, rho_Mprot, rho_solv, nu_bar, r0):
 def volumeOfCorrelation(q, i, i0):
     """Calculates the volume of correlation as the ratio of i0 to $\int q*I dq$
     """
-    tot=np.trapz(q*i,q)
+    tot=integrate.trapezoid(q*i,q)
     vc=i0/tot
     return vc
 
 def porodInvariant(q, i,start=0,stop=-1):
-    return np.trapz(i[start:stop]*np.square(q[start:stop]),q[start:stop])
+    return integrate.trapezoid(i[start:stop]*np.square(q[start:stop]),q[start:stop])
 
 def porodVolume(q, i, err, rg, i0, start = 0, stop = -1, interp = True, rg_qmin=0):
 
@@ -4871,8 +4872,8 @@ def make_regals_ifts(mixture, q, intensity, sigma, secm, start, end):
             if prof_comp._regularizer.is_zero_at_dmax:
                 pr = np.concatenate((pr, [0]))
 
-            area = np.trapz(pr, r)
-            area2 = np.trapz(np.array(pr)*np.array(r)**2, r)
+            area = integrate.trapezoid(pr, r)
+            area2 = integrate.trapezoid(np.array(pr)*np.array(r)**2, r)
 
             rg = np.sqrt(abs(area2/(2.*area)))
             i0 = area*4*np.pi
