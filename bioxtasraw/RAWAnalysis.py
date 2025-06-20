@@ -16841,14 +16841,14 @@ class SVDControlPanel(wx.Panel):
                 value = self.svd_V_autocor
 
             elif key =='secm_choice':
-                profile_window = wx.FindWindowById(self.control_ids['profile'], self)
-                profile_type = profile_window.GetStringSelection()
+                window = wx.FindWindowById(self.control_ids['profile'], self)
+                profile_type = window.GetStringSelection()
 
                 if profile_type == 'Unsubtracted':
                     value = 'usub'
                 elif profile_type == 'Subtracted':
                     value = 'sub'
-                elif profile_type == 'Basline Corrected':
+                elif profile_type == 'Baseline Corrected':
                     value = 'bl'
 
             elif key == 'sub_secm':
