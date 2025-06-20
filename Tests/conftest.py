@@ -21,6 +21,12 @@ def gi_sub_profile():
     return profile
 
 @pytest.fixture(scope="package")
+def gi_sub_profile_dupe_data():
+    profile = raw.load_profiles([os.path.join('.', 'data',
+            'glucose_isomerase_dupe_data.dat')])[0]
+    return profile
+
+@pytest.fixture(scope="package")
 def sans_profile():
     profile = raw.load_profiles([os.path.join('.', 'data',
             'sans_data.dat')])[0]

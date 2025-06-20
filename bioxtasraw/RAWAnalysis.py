@@ -4770,6 +4770,9 @@ class GNOMControlPanel(wx.Panel):
             except Exception:
                 dmax = -1
 
+            if int(dmax) == dmax:
+                dmax = int(dmax)
+
             try:
                 alpha = gnom_analysis['Alpha']
             except Exception:
@@ -4787,22 +4790,24 @@ class GNOMControlPanel(wx.Panel):
 
                 self.calcGNOM(dmax)
 
-                dmaxWindow.SetValue(dmax)
+                if str(dmax) in self.out_list:
 
-                if alpha != 0 and alpha != self.gnom_settings['alpha']:
+                    dmaxWindow.SetValue(dmax)
 
-                    ift = self.out_list[str(dmax)]
+                    if alpha != 0 and alpha != self.gnom_settings['alpha']:
 
-                    if float(ift.getParameter('alpha')) == float(alpha):
-                        self.alpha_ctrl.ChangeValue('0')
-                    else:
-                        self.alpha_ctrl.ChangeValue(str(alpha))
-                        self.updateGNOMSettings(update_plot=False)
-                        self.calcGNOM(dmax)
+                        ift = self.out_list[str(dmax)]
 
-                self.updateGNOMInfo(self.out_list[str(dmax)])
+                        if float(ift.getParameter('alpha')) == float(alpha):
+                            self.alpha_ctrl.ChangeValue('0')
+                        else:
+                            self.alpha_ctrl.ChangeValue(str(alpha))
+                            self.updateGNOMSettings(update_plot=False)
+                            self.calcGNOM(dmax)
 
-                self.updatePlot()
+                    self.updateGNOMInfo(self.out_list[str(dmax)])
+
+                    self.updatePlot()
 
                 wx.CallAfter(self.gnom_frame.showBusy, False)
 
@@ -5315,7 +5320,8 @@ class GNOMControlPanel(wx.Panel):
                 new_gnom=self.gnom_frame.new_gnom)
 
         except (SASExceptions.NoATSASError, SASExceptions.GNOMError) as e:
-            wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
+            wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM',
+                style = wx.ICON_ERROR | wx.OK)
             self.SetFocusIgnoringChildren()
             # traceback.print_exc()
             return

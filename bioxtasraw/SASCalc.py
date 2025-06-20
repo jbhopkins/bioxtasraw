@@ -1218,8 +1218,15 @@ def runGnom(fname, save_ift, dmax, args, path, atsasDir, outname=None,
                 error = error.strip()
 
                 if error != '':
-                    raise SASExceptions.GNOMError(('GNOM failed to run with the '
-                        'following error:\n{}'.format(error)))
+                    error_list = error.split('\n')
+                    all_warning = True
+                    for err in error_list:
+                        if not err.strip().startswith('Warning'):
+                            all_warning = False
+
+                    if not all_warning:
+                        raise SASExceptions.GNOMError(('GNOM failed to run with the '
+                            'following error:\n{}'.format(error)))
             else:
 
                 save_ift = True

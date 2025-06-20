@@ -615,6 +615,23 @@ def test_gnom_not_guinier_start(clean_gi_sub_profile):
     assert round(ift.q_orig[0], 7) == round(clean_gi_sub_profile.getQ()[0], 7)
 
 @pytest.mark.atsas
+def test_gnom_dupe_data(gi_sub_profile_dupe_data, gi_gnom_ift):
+    profile = copy.deepcopy(gi_sub_profile_dupe_data)
+
+    analysis_dict = profile.getParameter('analysis')
+    guinier_dict = analysis_dict['guinier']
+    idx_min = max(0, int(guinier_dict['nStart']) - profile.getQrange()[0])
+
+    (ift, dmax, rg, i0, rg_err, i0_err, total_est, chi_sq, alpha,
+        quality) = raw.gnom(profile, 101)
+
+    assert dmax == gi_gnom_ift.getParameter('dmax')
+    assert rg == gi_gnom_ift.getParameter('rg')
+    assert np.allclose(ift.r, gi_gnom_ift.r)
+    assert np.allclose(ift.p, gi_gnom_ift.p)
+    assert round(ift.q_orig[0], 7) == round(gi_sub_profile_dupe_data.getQ()[idx_min], 7)
+
+@pytest.mark.atsas
 def test_gnom_file(clean_gi_sub_profile, gi_gnom_ift):
     profile = copy.deepcopy(clean_gi_sub_profile)
 
