@@ -1712,10 +1712,10 @@ def denss(q, I, sigq, dmax, qraw=None, Iraw=None, sigqraw=None,
     Iq_calc = Iq_calc[Iq_calc[:,0]<=qmax]
     final_chi2, exp_scale_factor, offset, fit = calc_chi2(Iq_exp, Iq_calc, scale=True, offset=False, interpolation=True,return_sf=True,return_fit=True)
 
-    np.savetxt(fprefix+'_map.fit', fit, delimiter=' ', fmt='%.5e'.encode('ascii'),
+    np.savetxt(fprefix+'_map.fit', fit, delimiter=' ', fmt='%.5e',
         header='q(data),I(data),error(data),I(density); chi2=%.3f'%final_chi2)
     np.savetxt(fprefix+'_stats_by_step.dat',np.vstack((chi, rg, supportV)).T,
-        delimiter=" ", fmt="%.5e".encode('ascii'), header='Chi2 Rg SupportVolume')
+        delimiter=" ", fmt="%.5e", header='Chi2 Rg SupportVolume')
 
     chi[j+1] = final_chi2
 
@@ -3359,7 +3359,7 @@ class PDB(object):
             atomtype = '%2s' % self.atomtype[i]
             charge = '%2s' % self.charge[i]
             records.append(['ATOM  ' + atomnum + '  ' + atomname + ' ' + resname + ' ' + chain + resnum + '    ' + x + y + z + o + b + '          ' + atomtype + charge])
-        np.savetxt(filename, records, fmt='%80s'.encode('ascii'))
+        np.savetxt(filename, records, fmt='%80s')
 
 def sphere_volume_from_radius(R):
     V_sphere = 4*np.pi/3 * R**3

@@ -963,11 +963,24 @@ class MainFrame(wx.Frame):
 
         atsasPath = self.raw_settings.get('ATSASDir')
 
-        opsys = platform.system()
-        if opsys == 'Windows':
-            gnomPath = os.path.join(atsasPath, 'gnom.exe')
+        atsas_license_error = False
+
+        if atsasPath != '':
+            try:
+                atsas_version = SASCalc.getATSASVersion(self.raw_settings.get('ATSASDir'))
+            except SASExceptions.NoATSASError:
+                atsas_license_error = True
+
+            if not atsas_license_error:
+                opsys = platform.system()
+                if opsys == 'Windows':
+                    gnomPath = os.path.join(atsasPath, 'gnom.exe')
+                else:
+                    gnomPath = os.path.join(atsasPath, 'gnom')
+            else:
+                gnomPath = ''
         else:
-            gnomPath = os.path.join(atsasPath, 'gnom')
+            gnomPath = ''
 
         if os.path.exists(gnomPath):
 
@@ -1004,9 +1017,19 @@ class MainFrame(wx.Frame):
                 self.gnom_frames.append(gnomframe)
 
         else:
-            msg = 'The GNOM program in the ATSAS package could not be found. Please make sure that ATSAS is installed, and that you have defined the ATSAS directory in the RAW Advanced Options. '
-            dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS",
-                                    wx.OK | wx.ICON_INFORMATION)
+            if atsas_license_error:
+                msg = ('The ATSAS license is expired so RAW cannot run the '
+                    'request program. Please update your ATSAS license and '
+                    'then restart RAW.')
+                dial2 = wx.MessageDialog(self, msg, "ATSAS license expired",
+                                        wx.OK | wx.ICON_INFORMATION)
+            else:
+                msg = ('The GNOM program in the ATSAS package could not be '
+                    'found. Please make sure that ATSAS is installed, and '
+                    'that you have defined the ATSAS directory in the RAW '
+                    'Advanced Options.')
+                dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS",
+                                        wx.OK | wx.ICON_INFORMATION)
             dial2.ShowModal()
             dial2.Destroy()
 
@@ -1148,7 +1171,8 @@ class MainFrame(wx.Frame):
     def showDAMMIFFrame(self, iftm, manip_item):
 
         if iftm.getParameter('algorithm') != 'GNOM':
-            msg = 'DAMMIF can only process IFTs produced by GNOM. This was produced using %s.' %(iftm.getParameter('algorithm'))
+            msg = ('DAMMIF can only process IFTs produced by GNOM. This was '
+                'produced using %s.' %(iftm.getParameter('algorithm')))
             dial2 = wx.MessageDialog(self, msg, "Wrong IFT type",
                                     wx.OK | wx.ICON_ERROR)
             dial2.ShowModal()
@@ -1158,11 +1182,26 @@ class MainFrame(wx.Frame):
 
         atsasPath = self.raw_settings.get('ATSASDir')
 
-        opsys = platform.system()
-        if opsys == 'Windows':
-            dammifPath = os.path.join(atsasPath, 'dammif.exe')
+        atsas_license_error = False
+
+        if atsasPath != '':
+            try:
+                atsas_version = SASCalc.getATSASVersion(self.raw_settings.get('ATSASDir'))
+            except SASExceptions.NoATSASError:
+                atsas_license_error = True
+
+            if not atsas_license_error:
+                opsys = platform.system()
+                if opsys == 'Windows':
+                    dammifPath = os.path.join(atsasPath, 'dammif.exe')
+                else:
+                    dammifPath = os.path.join(atsasPath, 'dammif')
+
+            else:
+                dammifPath = ''
+
         else:
-            dammifPath = os.path.join(atsasPath, 'dammif')
+            dammifPath = ''
 
         if os.path.exists(dammifPath):
 
@@ -1199,16 +1238,27 @@ class MainFrame(wx.Frame):
                 self.dammif_frames.append(dammifframe)
 
         else:
-            msg = 'The DAMMIF program in the ATSAS package could not be found. Please make sure that ATSAS is installed, and that you have defined the ATSAS directory in the RAW Advanced Options. '
-            dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS",
-                                    wx.OK | wx.ICON_INFORMATION)
+            if atsas_license_error:
+                msg = ('The ATSAS license is expired so RAW cannot run the '
+                    'request program. Please update your ATSAS license and '
+                    'then restart RAW.')
+                dial2 = wx.MessageDialog(self, msg, "ATSAS license expired",
+                                        wx.OK | wx.ICON_INFORMATION)
+            else:
+                msg = ('The DAMMIF program in the ATSAS package could not be '
+                    'found. Please make sure that ATSAS is installed, and '
+                    'that you have defined the ATSAS directory in the RAW '
+                    'Advanced Options.')
+                dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS",
+                                        wx.OK | wx.ICON_INFORMATION)
             dial2.ShowModal()
             dial2.Destroy()
 
     def showAmbiFrame(self, iftm, manip_item):
 
         if iftm.getParameter('algorithm') != 'GNOM':
-            msg = 'AMBIMETER can only process IFTs produced by GNOM. This was produced using %s.' %(iftm.getParameter('algorithm'))
+            msg = ('AMBIMETER can only process IFTs produced by GNOM. This '
+                'was produced using %s.' %(iftm.getParameter('algorithm')))
             dial2 = wx.MessageDialog(self, msg, "Wrong IFT type",
                                     wx.OK | wx.ICON_ERROR)
             dial2.ShowModal()
@@ -1218,11 +1268,26 @@ class MainFrame(wx.Frame):
 
         atsasPath = self.raw_settings.get('ATSASDir')
 
-        opsys = platform.system()
-        if opsys == 'Windows':
-            ambiPath = os.path.join(atsasPath, 'ambimeter.exe')
+        atsas_license_error = False
+
+        if atsasPath != '':
+            try:
+                atsas_version = SASCalc.getATSASVersion(self.raw_settings.get('ATSASDir'))
+            except SASExceptions.NoATSASError:
+                atsas_license_error = True
+
+            if not atsas_license_error:
+                opsys = platform.system()
+                if opsys == 'Windows':
+                    ambiPath = os.path.join(atsasPath, 'ambimeter.exe')
+                else:
+                    ambiPath = os.path.join(atsasPath, 'ambimeter')
+
+            else:
+                ambiPath = ''
+
         else:
-            ambiPath = os.path.join(atsasPath, 'ambimeter')
+            ambiPath = ''
 
         if os.path.exists(ambiPath):
 
@@ -1289,31 +1354,50 @@ class MainFrame(wx.Frame):
                 dial2.Destroy()
 
         else:
-            msg = 'The AMBIMETER program in the ATSAS package could not be found. Please make sure that ATSAS is installed, and that you have defined the ATSAS directory in the RAW Advanced Options. '
-            dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS",
-                                    wx.OK | wx.ICON_INFORMATION)
+            if atsas_license_error:
+                msg = ('The ATSAS license is expired so RAW cannot run the '
+                    'request program. Please update your ATSAS license and '
+                    'then restart RAW.')
+                dial2 = wx.MessageDialog(self, msg, "ATSAS license expired",
+                                        wx.OK | wx.ICON_INFORMATION)
+            else:
+                msg = ('The AMBIMETER program in the ATSAS package could not '
+                    'be found. Please make sure that ATSAS is installed, and '
+                    'that you have defined the ATSAS directory in the RAW '
+                    'Advanced Options.')
+                dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS",
+                                        wx.OK | wx.ICON_INFORMATION)
             dial2.ShowModal()
             dial2.Destroy()
 
     def showATSASAlignFrame(self):
         atsasPath = self.raw_settings.get('ATSASDir')
 
+        atsas_license_error = False
+
         if atsasPath != '':
-            atsas_version = SASCalc.getATSASVersion(self.raw_settings.get('ATSASDir'))
+            try:
+                atsas_version = SASCalc.getATSASVersion(self.raw_settings.get('ATSASDir'))
+            except SASExceptions.NoATSASError:
+                atsas_license_error = True
+                atsas_version = None
 
-            if ((int(atsas_version.split('.')[0]) == 3
-                and int(atsas_version.split('.')[1]) >= 1)
-                or int(atsas_version.split('.')[0]) > 3):
-                program = 'cifsup'
+            if atsas_version is not None:
+                if ((int(atsas_version.split('.')[0]) == 3
+                    and int(atsas_version.split('.')[1]) >= 1)
+                    or int(atsas_version.split('.')[0]) > 3):
+                    program = 'cifsup'
 
+                else:
+                    program = 'supcomb'
+
+                opsys = platform.system()
+                if opsys == 'Windows':
+                    alignPath = os.path.join(atsasPath, '{}.exe'.format(program))
+                else:
+                    alignPath = os.path.join(atsasPath, program)
             else:
-                program = 'supcomb'
-
-            opsys = platform.system()
-            if opsys == 'Windows':
-                alignPath = os.path.join(atsasPath, '{}.exe'.format(program))
-            else:
-                alignPath = os.path.join(atsasPath, program)
+                alignPath = ''
 
         else:
             alignPath = ''
@@ -1360,26 +1444,44 @@ class MainFrame(wx.Frame):
                     self.atsasalign_frames.append(alignframe)
 
         else:
-            msg = ('The {} program in the ATSAS package could not be '
-                'found. Please make sure that ATSAS is installed, and that you '
-                'have defined the ATSAS directory in the RAW Advanced Options.'
-                ''.format(program.upper()))
-            dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS",
-                                    wx.OK | wx.ICON_INFORMATION)
+            if atsas_license_error:
+                msg = ('The ATSAS license is expired so RAW cannot run the '
+                    'request program. Please update your ATSAS license and '
+                    'then restart RAW.')
+                dial2 = wx.MessageDialog(self, msg, "ATSAS license expired",
+                                        wx.OK | wx.ICON_INFORMATION)
+            else:
+                msg = ('The {} program in the ATSAS package could not be '
+                    'found. Please make sure that ATSAS is installed, and that you '
+                    'have defined the ATSAS directory in the RAW Advanced Options.'
+                    ''.format(program.upper()))
+                dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS",
+                                        wx.OK | wx.ICON_INFORMATION)
             dial2.ShowModal()
             dial2.Destroy()
 
     def showCRYSOLFrame(self, sasm_list):
         atsasPath = self.raw_settings.get('ATSASDir')
 
-        if atsasPath != '':
-            program = 'crysol'
+        atsas_license_error = False
 
-            opsys = platform.system()
-            if opsys == 'Windows':
-                alignPath = os.path.join(atsasPath, '{}.exe'.format(program))
+        if atsasPath != '':
+            try:
+                atsas_version = SASCalc.getATSASVersion(self.raw_settings.get('ATSASDir'))
+            except SASExceptions.NoATSASError:
+                atsas_license_error = True
+
+            if not atsas_license_error:
+                program = 'crysol'
+
+                opsys = platform.system()
+                if opsys == 'Windows':
+                    alignPath = os.path.join(atsasPath, '{}.exe'.format(program))
+                else:
+                    alignPath = os.path.join(atsasPath, program)
+
             else:
-                alignPath = os.path.join(atsasPath, program)
+                alignPath = ''
 
         if os.path.exists(alignPath):
             remove = []
@@ -1416,12 +1518,19 @@ class MainFrame(wx.Frame):
                 self.crysol_frames.append(crysol_frame)
 
         else:
-            msg = ('The {} program in the ATSAS package could not be '
-                'found. Please make sure that ATSAS is installed, and that you '
-                'have defined the ATSAS directory in the RAW Advanced Options.'
-                ''.format(program.upper()))
-            dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS",
-                                    wx.OK | wx.ICON_INFORMATION)
+            if atsas_license_error:
+                msg = ('The ATSAS license is expired so RAW cannot run the '
+                    'request program. Please update your ATSAS license and '
+                    'then restart RAW.')
+                dial2 = wx.MessageDialog(self, msg, "ATSAS license expired",
+                                        wx.OK | wx.ICON_INFORMATION)
+            else:
+                msg = ('The {} program in the ATSAS package could not be '
+                    'found. Please make sure that ATSAS is installed, and that you '
+                    'have defined the ATSAS directory in the RAW Advanced Options.'
+                    ''.format(program.upper()))
+                dial2 = wx.MessageDialog(self, msg, "Can't find ATSAS",
+                                        wx.OK | wx.ICON_INFORMATION)
             dial2.ShowModal()
             dial2.Destroy()
 
@@ -3922,7 +4031,10 @@ class MainWorkerThread(threading.Thread):
                             atsasPath = main_frame.raw_settings.get('ATSASDir')
 
                             if atsasPath != '':
-                                atsas_version = SASCalc.getATSASVersion(atsasPath)
+                                try:
+                                    atsas_version = SASCalc.getATSASVersion(atsasPath)
+                                except SASExceptions.NoATSASError:
+                                    atsas_version = ''
                             else:
                                 atsas_version = ''
 
@@ -16286,7 +16398,10 @@ class MyApp(wx.App):
             atsasPath = main_frame.raw_settings.get('ATSASDir')
 
             if atsasPath != '':
-                atsas_version = SASCalc.getATSASVersion(atsasPath)
+                try:
+                    atsas_version = SASCalc.getATSASVersion(atsasPath)
+                except SASExceptions.NoATSASError:
+                    atsas_version = ''
             else:
                 atsas_version = ''
 

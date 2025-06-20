@@ -1061,9 +1061,12 @@ def getATSASVersion(atsasDir):
         output = output.strip()
         error = error.strip()
 
-        dammif_re = r'ATSAS\s*\d+[.]\d+[.]\d*'
-        version_match = re.search(dammif_re, output)
-        version = version_match.group().split()[-1]
+        if 'expired' in error.lower():
+            raise SASExceptions.NoATSASError('ATSAS license is expired so some functionality will not work')
+        else:
+            dammif_re = r'ATSAS\s*\d+[.]\d+[.]\d*'
+            version_match = re.search(dammif_re, output)
+            version = version_match.group().split()[-1]
 
     return version
 

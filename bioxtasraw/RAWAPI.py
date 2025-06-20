@@ -3397,7 +3397,8 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
     """
     Creates a bead model (dummy atom) reconstruction using DAMMIF from the ATSAS
     package. Requires a separate installation of the ATSAS package. Function
-    blocks until DAMMIF finishes.
+    blocks until DAMMIF finishes. Will raise a SASExceptions.NoATSASError if
+    either ATSAS is not found or the ATSAS license is expired.
 
     Parameters
     ----------
@@ -3651,6 +3652,8 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
     Creates a bead model (dummy atom) reconstruction using DAMMIN from the ATSAS
     package. Requires a separate installation of the ATSAS package. Function
     blocks until DAMMIN finishes. Can be used to refine damstart.pdb files.
+    Will raise a SASExceptions.NoATSASError if either ATSAS is not found or
+    the ATSAS license is expired.
 
     Parameters
     ----------
@@ -3920,7 +3923,8 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
     """
     Runs DAMAVER from the ATSAS package on a set of files. Requires a
     separate installation of the ATSAS package. Function blocks until
-    DAMAVER finishes.
+    DAMAVER finishes. Will raise a SASExceptions.NoATSASError if
+    either ATSAS is not found or the ATSAS license is expired.
 
     Parameters
     ----------

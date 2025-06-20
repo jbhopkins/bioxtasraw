@@ -3996,12 +3996,27 @@ class GNOMFrame(wx.Frame):
 
     def getGnomVersion(self):
         #Checks if we have gnom4 or gnom5
-        version = SASCalc.getATSASVersion(self._raw_settings.get('ATSASDir'))
+        try:
+            version = SASCalc.getATSASVersion(self._raw_settings.get('ATSASDir'))
+        except SASExceptions.NoATSASError:
+            version = None
 
-        if (int(version.split('.')[0]) > 2 or
-            (int(version.split('.')[0]) == 2 and int(version.split('.')[1]) >=8)):
-            self.new_gnom = True
+        if version is not None:
+            if (int(version.split('.')[0]) > 2 or
+                (int(version.split('.')[0]) == 2 and int(version.split('.')[1]) >=8)):
+                self.new_gnom = True
+            else:
+                self.new_gnom = False
+
         else:
+            msg = ('The ATSAS license is expired so RAW cannot run the '
+                    'request program. Please update your ATSAS license and '
+                    'then restart RAW.')
+            dial2 = wx.MessageDialog(self, msg, "ATSAS license expired",
+                                    wx.OK | wx.ICON_INFORMATION)
+            dial2.ShowModal()
+            dial2.Destroy()
+
             self.new_gnom = False
 
     def showBusy(self, show=True, msg=''):
@@ -5434,13 +5449,25 @@ class DammifFrame(wx.Frame):
         self.RunPanel.updateDAMMIFSettings()
 
     def _getATSASVersion(self):
-        self.atsas_version = SASCalc.getATSASVersion(self.raw_settings.get('ATSASDir'))
+        try:
+            self.atsas_version = SASCalc.getATSASVersion(self.raw_settings.get('ATSASDir'))
+        except SASExceptions.NoATSASError:
+            self.atsas_version = None
 
-        if ((int(self.atsas_version.split('.')[0]) == 3 and int(self.atsas_version.split('.')[1]) >= 1)
-            or int(self.atsas_version.split('.')[0]) > 3):
-            self.model_ext = '.cif'
+        if self.atsas_version is not None:
+            if ((int(self.atsas_version.split('.')[0]) == 3 and int(self.atsas_version.split('.')[1]) >= 1)
+                or int(self.atsas_version.split('.')[0]) > 3):
+                self.model_ext = '.cif'
+            else:
+                self.model_ext = '.pdb'
         else:
-            self.model_ext = '.pdb'
+            msg = ('The ATSAS license is expired so RAW cannot run the '
+                    'request program. Please update your ATSAS license and '
+                    'then restart RAW.')
+            dial2 = wx.MessageDialog(self, msg, "ATSAS license expired",
+                                    wx.OK | wx.ICON_INFORMATION)
+            dial2.ShowModal()
+            dial2.Destroy()
 
     def _onCloseButton(self, evt):
         self.Close()
@@ -10038,16 +10065,25 @@ class DenssResultsPanel(wx.Panel):
     def _initSettings(self):
         if self.iftm.getParameter('algorithm') == 'GNOM':
             opsys = platform.system()
-            if opsys == 'Windows':
-                if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter.exe')):
-                    run_ambi = True
+
+            try:
+                version = SASCalc.getATSASVersion(self.raw_settings.get('ATSASDir'))
+            except SASExceptions.NoATSASError:
+                version = None
+
+            if version is not None:
+                if opsys == 'Windows':
+                    if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter.exe')):
+                        run_ambi = True
+                    else:
+                        run_ambi = False
                 else:
-                    run_ambi = False
+                    if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter')):
+                        run_ambi = True
+                    else:
+                        run_ambi = False
             else:
-                if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter')):
-                    run_ambi = True
-                else:
-                    run_ambi = False
+                run_ambi = False
 
             if run_ambi:
                 t = threading.Thread(target=self.runAmbimeter)
@@ -14401,8 +14437,19 @@ class AmbimeterFrame(wx.Frame):
 
 
         self.ambi_settings = {}
-        self.atsas_version = SASCalc.getATSASVersion(
-            self.raw_settings.get('ATSASDir')).split('.')
+        try:
+            self.atsas_version = SASCalc.getATSASVersion(
+                self.raw_settings.get('ATSASDir')).split('.')
+        except SASExceptions.NoATSASError:
+            self.atsas_version = 4
+
+            msg = ('The ATSAS license is expired so RAW cannot run the '
+                    'request program. Please update your ATSAS license and '
+                    'then restart RAW.')
+            dial2 = wx.MessageDialog(self, msg, "ATSAS license expired",
+                                    wx.OK | wx.ICON_INFORMATION)
+            dial2.ShowModal()
+            dial2.Destroy()
 
 
         topsizer = self._createLayout(self.panel)
