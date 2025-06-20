@@ -397,14 +397,16 @@ def findATSASDirectory():
         return default_path
 
     if opsys == 'Windows':
-        which = subprocess.Popen('where dammif', stdout=subprocess.PIPE,shell=True)
-        output = which.communicate()
+        with subprocess.Popen('where dammif', stdout=subprocess.PIPE,
+            shell=True) as which:
+            output = which.communicate()
 
         atsas_path = output[0].strip()
 
     else:
-        which = subprocess.Popen('which dammif', stdout=subprocess.PIPE,shell=True)
-        output = which.communicate()
+        with subprocess.Popen('which dammif', stdout=subprocess.PIPE,
+            shell=True) as which:
+            output = which.communicate()
 
         atsas_path = output[0].strip()
 

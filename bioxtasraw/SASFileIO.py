@@ -111,7 +111,7 @@ def loadTiffImage(filename):
     ''' Load TIFF image '''
     try:
         im = Image.open(filename)
-        img = np.fromstring(im.tobytes(), np.uint16) #tobytes is compatible with pillow >=3.0, tostring was depreciated
+        img = np.frombuffer(im.tobytes(), np.uint16) #tobytes is compatible with pillow >=3.0, tostring was depreciated
 
         img = np.reshape(img, im.size)
         im.close()
@@ -126,7 +126,7 @@ def load32BitTiffImage(filename):
     ''' Load TIFF image '''
     try:
         im = Image.open(filename)
-        img = np.fromstring(im.tobytes(), np.uint32) #tobytes is compatible with pillow >=3.0, tostring was depreciated
+        img = np.frombuffer(im.tobytes(), np.uint32) #tobytes is compatible with pillow >=3.0, tostring was depreciated
 
         img = np.reshape(img, im.size)
         im.close()
@@ -266,7 +266,7 @@ def loadSAXSLAB300Image(filename):
         im1b = im1a.transpose(Image.ROTATE_90)
         im2 = im1b.transpose(Image.FLIP_TOP_BOTTOM)
 
-        newArr = np.fromstring(im2.tobytes(), np.int32)
+        newArr = np.frombuffer(im2.tobytes(), np.int32)
 
         # reduce negative vals
         #newArr = np.where(newArr >= 0, newArr, 0)

@@ -1291,9 +1291,9 @@ class MainFrame(wx.Frame):
 
         if os.path.exists(ambiPath):
 
-            process = subprocess.Popen('"%s" -v' %(ambiPath), shell= True, stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-
-            output, error = process.communicate()
+            with subprocess.Popen('"%s" -v' %(ambiPath), shell= True,
+                stdout=subprocess.PIPE,stderr=subprocess.PIPE) as process:
+                output, error = process.communicate()
 
             if not isinstance(output, str):
                 output = str(output, encoding='UTF-8')

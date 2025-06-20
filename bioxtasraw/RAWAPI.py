@@ -3598,6 +3598,8 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
             if new_text != '':
                 readback_queue.put_nowait([new_text])
 
+        proc.stdout.close()
+
     if write_ift and os.path.isfile(os.path.join(datadir, ift_name)):
         try:
             os.remove(os.path.join(datadir, ift_name))
@@ -3857,6 +3859,8 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
             if new_text != '':
                 readback_queue.put_nowait([new_text])
 
+        proc.stdout.close()
+
     if write_ift and os.path.isfile(os.path.join(datadir, ift_name)):
         try:
             os.remove(os.path.join(datadir, ift_name))
@@ -4060,6 +4064,8 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
             if new_text != '':
                 readback_queue.put_nowait([new_text])
 
+        proc.stdout.close()
+
     version = SASCalc.getATSASVersion(atsas_dir).split('.')
 
     if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
@@ -4238,6 +4244,8 @@ def damclust(files, prefix, datadir, symmetry='P1', atsas_dir=None,
             if new_text != '':
                 readback_queue.put_nowait([new_text])
 
+        proc.stdout.close()
+
     damclust_log = os.path.join(datadir, prefix+'_damclust.log')
     new_files = [(os.path.join(datadir, 'damclust.log'), damclust_log)]
 
@@ -4359,6 +4367,8 @@ def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
             if new_text != '':
                 readback_queue.put_nowait([new_text])
 
+        proc.stdout.close()
+
     return
 
 def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
@@ -4476,6 +4486,8 @@ def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
 
             if new_text != '':
                 readback_queue.put_nowait([new_text])
+
+        proc.stdout.close()
 
     return
 
@@ -4703,6 +4715,8 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
             if new_text != '':
                 readback_queue.put_nowait([new_text])
                 crysol_output += new_text
+
+        proc.stdout.close()
 
     crysol_output_exts = ['.abs', '.alm', '.int', '.log']
 
