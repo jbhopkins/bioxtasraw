@@ -32,6 +32,10 @@ import os
 
 import numpy as np
 import pyFAI
+try:
+    import pyFAI.integrator
+except AttributeError:
+    pass
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -404,7 +408,10 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
     wavelength = wavelength*1e-10 #convert wl to m
 
     if ai is None:
-        ai = pyFAI.azimuthalIntegrator.AzimuthalIntegrator()
+        try:
+            ai = pyFAI.integrator.azimuthal.AzimuthalIntegrator()
+        except AttributeError:
+            ai = pyFAI.azimuthalIntegrator.AzimuthalIntegrator()
         ai.set_wavelength(wavelength)
 
     if wavelength != ai.get_wavelength():
