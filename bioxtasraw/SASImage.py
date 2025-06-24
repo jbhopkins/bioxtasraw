@@ -34,7 +34,7 @@ import numpy as np
 import pyFAI
 try:
     import pyFAI.integrator
-except AttributeError:
+except Exception:
     pass
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
