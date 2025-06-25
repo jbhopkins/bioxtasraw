@@ -32,7 +32,7 @@ if opsys == 'Darwin':
     console = False
 elif opsys == 'Windows':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.ico')
-    console = True
+    console = False
 elif opsys == 'Linux':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.png')
     console = False
@@ -47,7 +47,7 @@ a = Analysis(
     hiddenimports=[],
     hookspath=['.'],
     runtime_hooks=[],
-    excludes=[],
+    excludes=['PyQt5', 'PyQt6', 'PySide6'],
     hooksconfig={
         'matplotlib': {
             'backends': ['AGG', 'PDF', 'PS', 'SVG', 'PGF', 'Cairo', 'wxAgg'],
