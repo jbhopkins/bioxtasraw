@@ -154,12 +154,10 @@ def bift_inner_loop(f, p, B, alpha, N, sum_dia):
     return f, p, sigma, dotsp, xprec
 
 @jit(nopython=True, cache=True)
-def getEvidence(params, q, i, err, N):
-
-    alpha, dmax = params
-    alpha = np.exp(alpha)
-
-    err = err**2
+def getEvidence(params, q, i, orig_err, N):
+    log_alpha, dmax = params
+    alpha = np.exp(log_alpha)
+    err = orig_err**2
 
     p, r = makePriorDistribution(i[0], N, dmax, 'sphere') #Note, here I use p for what Hansen calls m
     T = createTransMatrix(q, r)
@@ -200,7 +198,7 @@ def getEvidence(params, q, i, err, N):
     # Absolute value of determinant is equal to the product of the singular values
     rlogdet = np.log(np.abs(np.linalg.det(u)))
 
-    evidence = -np.log(abs(dmax))+(alpha*s-0.5*c*i.size)-0.5*rlogdet-np.log(abs(alpha))
+    evidence = -np.log(np.abs(dmax))+(alpha*s-0.5*c*i.size)-0.5*rlogdet-np.log(np.abs(alpha))
 
     # Some kind of after the fact adjustment
 
@@ -229,7 +227,7 @@ def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False,
         else:
             n_proc = min(nprocs, multiprocessing.cpu_count())
         mp_pool = multiprocessing.Pool(processes=n_proc)
-        mp_get_evidence = functools.partial(getEvidence, q=q, i=i, err=err, N=N)
+        mp_get_evidence = functools.partial(getEvidence, q=q, i=i, orig_err=err, N=N)
     else:
         n_proc = nprocs
 
@@ -393,7 +391,7 @@ def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
         else:
             n_proc = min(nprocs, multiprocessing.cpu_count())
         mp_pool = multiprocessing.Pool(processes=n_proc)
-        mp_get_evidence = functools.partial(getEvidence, q=q, i=i, err=err, N=N)
+        mp_get_evidence = functools.partial(getEvidence, q=q, i=i, orig_err=err, N=N)
     else:
         n_proc = nprocs
 
