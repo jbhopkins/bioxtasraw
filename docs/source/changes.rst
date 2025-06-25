@@ -1,6 +1,53 @@
 Changes
 ============
 
+2.3.1
+----------
+
+Release date: 2025-06-27
+
+Overview
+^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 2.3.1. This is
+a bug fix release that fixes several compatibility issues and other known
+bugs in RAW. The main update for this release is a new Windows 11 specific
+installer that will hopefully fix issues with the existing Windows installer
+now working for some Windows 11 computers.
+
+Other notes:
+*   This will be the last version of RAW to have a pre-built installer that
+    supports Windows 10.
+*   The Linux installer now supports a minimum version of Ubuntu 22.04/Debian
+    12.
+*   The MacOS installer now supports a minimum version of MacOS 13 (Ventura).
+
+All changes:
+^^^^^^^^^^^^^
+*   Fixed issues with the plot line picker not working when profiles were
+    moved between plots.
+*   Fixed a bug where GNOM would fail when it received a warning, rather than
+    just when it received an error.
+*   Fixed a bug wehre opening a GNOM window for a profile with a saved Dmax
+    value would default the Dmax spinner to a float, leading to unexpected
+    precision in the value.
+*   Fixed a bug that prevented EFA or REGALS from running on baseline subtracted
+    data.
+*   Fixed a bug where DENSS align was writing an unwanted log file that would cause
+    errors on Windows.
+*   Fixed an issue with DENSS writing files not in the specified save directory.
+*   Replaced depreciated scipy.integrate.trapz calls.
+*   Added checking for expired ATSAS license for ATSAS >= 4.0.
+*   Fixed compatibilty with numpy 2.0 and pyFAI 2025.3.0.
+*   Fixed an issue where autodmax function could spuriously fail to find GNOM.
+*   Fixed an issue where if both .abs and .int are plotted by CRYSOL they could
+    not be returned to the main plot.
+*   Fixed a bug that prevented the ambimeter window from opening with ATSAS version
+    >=4.
+*   Fixed a bug where axes labels were not updated correctly in the LC series
+    analysis window.
+
+
 2.3.0
 ----------
 
