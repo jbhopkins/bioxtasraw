@@ -1606,7 +1606,7 @@ class GuinierFrame(wx.Frame):
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter1.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
+            splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -3972,7 +3972,7 @@ class GNOMFrame(wx.Frame):
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter1.SetMinimumPaneSize(self._FromDIP(315))   #Back compatability with older wxpython versions
+            splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))   #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -11131,7 +11131,7 @@ class BIFTFrame(wx.Frame):
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter1.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
+            splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -11916,7 +11916,7 @@ class DIFTFrame(wx.Frame):
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter1.SetMinimumPaneSize(self._FromDIP(315))   #Back compatability with older wxpython versions
+            splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))   #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -15706,7 +15706,7 @@ class SVDFrame(wx.Frame):
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter1.SetMinimumPaneSize(self._FromDIP(325))    #Back compatability with older wxpython versions
+            splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -24621,7 +24621,7 @@ class LCSeriesFrame(wx.Frame):
         splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter.SetMinimumPaneSizeself._FromDIP((290))    #Back compatability with older wxpython versions
+            splitter.SetMinimumPaneSizeself._FromDIP((splitter_size))    #Back compatability with older wxpython versions
         else:
             splitter.SetMinimumPaneSize(self._FromDIP(50))
 
