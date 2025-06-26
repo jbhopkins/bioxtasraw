@@ -136,7 +136,7 @@ class MainFrame(wx.Frame):
         #Is this gtk3 or newer?
         info = wx.PlatformInformation()
 
-        if (info.GetPortId() == wx.PORT_GTK 
+        if (info.GetPortId() == wx.PORT_GTK
             and int(info.GetToolkitMajorVersion()) >= 3):
                 self.is_gtk3 = True
         else:
@@ -384,7 +384,7 @@ class MainFrame(wx.Frame):
         thread.daemon = True
         thread.start()
 
-        
+
 
         wx.CallAfter(self._showWelcomeDialog)
 
@@ -16635,7 +16635,7 @@ def main():
     setup_thread_excepthook()
     global app
     app = MyApp(0)   #MyApp(redirect = True)
-    
+
     app.MainLoop()
 
     # app = wx.App()

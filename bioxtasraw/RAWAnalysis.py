@@ -1602,7 +1602,7 @@ class GuinierFrame(wx.Frame):
         self.controlPanel = GuinierControlPanel(splitter1, wx.ID_ANY, ExpObj, manip_item)
 
 
-        
+
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
@@ -11880,6 +11880,8 @@ class BIFTControlPanel(wx.Panel):
 class DIFTFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm, manip_item):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
 
@@ -11893,7 +11895,6 @@ class DIFTFrame(wx.Frame):
             size = (min(925, client_display.Width), min(700, client_display.Height))
             splitter_size = 415
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -19434,7 +19435,15 @@ class REGALSFrame(wx.Frame):
         self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(1675, client_display.Width), min(875, client_display.Height))
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(1500, client_display.Width), min(875, client_display.Height))
+        else:
+            size = (min(1675, client_display.Width), min(875, client_display.Height))
+
         self.SetSize(self._FromDIP(size))
 
         self.main_frame = wx.FindWindowByName('MainFrame')
@@ -19749,7 +19758,7 @@ class REGALSSVDPanel(wx.Panel):
         main_frame = wx.FindWindowByName('MainFrame')
         is_gtk3 = main_frame.is_gtk3
 
-        if not is_gtk3: 
+        if not is_gtk3:
             splitter_size = 325
         else:
             splitter_size = 370
@@ -19817,7 +19826,7 @@ class REGALSEFAPanel(wx.Panel):
         main_frame = wx.FindWindowByName('MainFrame')
         is_gtk3 = main_frame.is_gtk3
 
-        if not is_gtk3: 
+        if not is_gtk3:
             splitter_size = 300
         else:
             splitter_size = 350
@@ -20766,7 +20775,7 @@ class REGALSComponentGrid(scrolled.ScrolledPanel):
 
         if not is_gtk3:
             size = (min(800, client_display.Width-200), min(425, client_display.Height))
-            
+
         else:
             size = (min(975, client_display.Width-200), min(425, client_display.Height))
 
