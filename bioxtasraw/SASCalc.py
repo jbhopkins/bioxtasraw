@@ -2150,15 +2150,18 @@ def runAmbimeter(fname, prefix, args, path, atsasDir):
 
         lines = output.split('\n')
 
-        if int(version[0]) >= 4:
-            ambiCats = lines[0].split(':')[-1].strip()
-            ambiScore = lines[2].split(':')[-1].strip()
-            ambiEval = lines[3]
+        if len(lines) > 1:
+            if int(version[0]) >= 4:
+                ambiCats = lines[0].split(':')[-1].strip()
+                ambiScore = lines[2].split(':')[-1].strip()
+                ambiEval = lines[3]
+            else:
+                ambiCats = lines[0].split(':')[-1].strip()
+                ambiScore = lines[1].split(':')[-1].strip()
+                ambiEval = lines[2]
         else:
-            ambiCats = lines[0].split(':')[-1].strip()
-            ambiScore = lines[1].split(':')[-1].strip()
-            ambiEval = lines[2]
-
+            raise SASExceptions.NoATSASError(('Ambimeter failed to run. Try '
+                'running it from the command line to diagnose this problem.'))
         return ambiCats, ambiScore, ambiEval
 
     else:
