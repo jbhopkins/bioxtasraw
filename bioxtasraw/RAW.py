@@ -133,6 +133,14 @@ class MainFrame(wx.Frame):
             self.SetSize(self._FromDIP(size))
             self.CenterOnScreen()
 
+        #Is this gtk3 or newer?
+        info = wx.PlatformInformation()
+
+        if (info.GetPortId() == wx.PORT_GTK 
+            and int(info.GetToolkitMajorVersion()) >= 3):
+                self.is_gtk3 = True
+        else:
+            self.is_gtk3 = False
 
 
         self.MenuIDs = {
@@ -314,13 +322,18 @@ class MainFrame(wx.Frame):
         self.centering_panel = CenteringPanel(self, -1)
         self.masking_panel = MaskingPanel(self, -1)
 
+        if not self.is_gtk3:
+            ctrl_width = 425
+        else:
+            ctrl_width = 500
+
         self._mgr.AddPane(self.info_panel, aui.AuiPaneInfo().Name("infopanel").
                           CloseButton(False).Left().Layer(0).Caption("Information Panel").
                           PinButton(True).Row(0).Position(0))
 
         self._mgr.AddPane(self.control_notebook, aui.AuiPaneInfo().Name("ctrlpanel").
                           CloseButton(False).Left().Layer(0).Caption("Control Panel").
-                          MinSize(self._FromDIP((425,300))).PinButton(True).Row(0).
+                          MinSize(self._FromDIP((ctrl_width,300))).PinButton(True).Row(0).
                           Position(1))
 
         self._mgr.AddPane(self.plot_notebook, aui.AuiPaneInfo().Name("plotpanel").
@@ -370,6 +383,8 @@ class MainFrame(wx.Frame):
         thread = threading.Thread(target= self._compileNumbaJits)
         thread.daemon = True
         thread.start()
+
+        
 
         wx.CallAfter(self._showWelcomeDialog)
 
@@ -16620,6 +16635,7 @@ def main():
     setup_thread_excepthook()
     global app
     app = MyApp(0)   #MyApp(redirect = True)
+    
     app.MainLoop()
 
     # app = wx.App()

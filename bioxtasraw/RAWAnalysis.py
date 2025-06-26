@@ -1572,8 +1572,18 @@ class GuinierFrame(wx.Frame):
 
         self.CenterOnParent()
 
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
         client_display = wx.GetClientDisplayRect()
-        size = (min(800, client_display.Width), min(650, client_display.Height))
+
+        if not is_gtk3:
+            size = (min(800, client_display.Width), min(650, client_display.Height))
+            splitter_size = 300
+        else:
+            size = (min(925, client_display.Width), min(650, client_display.Height))
+            splitter_size = 425
+
         self.SetSize(self._FromDIP(size))
 
         panel = wx.Panel(self)
@@ -1591,7 +1601,9 @@ class GuinierFrame(wx.Frame):
         self.plotPanel = GuinierPlotPanel(splitter1, wx.ID_ANY)
         self.controlPanel = GuinierControlPanel(splitter1, wx.ID_ANY, ExpObj, manip_item)
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(300))
+
+        
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
             splitter1.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
@@ -3927,7 +3939,17 @@ class GNOMFrame(wx.Frame):
         self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(825, client_display.Width), min(700, client_display.Height))
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(825, client_display.Width), min(700, client_display.Height))
+            splitter_size = 315
+        else:
+            size = (min(925, client_display.Width), min(700, client_display.Height))
+            splitter_size = 415
+
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -3947,7 +3969,7 @@ class GNOMFrame(wx.Frame):
         self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY, 'gnom')
         self.controlPanel = GNOMControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(315))
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
             splitter1.SetMinimumPaneSize(self._FromDIP(315))   #Back compatability with older wxpython versions
@@ -11077,7 +11099,17 @@ class BIFTFrame(wx.Frame):
         self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(800, client_display.Width), min(700, client_display.Height))
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(800, client_display.Width), min(700, client_display.Height))
+            splitter_size = 290
+        else:
+            size = (min(880, client_display.Width), min(700, client_display.Height))
+            splitter_size = 370
+
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -11096,7 +11128,7 @@ class BIFTFrame(wx.Frame):
         self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY, 'bift')
         self.controlPanel = BIFTControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(290))
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
             splitter1.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
@@ -11850,7 +11882,16 @@ class DIFTFrame(wx.Frame):
     def __init__(self, parent, title, sasm, manip_item):
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(825, client_display.Width), min(700, client_display.Height))
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(825, client_display.Width), min(700, client_display.Height))
+            splitter_size = 315
+        else:
+            size = (min(925, client_display.Width), min(700, client_display.Height))
+            splitter_size = 415
 
         wx.Frame.__init__(self, parent, wx.ID_ANY, title)
         self.SetSize(self._FromDIP(size))
@@ -11872,7 +11913,7 @@ class DIFTFrame(wx.Frame):
         self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY, 'dift')
         self.controlPanel = DIFTControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(315))
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
             splitter1.SetMinimumPaneSize(self._FromDIP(315))   #Back compatability with older wxpython versions
@@ -12844,7 +12885,7 @@ class TheoreticalFrame(wx.Frame):
         self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(900, client_display.Width), min(800, client_display.Height))
+        size = (min(925, client_display.Width), min(800, client_display.Height))
         self.SetSize(self._FromDIP(size))
 
         self.calc_type = calc_type
@@ -12881,7 +12922,7 @@ class TheoreticalFrame(wx.Frame):
             flag=wx.TOP|wx.EXPAND|wx.BOTTOM)
         sub_panel.SetSizer(results_sizer)
 
-        splitter.SplitVertically(self.ctrl_panel, sub_panel, self._FromDIP(325))
+        splitter.SplitVertically(self.ctrl_panel, sub_panel, self._FromDIP(350))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
             splitter.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
@@ -15618,12 +15659,22 @@ class SVDFrame(wx.Frame):
         self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = size = (min(950, client_display.Width), min(750, client_display.Height))
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(950, client_display.Width), min(750, client_display.Height))
+            splitter_size = 325
+        else:
+            size = (min(990, client_display.Width), min(750, client_display.Height))
+            splitter_size = 365
+
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
-        self._Layout()
+        self._Layout(splitter_size)
 
         SASUtils.set_best_size(self)
         self.SendSizeEvent()
@@ -15642,7 +15693,7 @@ class SVDFrame(wx.Frame):
         self.plotPanel.updateColors()
         self.controlPanel.updateColors()
 
-    def _Layout(self):
+    def _Layout(self, splitter_size):
         panel = wx.Panel(self)
         splitter1 = wx.SplitterWindow(panel)
 
@@ -15652,7 +15703,7 @@ class SVDFrame(wx.Frame):
         self.controlPanel = SVDControlPanel(splitter1, wx.ID_ANY, copy_secm,
             self.manip_item, self, 'SVD')
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(325))
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
             splitter1.SetMinimumPaneSize(self._FromDIP(325))    #Back compatability with older wxpython versions
@@ -16891,7 +16942,17 @@ class EFAFrame(wx.Frame):
         self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(950, client_display.Width), min(825, client_display.Height))
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(950, client_display.Width), min(825, client_display.Height))
+            splitter_size = 325
+        else:
+            size = (min(1020, client_display.Width), min(825, client_display.Height))
+            splitter_size = 395
+
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -16914,7 +16975,7 @@ class EFAFrame(wx.Frame):
 
 
 
-        self._createLayout(self.panel)
+        self._createLayout(self.panel, splitter_size)
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
@@ -16940,7 +17001,7 @@ class EFAFrame(wx.Frame):
         self.plotPanel3.updateColors()
         self.controlPanel3.updateColors()
 
-    def _createLayout(self, parent):
+    def _createLayout(self, parent, splitter_size):
         #Creating the first EFA analysis panel
         self.splitter1 = wx.SplitterWindow(parent, self.splitter_ids[1])
 
@@ -16948,10 +17009,10 @@ class EFAFrame(wx.Frame):
         self.controlPanel1 = SVDControlPanel(self.splitter1, wx.ID_ANY,
             self.secm, self.manip_item, self, 'EFA')
 
-        self.splitter1.SplitVertically(self.controlPanel1, self.plotPanel1, self._FromDIP(325))
+        self.splitter1.SplitVertically(self.controlPanel1, self.plotPanel1, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter1.SetMinimumPaneSize(self._FromDIP(325))    #Back compatability with older wxpython versions
+            self.splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -16968,10 +17029,10 @@ class EFAFrame(wx.Frame):
         self.controlPanel2 = EFAControlPanel2(self.splitter2, -1, self.secm,
             self.manip_item, self, 'EFA')
 
-        self.splitter2.SplitVertically(self.controlPanel2, self.plotPanel2, self._FromDIP(325))
+        self.splitter2.SplitVertically(self.controlPanel2, self.plotPanel2, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter2.SetMinimumPaneSize(self._FromDIP(325))    #Back compatability with older wxpython versions
+            self.splitter2.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter2.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -16983,10 +17044,10 @@ class EFAFrame(wx.Frame):
         self.plotPanel3 = EFAResultsPlotPanel3(self.splitter3, -1)
         self.controlPanel3 = EFAControlPanel3(self.splitter3, -1, self.secm, self.manip_item)
 
-        self.splitter3.SplitVertically(self.controlPanel3, self.plotPanel3, self._FromDIP(325))
+        self.splitter3.SplitVertically(self.controlPanel3, self.plotPanel3, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter3.SetMinimumPaneSize(self._FromDIP(325))    #Back compatability with older wxpython versions
+            self.splitter3.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter3.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -19373,7 +19434,7 @@ class REGALSFrame(wx.Frame):
         self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(1500, client_display.Width), min(875, client_display.Height))
+        size = (min(1675, client_display.Width), min(875, client_display.Height))
         self.SetSize(self._FromDIP(size))
 
         self.main_frame = wx.FindWindowByName('MainFrame')
@@ -19684,16 +19745,25 @@ class REGALSSVDPanel(wx.Panel):
         self.controlPanel.updateColors()
 
     def _layout(self):
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3: 
+            splitter_size = 325
+        else:
+            splitter_size = 370
+
         self.splitter = wx.SplitterWindow(self)
 
         self.plotPanel = SVDResultsPlotPanel(self.splitter, wx.ID_ANY)
         self.controlPanel = SVDControlPanel(self.splitter, wx.ID_ANY,
             self.secm, self.manip_item, self, 'REGALS')
 
-        self.splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(325))
+        self.splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter.SetMinimumPaneSize(self._FromDIP(325))    #Back compatability with older wxpython versions
+            self.splitter.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -19744,16 +19814,24 @@ class REGALSEFAPanel(wx.Panel):
         self.plotPanel.updateColors()
 
     def _layout(self):
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3: 
+            splitter_size = 300
+        else:
+            splitter_size = 350
+
         self.splitter = wx.SplitterWindow(self)
 
         self.plotPanel = EFAResultsPlotPanel2(self.splitter, wx.ID_ANY)
         self.controlPanel = EFAControlPanel2(self.splitter, wx.ID_ANY,
             self.secm, self.manip_item, self, 'REGALS')
 
-        self.splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(300))
+        self.splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter.SetMinimumPaneSize(self._FromDIP(300))    #Back compatability with older wxpython versions
+            self.splitter.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -20681,7 +20759,18 @@ class REGALSComponentGrid(scrolled.ScrolledPanel):
         *args, **kwargs):
         scrolled.ScrolledPanel.__init__(self, parent, *args, **kwargs)
 
-        self.SetMinSize(self._FromDIP((800, 425)))
+        client_display = wx.GetClientDisplayRect()
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(800, client_display.Width-200), min(425, client_display.Height))
+            
+        else:
+            size = (min(975, client_display.Width-200), min(425, client_display.Height))
+
+        self.SetMinSize(self._FromDIP(size))
 
         self.component_panels = []
         self.range_callback = range_callback
@@ -24498,7 +24587,16 @@ class LCSeriesFrame(wx.Frame):
         self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(1000, client_display.Width), min(900, client_display.Height))
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(1000, client_display.Width), min(900, client_display.Height))
+            splitter_size = 325
+        else:
+            size = (min(1080, client_display.Width), min(900, client_display.Height))
+            splitter_size = 405
         self.SetSize(self._FromDIP(size))
 
         panel = wx.Panel(self)
@@ -24520,7 +24618,7 @@ class LCSeriesFrame(wx.Frame):
         self.controlPanel = LCSeriesControlPanel(splitter, self.original_secm)
 
 
-        splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(325))
+        splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
             splitter.SetMinimumPaneSizeself._FromDIP((290))    #Back compatability with older wxpython versions
