@@ -1,9 +1,7 @@
-Making the .deb installer uses pyinstaller (tested on 3.6.0). This must be done with
+Making the .deb installer uses pyinstaller This must be done with
 miniconda to properly package the LLVMLite package for numba. In order to set up the
 proper build environment, simply install from source as in the RAW documentation, then
 additionally install pyinstaller through pip or conda: pip install pyinstaller.
-
-Note: currently requires setuptools<45 to work.
 
 Steps:
 1)  Install fakeroot, lintian: sudo apt-get install fakeroot lintian
@@ -15,14 +13,11 @@ Steps:
 6)  Build the html documentation
 7)  In the installer directory, run “pyinstaller -y RAW.spec”
 8)  In the installer/linux directory run "python make_deb_installer.py"
-9)  Rename the package appropriate (e.g. RAW-2.0.0-linux-amd64.deb)
 
 Current build notes:
-- Using ubuntu 18.04 LTS
-- Using wxpython 4.2.0, python 3.11, pyinstaller 5.11.0 (requires
-    up to date pyinstaller, which currently isn't available on conda for py311,
-    so had to pip install)
-- Using raw_py311 environment on the virtualbox machine
+- Using ubuntu 22.04 LTS
+- Using raw_py313 environment on the virtualbox machine
+- Helps a lot if you set up guest additions on the virtualbox
 
 
 

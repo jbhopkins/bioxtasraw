@@ -13,15 +13,15 @@ os.sys.path.append(os.path.abspath(os.path.join('..', '..')))
 
 from bioxtasraw.RAWGlobals import version
 
-deb_path = os.path.join('.', 'RAW-{}-linux-x86_64'.format(version),
+deb_path = os.path.join('.', 'RAW_{}_linux_x86_64'.format(version),
     'DEBIAN')
-exc_path = os.path.join('.', 'RAW-{}-linux-x86_64'.format(version),
+exc_path = os.path.join('.', 'RAW_{}_linux_x86_64'.format(version),
     'usr', 'bin')
-app_path = os.path.join('.', 'RAW-{}-linux-x86_64'.format(version),
+app_path = os.path.join('.', 'RAW_{}_linux_x86_64'.format(version),
     'usr', 'share', 'applications')
-png_path = os.path.join('.', 'RAW-{}-linux-x86_64'.format(version),
+png_path = os.path.join('.', 'RAW_{}_linux_x86_64'.format(version),
     'usr', 'share', 'icons', 'hicolor', '48x48', 'apps')
-xpm_path = os.path.join('.', 'RAW-{}-linux-x86_64'.format(version),
+xpm_path = os.path.join('.', 'RAW_{}_linux_x86_64'.format(version),
     'usr', 'share', 'pixmaps')
 
 os.makedirs(deb_path, exist_ok=True)
@@ -59,11 +59,11 @@ for i in range(len(control_lines)):
 with open(os.path.join(app_path, 'bioxtas-raw.desktop'), 'w') as f:
     f.writelines(control_lines)
 
-proc = subprocess.Popen("fakeroot dpkg-deb --build RAW-{}-linux-x86_64".format(version),
+proc = subprocess.Popen("fakeroot dpkg-deb --build RAW_{}_linux_x86_64".format(version),
     shell=True)
 proc.communicate()
 
 print('Checking .deb installer with lintian')
-proc = subprocess.Popen("lintian RAW-{}-linux-x86_64.deb".format(version),
+proc = subprocess.Popen("lintian RAW_{}_linux_x86_64.deb".format(version),
     shell=True)
 proc.communicate()
