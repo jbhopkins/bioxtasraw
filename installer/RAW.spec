@@ -32,7 +32,7 @@ if opsys == 'Darwin':
     console = False
 elif opsys == 'Windows':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.ico')
-    console = False
+    console = True
 elif opsys == 'Linux':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.png')
     console = False

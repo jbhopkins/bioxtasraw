@@ -12270,7 +12270,7 @@ class DIFTControlPanel(wx.Panel):
                 guinier = sasm.getParameter('analysis')['guinier']
 
                 try:
-                    nmin = guinier['nStart']
+                    nmin = int(guinier['nStart'])
                     nmax = sasm.getQrange()[1]
                 except Exception:
                     nmin, nmax = sasm.getQrange()
