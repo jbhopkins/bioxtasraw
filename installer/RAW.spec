@@ -47,7 +47,7 @@ a = Analysis(
     hiddenimports=[],
     hookspath=['.'],
     runtime_hooks=[],
-    excludes=['PyQt5', 'PyQt6', 'PySide6'],
+    excludes=['PyQt5', 'PyQt6', 'PySide6', 'tkinter', 'sphinx', 'opengl', 'pyopencl', 'opencl'],
     hooksconfig={
         'matplotlib': {
             'backends': ['AGG', 'PDF', 'PS', 'SVG', 'PGF', 'Cairo', 'wxAgg'],
