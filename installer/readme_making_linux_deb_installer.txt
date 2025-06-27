@@ -16,8 +16,11 @@ Steps:
 
 Current build notes:
 - Using ubuntu 22.04 LTS
-- Using raw_py313 environment on the virtualbox machine
+- Using raw_py311 environment on the virtualbox machine
 - Helps a lot if you set up guest additions on the virtualbox
+- If installed by conda there's current some x11 error (seems to be GUI toolkit, not RAW)
+with the GTK3 versions of wxpython, which means wxpython >4.2.0, so use 4.2.0 and GTK2 for
+now. Could try a build via pip with the GTK3 at some point.
 
 
 

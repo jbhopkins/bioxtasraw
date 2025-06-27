@@ -8161,7 +8161,14 @@ class DenssFrame(wx.Frame):
         self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(750, client_display.Width), min(900, client_display.Height))
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(750, client_display.Width), min(900, client_display.Height))
+        else:
+            size = (min(800, client_display.Width), min(900, client_display.Height))
         self.SetSize(self._FromDIP(size))
 
         self.manip_item = manip_item
