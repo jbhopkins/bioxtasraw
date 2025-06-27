@@ -4,7 +4,7 @@ Changes
 2.3.1
 ----------
 
-Release date: 2025-06-27
+Release date: 2025-06-30
 
 Overview
 ^^^^^^^^^^
@@ -46,6 +46,8 @@ All changes:
     >=4.
 *   Fixed a bug where axes labels were not updated correctly in the LC series
     analysis window.
+*   Fixed a bug where ambimeter failing to run would raise an error.
+*   Adjusted window sizes for GTK3.
 
 
 2.3.0
