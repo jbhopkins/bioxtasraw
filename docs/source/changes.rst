@@ -16,6 +16,7 @@ installer that will hopefully fix issues with the existing Windows installer
 not working for some Windows 11 computers.
 
 Other notes:
+
 *   This will be the last version of RAW to have a pre-built installer that
     supports Windows 10.
 *   The Linux installer now supports a minimum version of Ubuntu 22.04/Debian
