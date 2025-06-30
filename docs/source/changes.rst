@@ -39,7 +39,7 @@ All changes:
 *   Fixed an issue with DENSS writing files not in the specified save directory.
 *   Replaced depreciated scipy.integrate.trapz calls.
 *   Added checking for expired ATSAS license for ATSAS >= 4.0.
-*   Fixed compatibilty with numpy 2.0 and pyFAI 2025.3.0.
+*   Fixed compatibility with numpy 2.0 and pyFAI 2025.3.0.
 *   Fixed an issue where autodmax function could spuriously fail to find GNOM.
 *   Fixed an issue where if both .abs and .int are plotted by CRYSOL they could
     not be returned to the main plot.
