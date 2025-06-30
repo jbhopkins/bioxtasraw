@@ -8,8 +8,8 @@ from a prebuilt app package for Ubuntu 22.04/Debian 12 or newer:
 #.  Download the :file:`RAW-x.y.z_linux_x86_64.deb`
     (where :file:`x.y.z` is the version number) file from sourceforge:
 
-    *   Download Ubuntu/Debian installer
-   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.3.1_linux_x86_64.deb/download
+    *   `Download Ubuntu/Debian installer
+   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.3.1_linux_x86_64.deb/download>`_
 
 #.  Open a terminal and navigate to where you saved the downloads (usually: ``cd ~/Downloads``)
 
