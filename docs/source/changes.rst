@@ -29,7 +29,7 @@ All changes:
     moved between plots.
 *   Fixed a bug where GNOM would fail when it received a warning, rather than
     just when it received an error.
-*   Fixed a bug wehre opening a GNOM window for a profile with a saved Dmax
+*   Fixed a bug where opening a GNOM window for a profile with a saved Dmax
     value would default the Dmax spinner to a float, leading to unexpected
     precision in the value.
 *   Fixed a bug that prevented EFA or REGALS from running on baseline subtracted
