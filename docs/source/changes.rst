@@ -13,7 +13,7 @@ The RAW team is pleased to announce the release of RAW version 2.3.1. This is
 a bug fix release that fixes several compatibility issues and other known
 bugs in RAW. The main update for this release is a new Windows 11 specific
 installer that will hopefully fix issues with the existing Windows installer
-now working for some Windows 11 computers.
+not working for some Windows 11 computers.
 
 Other notes:
 *   This will be the last version of RAW to have a pre-built installer that
