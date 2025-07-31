@@ -1273,20 +1273,33 @@ class ItemList(wx.Panel):
         first_idx = self.get_item_index(selected_items[0])
 
         if sel_item in selected_items:
-            for item in self.all_items[first_idx:sel_idx]:
-                item.set_selected(False)
+            for i, item in enumerate(self.all_items[first_idx:sel_idx]):
+                if i == len(self.all_items[first_idx:sel_idx]) -1:
+                    item.set_selected(False, update=True)
+                else:
+                    item.set_selected(False, update=False)
+
         else:
             if sel_idx < first_idx:
-                for item in self.all_items[sel_idx:first_idx]:
-                    item.set_selected(True)
+                for i, item in enumerate(self.all_items[sel_idx:first_idx]):
+                    if i == len(self.all_items[sel_idx:first_idx]) -1:
+                        item.set_selected(True, update=True)
+                    else:
+                        item.set_selected(True, update=False)
             else:
                 last_idx = self.get_item_index(selected_items[-1])
-                for item in self.all_items[last_idx+1:sel_idx+1]:
-                    item.set_selected(True)
+                for i, item in enumerate(self.all_items[last_idx+1:sel_idx+1]):
+                    if i == len(self.all_items[last_idx+1:sel_idx+1]) -1:
+                        item.set_selected(True, update=True)
+                    else:
+                        item.set_selected(True, update=False)
 
-    def remove_items(self, items):
+        self.Refresh()
+
+
+    def remove_items(self, items, deselect=True):
         for item in items:
-            self.remove_item(item, resize=False)
+            self.remove_item(item, resize=False, deselect=deselect)
 
         self.resize_list()
 
@@ -1294,15 +1307,17 @@ class ItemList(wx.Panel):
         selected_items = self.get_selected_items()
 
         if len(selected_items) > 0:
-            self.remove_items(selected_items)
+            self.remove_items(selected_items, deselect=False)
 
-    def remove_item(self, item, resize=True):
+        self.get_selected_items()
+
+    def remove_item(self, item, resize=True, deselect=True):
         item.remove()
 
         if item in self.modified_items:
             self.modified_items.remove(item)
 
-        if item in self.selected_items:
+        if item in self.selected_items and deselect:
             self.selected_items.remove(item)
 
         self.all_items.remove(item)
@@ -1319,6 +1334,65 @@ class ItemList(wx.Panel):
 
     def get_item(self, index):
         return self.all_items[index]
+
+    def move_selected_items_up(self):
+        sel_items = self.get_selected_items()
+
+        if len(sel_items) > 0:
+            top_item = sel_items[0]
+            top_idx = self.get_item_index(top_item)
+
+            move_up = True
+
+            if top_idx == 0:
+                move_up = False
+
+            if move_up:
+                for item in sel_items:
+                    self.move_item(item, 'up', refresh=False)
+
+                self.resize_list()
+
+    def move_selected_items_down(self):
+        sel_items = self.get_selected_items()
+
+        if len(sel_items) > 0:
+            bot_item = sel_items[-1]
+            bot_idx = self.get_item_index(bot_item)
+
+            move_down = True
+
+            if bot_idx == len(self.all_items)-1:
+                move_down = False
+
+            if move_down:
+                for item in sel_items[::-1]:
+                    self.move_item(item, 'down', refresh=False)
+
+                self.resize_list()
+
+    def move_item(self, item, move_dir, refresh=True):
+        item_idx = self.get_item_index(item)
+
+        if move_dir == 'up' and item_idx > 0:
+            new_item_idx = item_idx -1
+
+        elif move_dir == 'down' and item_idx < len(self.all_items) -1:
+            new_item_idx = item_idx +1
+
+        else:
+            new_item_idx = -1
+
+        if new_item_idx != -1:
+            self.list_panel_sizer.Detach(item)
+            self.list_panel_sizer.Insert(new_item_idx, item, flag=wx.EXPAND|wx.ALL,
+                border=self._FromDIP(1))
+
+            self.all_items.pop(item_idx)
+            self.all_items.insert(new_item_idx, item)
+
+            if refresh:
+                self.resize_list()
 
 class ListItem(wx.Panel):
     def __init__(self, item_list, *args, **kwargs):
@@ -1348,7 +1422,7 @@ class ListItem(wx.Panel):
     def get_selected(self):
         return self._selected
 
-    def set_selected(self, selected):
+    def set_selected(self, selected, update=True):
         self._selected = selected
 
         if self._selected:
@@ -1363,7 +1437,8 @@ class ListItem(wx.Panel):
             for text_item in self.text_list:
                 text_item.SetForegroundColour(RAWGlobals.general_text_color)
 
-        self.Refresh()
+        if update:
+            self.Refresh()
 
     def toggle_selected(self):
         self.set_selected(not self._selected)

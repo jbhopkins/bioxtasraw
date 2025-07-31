@@ -106,6 +106,7 @@ import bioxtasraw.SASUtils as SASUtils
 import bioxtasraw.SECM as SECM
 import bioxtasraw.RAWReport as RAWReport
 import bioxtasraw.BIFT as BIFT
+import bioxtasraw.RAWMultiSeriesAnalysis as RAWMultiSeriesAnalysis
 import bioxtasraw.RAWAPI as RAWAPI
 from bioxtasraw.RAWGlobals import mainworker_cmd_queue
 
@@ -237,6 +238,7 @@ class MainFrame(wx.Frame):
             'calcUVconc'            : self.NewControlId(),
             'lcanalysis'            : self.NewControlId(),
             'makereport'            : self.NewControlId(),
+            'multiseriesanalysis'   : self.NewControlId(),
             }
 
         self.tbIcon = RawTaskbarIcon(self)
@@ -1983,6 +1985,15 @@ class MainFrame(wx.Frame):
         report_frame.SetIcon(self.GetIcon())
         report_frame.Show(True)
 
+    def showMultiSeriesFrame(self, profiles=[], ifts=[], series=[]):
+
+        all_series = [item.getSECM() for item in self.series_panel.all_manipulation_items]
+
+        multiseries_frame = RAWMultiSeriesAnalysis.MultiSeriesFrame(self,
+            'Multi Series Analysis', self.raw_settings, all_series, series)
+        multiseries_frame.SetIcon(self.GetIcon())
+        multiseries_frame.Show(True)
+
     def _createSingleMenuBarItem(self, info):
 
         menu = wx.Menu()
@@ -2215,6 +2226,7 @@ class MainFrame(wx.Frame):
                 ('&REGALS', self.MenuIDs['runregals'], self._onToolsMenu, 'normal'),
                 ('&Compare Profiles', self.MenuIDs['similarityTest'], self._onToolsMenu, 'normal'),
                 ('&Dimensionless Kratky Plots', self.MenuIDs['normalizedKratky'], self._onToolsMenu, 'normal'),
+                ('&Multi Series Analysis', self.MenuIDs['multiseriesanalysis'], self._onToolsMenu, 'normal'),
                 (None, None, None, 'separator'),
                 ('&Centering/Calibration', self.MenuIDs['centering'], self._onToolsMenu, 'normal'),
                 ('&Masking', self.MenuIDs['masking'], self._onToolsMenu, 'normal'),
@@ -2944,6 +2956,9 @@ class MainFrame(wx.Frame):
 
         elif id == self.MenuIDs['makereport']:
             self.showReportFrame()
+
+        elif id == self.MenuIDs['multiseriesanalysis']:
+            self.showMultiSeriesFrame()
 
     def _onViewMenu(self, evt):
 
