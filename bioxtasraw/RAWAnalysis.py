@@ -24713,15 +24713,20 @@ class SeriesPlotPanel(wx.Panel):
             self.series_frame = parent.GetParent().series_frame
         elif self.ctrl_type == 'REGALS':
             self.series_frame = parent.GetParent()
+        elif self.ctrl_type == 'MultiSeries':
+            self.series_frame = parent
 
-        self.all_plot_types = {'unsub'  : {'left': 'Total Intensity', 'right' : '',
+        self.all_plot_types = {
+            'unsub'     : {'left': 'Total Intensity', 'right' : '',
                         'title': 'Unsubtracted Series', 'bottom': 'Frame #'},
             'sub'       : {'left': 'Total Intensity', 'right': 'Rg',
                         'title': 'Subtracted Series', 'bottom': 'Frame #'},
             'baseline'  : {'left': 'Total Intensity', 'right': 'Rg',
                         'title': 'Baseline Corrected Series', 'bottom': 'Frame #'},
             'uv'        : {'left': 'Total Intensity', 'right': 'UV',
-                        'title': 'SAXS and UV', 'bottom': 'Frame #'},
+                        'title': 'Total Intensity', 'bottom': 'Frame #'},
+            'multi'     : {'left': 'Total Intensity', 'right': '',
+                        'title': 'Total Series Intensity', 'bottom': 'Series #'},
             }
 
         self.plot_type = plot_type
@@ -24782,7 +24787,7 @@ class SeriesPlotPanel(wx.Panel):
         self.subplot.set_xlabel(self.all_plot_types[self.plot_type]['bottom'])
         self.subplot.set_ylabel(self.all_plot_types[self.plot_type]['left'])
 
-        if self.plot_type != 'unsub':
+        if self.plot_type != 'unsub' and self.plot_type != 'multi':
             self.ryaxis = self.subplot.twinx()
             self.ryaxis.set_ylabel(self.all_plot_types[self.plot_type]['right'])
             self.axhline = self.subplot.axhline(0, color=color, linewidth=1.0)
@@ -24826,10 +24831,15 @@ class SeriesPlotPanel(wx.Panel):
                     color = '#ff7f0e'
                 else:
                     color = '#1f77b4'
-                line, = self.subplot.plot(xdata, ydata, animated=True,
-                    color=color)
 
-                if self.ctrl_type == 'REGALS':
+                if self.plot_type != 'multi':
+                    line, = self.subplot.plot(xdata, ydata, animated=True,
+                        color=color)
+                else:
+                    line, = self.subplot.plot(xdata, ydata, animated=True,
+                        marker='o', color=color)
+
+                if self.ctrl_type == 'REGALS' or self.ctrl_type == 'MultiSeries':
                     self.fig.tight_layout(pad=0.4)
 
                 self.canvas.draw()
@@ -24843,7 +24853,7 @@ class SeriesPlotPanel(wx.Panel):
                     line, = self.ryaxis.plot(xdata, ydata, animated=True,
                         linestyle='-', color='#d62728')
 
-                if self.ctrl_type == 'REGALS':
+                if self.ctrl_type == 'REGALS' or self.ctrl_type == 'MultiSeries':
                     self.fig.tight_layout(pad=0.4)
 
                 self.canvas.draw()
@@ -24900,7 +24910,7 @@ class SeriesPlotPanel(wx.Panel):
                 if ((int(matplotlib.__version__.split('.')[0]) == 3
                     and int(matplotlib.__version__.split('.')[1]) >= 9) or
                     int(matplotlib.__version__.split('.')[0]) > 3):
-                    line.set_x(start)
+                    line.set_x(start-0.5)
                     line.set_width(start-end+1)
                 else:
                     pts = line.get_xy()
@@ -25081,6 +25091,8 @@ class SeriesPlotPanel(wx.Panel):
                 if self.ctrl_type == 'LC':
                     control_page = self.series_frame.controlPanel
                 elif self.ctrl_type == 'REGALS':
+                    control_page = self.series_frame
+                elif self.ctrl_type == 'MultiSeries':
                     control_page = self.series_frame
 
                 control_page.setPickRange(self.range_index, [self.start_range, self.end_range],
@@ -28190,6 +28202,8 @@ class SeriesRangeItem(RAWCustomCtrl.ListItem):
             frames = self.series_panel.secm.getFrames()
         elif self.list_type == 'REGALS':
             frames = np.arange(self.series_panel.start, self.series_panel.end+1)
+        elif self.list_type == 'MultiSeries':
+            frames = np.arange(self.series_panel.range[0], self.series_panel.range[1]+1)
 
         self.start_ctrl = RAWCustomCtrl.IntSpinCtrl(self, wx.ID_ANY,
             min_val=frames[0], max_val=frames[-1], TextLength=45)

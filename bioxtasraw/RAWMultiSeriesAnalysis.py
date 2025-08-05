@@ -78,6 +78,7 @@ import bioxtasraw.DENSS as DENSS
 import bioxtasraw.SECM as SECM
 import bioxtasraw.SASUtils as SASUtils
 import bioxtasraw.REGALS as REGALS
+import bioxtasraw.RAWAnalysis as RAWAnalysis
 import bioxtasraw.RAWAPI as RAWAPI
 
 class MultiSeriesFrame(wx.Frame):
@@ -131,6 +132,8 @@ class MultiSeriesFrame(wx.Frame):
         self.notebook.AddPage(self.load_ctrl, 'Load Series')
         self.notebook.AddPage(self.range_ctrl, 'Select Ranges')
 
+        self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._on_page_changed)
+
         panel_sizer = wx.BoxSizer(wx.VERTICAL)
         panel_sizer.Add(self.notebook, proportion=1, flag=wx.EXPAND)
         panel.SetSizer(panel_sizer)
@@ -155,6 +158,8 @@ class MultiSeriesFrame(wx.Frame):
             except Exception:
                 pass
 
+        wx.GetApp().Yield(True)
+
     def set_has_changes(self, panel, status):
         if panel == 'load':
             self.changes_load = status
@@ -165,15 +170,23 @@ class MultiSeriesFrame(wx.Frame):
         if panel == 'load':
             changes = self.changes_load
         elif panel == 'range':
-            chagnes = self.changes_range
+            changes = self.changes_range
 
         return changes
+
+    def _on_page_changed(self, evt):
+        new_page_num = evt.GetSelection()
+        new_page = self.notebook.GetPage(new_page_num)
+        new_page.on_page_selected()
 
     def OnCloseEvt(self, evt):
         self.OnClose()
 
     def OnClose(self):
         self.showBusy(show=False)
+
+        self.load_ctrl.on_close()
+        self.range_ctrl.on_close()
 
         self.Destroy()
 
@@ -369,6 +382,15 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
         self.Layout()
         self.series_file_list.SetVirtualSize(self.series_file_list.GetBestVirtualSize())
 
+    def on_page_selected(self):
+        pass
+
+    def get_series_data(self):
+        return self.series_list.get_all_item_data()
+
+    def on_close(self):
+        pass
+
 class SeriesItemList(RAWCustomCtrl.ItemList):
 
     def __init__(self, load_panel, *args, **kwargs):
@@ -408,6 +430,11 @@ class SeriesItemList(RAWCustomCtrl.ItemList):
     def renumber_items(self):
         for i, item in enumerate(self.all_items):
             item.set_series_num(i+1)
+
+    def get_all_item_data(self):
+        item_data = [item.series_data for item in self.all_items]
+
+        return item_data
 
 class SeriesItem(RAWCustomCtrl.ListItem):
 
@@ -497,6 +524,20 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
 
         self.series_frame = series_frame
 
+        self.executor = None
+
+        if platform.system() == 'Darwin' and RAWGlobals.frozen:
+            self.single_proc = True
+        else:
+            self.single_proc = False
+
+        self.load_futures = []
+        self.loading_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._on_loading_timer, self.loading_timer)
+
+        self.range = (0, 1)
+        self.prop_cycle = matplotlib.rcParams['axes.prop_cycle']()
+
         self._createLayout()
 
     def _FromDIP(self, size):
@@ -510,70 +551,467 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
 
         parent = self
 
-        # load_box = wx.StaticBox(parent, label='Load series')
+        self.series_plot = RAWAnalysis.SeriesPlotPanel(parent, 'multi', 'MultiSeries')
 
-        # auto_load_btn = wx.Button(load_box, label='Auto Load')
-        # auto_load_btn.Bind(wx.EVT_BUTTON, self._on_auto_load)
+        buffer_box = wx.StaticBox(parent, label='Buffer Range')
 
-        # load_box = wx.StaticBoxSizer(load_box, wx.HORIZONTAL)
-        # load_box.Add(auto_load_btn)
+        self.buffer_range_list = RAWAnalysis.SeriesRangeItemList(self, 'buffer', buffer_box,
+            list_type='MultiSeries')
+        self.buffer_range_list.SetMinSize(self._FromDIP((150,130)))
 
-        # self.series_list = SeriesItemList(self, parent, size=self._FromDIP((200,-1)))
+        self.buffer_add_btn = wx.Button(buffer_box, label='Add region')
+        self.buffer_add_btn.Bind(wx.EVT_BUTTON, self._onSeriesAdd)
 
-        # remove_series = wx.Button(parent, label='Remove')
-        # move_up_series = wx.Button(parent, label='Move Up')
-        # move_down_series = wx.Button(parent, label='Move Down')
+        self.buffer_remove_btn = wx.Button(buffer_box, label='Remove region')
+        self.buffer_remove_btn.Bind(wx.EVT_BUTTON, self._onSeriesRemove)
 
-        # remove_series.Bind(wx.EVT_BUTTON, self._on_remove_series)
-        # move_up_series.Bind(wx.EVT_BUTTON, self._on_move_up_series)
-        # move_down_series.Bind(wx.EVT_BUTTON, self._on_move_down_series)
+        buf_btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buf_btn_sizer.Add(self.buffer_add_btn, flag=wx.RIGHT, border=self._FromDIP(5))
+        buf_btn_sizer.Add(self.buffer_remove_btn)
 
-        # series_btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        # series_btn_sizer.Add(move_up_series)
-        # series_btn_sizer.Add(move_down_series, flag=wx.LEFT, border=self._FromDIP(5))
-        # series_btn_sizer.Add(remove_series, flag=wx.LEFT, border=self._FromDIP(5))
-
-        # series_list_sizer = wx.BoxSizer(wx.VERTICAL)
-        # series_list_sizer.Add(self.series_list, flag=wx.EXPAND, proportion=1)
-        # series_list_sizer.Add(series_btn_sizer, border=self._FromDIP(5),
-        #     flag=wx.TOP|wx.ALIGN_CENTER_HORIZONTAL)
-
-        # series_info_box = wx.StaticBox(parent, label='Series Info')
-
-        # self.info_name = wx.StaticText(series_info_box, label='')
-        # self.info_num_profiles = wx.StaticText(series_info_box, label='')
-        # self.info_path = wx.StaticText(series_info_box, label='')
-
-        # series_info_sub_sizer1 = wx.FlexGridSizer(cols=2, hgap=self._FromDIP(5),
-        #     vgap=self._FromDIP(5))
-        # series_info_sub_sizer1.Add(wx.StaticText(series_info_box, label='Series:'),
-        #     flag=wx.ALIGN_CENTER_VERTICAL)
-        # series_info_sub_sizer1.Add(self.info_name, flag=wx.ALIGN_CENTER_VERTICAL)
-        # series_info_sub_sizer1.Add(wx.StaticText(series_info_box, label='Number of profiles:'),
-        #     flag=wx.ALIGN_CENTER_VERTICAL)
-        # series_info_sub_sizer1.Add(self.info_num_profiles, flag=wx.ALIGN_CENTER_VERTICAL)
-        # series_info_sub_sizer1.Add(wx.StaticText(series_info_box, label='File path:'),
-        #     flag=wx.ALIGN_CENTER_VERTICAL)
-        # series_info_sub_sizer1.Add(self.info_path, flag=wx.ALIGN_CENTER_VERTICAL)
-
-        # self.series_file_list = SeriesFileList(series_info_box)
-
-        # series_info_sizer = wx.StaticBoxSizer(series_info_box, wx.VERTICAL)
-        # series_info_sizer.Add(series_info_sub_sizer1, flag=wx.ALL,
-        #     border=self._FromDIP(5))
-        # series_info_sizer.Add(self.series_file_list, proportion=1,
-        #     flag=wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM)
-
-        # series_top_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        # series_top_sizer.Add(series_list_sizer, flag=wx.EXPAND)
-        # series_top_sizer.Add(series_info_sizer, flag=wx.EXPAND|wx.LEFT,
-        #     border=self._FromDIP(5), proportion=1)
+        buffer_sizer = wx.StaticBoxSizer(buffer_box, wx.VERTICAL)
+        buffer_sizer.Add(self.buffer_range_list, proportion=1,
+            flag=wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP, border=self._FromDIP(5))
+        buffer_sizer.Add(buf_btn_sizer, flag=wx.ALL|wx.ALIGN_CENTER_HORIZONTAL,
+            border=self._FromDIP(5))
 
 
-        # top_sizer = wx.BoxSizer(wx.VERTICAL)
-        # top_sizer.Add(load_box)
-        # top_sizer.Add(series_top_sizer, proportion=1, flag=wx.EXPAND)
+        sample_box = wx.StaticBox(parent, label='Sample Range')
 
-        # self.SetSizer(top_sizer)
+        self.sample_range_list = RAWAnalysis.SeriesRangeItemList(self, 'sample', sample_box,
+            list_type='MultiSeries')
+        self.sample_range_list.SetMinSize(self._FromDIP((150,130)))
+
+        self.sample_add_btn = wx.Button(sample_box, label='Add region')
+        self.sample_add_btn.Bind(wx.EVT_BUTTON, self._onSeriesAdd)
+
+        self.sample_remove_btn = wx.Button(sample_box, label='Remove region')
+        self.sample_remove_btn.Bind(wx.EVT_BUTTON, self._onSeriesRemove)
+
+        buf_btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        buf_btn_sizer.Add(self.sample_add_btn, flag=wx.RIGHT, border=self._FromDIP(5))
+        buf_btn_sizer.Add(self.sample_remove_btn)
+
+        sample_sizer = wx.StaticBoxSizer(sample_box, wx.VERTICAL)
+        sample_sizer.Add(self.sample_range_list, proportion=1,
+            flag=wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP, border=self._FromDIP(5))
+        sample_sizer.Add(buf_btn_sizer, flag=wx.ALL|wx.ALIGN_CENTER_HORIZONTAL,
+            border=self._FromDIP(5))
+
+
+        baseline_box = wx.StaticBox(parent, label='Baseline Correction')
+        self.baseline_cor = wx.Choice(baseline_box,
+            choices=['None', 'Linear', 'Integral'])
+        self.baseline_cor.SetStringSelection('None')
+        self.baseline_cor.Bind(wx.EVT_CHOICE, self.onBaselineChange)
+
+        type_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        type_sizer.Add(wx.StaticText(baseline_box, label='Baseline correction:'),
+            flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(2))
+        type_sizer.Add(self.baseline_cor, border=self._FromDIP(2),
+            flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL)
+        type_sizer.AddStretchSpacer(1)
+
+        r1_0 = self.range[0]
+        r2_0 = self.range[0]
+        r1_1 = self.range[1]
+        r2_1 = self.range[1]
+
+
+        self.bl_r1_start = RAWCustomCtrl.IntSpinCtrl(baseline_box,
+            wx.ID_ANY, min_val=r1_0, max_val=r1_1, TextLength=45)
+        self.bl_r1_end = RAWCustomCtrl.IntSpinCtrl(baseline_box,
+            wx.ID_ANY, min_val=r1_1, max_val=self.range[1], TextLength=45)
+        self.bl_r1_start.SetValue(r1_0)
+        self.bl_r1_end.SetValue(self.range[1])
+        self.bl_r1_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
+        self.bl_r1_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
+
+        self.bl_r2_start = RAWCustomCtrl.IntSpinCtrl(baseline_box,
+            wx.ID_ANY, min_val=r2_0, max_val=r2_1, TextLength=45)
+        self.bl_r2_end = RAWCustomCtrl.IntSpinCtrl(baseline_box,
+            wx.ID_ANY, min_val=r2_1, max_val=self.range[1], TextLength=45)
+        self.bl_r2_start.SetValue(r2_1)
+        self.bl_r2_end.SetValue(self.range[1])
+        self.bl_r2_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
+        self.bl_r2_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
+
+        self.bl_r1_pick = wx.Button(baseline_box, label='Pick')
+        self.bl_r2_pick = wx.Button(baseline_box, label='Pick')
+        self.bl_r1_pick.Bind(wx.EVT_BUTTON, self.onBaselinePick)
+        self.bl_r2_pick.Bind(wx.EVT_BUTTON, self.onBaselinePick)
+
+        baseline_ctrl_sizer = wx.FlexGridSizer(rows=2, cols=5, hgap=self._FromDIP(2),
+            vgap=self._FromDIP(2))
+        baseline_ctrl_sizer.Add(wx.StaticText(baseline_box, label='Start:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(self.bl_r1_start, flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(wx.StaticText(baseline_box, label='to'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(self.bl_r1_end, flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(self.bl_r1_pick, flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(wx.StaticText(baseline_box, label='End:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(self.bl_r2_start, flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(wx.StaticText(baseline_box, label='to'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(self.bl_r2_end, flag=wx.ALIGN_CENTER_VERTICAL)
+        baseline_ctrl_sizer.Add(self.bl_r2_pick, flag=wx.ALIGN_CENTER_VERTICAL)
+
+
+        baseline_sizer = wx.StaticBoxSizer(baseline_box, wx.VERTICAL)
+        baseline_sizer.Add(type_sizer, border=self._FromDIP(2), flag=wx.EXPAND
+            |wx.ALL)
+        baseline_sizer.Add(baseline_ctrl_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(2))
+
+
+        range_ctrls = wx.BoxSizer(wx.HORIZONTAL)
+        range_ctrls.Add(buffer_sizer, proportion=1)
+        range_ctrls.Add(sample_sizer, flag=wx.LEFT, border=self._FromDIP(5),
+            proportion=1)
+        range_ctrls.Add(baseline_sizer, flag=wx.LEFT, border=self._FromDIP(5))
+
+
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
+        top_sizer.Add(self.series_plot, proportion=1, flag=wx.EXPAND)
+        top_sizer.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), flag=wx.EXPAND)
+        top_sizer.Add(range_ctrls, flag=wx.ALL|wx.EXPAND, border=self._FromDIP(5))
+
+        self.SetSizer(top_sizer)
+
+    def on_page_selected(self):
+        load_changes = self.series_frame.get_has_changes('load')
+
+        if load_changes:
+            self._load_data()
+            self.series_frame.set_has_changes('load', False)
+
+    def _load_data(self):
+        self.series_frame.showBusy(True, 'Loading series data')
+        self.load_series_data = self.series_frame.load_ctrl.get_series_data()
+
+        self.secm_list = []
+
+        if self.single_proc:
+            self.executor = ThreadPoolExecutor()
+        else:
+            self.executor = multiprocessing.Pool()
+
+        self.series_futures = []
+
+        for series_data in self.load_series_data:
+
+            if self.single_proc:
+                series_future = self.executor.submit(RAWAPI.load_series,
+                    series_data['files'], self.series_frame.raw_settings)
+            else:
+                series_future = self.executor.apply_async(RAWAPI.load_series,
+                    args=(series_data['files'], self.series_frame.raw_settings))
+            self.series_futures.append(series_future)
+
+        if not self.single_proc:
+            self.executor.close()
+
+        self.loading_timer.Start(1000)
+
+    def _on_loading_timer(self, evt):
+        if self.single_proc:
+            load_finished = all([future.done() for future in self.series_futures])
+        else:
+            load_finished = all([future.ready() for future in self.series_futures])
+
+        if load_finished:
+            self.loading_timer.Stop()
+            self.series_frame.showBusy(False)
+
+
+            if self.single_proc:
+                results = [future.result()[0] for future in self.series_futures]
+                self.executor.shutdown()
+            else:
+                results = [future.get()[0] for future in self.series_futures]
+                self.executor.join()
+
+            for i, secm in enumerate(results):
+                series_data = self.load_series_data[i]
+                secm.setParameter('filename', series_data['name'])
+
+                self.secm_list.append([secm, series_data])
+
+            self.plot_data()
+
+    def plot_data(self):
+        x_data = np.array(range(len(self.secm_list)))+1
+        y_data = np.array([secm.getIntI().sum() for secm, _ in self.secm_list])
+
+        self.range = (x_data[0], x_data[-1])
+
+        self.update_plot_data(x_data, y_data, 'total', 'left')
+
+        r1_0 = x_data[0]
+
+        if len(x_data) < 22:
+            r1_1 = x_data[len(x_data)//2]
+            r2_0 = x_data[min(len(x_data)//2+1, len(x_data)-1)]
+        else:
+            r1_1 = x_data[10]
+            r2_0 = x_data[-11]
+
+        self.bl_r1_start.SetRange((r1_0, r1_1))
+        self.bl_r1_end.SetRange((r1_0, r2_0))
+        self.bl_r2_start.SetRange((r1_1, x_data[-1]))
+        self.bl_r2_end.SetRange((r2_0, x_data[-1]))
+
+        self.bl_r1_start.SetValue(r1_0)
+        self.bl_r1_end.SetValue(r1_1)
+        self.bl_r2_start.SetValue(r2_0)
+        self.bl_r2_end.SetValue(x_data[-1])
+
+
+
+    def update_plot_data(self, xdata, ydata, label, axis):
+        self.series_plot.plot_data(xdata, ydata, label, axis)
+
+    def update_plot_range(self, start, end, index, color):
+        self.series_plot.plot_range(start, end, index, color)
+
+    def update_plot_label(self, label, axis):
+        self.series_plot.plot_label(label, axis)
+
+    def remove_plot_range(self, index):
+        self.series_plot.remove_range(index)
+
+    def remove_plot_data(self, index):
+        self.series_plot.remove_data(index)
+
+    def pick_plot_range(self, start_item, end_item, index, color):
+        self.series_plot.pick_range(start_item, end_item, index, color)
+
+    def show_plot_range(self, index, show):
+        self.series_plot.show_range(index, show)
+
+    def _onSeriesAdd(self, evt):
+        """Called when the Add control buttion is used."""
+        ctrl = evt.GetEventObject()
+        if ctrl is self.buffer_add_btn:
+            parent_list = self.buffer_range_list
+        elif ctrl is self.sample_add_btn:
+            parent_list = self.sample_range_list
+
+        index, start, end, color = self._addSeriesRange(parent_list)
+        self.update_plot_range(start, end, index, color)
+
+    def _addSeriesRange(self, parent_list):
+        range_item = parent_list.create_items()
+
+        start, end = range_item.get_range()
+        index = range_item.GetId()
+
+        if parent_list == self.buffer_range_list:
+            range_item.color = None
+        elif parent_list == self.sample_range_list:
+            range_item.color = '#CDA7D8'
+
+        self.Layout()
+        self.SendSizeEvent()
+
+        return index, start, end, range_item.color
+
+    def _onSeriesRemove(self, evt):
+        """Called by the Remove control button, removes a control."""
+        ctrl = evt.GetEventObject()
+        if ctrl is self.buffer_remove_btn:
+            parent_list = self.buffer_range_list
+        elif ctrl is self.sample_remove_btn:
+            parent_list = self.sample_range_list
+
+        selected = parent_list.get_selected_items()
+
+        while len(selected) > 0:
+            item = selected[0]
+            idx = item.GetId()
+
+            self.remove_plot_range(idx)
+
+            if len(selected) > 1:
+                parent_list.remove_item(item, resize=False)
+            else:
+                parent_list.remove_item(item, resize=True)
+
+        self.Layout()
+        self.SendSizeEvent()
+
+    def onSeriesPick(self, event):
+        event_object = event.GetEventObject()
+        event_item = event_object.GetParent()
+
+        index = event_item.GetId()
+
+        start_item = event_item.start_ctrl
+        end_item = event_item.end_ctrl
+        color = event_item.color
+
+        wx.CallAfter(self.pick_plot_range, start_item, end_item, index, color)
+
+    def setPickRange(self, index, pick_range, plot_type):
+        pick_range.sort()
+
+        if isinstance(index, str):
+            if index == 'bl_start':
+                start_ctrl = self.bl_r1_start
+                end_ctrl = self.bl_r1_end
+            else:
+                start_ctrl = self.bl_r2_start
+                end_ctrl = self.bl_r2_end
+
+            color = None
+
+        else:
+            item = wx.FindWindowById(index)
+            start_ctrl = item.start_ctrl
+            end_ctrl = item.end_ctrl
+
+            color = item.color
+
+        current_start_range = start_ctrl.GetRange()
+        current_end_range = end_ctrl.GetRange()
+
+        new_start = max(pick_range[0], current_start_range[0])
+        new_end = min(pick_range[1], current_end_range[1])
+
+        start_ctrl.SetValue(new_start)
+        end_ctrl.SetValue(new_end)
+
+        start_ctrl.SetRange((current_start_range[0], new_end))
+
+        current_end_range = end_ctrl.GetRange()
+        end_ctrl.SetRange((new_start, current_end_range[1]))
+
+        self.update_plot_range(new_start, new_end, index, color)
+
+        if isinstance(index, str):
+            if index == 'bl_start':
+                start_ctrl = self.bl_r2_start
+                end_ctrl = self.bl_r2_end
+            else:
+                start_ctrl = self.bl_r1_start
+                end_ctrl = self.bl_r1_end
+
+            # Need to do something here to reset the other ranges correctly
+
+    def updateSeriesRange(self, event):
+        event_object = event.GetEventObject()
+        event_item = event_object.GetParent()
+        value = event_object.GetValue()
+
+        start, end = event_item.get_range()
+        index = event_item.GetId()
+
+        if event_object is event_item.start_ctrl:
+            current_range = event_item.end_ctrl.GetRange()
+            event_item.end_ctrl.SetRange((value, current_range[-1]))
+        else:
+            current_range = event_item.start_ctrl.GetRange()
+            event_item.start_ctrl.SetRange((current_range[0], value))
+
+        self.update_plot_range(start, end, index, event_item.color)
+
+    def onBaselineChange(self, event):
+        baseline = self.baseline_cor.GetStringSelection()
+
+        if baseline == 'None':
+            self.bl_r1_start.Disable()
+            self.bl_r1_end.Disable()
+            self.bl_r2_start.Disable()
+            self.bl_r2_end.Disable()
+            self.bl_r1_pick.Disable()
+            self.bl_r2_pick.Disable()
+
+            try:
+                self.remove_plot_range('bl_start')
+            except KeyError:
+                pass
+            try:
+                self.remove_plot_range('bl_end')
+            except KeyError:
+                pass
+
+        else:
+            self.bl_r1_start.Enable()
+            self.bl_r1_end.Enable()
+            self.bl_r2_start.Enable()
+            self.bl_r2_end.Enable()
+            self.bl_r1_pick.Enable()
+            self.bl_r2_pick.Enable()
+
+            r1_start = self.bl_r1_start.GetValue()
+            r1_end = self.bl_r1_end.GetValue()
+
+            r2_start = self.bl_r2_start.GetValue()
+            r2_end = self.bl_r2_end.GetValue()
+
+            self.update_plot_range(r1_start, r1_end, 'bl_start', None)
+            self.update_plot_range(r2_start, r2_end, 'bl_end', None)
+
+
+    def updateBaselineRange(self, event):
+        event_object = event.GetEventObject()
+        value = event_object.GetValue()
+
+        if event_object is self.bl_r1_start:
+            current_range = self.bl_r1_end.GetRange()
+            self.bl_r1_end.SetRange((value, current_range[-1]))
+
+        elif event_object is self.bl_r1_end:
+            current_range = self.bl_r1_start.GetRange()
+            self.bl_r1_start.SetRange((current_range[0], value))
+
+        elif event_object is self.bl_r2_start:
+            current_range = self.bl_r2_end.GetRange()
+            self.bl_r2_end.SetRange((value, current_range[-1]))
+
+        elif event_object is self.bl_r2_end:
+            current_range = self.bl_r2_start.GetRange()
+            self.bl_r2_start.SetRange((current_range[0], value))
+
+        if event_object is self.bl_r1_start or event_object is self.bl_r1_end:
+            start = self.bl_r1_start.GetValue()
+            end = self.bl_r1_end.GetValue()
+            index = 'bl_start'
+
+        elif event_object is self.bl_r2_start or event_object is self.bl_r2_end:
+            start = self.bl_r2_start.GetValue()
+            end = self.bl_r2_end.GetValue()
+            index = 'bl_end'
+
+        self.update_plot_range(start, end, index, None)
+
+    def onBaselinePick(self, event):
+        event_object = event.GetEventObject()
+
+        if event_object is self.bl_r1_pick:
+            start_item = self.bl_r1_start
+            end_item = self.bl_r1_end
+            index = 'bl_start'
+
+        elif event_object is self.bl_r2_pick:
+            start_item = self.bl_r2_start
+            end_item = self.bl_r2_end
+            index = 'bl_end'
+
+        wx.CallAfter(self.pick_plot_range, start_item, end_item, index, None)
+
+    def on_close(self):
+        self.loading_timer.Stop()
+
+        if self.executor is not None:
+            if self.single_proc:
+                self.executor.shutdown(cancel_futures=True)
+            else:
+                self.executor.close()
+                self.executor.terminate()
+                self.executor.join()
+
 
 

@@ -484,9 +484,7 @@ class RawGuiSettings(object):
 
         else:
             file_defs, _ = SASUtils.loadFileDefinitions()
-            for ftype, fdefs in file_defs.items():
-                for fname, defs in fdefs.items():
-                    self._params['fileDefinitions'][0][ftype][fname] = defs
+            self._params['fileDefinitions'][0] = file_defs
 
     # __getstate__ and __setstate__ modified from python documentation
     def __getstate__(self):
@@ -495,14 +493,17 @@ class RawGuiSettings(object):
         # method to avoid modifying the original state.
         state = self.__dict__.copy()
         # Remove the unpicklable entries.
-
         for key in pickle_exclude_keys:
-            del state['_params'][key]
+            try:
+                del state['_params'][key]
+            except Exception:
+                pass
 
         if RAWGlobals.has_wx:
             for key in state['_params']:
                 if key not in pickle_fix_exclude_keys:
-                    state['_params'][key][1] = state['_params'][key][1].GetId()
+                    if not isinstance(state['_params'][key][1], int):
+                        state['_params'][key][1] = state['_params'][key][1].GetId()
 
         return state
 
