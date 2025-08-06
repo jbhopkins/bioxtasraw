@@ -128,9 +128,11 @@ class MultiSeriesFrame(wx.Frame):
         self.notebook = wx.Notebook(panel)
         self.load_ctrl = MultiSeriesLoadPanel(self, self.notebook)
         self.range_ctrl = MultiSeriesRangePanel(self, self.notebook)
+        self.profile_ctrl = MultiSeriesProfilePanel(self, self.notebook)
 
         self.notebook.AddPage(self.load_ctrl, 'Load Series')
         self.notebook.AddPage(self.range_ctrl, 'Select Ranges')
+        self.notebook.AddPage(self.range_ctrl, 'Generate Profiles')
 
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._on_page_changed)
 
@@ -165,11 +167,15 @@ class MultiSeriesFrame(wx.Frame):
             self.changes_load = status
         elif panel == 'range':
             self.changes_range = status
+        elif panel == 'profiles':
+            self.changes_range = status
 
     def get_has_changes(self, panel):
         if panel == 'load':
             changes = self.changes_load
         elif panel == 'range':
+            changes = self.changes_range
+        elif panel == 'profiles':
             changes = self.changes_range
 
         return changes
@@ -680,6 +686,14 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
 
         self.SetSizer(top_sizer)
 
+    def initialize(self):
+        self.bl_r1_start.Disable()
+        self.bl_r1_end.Disable()
+        self.bl_r1_pick.Disable()
+        self.bl_r2_start.Disable()
+        self.bl_r2_end.Disable()
+        self.bl_r2_pick.Disable()
+
     def on_page_selected(self):
         load_changes = self.series_frame.get_has_changes('load')
 
@@ -691,7 +705,7 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
         self.series_frame.showBusy(True, 'Loading series data')
         self.load_series_data = self.series_frame.load_ctrl.get_series_data()
 
-        self.secm_list = []
+        self.sasm_list = []
 
         if self.single_proc:
             self.executor = ThreadPoolExecutor()
@@ -703,10 +717,10 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
         for series_data in self.load_series_data:
 
             if self.single_proc:
-                series_future = self.executor.submit(RAWAPI.load_series,
+                series_future = self.executor.submit(RAWAPI.load_profiles,
                     series_data['files'], self.series_frame.raw_settings)
             else:
-                series_future = self.executor.apply_async(RAWAPI.load_series,
+                series_future = self.executor.apply_async(RAWAPI.load_profiles,
                     args=(series_data['files'], self.series_frame.raw_settings))
             self.series_futures.append(series_future)
 
@@ -727,23 +741,24 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
 
 
             if self.single_proc:
-                results = [future.result()[0] for future in self.series_futures]
+                results = [future.result() for future in self.series_futures]
                 self.executor.shutdown()
             else:
-                results = [future.get()[0] for future in self.series_futures]
+                results = [future.get() for future in self.series_futures]
                 self.executor.join()
 
-            for i, secm in enumerate(results):
+            for i, sasms in enumerate(results):
                 series_data = self.load_series_data[i]
-                secm.setParameter('filename', series_data['name'])
+                self.sasm_list.append([sasms, series_data])
 
-                self.secm_list.append([secm, series_data])
+            self.series_frame.set_has_changes('range', True)
 
             self.plot_data()
 
     def plot_data(self):
-        x_data = np.array(range(len(self.secm_list)))+1
-        y_data = np.array([secm.getIntI().sum() for secm, _ in self.secm_list])
+        x_data = np.array(range(len(self.sasm_list)))+1
+        y_data = np.array([np.array([sasm.getTotalI() for sasm in sasms]).sum()
+            for sasms, _ in self.sasm_list])
 
         self.range = (x_data[0], x_data[-1])
 
@@ -816,6 +831,8 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
         self.Layout()
         self.SendSizeEvent()
 
+        self.series_frame.set_has_changes('range', True)
+
         return index, start, end, range_item.color
 
     def _onSeriesRemove(self, evt):
@@ -841,6 +858,8 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
 
         self.Layout()
         self.SendSizeEvent()
+
+        self.series_frame.set_has_changes('range', True)
 
     def onSeriesPick(self, event):
         event_object = event.GetEventObject()
@@ -891,12 +910,6 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
         self.update_plot_range(new_start, new_end, index, color)
 
         if isinstance(index, str):
-            if index == 'bl_start':
-                start_ctrl = self.bl_r2_start
-                end_ctrl = self.bl_r2_end
-            else:
-                start_ctrl = self.bl_r1_start
-                end_ctrl = self.bl_r1_end
 
             r1_start = self.bl_r1_start.GetValue()
             r1_end = self.bl_r1_end.GetValue()
@@ -913,7 +926,7 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
             self.bl_r2_start.SetRange(new_r2_start_range)
 
 
-            # Need to do something here to reset the other baseline ranges correctly
+        self.series_frame.set_has_changes('range', True)
 
     def updateSeriesRange(self, event):
         event_object = event.GetEventObject()
@@ -931,6 +944,8 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
             event_item.start_ctrl.SetRange((current_range[0], value))
 
         self.update_plot_range(start, end, index, event_item.color)
+
+        self.series_frame.set_has_changes('range', True)
 
     def onBaselineChange(self, event):
         baseline = self.baseline_cor.GetStringSelection()
@@ -968,6 +983,8 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
 
             self.update_plot_range(r1_start, r1_end, 'bl_start', None)
             self.update_plot_range(r2_start, r2_end, 'bl_end', None)
+
+        self.series_frame.set_has_changes('range', True)
 
 
     def updateBaselineRange(self, event):
@@ -1008,6 +1025,8 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
 
         self.update_plot_range(start, end, index, None)
 
+        self.series_frame.set_has_changes('range', True)
+
     def onBaselinePick(self, event):
         event_object = event.GetEventObject()
 
@@ -1022,6 +1041,8 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
             index = 'bl_end'
 
         wx.CallAfter(self.pick_plot_range, start_item, end_item, index, None)
+
+        self.series_frame.set_has_changes('range', True)
 
     def on_close(self):
         self.loading_timer.Stop()
