@@ -26696,9 +26696,15 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             current_range = self.bl_r1_start.GetRange()
             self.bl_r1_start.SetRange((current_range[0], value))
 
+            r2_start_range = self.bl_r2_start.GetRange()
+            self.bl_r2_start.SetRange((value+1, r2_start_range[1]))
+
         elif event_object is self.bl_r2_start:
             current_range = self.bl_r2_end.GetRange()
             self.bl_r2_end.SetRange((value, current_range[-1]))
+
+            r1_end_range = self.bl_r1_end.GetRange()
+            self.bl_r1_end.SetRange((r1_end_range[0], value-1))
 
         elif event_object is self.bl_r2_end:
             current_range = self.bl_r2_start.GetRange()
@@ -26858,6 +26864,20 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
             current_end_range = end_ctrl.GetRange()
             end_ctrl.SetRange((new_start, current_end_range[1]))
+
+            r1_start = self.bl_r1_start.GetValue()
+            r1_end = self.bl_r1_end.GetValue()
+            r2_start = self.bl_r2_start.GetValue()
+            r2_end = self.bl_r2_end.GetValue()
+
+            r1_end_range = self.bl_r1_end.GetRange()
+
+            new_r1_end_range = (r1_end_range[0], r2_start-1)
+            self.bl_r1_end.SetRange(new_r1_end_range)
+
+            r2_start_range = self.bl_r2_start.GetRange()
+            new_r2_start_range = (r1_end+1, r2_start_range[1])
+            self.bl_r2_start.SetRange(new_r2_start_range)
 
             self.plot_page.update_plot_range(new_start, new_end, index, 'sub')
 
