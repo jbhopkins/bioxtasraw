@@ -1,8 +1,4 @@
 '''
-Created on Mar 23, 2010
-
-@author: specuser
-
 #******************************************************************************
 # This file is part of RAW.
 #
@@ -1056,4 +1052,45 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
                 self.executor.join()
 
 
+class MultiSeriesProfilesPanel(wx.ScrolledWindow):
+
+    def __init__(self, series_frame, parent):
+
+        wx.ScrolledWindow.__init__(self, parent,
+            style=wx.BG_STYLE_SYSTEM|wx.RAISED_BORDER|wx.VSCROLL)
+        self.SetScrollRate(20,20)
+
+        self.series_frame = series_frame
+
+        self._createLayout()
+
+    def _FromDIP(self, size):
+        # This is a hack to provide easy back compatibility with wxpython < 4.1
+        try:
+            return self.FromDIP(size)
+        except Exception:
+            return size
+
+    def _createLayout(self):
+
+        # parent = self
+
+        # top_sizer = wx.BoxSizer(wx.VERTICAL)
+        # top_sizer.Add(load_box)
+        # top_sizer.Add(series_top_sizer, proportion=1, flag=wx.EXPAND)
+
+        # self.SetSizer(top_sizer)
+
+    def on_page_selected(self):
+        range_changes = self.series_frame.get_has_changes('range')
+
+        if range_changes:
+            self._process_data()
+            self.series_frame.set_has_changes('range', False)
+
+    def _process_data(self):
+        pass
+
+    def on_close(self):
+        pass
 

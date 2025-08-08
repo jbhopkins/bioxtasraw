@@ -7501,3 +7501,221 @@ def set_baseline_correction(series, start_range, end_range, baseline_type,
 
     return (bl_cor_profiles, rg, rger, i0, i0er, vcmw, vcmwer, vpmw, bl_corr,
         fit_results)
+
+def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False,
+    bl_start_range=[], bl_end_range=[], baseline_type='Linear', set_qrange=False,
+    qrange=[], do_rebin=False, npts=100, rebin_factor=1,
+    log_rebin=False, window_size=5, settings=None,
+    error_weight=True, vp_density=0.83*10**(-3), vp_cutoff='Default', vp_qmax=0.5,
+    vc_protein=True, vc_cutoff='Manual', vc_qmax=0.3, vc_a_prot=1.0,
+    vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934):
+    """
+    Calculates Rg and MW for the input subtracted profiles. If you are working
+    with a :class:`SECM.SECM` series object then use :func:`set_buffer_range`
+    instead of this function.
+
+    Parameters
+    ----------
+    series_list: list
+        A list of lists of profiles (:class:`SASM.SASM`) to carry out
+        the mutli-series analysis on. Each list of profiles should correspond
+        to a single series.
+    sample_range: list
+        A list defining the input sample range to be validated. The list is made
+        up of a set of sub-ranges, each defined by an entry in the list. Each
+        sub-range item should be a list or tuple where the first entry is the
+        starting index of the range and the second entry is the ending index
+        of the range. So a list like ``[[0, 10], [100, 110]]`` would define
+        a sample range consisting of two sub-ranges, the first from profiles 0-10
+        in the series and the second from profiles 100-110 in the series.
+    buffer_range: list, optional
+        A list defining the input buffer range to be set. The list is made
+        up of a set of sub-ranges, each defined by an entry in the list. Each
+        sub-range item should be a list or tuple where the first entry is the
+        starting index of the range and the second entry is the ending index
+        of the range. So a list like ``[[0, 10], [100, 110]]`` would define
+        a buffer range consisting of two sub-ranges, the first from profiles 0-10
+        in the series and the second from profiles 100-110 in the series.
+        If no buffer range is supplied then buffer subtraction is not carried out.
+    do_baseline: bool, optional
+        If True, a baseline correction is applied. In that case, the bl_start_range
+        and bl_end_range values must be supplied.
+    bl_start_range: list, optional
+        A list defining the baseline start range to be validated. The list is two
+        integers, the start of the range and the end of the range.
+    bl_end_range: list, optional
+        A list defining the baseline end range to be validated. The list is two
+        integers, the start of the range and the end of the range.
+    baseline_type: {'Integral', 'Linear'} str, optional
+        Defines the baseline type for validation purposes.
+    set_qrange: bool, optional
+        If True, the profiles have the q range set to the q points nearest the
+        provided values in q_range
+    q_range: list, optional
+        A list consisting of the start and end q values to be set for the profiles.
+    do_rebin: bool, optional
+        If True, the profiles are rebinned acording the the npts, rebin_factor,
+        and log_rebin parameters.
+    npts: int, optional
+        The number of points in each rebinned profile. Only used if rebin_factor
+        is left to the default value of 1. Default is 100.
+    rebin_factor: int, optional
+        The factor by which to rebin each profile, e.g. a rebin_factor of 2
+        will result in half as many q points in the rebinned profile. If
+        set to a value other than the default of 1, it overrides the npts
+        parameter.
+    log_rebin: bool, option.
+        Specifies whether the rebinning should be done in linear (False) or
+        logarithmic (True) space. Defaults to linear (False).
+    copy_metadata: bool, optional
+        If True, RAW will copy add add to the metadata for the averaged file.
+        In some cases this can significantly slow down the processing, so if you
+        don't need the metadata, such as a profile generated as an intermediate
+        in a calculation but not saved, set this to false. Defaults to True.
+    window_size: int, optional
+        The size of the average window used when calculating Rg and MW.
+        So if the window is 5, 5 a window is size 5 is slid along the series,
+        and profiles in that window are averaged before being used to calculate
+        Rg and MW. For example, frames 1-5, 2-6, 3-7, etc would be averaged and
+        then have Rg and MW calculated from that average.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, err_weight,
+        vp_density, vp_cutoff, vp_qmax, vc_protein, vc_cutoff, and vc_qmax are
+        overridden by the values in the settings.
+    error_weight: bool, optional
+        Whether to use error weighting when calculating the Rg.
+    vp_density: float, optional
+        The density used for the Porod volume M.W. calculation in kDa/A^3.
+        Defaults to 0.83*10**(-3).
+    vp_cutoff: {''Default', '8/Rg', 'log(I0/I(q))', 'Manual''} str, optional
+        The method to use to calculate the maximum q value used for the
+        Porod volume M.W. calculation. Defaults to 'Default'
+    vp_qmax: float, optional
+        The maximum q value to be used if the 'Manual' cutoff method is
+        selected for the Porod volume M.W. calculation. Defaults to 0.5.
+    vc_protein: bool
+        True if the sample is protein, False if the sample is RNA. Determines
+        which set of coefficients to use for calculating M.W.
+    vc_cutoff: {''Default', '8/Rg', 'log(I0/I(q))', 'Manual''} str, optional
+        The method to use to calculate the maximum q value used for the
+        M.W. calculation. Defaults to 'Manual'
+    vc_qmax: float, optional
+        The maximum q value to be used if the 'Manual' cutoff method is
+        selected. Defaults to 0.3.
+    vc_a_prot: float
+        The volume of correlation A coefficient for protein. Not recommended
+        to be changed.
+    vc_b_prot: float
+        The volume of correlation B coefficient for protein. Not recommended
+        to be changed. Note that here B is defined as 1/B from the original paper.
+    vc_a_rna: float
+        The volume of correlation A coefficient for RNA. Not recommended to
+        be changed.
+    vc_b_rna: float
+        The volume of correlation B coefficient for RNA. Not recommended to
+        be changed. Note that here B is defined as 1/B from the original paper.
+
+    Returns
+    -------
+    rg: :class:`numpy.array`
+        An array of the Rg values calculated for each subtracted profile. If
+        no Rg value could be calculated then the value is -1. Each array index
+        is the Rg corresponding to the subtracted profile at that index in
+        the sub_profiles list.
+    rger: :class:`numpy.array`
+        An array of the uncertainty in the Rg values calculated for each
+        subtracted profile. If no Rg value could be calculated then the
+        value is -1. Each array index is the uncertainty corresponding to the
+        subtracted profile at that index in  the sub_profiles list.
+    i0: :class:`numpy.array`
+        An array of the I(0) values calculated for each subtracted profile. If
+        no I(0) value could be calculated then the value is -1. Each array index
+        is the I(0) corresponding to the subtracted profile at that index in
+        the sub_profiles list.
+    i0er: :class:`numpy.array`
+        An array of the uncertainty in the I(0) values calculated for each
+        subtracted profile. If no I(0) value could be calculated then the
+        value is -1. Each array index is the uncertainty corresponding to the
+        subtracted profile at that index in  the sub_profiles list.
+    vcmw: :class:`numpy.array`
+        An array of the volume of correlation M.W. values calculated for each
+        subtracted profile. If no M.W. value could be calculated then the value
+        is -1. Each array index is the M.W. corresponding to the subtracted
+        profile at that index in the sub_profiles list.
+    vcmwer: :class:`numpy.array`
+        An array of the uncertainty in the volume of correlation M.W. values
+        calculated for each subtracted profile. If no M.W. value could be
+        calculated then the value is -1. Each array index is the uncertainty
+        corresponding to the subtracted profile at that index in  the
+        sub_profiles list.
+    vpmw: :class:`numpy.array`
+        An array of the Porod volume M.W. values calculated for each subtracted
+        profile. If no M.W. value could be calculated then the value is -1.
+        Each array index is the M.W. corresponding to the subtracted profile
+        at that index in the sub_profiles list.
+    """
+    if settings is not None:
+        error_weight = settings.get('errorWeight')
+
+        vp_cutoff = settings.get('MWVpCutoff')
+        vp_density = settings.get('MWVpRho')
+        vp_qmax = settings.get('MWVpQmax')
+
+        vc_cutoff = settings.get('MWVcCutoff')
+        vc_type = settings.get('MWVcType')
+        vc_qmax = settings.get('MWVcQmax')
+
+        if vc_type == 'Protein':
+            vc_protein = True
+        else:
+            vc_protein = False
+
+    # First set the q range
+    if set_qrange:
+        for series in series_list:
+            for profile in series:
+                profile.setQrange(q_range)
+
+    # Next bin the profiles in the series (e.g. timepoint binning)
+
+    # Next rebin the data
+    if do_rebin:
+        rseries_list = []
+        for series in series_list:
+            rseries = rebin(series, npts, rebin_factor, log_rebin)
+            rseries_list.append(rseries)
+    else:
+        rseries_list = series_list
+
+
+
+    if isinstance(series_list[0][0], SASM.SASM):
+        new_sasm_list = []
+        for series in series_list:
+            new_secm = SECM.SECM()
+
+    use_sub_profiles = [True for profile in sub_profiles]
+
+    success, results = SASCalc.run_secm_calcs(sub_profiles, use_sub_profiles,
+        window_size, vc_protein, error_weight, vp_density, vp_cutoff,
+        vp_qmax, vc_cutoff, vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna,
+        vc_b_rna)
+
+    if success:
+        rg = results['rg']
+        rger = results['rger']
+        i0 = results['i0']
+        i0er = results['i0er']
+        vcmw = results['vcmw']
+        vcmwer = results['vcmwer']
+        vpmw = results['vpmw']
+    else:
+        rg = np.zeros(len(sub_profiles),dtype=float)-1
+        rger = np.zeros(len(sub_profiles),dtype=float)-1
+        i0 = np.zeros(len(sub_profiles),dtype=float)-1
+        i0er = np.zeros(len(sub_profiles),dtype=float)-1
+        vcmw = np.zeros(len(sub_profiles),dtype=float)-1
+        vcmwer = np.zeros(len(sub_profiles),dtype=float)-1
+        vpmw = np.zeros(len(sub_profiles),dtype=float)-1
+
+    return rg, rger, i0, i0er, vcmw, vcmwer, vpmw
