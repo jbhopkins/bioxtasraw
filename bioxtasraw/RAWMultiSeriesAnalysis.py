@@ -1080,6 +1080,7 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
         # top_sizer.Add(series_top_sizer, proportion=1, flag=wx.EXPAND)
 
         # self.SetSizer(top_sizer)
+        pass
 
     def on_page_selected(self):
         range_changes = self.series_frame.get_has_changes('range')

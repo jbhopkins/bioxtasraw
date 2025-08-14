@@ -10147,14 +10147,22 @@ class ManipItemPanel(wx.Panel):
                 label.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
                 label.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
-            if initValue.find('.') == -1:
-                initValue = initValue + '.0'
+            if initValue.find('.') == -1 and initValue.lower().find('e')==-1:
+                try:
+                    start_value = initValue + '.0'
+                    float(start_value)
+                except Exeption:
+                    start_value = initValue
+            else:
+                start_value = initValue
+
+            start_value = str(float(start_value))
 
             if name == 'scale':
-                spinCtrl = RAWCustomCtrl.FloatSpinCtrl(self, id, initValue,
+                spinCtrl = RAWCustomCtrl.FloatSpinCtrl(self, id, start_value,
                     TextLength = 100, never_negative = True)
             else:
-                spinCtrl = RAWCustomCtrl.FloatSpinCtrl(self, id, initValue,
+                spinCtrl = RAWCustomCtrl.FloatSpinCtrl(self, id, start_value,
                     TextLength = 100)
 
             spinCtrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, bindfunc)

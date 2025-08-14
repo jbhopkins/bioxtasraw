@@ -7504,8 +7504,8 @@ def set_baseline_correction(series, start_range, end_range, baseline_type,
 
 def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False,
     bl_start_range=[], bl_end_range=[], baseline_type='Linear', set_qrange=False,
-    qrange=[], do_rebin=False, npts=100, rebin_factor=1,
-    log_rebin=False, window_size=5, settings=None,
+    qrange=[], bin_series=False, series_rebin_factor=1, series_bin_keys=[], do_q_rebin=False,
+    q_npts=100, q_rebin_factor=1, q_log_rebin=False, cal_data=[],window_size=5, settings=None,
     error_weight=True, vp_density=0.83*10**(-3), vp_cutoff='Default', vp_qmax=0.5,
     vc_protein=True, vc_cutoff='Manual', vc_qmax=0.3, vc_a_prot=1.0,
     vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934):
@@ -7518,7 +7518,7 @@ def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False
     ----------
     series_list: list
         A list of lists of profiles (:class:`SASM.SASM`) to carry out
-        the mutli-series analysis on. Each list of profiles should correspond
+        the multi-series analysis on. Each list of profiles should correspond
         to a single series.
     sample_range: list
         A list defining the input sample range to be validated. The list is made
@@ -7553,25 +7553,41 @@ def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False
         provided values in q_range
     q_range: list, optional
         A list consisting of the start and end q values to be set for the profiles.
-    do_rebin: bool, optional
-        If True, the profiles are rebinned acording the the npts, rebin_factor,
-        and log_rebin parameters.
-    npts: int, optional
-        The number of points in each rebinned profile. Only used if rebin_factor
+    bin_series: bool, optional
+        If True, profiles are binned within each series in the series list. For
+        example, if a series_rebin_factor of 2 is provided, then every two profiles
+        in the series would be averaged together, reducing the total number of
+        profiles in the series by half.
+    series_rebin_factor: int, optional
+        The number of profiles to average together in a series, if bin_series is
+        True.
+    series_bin_keys: list, optional
+        A list of keys corresponding to keys in the profiles 'counters' dictionary
+        (sasm.getParameter('counters')) that should be averaged together. This is
+        useful if calibration parameters such as time point are included in the
+        profile header.
+    do_q_rebin: bool, optional
+        If True, the profiles are rebinned according the the q_npts, q_rebin_factor,
+        and q_log_rebin parameters.
+    q_npts: int, optional
+        The number of points in each rebinned profile. Only used if q_rebin_factor
         is left to the default value of 1. Default is 100.
-    rebin_factor: int, optional
+    q_rebin_factor: int, optional
         The factor by which to rebin each profile, e.g. a rebin_factor of 2
         will result in half as many q points in the rebinned profile. If
-        set to a value other than the default of 1, it overrides the npts
+        set to a value other than the default of 1, it overrides the q_npts
         parameter.
-    log_rebin: bool, option.
+    q_log_rebin: bool, optional
         Specifies whether the rebinning should be done in linear (False) or
         logarithmic (True) space. Defaults to linear (False).
-    copy_metadata: bool, optional
-        If True, RAW will copy add add to the metadata for the averaged file.
-        In some cases this can significantly slow down the processing, so if you
-        don't need the metadata, such as a profile generated as an intermediate
-        in a calculation but not saved, set this to false. Defaults to True.
+    cal_data: list, optional
+        This can be used to calibrate the series data if desired. List should
+        consist of the following entires (in order): reference key in the
+        profiles 'counters' dictionary, calibration name key to be added
+        to the profiles 'counters' dictionary, array of x calibration values,
+        array of y calibration values. A 1D interpolated function y(x) will
+        then be created and the calibration value for each profile in the series
+        will be calculated using hte reference key value as the x value
     window_size: int, optional
         The size of the average window used when calculating Rg and MW.
         So if the window is 5, 5 a window is size 5 is slid along the series,
@@ -7676,19 +7692,43 @@ def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False
             for profile in series:
                 profile.setQrange(q_range)
 
+    # Would it make everything faster to do this first?
     # Next bin the profiles in the series (e.g. timepoint binning)
+    avg_series_list = []
+    if bin_series and series_rebin_factor != 1:
+        for series in series_list:
+            avg_data = []
+            for start in range(0, len(data)+1, factor):
+                data_slice = data[start:start+factor]
+
+                if len(data_slice)>0:
+                    avg_data.append(raw.average(data_slice))
+
+                    for ctr_name in series_bin_keys:
+                        vals = [float(sasm.getParameter('counters')[ctr_name]) for sasm in data_slice]
+                        avg_val = np.mean(vals)
+                        ctr_dict = avg_data[-1].getParameter('counters')
+                        ctr_dict[ctr_name] = avg_val
+                        avg_data[-1].setParameter('counters', ctr_dict)
+        avg_series_list.append(avg_data)
+
+    else:
+        avg_series_list = series_list
 
     # Next rebin the data
-    if do_rebin:
+    if do_q_rebin:
         rseries_list = []
-        for series in series_list:
-            rseries = rebin(series, npts, rebin_factor, log_rebin)
+        for series in avg_series_list:
+            rseries = rebin(series, q_npts, q_rebin_factor, q_log_rebin)
             rseries_list.append(rseries)
     else:
-        rseries_list = series_list
+        rseries_list = avg_series_list
 
 
+    # Next do time (or other) point calibration
 
+
+    # Next make series for analysis
     if isinstance(series_list[0][0], SASM.SASM):
         new_sasm_list = []
         for series in series_list:
