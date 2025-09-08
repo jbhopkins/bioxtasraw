@@ -6285,7 +6285,8 @@ def set_buffer_range(series, buffer_range, int_type='total', q_val=None,
     calc_thresh=1.02, sim_test='CorMap', sim_cor='Bonferroni', sim_thresh=0.01,
     error_weight=True, vp_density=0.83*10**(-3), vp_cutoff='Default',
     vp_qmax=0.5, vc_protein=True, vc_cutoff='Manual', vc_qmax=0.3,
-    vc_a_prot=1.0, vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934):
+    vc_a_prot=1.0, vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934,
+    do_calcs=True):
     """
     Sets the buffer range for a series, carries out the subtraction, and
     calculates Rg and MW vs. frame number.
@@ -6377,6 +6378,11 @@ def set_buffer_range(series, buffer_range, int_type='total', q_val=None,
     vc_b_rna: float
         The volume of correlation B coefficient for RNA. Not recommended to
         be changed. Note that here B is defined as 1/B from the original paper.
+    do_calcs: bool
+        Whether Guinier and MW calculations should be done. Defaults to True. Can be
+        useful if you just need to define a buffer range to carry out further
+        operations that expect buffer subtracted profiles, but won't be using
+        the results of the Guinier and MW calcs.
 
     Returns
     -------
@@ -6455,10 +6461,13 @@ def set_buffer_range(series, buffer_range, int_type='total', q_val=None,
         use_sub_profiles = [True for i in range(len(sub_profiles))]
         buffer_range = []
 
-    success, results = SASCalc.run_secm_calcs(sub_profiles, use_sub_profiles,
-        window_size, vc_protein, error_weight, vp_density, vp_cutoff,
-        vp_qmax, vc_cutoff, vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna,
-        vc_b_rna)
+    if do_calcs:
+        success, results = SASCalc.run_secm_calcs(sub_profiles, use_sub_profiles,
+            window_size, vc_protein, error_weight, vp_density, vp_cutoff,
+            vp_qmax, vc_cutoff, vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna,
+            vc_b_rna)
+    else:
+        success = False
 
     if vc_protein:
         mol_type = 'Protein'
@@ -6944,10 +6953,15 @@ def set_sample_range(series, sample_range, profile_type='sub'):
         average_profile.setParameter('filename', ('A_{}'
             .format(average_profile.getParameter('filename'))))
 
-        buffer_profile = series.average_buffer_sasm
+        if not series.already_subtracted:
 
-        sub_profile = SASProc.subtract(average_profile, buffer_profile,
-            forced=True)
+            buffer_profile = series.average_buffer_sasm
+
+            sub_profile = SASProc.subtract(average_profile, buffer_profile,
+                forced=True)
+        else:
+            sub_profile = average_profile
+
         sub_profile.setParameter('filename', ('S_{}'
             .format(sub_profile.getParameter('filename'))))
 
@@ -7536,7 +7550,8 @@ def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False
         of the range. So a list like ``[[0, 10], [100, 110]]`` would define
         a buffer range consisting of two sub-ranges, the first from profiles 0-10
         in the series and the second from profiles 100-110 in the series.
-        If no buffer range is supplied then buffer subtraction is not carried out.
+        If no buffer range is supplied then the data is assumed to be already
+        subtracted and no buffer subtraction is carried out.
     do_baseline: bool, optional
         If True, a baseline correction is applied. In that case, the bl_start_range
         and bl_end_range values must be supplied.
@@ -7584,10 +7599,11 @@ def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False
         This can be used to calibrate the series data if desired. List should
         consist of the following entires (in order): reference key in the
         profiles 'counters' dictionary, calibration name key to be added
-        to the profiles 'counters' dictionary, array of x calibration values,
-        array of y calibration values. A 1D interpolated function y(x) will
-        then be created and the calibration value for each profile in the series
-        will be calculated using hte reference key value as the x value
+        to the profiles 'counters' dictionary, calibration x_offset value,
+        array of x calibration values, array of y calibration values. A 1D
+        interpolated function y(x) will then be created and the calibration
+        value for each profile in the series will be calculated using the
+        reference key value as the x value plus the offset value.
     window_size: int, optional
         The size of the average window used when calculating Rg and MW.
         So if the window is 5, 5 a window is size 5 is slid along the series,
@@ -7724,38 +7740,74 @@ def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False
     else:
         rseries_list = avg_series_list
 
-
     # Next do time (or other) point calibration
+    if len(cal_data) > 0:
+        x_cal = cal_data[3]
+        y_cal = cal_data[4]
+        cal_interp = scipy.interpolate.interp1d(x_cal, y_cal)
+
+        cal_val_key = cal_data[0]
+        cal_save_key = cal_data[1]
+        cal_offset = cal_data[2]
+
+        for series in rseries_list:
+            for sasm in series:
+                ctr_dict = sasm.getParameter('counters')
+                val = ctr_dict[cal_val_key]+cal_offset
+                cal_val = cal_interp(val)
+                ctr_dict[cal_save_key] = cal_val
+                sams.SetParameter('counters', ctr_dict)
 
 
     # Next make series for analysis
-    if isinstance(series_list[0][0], SASM.SASM):
-        new_sasm_list = []
-        for series in series_list:
-            new_secm = SECM.SECM()
+    data_series = []
 
-    use_sub_profiles = [True for profile in sub_profiles]
+    for j in range(len(rseries_list[0])):
+        temp_sasms = []
+        for k in range(len(rseries_list)):
+            temp_sasms.append(rseries_list[k][j])
 
-    success, results = SASCalc.run_secm_calcs(sub_profiles, use_sub_profiles,
-        window_size, vc_protein, error_weight, vp_density, vp_cutoff,
-        vp_qmax, vc_cutoff, vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna,
-        vc_b_rna)
+        series = profiles_to_series(temp_sasms)
+        data_series.append(series)
 
-    if success:
-        rg = results['rg']
-        rger = results['rger']
-        i0 = results['i0']
-        i0er = results['i0er']
-        vcmw = results['vcmw']
-        vcmwer = results['vcmwer']
-        vpmw = results['vpmw']
+    # Next, do analysis
+    sub_sasms = []
+
+    if len(buffer_range) == 0:
+        already_subtracted = True
     else:
-        rg = np.zeros(len(sub_profiles),dtype=float)-1
-        rger = np.zeros(len(sub_profiles),dtype=float)-1
-        i0 = np.zeros(len(sub_profiles),dtype=float)-1
-        i0er = np.zeros(len(sub_profiles),dtype=float)-1
-        vcmw = np.zeros(len(sub_profiles),dtype=float)-1
-        vcmwer = np.zeros(len(sub_profiles),dtype=float)-1
-        vpmw = np.zeros(len(sub_profiles),dtype=float)-1
+        already_subtracted = False
 
-    return rg, rger, i0, i0er, vcmw, vcmwer, vpmw
+    for series in data_series:
+        # This could be made faster by not doing all of the calculations when
+        # setting the buffer range. Maybe I should manually do the averages
+        # for both set buffer range and set sample range to avoid the extra
+        # calculation time? But then how to handle baseline correction?
+
+        set_buffer_range(series, buffer_range,
+            already_subtracted=already_subtracted, window_size=window_size,
+            settings=settings, error_weight=error_weight, vp_density=vp_density,
+            vp_cutoff=vp_cutoff, vp_qmax=vp_qmax, vc_protein=vc_protein,
+            vc_cutoff=vc_cutoff, vc_qmax=vc_qmax, vc_a_prot=vc_a_prot,
+            vc_b_prot=vc_b_prot, vc_a_rna=vc_a_rna, vc_b_rna=vc_b_rna,
+            do_calcs=False)
+
+        if not do_baseline:
+            sub_sample = set_sample_range(series, sample_range)
+        else:
+            set_baseline_correction(series, bl_start_range, bl_end_range,
+                baseline_type)
+
+            sub_sample = set_sample_range(series, sample_range,
+                profile_type='baseline')
+
+        sub_sasms.append(sub_sample)
+
+    rg, rger, i0, i0er, vcmw, vcmwer, vpmw = series_calc(sub_sasms,
+        window_size=window_size, settings=settings, error_weight=error_weight,
+        vp_density=vp_density, vp_cutoff=vp_cutoff, vp_qmax=vp_qmax,
+        vc_protein=vc_protein, vc_cutoff=vc_cutoff, vc_qmax=vc_qmax,
+        vc_a_prot=vc_a_prot, vc_b_prot=vc_b_prot, vc_a_rna=vc_a_rna,
+        vc_b_rna=vc_b_rna)
+
+    return sub_sasms, rg, rger, i0, i0er, vcmw, vcmwer, vpmw

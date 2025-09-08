@@ -124,11 +124,11 @@ class MultiSeriesFrame(wx.Frame):
         self.notebook = wx.Notebook(panel)
         self.load_ctrl = MultiSeriesLoadPanel(self, self.notebook)
         self.range_ctrl = MultiSeriesRangePanel(self, self.notebook)
-        self.profile_ctrl = MultiSeriesProfilePanel(self, self.notebook)
+        self.profile_ctrl = MultiSeriesProfilesPanel(self, self.notebook)
 
         self.notebook.AddPage(self.load_ctrl, 'Load Series')
         self.notebook.AddPage(self.range_ctrl, 'Select Ranges')
-        self.notebook.AddPage(self.range_ctrl, 'Generate Profiles')
+        self.notebook.AddPage(self.profile_ctrl, 'Generate Profiles')
 
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._on_page_changed)
 
@@ -779,8 +779,6 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
         self.bl_r2_start.SetValue(r2_0)
         self.bl_r2_end.SetValue(x_data[-1])
 
-
-
     def update_plot_data(self, xdata, ydata, label, axis):
         self.series_plot.plot_data(xdata, ydata, label, axis)
 
@@ -1040,6 +1038,141 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
 
         self.series_frame.set_has_changes('range', True)
 
+    def _validateSampleRange(self):
+        valid = True
+
+        sample_items = self.sample_range_list.get_items()
+
+        if len(sample_items) == 0:
+            valid = False
+            msg = ("You must specify at least one sample range.")
+        else:
+            sample_range_list = [item.get_range() for item in sample_items]
+
+            for i in range(len(sample_range_list)):
+                start, end = sample_range_list[i]
+
+                for j in range(len(sample_range_list)):
+                    if j != i:
+                        jstart, jend = sample_range_list[j]
+                        if jstart < start and start < jend:
+                            valid = False
+                        elif jstart < end and end < jend:
+                            valid = False
+                        elif jstart == start and jend == end:
+                            valid = False
+
+                    if not valid:
+                        break
+
+                if not valid:
+                    break
+
+            msg = ("Sample ranges should be non-overlapping.")
+
+        if not valid:
+            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame, msg,
+                "Sample range invalid", wx.ICON_ERROR|wx.OK)
+
+        return valid
+
+    def _validateBufferRange(self):
+        valid = True
+
+        buffer_items = self.buffer_range_list.get_items()
+        buffer_range_list = [item.get_range() for item in buffer_items]
+
+        for i in range(len(buffer_range_list)):
+            start, end = buffer_range_list[i]
+
+            for j in range(len(buffer_range_list)):
+                if j != i:
+                    jstart, jend = buffer_range_list[j]
+                    if jstart < start and start < jend:
+                        valid = False
+                    elif jstart < end and end < jend:
+                        valid = False
+                    elif jstart == start and jend == end:
+                        valid = False
+
+                if not valid:
+                    break
+
+            if not valid:
+                break
+
+        msg = ("Buffer ranges should be non-overlapping.")
+
+        if not valid:
+            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame, msg,
+                "Buffer range invalid", wx.ICON_ERROR|wx.OK)
+
+        return valid
+
+    def _validateBaselineRange(self):
+        valid = True
+
+        r1 = (self.bl_r1_start.GetValue(), self.bl_r1_end.GetValue())
+        r2 = (self.bl_r2_start.GetValue(), self.bl_r2_end.GetValue())
+
+        if r1[1] >= r2[0]:
+            valid = False
+            msg = ('The end of the start region must be before the start of '
+                'the end region.')
+
+        if self.baseline_cor.GetStringSelection() == 'Integral':
+            if r1[1]-r1[0] < 10 or r2[1]-r2[0] < 10:
+                valid = False
+                msg = ('For the integral method both regions must be at least '
+                    '10 frames long.')
+
+        if not valid:
+            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame,
+                msg, "Baseline start/end range invalid", wx.ICON_ERROR|wx.OK)
+
+        return valid
+
+    def get_ranges_and_data(self):
+        buffer_valid = self._validateBufferRange()
+
+        if buffer_valid:
+            buffer_items = self.buffer_range_list.get_items()
+            buffer_range_list = [item.get_range() for item in buffer_items]
+        else:
+            buffer_range_list = []
+
+        sample_valid = self._validateSampleRange()
+
+        if sample_valid:
+            sample_items = self.sample_range_list.get_items()
+            sample_range_list = [item.get_range() for item in sample_items]
+        else:
+            sample_range_list = []
+
+        bl_type = self.baseline_cor.GetStringSelection()
+
+        if bl_type.lower() != 'none':
+            baseline_valid = self._validateBaselineRange()
+
+            if baseline_valid:
+                bl_start_range = (self.bl_r1_start.GetValue(),
+                    self.bl_r1_end.GetValue())
+                bl_end_range = (self.bl_r2_start.GetValue(),
+                    self.bl_r2_end.GetValue())
+
+            else:
+                bl_start_range = []
+                bl_end_range = []
+
+        else:
+            baseline_valid = True
+            bl_start_range = []
+            bl_end_range = []
+
+        return (self.sasm_list, buffer_valid, buffer_range_list, sample_valid,
+            sample_range_list, baseline_valid, bl_type, bl_start_range,
+            bl_end_range)
+
     def on_close(self):
         self.loading_timer.Stop()
 
@@ -1090,7 +1223,30 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             self.series_frame.set_has_changes('range', False)
 
     def _process_data(self):
-        pass
+        (series_data, buffer_valid, buffer_range_list, sample_valid,
+            sample_range_list, baseline_valid, bl_type, bl_start_range,
+            bl_end_range) = self.series_frame.range_ctrl.get_ranges_and_data()
+
+        if buffer_valid and sample_valid:
+            if bl_type.lower() != 'none':
+                do_baseline = True
+            else:
+                do_baseline = False
+
+            self.series_sasm_list = []
+            for data in series_data:
+                self.series_sasm_list.append(data[0])
+
+            print(sample_range_list)
+            print(buffer_range_list)
+
+            (sub_sasms, rg, rger, i0, i0er, vcmw, vcmwer, vpmw) = RAWAPI.multi_series_calc(
+                self.series_sasm_list, sample_range_list, buffer_range_list,
+                do_baseline, bl_start_range, bl_end_range, bl_type)
+
+            print(sub_sasms[0])
+            print(rg)
+            print(vcmw)
 
     def on_close(self):
         pass
