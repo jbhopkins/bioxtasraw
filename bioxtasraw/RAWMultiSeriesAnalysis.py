@@ -43,6 +43,7 @@ from wx.lib.agw import ultimatelistctrl as ULC
 import wx.lib.scrolledpanel as scrolled
 import wx.grid
 import wx.lib.mixins.listctrl as listmix
+import wx.lib.agw.supertooltip as STT
 import scipy.stats as stats
 import scipy.integrate as integrate
 import matplotlib
@@ -88,8 +89,8 @@ class MultiSeriesFrame(wx.Frame):
 
         client_display = wx.GetClientDisplayRect()
 
-        main_frame = wx.FindWindowByName('MainFrame')
-        is_gtk3 = main_frame.is_gtk3
+        self.main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = self.main_frame.is_gtk3
 
         if not is_gtk3:
             size = (min(1000, client_display.Width), min(900, client_display.Height))
@@ -224,6 +225,16 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
         load_box = wx.StaticBoxSizer(load_box, wx.HORIZONTAL)
         load_box.Add(auto_load_btn)
 
+        #######
+        # TODO
+        # For loading, I think autoload is probably best by having users define a name
+        # with a series and profile number token (e.g. <s> and <p>), then define
+        # The number of zero padding and range fo each of those. RAW then generate
+        # the set of all possible filenames and loads them if they exist.
+        # I can't think of an easy way to get existing file numbers, since it's
+        # Unclear of how to split it and do the search in the folder. Maybe
+        # I'll have a brainwave.
+
         self.series_list = SeriesItemList(self, parent, size=self._FromDIP((200,-1)))
 
         remove_series = wx.Button(parent, label='Remove')
@@ -274,7 +285,6 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
         series_top_sizer.Add(series_list_sizer, flag=wx.EXPAND)
         series_top_sizer.Add(series_info_sizer, flag=wx.EXPAND|wx.LEFT,
             border=self._FromDIP(5), proportion=1)
-
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(load_box)
@@ -1071,7 +1081,7 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
             msg = ("Sample ranges should be non-overlapping.")
 
         if not valid:
-            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame, msg,
+            wx.CallAfter(self.series_frame.main_frame.showMessageDialog, self.series_frame, msg,
                 "Sample range invalid", wx.ICON_ERROR|wx.OK)
 
         return valid
@@ -1104,7 +1114,7 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
         msg = ("Buffer ranges should be non-overlapping.")
 
         if not valid:
-            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame, msg,
+            wx.CallAfter(self.series_frame.main_frame.showMessageDialog, self.series_frame, msg,
                 "Buffer range invalid", wx.ICON_ERROR|wx.OK)
 
         return valid
@@ -1127,7 +1137,7 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
                     '10 frames long.')
 
         if not valid:
-            wx.CallAfter(self.main_frame.showMessageDialog, self.series_frame,
+            wx.CallAfter(self.series_frame.main_frame.showMessageDialog, self.series_frame,
                 msg, "Baseline start/end range invalid", wx.ICON_ERROR|wx.OK)
 
         return valid
@@ -1195,6 +1205,16 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
         self.series_frame = series_frame
 
+        self.series_data = []
+        self.calc_args = {}
+        self._cal_file = None
+        self._cal_x = None
+        self._cal_y = None
+        self.multi_series_results = {}
+
+        self.param_plot_scale = 'linlin'
+        self.profile_plot_scale = 'loglin'
+
         self._createLayout()
 
     def _FromDIP(self, size):
@@ -1206,21 +1226,707 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
     def _createLayout(self):
 
-        # parent = self
+        parent = self
 
-        # top_sizer = wx.BoxSizer(wx.VERTICAL)
-        # top_sizer.Add(load_box)
-        # top_sizer.Add(series_top_sizer, proportion=1, flag=wx.EXPAND)
+        ctrl_box = wx.StaticBox(parent, label='Controls')
 
-        # self.SetSizer(top_sizer)
-        pass
+        q_box = wx.StaticBox(ctrl_box, label='Q controls')
+        self.q_range_start = RAWCustomCtrl.FloatSpinCtrlList(q_box, TextLength=60,
+            value_list=[0], sig_figs=5)
+        self.q_range_end = RAWCustomCtrl.FloatSpinCtrlList(q_box, TextLength=60,
+            value_list=[1], sig_figs=5)
+        self.q_range_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_qrange_change)
+        self.q_range_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_qrange_change)
+
+        qrange_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        qrange_sizer.Add(wx.StaticText(q_box, label='Q range:'), flag=wx.RIGHT|
+            wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(5))
+        qrange_sizer.Add(self.q_range_start, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
+            border=self._FromDIP(5))
+        qrange_sizer.Add(wx.StaticText(q_box, label='to'), flag=wx.RIGHT|
+            wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(5))
+        qrange_sizer.Add(self.q_range_end, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        self.do_qbin = wx.CheckBox(q_box, label='Rebin q')
+        self.do_qbin.SetValue(False)
+        self.qbin_type = wx.Choice(q_box, choices=['Linear', 'Log'])
+        self.qbin_type.SetSelection(1)
+        self.qbin_mode = wx.Choice(q_box, choices=['Factor', 'Points'])
+        self.qbin_mode.SetSelection(0)
+        self.qbin_mode.Bind(wx.EVT_CHOICE, self._on_qbin_mode)
+        self.qbin_factor = RAWCustomCtrl.FloatSpinCtrl(q_box, initValue='1',
+            TextLength=60, never_negative=True)
+        self.qbin_points = RAWCustomCtrl.IntSpinCtrl(q_box, min_val=1,
+            TextLength=60)
+        self.qbin_points.SetValue(100)
+        self.qbin_points.Disable()
+
+        qbin_sub_sizer = wx.FlexGridSizer(cols=2, hgap=self._FromDIP(5),
+            vgap=self._FromDIP(5))
+        qbin_sub_sizer.Add(wx.StaticText(q_box, label='Q bin type:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        qbin_sub_sizer.Add(self.qbin_type, flag=wx.ALIGN_CENTER_VERTICAL)
+        qbin_sub_sizer.Add(wx.StaticText(q_box, label='Q bin mode:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        qbin_sub_sizer.Add(self.qbin_mode, flag=wx.ALIGN_CENTER_VERTICAL)
+        qbin_sub_sizer.Add(wx.StaticText(q_box, label='Q bin factor:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        qbin_sub_sizer.Add(self.qbin_factor, flag=wx.ALIGN_CENTER_VERTICAL)
+        qbin_sub_sizer.Add(wx.StaticText(q_box, label='Q bin points:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        qbin_sub_sizer.Add(self.qbin_points, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        qbin_sizer = wx.BoxSizer(wx.VERTICAL)
+        qbin_sizer.Add(self.do_qbin, flag=wx.BOTTOM, border=self._FromDIP(5))
+        qbin_sizer.Add(qbin_sub_sizer)
+
+
+        q_sizer = wx.StaticBoxSizer(q_box, wx.VERTICAL)
+        q_sizer.Add(qrange_sizer, flag=wx.ALL, border=self._FromDIP(5))
+        q_sizer.Add(qbin_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
+
+
+        series_box = wx.StaticBox(ctrl_box, label='Series controls')
+
+        self.do_series_bin = wx.CheckBox(series_box, label='Rebin series')
+        self.do_series_bin.SetValue(0)
+        self.sbin_factor = RAWCustomCtrl.IntSpinCtrl(series_box, min_val=1,
+            TextLength=60)
+        self.saver_window = RAWCustomCtrl.IntSpinCtrl(series_box, min_val=1,
+            TextLength=60)
+        self.series_vc_type = wx.Choice(series_box, choices=['Protein', 'RNA'])
+        self.series_vc_type.SetSelection(0)
+        self.series_exclude = wx.TextCtrl(series_box, style=wx.TE_MULTILINE|wx.TE_BESTWRAP)
+
+        series_sub_sizer = wx.FlexGridSizer(cols=2, hgap=self._FromDIP(5),
+            vgap=self._FromDIP(5))
+        series_sub_sizer.Add(wx.StaticText(series_box, label='Series bin factor:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        series_sub_sizer.Add(self.sbin_factor, flag=wx.ALIGN_CENTER_VERTICAL)
+        series_sub_sizer.Add(wx.StaticText(series_box, label='Series average window:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        series_sub_sizer.Add(self.saver_window, flag=wx.ALIGN_CENTER_VERTICAL)
+        series_sub_sizer.Add(wx.StaticText(series_box, label='Vc type:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        series_sub_sizer.Add(self.series_vc_type, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        series_sub_sizer2 = wx.BoxSizer(wx.VERTICAL)
+        series_sub_sizer2.Add(wx.StaticText(series_box, label='Exclude Profiles:'))
+        series_sub_sizer2.Add(self.series_exclude, proportion=1, flag=wx.EXPAND|wx.TOP,
+            border=self._FromDIP(5))
+
+
+        series_sizer = wx.StaticBoxSizer(series_box, wx.VERTICAL)
+        series_sizer.Add(self.do_series_bin, flag=wx.ALL, border=self._FromDIP(5))
+        series_sizer.Add(series_sub_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
+        series_sizer.Add(series_sub_sizer2, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(5), proportion=1)
+
+
+        cal_box = wx.StaticBox(ctrl_box, label='Calibration controls')
+
+        load_cal_btn = wx.Button(cal_box, label='Load Calibration')
+        load_cal_btn.Bind(wx.EVT_BUTTON, self._on_load_cal)
+        self.cal_file_label = wx.StaticText(cal_box)
+
+        self.cal_x_key = wx.Choice(cal_box)
+        self.cal_result_key = wx.TextCtrl(cal_box)
+        self.cal_offset = wx.TextCtrl(cal_box, value='0',
+            validator=RAWCustomCtrl.CharValidator('float_sci_neg'))
+
+        cal_sub_sizer = wx.FlexGridSizer(cols=2, hgap=self._FromDIP(5),
+            vgap=self._FromDIP(5))
+        cal_sub_sizer.Add(wx.StaticText(cal_box, label='Calibration file:'))
+        cal_sub_sizer.Add(self.cal_file_label)
+        cal_sub_sizer.Add(wx.StaticText(cal_box, label='Cal. input key:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        cal_sub_sizer.Add(self.cal_x_key, flag=wx.ALIGN_CENTER_VERTICAL|
+            wx.EXPAND)
+        cal_sub_sizer.Add(wx.StaticText(cal_box, label='Cal. output key:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        cal_sub_sizer.Add(self.cal_result_key, flag=wx.ALIGN_CENTER_VERTICAL|
+            wx.EXPAND)
+        cal_sub_sizer.Add(wx.StaticText(cal_box, label='Cal. offset:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        cal_sub_sizer.Add(self.cal_offset, flag=wx.ALIGN_CENTER_VERTICAL|
+            wx.EXPAND)
+        cal_sub_sizer.AddGrowableCol(1)
+
+
+        cal_sizer = wx.StaticBoxSizer(cal_box, wx.VERTICAL)
+        cal_sizer.Add(load_cal_btn, flag=wx.ALL, border=self._FromDIP(5))
+        cal_sizer.Add(cal_sub_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(5))
+
+
+        run_calcs = wx.Button(ctrl_box, label='Run calculations')
+        run_calcs.Bind(wx.EVT_BUTTON, self._on_run_calcs)
+
+        ctrl_box_sizer = wx.StaticBoxSizer(ctrl_box, wx.VERTICAL)
+        ctrl_box_sizer.Add(cal_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(5))
+        ctrl_box_sizer.Add(q_sizer, flag=wx.ALL, border=self._FromDIP(5))
+        ctrl_box_sizer.Add(series_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(5), proportion=1)
+        ctrl_box_sizer.Add(run_calcs, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|
+            wx.ALIGN_CENTER_HORIZONTAL, border=self._FromDIP(5))
+
+        plot_panel = self._make_plot_panel()
+
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        top_sizer.Add(ctrl_box_sizer, flag=wx.EXPAND|wx.LEFT|wx.TOP|wx.BOTTOM,
+            border=self._FromDIP(5))
+        top_sizer.Add(plot_panel, proportion=1, flag=wx.EXPAND|wx.ALL,
+            border=self._FromDIP(5))
+
+        self.SetSizer(top_sizer)
+
+    def _make_plot_panel(self):
+        parent = self
+
+        self.param_fig = Figure((5,4), 75)
+        self.rg_plot = self.param_fig.add_subplot(3,1,1)
+        self.i0_plot = self.param_fig.add_subplot(3,1,2, sharex=self.rg_plot)
+        self.mw_plot = self.param_fig.add_subplot(3,1,3, sharex=self.rg_plot)
+
+        self.label_param_plots('Frames')
+
+        self.param_canvas = FigureCanvasWxAgg(parent, -1, self.param_fig)
+        self.param_toolbar = RAWCustomCtrl.CustomPlotToolbar(self,
+            self.param_canvas)
+        self.param_toolbar.Realize()
+
+        param_sizer = wx.BoxSizer(wx.VERTICAL)
+        param_sizer.Add(self.param_canvas, proportion=1, flag=wx.EXPAND)
+        param_sizer.Add(self.param_toolbar, flag=wx.EXPAND)
+
+        self.param_fig.tight_layout(pad=1, h_pad=1)
+
+        self.param_canvas.draw()
+        self.param_cid = self.param_canvas.mpl_connect('draw_event',
+            self.ax_redraw)
+        self.param_canvas.callbacks.connect('button_release_event',
+            self._onMouseButtonReleaseEvent)
+        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
+        self.param_canvas.mpl_connect('motion_notify_event',
+            self._onMouseMotionEvent)
+
+
+        self.profile_fig = Figure((5,4), 75)
+        self.profile_plot = self.profile_fig.add_subplot(1,1,1)
+
+        self.label_profile_plot()
+
+        self.profile_canvas = FigureCanvasWxAgg(parent, -1, self.profile_fig)
+        self.profile_toolbar = RAWCustomCtrl.CustomPlotToolbar(self,
+            self.profile_canvas)
+        self.profile_toolbar.Realize()
+
+        profile_sub_sizer = wx.BoxSizer(wx.VERTICAL)
+        profile_sub_sizer.Add(self.profile_canvas, proportion=1, flag=wx.EXPAND)
+        profile_sub_sizer.Add(self.profile_toolbar, flag=wx.EXPAND)
+
+        self.profile_fig.tight_layout(pad=1, h_pad=1)
+
+        self.profile_canvas.draw()
+        self.profile_cid = self.profile_canvas.mpl_connect('draw_event',
+            self.ax_redraw)
+        self.profile_canvas.callbacks.connect('button_release_event',
+            self._onMouseButtonReleaseEvent)
+        self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
+
+        self.profile_plot_index = RAWCustomCtrl.FloatSpinCtrlList(parent,
+            TextLength=60, value_list=[0], sig_figs=4)
+        self.profile_plot_index.Bind(RAWCustomCtrl.EVT_MY_SPIN,
+            self._on_plot_index_change)
+
+        profile_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        profile_sizer.Add(self.profile_plot_index, flag=wx.RIGHT,
+            border=self._FromDIP(5))
+        profile_sizer.Add(profile_sub_sizer, flag=wx.EXPAND, proportion=1)
+
+
+        plot_sizer = wx.BoxSizer(wx.VERTICAL)
+        plot_sizer.Add(param_sizer, proportion=2, flag=wx.EXPAND)
+        plot_sizer.Add(profile_sizer, proportion=1, flag=wx.EXPAND)
+
+        return plot_sizer
+
+    def ax_redraw(self, widget=None):
+        ''' Redraw plots on window resize event '''
+
+        self.param_canvas.mpl_disconnect(self.param_cid)
+        self.profile_canvas.mpl_disconnect(self.profile_cid)
+
+        self.param_fig.tight_layout(pad=1, h_pad=1)
+        self.param_canvas.draw()
+
+        self.profile_fig.tight_layout(pad=1, h_pad=1)
+        self.profile_canvas.draw()
+
+        self.profile_cid = self.profile_canvas.mpl_connect('draw_event', self.ax_redraw)
+
+    def label_param_plots(self, cal_key):
+        self.rg_plot.set_ylabel('Rg')
+        self.rg_plot.tick_params('x', labelbottom=False)
+        self.i0_plot.set_ylabel('I(0)')
+        self.i0_plot.tick_params('x', labelbottom=False)
+        self.mw_plot.set_ylabel('MW (kDa)')
+        self.mw_plot.set_xlabel(cal_key)
+
+    def label_profile_plot(self):
+        if (self.profile_plot_scale != 'kratky'
+            and self.profile_plot_scale != 'porod'
+            and self.profile_plot_scale != 'dimensionlesskratky'):
+            self.profile_plot.set_xlabel('q')
+            self.profile_plot.set_ylabel('I(q)')
+        elif self.profile_plot_scale == 'kratky':
+            self.profile_plot.set_xlabel('q')
+            self.profile_plot.set_ylabel('$q^2$I(q)')
+        elif self.profile_plot_scale == 'porod':
+            self.profile_plot.set_xlabel('q')
+            self.profile_plot.set_ylabel('$q^4$I(q)')
+        elif self.profile_plot_scale == 'dimensionlesskratky':
+            self.profile_plot.set_xlabel('q$R_g$')
+            self.profile_plot.set_ylabel('$(qR_g)^2$I(q)/(I(0)')
+
+
+    def plot_series_data(self, rg, i0, mwvc, mwvp, cal, cal_label):
+        if len(cal) == 0:
+            xdata = range(len(rg))
+            xlabel = 'Frames'
+        else:
+            xdata = cal
+            xlabel = cal_label
+
+        self.rg_plot.cla()
+        self.i0_plot.cla()
+        self.mw_plot.cla()
+
+        self.rg_plot.plot(xdata, rg, 'o')
+        self.i0_plot.plot(xdata, i0, 'o')
+        self.mw_plot.plot(xdata, mwvc, 'o', label='Vc')
+        self.mw_plot.plot(xdata, mwvp, 'o', label='Vp')
+
+        self.mw_plot.legend()
+
+        self.label_param_plots(xlabel)
+
+        plot_scale = self.param_plot_scale
+        self.param_plot_scale = ''
+
+        self.updatePlot(plot_scale, 'param', False)
+
+        self.ax_redraw()
+
+    def plot_profile_data(self, sasm):
+        self.profile_plot.cla()
+
+        self.plotted_sasm = sasm
+
+        self.profile_plot.plot(sasm.getQ(), sasm.getI(), '-')
+
+        plot_scale = self.profile_plot_scale
+        self.profile_plot_scale = ''
+
+        self.updatePlot(plot_scale, 'profile', False)
+
+        self.label_profile_plot()
+
+        self.ax_redraw()
+
+    def _on_plot_index_change(self, evt):
+        if len(self.multi_series_results.keys()) > 0:
+            plt_idx_val = float(self.profile_plot_index.GetValue())
+
+            try:
+                plt_idx = self.plot_index_list.index(plt_idx_val)
+            except Exception:
+                plot_idx_val = int(plot_idx_val)
+                plt_idx = self.plot_index_list.index(plt_idx_val)
+
+            self.plot_profile_data(self.multi_series_results['series'].getSASM(plt_idx, 'sub'))
+
+    def _onMouseButtonReleaseEvent(self, event):
+        ''' Find out where the mouse button was released
+        and show a pop up menu to change the settings
+        of the figure the mouse was over '''
+
+        if event.button == 3:
+            if float(matplotlib.__version__[:3]) >= 1.2:
+                if self.param_toolbar.GetToolState(self.param_toolbar.wx_ids['Pan']) == False:
+                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                        wx.CallAfter(self._showPopupMenu, event)
+                    else:
+                        self._showPopupMenu(event)
+
+            else:
+                if self.param_toolbar.GetToolState(self.param_toolbar._NTB2_PAN) == False:
+                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                        wx.CallAfter(self._showPopupMenu, event)
+                    else:
+                        self._showPopupMenu(event)
+
+    def _showPopupMenu(self, event):
+        menu = wx.Menu()
+
+        if event.inaxes == self.profile_plot:
+
+            axes_list = [
+                (7, 'Lin-Lin'),
+                (8, 'Log-Lin'),
+                (9, 'Log-Log'),
+                (10, 'Lin-Log'),
+                (11, 'Kratky'),
+                (12, 'Porod'),
+                (13, 'Dimensionless Kratky')
+                ]
+
+            for key, label in axes_list:
+                item = menu.AppendRadioItem(key, label)
+
+                if (label.replace('-', '').replace(' ', '').lower() ==
+                    self.profile_plot_scale):
+                    item.Check(True)
+
+            self.PopupMenu(menu)
+
+        else:
+            menu.Append(2, 'Export Data As CSV')
+
+            axes_menu = wx.Menu()
+
+            axes_list = [
+                (3, 'Lin-Lin'),
+                (4, 'Log-Lin'),
+                (5, 'Log-Log'),
+                (6, 'Lin-Log'),
+                ]
+
+            for key, label in axes_list:
+                item = axes_menu.AppendRadioItem(key, label)
+
+                if label.replace('-', '').lower() == self.param_plot_scale:
+                    item.Check(True)
+
+            menu.AppendSubMenu(axes_menu, 'Axes')
+
+            self.PopupMenu(menu)
+
+            menu.Destroy()
+
+    def _onPopupMenuChoice(self, evt):
+        my_id = evt.GetId()
+
+        if my_id == 2:
+            self._exportData()
+
+        elif my_id == 3:
+            self.updatePlot('linlin', 'param')
+        elif my_id == 4:
+            self.updatePlot('loglin', 'param')
+        elif my_id == 5:
+            self.updatePlot('loglog', 'param')
+        elif my_id == 6:
+            self.updatePlot('linlog', 'param')
+        elif my_id == 7:
+            self.updatePlot('linlin', 'profile')
+        elif my_id == 8:
+            self.updatePlot('loglin', 'profile')
+        elif my_id == 9:
+            self.updatePlot('loglog', 'profile')
+        elif my_id == 10:
+            self.updatePlot('linlog', 'profile')
+        elif my_id == 11:
+            self.updatePlot('kratky', 'profile')
+        elif my_id == 12:
+            self.updatePlot('porod', 'profile')
+        elif my_id == 13:
+            self.updatePlot('dimensionlesskratky', 'profile')
+
+
+    def updatePlot(self, plot_scale, plot, draw=True):
+
+        if plot == 'param':
+            if plot_scale != self.param_plot_scale:
+                self.param_plot_scale = plot_scale
+
+                if self.param_plot_scale == 'linlin':
+                    self.rg_plot.set_xscale('linear')
+                    self.rg_plot.set_yscale('linear')
+                    self.i0_plot.set_xscale('linear')
+                    self.i0_plot.set_yscale('linear')
+                    self.mw_plot.set_xscale('linear')
+                    self.mw_plot.set_yscale('linear')
+
+                elif self.param_plot_scale == 'loglin':
+                    self.rg_plot.set_xscale('linear')
+                    self.rg_plot.set_yscale('log')
+                    self.i0_plot.set_xscale('linear')
+                    self.i0_plot.set_yscale('log')
+                    self.mw_plot.set_xscale('linear')
+                    self.mw_plot.set_yscale('log')
+
+                elif self.param_plot_scale == 'loglog':
+                    self.rg_plot.set_xscale('log')
+                    self.rg_plot.set_yscale('log')
+                    self.i0_plot.set_xscale('log')
+                    self.i0_plot.set_yscale('log')
+                    self.mw_plot.set_xscale('log')
+                    self.mw_plot.set_yscale('log')
+
+                elif self.param_plot_scale == 'linlog':
+                    self.rg_plot.set_xscale('log')
+                    self.rg_plot.set_yscale('linear')
+                    self.i0_plot.set_xscale('log')
+                    self.i0_plot.set_yscale('linear')
+                    self.mw_plot.set_xscale('log')
+                    self.mw_plot.set_yscale('linear')
+
+        elif plot == 'profile':
+            if plot_scale != self.profile_plot_scale:
+                # TODO
+                # Need to check if dimensionless kratky plot is selected and possible !!!!!!!!!!!!!!!!!
+                old_ps = copy.copy(self.profile_plot_scale)
+
+                self.profile_plot_scale = plot_scale
+
+                if self.profile_plot_scale == 'linlin':
+                    self.profile_plot.lines[0].set_ydata(self.plotted_sasm.getI())
+                    self.profile_plot.lines[0].set_xdata(self.plotted_sasm.getQ())
+                    self.profile_plot.set_xscale('linear')
+                    self.profile_plot.set_yscale('linear')
+
+                elif self.profile_plot_scale == 'loglin':
+                    self.profile_plot.lines[0].set_ydata(self.plotted_sasm.getI())
+                    self.profile_plot.lines[0].set_xdata(self.plotted_sasm.getQ())
+                    self.profile_plot.set_xscale('linear')
+                    self.profile_plot.set_yscale('log')
+
+                elif self.profile_plot_scale == 'loglog':
+                    self.profile_plot.lines[0].set_ydata(self.plotted_sasm.getI())
+                    self.profile_plot.lines[0].set_xdata(self.plotted_sasm.getQ())
+                    self.profile_plot.set_xscale('log')
+                    self.profile_plot.set_yscale('log')
+
+                elif self.profile_plot_scale == 'linlog':
+                    self.profile_plot.lines[0].set_ydata(self.plotted_sasm.getI())
+                    self.profile_plot.lines[0].set_xdata(self.plotted_sasm.getQ())
+                    self.profile_plot.set_xscale('log')
+                    self.profile_plot.set_yscale('linear')
+
+                elif self.profile_plot_scale == 'kratky':
+                    y_val = self.plotted_sasm.getQ()**2*self.plotted_sasm.getI()
+                    self.profile_plot.lines[0].set_ydata(y_val)
+                    self.profile_plot.lines[0].set_xdata(self.plotted_sasm.getQ())
+                    self.profile_plot.set_xscale('linear')
+                    self.profile_plot.set_yscale('linear')
+
+                elif self.profile_plot_scale == 'porod':
+                    y_val = self.plotted_sasm.getQ()**4*self.plotted_sasm.getI()
+                    self.profile_plot.lines[0].set_ydata(y_val)
+                    self.profile_plot.lines[0].set_xdata(self.plotted_sasm.getQ())
+                    self.profile_plot.set_xscale('linear')
+                    self.profile_plot.set_yscale('linear')
+
+                elif self.profile_plot_scale == 'dimensionlesskratky':
+                    sasm_list = self.multi_series_results['series'].getAllSASMs()
+                    index = sasm_list.index(self.plotted_sasm)
+
+                    rg = self.multi_series_results['rg'][index]
+                    i0 = self.multi_series_results['i0'][index]
+
+                    y_val = (rg*self.plotted_sasm.getQ())**2*(self.plotted_sasm.getI()/i0)
+                    self.profile_plot.lines[0].set_ydata(y_val)
+                    self.profile_plot.lines[0].set_xdata(self.plotted_sasm.getQ()*rg)
+                    self.profile_plot.set_xscale('linear')
+                    self.profile_plot.set_yscale('linear')
+
+                if (old_ps == 'kratky' or old_ps == 'porod'
+                    or old_ps == 'dimensionlesskratky'):
+                    self.autoscale_plot(self.profile_canvas)
+                else:
+                    if (plot_scale == 'kratky' or plot_scale == 'porod'
+                        or plot_scale == 'dimensionlesskratky'):
+                        self.autoscale_plot(self.profile_canvas)
+
+                self.label_profile_plot()
+
+        if draw:
+            self.ax_redraw()
+
+
+    def autoscale_plot(self, canvas=None):
+        if canvas == self.param_canvas:
+            self.rg_plot.set_autoscale_on(True)
+            self.rg_plot.relim(True)
+            self.rg_plot.autoscale_view()
+            self.i0_plot.set_autoscale_on(True)
+            self.i0_plot.relim(True)
+            self.i0_plot.autoscale_view()
+            self.mw_plot.set_autoscale_on(True)
+            self.mw_plot.relim(True)
+            self.mw_plot.autoscale_view()
+
+        elif canvas == self.profile_canvas:
+            self.profile_plot.set_autoscale_on(True)
+            self.profile_plot.relim(True)
+            self.profile_plot.autoscale_view()
+
+        self.ax_redraw()
+
+    def _exportData(self):
+        if len(self.multi_series_results.keys()) > 0:
+            if len(self.multi_series_results['cal_vals']) > 0:
+                xkey = self.multi_series_results['cal_save_key'].replace(' ', '_')
+                xdata = self.multi_series_results['cal_vals']
+            else:
+                xkey = 'Frames'
+                xdata = np.array(range(len(self.multi_series_results['rg'])))
+
+            header = '{},Rg,Rg_Err,I0,I0_Err,Vc_MW,Vp_MW'.format(xkey)
+            data_list = [xdata, self.multi_series_results['rg'],
+                self.multi_series_results['rger'], self.multi_series_results['i0'],
+                self.multi_series_results['i0er'], self.multi_series_results['vcmw'],
+                self.multi_series_results['vpmw'],]
+
+            dialog = wx.FileDialog(self, message=("Please select save "
+                "directory and enter save file name"), style = wx.FD_SAVE,
+                defaultFile = 'multi_series_data.csv')
+
+            if dialog.ShowModal() == wx.ID_OK:
+                save_path = dialog.GetPath()
+                name, ext = os.path.splitext(save_path)
+                save_path = name + '.csv'
+                dialog.Destroy()
+            else:
+                dialog.Destroy()
+                return
+
+            RAWGlobals.save_in_progress = True
+            self.series_frame.main_frame.setStatus('Saving Multi-Series data', 0)
+
+            SASFileIO.saveUnevenCSVFile(save_path, data_list, header)
+
+            RAWGlobals.save_in_progress = False
+            self.series_frame.main_frame.setStatus('', 0)
+
+    def _onMouseMotionEvent(self, event):
+
+        if event.inaxes == self.rg_plot:
+            ylabel = 'Rg'
+        elif event.inaxes == self.i0_plot:
+            ylabel = 'I(0)'
+        elif event.inaxes == self.mw_plot:
+            ylabel = 'MW (kDa)'
+
+        if event.inaxes:
+            x, y = event.xdata, event.ydata
+
+            if len(self.multi_series_results.keys()) > 0:
+                if len(self.multi_series_results['cal_vals']) > 0:
+                    xlabel = self.multi_series_results['cal_save_key']
+                else:
+                    xlabel = 'Frame'
+                    x_val = int(x+0.5)
+            else:
+                xlabel = 'Frame'
+                x_val = int(x+0.5)
+
+            y_val = round(y, 2)
+
+            self.param_toolbar.set_status('{}: {}, {}: {}'.format(xlabel, x_val,
+                ylabel, y_val))
+
+        else:
+            self.param_toolbar.set_status('')
+
+    def _on_qrange_change(self, evt):
+        _, end = self.q_range_end.GetRange()
+        self.q_range_start.SetRange((0, self.q_range_end.GetIndex()-1))
+        self.q_range_end.SetRange((self.q_range_start.GetIndex()+1, end))
+
+    def _on_qbin_mode(self, evt):
+        if self.qbin_mode.GetStringSelection() == 'Factor':
+            self.qbin_factor.Enable()
+            self.qbin_points.Disable()
+        elif self.qbin_mode.GetStringSelection() == 'Points':
+            self.qbin_factor.Disable()
+            self.qbin_points.Enable()
+
+    def _on_run_calcs(self, evt):
+        self._process_data()
+        self.series_frame.set_has_changes('range', False)
+
+    def _on_load_cal(self, evt):
+        dialog = wx.FileDialog(self.series_frame, message='Select calibration file',
+            wildcard='*.csv', style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST)
+
+        # Show the dialog and get user input
+        if dialog.ShowModal() == wx.ID_OK:
+            file = dialog.GetPath()
+        else:
+            file = None
+
+        dialog.Destroy()
+
+        if file is not None:
+            self._cal_file = file
+            self._load_cal_file()
+
+    def _load_cal_file(self):
+        if self._cal_file is not None:
+            x, y = np.loadtxt(self._cal_file, delimiter=',',
+                unpack=True)
+
+            self._cal_x = x
+            self._cal_y = y
+
+            self.cal_file_label.SetLabel(os.path.basename(self._cal_file))
+
+            if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                file_tip = STT.SuperToolTip(" ", header = self._cal_file, footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+                file_tip.SetTarget(self.cal_file_label)
+                file_tip.ApplyStyle('Blue Glass')
+
+            else:
+                self.showitem_icon.SetToolTip(wx.ToolTip(self._cal_file))
 
     def on_page_selected(self):
         range_changes = self.series_frame.get_has_changes('range')
 
         if range_changes:
+            (series_data, buffer_valid, buffer_range_list, sample_valid,
+                sample_range_list, baseline_valid, bl_type, bl_start_range,
+                bl_end_range) = self.series_frame.range_ctrl.get_ranges_and_data()
+
+            if len(series_data) > 0:
+                profile = series_data[0][0][0]
+                qvals = profile.getQ()
+                self.q_range_start.SetValueList(qvals)
+                self.q_range_start.SetRange([0, len(qvals)-2])
+                self.q_range_end.SetValueList(qvals)
+                self.q_range_end.SetRange([1, len(qvals)-1])
+                if self.q_range_end.GetIndex() == 0:
+                    self.q_range_end.SetIndex(len(qvals)-1)
+                self._on_qrange_change(None)
+
+                header_keys = [''] + list(profile.getParameter('counters').keys())
+
+                cal_key = self.cal_x_key.GetStringSelection()
+
+                self.cal_x_key.Set(header_keys)
+
+                if cal_key in header_keys:
+                    self.cal_x_key.SetStringSelection(cal_key)
+                else:
+                    self.cal_x_key.SetSelection(0)
+
             self._process_data()
             self.series_frame.set_has_changes('range', False)
+
 
     def _process_data(self):
         (series_data, buffer_valid, buffer_range_list, sample_valid,
@@ -1228,6 +1934,9 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             bl_end_range) = self.series_frame.range_ctrl.get_ranges_and_data()
 
         if buffer_valid and sample_valid:
+            profile = series_data[0][0][0]
+            qvals = profile.getQ()
+
             if bl_type.lower() != 'none':
                 do_baseline = True
             else:
@@ -1237,16 +1946,145 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             for data in series_data:
                 self.series_sasm_list.append(data[0])
 
-            print(sample_range_list)
-            print(buffer_range_list)
+            qmin = float(self.q_range_start.GetValue())
+            qmax = float(self.q_range_end.GetValue())
+            if qmin != qvals[0] or qmax != qvals[-1]:
+                set_qrange = True
+                qrange = [qmin, qmax]
+            else:
+                set_qrange = False
+                qrange = []
 
-            (sub_sasms, rg, rger, i0, i0er, vcmw, vcmwer, vpmw) = RAWAPI.multi_series_calc(
-                self.series_sasm_list, sample_range_list, buffer_range_list,
-                do_baseline, bl_start_range, bl_end_range, bl_type)
+            bin_series = self.do_series_bin.GetValue()
+            series_rebin_factor = int(self.sbin_factor.GetValue())
 
-            print(sub_sasms[0])
-            print(rg)
-            print(vcmw)
+            do_q_rebin = self.do_qbin.GetValue()
+            qbin_type = self.qbin_type.GetStringSelection()
+            qbin_mode = self.qbin_mode.GetStringSelection()
+            qbin_pts = int(self.qbin_points.GetValue())
+
+            if qbin_mode == 'Points':
+                qbin_factor = 1
+            else:
+                qbin_factor = float(self.qbin_factor.GetValue())
+
+            if qbin_type == 'Log':
+                q_log_bin = True
+            else:
+                q_log_bin = False
+
+            window_size = int(self.saver_window.GetValue())
+            vc_type = self.series_vc_type.GetStringSelection()
+
+            if vc_type == 'Protein':
+                vc_protein = True
+            else:
+                vc_protein = False
+
+            exclude = self.series_exclude.GetValue()
+            exclude.replace('\n', '')
+            exclude.replace(' ', '')
+            try:
+                series_exclude_keys = [int(val) for val in exclude.split(',')]
+            except Exception:
+                series_exclude_keys = []
+
+            # TODO
+            # Raise a warning about bad settings here
+
+            cal_val_key = self.cal_x_key.GetStringSelection()
+            cal_save_key = self.cal_result_key.GetValue()
+            cal_offset = self.cal_offset.GetValue()
+
+            try:
+                cal_offset = float(cal_offset)
+            except Exception:
+                cal_offset = ''
+
+            if (cal_val_key != '' and cal_save_key != '' and cal_offset != ''
+                and self._cal_x is not None and self._cal_y is not None):
+                cal_data = [cal_val_key, cal_save_key, cal_offset, self._cal_x,
+                    self._cal_y]
+            else:
+                cal_data = []
+
+            if cal_val_key != '':
+                series_bin_keys = [cal_val_key]
+            else:
+                series_bin_keys = []
+
+
+            self.calc_args = {
+                'do_baseline'           : do_baseline,
+                'bl_start_range'        : bl_start_range,
+                'bl_end_range'          : bl_end_range,
+                'baseline_type'         : bl_type,
+                'set_qrange'            : set_qrange,
+                'qrange'                : qrange,
+                'bin_series'            : bin_series,
+                'series_rebin_factor'   : series_rebin_factor,
+                'do_q_rebin'            : do_q_rebin,
+                'q_npts'                : qbin_pts,
+                'q_rebin_factor'        : qbin_factor,
+                'q_log_rebin'           : q_log_bin,
+                'window_size'           : window_size,
+                'vc_protein'            : vc_protein,
+                'cal_data'              : cal_data,
+                'series_exclude_keys'   : series_exclude_keys,
+                'series_bin_keys'       : series_bin_keys,
+
+                'error_weight'  : self.series_frame.raw_settings.get('errorWeight'),
+                'vp_cutoff'     : self.series_frame.raw_settings.get('MWVpCutoff'),
+                'vp_density'    : self.series_frame.raw_settings.get('MWVpRho'),
+                'vp_qmax'       : self.series_frame.raw_settings.get('MWVpQmax'),
+                'vc_cutoff'     : self.series_frame.raw_settings.get('MWVcCutoff'),
+                'vc_qmax'       : self.series_frame.raw_settings.get('MWVcQmax'),
+
+            }
+
+            # This might be slow?
+            series_data = copy.deepcopy(self.series_sasm_list)
+
+            (sub_series, rg, rger, i0, i0er, vcmw, vcmwer, vpmw,
+                cal_vals) = RAWAPI.multi_series_calc( series_data,
+                sample_range_list, buffer_range_list, **self.calc_args)
+
+            ####### TODO:
+            # Need to add messages about bad settings where necessary
+            # Profile multi_series_calc and work on speeding it up
+
+            self.multi_series_results = {
+                'series'        : sub_series,
+                'rg'            : rg,
+                'rger'          : rger,
+                'i0'            : i0,
+                'i0er'          : i0er,
+                'vcmw'          : vcmw,
+                'vcmwer'        : vcmwer,
+                'vpmw'          : vpmw,
+                'cal_vals'      : cal_vals,
+                'cal_save_key'  : cal_save_key,
+            }
+
+            if len(cal_vals) > 0:
+                self.plot_index_list = [round(val, 4) for val in cal_vals]
+            else:
+                self.plot_index_list = [j for j in range(len(rg))]
+
+            self.profile_plot_index.SetValueList(self.plot_index_list)
+            self.profile_plot_index.SetRange([0, len(self.plot_index_list)-1])
+            plt_idx_val = float(self.profile_plot_index.GetValue())
+
+            try:
+                plt_idx = self.plot_index_list.index(plt_idx_val)
+            except Exception:
+                plot_idx_val = int(plot_idx_val)
+                plt_idx = self.plot_index_list.index(plt_idx_val)
+
+            self.plot_series_data(rg, i0, vcmw, vpmw, cal_vals, cal_save_key)
+            self.plot_profile_data(sub_series.getSASM(plt_idx, 'sub'))
+
+            self.series_frame.set_has_changes('range', False)
 
     def on_close(self):
         pass

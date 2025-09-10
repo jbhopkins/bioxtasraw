@@ -45,6 +45,7 @@ import time
 import glob
 
 import numpy as np
+import scipy
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -939,7 +940,7 @@ def rebin(profiles, npts=100, rebin_factor=1, log_rebin=False, copy_metadata=Tru
     npts: int, optional
         The number of points in each rebinned profile. Only used if rebin_factor
         is left to the default value of 1. Default is 100.
-    rebin_factor: int, optional
+    rebin_factor: float, optional
         The factor by which to rebin each profile, e.g. a rebin_factor of 2
         will result in half as many q points in the rebinned profile. If
         set to a value other than the default of 1, it overrides the npts
@@ -982,11 +983,17 @@ def rebin(profiles, npts=100, rebin_factor=1, log_rebin=False, copy_metadata=Tru
             rb_pts = npts
 
         if log_rebin:
-            rebin_profile = SASProc.logBinning(profile, rb_pts,
-                copy_params=copy_metadata)
+            if rb_pts != len(profile.getQ()):
+                rebin_profile = SASProc.logBinning(profile, rb_pts,
+                    copy_params=copy_metadata)
+            else:
+                rebin_profile = profile
         else:
-            rebin_profile = SASProc.rebin(profile, rb_fac,
-                copy_params=copy_metadata)
+            if rb_fac != 1:
+                rebin_profile = SASProc.rebin(profile, rb_fac,
+                    copy_params=copy_metadata)
+            else:
+                rebin_profile = profile
 
         rebin_profile.setParameter('filename',
             'R_{}'.format(rebin_profile.getParameter('filename')))
@@ -5095,7 +5102,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
             'swMinStep'         : settings.get('denssShrinkwrapMinStep'),
             'connected'         : settings.get('denssConnected'),
             'conSteps'          : settings.get('denssConnectivitySteps'),
-            'conFeatures'       : raw_settings.get('denssConFeatures'),
+            'conFeatures'       : settings.get('denssConFeatures'),
             'chiEndFrac'        : settings.get('denssChiEndFrac'),
             'cutOutput'         : settings.get('denssCutOut'),
             'writeXplor'        : settings.get('denssWriteXplor'),
@@ -5230,7 +5237,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
 
     elif denss_settings['mode'] == 'Custom':
         if denss_settings['voxel'] == 'None':
-            denss_settings['voxel'] = dmax * denss_settings['oversample']/64
+            denss_settings['voxel'] = D * denss_settings['oversample']/64
 
         if denss_settings['swMinStep'] == 'None':
             denss_settings['swMinStep'] = 0
@@ -7518,15 +7525,14 @@ def set_baseline_correction(series, start_range, end_range, baseline_type,
 
 def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False,
     bl_start_range=[], bl_end_range=[], baseline_type='Linear', set_qrange=False,
-    qrange=[], bin_series=False, series_rebin_factor=1, series_bin_keys=[], do_q_rebin=False,
-    q_npts=100, q_rebin_factor=1, q_log_rebin=False, cal_data=[],window_size=5, settings=None,
+    qrange=[], bin_series=False, series_rebin_factor=1, series_bin_keys=[],
+    series_exclude_keys=[], do_q_rebin=False, q_npts=100, q_rebin_factor=1,
+    q_log_rebin=False, cal_data=[],window_size=5, settings=None,
     error_weight=True, vp_density=0.83*10**(-3), vp_cutoff='Default', vp_qmax=0.5,
     vc_protein=True, vc_cutoff='Manual', vc_qmax=0.3, vc_a_prot=1.0,
     vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934):
     """
-    Calculates Rg and MW for the input subtracted profiles. If you are working
-    with a :class:`SECM.SECM` series object then use :func:`set_buffer_range`
-    instead of this function.
+    TODO: Need to add exclude keys for series points
 
     Parameters
     ----------
@@ -7587,7 +7593,7 @@ def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False
     q_npts: int, optional
         The number of points in each rebinned profile. Only used if q_rebin_factor
         is left to the default value of 1. Default is 100.
-    q_rebin_factor: int, optional
+    q_rebin_factor: float, optional
         The factor by which to rebin each profile, e.g. a rebin_factor of 2
         will result in half as many q points in the rebinned profile. If
         set to a value other than the default of 1, it overrides the q_npts
@@ -7649,6 +7655,10 @@ def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False
 
     Returns
     -------
+    sub_series: list
+        A series of the subtracted profiles. Each subtracted profile corresponds
+        to a single point across all the input series, with the defined buffer
+        and sample ranges provided.
     rg: :class:`numpy.array`
         An array of the Rg values calculated for each subtracted profile. If
         no Rg value could be calculated then the value is -1. Each array index
@@ -7685,6 +7695,9 @@ def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False
         profile. If no M.W. value could be calculated then the value is -1.
         Each array index is the M.W. corresponding to the subtracted profile
         at that index in the sub_profiles list.
+    calibration: :class:`numpy.array`
+        An array of the calculated calibration values for each subtracted profile.
+        If no calibraiton data was supplied the array is empty.
     """
     if settings is not None:
         error_weight = settings.get('errorWeight')
@@ -7702,11 +7715,23 @@ def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False
         else:
             vc_protein = False
 
+    # Remove excluded frames from each series
+    if len(series_exclude_keys) > 0:
+        series_exclude_keys.sort(reverse=True)
+
+        for series in series_list:
+            for index in series_exclude_keys:
+                if index < len(series):
+                    del series[index]
+
     # First set the q range
     if set_qrange:
         for series in series_list:
             for profile in series:
-                profile.setQrange(q_range)
+                qvals = profile.getQ()
+                qmin_idx = profile.closest(qvals, qrange[0])
+                qmax_idx = profile.closest(qvals, qrange[1])
+                profile.setQrange([qmin_idx, qmax_idx])
 
     # Would it make everything faster to do this first?
     # Next bin the profiles in the series (e.g. timepoint binning)
@@ -7714,11 +7739,11 @@ def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False
     if bin_series and series_rebin_factor != 1:
         for series in series_list:
             avg_data = []
-            for start in range(0, len(data)+1, factor):
-                data_slice = data[start:start+factor]
+            for start in range(0, len(series)+1, series_rebin_factor):
+                data_slice = series[start:start+series_rebin_factor]
 
                 if len(data_slice)>0:
-                    avg_data.append(raw.average(data_slice))
+                    avg_data.append(average(data_slice))
 
                     for ctr_name in series_bin_keys:
                         vals = [float(sasm.getParameter('counters')[ctr_name]) for sasm in data_slice]
@@ -7726,7 +7751,7 @@ def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False
                         ctr_dict = avg_data[-1].getParameter('counters')
                         ctr_dict[ctr_name] = avg_val
                         avg_data[-1].setParameter('counters', ctr_dict)
-        avg_series_list.append(avg_data)
+            avg_series_list.append(avg_data)
 
     else:
         avg_series_list = series_list
@@ -7739,25 +7764,6 @@ def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False
             rseries_list.append(rseries)
     else:
         rseries_list = avg_series_list
-
-    # Next do time (or other) point calibration
-    if len(cal_data) > 0:
-        x_cal = cal_data[3]
-        y_cal = cal_data[4]
-        cal_interp = scipy.interpolate.interp1d(x_cal, y_cal)
-
-        cal_val_key = cal_data[0]
-        cal_save_key = cal_data[1]
-        cal_offset = cal_data[2]
-
-        for series in rseries_list:
-            for sasm in series:
-                ctr_dict = sasm.getParameter('counters')
-                val = ctr_dict[cal_val_key]+cal_offset
-                cal_val = cal_interp(val)
-                ctr_dict[cal_save_key] = cal_val
-                sams.SetParameter('counters', ctr_dict)
-
 
     # Next make series for analysis
     data_series = []
@@ -7803,11 +7809,34 @@ def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False
 
         sub_sasms.append(sub_sample)
 
-    rg, rger, i0, i0er, vcmw, vcmwer, vpmw = series_calc(sub_sasms,
-        window_size=window_size, settings=settings, error_weight=error_weight,
-        vp_density=vp_density, vp_cutoff=vp_cutoff, vp_qmax=vp_qmax,
-        vc_protein=vc_protein, vc_cutoff=vc_cutoff, vc_qmax=vc_qmax,
-        vc_a_prot=vc_a_prot, vc_b_prot=vc_b_prot, vc_a_rna=vc_a_rna,
-        vc_b_rna=vc_b_rna)
+    # Next do time (or other) point calibration
+    calibration = []
+    if len(cal_data) > 0:
+        x_cal = cal_data[3]
+        y_cal = cal_data[4]
+        cal_interp = scipy.interpolate.interp1d(x_cal, y_cal)
 
-    return sub_sasms, rg, rger, i0, i0er, vcmw, vcmwer, vpmw
+        cal_val_key = cal_data[0]
+        cal_save_key = cal_data[1]
+        cal_offset = cal_data[2]
+
+        for sasm in sub_sasms:
+            ctr_dict = sasm.getParameter('counters')
+            val = float(ctr_dict[cal_val_key])+cal_offset
+            cal_val = cal_interp(val)
+            ctr_dict[cal_save_key] = cal_val
+            sasm.setParameter('counters', ctr_dict)
+            calibration.append(cal_val)
+
+    calibration = np.array(calibration)
+
+    sub_series = profiles_to_series(sub_sasms)
+
+    sub_profiles, rg, rger, i0, i0er, vcmw, vcmwer, vpmw = set_buffer_range(
+        sub_series, [], already_subtracted=True, window_size=window_size,
+        settings=settings, error_weight=error_weight, vp_density=vp_density,
+        vp_cutoff=vp_cutoff, vp_qmax=vp_qmax, vc_protein=vc_protein,
+        vc_cutoff=vc_cutoff, vc_qmax=vc_qmax, vc_a_prot=vc_a_prot,
+        vc_b_prot=vc_b_prot, vc_a_rna=vc_a_rna, vc_b_rna=vc_b_rna)
+
+    return sub_series, rg, rger, i0, i0er, vcmw, vcmwer, vpmw, calibration

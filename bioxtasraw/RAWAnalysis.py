@@ -628,7 +628,7 @@ class GuinierPlotPanel(wx.Panel):
 
             self.canvas.blit(self.fig.bbox)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplots['Guinier'], self.subplots['Residual']]
@@ -4346,7 +4346,7 @@ class IFTPlotPanel(wx.Panel):
 
             self.canvas.blit(self.fig.bbox)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplots['P(r)'], self.subplots['Data/Fit'],
@@ -15938,7 +15938,7 @@ class SVDResultsPlotPanel(wx.Panel):
             self.fig.draw_artist(self.v_autocor)
             self.canvas.blit(self.fig.bbox)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplots['Singular Values'], self.subplots['AutoCorrelation']]
@@ -16110,7 +16110,7 @@ class SVDSECPlotPanel(wx.Panel):
 
             self.canvas.blit(self.fig.bbox)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplots['SECPlot']]
@@ -18078,7 +18078,7 @@ class EFAResultsPlotPanel2(wx.Panel):
 
             self.canvas.blit(self.fig.bbox)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplots['Forward EFA'], self.subplots['Backward EFA']]
@@ -19117,7 +19117,7 @@ class EFAResultsPlotPanel3(wx.Panel):
 
         self.canvas.blit(self.fig.bbox)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplots['Scattering Profiles'],
@@ -19407,7 +19407,7 @@ class EFARangePlotPanel(wx.Panel):
 
             self.canvas.blit(self.fig.bbox)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplots['SECPlot']]
@@ -22182,7 +22182,7 @@ class REGALSBackgroundSVDPlot(wx.Panel):
         self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         self.sv_subplot.set_autoscale_on(True)
 
         self.sv_subplot.relim()
@@ -22776,7 +22776,7 @@ class SimilarityPlotPanel(wx.Panel):
         self.subplot.set_xlabel('Profile #')
         self.subplot.set_ylabel('Profile #')
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplot]
@@ -23153,7 +23153,7 @@ class ComparisonPlotPanel(wx.Panel):
             self.bottom_plot.set_title('Ratio')
             self.bottom_plot.set_ylabel('Ratio')
 
-    def autoscale_plot(self, scale_bottom_x_separate=False, draw=True):
+    def autoscale_plot(self, canvas=None, scale_bottom_x_separate=False, draw=True):
         top_plot_min_x = None
         top_plot_max_x = None
         top_plot_min_y = None
@@ -24051,7 +24051,7 @@ class NormKratkyPlotPanel(wx.Panel):
 
         self.updatePlot(self.plot_type)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplot]
@@ -25110,7 +25110,7 @@ class SeriesPlotPanel(wx.Panel):
         self.redrawLines()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         self.subplot.set_autoscale_on(True)
 
         oldx = self.subplot.get_xlim()

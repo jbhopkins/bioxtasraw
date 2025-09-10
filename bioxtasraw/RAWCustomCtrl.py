@@ -496,7 +496,7 @@ class FloatSpinCtrlList(wx.Panel):
 
     def __init__(self, parent, value_list, id=wx.ID_ANY, initIndex=None,
         button_style=wx.SP_VERTICAL, TextLength=45, min_idx=0, max_idx=-1,
-         **kwargs):
+        sig_figs=-1, **kwargs):
 
         wx.Panel.__init__(self, parent, id, **kwargs)
 
@@ -507,6 +507,7 @@ class FloatSpinCtrlList(wx.Panel):
 
         self.min_idx = min_idx
         self.max_idx = max_idx
+        self.sig_figs = sig_figs
 
         if initIndex is None:
             initIndex = 0
@@ -537,6 +538,8 @@ class FloatSpinCtrlList(wx.Panel):
         else:
             self.Scale = wx.TextCtrl(self, -1, str(value_list[initIndex]),
                 size=self._FromDIP((TextLength,22)), style=wx.TE_PROCESS_ENTER)
+
+        self._change_value(value_list[initIndex])
 
         self.Scale.Bind(wx.EVT_KILL_FOCUS, self.OnFocusChange)
         self.Scale.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
@@ -578,6 +581,12 @@ class FloatSpinCtrlList(wx.Panel):
 
         event.Skip()
 
+    def _change_value(self, val):
+        if self.sig_figs != -1:
+            val = round(val, self.sig_figs)
+
+        self.Scale.ChangeValue(str(val))
+
     def setNearest(self):
         val = self.Scale.GetValue()
         val = val.replace(',', '.')
@@ -585,14 +594,14 @@ class FloatSpinCtrlList(wx.Panel):
         try:
             val = float(val)
         except ValueError:
-            current_value = str(self.value_list[self.current_index])
-            self.Scale.ChangeValue(current_value)
+            current_value = self.value_list[self.current_index]
+            self._change_value(current_value)
             self._showInvalidNumberError()
             return
 
         self.current_index, closest = self.findClosest(val)
 
-        self.Scale.ChangeValue(str(closest))
+        self._change_value(closest)
 
 
     def findClosest(self, val):
@@ -605,12 +614,12 @@ class FloatSpinCtrlList(wx.Panel):
     def OnSpinUpScale(self, event):
 
         if self.current_index + 1 <= self.max_idx:
-            newval = str(self.value_list[self.current_index+1])
+            newval = self.value_list[self.current_index+1]
             self.current_index = self.current_index + 1
         else:
-            newval = str(self.value_list[self.current_index])
+            newval = self.value_list[self.current_index]
 
-        self.Scale.ChangeValue(newval)
+        self._change_value(newval)
         self.CastFloatSpinEvent()
 
         self.Scale.SetInsertionPoint(0)
@@ -621,25 +630,25 @@ class FloatSpinCtrlList(wx.Panel):
     def OnSpinDownScale(self, event):
 
         if self.current_index - 1 >= self.min_idx:
-            newval = str(self.value_list[self.current_index - 1])
+            newval = self.value_list[self.current_index - 1]
             self.current_index = self.current_index - 1
         else:
-            newval = str(self.value_list[self.current_index])
+            newval = self.value_list[self.current_index]
 
-        self.Scale.ChangeValue(newval)
+        self._change_value(newval)
         self.CastFloatSpinEvent()
 
         self.Scale.SetInsertionPoint(0)
 
     def GetValue(self):
-        value = self.Scale.GetValue()
+        value = str(self.value_list[self.current_index])
         return value
 
     def SetValue(self, value):
         value = float(value)
         self.current_index, closest = self.findClosest(value)
 
-        self.Scale.ChangeValue(str(closest))
+        self._change_value(closest)
 
         self.Scale.SetInsertionPoint(0)
 
@@ -656,7 +665,22 @@ class FloatSpinCtrlList(wx.Panel):
     def SetIndex(self, index):
         if index >= self.min_idx and index <= self.max_idx:
             self.current_index = index
-            self.Scale.ChangeValue(str(self.value_list[self.current_index]))
+            self._change_value(self.value_list[self.current_index])
+
+    def SetValueList(self, new_value_list):
+        self.value_list = np.array(new_value_list)
+
+        if self.min_idx >= len(new_value_list)-1:
+            self.min_idx = len(new_value_list)-2
+        if self.max_idx >= len(new_value_list):
+            self.max_idx = len(new_value_list)-1
+
+        if self.current_index < self.min_idx:
+            self.current_index = self.min_idx
+        elif self.current_index > self.max_idx:
+            self.current_index = self.max_idx
+
+        self.SetIndex(self.current_index)
 
 
 class IntSpinCtrl(wx.Panel):
@@ -1489,6 +1513,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
 
         self.status = wx.StaticText(self, label='')
         self.parent = parent
+        self.canvas = canvas
 
         self.AddControl(self.status)
 
@@ -1500,7 +1525,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.status.SetLabel(status)
 
     def home(self, *args, **kwargs):
-        self.parent.autoscale_plot()
+        self.parent.autoscale_plot(self.canvas)
 
 #Monkey patch flatNB.PageContainer
 def OnPaintFNB(self, event):
