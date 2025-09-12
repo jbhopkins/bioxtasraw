@@ -716,7 +716,8 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
         if self.single_proc:
             self.executor = ThreadPoolExecutor()
         else:
-            self.executor = multiprocessing.Pool()
+            nproc = min(os.cpu_count(), 3)
+            self.executor = multiprocessing.Pool(nproc)
 
         self.series_futures = []
 
@@ -728,6 +729,7 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
             else:
                 series_future = self.executor.apply_async(RAWAPI.load_profiles,
                     args=(series_data['files'], self.series_frame.raw_settings))
+
             self.series_futures.append(series_future)
 
         if not self.single_proc:
@@ -1361,8 +1363,8 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             border=self._FromDIP(5))
 
 
-        run_calcs = wx.Button(ctrl_box, label='Run calculations')
-        run_calcs.Bind(wx.EVT_BUTTON, self._on_run_calcs)
+        self.run_calcs = wx.Button(ctrl_box, label='Process data')
+        self.run_calcs.Bind(wx.EVT_BUTTON, self._on_run_calcs)
 
         ctrl_box_sizer = wx.StaticBoxSizer(ctrl_box, wx.VERTICAL)
         ctrl_box_sizer.Add(cal_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
@@ -1370,7 +1372,7 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
         ctrl_box_sizer.Add(q_sizer, flag=wx.ALL, border=self._FromDIP(5))
         ctrl_box_sizer.Add(series_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
             border=self._FromDIP(5), proportion=1)
-        ctrl_box_sizer.Add(run_calcs, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|
+        ctrl_box_sizer.Add(self.run_calcs, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|
             wx.ALIGN_CENTER_HORIZONTAL, border=self._FromDIP(5))
 
         plot_panel = self._make_plot_panel()
@@ -1441,9 +1443,45 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             TextLength=60, value_list=[0], sig_figs=4)
         self.profile_plot_index.Bind(RAWCustomCtrl.EVT_MY_SPIN,
             self._on_plot_index_change)
+        self.plot_multiple_profiles = wx.CheckBox(parent, label='Plot multiple profiles')
+        self.plot_multiple_profiles.SetValue(False)
+        self.plot_multiple_profiles.Bind(wx.EVT_CHECKBOX, self._on_plot_multiple)
+        self.plot_step = RAWCustomCtrl.IntSpinCtrl(parent, min_val=1, TextLength=60)
+        self.plot_step.SetValue(5)
+        self.plot_step.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_plot_step_change)
+        self.profile_plot_index_end = RAWCustomCtrl.FloatSpinCtrlList(parent,
+            TextLength=60, value_list=[0], sig_figs=4)
+        self.profile_plot_index_end.Bind(RAWCustomCtrl.EVT_MY_SPIN,
+            self._on_plot_index_change)
+
+        self.plot_step.Disable()
+        self.profile_plot_index_end.Disable()
+
+        profile_plot_sizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        profile_plot_sizer1.Add(wx.StaticText(parent, label='Plot profile:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        profile_plot_sizer1.Add(self.profile_plot_index, flag=wx.LEFT|
+            wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(5))
+
+        profile_plot_sizer2 = wx.FlexGridSizer(cols=2, hgap=self._FromDIP(5),
+            vgap=self._FromDIP(5))
+        profile_plot_sizer2.Add(wx.StaticText(parent, label='Plot every:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        profile_plot_sizer2.Add(self.plot_step, flag=wx.ALIGN_CENTER_VERTICAL)
+        profile_plot_sizer2.Add(wx.StaticText(parent, label='Last profile:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        profile_plot_sizer2.Add(self.profile_plot_index_end,
+            flag=wx.ALIGN_CENTER_VERTICAL)
+
+        profile_sub_sizer2 = wx.BoxSizer(wx.VERTICAL)
+        profile_sub_sizer2.Add(profile_plot_sizer1)
+        profile_sub_sizer2.Add(self.plot_multiple_profiles, flag=wx.TOP,
+            border=self._FromDIP(5))
+        profile_sub_sizer2.Add(profile_plot_sizer2, flag=wx.TOP,
+            border=self._FromDIP(5))
 
         profile_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        profile_sizer.Add(self.profile_plot_index, flag=wx.RIGHT,
+        profile_sizer.Add(profile_sub_sizer2, flag=wx.RIGHT,
             border=self._FromDIP(5))
         profile_sizer.Add(profile_sub_sizer, flag=wx.EXPAND, proportion=1)
 
@@ -1492,10 +1530,17 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             self.profile_plot.set_xlabel('q$R_g$')
             self.profile_plot.set_ylabel('$(qR_g)^2$I(q)/(I(0)')
 
+    def plot_series_data(self):
+        rg = self.multi_series_results['rg']
+        i0 = self.multi_series_results['i0']
+        mwvc = self.multi_series_results['mwvc']
+        mwvp = self.multi_series_results['mwvp']
+        cal = self.multi_series_results['cal_vals']
+        cal_label = self.multi_series_results['cal_save_key']
+        used_frames = self.multi_series_results['used_frames']
 
-    def plot_series_data(self, rg, i0, mwvc, mwvp, cal, cal_label):
         if len(cal) == 0:
-            xdata = range(len(rg))
+            xdata = used_frames
             xlabel = 'Frames'
         else:
             xdata = cal
@@ -1505,10 +1550,23 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
         self.i0_plot.cla()
         self.mw_plot.cla()
 
-        self.rg_plot.plot(xdata, rg, 'o')
-        self.i0_plot.plot(xdata, i0, 'o')
-        self.mw_plot.plot(xdata, mwvc, 'o', label='Vc')
-        self.mw_plot.plot(xdata, mwvp, 'o', label='Vp')
+        color1 = matplotlib.color_sequences['Dark2'][0]
+        color2 = matplotlib.color_sequences['Dark2'][5]
+
+        self.rg_plot.plot(xdata, rg, 'o', color=color1)
+        self.i0_plot.plot(xdata, i0, 'o', color=color1)
+        self.mw_plot.plot(xdata, mwvc, 'o', label='Vc', color=color1)
+        self.mw_plot.plot(xdata, mwvp, 'v', label='Vp', color=color2)
+
+        sasm_list = self.multi_series_results['series'].getAllSASMs()
+
+        for j, sasm in enumerate(self.plotted_sasms):
+            color = self.profile_plot.lines[j].get_color()
+            index = sasm_list.index(sasm)
+
+            self.rg_plot.axvline(xdata[index], color=color)
+            self.i0_plot.axvline(xdata[index], color=color)
+            self.mw_plot.axvline(xdata[index], color=color)
 
         self.mw_plot.legend()
 
@@ -1521,33 +1579,65 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
         self.ax_redraw()
 
-    def plot_profile_data(self, sasm):
-        self.profile_plot.cla()
+    def plot_profile_data(self):
+        if len(self.multi_series_results.keys()) > 0:
+            self.profile_plot.cla()
 
-        self.plotted_sasm = sasm
+            start_idx = self.profile_plot_index.GetIndex()
+            end_idx = self.profile_plot_index_end.GetIndex()
+            step = int(self.plot_step.GetValue())
+            plot_multiple_profiles = self.plot_multiple_profiles.GetValue()
 
-        self.profile_plot.plot(sasm.getQ(), sasm.getI(), '-')
+            if plot_multiple_profiles and start_idx != end_idx:
+                idx_list = list(range(start_idx, end_idx, step))
+            else:
+                idx_list = [start_idx]
 
-        plot_scale = self.profile_plot_scale
-        self.profile_plot_scale = ''
+            series = self.multi_series_results['series']
 
-        self.updatePlot(plot_scale, 'profile', False)
+            self.plotted_sasms = [series.getSASM(idx, 'sub') for idx in idx_list]
 
-        self.label_profile_plot()
+            for sasm in self.plotted_sasms:
+                self.profile_plot.plot(sasm.getQ(), sasm.getI(), '-')
 
-        self.ax_redraw()
+            plot_scale = self.profile_plot_scale
+            self.profile_plot_scale = ''
+
+            self.updatePlot(plot_scale, 'profile', False)
+
+            self.label_profile_plot()
+
+            self.ax_redraw()
 
     def _on_plot_index_change(self, evt):
         if len(self.multi_series_results.keys()) > 0:
-            plt_idx_val = float(self.profile_plot_index.GetValue())
+            plt_idx = self.profile_plot_index.GetIndex()
 
-            try:
-                plt_idx = self.plot_index_list.index(plt_idx_val)
-            except Exception:
-                plot_idx_val = int(plot_idx_val)
-                plt_idx = self.plot_index_list.index(plt_idx_val)
+            end_range = self.profile_plot_index_end.GetRange()
+            self.profile_plot_index_end.SetRange([plt_idx, end_range[1]])
 
-            self.plot_profile_data(self.multi_series_results['series'].getSASM(plt_idx, 'sub'))
+            if plt_idx > self.profile_plot_index_end.GetIndex():
+                self.profile_plot_index.SetIndex(min(plt_idx, end_range[1]))
+
+            self.plot_profile_data()
+            self.plot_series_data()
+
+    def _on_plot_step_change(self, evt):
+        if len(self.multi_series_results.keys()) > 0:
+            self.plot_profile_data()
+            self.plot_series_data()
+
+    def _on_plot_multiple(self, evt):
+        if self.plot_multiple_profiles.GetValue():
+            self.plot_step.Enable()
+            self.profile_plot_index_end.Enable()
+        else:
+            self.plot_step.Disable()
+            self.profile_plot_index_end.Disable()
+
+        if len(self.multi_series_results.keys()) > 0:
+            self.plot_profile_data()
+            self.plot_series_data()
 
     def _onMouseButtonReleaseEvent(self, event):
         ''' Find out where the mouse button was released
@@ -1694,53 +1784,62 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
                 self.profile_plot_scale = plot_scale
 
                 if self.profile_plot_scale == 'linlin':
-                    self.profile_plot.lines[0].set_ydata(self.plotted_sasm.getI())
-                    self.profile_plot.lines[0].set_xdata(self.plotted_sasm.getQ())
+                    for j, sasm in enumerate(self.plotted_sasms):
+                        self.profile_plot.lines[j].set_ydata(sasm.getI())
+                        self.profile_plot.lines[j].set_xdata(sasm.getQ())
                     self.profile_plot.set_xscale('linear')
                     self.profile_plot.set_yscale('linear')
 
                 elif self.profile_plot_scale == 'loglin':
-                    self.profile_plot.lines[0].set_ydata(self.plotted_sasm.getI())
-                    self.profile_plot.lines[0].set_xdata(self.plotted_sasm.getQ())
+                    for j, sasm in enumerate(self.plotted_sasms):
+                        self.profile_plot.lines[j].set_ydata(sasm.getI())
+                        self.profile_plot.lines[j].set_xdata(sasm.getQ())
                     self.profile_plot.set_xscale('linear')
                     self.profile_plot.set_yscale('log')
 
                 elif self.profile_plot_scale == 'loglog':
-                    self.profile_plot.lines[0].set_ydata(self.plotted_sasm.getI())
-                    self.profile_plot.lines[0].set_xdata(self.plotted_sasm.getQ())
+                    for j, sasm in enumerate(self.plotted_sasms):
+                        self.profile_plot.lines[j].set_ydata(sasm.getI())
+                        self.profile_plot.lines[j].set_xdata(sasm.getQ())
                     self.profile_plot.set_xscale('log')
                     self.profile_plot.set_yscale('log')
 
                 elif self.profile_plot_scale == 'linlog':
-                    self.profile_plot.lines[0].set_ydata(self.plotted_sasm.getI())
-                    self.profile_plot.lines[0].set_xdata(self.plotted_sasm.getQ())
+                    for j, sasm in enumerate(self.plotted_sasms):
+                        self.profile_plot.lines[j].set_ydata(sasm.getI())
+                        self.profile_plot.lines[j].set_xdata(sasm.getQ())
                     self.profile_plot.set_xscale('log')
                     self.profile_plot.set_yscale('linear')
 
                 elif self.profile_plot_scale == 'kratky':
-                    y_val = self.plotted_sasm.getQ()**2*self.plotted_sasm.getI()
-                    self.profile_plot.lines[0].set_ydata(y_val)
-                    self.profile_plot.lines[0].set_xdata(self.plotted_sasm.getQ())
+                    for j, sasm in enumerate(self.plotted_sasms):
+                        y_val = sasm.getQ()**2*sasm.getI()
+                        self.profile_plot.lines[j].set_ydata(y_val)
+                        self.profile_plot.lines[j].set_xdata(sasm.getQ())
                     self.profile_plot.set_xscale('linear')
                     self.profile_plot.set_yscale('linear')
 
                 elif self.profile_plot_scale == 'porod':
-                    y_val = self.plotted_sasm.getQ()**4*self.plotted_sasm.getI()
-                    self.profile_plot.lines[0].set_ydata(y_val)
-                    self.profile_plot.lines[0].set_xdata(self.plotted_sasm.getQ())
+                    for j, sasm in enumerate(self.plotted_sasms):
+                        y_val = sasm.getQ()**4*sasm.getI()
+                        self.profile_plot.lines[j].set_ydata(y_val)
+                        self.profile_plot.lines[j].set_xdata(sasm.getQ())
                     self.profile_plot.set_xscale('linear')
                     self.profile_plot.set_yscale('linear')
 
                 elif self.profile_plot_scale == 'dimensionlesskratky':
                     sasm_list = self.multi_series_results['series'].getAllSASMs()
-                    index = sasm_list.index(self.plotted_sasm)
+                    for j, sasm in enumerate(self.plotted_sasms):
+                        index = sasm_list.index(sasm)
 
-                    rg = self.multi_series_results['rg'][index]
-                    i0 = self.multi_series_results['i0'][index]
+                        rg = self.multi_series_results['rg'][index]
+                        i0 = self.multi_series_results['i0'][index]
 
-                    y_val = (rg*self.plotted_sasm.getQ())**2*(self.plotted_sasm.getI()/i0)
-                    self.profile_plot.lines[0].set_ydata(y_val)
-                    self.profile_plot.lines[0].set_xdata(self.plotted_sasm.getQ()*rg)
+                        y_val = (rg*sasm.getQ())**2*(sasm.getI()/i0)
+
+                        self.profile_plot.lines[j].set_ydata(y_val)
+                        self.profile_plot.lines[j].set_xdata(sasm.getQ())
+
                     self.profile_plot.set_xscale('linear')
                     self.profile_plot.set_yscale('linear')
 
@@ -1789,8 +1888,8 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             header = '{},Rg,Rg_Err,I0,I0_Err,Vc_MW,Vp_MW'.format(xkey)
             data_list = [xdata, self.multi_series_results['rg'],
                 self.multi_series_results['rger'], self.multi_series_results['i0'],
-                self.multi_series_results['i0er'], self.multi_series_results['vcmw'],
-                self.multi_series_results['vpmw'],]
+                self.multi_series_results['i0er'], self.multi_series_results['mwvc'],
+                self.multi_series_results['mwvp'],]
 
             dialog = wx.FileDialog(self, message=("Please select save "
                 "directory and enter save file name"), style = wx.FD_SAVE,
@@ -1828,6 +1927,7 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             if len(self.multi_series_results.keys()) > 0:
                 if len(self.multi_series_results['cal_vals']) > 0:
                     xlabel = self.multi_series_results['cal_save_key']
+                    x_val = round(x,5)
                 else:
                     xlabel = 'Frame'
                     x_val = int(x+0.5)
@@ -1857,8 +1957,7 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             self.qbin_points.Enable()
 
     def _on_run_calcs(self, evt):
-        self._process_data()
-        self.series_frame.set_has_changes('range', False)
+        wx.CallAfter(self._process_data)
 
     def _on_load_cal(self, evt):
         dialog = wx.FileDialog(self.series_frame, message='Select calibration file',
@@ -1924,11 +2023,24 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
                 else:
                     self.cal_x_key.SetSelection(0)
 
-            self._process_data()
+                if float(self.profile_plot_index_end.GetValue()) == 0:
+                    self.profile_plot_index_end.SetValueList(list(range(len(series_data[0][0]))))
+                    self.profile_plot_index_end.SetRange([1, len(series_data[0][0])-1])
+                    self.profile_plot_index_end.SetValue(len(series_data[0][0])-1)
+
+            wx.CallAfter(self._process_data)
             self.series_frame.set_has_changes('range', False)
 
 
     def _process_data(self):
+        self.run_calcs.Disable()
+        self.series_frame.showBusy(msg='Processing profiles')
+
+        self.proc_thread = threading.Thread(target=self._inner_process_data)
+        self.proc_thread.daemon = True
+        self.proc_thread.start()
+
+    def _inner_process_data(self):
         (series_data, buffer_valid, buffer_range_list, sample_valid,
             sample_range_list, baseline_valid, bl_type, bl_start_range,
             bl_end_range) = self.series_frame.range_ctrl.get_ranges_and_data()
@@ -1984,13 +2096,17 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             exclude = self.series_exclude.GetValue()
             exclude.replace('\n', '')
             exclude.replace(' ', '')
+
+
             try:
-                series_exclude_keys = [int(val) for val in exclude.split(',')]
+                if len(exclude) > 0:
+                    series_exclude_keys = [int(val) for val in exclude.split(',')]
+                else:
+                    series_exclude_keys = []
+                bad_exclude_key = False
             except Exception:
                 series_exclude_keys = []
-
-            # TODO
-            # Raise a warning about bad settings here
+                bad_exclude_key = True
 
             cal_val_key = self.cal_x_key.GetStringSelection()
             cal_save_key = self.cal_result_key.GetValue()
@@ -1998,8 +2114,10 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
             try:
                 cal_offset = float(cal_offset)
+                bad_cal_offset= False
             except Exception:
                 cal_offset = ''
+                bad_cal_offset = True
 
             if (cal_val_key != '' and cal_save_key != '' and cal_offset != ''
                 and self._cal_x is not None and self._cal_y is not None):
@@ -2013,6 +2131,21 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             else:
                 series_bin_keys = []
 
+            if bad_exclude_key or bad_cal_offset:
+                msg = ('The multi-series processing settings have the '
+                    'following errors:\n')
+                if bad_exclude_key:
+                    msg += ('- The excluded profiles list could not be '
+                        'processed as a list of integers.\n')
+                if bad_cal_offset:
+                    msg += ('- The calibration offset is not a number.\n')
+
+                wx.CallAfter(self.series_frame.main_frame.showMessageDialog,
+                    self.series_frame, msg,
+                    "Multi-series processing settings invalid",
+                    wx.ICON_ERROR|wx.OK)
+
+                return
 
             self.calc_args = {
                 'do_baseline'           : do_baseline,
@@ -2043,15 +2176,29 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             }
 
             # This might be slow?
-            series_data = copy.deepcopy(self.series_sasm_list)
-
             (sub_series, rg, rger, i0, i0er, vcmw, vcmwer, vpmw,
-                cal_vals) = RAWAPI.multi_series_calc( series_data,
+                cal_vals) = RAWAPI.multi_series_calc(self.series_sasm_list,
                 sample_range_list, buffer_range_list, **self.calc_args)
 
             ####### TODO:
-            # Need to add messages about bad settings where necessary
             # Profile multi_series_calc and work on speeding it up
+
+            all_frames = list(range(len(series_data[0][0])))
+
+            if len(series_exclude_keys) > 0:
+                series_exclude_keys.sort(reverse=True)
+
+                for index in series_exclude_keys:
+                    if index < len(all_frames):
+                        del all_frames[index]
+
+            if bin_series and series_rebin_factor != 1:
+                used_frames = []
+                for j in range(0, len(all_frames), series_rebin_factor):
+                    used_frames.append(all_frames[j])
+                used_frames = np.array(used_frames)
+            else:
+                used_frames = np.array(all_frames)
 
             self.multi_series_results = {
                 'series'        : sub_series,
@@ -2059,32 +2206,40 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
                 'rger'          : rger,
                 'i0'            : i0,
                 'i0er'          : i0er,
-                'vcmw'          : vcmw,
-                'vcmwer'        : vcmwer,
-                'vpmw'          : vpmw,
+                'mwvc'          : vcmw,
+                'mwvcer'        : vcmwer,
+                'mwvp'          : vpmw,
                 'cal_vals'      : cal_vals,
                 'cal_save_key'  : cal_save_key,
+                'used_frames'   : used_frames,
             }
 
-            if len(cal_vals) > 0:
-                self.plot_index_list = [round(val, 4) for val in cal_vals]
-            else:
-                self.plot_index_list = [j for j in range(len(rg))]
+            wx.CallAfter(self._update_processed_data)
 
-            self.profile_plot_index.SetValueList(self.plot_index_list)
-            self.profile_plot_index.SetRange([0, len(self.plot_index_list)-1])
-            plt_idx_val = float(self.profile_plot_index.GetValue())
+    def _update_processed_data(self):
+        self.series_frame.showBusy(False)
 
-            try:
-                plt_idx = self.plot_index_list.index(plt_idx_val)
-            except Exception:
-                plot_idx_val = int(plot_idx_val)
-                plt_idx = self.plot_index_list.index(plt_idx_val)
+        self.proc_thread.join()
 
-            self.plot_series_data(rg, i0, vcmw, vpmw, cal_vals, cal_save_key)
-            self.plot_profile_data(sub_series.getSASM(plt_idx, 'sub'))
+        if len(self.multi_series_results['cal_vals']) > 0:
+            self.plot_index_list = [round(val, 4) for val in
+                self.multi_series_results['cal_vals']]
+        else:
+            self.plot_index_list = self.multi_series_results['used_frames']
 
-            self.series_frame.set_has_changes('range', False)
+        self.profile_plot_index.SetValueList(self.plot_index_list)
+        self.profile_plot_index.SetRange([0, len(self.plot_index_list)-1])
+
+        prof_idx = self.profile_plot_index.GetIndex()
+
+        self.profile_plot_index_end.SetValueList(self.plot_index_list)
+        self.profile_plot_index_end.SetRange([prof_idx, len(self.plot_index_list)-1])
+
+        self.plot_profile_data()
+        self.plot_series_data()
+
+        self.series_frame.set_has_changes('range', False)
+        self.run_calcs.Enable()
 
     def on_close(self):
         pass

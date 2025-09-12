@@ -2647,7 +2647,7 @@ def run_crysol(fnames, path, atsasDir, exp_fnames=None, prefix=None, lm=20,
 
 def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
     is_protein, error_weight, vp_density, vp_cutoff, vp_qmax, vc_cutoff,
-    vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna, vc_b_rna):
+    vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna, vc_b_rna, calc_outside_win=False):
 
     #Now calculate the RG, I0, and MW for each SASM
     rg = np.zeros(len(subtracted_sasm_list),dtype=float)
@@ -2666,28 +2666,10 @@ def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
             use_current_sasm = use_subtracted_sasm[a]
 
             if use_current_sasm:
-                #use autorg to find the Rg and I0
-                rg[a], rger[a], i0[a], i0er[a], idx_min, idx_max = autoRg(current_sasm,
-                    error_weight=error_weight)
-
-                #Now use the rambo tainer 2013 method to calculate molecular weight
-                if rg[a] > 0:
-                    vcqmax = calcVqmax(current_sasm.getQ(),
-                        current_sasm.getI(), rg[a], i0[a], vc_cutoff, vc_qmax)
-
-                    vcmw[a], vcmwer[a], junk1, junk2 = calcVcMW(current_sasm, rg[a],
-                        i0[a], vcqmax, vc_a_prot, vc_b_prot, vc_a_rna, vc_b_rna,
-                        is_protein)
-
-                    vpqmax = calcVqmax(current_sasm.getQ(),
-                        current_sasm.getI(), rg[a], i0[a], vp_cutoff, vp_qmax)
-
-                    vpmw[a], vp[a], vpcor[a] = calcVpMW(current_sasm.getQ(),
-                        current_sasm.getI(), current_sasm.getErr(), rg[a], i0[a],
-                        current_sasm.getQ()[idx_min], vp_density, vpqmax)
-                else:
-                    vcmw[a], vcmwer[a] = -1, -1
-                    vpmw[a], vp[a], vpcor[a] = -1, -1, -1
+                inner_secm_calcs(current_sasm, a, rg, rger, i0, i0er,
+                    vcmw, vcmwer, vpmw, vp, vpcor, is_protein, error_weight,
+                    vp_density, vp_cutoff, vp_qmax, vc_cutoff, vc_qmax,
+                    vc_a_prot, vc_b_prot, vc_a_rna, vc_b_rna)
 
             else:
                 rg[a], rger[a], i0[a], i0er[a] = -1, -1, -1, -1
@@ -2695,6 +2677,8 @@ def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
                 vpmw[a], vp[a], vpcor[a] = -1, -1, -1
 
     else:
+        window_idx = []
+
         for a in range(len(subtracted_sasm_list)-(window_size-1)):
 
             current_sasm_list = subtracted_sasm_list[a:a+window_size]
@@ -2703,38 +2687,38 @@ def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
 
             index = a+(window_size-1)//2
 
+            window_idx.append(index)
+
             if np.all(truth_test):
                 try:
                     current_sasm = SASProc.average(current_sasm_list, copy_params=False)
                 except SASExceptions.DataNotCompatible:
                     return False, {}
 
-                #use autorg to find the Rg and I0
-                (rg[index], rger[index], i0[index], i0er[index], idx_min,
-                    idx_max) = autoRg(current_sasm, error_weight=error_weight)
-
-                #Now use the rambo tainer 2013 method to calculate molecular weight
-                if rg[index] > 0:
-                    vcqmax = calcVqmax(current_sasm.getQ(),
-                        current_sasm.getI(), rg[a], i0[a], vc_cutoff, vc_qmax)
-
-                    vcmw[index], vcmwer[index], junk1, junk2 = calcVcMW(current_sasm,
-                        rg[index], i0[index], vcqmax, vc_a_prot, vc_b_prot,
-                        vc_a_rna, vc_b_rna, is_protein)
-
-                    vpqmax = calcVqmax(current_sasm.getQ(),
-                        current_sasm.getI(), rg[index], i0[index], vp_cutoff, vp_qmax)
-
-                    vpmw[index], vp[index], vpcor[index] = calcVpMW(current_sasm.getQ(),
-                        current_sasm.getI(), current_sasm.getErr(), rg[index], i0[index],
-                        current_sasm.getQ()[idx_min], vp_density, vpqmax)
-                else:
-                    vcmw[index], vcmwer[index] = -1, -1
-                    vpmw[index], vp[index], vpcor[index] = -1, -1, -1
+                inner_secm_calcs(current_sasm, index, rg, rger, i0, i0er,
+                    vcmw, vcmwer, vpmw, vp, vpcor, is_protein, error_weight,
+                    vp_density, vp_cutoff, vp_qmax, vc_cutoff, vc_qmax,
+                    vc_a_prot, vc_b_prot, vc_a_rna, vc_b_rna)
             else:
                 rg[index], rger[index], i0[index], i0er[index] = -1, -1, -1, -1
                 vcmw[index], vcmwer[index] = -1, -1,
                 vpmw[index], vp[index], vpcor[index] = -1, -1, -1
+
+        if calc_outside_win:
+            full_range = range(len(subtracted_sasm_list))
+
+            for b in full_range:
+                if b not in window_idx:
+                    if use_subtracted_sasm[b]:
+                        current_sasm = subtracted_sasm_list[b]
+                        inner_secm_calcs(current_sasm, b, rg, rger, i0, i0er,
+                            vcmw, vcmwer, vpmw, vp, vpcor, is_protein, error_weight,
+                            vp_density, vp_cutoff, vp_qmax, vc_cutoff, vc_qmax,
+                            vc_a_prot, vc_b_prot, vc_a_rna, vc_b_rna)
+                    else:
+                        rg[b], rger[b], i0[b], i0er[b] = -1, -1, -1, -1
+                        vcmw[b], vcmwer[b] = -1, -1,
+                        vpmw[b], vp[b], vpcor[b] = -1, -1, -1
 
     #Set everything that's nonsense to -1
     rg[rg<=0] = -1
@@ -2767,6 +2751,34 @@ def run_secm_calcs(subtracted_sasm_list, use_subtracted_sasm, window_size,
         }
 
     return True, results
+
+def inner_secm_calcs(sasm, index, rg, rger, i0, i0er, vcmw, vcmwer,
+    vpmw, vp, vpcor, is_protein, error_weight,  vp_density, vp_cutoff,
+    vp_qmax, vc_cutoff, vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna, vc_b_rna):
+
+    #use autorg to find the Rg and I0
+    (rg[index], rger[index], i0[index], i0er[index], idx_min,
+        idx_max) = autoRg(sasm, error_weight=error_weight)
+
+    #Now use the rambo tainer 2013 method to calculate molecular weight
+    if rg[index] > 0:
+        vcqmax = calcVqmax(sasm.getQ(),
+            sasm.getI(), rg[index], i0[index], vc_cutoff, vc_qmax)
+
+        vcmw[index], vcmwer[index], junk1, junk2 = calcVcMW(sasm,
+            rg[index], i0[index], vcqmax, vc_a_prot, vc_b_prot,
+            vc_a_rna, vc_b_rna, is_protein)
+
+        vpqmax = calcVqmax(sasm.getQ(),
+            sasm.getI(), rg[index], i0[index], vp_cutoff, vp_qmax)
+
+        vpmw[index], vp[index], vpcor[index] = calcVpMW(sasm.getQ(),
+            sasm.getI(), sasm.getErr(), rg[index], i0[index],
+            sasm.getQ()[idx_min], vp_density, vpqmax)
+    else:
+        vcmw[index], vcmwer[index] = -1, -1
+        vpmw[index], vp[index], vpcor[index] = -1, -1, -1
+
 
 def smooth_data(data, window_length=51, order=5):
     smoothed_data = scipy.signal.savgol_filter(data, window_length, order)

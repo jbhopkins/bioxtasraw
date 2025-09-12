@@ -6293,7 +6293,7 @@ def set_buffer_range(series, buffer_range, int_type='total', q_val=None,
     error_weight=True, vp_density=0.83*10**(-3), vp_cutoff='Default',
     vp_qmax=0.5, vc_protein=True, vc_cutoff='Manual', vc_qmax=0.3,
     vc_a_prot=1.0, vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934,
-    do_calcs=True):
+    do_calcs=True, calc_outside_win=False):
     """
     Sets the buffer range for a series, carries out the subtraction, and
     calculates Rg and MW vs. frame number.
@@ -6390,6 +6390,10 @@ def set_buffer_range(series, buffer_range, int_type='total', q_val=None,
         useful if you just need to define a buffer range to carry out further
         operations that expect buffer subtracted profiles, but won't be using
         the results of the Guinier and MW calcs.
+    calc_outside_win: bool
+        If True, if an average window_size > 1 is supplied, then Rg and MW will
+        be calculated for profiles at the edges of the series without a full
+        window range individually.
 
     Returns
     -------
@@ -6472,7 +6476,7 @@ def set_buffer_range(series, buffer_range, int_type='total', q_val=None,
         success, results = SASCalc.run_secm_calcs(sub_profiles, use_sub_profiles,
             window_size, vc_protein, error_weight, vp_density, vp_cutoff,
             vp_qmax, vc_cutoff, vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna,
-            vc_b_rna)
+            vc_b_rna, calc_outside_win)
     else:
         success = False
 
@@ -6516,7 +6520,7 @@ def set_buffer_range(series, buffer_range, int_type='total', q_val=None,
 def series_calc(sub_profiles, window_size=5, settings=None, error_weight=True,
     vp_density=0.83*10**(-3), vp_cutoff='Default', vp_qmax=0.5,
     vc_protein=True, vc_cutoff='Manual', vc_qmax=0.3, vc_a_prot=1.0,
-    vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934):
+    vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934, calc_outside_win=False):
     """
     Calculates Rg and MW for the input subtracted profiles. If you are working
     with a :class:`SECM.SECM` series object then use :func:`set_buffer_range`
@@ -6569,6 +6573,10 @@ def series_calc(sub_profiles, window_size=5, settings=None, error_weight=True,
     vc_b_rna: float
         The volume of correlation B coefficient for RNA. Not recommended to
         be changed. Note that here B is defined as 1/B from the original paper.
+    calc_outside_win: bool
+        If True, if an average window_size > 1 is supplied, then Rg and MW will
+        be calculated for profiles at the edges of the series without a full
+        window range individually.
 
     Returns
     -------
@@ -6630,7 +6638,7 @@ def series_calc(sub_profiles, window_size=5, settings=None, error_weight=True,
     success, results = SASCalc.run_secm_calcs(sub_profiles, use_sub_profiles,
         window_size, vc_protein, error_weight, vp_density, vp_cutoff,
         vp_qmax, vc_cutoff, vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna,
-        vc_b_rna)
+        vc_b_rna, calc_outside_win)
 
     if success:
         rg = results['rg']
@@ -7303,7 +7311,8 @@ def set_baseline_correction(series, start_range, end_range, baseline_type,
     settings=None, min_iter=100, max_iter=2000,  calc_thresh=1.02,
     error_weight=True, vp_density=0.83*10**(-3), vp_cutoff='Default',
     vp_qmax=0.5, vc_protein=True, vc_cutoff='Manual', vc_qmax=0.3,
-    vc_a_prot=1.0, vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934):
+    vc_a_prot=1.0, vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934,
+    calc_outside_win=False):
     """
     Calculates and sets the baseline correction for the input series. Then
     recalculates the series Rg and M.W. values based on the baseline corrected
@@ -7392,6 +7401,10 @@ def set_baseline_correction(series, start_range, end_range, baseline_type,
     vc_b_rna: float
         The volume of correlation B coefficient for RNA. Not recommended to
         be changed. Note that here B is defined as 1/B from the original paper.
+    calc_outside_win: bool
+        If True, if an average window_size > 1 is supplied, then Rg and MW will
+        be calculated for profiles at the edges of the series without a full
+        window range individually.
 
     Returns
     -------
@@ -7478,7 +7491,7 @@ def set_baseline_correction(series, start_range, end_range, baseline_type,
     success, results = SASCalc.run_secm_calcs(bl_cor_profiles, use_sub_profiles,
         window_size, vc_protein, error_weight, vp_density, vp_cutoff,
         vp_qmax, vc_cutoff, vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna,
-        vc_b_rna)
+        vc_b_rna, calc_outside_win)
 
     if vc_protein:
         mol_type = 'Protein'
@@ -7523,7 +7536,7 @@ def set_baseline_correction(series, start_range, end_range, baseline_type,
     return (bl_cor_profiles, rg, rger, i0, i0er, vcmw, vcmwer, vpmw, bl_corr,
         fit_results)
 
-def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False,
+def multi_series_calc(series_input, sample_range, buffer_range, do_baseline=False,
     bl_start_range=[], bl_end_range=[], baseline_type='Linear', set_qrange=False,
     qrange=[], bin_series=False, series_rebin_factor=1, series_bin_keys=[],
     series_exclude_keys=[], do_q_rebin=False, q_npts=100, q_rebin_factor=1,
@@ -7532,11 +7545,11 @@ def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False
     vc_protein=True, vc_cutoff='Manual', vc_qmax=0.3, vc_a_prot=1.0,
     vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934):
     """
-    TODO: Need to add exclude keys for series points
+    TODO: Update this docstring, profile, test baseline correction
 
     Parameters
     ----------
-    series_list: list
+    series_input: list
         A list of lists of profiles (:class:`SASM.SASM`) to carry out
         the multi-series analysis on. Each list of profiles should correspond
         to a single series.
@@ -7699,6 +7712,9 @@ def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False
         An array of the calculated calibration values for each subtracted profile.
         If no calibraiton data was supplied the array is empty.
     """
+
+    series_list = copy.deepcopy(series_input)
+
     if settings is not None:
         error_weight = settings.get('errorWeight')
 
@@ -7837,6 +7853,7 @@ def multi_series_calc(series_list, sample_range, buffer_range, do_baseline=False
         settings=settings, error_weight=error_weight, vp_density=vp_density,
         vp_cutoff=vp_cutoff, vp_qmax=vp_qmax, vc_protein=vc_protein,
         vc_cutoff=vc_cutoff, vc_qmax=vc_qmax, vc_a_prot=vc_a_prot,
-        vc_b_prot=vc_b_prot, vc_a_rna=vc_a_rna, vc_b_rna=vc_b_rna)
+        vc_b_prot=vc_b_prot, vc_a_rna=vc_a_rna, vc_b_rna=vc_b_rna,
+        calc_outside_win=True)
 
     return sub_series, rg, rger, i0, i0er, vcmw, vcmwer, vpmw, calibration
