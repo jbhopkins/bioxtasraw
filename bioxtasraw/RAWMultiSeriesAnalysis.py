@@ -217,12 +217,64 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
 
         parent = self
 
-        load_box = wx.StaticBox(parent, label='Load series')
+        load_box = wx.StaticBox(parent, label='Select series')
 
-        auto_load_btn = wx.Button(load_box, label='Auto Load')
+        auto_load_btn = wx.Button(load_box, label='Auto Select')
         auto_load_btn.Bind(wx.EVT_BUTTON, self._on_auto_load)
 
+        adv_load_box = wx.StaticBox(load_box, label='Select from disk')
+
+        self.load_dir = wx.DirPickerCtrl(adv_load_box)
+        self.load_fname = wx.TextCtrl(adv_load_box)
+
+        self.scan_start = RAWCustomCtrl.IntSpinCtrl(adv_load_box, min_val=0,
+            TextLength=60)
+        self.scan_end = RAWCustomCtrl.IntSpinCtrl(adv_load_box, min_val=0,
+            TextLength=60)
+        self.scan_zpad = RAWCustomCtrl.IntSpinCtrl(adv_load_box, min_val=0,
+            TextLength=60)
+        self.fnum_start = RAWCustomCtrl.IntSpinCtrl(adv_load_box, min_val=0,
+            TextLength=60)
+        self.fnum_end = RAWCustomCtrl.IntSpinCtrl(adv_load_box, min_val=0,
+            TextLength=60)
+        self.fnum_zpad = RAWCustomCtrl.IntSpinCtrl(adv_load_box, min_val=0,
+            TextLength=60)
+
+        adv_load_sub_sizer = wx.FlexGridSizer(cols=6,  hgap=self._FromDIP(5),
+            vgap=self._FromDIP(5))
+        adv_load_sub_sizer.Add(wx.StaticText(adv_load_box, label='Scan # (<s>):'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_load_sub_sizer.Add(self.scan_start, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_load_sub_sizer.Add(wx.StaticText(adv_load_box, label='to'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_load_sub_sizer.Add(self.scan_end, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_load_sub_sizer.Add(wx.StaticText(adv_load_box, label='Zero pad:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_load_sub_sizer.Add(self.scan_zpad, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_load_sub_sizer.Add(wx.StaticText(adv_load_box, label='File # (<f>):'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_load_sub_sizer.Add(self.fnum_start, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_load_sub_sizer.Add(wx.StaticText(adv_load_box, label='to'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_load_sub_sizer.Add(self.fnum_end, flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_load_sub_sizer.Add(wx.StaticText(adv_load_box, label='Zero pad:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_load_sub_sizer.Add(self.fnum_zpad, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        adv_load_btn = wx.Button(adv_load_box, label='Select files')
+        adv_load_btn.Bind(wx.EVT_BUTTON, self._on_load_files)
+
+        adv_load_sizer = wx.StaticBoxSizer(adv_load_box, wx.VERTICAL)
+        adv_load_sizer.Add(self.load_dir, flag=wx.EXPAND|wx.ALL, border=self._FromDIP(5))
+        adv_load_sizer.Add(self.load_fname, flag=wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
+        adv_load_sizer.Add(adv_load_sub_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
+        adv_load_sizer.Add(adv_load_btn, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|
+            wx.ALIGN_CENTER_HORIZONTAL, border=self._FromDIP(5))
+
         load_box = wx.StaticBoxSizer(load_box, wx.HORIZONTAL)
+        load_box.Add(adv_load_sizer)
         load_box.Add(auto_load_btn)
 
         #######
@@ -352,6 +404,67 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
             series_list.append(series_data)
 
         self._add_series(series_list)
+
+    def _on_load_files(self, evt):
+
+        path = self.load_dir.GetPath()
+        fname = self.load_fname.GetValue()
+
+        snum_start = int(self.scan_start.GetValue())
+        snum_end = int(self.scan_end.GetValue())
+        snum_zpad = int(self.scan_zpad.GetValue())
+
+        fnum_start = int(self.fnum_start.GetValue())
+        fnum_end = int(self.fnum_end.GetValue())
+        fnum_zpad = int(self.fnum_zpad.GetValue())
+
+        if '<s>' in fname:
+            if snum_start < snum_end:
+                snums = list(range(snum_start, snum_end+1))
+            else:
+                snums = list(range(snum_end, snum_start+1))
+                snums = snums[::-1]
+        else:
+            snums =[]
+
+        if '<f>' in fname:
+            if fnum_start < fnum_end:
+                fnums = list(range(fnum_start, fnum_end+1))
+            else:
+                fnums = list(range(fnum_end, fnum_start+1))
+                fnums = fnums[::-1]
+        else:
+            fnums = []
+
+        sname_list = []
+
+        if len(snums) > 0:
+            for snum in snums:
+                cur_fname = fname.replace('<s>', '{:0{z}d}'.format(snum, z=snum_zpad))
+                sname_list.append(cur_fname)
+
+        else:
+            sname_list.append(fname)
+
+        if len(fnums) > 0:
+            fname_list = []
+
+            for sname in sname_list:
+                fname_list.append([])
+                for fnum in fnums:
+                    cur_fname = sname.replace('<f>', '{:0{z}d}'.format(fnum, z=fnum_zpad))
+                    fname_list[-1].append(cur_fname)
+
+        else:
+            fname_list = [[sname,] for sname in sname_list]
+
+        print(sname_list)
+        print(fname_list)
+
+        #TODO: Actually load files
+        #TODO: Maybe make rg and such plots blit
+        #TODO: I(0) rounding makes the toolbar text show 0 for value
+
 
     def _add_series(self, series_list):
         for series in series_list:
