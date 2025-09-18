@@ -122,19 +122,43 @@ class MultiSeriesFrame(wx.Frame):
     def _createLayout(self):
         panel = wx.Panel(self)
 
-        self.notebook = wx.Notebook(panel)
-        self.load_ctrl = MultiSeriesLoadPanel(self, self.notebook)
-        self.range_ctrl = MultiSeriesRangePanel(self, self.notebook)
-        self.profile_ctrl = MultiSeriesProfilesPanel(self, self.notebook)
+        self.simplebook = wx.Simplebook(panel)
+        self.load_ctrl = MultiSeriesLoadPanel(self, self.simplebook)
+        self.range_ctrl = MultiSeriesRangePanel(self, self.simplebook)
+        self.profile_ctrl = MultiSeriesProfilesPanel(self, self.simplebook)
 
-        self.notebook.AddPage(self.load_ctrl, 'Load Series')
-        self.notebook.AddPage(self.range_ctrl, 'Select Ranges')
-        self.notebook.AddPage(self.profile_ctrl, 'Generate Profiles')
+        self.simplebook.AddPage(self.load_ctrl, 'Load Series')
+        self.simplebook.AddPage(self.range_ctrl, 'Select Ranges')
+        self.simplebook.AddPage(self.profile_ctrl, 'Generate Profiles')
 
-        self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._on_page_changed)
+        self.simplebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._on_page_changed)
+
+        self.next_btn = wx.Button(panel, label='Next')
+        self.back_btn = wx.Button(panel, label='Back')
+
+        self.next_btn.Bind(wx.EVT_BUTTON, self._on_next_page)
+        self.back_btn.Bind(wx.EVT_BUTTON, self._on_back_page)
+
+        self.back_btn.Disable()
+
+        cancel_btn = wx.Button(panel, label='Cancel')
+        self.done_btn = wx.Button(panel, label='Done')
+
+        cancel_btn.Bind(wx.EVT_BUTTON, self._on_cancel_btn)
+        self.done_btn.Bind(wx.EVT_BUTTON, self._on_done_btn)
+
+        self.done_btn.Disable()
+
+        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        btn_sizer.Add(cancel_btn, flag=wx.RIGHT, border=self._FromDIP(5))
+        btn_sizer.Add(self.done_btn)
+        btn_sizer.AddStretchSpacer(1)
+        btn_sizer.Add(self.back_btn, flag=wx.RIGHT, border=self._FromDIP(5))
+        btn_sizer.Add(self.next_btn)
 
         panel_sizer = wx.BoxSizer(wx.VERTICAL)
-        panel_sizer.Add(self.notebook, proportion=1, flag=wx.EXPAND)
+        panel_sizer.Add(self.simplebook, proportion=1, flag=wx.EXPAND)
+        panel_sizer.Add(btn_sizer, flag=wx.ALL|wx.EXPAND, border=self._FromDIP(5))
         panel.SetSizer(panel_sizer)
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -177,10 +201,50 @@ class MultiSeriesFrame(wx.Frame):
 
         return changes
 
+    def _on_next_page(self, evt):
+        cur_page = self.simplebook.GetSelection()
+
+        if cur_page < 2:
+            self.simplebook.SetSelection(cur_page+1)
+
+        if cur_page == 1:
+            self.next_btn.Disable()
+            self.done_btn.Enable()
+
+        self.back_btn.Enable()
+
+    def _on_back_page(self, evt):
+        cur_page = self.simplebook.GetSelection()
+
+        if cur_page > 0:
+            self.simplebook.SetSelection(cur_page-1)
+
+        if cur_page == 1:
+            self.back_btn.Disable()
+
+        elif cur_page == 2:
+            self.done_btn.Disable()
+
+        self.next_btn.Enable()
+
     def _on_page_changed(self, evt):
         new_page_num = evt.GetSelection()
-        new_page = self.notebook.GetPage(new_page_num)
+        new_page = self.simplebook.GetPage(new_page_num)
         new_page.on_page_selected()
+
+    def _on_cancel_btn(self, evt):
+        self.OnClose()
+
+    def _on_done_btn(self, evt):
+        series = self.profile_ctrl.multi_series_results['series']
+        RAWGlobals.mainworker_cmd_queue.put(['to_plot_series', [series,
+            None, None, True]])
+
+        # TODO: Need to collect analysis data, make an analysis dictionary and add it to the series
+        # TODO: Need to save and load settings used for analysis
+        # TODO: Need to save who multi series with all the profiles?
+
+        self.OnClose()
 
     def OnCloseEvt(self, evt):
         self.OnClose()
@@ -219,8 +283,19 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
 
         load_box = wx.StaticBox(parent, label='Select series')
 
-        auto_load_btn = wx.Button(load_box, label='Auto Select')
+        other_box = wx.StaticBox(load_box, label='Other')
+
+        auto_load_btn = wx.Button(other_box, label='Auto Select')
         auto_load_btn.Bind(wx.EVT_BUTTON, self._on_auto_load)
+
+        add_from_raw_btn = wx.Button(other_box, label='Add from series panel')
+        add_from_raw_btn.Bind(wx.EVT_BUTTON, self._on_add_from_raw)
+
+        other_btn_sizer = wx.StaticBoxSizer(other_box, wx.VERTICAL)
+        other_btn_sizer.Add(add_from_raw_btn, flag=wx.ALL, border=self._FromDIP(5))
+        other_btn_sizer.Add(auto_load_btn, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
+
 
         adv_load_box = wx.StaticBox(load_box, label='Select from disk')
 
@@ -242,7 +317,7 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
 
         adv_load_sub_sizer = wx.FlexGridSizer(cols=6,  hgap=self._FromDIP(5),
             vgap=self._FromDIP(5))
-        adv_load_sub_sizer.Add(wx.StaticText(adv_load_box, label='Scan # (<s>):'),
+        adv_load_sub_sizer.Add(wx.StaticText(adv_load_box, label='Series # (<s>):'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         adv_load_sub_sizer.Add(self.scan_start, flag=wx.ALIGN_CENTER_VERTICAL)
         adv_load_sub_sizer.Add(wx.StaticText(adv_load_box, label='to'),
@@ -251,7 +326,7 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
         adv_load_sub_sizer.Add(wx.StaticText(adv_load_box, label='Zero pad:'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         adv_load_sub_sizer.Add(self.scan_zpad, flag=wx.ALIGN_CENTER_VERTICAL)
-        adv_load_sub_sizer.Add(wx.StaticText(adv_load_box, label='File # (<f>):'),
+        adv_load_sub_sizer.Add(wx.StaticText(adv_load_box, label='Profile # (<f>):'),
             flag=wx.ALIGN_CENTER_VERTICAL)
         adv_load_sub_sizer.Add(self.fnum_start, flag=wx.ALIGN_CENTER_VERTICAL)
         adv_load_sub_sizer.Add(wx.StaticText(adv_load_box, label='to'),
@@ -273,19 +348,10 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
         adv_load_sizer.Add(adv_load_btn, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|
             wx.ALIGN_CENTER_HORIZONTAL, border=self._FromDIP(5))
 
-        load_box = wx.StaticBoxSizer(load_box, wx.HORIZONTAL)
-        load_box.Add(adv_load_sizer)
-        load_box.Add(auto_load_btn)
+        load_sizer = wx.StaticBoxSizer(load_box, wx.HORIZONTAL)
+        load_sizer.Add(adv_load_sizer, proportion=1)
+        load_sizer.Add(other_btn_sizer, flag=wx.LEFT, border=self._FromDIP(5))
 
-        #######
-        # TODO
-        # For loading, I think autoload is probably best by having users define a name
-        # with a series and profile number token (e.g. <s> and <p>), then define
-        # The number of zero padding and range fo each of those. RAW then generate
-        # the set of all possible filenames and loads them if they exist.
-        # I can't think of an easy way to get existing file numbers, since it's
-        # Unclear of how to split it and do the search in the folder. Maybe
-        # I'll have a brainwave.
 
         self.series_list = SeriesItemList(self, parent, size=self._FromDIP((200,-1)))
 
@@ -333,14 +399,16 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
         series_info_sizer.Add(self.series_file_list, proportion=1,
             flag=wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM)
 
-        series_top_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        series_top_sizer.Add(series_list_sizer, flag=wx.EXPAND)
-        series_top_sizer.Add(series_info_sizer, flag=wx.EXPAND|wx.LEFT,
+        sub_sizer1 = wx.BoxSizer(wx.VERTICAL)
+        sub_sizer1.Add(load_sizer, flag=wx.EXPAND)
+        sub_sizer1.Add(series_info_sizer, flag=wx.EXPAND|wx.TOP,
             border=self._FromDIP(5), proportion=1)
 
-        top_sizer = wx.BoxSizer(wx.VERTICAL)
-        top_sizer.Add(load_box)
-        top_sizer.Add(series_top_sizer, proportion=1, flag=wx.EXPAND)
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        top_sizer.Add(series_list_sizer, flag=wx.ALL|wx.EXPAND,
+            border=self._FromDIP(5))
+        top_sizer.Add(sub_sizer1, proportion=1, flag=wx.EXPAND|wx.TOP|wx.RIGHT|
+            wx.BOTTOM, border=self._FromDIP(5))
 
         self.SetSizer(top_sizer)
 
@@ -399,6 +467,7 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
                 'scan'  : scan,
                 'path'  : path,
                 'name'  : series_name,
+                'series': None
                 }
 
             series_list.append(series_data)
@@ -406,6 +475,10 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
         self._add_series(series_list)
 
     def _on_load_files(self, evt):
+
+        wx.CallAfter(self._select_files_from_disk)
+
+    def _select_files_from_disk(self):
 
         path = self.load_dir.GetPath()
         fname = self.load_fname.GetValue()
@@ -458,13 +531,68 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
         else:
             fname_list = [[sname,] for sname in sname_list]
 
-        print(sname_list)
-        print(fname_list)
+        series_name = fname.split('<s>')[0]
+        if series_name == '':
+            series_name = fname
 
-        #TODO: Actually load files
+        series_list = []
+        for i, series in enumerate(fname_list):
+            flist = []
+            for fname in series:
+                files = glob.glob(os.path.join(path, fname))
+                flist.extend(files)
+
+            series_data = {
+                    'files' : flist,
+                    'scan'  : snums[i],
+                    'path'  : path,
+                    'name'  : '{}{:0{z}d}'.format(series_name, snums[i], z=snum_zpad),
+                    'series': None,
+                    }
+
+            series_list.append(series_data)
+
+        self._add_series(series_list)
+
         #TODO: Maybe make rg and such plots blit
-        #TODO: I(0) rounding makes the toolbar text show 0 for value
+        #TODO: Should this be in a thread?
 
+    def _on_add_from_raw(self, evt):
+        wx.CallAfter(self._add_from_raw)
+
+    def _add_from_raw(self):
+        choices = [item.getSECM().getParameter('filename') for item
+            in self.series_frame.main_frame.series_panel.all_manipulation_items]
+        secm_list = [item.getSECM() for item
+            in self.series_frame.main_frame.series_panel.all_manipulation_items]
+
+        dialog = wx.MultiChoiceDialog(self.series_frame,
+            'Select series to include in analysis', 'Select Series',
+            choices)
+
+        res = dialog.ShowModal()
+
+        if res == wx.ID_OK:
+            selection = dialog.GetSelections()
+        else:
+            selection = []
+
+        series_list = []
+
+        for index in selection:
+            secm = secm_list[index]
+
+            series_data = {
+                'files' : secm.file_list,
+                'scan'  : '',
+                'path'  : '',
+                'name'  : secm.getParameter('filename'),
+                'series': secm
+                }
+
+            series_list.append(series_data)
+
+        self._add_series(series_list)
 
     def _add_series(self, series_list):
         for series in series_list:
@@ -835,13 +963,15 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
         self.series_futures = []
 
         for series_data in self.load_series_data:
-
-            if self.single_proc:
-                series_future = self.executor.submit(RAWAPI.load_profiles,
-                    series_data['files'], self.series_frame.raw_settings)
+            if series_data['series'] is None:
+                if self.single_proc:
+                    series_future = self.executor.submit(RAWAPI.load_profiles,
+                        series_data['files'], self.series_frame.raw_settings)
+                else:
+                    series_future = self.executor.apply_async(RAWAPI.load_profiles,
+                        args=(series_data['files'], self.series_frame.raw_settings))
             else:
-                series_future = self.executor.apply_async(RAWAPI.load_profiles,
-                    args=(series_data['files'], self.series_frame.raw_settings))
+                series_future = DummyLoadFuture(series_data['series'])
 
             self.series_futures.append(series_future)
 
@@ -1280,10 +1410,10 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
             baseline_valid = self._validateBaselineRange()
 
             if baseline_valid:
-                bl_start_range = (self.bl_r1_start.GetValue(),
-                    self.bl_r1_end.GetValue())
-                bl_end_range = (self.bl_r2_start.GetValue(),
-                    self.bl_r2_end.GetValue())
+                bl_start_range = (self.bl_r1_start.GetValue()-1,
+                    self.bl_r1_end.GetValue()-1)
+                bl_end_range = (self.bl_r2_start.GetValue()-1,
+                    self.bl_r2_end.GetValue()-1)
 
             else:
                 bl_start_range = []
@@ -1293,6 +1423,14 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
             baseline_valid = True
             bl_start_range = []
             bl_end_range = []
+
+        for i in range(len(buffer_range_list)):
+            br = buffer_range_list[i]
+            buffer_range_list[i] = [br[0]-1, br[1]-1]
+
+        for i in range(len(sample_range_list)):
+            sr = sample_range_list[i]
+            sample_range_list[i] = [sr[0]-1, sr[1]-1]
 
         return (self.sasm_list, buffer_valid, buffer_range_list, sample_valid,
             sample_range_list, baseline_valid, bl_type, bl_start_range,
@@ -1309,6 +1447,21 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
                 self.executor.terminate()
                 self.executor.join()
 
+class DummyLoadFuture(object):
+    def __init__(self, series):
+        self.series = series
+
+    def done(self):
+        return True
+
+    def ready(self):
+        return True
+
+    def result(self):
+        return self.series.getAllSASMs()
+
+    def get(self):
+        return self.series.getAllSASMs()
 
 class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
@@ -1369,7 +1522,7 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
         self.qbin_mode = wx.Choice(q_box, choices=['Factor', 'Points'])
         self.qbin_mode.SetSelection(0)
         self.qbin_mode.Bind(wx.EVT_CHOICE, self._on_qbin_mode)
-        self.qbin_factor = RAWCustomCtrl.FloatSpinCtrl(q_box, initValue='1',
+        self.qbin_factor = RAWCustomCtrl.FloatSpinCtrl(q_box, initValue='10',
             TextLength=60, never_negative=True)
         self.qbin_points = RAWCustomCtrl.IntSpinCtrl(q_box, min_val=1,
             TextLength=60)
@@ -2040,7 +2193,11 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             if len(self.multi_series_results.keys()) > 0:
                 if len(self.multi_series_results['cal_vals']) > 0:
                     xlabel = self.multi_series_results['cal_save_key']
-                    x_val = round(x,5)
+
+                    if x < 1e-4:
+                        x_val = '{:.2e}'.format(x)
+                    else:
+                        x_val = round(x,5)
                 else:
                     xlabel = 'Frame'
                     x_val = int(x+0.5)
@@ -2048,7 +2205,10 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
                 xlabel = 'Frame'
                 x_val = int(x+0.5)
 
-            y_val = round(y, 2)
+            if y < 1e-1:
+                y_val = '{:.2e}'.format(y)
+            else:
+                y_val = round(y, 2)
 
             self.param_toolbar.set_status('{}: {}, {}: {}'.format(xlabel, x_val,
                 ylabel, y_val))

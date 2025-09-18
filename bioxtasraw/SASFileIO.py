@@ -4407,7 +4407,7 @@ def saveSeriesData(save_path, selected_secm, delim=','):
                     delim, selected_secm.vcmwer_list[a], delim, selected_secm.vpmw_list[a],
                     delim))
                 f.write(calc_str)
-            f.write('%s\n' %(selected_secm._file_list[a].split('/')[-1]))
+            f.write('%s\n' %(selected_secm.file_list[a].split('/')[-1]))
 
 
 def saveWorkspace(sasm_dict, save_path):

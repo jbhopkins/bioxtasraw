@@ -4023,6 +4023,7 @@ class MainWorkerThread(threading.Thread):
                         'to_plot_num'                   : self._sendSASMToPlotNum,
                         'to_plot_ift'                   : self._plotIFTM,
                         'to_plot_SEC'                   : self._sendSASMToPlotSEC,
+                        'to_plot_series'                : self._plotSeries,
                         'save_sec_data'                 : self._saveSeriesData,
                         'save_sec_item'                 : self._saveSeriesItem,
                         'save_sec_profiles'             : self._saveSECProfiles,
@@ -5651,6 +5652,16 @@ class MainWorkerThread(threading.Thread):
         plot = data[4]
 
         self._sendSASMToPlot(sasm, axes_num=plot, item_colour=item_colour,
+            line_color=line_color, notsaved=notsaved)
+
+    def _plotSeries(self, data):
+
+        series = data[0]
+        item_colour = data[1]
+        line_color = data[2]
+        notsaved = data[3]
+
+        self._sendSECMToPlot(series, item_colour=item_colour,
             line_color=line_color, notsaved=notsaved)
 
     def _plotIftFit(self, data):
@@ -11741,7 +11752,6 @@ class SECPanel(wx.Panel):
             secm_list = [secm_list]
 
         for secm in secm_list:
-
             newItem = SeriesItemPanel(self.underpanel, secm, font_colour=item_colour,
                                      item_visible = item_visible, modified=notsaved,
                                      legend_label=legend_label)
@@ -13018,7 +13028,7 @@ class SeriesControlPanel(wx.Panel):
             if self.seriesIsOnline:
                 self.seriesPanelGoOffline()
 
-            old_frame_list = self._getFrameList(self.secm._file_list)
+            old_frame_list = self._getFrameList(self.secm.file_list)
             self._fillBoxes()
 
             dif_frame_list = list(set(self.frame_list)-set(old_frame_list))

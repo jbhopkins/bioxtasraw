@@ -1134,7 +1134,7 @@ class SeriesDataDialog(wx.Dialog):
                 self.data_grid.SetCellValue(i, index, str(self.secm.vpmw_list[i]))
                 index = index +1
 
-            self.data_grid.SetCellValue(i, index, os.path.split(self.secm._file_list[i])[1])
+            self.data_grid.SetCellValue(i, index, os.path.split(self.secm.file_list[i])[1])
 
     def _onOk(self, event):
         self.Destroy()

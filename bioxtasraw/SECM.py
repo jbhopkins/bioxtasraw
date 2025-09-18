@@ -149,7 +149,7 @@ class SECM(object):
         """
 
         #Raw inputs variables
-        self._file_list = file_list
+        self.file_list = file_list
         self._sasm_list = sasm_list
         self.frame_list = np.array(frame_list, dtype=int)
         self._parameters = parameters
@@ -165,11 +165,11 @@ class SECM(object):
         if 'history' not in self._parameters:
             self._parameters['history'] = {}
         if 'filename' not in self._parameters:
-            files = [os.path.basename(f) for f in self._file_list]
+            files = [os.path.basename(f) for f in self.file_list]
             files = ['_'.join(f.split('_')[:-1]) for f in files]
             filename = os.path.commonprefix(files)
             if filename == '':
-                filename =  os.path.splitext(os.path.basename(self._file_list[0]))[0]
+                filename =  os.path.splitext(os.path.basename(self.file_list[0]))[0]
             self._parameters['filename'] = filename
 
         #Extract initial mean and total intensity variables
@@ -180,7 +180,7 @@ class SECM(object):
 
         if len(self._sasm_list) != len(self.frame_list):
             self.frame_list = np.arange(len(self._sasm_list))
-            self._file_list=[sasm.getParameter('filename') for sasm in self._sasm_list]
+            self.file_list=[sasm.getParameter('filename') for sasm in self._sasm_list]
 
         self.plot_frame_list = np.arange(len(self.frame_list))
 
@@ -369,7 +369,7 @@ class SECM(object):
             if self._q_range is not None:
                 sasm.setQrange((self._q_range[0], self._q_range[1]+1))
 
-        self._file_list.extend(filename_list)
+        self.file_list.extend(filename_list)
         self._sasm_list.extend(sasm_list)
         self.frame_list = np.concatenate((self.frame_list, np.array(frame_list, dtype=int)))
 
@@ -819,7 +819,7 @@ class SECM(object):
         all_data = {}
 
         all_data['series_type'] = self.series_type
-        all_data['file_list'] = self._file_list
+        all_data['file_list'] = self.file_list
         all_data['mean_i'] = self.mean_i
         all_data['total_i'] = self.total_i
         all_data['frame_list'] = self.frame_list
@@ -918,7 +918,7 @@ class SECM(object):
     def __deepcopy__(self, memo):
         ''' return a copy of the object '''
 
-        copy_secm = SECM(copy.deepcopy(self._file_list), copy.deepcopy(self._sasm_list),
+        copy_secm = SECM(copy.deepcopy(self.file_list), copy.deepcopy(self._sasm_list),
             copy.deepcopy(self.frame_list), copy.deepcopy(self._parameters), copy.deepcopy(self.hdr_format))
 
         copy_secm.qref = copy.deepcopy(self.qref)
@@ -986,7 +986,7 @@ class SECM(object):
         Does a deep copy of the SECM without the SASM history, which will usually
         be faster.
         """
-        copy_secm = SECM(copy.deepcopy(self._file_list),
+        copy_secm = SECM(copy.deepcopy(self.file_list),
             [sasm.copy_no_metadata() for sasm in self._sasm_list],
             copy.deepcopy(self.frame_list), copy.deepcopy(self._parameters),
             copy.deepcopy(self.hdr_format))

@@ -16484,22 +16484,22 @@ class SVDControlPanel(wx.Panel):
 
         #make a subtracted profile SECM
         if len(self.secm.subtracted_sasm_list)>0:
-            self.subtracted_secm = SECM.SECM(self.secm._file_list,
+            self.subtracted_secm = SECM.SECM(self.secm.file_list,
                 self.secm.subtracted_sasm_list, self.secm.plot_frame_list,
                 self.secm.getAllParameters(), self.raw_settings)
         else:
-            self.subtracted_secm = SECM.SECM(self.secm._file_list,
+            self.subtracted_secm = SECM.SECM(self.secm.file_list,
                 self.secm.subtracted_sasm_list, [],
                 self.secm.getAllParameters(), self.raw_settings)
 
             profile_window.SetStringSelection('Unsubtracted')
 
         if self.secm.baseline_subtracted_sasm_list:
-            self.bl_subtracted_secm = SECM.SECM(self.secm._file_list,
+            self.bl_subtracted_secm = SECM.SECM(self.secm.file_list,
                 self.secm.baseline_subtracted_sasm_list, self.secm.plot_frame_list,
                 self.secm.getAllParameters(), self.raw_settings)
         else:
-            self.bl_subtracted_secm = SECM.SECM(self.secm._file_list,
+            self.bl_subtracted_secm = SECM.SECM(self.secm.file_list,
                 self.secm.baseline_subtracted_sasm_list, [],
                 self.secm.getAllParameters(), self.raw_settings)
 
@@ -21592,7 +21592,7 @@ class REGALSXCalibration(wx.Dialog):
         self.use_x.SetStringSelection(regals_x['x_choice'])
 
         for j in range(len(self.series.plot_frame_list[self.start:self.end+1])):
-            self.data_grid.SetCellValue(j, 0, os.path.split(self.series._file_list[j+self.start])[1])
+            self.data_grid.SetCellValue(j, 0, os.path.split(self.series.file_list[j+self.start])[1])
             self.data_grid.SetCellValue(j, 1, '{}'.format(self.series.plot_frame_list[j+self.start]))
             self._set_x_val(regals_x['x_base'][j], j)
 
@@ -25017,8 +25017,8 @@ class SeriesPlotPanel(wx.Panel):
                 else:
                     y2_val = '{:.3E}'.format(y2)
 
-            if 'Frame' in xlabel:
-                x_val = int(x)
+            if 'Frame' in xlabel or 'Series #' in xlabel:
+                x_val = int(x+0.5)
             else:
                 x_val = x
 
