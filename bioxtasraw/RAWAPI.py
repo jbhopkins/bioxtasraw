@@ -7545,7 +7545,8 @@ def multi_series_calc(series_input, sample_range, buffer_range, do_baseline=Fals
     vc_protein=True, vc_cutoff='Manual', vc_qmax=0.3, vc_a_prot=1.0,
     vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934):
     """
-    TODO: Update this docstring, profile, test baseline correction
+    TODO: Update this docstring, profile
+    TODO: Write unit tests
 
     Parameters
     ----------
@@ -7801,11 +7802,6 @@ def multi_series_calc(series_input, sample_range, buffer_range, do_baseline=Fals
         already_subtracted = False
 
     for series in data_series:
-        # This could be made faster by not doing all of the calculations when
-        # setting the buffer range. Maybe I should manually do the averages
-        # for both set buffer range and set sample range to avoid the extra
-        # calculation time? But then how to handle baseline correction?
-
         set_buffer_range(series, buffer_range,
             already_subtracted=already_subtracted, window_size=window_size,
             settings=settings, error_weight=error_weight, vp_density=vp_density,

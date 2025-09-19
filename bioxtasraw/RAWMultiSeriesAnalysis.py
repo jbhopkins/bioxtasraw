@@ -21,31 +21,22 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from builtins import object, range, str
 from io import open
 
-import queue
-import sys
 import os
 import copy
 import multiprocessing
 import threading
 import time
 import platform
-import collections
 import traceback
-import tempfile
-import shutil
 import glob
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
+import json
 
 import numpy as np
 import wx
-import wx.lib.agw.flatnotebook as flatNB
-from wx.lib.agw import ultimatelistctrl as ULC
 import wx.lib.scrolledpanel as scrolled
-import wx.grid
 import wx.lib.mixins.listctrl as listmix
 import wx.lib.agw.supertooltip as STT
-import scipy.stats as stats
-import scipy.integrate as integrate
 import matplotlib
 
 matplotlib.rcParams['backend'] = 'WxAgg'
@@ -63,18 +54,9 @@ if raw_path not in os.sys.path:
 
 import bioxtasraw.RAWSettings as RAWSettings
 import bioxtasraw.RAWCustomCtrl as RAWCustomCtrl
-import bioxtasraw.SASCalc as SASCalc
 import bioxtasraw.SASFileIO as SASFileIO
-import bioxtasraw.SASM as SASM
-import bioxtasraw.SASExceptions as SASExceptions
 import bioxtasraw.RAWGlobals as RAWGlobals
-import bioxtasraw.RAWCustomDialogs as RAWCustomDialogs
-import bioxtasraw.SASProc as SASProc
-import bioxtasraw.BIFT as BIFT
-import bioxtasraw.DENSS as DENSS
-import bioxtasraw.SECM as SECM
 import bioxtasraw.SASUtils as SASUtils
-import bioxtasraw.REGALS as REGALS
 import bioxtasraw.RAWAnalysis as RAWAnalysis
 import bioxtasraw.RAWAPI as RAWAPI
 
@@ -232,17 +214,35 @@ class MultiSeriesFrame(wx.Frame):
         new_page = self.simplebook.GetPage(new_page_num)
         new_page.on_page_selected()
 
+    def get_multi_series_settings(self):
+        load_settings = self.load_ctrl.get_settings()
+        range_settings = self.range_ctrl.get_settings()
+        prof_settings = self.profile_ctrl.get_settings()
+
+        all_settings = load_settings
+        all_settings.update(range_settings)
+        all_settings.update(prof_settings)
+
+        return all_settings
+
     def _on_cancel_btn(self, evt):
         self.OnClose()
 
     def _on_done_btn(self, evt):
         series = self.profile_ctrl.multi_series_results['series']
+
+        settings = self.get_multi_series_settings()
+
+        analysis_dict = series.getParameter('analysis')
+        analysis_dict['multi_series'] = settings
+
         RAWGlobals.mainworker_cmd_queue.put(['to_plot_series', [series,
             None, None, True]])
 
-        # TODO: Need to collect analysis data, make an analysis dictionary and add it to the series
         # TODO: Need to save and load settings used for analysis
-        # TODO: Need to save who multi series with all the profiles?
+        # TODO: Need to save whole multi series with all the profiles?
+        # TODO: Add multi-series settings to pdf report?
+        # TODO: If filename has no wildcards in advanced load, don't do glob, just check if it exists. Is this faster than glob?
 
         self.OnClose()
 
@@ -296,6 +296,12 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
         other_btn_sizer.Add(auto_load_btn, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
             border=self._FromDIP(5))
 
+        load_settings = wx.Button(load_box, label='Load analysis settings')
+        load_settings.Bind(wx.EVT_BUTTON, self._on_load_settings)
+
+        other_sizer = wx.BoxSizer(wx.VERTICAL)
+        other_sizer.Add(other_btn_sizer)
+        other_sizer.Add(load_settings, flag=wx.TOP, border=self._FromDIP(5))
 
         adv_load_box = wx.StaticBox(load_box, label='Select from disk')
 
@@ -349,8 +355,10 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
             wx.ALIGN_CENTER_HORIZONTAL, border=self._FromDIP(5))
 
         load_sizer = wx.StaticBoxSizer(load_box, wx.HORIZONTAL)
-        load_sizer.Add(adv_load_sizer, proportion=1)
-        load_sizer.Add(other_btn_sizer, flag=wx.LEFT, border=self._FromDIP(5))
+        load_sizer.Add(adv_load_sizer, proportion=1, flag=wx.ALL,
+            border=self._FromDIP(5))
+        load_sizer.Add(other_sizer, flag=wx.RIGHT|wx.TOP|wx.BOTTOM,
+            border=self._FromDIP(5))
 
 
         self.series_list = SeriesItemList(self, parent, size=self._FromDIP((200,-1)))
@@ -640,6 +648,61 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
 
     def get_series_data(self):
         return self.series_list.get_all_item_data()
+
+    def get_settings(self):
+        series_data = self.get_series_data()
+
+        input_series = []
+
+        for sd in series_data:
+            data = {
+                'name'              : sd['name'],
+                'scan'              : sd['scan'],
+                'path'              : sd['path'],
+                'number_of_files'   : len(sd['files']),
+                }
+
+            if sd['series'] is not None:
+                data['loaded_from_raw'] = True
+            else:
+                data['loaded_from_raw'] = False
+
+            input_series.append(data)
+
+        settings = {
+            'input_series'  : input_series,
+        }
+
+        return settings
+
+    def set_settings(self, settings):
+        pass
+
+    def _on_load_settings(self, evt):
+        dialog = wx.FileDialog(self, message='Select a file',
+            style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST)
+
+        # Show the dialog and get user input
+        if dialog.ShowModal() == wx.ID_OK:
+            file = dialog.GetPath()
+
+        # Destroy the dialog
+        dialog.Destroy()
+
+        try:
+            with open(filename, 'r', encoding='utf-8') as f:
+                settings = f.read()
+            settings = dict(json.loads(settings))
+        except Exception:
+            msg = ("Failed to load multi series analysis settings.")
+            wx.CallAfter(self.series_frame.main_frame.showMessageDialog,
+                self.series_frame, msg, "Load failed", wx.ICON_ERROR|wx.OK)
+            settings = None
+
+        if settings is not None:
+            self.set_settings(settings)
+            self.series_frame.range_ctrl.set_settings(settings)
+            self.profile_ctrl.set_settings(settings)
 
     def on_close(self):
         pass
@@ -1436,6 +1499,23 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
             sample_range_list, baseline_valid, bl_type, bl_start_range,
             bl_end_range)
 
+    def get_settings(self):
+        (series_data, buffer_valid, buffer_range_list, sample_valid,
+            sample_range_list, baseline_valid, bl_type, bl_start_range,
+            bl_end_range) = self.get_ranges_and_data()
+
+        settings = {
+            'buffer_range'          : buffer_range_list,
+            'sample_range'          : sample_range_list,
+            'baseline_type'         : bl_type,
+            'baseline_start_range'  : bl_start_range,
+            'baseline_end_range'    : bl_end_range
+        }
+        return settings
+
+    def set_settings(self, settings):
+        pass
+
     def on_close(self):
         self.loading_timer.Stop()
 
@@ -1632,13 +1712,20 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
         self.run_calcs = wx.Button(ctrl_box, label='Process data')
         self.run_calcs.Bind(wx.EVT_BUTTON, self._on_run_calcs)
 
+        save_settings = wx.Button(ctrl_box, label='Save analysis settings')
+        save_settings.Bind(wx.EVT_BUTTON, self._on_save_settings)
+
+        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        btn_sizer.Add(self.run_calcs, flag=wx.RIGHT, border=self._FromDIP(5))
+        btn_sizer.Add(save_settings)
+
         ctrl_box_sizer = wx.StaticBoxSizer(ctrl_box, wx.VERTICAL)
         ctrl_box_sizer.Add(cal_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
             border=self._FromDIP(5))
         ctrl_box_sizer.Add(q_sizer, flag=wx.ALL, border=self._FromDIP(5))
         ctrl_box_sizer.Add(series_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
             border=self._FromDIP(5), proportion=1)
-        ctrl_box_sizer.Add(self.run_calcs, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|
+        ctrl_box_sizer.Add(btn_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|
             wx.ALIGN_CENTER_HORIZONTAL, border=self._FromDIP(5))
 
         plot_panel = self._make_plot_panel()
@@ -2232,6 +2319,32 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
     def _on_run_calcs(self, evt):
         wx.CallAfter(self._process_data)
 
+    def _on_save_settings(self, evt):
+        dialog = wx.FileDialog(self.series_frame,
+            message='Please select save directory and enter save file name',
+            wildcard='*.json', style=wx.FD_SAVE)
+
+        # Show the dialog and get user input
+        if dialog.ShowModal() == wx.ID_OK:
+            file = dialog.GetPath()
+        else:
+            file = None
+
+        dialog.Destroy()
+
+        if file is not None:
+            file=os.path.splitext(file)[0]+'.json'
+
+            settings = self.series_frame.get_multi_series_settings()
+            settings['cal_data'] = self.calc_args['cal_data']
+            settings['cal_file'] = self._cal_file
+
+            with open(file, 'w', encoding='utf-8') as f:
+                settings_str = json.dumps(settings, indent=4,
+                    cls=SASUtils.MyEncoder, ensure_ascii=False)
+
+                f.write(settings_str)
+
     def _on_load_cal(self, evt):
         dialog = wx.FileDialog(self.series_frame, message='Select calibration file',
             wildcard='*.csv', style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST)
@@ -2456,6 +2569,16 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             ####### TODO:
             # Profile multi_series_calc and work on speeding it up
 
+
+            # Set the naming if it seems reasonable
+            series_load_data = self.series_frame.load_ctrl.get_series_data()
+            fnames = [d['name'] for d in series_load_data]
+            prefix = os.path.commonprefix(fnames)
+
+            if len(prefix) > 3: #This is just a weak guess/heuristic for what's enough overlap
+                sub_series.setParameter('filename', prefix)
+
+
             all_frames = list(range(len(series_data[0][0])))
 
             if len(series_exclude_keys) > 0:
@@ -2513,6 +2636,26 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
         self.series_frame.set_has_changes('range', False)
         self.run_calcs.Enable()
+
+    def get_settings(self):
+        settings = {
+            'set_qrange'            : self.calc_args['set_qrange'],
+            'qrange'                : self.calc_args['qrange'],
+            'bin_series'            : self.calc_args['bin_series'],
+            'series_rebin_factor'   : self.calc_args['series_rebin_factor'],
+            'do_q_rebin'            : self.calc_args['do_q_rebin'],
+            'q_npts'                : self.calc_args['q_npts'],
+            'q_rebin_factor'        : self.calc_args['q_rebin_factor'],
+            'q_log_rebin'           : self.calc_args['q_log_rebin'],
+            'window_size'           : self.calc_args['window_size'],
+            'vc_protein'            : self.calc_args['vc_protein'],
+            'series_exclude_keys'   : self.calc_args['series_exclude_keys'],
+            'qrange'                : self.calc_args['qrange'],
+        }
+        return settings
+
+    def set_settings(self, settings):
+        pass
 
     def on_close(self):
         pass
