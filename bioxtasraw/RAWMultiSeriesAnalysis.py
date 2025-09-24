@@ -239,10 +239,8 @@ class MultiSeriesFrame(wx.Frame):
         RAWGlobals.mainworker_cmd_queue.put(['to_plot_series', [series,
             None, None, True]])
 
-        # TODO: Need to save and load settings used for analysis
         # TODO: Need to save whole multi series with all the profiles?
         # TODO: Add multi-series settings to pdf report?
-        # TODO: If filename has no wildcards in advanced load, don't do glob, just check if it exists. Is this faster than glob?
 
         self.OnClose()
 
@@ -488,6 +486,8 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
 
     def _select_files_from_disk(self):
 
+        self.series_frame.showBusy(msg='Searching for files')
+
         path = self.load_dir.GetPath()
         fname = self.load_fname.GetValue()
 
@@ -498,6 +498,15 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
         fnum_start = int(self.fnum_start.GetValue())
         fnum_end = int(self.fnum_end.GetValue())
         fnum_zpad = int(self.fnum_zpad.GetValue())
+
+        if fname == '' or path == '':
+            msg = ("Filename and path must not be blank")
+            wx.CallAfter(self.series_frame.main_frame.showMessageDialog,
+                self.series_frame, msg, "Finding files failed", wx.ICON_ERROR|wx.OK)
+
+            self.series_frame.showBusy(False)
+
+            return
 
         if '<s>' in fname:
             if snum_start < snum_end:
@@ -543,27 +552,51 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
         if series_name == '':
             series_name = fname
 
+        no_files = []
         series_list = []
+
         for i, series in enumerate(fname_list):
             flist = []
             for fname in series:
-                files = glob.glob(os.path.join(path, fname))
+                if '?' or '*' in fname:
+                    files = glob.glob(os.path.join(path, fname))
+                elif os.path.exists(fname):
+                    files = [fname]
+                else:
+                    files = []
                 flist.extend(files)
 
-            series_data = {
-                    'files' : flist,
-                    'scan'  : snums[i],
-                    'path'  : path,
-                    'name'  : '{}{:0{z}d}'.format(series_name, snums[i], z=snum_zpad),
-                    'series': None,
-                    }
+            if len(files) > 0:
+                series_data = {
+                        'files' : flist,
+                        'scan'  : snums[i],
+                        'path'  : path,
+                        'name'  : '{}{:0{z}d}'.format(series_name, snums[i], z=snum_zpad),
+                        'series': None,
+                        }
 
-            series_list.append(series_data)
+                series_list.append(series_data)
+
+            else:
+                if len(snums) > 0:
+                    no_files.append(snums[i])
 
         self._add_series(series_list)
 
+        self.series_frame.showBusy(False)
+
+        if len(no_files) > 0:
+            msg = ("Failed to find any files for the following series numbers: ")
+            msg += ','.join(map(str, no_files))
+            wx.CallAfter(self.series_frame.main_frame.showMessageDialog,
+                self.series_frame, msg, "Finding files failed", wx.ICON_ERROR|wx.OK)
+        elif len(series_list) == 0:
+            msg = ("Failed to find any files ")
+            msg += ', '.join(no_files)
+            wx.CallAfter(self.series_frame.main_frame.showMessageDialog,
+                self.series_frame, msg, "Finding files failed", wx.ICON_ERROR|wx.OK)
+
         #TODO: Maybe make rg and such plots blit
-        #TODO: Should this be in a thread?
 
     def _on_add_from_raw(self, evt):
         wx.CallAfter(self._add_from_raw)
@@ -670,13 +703,28 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
             input_series.append(data)
 
         settings = {
-            'input_series'  : input_series,
+            'input_series'      : input_series,
+            'load_path'         : self.load_dir.GetPath(),
+            'load_filename'     : self.load_fname.GetValue(),
+            'load_scan_start'   : self.scan_start.GetValue(),
+            'load_scan_end'     : self.scan_end.GetValue(),
+            'load_scan_zpad'    : self.scan_zpad.GetValue(),
+            'load_fnum_start'   : self.fnum_start.GetValue(),
+            'load_fnum_end'     : self.fnum_end.GetValue(),
+            'load_fnum_zpad'    : self.fnum_zpad.GetValue(),
         }
 
         return settings
 
     def set_settings(self, settings):
-        pass
+        self.load_dir.SetPath(settings['load_path'])
+        self.load_fname.SetValue(settings['load_filename'])
+        self.scan_start.SetValue(settings['load_scan_start'])
+        self.scan_end.SetValue(settings['load_scan_end'])
+        self.scan_zpad.SetValue(settings['load_scan_zpad'])
+        self.fnum_start.SetValue(settings['load_fnum_start'])
+        self.fnum_end.SetValue(settings['load_fnum_end'])
+        self.fnum_zpad.SetValue(settings['load_fnum_zpad'])
 
     def _on_load_settings(self, evt):
         dialog = wx.FileDialog(self, message='Select a file',
@@ -685,24 +733,32 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
         # Show the dialog and get user input
         if dialog.ShowModal() == wx.ID_OK:
             file = dialog.GetPath()
+        else:
+            file = None
 
         # Destroy the dialog
         dialog.Destroy()
 
-        try:
-            with open(filename, 'r', encoding='utf-8') as f:
-                settings = f.read()
-            settings = dict(json.loads(settings))
-        except Exception:
-            msg = ("Failed to load multi series analysis settings.")
-            wx.CallAfter(self.series_frame.main_frame.showMessageDialog,
-                self.series_frame, msg, "Load failed", wx.ICON_ERROR|wx.OK)
-            settings = None
+        if file is not None:
+            self.series_frame.showBusy(msg='Loading settings')
+            try:
+                with open(file, 'r', encoding='utf-8') as f:
+                    settings = f.read()
+                settings = dict(json.loads(settings))
+            except Exception:
+                msg = ("Failed to load multi series analysis settings.")
+                wx.CallAfter(self.series_frame.main_frame.showMessageDialog,
+                    self.series_frame, msg, "Load failed", wx.ICON_ERROR|wx.OK)
+                settings = None
 
-        if settings is not None:
-            self.set_settings(settings)
-            self.series_frame.range_ctrl.set_settings(settings)
-            self.profile_ctrl.set_settings(settings)
+                traceback.print_exc()
+
+            if settings is not None:
+                self.set_settings(settings)
+                self.series_frame.range_ctrl.set_settings(settings)
+                self.series_frame.profile_ctrl.set_settings(settings)
+
+            self.series_frame.showBusy(False)
 
     def on_close(self):
         pass
@@ -855,6 +911,9 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
         self.prop_cycle = matplotlib.rcParams['axes.prop_cycle']()
 
         self._createLayout()
+
+        self._panel_loaded = False
+        self._first_settings = None
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -1068,6 +1127,11 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
             self.series_frame.set_has_changes('range', True)
 
             self.plot_data()
+
+            if not self._panel_loaded and self._first_settings is not None:
+                self._update_settings(self._first_settings)
+
+            self._panel_loaded = True
 
     def plot_data(self):
         x_data = np.array(range(len(self.sasm_list)))+1
@@ -1303,6 +1367,9 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
         event_object = event.GetEventObject()
         value = event_object.GetValue()
 
+        self._set_baseline_range(event_object, value)
+
+    def _set_baseline_range(self, event_object, value):
         if event_object is self.bl_r1_start:
             current_range = self.bl_r1_end.GetRange()
             self.bl_r1_end.SetRange((value, current_range[-1]))
@@ -1514,7 +1581,38 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
         return settings
 
     def set_settings(self, settings):
-        pass
+        if not self._panel_loaded:
+            self._first_settings = settings
+        else:
+            self._update_settings(settings)
+
+    def _update_settings(self, settings):
+        for item in self.buffer_range_list.get_items():
+            idx = item.GetId()
+            self.remove_plot_range(idx)
+
+        self.buffer_range_list.clear_list()
+
+        for item in self.sample_range_list.get_items():
+            idx = item.GetId()
+            self.remove_plot_range(idx)
+
+        self.sample_range_list.clear_list()
+
+        for item in settings['buffer_range']:
+            index, _, _, color = self._addSeriesRange(self.buffer_range_list)
+            self.setPickRange(index, [int(item[0])+1, int(item[1])+1], '')
+
+        for item in settings['sample_range']:
+            index, _, _, color = self._addSeriesRange(self.sample_range_list)
+            self.setPickRange(index, [int(item[0])+1, int(item[1])+1], '')
+
+        self.baseline_cor.SetStringSelection(settings['baseline_type'])
+
+        if settings['baseline_type'].lower() != 'none':
+            self.setPickRange('bl_start', settings['baseline_start_range'], '')
+            self.setPickRange('bl_end', settings['baseline_end_range'], '')
+
 
     def on_close(self):
         self.loading_timer.Stop()
@@ -1562,6 +1660,9 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
         self.param_plot_scale = 'linlin'
         self.profile_plot_scale = 'loglin'
+
+        self._panel_loaded = False
+        self._first_settings = None
 
         self._createLayout()
 
@@ -2414,6 +2515,11 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
                     self.profile_plot_index_end.SetRange([1, len(series_data[0][0])-1])
                     self.profile_plot_index_end.SetValue(len(series_data[0][0])-1)
 
+                if not self._panel_loaded and self._first_settings is not None:
+                    self._update_settings(self._first_settings)
+
+                self._panel_loaded = True
+
             wx.CallAfter(self._process_data)
             self.series_frame.set_has_changes('range', False)
 
@@ -2647,15 +2753,67 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             'q_npts'                : self.calc_args['q_npts'],
             'q_rebin_factor'        : self.calc_args['q_rebin_factor'],
             'q_log_rebin'           : self.calc_args['q_log_rebin'],
+            'q_bin_mode'            : self.qbin_mode.GetStringSelection(),
             'window_size'           : self.calc_args['window_size'],
             'vc_protein'            : self.calc_args['vc_protein'],
             'series_exclude_keys'   : self.calc_args['series_exclude_keys'],
-            'qrange'                : self.calc_args['qrange'],
         }
+
         return settings
 
     def set_settings(self, settings):
-        pass
+        if not self._panel_loaded:
+            self._first_settings = settings
+        else:
+            self._update_settings(settings)
+
+    def _update_settings(self, settings):
+        if settings['set_qrange']:
+            self.q_range_end.SetValue(settings['qrange'][1])
+            self._on_qrange_change(None)
+            self.q_range_start.SetValue(settings['qrange'][0])
+            self._on_qrange_change(None)
+
+        self.do_series_bin.SetValue(settings['bin_series'])
+        self.sbin_factor.SetValue(settings['series_rebin_factor'])
+        self.do_qbin.SetValue(settings['do_q_rebin'])
+        self.qbin_points.SetValue(settings['q_npts'])
+        self.qbin_factor.SetValue(settings['q_rebin_factor'])
+        self.qbin_mode.SetStringSelection(settings['q_bin_mode'])
+
+        if settings['q_log_rebin']:
+            self.qbin_type.SetStringSelection('Log')
+        else:
+            self.qbin_type.SetStringSelection('Linear')
+
+        self.saver_window.SetValue(settings['window_size'])
+        if settings['vc_protein']:
+            self.series_vc_type.SetStringSelection('Protein')
+        else:
+            self.series_vc_type.SetStringSelection('RNA')
+
+        self.series_exclude.SetValue(','.join(settings['series_exclude_keys']))
+
+        if len(settings['cal_data']) > 0:
+            (cal_val_key, cal_save_key, cal_offset, self._cal_x,
+                self._cal_y) = settings['cal_data']
+
+            self.cal_x_key.SetStringSelection(cal_val_key)
+            self.cal_result_key.SetValue(cal_save_key)
+            self.cal_offset.SetValue(str(cal_offset))
+
+            if settings['cal_file'] is not None:
+                self._cal_file = settings['cal_file']
+
+                self.cal_file_label.SetLabel(os.path.basename(self._cal_file))
+
+                if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                    file_tip = STT.SuperToolTip(" ", header = self._cal_file, footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
+                    file_tip.SetTarget(self.cal_file_label)
+                    file_tip.ApplyStyle('Blue Glass')
+
+                else:
+                    self.showitem_icon.SetToolTip(wx.ToolTip(self._cal_file))
 
     def on_close(self):
         pass
