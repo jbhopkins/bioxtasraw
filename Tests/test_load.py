@@ -963,8 +963,8 @@ def test_load_series_old_from_dats():
 
     secm = series_list[0]
 
-    assert len(secm._file_list) == 324
-    assert secm._file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/sec_data/sec_sample_2/BSA_001_0000.dat'
+    assert len(secm.file_list) == 324
+    assert secm.file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/sec_data/sec_sample_2/BSA_001_0000.dat'
     assert secm.total_i[0] == 10.507738068398014
     assert secm.total_i[-1] == 10.473601708833439
     assert secm.total_i.sum() == 3732.5782999682183
@@ -1011,8 +1011,8 @@ def test_load_series_old_from_images():
 
     secm = series_list[0]
 
-    assert len(secm._file_list) == 20
-    assert secm._file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/standards_data/GI2_A9_19_001_0000.tiff'
+    assert len(secm.file_list) == 20
+    assert secm.file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/standards_data/GI2_A9_19_001_0000.tiff'
     assert secm.total_i[0] == 0.00849019951198231
     assert secm.total_i[-1] == 0.006450808839648731
     assert secm.total_i.sum() == 0.14957343176362306
@@ -1059,8 +1059,8 @@ def test_load_series_new_from_dats():
 
     secm = series_list[0]
 
-    assert len(secm._file_list) == 324
-    assert secm._file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/sec_data/sec_sample_2/BSA_001_0000.dat'
+    assert len(secm.file_list) == 324
+    assert secm.file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/sec_data/sec_sample_2/BSA_001_0000.dat'
     assert secm.total_i[0] == 11.558511875237816
     assert secm.total_i[-1] == 11.520961879716785
     assert secm.total_i.sum() == 4105.8361299650405
@@ -1109,8 +1109,8 @@ def test_load_series_new_from_images():
 
     secm = series_list[0]
 
-    assert len(secm._file_list) == 20
-    assert secm._file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/standards_data/GI2_A9_19_001_0000.tiff'
+    assert len(secm.file_list) == 20
+    assert secm.file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/standards_data/GI2_A9_19_001_0000.tiff'
     assert secm.total_i[0] == 0.008572792727392729
     assert secm.total_i[-1] == 0.00652181489858442
     assert secm.total_i.sum() == 0.15115388467535384
@@ -1157,8 +1157,8 @@ def test_load_series_old_from_dats_with_settings(old_settings):
 
     secm = series_list[0]
 
-    assert len(secm._file_list) == 324
-    assert secm._file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/sec_data/sec_sample_2/BSA_001_0000.dat'
+    assert len(secm.file_list) == 324
+    assert secm.file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/sec_data/sec_sample_2/BSA_001_0000.dat'
     assert secm.total_i[0] == 10.507738068398014
     assert secm.total_i[-1] == 10.473601708833439
     assert secm.total_i.sum() == 3732.5782999682183
@@ -1205,8 +1205,8 @@ def test_load_series_old_from_images_with_settings(old_settings):
 
     secm = series_list[0]
 
-    assert len(secm._file_list) == 20
-    assert secm._file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/standards_data/GI2_A9_19_001_0000.tiff'
+    assert len(secm.file_list) == 20
+    assert secm.file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/standards_data/GI2_A9_19_001_0000.tiff'
     assert secm.total_i[0] == 0.00849019951198231
     assert secm.total_i[-1] == 0.006450808839648731
     assert secm.total_i.sum() == 0.14957343176362306
@@ -1253,8 +1253,8 @@ def test_load_series_new_from_dats_with_settings(old_settings):
 
     secm = series_list[0]
 
-    assert len(secm._file_list) == 324
-    assert secm._file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/sec_data/sec_sample_2/BSA_001_0000.dat'
+    assert len(secm.file_list) == 324
+    assert secm.file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/sec_data/sec_sample_2/BSA_001_0000.dat'
     assert secm.total_i[0] == 11.558511875237816
     assert secm.total_i[-1] == 11.520961879716785
     assert secm.total_i.sum() == 4105.8361299650405
@@ -1301,8 +1301,8 @@ def test_load_series_new_from_images_with_settings(old_settings):
 
     secm = series_list[0]
 
-    assert len(secm._file_list) == 20
-    assert secm._file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/standards_data/GI2_A9_19_001_0000.tiff'
+    assert len(secm.file_list) == 20
+    assert secm.file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/standards_data/GI2_A9_19_001_0000.tiff'
     assert secm.total_i[0] == 0.008572792727392729
     assert secm.total_i[-1] == 0.00652181489858442
     assert secm.total_i.sum() == 0.15115388467535384
@@ -1349,8 +1349,8 @@ def test_load_series_sasbdb_keywords():
 
     secm = series_list[0]
 
-    assert len(secm._file_list) == 10
-    assert secm._file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/standards_data/GI2_A9_19_001_0000.tiff'
+    assert len(secm.file_list) == 10
+    assert secm.file_list[0] == '/Users/jesse/Desktop/Tutorial_Data/standards_data/GI2_A9_19_001_0000.tiff'
     assert secm.total_i[0] == 0.008572792727392729
     assert secm.total_i[-1] == 0.008598722084516956
 
@@ -1569,7 +1569,7 @@ def test_profile_to_series():
     test_filenames = [os.path.split(fname)[1] for fname in filenames]
 
     assert isinstance(series, SECM.SECM)
-    assert series._file_list == test_filenames
+    assert series.file_list == test_filenames
     assert series.total_i.sum() == 105.06363296992504
 
 def test_profile_to_series_with_settings(old_settings):
@@ -1583,7 +1583,7 @@ def test_profile_to_series_with_settings(old_settings):
     test_filenames = [os.path.split(fname)[1] for fname in filenames]
 
     assert isinstance(series, SECM.SECM)
-    assert series._file_list == test_filenames
+    assert series.file_list == test_filenames
     assert series.total_i.sum() == 105.06363296992504
 
 def test_make_profile():
