@@ -7536,7 +7536,7 @@ def set_baseline_correction(series, start_range, end_range, baseline_type,
     return (bl_cor_profiles, rg, rger, i0, i0er, vcmw, vcmwer, vpmw, bl_corr,
         fit_results)
 
-def multi_series_calc(series_input, sample_range, buffer_range, do_baseline=False,
+def multi_series_calc(series_input, sample_range, buffer_range=[], do_baseline=False,
     bl_start_range=[], bl_end_range=[], baseline_type='Linear', set_qrange=False,
     qrange=[], bin_series=False, series_rebin_factor=1, series_bin_keys=[],
     series_exclude_keys=[], do_q_rebin=False, q_npts=100, q_rebin_factor=1,
@@ -7545,44 +7545,70 @@ def multi_series_calc(series_input, sample_range, buffer_range, do_baseline=Fals
     vc_protein=True, vc_cutoff='Manual', vc_qmax=0.3, vc_a_prot=1.0,
     vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934):
     """
-    TODO: Update this docstring, profile
-    TODO: Write unit tests
+    Carries out analysis across multiple series. This is designed for datasets
+    where multiple series need to be averaged together, and optionally
+    subtraced from each other on a point by point (profile by profile) basis.
+    Also includes the ability to bin within the series (e.g. bin timepoints,
+    if the series is a time series), set the profile q range, and rebin
+    the profiles in q. If subtraction is being carried out between multiple
+    series, a baseline correction can also be applied. This can be used
+    to analyze repeated time series collected in time resolved experiments,
+    carry out point-by-point buffer subtraction with a blank run for an
+    IEC-SAS elution, and more.
 
     Parameters
     ----------
     series_input: list
         A list of lists of profiles (:class:`SASM.SASM`) to carry out
         the multi-series analysis on. Each list of profiles should correspond
-        to a single series.
+        to a single series. There should be an equal number of profiles in
+        each series.
     sample_range: list
-        A list defining the input sample range to be validated. The list is made
+        A list defining the input sample range in terms of series number. The list is made
         up of a set of sub-ranges, each defined by an entry in the list. Each
         sub-range item should be a list or tuple where the first entry is the
         starting index of the range and the second entry is the ending index
         of the range. So a list like ``[[0, 10], [100, 110]]`` would define
-        a sample range consisting of two sub-ranges, the first from profiles 0-10
-        in the series and the second from profiles 100-110 in the series.
+        a sample range consisting of two sub-ranges, the first from series 0-10
+        and the second from series 100-110 in the series_input list.
+        All series defined as sample are averaged together on a point-by-point
+        basis to create a sample profile at each point in the series (which
+        is optionally subtracted based on the defined buffer_range).
     buffer_range: list, optional
         A list defining the input buffer range to be set. The list is made
         up of a set of sub-ranges, each defined by an entry in the list. Each
         sub-range item should be a list or tuple where the first entry is the
         starting index of the range and the second entry is the ending index
         of the range. So a list like ``[[0, 10], [100, 110]]`` would define
-        a buffer range consisting of two sub-ranges, the first from profiles 0-10
-        in the series and the second from profiles 100-110 in the series.
-        If no buffer range is supplied then the data is assumed to be already
-        subtracted and no buffer subtraction is carried out.
+        a buffer range consisting of two sub-ranges, the first from series 0-10
+        and the second from series 100-110 in the series_input list. All series
+        defined as buffer are averaged together on a point-by-point basis to
+        create a buffer profile at each point in the series. This is then
+        subtracted from the sample profile created by the defined sample_range.
+        If no buffer range is supplied (or an empty list is provided) then the
+        data is assumed to be already subtracted and no buffer subtraction is
+        carried out.
     do_baseline: bool, optional
         If True, a baseline correction is applied. In that case, the bl_start_range
         and bl_end_range values must be supplied.
     bl_start_range: list, optional
         A list defining the baseline start range to be validated. The list is two
-        integers, the start of the range and the end of the range.
+        integers, the start of the range and the end of the range. These define
+        the series used for the baseline. Within each series, baseline correction
+        is carried out on a profile by profile basis. For example, if the start
+        range is 0-5 an end range is 20-25, for the first profile in each series
+        the baseline correction is applied based on the first profile in series 0-5
+        and series 20-25.
     bl_end_range: list, optional
         A list defining the baseline end range to be validated. The list is two
-        integers, the start of the range and the end of the range.
+        integers, the start of the range and the end of the range. These define
+        the series used for the baseline. Within each series, baseline correction
+        is carried out on a profile by profile basis. For example, if the start
+        range is 0-5 an end range is 20-25, for the first profile in each series
+        the baseline correction is applied based on the first profile in series 0-5
+        and series 20-25.
     baseline_type: {'Integral', 'Linear'} str, optional
-        Defines the baseline type for validation purposes.
+        Defines the baseline type.
     set_qrange: bool, optional
         If True, the profiles have the q range set to the q points nearest the
         provided values in q_range
@@ -7591,16 +7617,16 @@ def multi_series_calc(series_input, sample_range, buffer_range, do_baseline=Fals
     bin_series: bool, optional
         If True, profiles are binned within each series in the series list. For
         example, if a series_rebin_factor of 2 is provided, then every two profiles
-        in the series would be averaged together, reducing the total number of
-        profiles in the series by half.
+        in each series would be averaged together, reducing the total number of
+        profiles in each series by half.
     series_rebin_factor: int, optional
         The number of profiles to average together in a series, if bin_series is
         True.
     series_bin_keys: list, optional
         A list of keys corresponding to keys in the profiles 'counters' dictionary
         (sasm.getParameter('counters')) that should be averaged together. This is
-        useful if calibration parameters such as time point are included in the
-        profile header.
+        useful if calibration parameters such as time point (or the input for
+        the cal_data described below) are included in the profile header.
     do_q_rebin: bool, optional
         If True, the profiles are rebinned according the the q_npts, q_rebin_factor,
         and q_log_rebin parameters.
@@ -7616,20 +7642,24 @@ def multi_series_calc(series_input, sample_range, buffer_range, do_baseline=Fals
         Specifies whether the rebinning should be done in linear (False) or
         logarithmic (True) space. Defaults to linear (False).
     cal_data: list, optional
-        This can be used to calibrate the series data if desired. List should
-        consist of the following entires (in order): reference key in the
-        profiles 'counters' dictionary, calibration name key to be added
-        to the profiles 'counters' dictionary, calibration x_offset value,
-        array of x calibration values, array of y calibration values. A 1D
-        interpolated function y(x) will then be created and the calibration
-        value for each profile in the series will be calculated using the
-        reference key value as the x value plus the offset value.
+        This can be used to calibrate the series data if desired as y=f(x). List
+        should consist of the following entires (in order): reference key in the
+        profiles 'counters' dictionary that provides the input value for
+        the calibration, calibration result key to be added to the profiles
+        'counters' dictionary that contains the output value for the calibration,
+        calibration x_offset value that is an offset applied to the calibration
+        input value before calibration is carried out, array of x (input)
+        calibration values, array of y (output) calibration values. A 1D
+        linear interpolated function y=f(x) will then be created and the
+        calibration value for each profile in each series will be calculated
+        using the reference key value as the x value plus the offset value.
     window_size: int, optional
         The size of the average window used when calculating Rg and MW.
         So if the window is 5, 5 a window is size 5 is slid along the series,
         and profiles in that window are averaged before being used to calculate
         Rg and MW. For example, frames 1-5, 2-6, 3-7, etc would be averaged and
-        then have Rg and MW calculated from that average.
+        then have Rg and MW calculated from that average. Default is 1 (no
+        averaging).
     settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
         RAW settings containing relevant parameters. If provided, err_weight,
         vp_density, vp_cutoff, vp_qmax, vc_protein, vc_cutoff, and vc_qmax are
@@ -7671,7 +7701,7 @@ def multi_series_calc(series_input, sample_range, buffer_range, do_baseline=Fals
     -------
     sub_series: list
         A series of the subtracted profiles. Each subtracted profile corresponds
-        to a single point across all the input series, with the defined buffer
+        to a single point/profile from all the input series, with the defined buffer
         and sample ranges provided.
     rg: :class:`numpy.array`
         An array of the Rg values calculated for each subtracted profile. If
@@ -7714,7 +7744,7 @@ def multi_series_calc(series_input, sample_range, buffer_range, do_baseline=Fals
         If no calibraiton data was supplied the array is empty.
     """
 
-    series_list = copy.deepcopy(series_input)
+    series_list = [copy.copy(series) for series in series_input]
 
     if settings is not None:
         error_weight = settings.get('errorWeight')
@@ -7743,12 +7773,20 @@ def multi_series_calc(series_input, sample_range, buffer_range, do_baseline=Fals
 
     # First set the q range
     if set_qrange:
+        orig_qranges = []
         for series in series_list:
+            series_orig_qranges = []
             for profile in series:
-                qvals = profile.getQ()
+                orig_qrange = profile.getQrange()
+                series_orig_qranges.append(orig_qrange)
+
+                qvals = profile.q
                 qmin_idx = profile.closest(qvals, qrange[0])
                 qmax_idx = profile.closest(qvals, qrange[1])
+
                 profile.setQrange([qmin_idx, qmax_idx])
+
+            orig_qranges.append(series_orig_qranges)
 
     # Would it make everything faster to do this first?
     # Next bin the profiles in the series (e.g. timepoint binning)
@@ -7851,5 +7889,14 @@ def multi_series_calc(series_input, sample_range, buffer_range, do_baseline=Fals
         vc_cutoff=vc_cutoff, vc_qmax=vc_qmax, vc_a_prot=vc_a_prot,
         vc_b_prot=vc_b_prot, vc_a_rna=vc_a_rna, vc_b_rna=vc_b_rna,
         calc_outside_win=True)
+
+    # Reset to original q ranges (to avoid having to deep copy profiles to avoid changes upstream)
+    # Seems a little odd but is much faster than a deep copy
+    if set_qrange:
+        for j, series in enumerate(series_list):
+            series_orig_qranges = orig_qranges[j]
+            for k, profile in enumerate(series):
+                qrange = series_orig_qranges[k]
+                profile.setQrange(qrange)
 
     return sub_series, rg, rger, i0, i0er, vcmw, vcmwer, vpmw, calibration

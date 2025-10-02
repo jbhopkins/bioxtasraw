@@ -239,9 +239,6 @@ class MultiSeriesFrame(wx.Frame):
         RAWGlobals.mainworker_cmd_queue.put(['to_plot_series', [series,
             None, None, True]])
 
-        # TODO: Need to save whole multi series with all the profiles?
-        # TODO: Add multi-series settings to pdf report?
-
         self.OnClose()
 
     def OnCloseEvt(self, evt):
@@ -595,8 +592,6 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
             msg += ', '.join(no_files)
             wx.CallAfter(self.series_frame.main_frame.showMessageDialog,
                 self.series_frame, msg, "Finding files failed", wx.ICON_ERROR|wx.OK)
-
-        #TODO: Maybe make rg and such plots blit
 
     def _on_add_from_raw(self, evt):
         wx.CallAfter(self._add_from_raw)
@@ -1660,6 +1655,7 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
         self.param_plot_scale = 'linlin'
         self.profile_plot_scale = 'loglin'
+        self.param_vlines = []
 
         self._panel_loaded = False
         self._first_settings = None
@@ -1958,7 +1954,14 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
         self.profile_fig.tight_layout(pad=1, h_pad=1)
         self.profile_canvas.draw()
 
-        self.profile_cid = self.profile_canvas.mpl_connect('draw_event', self.ax_redraw)
+        self.background = self.param_canvas.copy_from_bbox(self.param_fig.bbox)
+
+        self.redrawLines()
+
+        self.param_cid = self.param_canvas.mpl_connect('draw_event',
+            self.ax_redraw)
+        self.profile_cid = self.profile_canvas.mpl_connect('draw_event',
+            self.ax_redraw)
 
     def label_param_plots(self, cal_key):
         self.rg_plot.set_ylabel('Rg')
@@ -2014,13 +2017,17 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
         sasm_list = self.multi_series_results['series'].getAllSASMs()
 
+        self.param_vlines = []
+
         for j, sasm in enumerate(self.plotted_sasms):
             color = self.profile_plot.lines[j].get_color()
             index = sasm_list.index(sasm)
 
-            self.rg_plot.axvline(xdata[index], color=color)
-            self.i0_plot.axvline(xdata[index], color=color)
-            self.mw_plot.axvline(xdata[index], color=color)
+            line1 = self.rg_plot.axvline(xdata[index], color=color, animated=True)
+            line2 = self.i0_plot.axvline(xdata[index], color=color, animated=True)
+            line3 = self.mw_plot.axvline(xdata[index], color=color, animated=True)
+
+            self.param_vlines.append([line1, line2, line3])
 
         self.mw_plot.legend()
 
@@ -2031,7 +2038,29 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
         self.updatePlot(plot_scale, 'param', False)
 
-        self.ax_redraw()
+
+        self.param_canvas.mpl_disconnect(self.param_cid)
+
+        self.param_fig.tight_layout(pad=1, h_pad=1)
+        self.param_canvas.draw()
+
+        self.background = self.param_canvas.copy_from_bbox(self.param_fig.bbox)
+
+        self.redrawLines()
+
+        self.param_cid = self.param_canvas.mpl_connect('draw_event',
+            self.ax_redraw)
+
+    def redrawLines(self):
+
+        if len(self.param_vlines) != 0:
+            self.param_canvas.restore_region(self.background)
+
+            for lines in self.param_vlines:
+                for line in lines:
+                    self.param_fig.draw_artist(line)
+
+            self.param_canvas.blit(self.param_fig.bbox)
 
     def plot_profile_data(self):
         if len(self.multi_series_results.keys()) > 0:
@@ -2061,7 +2090,39 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
             self.label_profile_plot()
 
-            self.ax_redraw()
+            self.profile_canvas.mpl_disconnect(self.profile_cid)
+
+            self.profile_fig.tight_layout(pad=1, h_pad=1)
+            self.profile_canvas.draw()
+
+            self.profile_cid = self.profile_canvas.mpl_connect('draw_event',
+                self.ax_redraw)
+
+
+    def replot_series_lines(self):
+        if len(self.plotted_sasms) == len(self.param_vlines):
+            cal = self.multi_series_results['cal_vals']
+            cal_label = self.multi_series_results['cal_save_key']
+            used_frames = self.multi_series_results['used_frames']
+            sasm_list = self.multi_series_results['series'].getAllSASMs()
+
+            if len(cal) == 0:
+                xdata = used_frames
+            else:
+                xdata = cal
+
+            for j, sasm in enumerate(self.plotted_sasms):
+                color = self.profile_plot.lines[j].get_color()
+                index = sasm_list.index(sasm)
+
+                for line in self.param_vlines[j]:
+                    line.set_xdata([xdata[index],xdata[index]])
+                    line.set_color(color)
+
+            self.redrawLines()
+
+        else:
+            self.plot_series_data()
 
     def _on_plot_index_change(self, evt):
         if len(self.multi_series_results.keys()) > 0:
@@ -2074,12 +2135,14 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
                 self.profile_plot_index.SetIndex(min(plt_idx, end_range[1]))
 
             self.plot_profile_data()
-            self.plot_series_data()
+
+            self.replot_series_lines()
 
     def _on_plot_step_change(self, evt):
         if len(self.multi_series_results.keys()) > 0:
             self.plot_profile_data()
-            self.plot_series_data()
+
+            self.replot_series_lines()
 
     def _on_plot_multiple(self, evt):
         if self.plot_multiple_profiles.GetValue():
@@ -2091,7 +2154,8 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
         if len(self.multi_series_results.keys()) > 0:
             self.plot_profile_data()
-            self.plot_series_data()
+
+            self.replot_series_lines()
 
     def _onMouseButtonReleaseEvent(self, event):
         ''' Find out where the mouse button was released
@@ -2229,10 +2293,22 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
                     self.mw_plot.set_xscale('log')
                     self.mw_plot.set_yscale('linear')
 
+                if draw:
+
+                    self.param_canvas.mpl_disconnect(self.param_cid)
+
+                    self.param_fig.tight_layout(pad=1, h_pad=1)
+                    self.param_canvas.draw()
+
+                    self.background = self.param_canvas.copy_from_bbox(self.param_fig.bbox)
+
+                    self.redrawLines()
+
+                    self.param_cid = self.param_canvas.mpl_connect('draw_event',
+                        self.ax_redraw)
+
         elif plot == 'profile':
             if plot_scale != self.profile_plot_scale:
-                # TODO
-                # Need to check if dimensionless kratky plot is selected and possible !!!!!!!!!!!!!!!!!
                 old_ps = copy.copy(self.profile_plot_scale)
 
                 self.profile_plot_scale = plot_scale
@@ -2289,29 +2365,40 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
                         rg = self.multi_series_results['rg'][index]
                         i0 = self.multi_series_results['i0'][index]
 
-                        y_val = (rg*sasm.getQ())**2*(sasm.getI()/i0)
+                        if rg > 0:
+                            y_val = (rg*sasm.getQ())**2*(sasm.getI()/i0)
 
-                        self.profile_plot.lines[j].set_ydata(y_val)
-                        self.profile_plot.lines[j].set_xdata(sasm.getQ())
+                            self.profile_plot.lines[j].set_ydata(y_val)
+                            self.profile_plot.lines[j].set_xdata(sasm.getQ())
+
+                        else:
+                            self.profile_plot.lines[j].set_ydata([])
+                            self.profile_plot.lines[j].set_xdata([])
 
                     self.profile_plot.set_xscale('linear')
                     self.profile_plot.set_yscale('linear')
 
                 if (old_ps == 'kratky' or old_ps == 'porod'
                     or old_ps == 'dimensionlesskratky'):
-                    self.autoscale_plot(self.profile_canvas)
+                    self.autoscale_plot(self.profile_canvas, draw=False)
                 else:
                     if (plot_scale == 'kratky' or plot_scale == 'porod'
                         or plot_scale == 'dimensionlesskratky'):
-                        self.autoscale_plot(self.profile_canvas)
+                        self.autoscale_plot(self.profile_canvas, draw=False)
 
                 self.label_profile_plot()
 
-        if draw:
-            self.ax_redraw()
+                if draw:
+                    self.profile_canvas.mpl_disconnect(self.profile_cid)
+
+                    self.profile_fig.tight_layout(pad=1, h_pad=1)
+                    self.profile_canvas.draw()
+
+                    self.profile_cid = self.profile_canvas.mpl_connect('draw_event',
+                        self.ax_redraw)
 
 
-    def autoscale_plot(self, canvas=None):
+    def autoscale_plot(self, canvas=None, draw=True):
         if canvas == self.param_canvas:
             self.rg_plot.set_autoscale_on(True)
             self.rg_plot.relim(True)
@@ -2328,7 +2415,8 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             self.profile_plot.relim(True)
             self.profile_plot.autoscale_view()
 
-        self.ax_redraw()
+        if draw:
+            self.ax_redraw()
 
     def _exportData(self):
         if len(self.multi_series_results.keys()) > 0:
@@ -2667,14 +2755,9 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
             }
 
-            # This might be slow?
             (sub_series, rg, rger, i0, i0er, vcmw, vcmwer, vpmw,
                 cal_vals) = RAWAPI.multi_series_calc(self.series_sasm_list,
                 sample_range_list, buffer_range_list, **self.calc_args)
-
-            ####### TODO:
-            # Profile multi_series_calc and work on speeding it up
-
 
             # Set the naming if it seems reasonable
             series_load_data = self.series_frame.load_ctrl.get_series_data()

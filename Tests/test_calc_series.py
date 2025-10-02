@@ -28,6 +28,34 @@ def clean_baseline_series(int_baseline_series):
     series = copy.deepcopy(int_baseline_series)
     return series
 
+@pytest.fixture(scope="module")
+def multiseries_buffer():
+    flist = ['GIbuf2_A9_18_001_0000.dat', 'GIbuf2_A9_18_001_0001.dat',
+        'GIbuf2_A9_18_001_0002.dat', 'GIbuf2_A9_18_001_0003.dat',
+        'GIbuf2_A9_18_001_0004.dat', 'GIbuf2_A9_18_001_0005.dat',
+        'GIbuf2_A9_18_001_0006.dat', 'GIbuf2_A9_18_001_0007.dat',
+        'GIbuf2_A9_18_001_0008.dat', 'GIbuf2_A9_18_001_0009.dat']
+
+    filenames = [os.path.join('.', 'data', 'multiseries_dats', fname) for fname in flist]
+
+    profiles = raw.load_profiles(filenames)
+
+    return profiles
+
+@pytest.fixture(scope="module")
+def multiseries_sample():
+    flist = ['GI2_A9_19_001_0000.dat', 'GI2_A9_19_001_0001.dat',
+        'GI2_A9_19_001_0002.dat', 'GI2_A9_19_001_0003.dat',
+        'GI2_A9_19_001_0004.dat', 'GI2_A9_19_001_0005.dat',
+        'GI2_A9_19_001_0006.dat', 'GI2_A9_19_001_0007.dat',
+        'GI2_A9_19_001_0008.dat', 'GI2_A9_19_001_0009.dat']
+
+    filenames = [os.path.join('.', 'data', 'multiseries_dats', fname) for fname in flist]
+
+    profiles = raw.load_profiles(filenames)
+
+    return profiles
+
 def test_svd(bsa_series):
     svd_s, svd_U, svd_V = raw.svd(bsa_series)
     assert np.allclose(svd_s[0], 7474.750264659797)
@@ -493,6 +521,7 @@ def test_validate_baseline_range_list(int_baseline_series):
     assert intI_results[1]['intI_pval'] == 0.3572478396366079
     assert intI_results[1]['smoothed_intI_pval'] == 0.06588236359826605
 
+# Linear always has errors, so this test is disabled
 # def test_validate_baseline_range_linear_good(int_baseline_series):
 #     (valid, valid_results, similarity_results, svd_results, intI_results,
 #         other_results) = raw.validate_baseline_range(int_baseline_series,
@@ -544,3 +573,76 @@ def test_set_baseline_correction_linear(clean_baseline_series):
     assert rger[200] == 0.12827521377190731
     assert all(rg == clean_baseline_series.getRg()[0])
     assert clean_baseline_series.getIntI(int_type='baseline').sum() == 0.10684702672323632
+
+def test_multi_series(multiseries_buffer, multiseries_sample):
+    results = raw.multi_series_calc([multiseries_buffer, multiseries_sample],
+        [[1,1]], [[0,0]])
+
+    assert np.mean(results[1]) == 33.75946771888064
+    assert np.mean(results[5]) == 149.20802773846773
+    assert len(results[5]) == 10
+
+def test_multi_series_qrange(multiseries_buffer, multiseries_sample):
+    results = raw.multi_series_calc([multiseries_buffer, multiseries_sample],
+        [[1,1]], [[0,0]], set_qrange=True, qrange=[0.02, 0.2])
+
+    assert np.mean(results[1]) == 33.757752429225526
+    assert np.mean(results[5]) == 151.4119992005085
+    assert results[0].getSASM().getQ()[0] == 0.019904977
+    assert results[0].getSASM().getQ()[-1] == 0.199338248
+    assert multiseries_buffer[0].getQ()[0] == 0.0100967275
+    assert multiseries_buffer[0].getQ()[-1] == 0.282996847
+
+def test_multi_series_bin_series(multiseries_buffer, multiseries_sample):
+    results = raw.multi_series_calc([multiseries_buffer, multiseries_sample],
+        [[1,1]], [[0,0]], bin_series=True, series_rebin_factor=2,
+        series_bin_keys=['number',])
+
+    assert np.mean(results[1]) == 33.73071423408199
+    assert np.mean(results[5]) == 143.1737688043273
+    assert len(results[5]) == 5
+    assert results[0].getSASM().getParameter('counters')['number'] == 0.5
+
+def test_multi_series_bin_q_factor(multiseries_buffer, multiseries_sample):
+    results = raw.multi_series_calc([multiseries_buffer, multiseries_sample],
+        [[1,1]], [[0,0]], do_q_rebin=True, q_rebin_factor=2)
+
+    assert np.mean(results[1]) == 33.67771823198244
+    assert np.mean(results[5]) == 149.060849293155
+    assert len(multiseries_buffer[0].getQ()) == 474
+    assert len(results[0].getSASM().getQ()) == 237
+
+def test_multi_series_bin_q_factor(multiseries_buffer, multiseries_sample):
+    results = raw.multi_series_calc([multiseries_buffer, multiseries_sample],
+        [[1,1]], [[0,0]], do_q_rebin=True, q_npts=150)
+
+    assert np.mean(results[1]) == 33.73669957188719
+    assert np.mean(results[5]) == 149.11716144647875
+    assert len(multiseries_buffer[0].getQ()) == 474
+    assert len(results[0].getSASM().getQ()) == 158
+
+def test_multi_series_cal(multiseries_buffer, multiseries_sample):
+    results = raw.multi_series_calc([multiseries_buffer, multiseries_sample],
+        [[1,1]], [[0,0]], cal_data=['number', 'cal', 1, [0, 15], [0, 30]])
+
+    assert np.mean(results[1]) == 33.75946771888064
+    assert np.mean(results[5]) == 149.20802773846773
+    assert results[0].getSASM().getParameter('counters')['cal'] == 2
+    assert results[0].getSASM(9).getParameter('counters')['cal'] == 20
+
+def test_multi_series_baseline(multiseries_buffer, multiseries_sample):
+    results = raw.multi_series_calc([multiseries_buffer,
+        copy.deepcopy(multiseries_buffer)[::-1], multiseries_sample,
+        copy.deepcopy(multiseries_buffer)[::-1], multiseries_buffer],
+        [[2,2]], [[0,0]], do_baseline=True, bl_start_range=[0,1],
+        bl_end_range=[3,4])
+
+    assert np.mean(results[1]) == 33.749560663740986
+    assert np.mean(results[5]) == 148.16417785188568
+
+def test_multi_series_window(multiseries_buffer, multiseries_sample):
+    results = raw.multi_series_calc([multiseries_buffer, multiseries_sample],
+        [[1,1]], [[0,0]], window_size=5)
+
+    assert np.mean(results[1][4]) == 33.90891894075841
+    assert np.mean(results[5][4]) == 141.03226108148883
