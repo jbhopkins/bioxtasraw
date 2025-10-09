@@ -321,7 +321,8 @@ def superimpose(sasm_star, sasm_list, choice):
         min_q_idx = np.where(q_star >= min_q_each)[0][0]
         max_q_idx = np.where(q_star <= max_q_each)[0][-1]
 
-        if np.all(q_star[min_q_idx:max_q_idx+1] != each_q[each_q_qrange_min:each_q_qrange_max]):
+        if (len(q_star[min_q_idx:max_q_idx+1]) != len(each_q[each_q_qrange_min:each_q_qrange_max])
+            or np.all(q_star[min_q_idx:max_q_idx+1] != each_q[each_q_qrange_min:each_q_qrange_max])):
             I_resamp = np.interp(q_star[min_q_idx:max_q_idx+1],
                                  each_q[each_q_qrange_min:each_q_qrange_max],
                                  each_i[each_q_qrange_min:each_q_qrange_max])
