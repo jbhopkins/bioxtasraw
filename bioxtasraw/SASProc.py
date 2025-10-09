@@ -326,20 +326,22 @@ def superimpose(sasm_star, sasm_list, choice):
             I_resamp = np.interp(q_star[min_q_idx:max_q_idx+1],
                                  each_q[each_q_qrange_min:each_q_qrange_max],
                                  each_i[each_q_qrange_min:each_q_qrange_max])
+            I_ref = i_star[min_q_idx:max_q_idx+1]
         else:
             I_resamp = each_i[each_q_qrange_min:each_q_qrange_max]
+            I_ref = i_star
 
-        if not np.all(I_resamp ==i_star):
+        if not np.all(I_resamp ==I_ref):
             if choice == 'Scale and Offset':
                 A = np.column_stack([I_resamp, np.ones_like(I_resamp)])
-                scale, offset = np.linalg.lstsq(A, i_star[min_q_idx:max_q_idx+1])[0]
+                scale, offset = np.linalg.lstsq(A, I_ref)[0]
             elif choice == 'Scale':
                 A = np.column_stack([I_resamp, np.zeros_like(I_resamp)])
-                scale, offset= np.linalg.lstsq(A, i_star[min_q_idx:max_q_idx+1])[0]
+                scale, offset= np.linalg.lstsq(A, I_ref)[0]
                 offset = 0
             elif choice == 'Offset':
                 A = np.column_stack([np.zeros_like(I_resamp), np.ones_like(I_resamp)])
-                scale, offset= np.linalg.lstsq(A, i_star[min_q_idx:max_q_idx+1]-I_resamp)[0]
+                scale, offset= np.linalg.lstsq(A, I_ref-I_resamp)[0]
                 scale = 1
 
             each_sasm.scale(scale)

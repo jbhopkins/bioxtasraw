@@ -2035,6 +2035,13 @@ def test_superimpose(bsa_series_profiles):
         assert all(sup_profiles[j].getI() == input_profiles[j].getI())
         assert all(sup_profiles[j].getErr() == input_profiles[j].getErr())
 
+def test_superimpose_mismatched_q(gi_sub_profile):
+    test_profile = copy.deepcopy(gi_sub_profile)
+    binned_profile = raw.rebin([test_profile], npts=100)[0]
+    binned_profile.scale(2)
+
+    sup_profiles = raw.superimpose([binned_profile], test_profile)
+
 def test_scale_profile(gi_sub_profile, scale_factor):
     test_profile = copy.deepcopy(gi_sub_profile)
 
