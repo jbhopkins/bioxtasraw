@@ -997,6 +997,9 @@ def calcVcMW(sasm, temp_rg, i0, temp_qmax, a_prot, b_prot, a_rna, b_rna,
             guinier_analysis = analysis['guinier']
             qmin = float(guinier_analysis['qStart'])
 
+            if unit == '1/nm':
+                qmin = qmin/10
+
             findClosest = lambda a,l:min(l,key=lambda x:abs(x-a))
             closest_qmin = findClosest(qmin, q)
 
@@ -1019,7 +1022,8 @@ def calcVcMW(sasm, temp_rg, i0, temp_qmax, a_prot, b_prot, a_rna, b_rna,
     #We then take a ratio of the square of vc to rg
     qr=np.square(vc)/rg
 
-    #The molecular weight is then determined in a power law relationship. Note, the 1000 puts it in kDa
+    #The molecular weight is then determined in a power law relationship.
+    #Note, the 1000 puts it in kDa
 
     if protein:
         A = a_prot
