@@ -5760,7 +5760,7 @@ class OptionsDialog(wx.Dialog):
         self.SetSizer(sizer)
 
         client_display = wx.GetClientDisplayRect()
-        minsize = (min(800, client_display.Width), min(600, client_display.Height))
+        minsize = (min(875, client_display.Width), min(600, client_display.Height))
         self.SetMinSize(self._FromDIP(minsize))
 
         SASUtils.set_best_size(self)

@@ -29,6 +29,7 @@ import platform
 
 import scipy.optimize
 import scipy.interpolate
+import scipy.integrate as integrate
 import numpy as np
 from numba import jit
 
@@ -153,12 +154,10 @@ def bift_inner_loop(f, p, B, alpha, N, sum_dia):
     return f, p, sigma, dotsp, xprec
 
 @jit(nopython=True, cache=True)
-def getEvidence(params, q, i, err, N):
-
-    alpha, dmax = params
-    alpha = np.exp(alpha)
-
-    err = err**2
+def getEvidence(params, q, i, orig_err, N):
+    log_alpha, dmax = params
+    alpha = np.exp(log_alpha)
+    err = orig_err**2
 
     p, r = makePriorDistribution(i[0], N, dmax, 'sphere') #Note, here I use p for what Hansen calls m
     T = createTransMatrix(q, r)
@@ -199,7 +198,7 @@ def getEvidence(params, q, i, err, N):
     # Absolute value of determinant is equal to the product of the singular values
     rlogdet = np.log(np.abs(np.linalg.det(u)))
 
-    evidence = -np.log(abs(dmax))+(alpha*s-0.5*c*i.size)-0.5*rlogdet-np.log(abs(alpha))
+    evidence = -np.log(np.abs(dmax))+(alpha*s-0.5*c*i.size)-0.5*rlogdet-np.log(np.abs(alpha))
 
     # Some kind of after the fact adjustment
 
@@ -228,7 +227,7 @@ def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False,
         else:
             n_proc = min(nprocs, multiprocessing.cpu_count())
         mp_pool = multiprocessing.Pool(processes=n_proc)
-        mp_get_evidence = functools.partial(getEvidence, q=q, i=i, err=err, N=N)
+        mp_get_evidence = functools.partial(getEvidence, q=q, i=i, orig_err=err, N=N)
     else:
         n_proc = nprocs
 
@@ -310,8 +309,8 @@ def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False,
     c = np.sum(c_array*prob)
     evidence = np.sum(ev_array*prob)
 
-    area = np.trapz(f_array, r_array, axis=1)
-    area2 = np.trapz(f_array*r_array**2, r_array, axis=1)
+    area = integrate.trapezoid(f_array, r_array, axis=1)
+    area2 = integrate.trapezoid(f_array*r_array**2, r_array, axis=1)
     rg_array = np.sqrt(abs(area2/(2.*area)))
     i0_array = area*4*np.pi
     rg = np.sum(rg_array*prob)
@@ -333,7 +332,7 @@ def calc_bift_errors(opt_params, q, i, err, N, mc_runs=300, abort_check=False,
 def make_fit(q, r, pr):
     qr = np.outer(q, r)
     sinc_qr = np.where(qr==0, 1, np.sin(qr)/qr)
-    i = 4*np.pi*np.trapz(pr*sinc_qr, r, axis=1)
+    i = 4*np.pi*integrate.trapezoid(pr*sinc_qr, r, axis=1)
 
     return i
 
@@ -392,7 +391,7 @@ def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
         else:
             n_proc = min(nprocs, multiprocessing.cpu_count())
         mp_pool = multiprocessing.Pool(processes=n_proc)
-        mp_get_evidence = functools.partial(getEvidence, q=q, i=i, err=err, N=N)
+        mp_get_evidence = functools.partial(getEvidence, q=q, i=i, orig_err=err, N=N)
     else:
         n_proc = nprocs
 
@@ -499,8 +498,8 @@ def doBift(q, i, err, filename, npts, alpha_min, alpha_max, alpha_n, dmax_min,
 
             pr = f
 
-            area = np.trapz(pr, r)
-            area2 = np.trapz(np.array(pr)*np.array(r)**2, r)
+            area = integrate.trapezoid(pr, r)
+            area2 = integrate.trapezoid(np.array(pr)*np.array(r)**2, r)
 
             rg = np.sqrt(abs(area2/(2.*area)))
             i0 = area*4*np.pi

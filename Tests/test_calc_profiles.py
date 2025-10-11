@@ -615,6 +615,23 @@ def test_gnom_not_guinier_start(clean_gi_sub_profile):
     assert round(ift.q_orig[0], 7) == round(clean_gi_sub_profile.getQ()[0], 7)
 
 @pytest.mark.atsas
+def test_gnom_dupe_data(gi_sub_profile_dupe_data, gi_gnom_ift):
+    profile = copy.deepcopy(gi_sub_profile_dupe_data)
+
+    analysis_dict = profile.getParameter('analysis')
+    guinier_dict = analysis_dict['guinier']
+    idx_min = max(0, int(guinier_dict['nStart']) - profile.getQrange()[0])
+
+    (ift, dmax, rg, i0, rg_err, i0_err, total_est, chi_sq, alpha,
+        quality) = raw.gnom(profile, 101)
+
+    assert dmax == gi_gnom_ift.getParameter('dmax')
+    assert rg == gi_gnom_ift.getParameter('rg')
+    assert np.allclose(ift.r, gi_gnom_ift.r)
+    assert np.allclose(ift.p, gi_gnom_ift.p)
+    assert round(ift.q_orig[0], 7) == round(gi_sub_profile_dupe_data.getQ()[idx_min], 7)
+
+@pytest.mark.atsas
 def test_gnom_file(clean_gi_sub_profile, gi_gnom_ift):
     profile = copy.deepcopy(clean_gi_sub_profile)
 
@@ -843,9 +860,9 @@ def test_crysol_fit(temp_directory):
 
     assert len(results) == 1
     assert fit_params['Rg'] == 33.22
-    assert fit_params['Excluded_volume'] == 213838
+    assert fit_params['Excluded_volume'] == 229876.0
     assert fit_params['Chi_squared'] ==  1.089
-    assert np.allclose(fit_profile.getI().sum(), 3.72612387712)
+    assert np.allclose(fit_profile.getI().sum(), 3.7260180941)
 
 @pytest.mark.atsas
 @pytest.mark.slow
@@ -867,9 +884,9 @@ def test_crysol_fit_settings(temp_directory, old_settings):
 
     assert len(results) == 1
     assert fit_params['Rg'] == 33.22
-    assert fit_params['Excluded_volume'] == 213838
+    assert fit_params['Excluded_volume'] == 229876.0
     assert fit_params['Chi_squared'] ==  1.089
-    assert np.allclose(fit_profile.getI().sum(), 3.72612387712)
+    assert np.allclose(fit_profile.getI().sum(), 3.7260180941)
 
 def test_dift(clean_gi_sub_profile, old_settings, gi_dift_ift):
     (ift, dmax, rg, i0, rg_err, i0_err, chi_sq, alpha) = raw.denss_ift(clean_gi_sub_profile,)

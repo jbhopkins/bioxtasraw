@@ -496,7 +496,7 @@ class FloatSpinCtrlList(wx.Panel):
 
     def __init__(self, parent, value_list, id=wx.ID_ANY, initIndex=None,
         button_style=wx.SP_VERTICAL, TextLength=45, min_idx=0, max_idx=-1,
-         **kwargs):
+        sig_figs=-1, **kwargs):
 
         wx.Panel.__init__(self, parent, id, **kwargs)
 
@@ -507,6 +507,7 @@ class FloatSpinCtrlList(wx.Panel):
 
         self.min_idx = min_idx
         self.max_idx = max_idx
+        self.sig_figs = sig_figs
 
         if initIndex is None:
             initIndex = 0
@@ -537,6 +538,8 @@ class FloatSpinCtrlList(wx.Panel):
         else:
             self.Scale = wx.TextCtrl(self, -1, str(value_list[initIndex]),
                 size=self._FromDIP((TextLength,22)), style=wx.TE_PROCESS_ENTER)
+
+        self._change_value(value_list[initIndex])
 
         self.Scale.Bind(wx.EVT_KILL_FOCUS, self.OnFocusChange)
         self.Scale.Bind(wx.EVT_TEXT_ENTER, self.OnEnter)
@@ -578,6 +581,12 @@ class FloatSpinCtrlList(wx.Panel):
 
         event.Skip()
 
+    def _change_value(self, val):
+        if self.sig_figs != -1:
+            val = round(val, self.sig_figs)
+
+        self.Scale.ChangeValue(str(val))
+
     def setNearest(self):
         val = self.Scale.GetValue()
         val = val.replace(',', '.')
@@ -585,14 +594,14 @@ class FloatSpinCtrlList(wx.Panel):
         try:
             val = float(val)
         except ValueError:
-            current_value = str(self.value_list[self.current_index])
-            self.Scale.ChangeValue(current_value)
+            current_value = self.value_list[self.current_index]
+            self._change_value(current_value)
             self._showInvalidNumberError()
             return
 
         self.current_index, closest = self.findClosest(val)
 
-        self.Scale.ChangeValue(str(closest))
+        self._change_value(closest)
 
 
     def findClosest(self, val):
@@ -605,12 +614,12 @@ class FloatSpinCtrlList(wx.Panel):
     def OnSpinUpScale(self, event):
 
         if self.current_index + 1 <= self.max_idx:
-            newval = str(self.value_list[self.current_index+1])
+            newval = self.value_list[self.current_index+1]
             self.current_index = self.current_index + 1
         else:
-            newval = str(self.value_list[self.current_index])
+            newval = self.value_list[self.current_index]
 
-        self.Scale.ChangeValue(newval)
+        self._change_value(newval)
         self.CastFloatSpinEvent()
 
         self.Scale.SetInsertionPoint(0)
@@ -621,25 +630,25 @@ class FloatSpinCtrlList(wx.Panel):
     def OnSpinDownScale(self, event):
 
         if self.current_index - 1 >= self.min_idx:
-            newval = str(self.value_list[self.current_index - 1])
+            newval = self.value_list[self.current_index - 1]
             self.current_index = self.current_index - 1
         else:
-            newval = str(self.value_list[self.current_index])
+            newval = self.value_list[self.current_index]
 
-        self.Scale.ChangeValue(newval)
+        self._change_value(newval)
         self.CastFloatSpinEvent()
 
         self.Scale.SetInsertionPoint(0)
 
     def GetValue(self):
-        value = self.Scale.GetValue()
+        value = str(self.value_list[self.current_index])
         return value
 
     def SetValue(self, value):
         value = float(value)
         self.current_index, closest = self.findClosest(value)
 
-        self.Scale.ChangeValue(str(closest))
+        self._change_value(closest)
 
         self.Scale.SetInsertionPoint(0)
 
@@ -656,7 +665,22 @@ class FloatSpinCtrlList(wx.Panel):
     def SetIndex(self, index):
         if index >= self.min_idx and index <= self.max_idx:
             self.current_index = index
-            self.Scale.ChangeValue(str(self.value_list[self.current_index]))
+            self._change_value(self.value_list[self.current_index])
+
+    def SetValueList(self, new_value_list):
+        self.value_list = np.array(new_value_list)
+
+        if self.min_idx >= len(new_value_list)-1:
+            self.min_idx = len(new_value_list)-2
+        if self.max_idx >= len(new_value_list):
+            self.max_idx = len(new_value_list)-1
+
+        if self.current_index < self.min_idx:
+            self.current_index = self.min_idx
+        elif self.current_index > self.max_idx:
+            self.current_index = self.max_idx
+
+        self.SetIndex(self.current_index)
 
 
 class IntSpinCtrl(wx.Panel):
@@ -1273,20 +1297,33 @@ class ItemList(wx.Panel):
         first_idx = self.get_item_index(selected_items[0])
 
         if sel_item in selected_items:
-            for item in self.all_items[first_idx:sel_idx]:
-                item.set_selected(False)
+            for i, item in enumerate(self.all_items[first_idx:sel_idx]):
+                if i == len(self.all_items[first_idx:sel_idx]) -1:
+                    item.set_selected(False, update=True)
+                else:
+                    item.set_selected(False, update=False)
+
         else:
             if sel_idx < first_idx:
-                for item in self.all_items[sel_idx:first_idx]:
-                    item.set_selected(True)
+                for i, item in enumerate(self.all_items[sel_idx:first_idx]):
+                    if i == len(self.all_items[sel_idx:first_idx]) -1:
+                        item.set_selected(True, update=True)
+                    else:
+                        item.set_selected(True, update=False)
             else:
                 last_idx = self.get_item_index(selected_items[-1])
-                for item in self.all_items[last_idx+1:sel_idx+1]:
-                    item.set_selected(True)
+                for i, item in enumerate(self.all_items[last_idx+1:sel_idx+1]):
+                    if i == len(self.all_items[last_idx+1:sel_idx+1]) -1:
+                        item.set_selected(True, update=True)
+                    else:
+                        item.set_selected(True, update=False)
 
-    def remove_items(self, items):
+        self.Refresh()
+
+
+    def remove_items(self, items, deselect=True):
         for item in items:
-            self.remove_item(item, resize=False)
+            self.remove_item(item, resize=False, deselect=deselect)
 
         self.resize_list()
 
@@ -1294,15 +1331,17 @@ class ItemList(wx.Panel):
         selected_items = self.get_selected_items()
 
         if len(selected_items) > 0:
-            self.remove_items(selected_items)
+            self.remove_items(selected_items, deselect=False)
 
-    def remove_item(self, item, resize=True):
+        self.get_selected_items()
+
+    def remove_item(self, item, resize=True, deselect=True):
         item.remove()
 
         if item in self.modified_items:
             self.modified_items.remove(item)
 
-        if item in self.selected_items:
+        if item in self.selected_items and deselect:
             self.selected_items.remove(item)
 
         self.all_items.remove(item)
@@ -1319,6 +1358,65 @@ class ItemList(wx.Panel):
 
     def get_item(self, index):
         return self.all_items[index]
+
+    def move_selected_items_up(self):
+        sel_items = self.get_selected_items()
+
+        if len(sel_items) > 0:
+            top_item = sel_items[0]
+            top_idx = self.get_item_index(top_item)
+
+            move_up = True
+
+            if top_idx == 0:
+                move_up = False
+
+            if move_up:
+                for item in sel_items:
+                    self.move_item(item, 'up', refresh=False)
+
+                self.resize_list()
+
+    def move_selected_items_down(self):
+        sel_items = self.get_selected_items()
+
+        if len(sel_items) > 0:
+            bot_item = sel_items[-1]
+            bot_idx = self.get_item_index(bot_item)
+
+            move_down = True
+
+            if bot_idx == len(self.all_items)-1:
+                move_down = False
+
+            if move_down:
+                for item in sel_items[::-1]:
+                    self.move_item(item, 'down', refresh=False)
+
+                self.resize_list()
+
+    def move_item(self, item, move_dir, refresh=True):
+        item_idx = self.get_item_index(item)
+
+        if move_dir == 'up' and item_idx > 0:
+            new_item_idx = item_idx -1
+
+        elif move_dir == 'down' and item_idx < len(self.all_items) -1:
+            new_item_idx = item_idx +1
+
+        else:
+            new_item_idx = -1
+
+        if new_item_idx != -1:
+            self.list_panel_sizer.Detach(item)
+            self.list_panel_sizer.Insert(new_item_idx, item, flag=wx.EXPAND|wx.ALL,
+                border=self._FromDIP(1))
+
+            self.all_items.pop(item_idx)
+            self.all_items.insert(new_item_idx, item)
+
+            if refresh:
+                self.resize_list()
 
 class ListItem(wx.Panel):
     def __init__(self, item_list, *args, **kwargs):
@@ -1348,7 +1446,7 @@ class ListItem(wx.Panel):
     def get_selected(self):
         return self._selected
 
-    def set_selected(self, selected):
+    def set_selected(self, selected, update=True):
         self._selected = selected
 
         if self._selected:
@@ -1363,7 +1461,8 @@ class ListItem(wx.Panel):
             for text_item in self.text_list:
                 text_item.SetForegroundColour(RAWGlobals.general_text_color)
 
-        self.Refresh()
+        if update:
+            self.Refresh()
 
     def toggle_selected(self):
         self.set_selected(not self._selected)
@@ -1414,6 +1513,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
 
         self.status = wx.StaticText(self, label='')
         self.parent = parent
+        self.canvas = canvas
 
         self.AddControl(self.status)
 
@@ -1425,7 +1525,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.status.SetLabel(status)
 
     def home(self, *args, **kwargs):
-        self.parent.autoscale_plot()
+        self.parent.autoscale_plot(self.canvas)
 
 #Monkey patch flatNB.PageContainer
 def OnPaintFNB(self, event):

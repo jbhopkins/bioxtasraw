@@ -39,9 +39,16 @@ version_number = bioxtasraw.__version__
 extensions = ['sphinx.ext.mathjax', 'sphinx.ext.ifconfig', 'sphinx.ext.autodoc',
     'sphinx.ext.napoleon', 'sphinx_rtd_theme']
 
+if on_rtd:
+    extensions.append('sphinxcontrib.googleanalytics')
+
 # Napoleon settings
 napoleon_use_ivar = True
 napoleon_include_init_with_doc = True
+
+#Google analytics settings
+if on_rtd:
+    googleanalytics_id = 'G-L8XX61QZ71'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

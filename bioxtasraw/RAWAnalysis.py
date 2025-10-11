@@ -51,8 +51,8 @@ import wx.lib.agw.flatnotebook as flatNB
 from wx.lib.agw import ultimatelistctrl as ULC
 import wx.lib.scrolledpanel as scrolled
 import wx.grid
-from scipy import integrate
 import scipy.stats as stats
+import scipy.integrate as integrate
 import matplotlib
 
 matplotlib.rcParams['backend'] = 'WxAgg'
@@ -628,7 +628,7 @@ class GuinierPlotPanel(wx.Panel):
 
             self.canvas.blit(self.fig.bbox)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplots['Guinier'], self.subplots['Residual']]
@@ -1572,8 +1572,18 @@ class GuinierFrame(wx.Frame):
 
         self.CenterOnParent()
 
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
         client_display = wx.GetClientDisplayRect()
-        size = (min(800, client_display.Width), min(650, client_display.Height))
+
+        if not is_gtk3:
+            size = (min(800, client_display.Width), min(650, client_display.Height))
+            splitter_size = 300
+        else:
+            size = (min(925, client_display.Width), min(650, client_display.Height))
+            splitter_size = 425
+
         self.SetSize(self._FromDIP(size))
 
         panel = wx.Panel(self)
@@ -1591,10 +1601,12 @@ class GuinierFrame(wx.Frame):
         self.plotPanel = GuinierPlotPanel(splitter1, wx.ID_ANY)
         self.controlPanel = GuinierControlPanel(splitter1, wx.ID_ANY, ExpObj, manip_item)
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(300))
+
+
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter1.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
+            splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -3889,7 +3901,7 @@ class MWPlotPanel(wx.Panel):
         qi = q*i
 
         for a in range(2,len(q)+1):
-            y[a-1] = integrate.trapz(qi[:a],q[:a])
+            y[a-1] = integrate.trapezoid(qi[:a],q[:a])
 
         return q, y
 
@@ -3927,7 +3939,17 @@ class GNOMFrame(wx.Frame):
         self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(825, client_display.Width), min(700, client_display.Height))
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(825, client_display.Width), min(700, client_display.Height))
+            splitter_size = 315
+        else:
+            size = (min(925, client_display.Width), min(700, client_display.Height))
+            splitter_size = 415
+
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -3947,10 +3969,10 @@ class GNOMFrame(wx.Frame):
         self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY, 'gnom')
         self.controlPanel = GNOMControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(315))
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter1.SetMinimumPaneSize(self._FromDIP(315))   #Back compatability with older wxpython versions
+            splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))   #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -3997,12 +4019,27 @@ class GNOMFrame(wx.Frame):
 
     def getGnomVersion(self):
         #Checks if we have gnom4 or gnom5
-        version = SASCalc.getATSASVersion(self._raw_settings.get('ATSASDir'))
+        try:
+            version = SASCalc.getATSASVersion(self._raw_settings.get('ATSASDir'))
+        except SASExceptions.NoATSASError:
+            version = None
 
-        if (int(version.split('.')[0]) > 2 or
-            (int(version.split('.')[0]) == 2 and int(version.split('.')[1]) >=8)):
-            self.new_gnom = True
+        if version is not None:
+            if (int(version.split('.')[0]) > 2 or
+                (int(version.split('.')[0]) == 2 and int(version.split('.')[1]) >=8)):
+                self.new_gnom = True
+            else:
+                self.new_gnom = False
+
         else:
+            msg = ('The ATSAS license is expired so RAW cannot run the '
+                    'request program. Please update your ATSAS license and '
+                    'then restart RAW.')
+            dial2 = wx.MessageDialog(self, msg, "ATSAS license expired",
+                                    wx.OK | wx.ICON_INFORMATION)
+            dial2.ShowModal()
+            dial2.Destroy()
+
             self.new_gnom = False
 
     def showBusy(self, show=True, msg=''):
@@ -4309,7 +4346,7 @@ class IFTPlotPanel(wx.Panel):
 
             self.canvas.blit(self.fig.bbox)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplots['P(r)'], self.subplots['Data/Fit'],
@@ -4755,6 +4792,9 @@ class GNOMControlPanel(wx.Panel):
             except Exception:
                 dmax = -1
 
+            if int(dmax) == dmax:
+                dmax = int(dmax)
+
             try:
                 alpha = gnom_analysis['Alpha']
             except Exception:
@@ -4772,22 +4812,24 @@ class GNOMControlPanel(wx.Panel):
 
                 self.calcGNOM(dmax)
 
-                dmaxWindow.SetValue(dmax)
+                if str(dmax) in self.out_list:
 
-                if alpha != 0 and alpha != self.gnom_settings['alpha']:
+                    dmaxWindow.SetValue(dmax)
 
-                    ift = self.out_list[str(dmax)]
+                    if alpha != 0 and alpha != self.gnom_settings['alpha']:
 
-                    if float(ift.getParameter('alpha')) == float(alpha):
-                        self.alpha_ctrl.ChangeValue('0')
-                    else:
-                        self.alpha_ctrl.ChangeValue(str(alpha))
-                        self.updateGNOMSettings(update_plot=False)
-                        self.calcGNOM(dmax)
+                        ift = self.out_list[str(dmax)]
 
-                self.updateGNOMInfo(self.out_list[str(dmax)])
+                        if float(ift.getParameter('alpha')) == float(alpha):
+                            self.alpha_ctrl.ChangeValue('0')
+                        else:
+                            self.alpha_ctrl.ChangeValue(str(alpha))
+                            self.updateGNOMSettings(update_plot=False)
+                            self.calcGNOM(dmax)
 
-                self.updatePlot()
+                    self.updateGNOMInfo(self.out_list[str(dmax)])
+
+                    self.updatePlot()
 
                 wx.CallAfter(self.gnom_frame.showBusy, False)
 
@@ -5300,7 +5342,8 @@ class GNOMControlPanel(wx.Panel):
                 new_gnom=self.gnom_frame.new_gnom)
 
         except (SASExceptions.NoATSASError, SASExceptions.GNOMError) as e:
-            wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM', style = wx.ICON_ERROR | wx.OK)
+            wx.CallAfter(wx.MessageBox, str(e), 'Error running GNOM/DATGNOM',
+                style = wx.ICON_ERROR | wx.OK)
             self.SetFocusIgnoringChildren()
             # traceback.print_exc()
             return
@@ -5435,13 +5478,25 @@ class DammifFrame(wx.Frame):
         self.RunPanel.updateDAMMIFSettings()
 
     def _getATSASVersion(self):
-        self.atsas_version = SASCalc.getATSASVersion(self.raw_settings.get('ATSASDir'))
+        try:
+            self.atsas_version = SASCalc.getATSASVersion(self.raw_settings.get('ATSASDir'))
+        except SASExceptions.NoATSASError:
+            self.atsas_version = None
 
-        if ((int(self.atsas_version.split('.')[0]) == 3 and int(self.atsas_version.split('.')[1]) >= 1)
-            or int(self.atsas_version.split('.')[0]) > 3):
-            self.model_ext = '.cif'
+        if self.atsas_version is not None:
+            if ((int(self.atsas_version.split('.')[0]) == 3 and int(self.atsas_version.split('.')[1]) >= 1)
+                or int(self.atsas_version.split('.')[0]) > 3):
+                self.model_ext = '.cif'
+            else:
+                self.model_ext = '.pdb'
         else:
-            self.model_ext = '.pdb'
+            msg = ('The ATSAS license is expired so RAW cannot run the '
+                    'request program. Please update your ATSAS license and '
+                    'then restart RAW.')
+            dial2 = wx.MessageDialog(self, msg, "ATSAS license expired",
+                                    wx.OK | wx.ICON_INFORMATION)
+            dial2.ShowModal()
+            dial2.Destroy()
 
     def _onCloseButton(self, evt):
         self.Close()
@@ -8106,7 +8161,14 @@ class DenssFrame(wx.Frame):
         self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(750, client_display.Width), min(900, client_display.Height))
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(750, client_display.Width), min(900, client_display.Height))
+        else:
+            size = (min(800, client_display.Width), min(900, client_display.Height))
         self.SetSize(self._FromDIP(size))
 
         self.manip_item = manip_item
@@ -10039,16 +10101,25 @@ class DenssResultsPanel(wx.Panel):
     def _initSettings(self):
         if self.iftm.getParameter('algorithm') == 'GNOM':
             opsys = platform.system()
-            if opsys == 'Windows':
-                if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter.exe')):
-                    run_ambi = True
+
+            try:
+                version = SASCalc.getATSASVersion(self.raw_settings.get('ATSASDir'))
+            except SASExceptions.NoATSASError:
+                version = None
+
+            if version is not None:
+                if opsys == 'Windows':
+                    if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter.exe')):
+                        run_ambi = True
+                    else:
+                        run_ambi = False
                 else:
-                    run_ambi = False
+                    if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter')):
+                        run_ambi = True
+                    else:
+                        run_ambi = False
             else:
-                if os.path.exists(os.path.join(self.raw_settings.get('ATSASDir'), 'ambimeter')):
-                    run_ambi = True
-                else:
-                    run_ambi = False
+                run_ambi = False
 
             if run_ambi:
                 t = threading.Thread(target=self.runAmbimeter)
@@ -11035,7 +11106,17 @@ class BIFTFrame(wx.Frame):
         self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(800, client_display.Width), min(700, client_display.Height))
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(800, client_display.Width), min(700, client_display.Height))
+            splitter_size = 290
+        else:
+            size = (min(880, client_display.Width), min(700, client_display.Height))
+            splitter_size = 370
+
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -11054,10 +11135,10 @@ class BIFTFrame(wx.Frame):
         self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY, 'bift')
         self.controlPanel = BIFTControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(290))
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter1.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
+            splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -11806,11 +11887,21 @@ class BIFTControlPanel(wx.Panel):
 class DIFTFrame(wx.Frame):
 
     def __init__(self, parent, title, sasm, manip_item):
+        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(825, client_display.Width), min(700, client_display.Height))
 
-        wx.Frame.__init__(self, parent, wx.ID_ANY, title)
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(825, client_display.Width), min(700, client_display.Height))
+            splitter_size = 315
+        else:
+            size = (min(925, client_display.Width), min(700, client_display.Height))
+            splitter_size = 415
+
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -11830,10 +11921,10 @@ class DIFTFrame(wx.Frame):
         self.plotPanel = IFTPlotPanel(splitter1, wx.ID_ANY, 'dift')
         self.controlPanel = DIFTControlPanel(splitter1, wx.ID_ANY, sasm, manip_item)
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(315))
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter1.SetMinimumPaneSize(self._FromDIP(315))   #Back compatability with older wxpython versions
+            splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))   #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -12186,7 +12277,7 @@ class DIFTControlPanel(wx.Panel):
                 guinier = sasm.getParameter('analysis')['guinier']
 
                 try:
-                    nmin = guinier['nStart']
+                    nmin = int(guinier['nStart'])
                     nmax = sasm.getQrange()[1]
                 except Exception:
                     nmin, nmax = sasm.getQrange()
@@ -12802,7 +12893,7 @@ class TheoreticalFrame(wx.Frame):
         self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(900, client_display.Width), min(800, client_display.Height))
+        size = (min(925, client_display.Width), min(800, client_display.Height))
         self.SetSize(self._FromDIP(size))
 
         self.calc_type = calc_type
@@ -12839,7 +12930,7 @@ class TheoreticalFrame(wx.Frame):
             flag=wx.TOP|wx.EXPAND|wx.BOTTOM)
         sub_panel.SetSizer(results_sizer)
 
-        splitter.SplitVertically(self.ctrl_panel, sub_panel, self._FromDIP(325))
+        splitter.SplitVertically(self.ctrl_panel, sub_panel, self._FromDIP(350))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
             splitter.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
@@ -13904,6 +13995,8 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         data_list = []
         params = []
 
+        result_to_plot = self.result_to_plot.GetStringSelection()
+
         for res in results:
             for key, value in res.items():
                 param_list = []
@@ -13911,9 +14004,9 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                 crysol_ref_data = self.crysol_ref[key]
 
                 if crysol_ref_data[1] is None:
-                    if self.result_to_plot.GetStringSelection() == '.abs':
+                    if result_to_plot == '.abs':
                         profiles = [value[0]]
-                    elif self.result_to_plot.GetStringSelection() == '.int':
+                    elif result_to_plot == '.int':
                         profiles = [value[1]]
                     else:
                         profiles = value
@@ -13970,6 +14063,9 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                 param_list.append(cd['Hydration_shell_contrast'])
 
                 params.append(param_list)
+
+                if crysol_ref_data[1] is None and result_to_plot == 'both':
+                    params.append(param_list)
 
         return theory_list, residual_list, data_list, params
 
@@ -14397,8 +14493,19 @@ class AmbimeterFrame(wx.Frame):
 
 
         self.ambi_settings = {}
-        self.atsas_version = SASCalc.getATSASVersion(
-            self.raw_settings.get('ATSASDir')).split('.')
+        try:
+            self.atsas_version = SASCalc.getATSASVersion(
+                self.raw_settings.get('ATSASDir')).split('.')
+        except SASExceptions.NoATSASError:
+            self.atsas_version = 4
+
+            msg = ('The ATSAS license is expired so RAW cannot run the '
+                    'request program. Please update your ATSAS license and '
+                    'then restart RAW.')
+            dial2 = wx.MessageDialog(self, msg, "ATSAS license expired",
+                                    wx.OK | wx.ICON_INFORMATION)
+            dial2.ShowModal()
+            dial2.Destroy()
 
 
         topsizer = self._createLayout(self.panel)
@@ -15560,12 +15667,22 @@ class SVDFrame(wx.Frame):
         self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = size = (min(950, client_display.Width), min(750, client_display.Height))
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(950, client_display.Width), min(750, client_display.Height))
+            splitter_size = 325
+        else:
+            size = (min(990, client_display.Width), min(750, client_display.Height))
+            splitter_size = 365
+
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
 
-        self._Layout()
+        self._Layout(splitter_size)
 
         SASUtils.set_best_size(self)
         self.SendSizeEvent()
@@ -15584,7 +15701,7 @@ class SVDFrame(wx.Frame):
         self.plotPanel.updateColors()
         self.controlPanel.updateColors()
 
-    def _Layout(self):
+    def _Layout(self, splitter_size):
         panel = wx.Panel(self)
         splitter1 = wx.SplitterWindow(panel)
 
@@ -15594,10 +15711,10 @@ class SVDFrame(wx.Frame):
         self.controlPanel = SVDControlPanel(splitter1, wx.ID_ANY, copy_secm,
             self.manip_item, self, 'SVD')
 
-        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(325))
+        splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter1.SetMinimumPaneSize(self._FromDIP(325))    #Back compatability with older wxpython versions
+            splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -15821,7 +15938,7 @@ class SVDResultsPlotPanel(wx.Panel):
             self.fig.draw_artist(self.v_autocor)
             self.canvas.blit(self.fig.bbox)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplots['Singular Values'], self.subplots['AutoCorrelation']]
@@ -15993,7 +16110,7 @@ class SVDSECPlotPanel(wx.Panel):
 
             self.canvas.blit(self.fig.bbox)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplots['SECPlot']]
@@ -16367,22 +16484,22 @@ class SVDControlPanel(wx.Panel):
 
         #make a subtracted profile SECM
         if len(self.secm.subtracted_sasm_list)>0:
-            self.subtracted_secm = SECM.SECM(self.secm._file_list,
+            self.subtracted_secm = SECM.SECM(self.secm.file_list,
                 self.secm.subtracted_sasm_list, self.secm.plot_frame_list,
                 self.secm.getAllParameters(), self.raw_settings)
         else:
-            self.subtracted_secm = SECM.SECM(self.secm._file_list,
+            self.subtracted_secm = SECM.SECM(self.secm.file_list,
                 self.secm.subtracted_sasm_list, [],
                 self.secm.getAllParameters(), self.raw_settings)
 
             profile_window.SetStringSelection('Unsubtracted')
 
         if self.secm.baseline_subtracted_sasm_list:
-            self.bl_subtracted_secm = SECM.SECM(self.secm._file_list,
+            self.bl_subtracted_secm = SECM.SECM(self.secm.file_list,
                 self.secm.baseline_subtracted_sasm_list, self.secm.plot_frame_list,
                 self.secm.getAllParameters(), self.raw_settings)
         else:
-            self.bl_subtracted_secm = SECM.SECM(self.secm._file_list,
+            self.bl_subtracted_secm = SECM.SECM(self.secm.file_list,
                 self.secm.baseline_subtracted_sasm_list, [],
                 self.secm.getAllParameters(), self.raw_settings)
 
@@ -16789,14 +16906,14 @@ class SVDControlPanel(wx.Panel):
                 value = self.svd_V_autocor
 
             elif key =='secm_choice':
-                profile_window = wx.FindWindowById(self.control_ids['profile'], self)
-                profile_type = profile_window.GetStringSelection()
+                window = wx.FindWindowById(self.control_ids['profile'], self)
+                profile_type = window.GetStringSelection()
 
                 if profile_type == 'Unsubtracted':
                     value = 'usub'
                 elif profile_type == 'Subtracted':
                     value = 'sub'
-                elif profile_type == 'Basline Corrected':
+                elif profile_type == 'Baseline Corrected':
                     value = 'bl'
 
             elif key == 'sub_secm':
@@ -16833,7 +16950,17 @@ class EFAFrame(wx.Frame):
         self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(950, client_display.Width), min(825, client_display.Height))
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(950, client_display.Width), min(825, client_display.Height))
+            splitter_size = 325
+        else:
+            size = (min(1020, client_display.Width), min(825, client_display.Height))
+            splitter_size = 395
+
         self.SetSize(self._FromDIP(size))
 
         self._raw_settings = wx.FindWindowByName('MainFrame').raw_settings
@@ -16856,7 +16983,7 @@ class EFAFrame(wx.Frame):
 
 
 
-        self._createLayout(self.panel)
+        self._createLayout(self.panel, splitter_size)
 
         top_sizer = wx.BoxSizer(wx.VERTICAL)
         top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
@@ -16882,7 +17009,7 @@ class EFAFrame(wx.Frame):
         self.plotPanel3.updateColors()
         self.controlPanel3.updateColors()
 
-    def _createLayout(self, parent):
+    def _createLayout(self, parent, splitter_size):
         #Creating the first EFA analysis panel
         self.splitter1 = wx.SplitterWindow(parent, self.splitter_ids[1])
 
@@ -16890,10 +17017,10 @@ class EFAFrame(wx.Frame):
         self.controlPanel1 = SVDControlPanel(self.splitter1, wx.ID_ANY,
             self.secm, self.manip_item, self, 'EFA')
 
-        self.splitter1.SplitVertically(self.controlPanel1, self.plotPanel1, self._FromDIP(325))
+        self.splitter1.SplitVertically(self.controlPanel1, self.plotPanel1, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter1.SetMinimumPaneSize(self._FromDIP(325))    #Back compatability with older wxpython versions
+            self.splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -16910,10 +17037,10 @@ class EFAFrame(wx.Frame):
         self.controlPanel2 = EFAControlPanel2(self.splitter2, -1, self.secm,
             self.manip_item, self, 'EFA')
 
-        self.splitter2.SplitVertically(self.controlPanel2, self.plotPanel2, self._FromDIP(325))
+        self.splitter2.SplitVertically(self.controlPanel2, self.plotPanel2, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter2.SetMinimumPaneSize(self._FromDIP(325))    #Back compatability with older wxpython versions
+            self.splitter2.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter2.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -16925,10 +17052,10 @@ class EFAFrame(wx.Frame):
         self.plotPanel3 = EFAResultsPlotPanel3(self.splitter3, -1)
         self.controlPanel3 = EFAControlPanel3(self.splitter3, -1, self.secm, self.manip_item)
 
-        self.splitter3.SplitVertically(self.controlPanel3, self.plotPanel3, self._FromDIP(325))
+        self.splitter3.SplitVertically(self.controlPanel3, self.plotPanel3, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter3.SetMinimumPaneSize(self._FromDIP(325))    #Back compatability with older wxpython versions
+            self.splitter3.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter3.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -17951,7 +18078,7 @@ class EFAResultsPlotPanel2(wx.Panel):
 
             self.canvas.blit(self.fig.bbox)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplots['Forward EFA'], self.subplots['Backward EFA']]
@@ -18990,7 +19117,7 @@ class EFAResultsPlotPanel3(wx.Panel):
 
         self.canvas.blit(self.fig.bbox)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplots['Scattering Profiles'],
@@ -19280,7 +19407,7 @@ class EFARangePlotPanel(wx.Panel):
 
             self.canvas.blit(self.fig.bbox)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplots['SECPlot']]
@@ -19315,7 +19442,15 @@ class REGALSFrame(wx.Frame):
         self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(1500, client_display.Width), min(875, client_display.Height))
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(1500, client_display.Width), min(875, client_display.Height))
+        else:
+            size = (min(1675, client_display.Width), min(875, client_display.Height))
+
         self.SetSize(self._FromDIP(size))
 
         self.main_frame = wx.FindWindowByName('MainFrame')
@@ -19626,16 +19761,25 @@ class REGALSSVDPanel(wx.Panel):
         self.controlPanel.updateColors()
 
     def _layout(self):
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            splitter_size = 325
+        else:
+            splitter_size = 370
+
         self.splitter = wx.SplitterWindow(self)
 
         self.plotPanel = SVDResultsPlotPanel(self.splitter, wx.ID_ANY)
         self.controlPanel = SVDControlPanel(self.splitter, wx.ID_ANY,
             self.secm, self.manip_item, self, 'REGALS')
 
-        self.splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(325))
+        self.splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter.SetMinimumPaneSize(self._FromDIP(325))    #Back compatability with older wxpython versions
+            self.splitter.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -19686,16 +19830,24 @@ class REGALSEFAPanel(wx.Panel):
         self.plotPanel.updateColors()
 
     def _layout(self):
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            splitter_size = 300
+        else:
+            splitter_size = 350
+
         self.splitter = wx.SplitterWindow(self)
 
         self.plotPanel = EFAResultsPlotPanel2(self.splitter, wx.ID_ANY)
         self.controlPanel = EFAControlPanel2(self.splitter, wx.ID_ANY,
             self.secm, self.manip_item, self, 'REGALS')
 
-        self.splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(300))
+        self.splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            self.splitter.SetMinimumPaneSize(self._FromDIP(300))    #Back compatability with older wxpython versions
+            self.splitter.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -20623,7 +20775,18 @@ class REGALSComponentGrid(scrolled.ScrolledPanel):
         *args, **kwargs):
         scrolled.ScrolledPanel.__init__(self, parent, *args, **kwargs)
 
-        self.SetMinSize(self._FromDIP((800, 425)))
+        client_display = wx.GetClientDisplayRect()
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(800, client_display.Width-200), min(425, client_display.Height))
+
+        else:
+            size = (min(975, client_display.Width-200), min(425, client_display.Height))
+
+        self.SetMinSize(self._FromDIP(size))
 
         self.component_panels = []
         self.range_callback = range_callback
@@ -21429,7 +21592,7 @@ class REGALSXCalibration(wx.Dialog):
         self.use_x.SetStringSelection(regals_x['x_choice'])
 
         for j in range(len(self.series.plot_frame_list[self.start:self.end+1])):
-            self.data_grid.SetCellValue(j, 0, os.path.split(self.series._file_list[j+self.start])[1])
+            self.data_grid.SetCellValue(j, 0, os.path.split(self.series.file_list[j+self.start])[1])
             self.data_grid.SetCellValue(j, 1, '{}'.format(self.series.plot_frame_list[j+self.start]))
             self._set_x_val(regals_x['x_base'][j], j)
 
@@ -22019,7 +22182,7 @@ class REGALSBackgroundSVDPlot(wx.Panel):
         self.canvas.draw()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         self.sv_subplot.set_autoscale_on(True)
 
         self.sv_subplot.relim()
@@ -22613,7 +22776,7 @@ class SimilarityPlotPanel(wx.Panel):
         self.subplot.set_xlabel('Profile #')
         self.subplot.set_ylabel('Profile #')
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplot]
@@ -22990,7 +23153,7 @@ class ComparisonPlotPanel(wx.Panel):
             self.bottom_plot.set_title('Ratio')
             self.bottom_plot.set_ylabel('Ratio')
 
-    def autoscale_plot(self, scale_bottom_x_separate=False, draw=True):
+    def autoscale_plot(self, canvas=None, scale_bottom_x_separate=False, draw=True):
         top_plot_min_x = None
         top_plot_max_x = None
         top_plot_min_y = None
@@ -23888,7 +24051,7 @@ class NormKratkyPlotPanel(wx.Panel):
 
         self.updatePlot(self.plot_type)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         redraw = False
 
         plot_list = [self.subplot]
@@ -24440,7 +24603,16 @@ class LCSeriesFrame(wx.Frame):
         self.CenterOnParent()
 
         client_display = wx.GetClientDisplayRect()
-        size = (min(1000, client_display.Width), min(900, client_display.Height))
+
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            size = (min(1000, client_display.Width), min(900, client_display.Height))
+            splitter_size = 325
+        else:
+            size = (min(1080, client_display.Width), min(900, client_display.Height))
+            splitter_size = 405
         self.SetSize(self._FromDIP(size))
 
         panel = wx.Panel(self)
@@ -24462,10 +24634,10 @@ class LCSeriesFrame(wx.Frame):
         self.controlPanel = LCSeriesControlPanel(splitter, self.original_secm)
 
 
-        splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(325))
+        splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
         if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter.SetMinimumPaneSizeself._FromDIP((290))    #Back compatability with older wxpython versions
+            splitter.SetMinimumPaneSizeself._FromDIP((splitter_size))    #Back compatability with older wxpython versions
         else:
             splitter.SetMinimumPaneSize(self._FromDIP(50))
 
@@ -24541,15 +24713,20 @@ class SeriesPlotPanel(wx.Panel):
             self.series_frame = parent.GetParent().series_frame
         elif self.ctrl_type == 'REGALS':
             self.series_frame = parent.GetParent()
+        elif self.ctrl_type == 'MultiSeries':
+            self.series_frame = parent
 
-        self.all_plot_types = {'unsub'  : {'left': 'Total Intensity', 'right' : '',
+        self.all_plot_types = {
+            'unsub'     : {'left': 'Total Intensity', 'right' : '',
                         'title': 'Unsubtracted Series', 'bottom': 'Frame #'},
             'sub'       : {'left': 'Total Intensity', 'right': 'Rg',
                         'title': 'Subtracted Series', 'bottom': 'Frame #'},
             'baseline'  : {'left': 'Total Intensity', 'right': 'Rg',
                         'title': 'Baseline Corrected Series', 'bottom': 'Frame #'},
             'uv'        : {'left': 'Total Intensity', 'right': 'UV',
-                        'title': 'SAXS and UV', 'bottom': 'Frame #'},
+                        'title': 'Total Intensity', 'bottom': 'Frame #'},
+            'multi'     : {'left': 'Total Intensity', 'right': '',
+                        'title': 'Total Series Intensity', 'bottom': 'Series #'},
             }
 
         self.plot_type = plot_type
@@ -24610,7 +24787,7 @@ class SeriesPlotPanel(wx.Panel):
         self.subplot.set_xlabel(self.all_plot_types[self.plot_type]['bottom'])
         self.subplot.set_ylabel(self.all_plot_types[self.plot_type]['left'])
 
-        if self.plot_type != 'unsub':
+        if self.plot_type != 'unsub' and self.plot_type != 'multi':
             self.ryaxis = self.subplot.twinx()
             self.ryaxis.set_ylabel(self.all_plot_types[self.plot_type]['right'])
             self.axhline = self.subplot.axhline(0, color=color, linewidth=1.0)
@@ -24654,10 +24831,15 @@ class SeriesPlotPanel(wx.Panel):
                     color = '#ff7f0e'
                 else:
                     color = '#1f77b4'
-                line, = self.subplot.plot(xdata, ydata, animated=True,
-                    color=color)
 
-                if self.ctrl_type == 'REGALS':
+                if self.plot_type != 'multi':
+                    line, = self.subplot.plot(xdata, ydata, animated=True,
+                        color=color)
+                else:
+                    line, = self.subplot.plot(xdata, ydata, animated=True,
+                        marker='o', color=color)
+
+                if self.ctrl_type == 'REGALS' or self.ctrl_type == 'MultiSeries':
                     self.fig.tight_layout(pad=0.4)
 
                 self.canvas.draw()
@@ -24671,7 +24853,7 @@ class SeriesPlotPanel(wx.Panel):
                     line, = self.ryaxis.plot(xdata, ydata, animated=True,
                         linestyle='-', color='#d62728')
 
-                if self.ctrl_type == 'REGALS':
+                if self.ctrl_type == 'REGALS' or self.ctrl_type == 'MultiSeries':
                     self.fig.tight_layout(pad=0.4)
 
                 self.canvas.draw()
@@ -24728,7 +24910,7 @@ class SeriesPlotPanel(wx.Panel):
                 if ((int(matplotlib.__version__.split('.')[0]) == 3
                     and int(matplotlib.__version__.split('.')[1]) >= 9) or
                     int(matplotlib.__version__.split('.')[0]) > 3):
-                    line.set_x(start)
+                    line.set_x(start-0.5)
                     line.set_width(start-end+1)
                 else:
                     pts = line.get_xy()
@@ -24835,8 +25017,8 @@ class SeriesPlotPanel(wx.Panel):
                 else:
                     y2_val = '{:.3E}'.format(y2)
 
-            if 'Frame' in xlabel:
-                x_val = int(x)
+            if 'Frame' in xlabel or 'Series #' in xlabel:
+                x_val = int(x+0.5)
             else:
                 x_val = x
 
@@ -24910,6 +25092,8 @@ class SeriesPlotPanel(wx.Panel):
                     control_page = self.series_frame.controlPanel
                 elif self.ctrl_type == 'REGALS':
                     control_page = self.series_frame
+                elif self.ctrl_type == 'MultiSeries':
+                    control_page = self.series_frame
 
                 control_page.setPickRange(self.range_index, [self.start_range, self.end_range],
                     self.plot_type)
@@ -24926,7 +25110,7 @@ class SeriesPlotPanel(wx.Panel):
         self.redrawLines()
         self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
 
-    def autoscale_plot(self):
+    def autoscale_plot(self, canvas=None):
         self.subplot.set_autoscale_on(True)
 
         oldx = self.subplot.get_xlim()
@@ -26512,9 +26696,15 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             current_range = self.bl_r1_start.GetRange()
             self.bl_r1_start.SetRange((current_range[0], value))
 
+            r2_start_range = self.bl_r2_start.GetRange()
+            self.bl_r2_start.SetRange((value+1, r2_start_range[1]))
+
         elif event_object is self.bl_r2_start:
             current_range = self.bl_r2_end.GetRange()
             self.bl_r2_end.SetRange((value, current_range[-1]))
+
+            r1_end_range = self.bl_r1_end.GetRange()
+            self.bl_r1_end.SetRange((r1_end_range[0], value-1))
 
         elif event_object is self.bl_r2_end:
             current_range = self.bl_r2_start.GetRange()
@@ -26674,6 +26864,20 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
 
             current_end_range = end_ctrl.GetRange()
             end_ctrl.SetRange((new_start, current_end_range[1]))
+
+            r1_start = self.bl_r1_start.GetValue()
+            r1_end = self.bl_r1_end.GetValue()
+            r2_start = self.bl_r2_start.GetValue()
+            r2_end = self.bl_r2_end.GetValue()
+
+            r1_end_range = self.bl_r1_end.GetRange()
+
+            new_r1_end_range = (r1_end_range[0], r2_start-1)
+            self.bl_r1_end.SetRange(new_r1_end_range)
+
+            r2_start_range = self.bl_r2_start.GetRange()
+            new_r2_start_range = (r1_end+1, r2_start_range[1])
+            self.bl_r2_start.SetRange(new_r2_start_range)
 
             self.plot_page.update_plot_range(new_start, new_end, index, 'sub')
 
@@ -28018,6 +28222,8 @@ class SeriesRangeItem(RAWCustomCtrl.ListItem):
             frames = self.series_panel.secm.getFrames()
         elif self.list_type == 'REGALS':
             frames = np.arange(self.series_panel.start, self.series_panel.end+1)
+        elif self.list_type == 'MultiSeries':
+            frames = np.arange(self.series_panel.range[0], self.series_panel.range[1]+1)
 
         self.start_ctrl = RAWCustomCtrl.IntSpinCtrl(self, wx.ID_ANY,
             min_val=frames[0], max_val=frames[-1], TextLength=45)

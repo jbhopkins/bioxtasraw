@@ -3,14 +3,19 @@ Using a prebuilt installer
 .. _winprebuilt:
 
 The recommend way to install RAW on Windows is using a prebuilt installer. To install
-from a prebuilt installer, simply download the :file:`RAW-{x}.{y}.{z}-win64.msi` (where
-:file:`{x}.{y}.{z}` is the version number) file from sourceforge (
+from a prebuilt installer, simply download the :file:`RAW-{x}.{y}.{z}_winxx_x86_64.msi` (where
+:file:`{x}.{y}.{z}` is the version number and winxx is either win10 or win11 for Windows 10
+and Windows 11 respectively) file from sourceforge (
 `https://sourceforge.net/projects/bioxtasraw <https://sourceforge.net/projects/bioxtasraw>`_),
 and double click it to run the installer.
 
-.. raw:: html
+Direct links to the downloads:
 
-    <a href="https://sourceforge.net/projects/bioxtasraw/files/latest/download"><img alt="Download BioXTAS RAW" src="https://a.fsdn.com/con/app/sf-download-button" width=276 height=48 srcset="https://a.fsdn.com/con/app/sf-download-button?button_size=2x 2x"></a>
+*  `Download Windows 11 installer
+   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.3.1_win11_x86_64.msi/download>`_
+
+*  `Download Windows 10 installer
+   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.3.1_win10_x86_64.msi/download>`_
 
 **Important Notes:**
 

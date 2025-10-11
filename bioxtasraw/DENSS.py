@@ -1712,10 +1712,10 @@ def denss(q, I, sigq, dmax, qraw=None, Iraw=None, sigqraw=None,
     Iq_calc = Iq_calc[Iq_calc[:,0]<=qmax]
     final_chi2, exp_scale_factor, offset, fit = calc_chi2(Iq_exp, Iq_calc, scale=True, offset=False, interpolation=True,return_sf=True,return_fit=True)
 
-    np.savetxt(fprefix+'_map.fit', fit, delimiter=' ', fmt='%.5e'.encode('ascii'),
+    np.savetxt(fprefix+'_map.fit', fit, delimiter=' ', fmt='%.5e',
         header='q(data),I(data),error(data),I(density); chi2=%.3f'%final_chi2)
     np.savetxt(fprefix+'_stats_by_step.dat',np.vstack((chi, rg, supportV)).T,
-        delimiter=" ", fmt="%.5e".encode('ascii'), header='Chi2 Rg SupportVolume')
+        delimiter=" ", fmt="%.5e", header='Chi2 Rg SupportVolume')
 
     chi[j+1] = final_chi2
 
@@ -3359,7 +3359,7 @@ class PDB(object):
             atomtype = '%2s' % self.atomtype[i]
             charge = '%2s' % self.charge[i]
             records.append(['ATOM  ' + atomnum + '  ' + atomname + ' ' + resname + ' ' + chain + resnum + '    ' + x + y + z + o + b + '          ' + atomtype + charge])
-        np.savetxt(filename, records, fmt='%80s'.encode('ascii'))
+        np.savetxt(filename, records, fmt='%80s')
 
 def sphere_volume_from_radius(R):
     V_sphere = 4*np.pi/3 * R**3
@@ -5393,16 +5393,25 @@ def run_enantiomers(rhos, cores, num=0, avg_q=None, my_lock=None, wx_queue=None,
 
 def run_align(allrhos, sides, ref_file, avg_q=None, abort_event=None, center=True,
     resolution=15.0, enantiomer=True, cores=1, single_proc=False, gui=True,
-    ignore_waters=True):
+    ignore_waters=True, savedir=''):
     #based on denss.align.py
+    # HAS RAW SPECIFIC BITS SO BE CAREFUL UPDATING IT
 
     if gui:
         avg_q.put_nowait('Loading reference model...\n')
 
     if os.path.splitext(ref_file)[1] == '.pdb':
+        # RAW specific
+        if savedir == '':
+            savedir = os.path.split(ref_file)[0]
+
         # reffname_nopath = os.path.basename(ref_file)
         refbasename, refext = os.path.splitext(ref_file)
         refoutput = refbasename+"_centered.pdb"
+
+        #RAW specific
+        refoutput = os.path.join(savedir, os.path.split(refoutput)[-1])
+
         refside = sides[0]
         voxel = (refside/allrhos[0].shape)[0]
         halfside = refside/2
@@ -5423,6 +5432,7 @@ def run_align(allrhos, sides, ref_file, avg_q=None, abort_event=None, center=Tru
             side=refside,
             nsamples=n,
             ignore_warnings=True,
+            quiet=True
             )
         pdb2mrc.scale_radii()
         pdb2mrc.make_grids()
@@ -5434,7 +5444,11 @@ def run_align(allrhos, sides, ref_file, avg_q=None, abort_event=None, center=Tru
         pdb2mrc.calc_rho_with_modified_params(pdb2mrc.params)
         refrho = pdb2mrc.rho_insolvent
         refrho = refrho*np.sum(allrhos[0])/np.sum(refrho)
-        write_mrc(refrho,pdb2mrc.side,filename=refbasename+'_pdb.mrc')
+
+        # RAW specific
+        mrcbasename = os.path.join(savedir, os.path.split(refbasename)[-1])
+
+        write_mrc(refrho,pdb2mrc.side,filename=mrcbasename+'_pdb.mrc')
 
     elif os.path.splitext(ref_file)[1] == '.mrc':
         refrho, refside = read_mrc(ref_file)

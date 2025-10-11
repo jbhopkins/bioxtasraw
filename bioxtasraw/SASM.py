@@ -33,7 +33,7 @@ import copy
 import os
 
 import numpy as np
-from scipy import integrate as integrate
+import scipy.integrate as integrate
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -132,7 +132,7 @@ class SASM(object):
         #Calculated values
         try:
             if len(self.q)>0:
-                self.total_intensity = integrate.trapz(self.getI(), self.getQ())
+                self.total_intensity = integrate.trapezoid(self.getI(), self.getQ())
                 self.mean_intensity = self.getI().mean()
             else:
                 self.total_intensity = -1
@@ -220,7 +220,7 @@ class SASM(object):
         #Calculated values
         try:
             if len(self.q)>0:
-                self.total_intensity = integrate.trapz(self.getI(), self.getQ())
+                self.total_intensity = integrate.trapezoid(self.getI(), self.getQ())
                 self.mean_intensity = self.getI().mean()
             else:
                 self.total_intensity = -1
@@ -398,7 +398,7 @@ class SASM(object):
 
             try:
                 if len(self.q)>0:
-                    self.total_intensity = integrate.trapz(self.getI(), self.getQ())
+                    self.total_intensity = integrate.trapezoid(self.getI(), self.getQ())
                     self.mean_intensity = self.getI().mean()
                 else:
                     self.total_intensity = -1
@@ -800,7 +800,7 @@ class SASM(object):
         index2 = self.closest(q, q2)
         i = self.getI()
 
-        return integrate.trapz(i[index1:index2+1], q[index1:index2+1])
+        return integrate.trapezoid(i[index1:index2+1], q[index1:index2+1])
 
     @staticmethod
     def closest(qlist, q):

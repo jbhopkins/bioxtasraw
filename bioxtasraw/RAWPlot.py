@@ -671,16 +671,16 @@ class PlotPanel(wx.Panel):
             self.canvas.draw()
         except ValueError as e:
             print('ValueError in fitaxis() : ' + str(e))
-            traceback.print_exc()
+            # traceback.print_exc()
 
 
     def _onBlinkTimer(self, event):
-
         try:
             self.selected_line.set_linewidth(self.selected_line_orig_width)
             self.selected_line.set_markersize(self.selected_line_orig_marker)
             self.canvas.draw()
-        except:
+        except Exception:
+            # traceback.print_exc()
             pass
 
         self.selected_line = None
@@ -698,22 +698,25 @@ class PlotPanel(wx.Panel):
             self.selected_line.set_linewidth(self.selected_line_orig_width)
             self.selected_line.set_markersize(self.selected_line_orig_marker)
 
-        self.selected_line = event.artist
+        if not (event.artist == self.subplot1.get_legend()
+            or event.artist == self.subplot2.get_legend()):
 
-        try:
-            self.selected_line_orig_width = self.selected_line.get_linewidth()
-            self.selected_line_orig_marker = self.selected_line.get_markersize()
+            self.selected_line = event.artist
 
-            self.selected_line.set_linewidth(self.selected_line_orig_width + 2)
-            self.selected_line.set_markersize(self.selected_line_orig_marker + 2)
-        except AttributeError:
-            self.selected_line = None
-            return
+            try:
+                self.selected_line_orig_width = self.selected_line.get_linewidth()
+                self.selected_line_orig_marker = self.selected_line.get_markersize()
 
-        wx.CallAfter(self.manipulation_panel.deselectAllExceptOne, None, self.selected_line)
-        self.canvas.draw()
+                self.selected_line.set_linewidth(self.selected_line_orig_width + 2)
+                self.selected_line.set_markersize(self.selected_line_orig_marker + 2)
+            except AttributeError:
+                self.selected_line = None
+                return
 
-        self.blink_timer.Start(500)
+            wx.CallAfter(self.manipulation_panel.deselectAllExceptOne, None, self.selected_line)
+            self.canvas.draw()
+
+            self.blink_timer.Start(500)
 
     def _onKeyPressEvent(self, event):
         pass
@@ -855,6 +858,7 @@ class PlotPanel(wx.Panel):
                 line.set_color(line_data['line_color'])
                 line.set_marker(line_data['line_marker'])
                 line.set_visible(line_data['line_visible'])
+                line.set_picker(line_data['line_visible'])
 
                 try:
                     line.set_markerfacecolor(line_data['line_marker_face_color'])
@@ -866,7 +870,6 @@ class PlotPanel(wx.Panel):
 
                 except KeyError:
                     pass #Version <1.3.0 doesn't have these keys
-
 
     def showErrorbars(self, state):
 
@@ -1683,22 +1686,25 @@ class IftPlotPanel(PlotPanel):
             self.selected_line.set_linewidth(self.selected_line_orig_width)
             self.selected_line.set_markersize(self.selected_line_orig_marker)
 
-        self.selected_line = event.artist
+        if not (event.artist == self.subplot1.get_legend()
+            or event.artist == self.subplot2.get_legend()):
 
-        try:
-            self.selected_line_orig_width = self.selected_line.get_linewidth()
-            self.selected_line_orig_marker = self.selected_line.get_markersize()
+            self.selected_line = event.artist
 
-            self.selected_line.set_linewidth(self.selected_line_orig_width + 2)
-            self.selected_line.set_markersize(self.selected_line_orig_marker + 2)
-        except AttributeError:
-            self.selected_line = None
-            return
+            try:
+                self.selected_line_orig_width = self.selected_line.get_linewidth()
+                self.selected_line_orig_marker = self.selected_line.get_markersize()
 
-        wx.CallAfter(self.manipulation_panel.deselectAllExceptOne, None, self.selected_line)
-        self.canvas.draw()
+                self.selected_line.set_linewidth(self.selected_line_orig_width + 2)
+                self.selected_line.set_markersize(self.selected_line_orig_marker + 2)
+            except AttributeError:
+                self.selected_line = None
+                return
 
-        self.blink_timer.Start(500)
+            wx.CallAfter(self.manipulation_panel.deselectAllExceptOne, None, self.selected_line)
+            self.canvas.draw()
+
+            self.blink_timer.Start(500)
 
     def _onKeyPressEvent(self, event):
         pass
@@ -2581,18 +2587,21 @@ class IftPlotPanel(PlotPanel):
                 iftm.r_line.set_color(line_data['r_line_color'])
                 iftm.r_line.set_marker(line_data['r_line_marker'])
                 iftm.r_line.set_visible(line_data['r_line_visible'])
+                iftm.r_line.set_picker(line_data['r_line_visible'])
 
                 iftm.qo_line.set_linewidth(line_data['qo_line_width'])
                 iftm.qo_line.set_linestyle(line_data['qo_line_style'])
                 iftm.qo_line.set_color(line_data['qo_line_color'])
                 iftm.qo_line.set_marker(line_data['qo_line_marker'])
                 iftm.qo_line.set_visible(line_data['qo_line_visible'])
+                iftm.qo_line.set_picker(line_data['qo_line_visible'])
 
                 iftm.qf_line.set_linewidth(line_data['qf_line_width'])
                 iftm.qf_line.set_linestyle(line_data['qf_line_style'])
                 iftm.qf_line.set_color(line_data['qf_line_color'])
                 iftm.qf_line.set_marker(line_data['qf_line_marker'])
                 iftm.qf_line.set_visible(line_data['qf_line_visible'])
+                iftm.qf_line.set_picker(line_data['qf_line_visible'])
 
                 try:
                     iftm.r_line.set_markerfacecolor(line_data['r_line_marker_face_color'])
@@ -3034,22 +3043,24 @@ class SeriesPlotPanel(wx.Panel):
             self.selected_line.set_linewidth(self.selected_line_orig_width)
             self.selected_line.set_markersize(self.selected_line_orig_marker)
 
-        self.selected_line = event.artist
+        if not (event.artist == self.subplot1.get_legend()):
 
-        try:
-            self.selected_line_orig_width = self.selected_line.get_linewidth()
-            self.selected_line_orig_marker = self.selected_line.get_markersize()
+            self.selected_line = event.artist
 
-            self.selected_line.set_linewidth(self.selected_line_orig_width + 2)
-            self.selected_line.set_markersize(self.selected_line_orig_marker + 2)
-        except AttributeError:
-            self.selected_line = None
-            return
+            try:
+                self.selected_line_orig_width = self.selected_line.get_linewidth()
+                self.selected_line_orig_marker = self.selected_line.get_markersize()
 
-        wx.CallAfter(self.manipulation_panel.deselectAllExceptOne, None, self.selected_line)
-        self.canvas.draw()
+                self.selected_line.set_linewidth(self.selected_line_orig_width + 2)
+                self.selected_line.set_markersize(self.selected_line_orig_marker + 2)
+            except AttributeError:
+                self.selected_line = None
+                return
 
-        self.blink_timer.Start(500)
+            wx.CallAfter(self.manipulation_panel.deselectAllExceptOne, None, self.selected_line)
+            self.canvas.draw()
+
+            self.blink_timer.Start(500)
 
     def _onKeyPressEvent(self, event):
         pass
@@ -3312,6 +3323,7 @@ class SeriesPlotPanel(wx.Panel):
                 secm.line.set_color(line_data['line_color'])
                 secm.line.set_marker(line_data['line_marker'])
                 secm.line.set_visible(line_data['line_visible'])
+                secm.line.set_picker(line_data['line_visible'])
 
                 try:
                     secm.line.set_markerfacecolor(line_data['line_marker_face_color'])
@@ -3325,6 +3337,7 @@ class SeriesPlotPanel(wx.Panel):
                 secm.calc_line.set_color(calc_line_data['line_color'])
                 secm.calc_line.set_marker(calc_line_data['line_marker'])
                 secm.calc_line.set_visible(calc_line_data['line_visible'])
+                secm.calc_line.set_picker(calc_line_data['line_visible'])
 
                 try:
                     secm.calc_line.set_markerfacecolor(calc_line_data['line_marker_face_color'])

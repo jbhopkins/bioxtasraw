@@ -38,6 +38,13 @@ Steps:
 
 
 
+Current notes:
+-   Successful codesigning seems to require at least pyinstaller version 5.11.
+- Currently building on MacOS 13, in the raw_py312 (arm) or rawpy313 (intel) environments
+- For ARM, seems to be a bug with conda numpy and pyinstaller, needs numpy < 2.0 to build
+ and run properly.
+
+
 Codesigning/notarization notes:
 - Requires an apple developer account
 - Must create a Developer ID Application certificate
@@ -57,6 +64,12 @@ https://lessons.livecode.com/m/4071/l/1653720-code-signing-and-notarizing-your-l
 https://developer.apple.com/forums/thread/128166
 https://gist.github.com/txoof/0636835d3cc65245c6288b2374799c43
 
+
+
+
+
+
+Older notes, might still be relevant:
 
 wxpython notes:
 Currenty wxpython versions >=4.1 require some manual modification to package
@@ -81,17 +94,6 @@ rm -f libwx_osx_cocoau_core-3.2.0.0.0.dylib libwx_baseu-3.2.0.0.0.dylib
 ln -s libwx_osx_cocoau_core-3.2.0.dylib libwx_osx_cocoau_core-3.2.0.0.0.dylib
 ln -s libwx_baseu-3.2.0.dylib libwx_baseu-3.2.0.0.0.dylib
 
-
-
-Other current notes:
--   Successful codesigning seems to require the latest version of pyinstaller (5.11).
-    Note that this version isn't on conda for python 3.11, so if using 3.11 you need
-    to install from pip.
-- Currently building on MacOS 11, in the raw_build environment.
-
-
-
-Older notes, might still be relevant:
 Need to use wxpython >=4.1 to eliminate some weird GUI glitches on MacOS 11.
 
 For RAW to work on macbooks older than 2011 need to install all packages

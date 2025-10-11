@@ -45,6 +45,7 @@ import time
 import glob
 
 import numpy as np
+import scipy
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -939,7 +940,7 @@ def rebin(profiles, npts=100, rebin_factor=1, log_rebin=False, copy_metadata=Tru
     npts: int, optional
         The number of points in each rebinned profile. Only used if rebin_factor
         is left to the default value of 1. Default is 100.
-    rebin_factor: int, optional
+    rebin_factor: float, optional
         The factor by which to rebin each profile, e.g. a rebin_factor of 2
         will result in half as many q points in the rebinned profile. If
         set to a value other than the default of 1, it overrides the npts
@@ -982,11 +983,17 @@ def rebin(profiles, npts=100, rebin_factor=1, log_rebin=False, copy_metadata=Tru
             rb_pts = npts
 
         if log_rebin:
-            rebin_profile = SASProc.logBinning(profile, rb_pts,
-                copy_params=copy_metadata)
+            if rb_pts != len(profile.getQ()):
+                rebin_profile = SASProc.logBinning(profile, rb_pts,
+                    copy_params=copy_metadata)
+            else:
+                rebin_profile = profile
         else:
-            rebin_profile = SASProc.rebin(profile, rb_fac,
-                copy_params=copy_metadata)
+            if rb_fac != 1:
+                rebin_profile = SASProc.rebin(profile, rb_fac,
+                    copy_params=copy_metadata)
+            else:
+                rebin_profile = profile
 
         rebin_profile.setParameter('filename',
             'R_{}'.format(rebin_profile.getParameter('filename')))
@@ -3026,8 +3033,11 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
         The GNOM qualitative interpretation of the total estimate.
     """
 
+    if settings is None:
+        settings = __default_settings
+
     if atsas_dir is None:
-        atsas_dir = __default_settings.get('ATSASDir')
+        atsas_dir = settings.get('ATSASDir')
 
     # Set input and output filenames and directory
     if not save_ift and write_profile:
@@ -3126,8 +3136,6 @@ def gnom(profile, dmax, rg=None, idx_min=None, idx_max=None, dmax_zero=True, alp
             }
 
     else:
-        settings = __default_settings
-
         if dmin_zero:
             dmin_zero = 'Y'
         else:
@@ -3396,7 +3404,8 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
     """
     Creates a bead model (dummy atom) reconstruction using DAMMIF from the ATSAS
     package. Requires a separate installation of the ATSAS package. Function
-    blocks until DAMMIF finishes.
+    blocks until DAMMIF finishes. Will raise a SASExceptions.NoATSASError if
+    either ATSAS is not found or the ATSAS license is expired.
 
     Parameters
     ----------
@@ -3596,6 +3605,8 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
             if new_text != '':
                 readback_queue.put_nowait([new_text])
 
+        proc.stdout.close()
+
     if write_ift and os.path.isfile(os.path.join(datadir, ift_name)):
         try:
             os.remove(os.path.join(datadir, ift_name))
@@ -3650,6 +3661,8 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
     Creates a bead model (dummy atom) reconstruction using DAMMIN from the ATSAS
     package. Requires a separate installation of the ATSAS package. Function
     blocks until DAMMIN finishes. Can be used to refine damstart.pdb files.
+    Will raise a SASExceptions.NoATSASError if either ATSAS is not found or
+    the ATSAS license is expired.
 
     Parameters
     ----------
@@ -3853,6 +3866,8 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
             if new_text != '':
                 readback_queue.put_nowait([new_text])
 
+        proc.stdout.close()
+
     if write_ift and os.path.isfile(os.path.join(datadir, ift_name)):
         try:
             os.remove(os.path.join(datadir, ift_name))
@@ -3919,7 +3934,8 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
     """
     Runs DAMAVER from the ATSAS package on a set of files. Requires a
     separate installation of the ATSAS package. Function blocks until
-    DAMAVER finishes.
+    DAMAVER finishes. Will raise a SASExceptions.NoATSASError if
+    either ATSAS is not found or the ATSAS license is expired.
 
     Parameters
     ----------
@@ -4054,6 +4070,8 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
 
             if new_text != '':
                 readback_queue.put_nowait([new_text])
+
+        proc.stdout.close()
 
     version = SASCalc.getATSASVersion(atsas_dir).split('.')
 
@@ -4233,6 +4251,8 @@ def damclust(files, prefix, datadir, symmetry='P1', atsas_dir=None,
             if new_text != '':
                 readback_queue.put_nowait([new_text])
 
+        proc.stdout.close()
+
     damclust_log = os.path.join(datadir, prefix+'_damclust.log')
     new_files = [(os.path.join(datadir, 'damclust.log'), damclust_log)]
 
@@ -4354,6 +4374,8 @@ def supcomb(target, ref_file, datadir, mode='fast', superposition='ALL',
             if new_text != '':
                 readback_queue.put_nowait([new_text])
 
+        proc.stdout.close()
+
     return
 
 def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
@@ -4471,6 +4493,8 @@ def cifsup(target, ref_file, datadir, method='ICP', selection='ALL',
 
             if new_text != '':
                 readback_queue.put_nowait([new_text])
+
+        proc.stdout.close()
 
     return
 
@@ -4698,6 +4722,8 @@ def crysol(models, profiles=None, lm=20, ns=101, smax=0.5, dns=0.334, dro=0.03,
             if new_text != '':
                 readback_queue.put_nowait([new_text])
                 crysol_output += new_text
+
+        proc.stdout.close()
 
     crysol_output_exts = ['.abs', '.alm', '.int', '.log']
 
@@ -5076,7 +5102,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
             'swMinStep'         : settings.get('denssShrinkwrapMinStep'),
             'connected'         : settings.get('denssConnected'),
             'conSteps'          : settings.get('denssConnectivitySteps'),
-            'conFeatures'       : raw_settings.get('denssConFeatures'),
+            'conFeatures'       : settings.get('denssConFeatures'),
             'chiEndFrac'        : settings.get('denssChiEndFrac'),
             'cutOutput'         : settings.get('denssCutOut'),
             'writeXplor'        : settings.get('denssWriteXplor'),
@@ -5211,7 +5237,7 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
 
     elif denss_settings['mode'] == 'Custom':
         if denss_settings['voxel'] == 'None':
-            denss_settings['voxel'] = dmax * denss_settings['oversample']/64
+            denss_settings['voxel'] = D * denss_settings['oversample']/64
 
         if denss_settings['swMinStep'] == 'None':
             denss_settings['swMinStep'] = 0
@@ -5439,7 +5465,7 @@ def denss_align(density, side, ref_file, ref_datadir='.',  prefix='',
     aligned_rhos, scores = DENSS.run_align(rho_list, side_list, ref_name,
         center=center, resolution=resolution, enantiomer=enantiomer,
         cores=n_proc, single_proc=single_proc, gui=False,
-        abort_event=abort_event)
+        abort_event=abort_event, savedir=save_datadir)
 
     if abort_event is not None and abort_event.is_set():
         return np.array([-1]), -1
@@ -6266,7 +6292,8 @@ def set_buffer_range(series, buffer_range, int_type='total', q_val=None,
     calc_thresh=1.02, sim_test='CorMap', sim_cor='Bonferroni', sim_thresh=0.01,
     error_weight=True, vp_density=0.83*10**(-3), vp_cutoff='Default',
     vp_qmax=0.5, vc_protein=True, vc_cutoff='Manual', vc_qmax=0.3,
-    vc_a_prot=1.0, vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934):
+    vc_a_prot=1.0, vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934,
+    do_calcs=True, calc_outside_win=False):
     """
     Sets the buffer range for a series, carries out the subtraction, and
     calculates Rg and MW vs. frame number.
@@ -6358,6 +6385,15 @@ def set_buffer_range(series, buffer_range, int_type='total', q_val=None,
     vc_b_rna: float
         The volume of correlation B coefficient for RNA. Not recommended to
         be changed. Note that here B is defined as 1/B from the original paper.
+    do_calcs: bool
+        Whether Guinier and MW calculations should be done. Defaults to True. Can be
+        useful if you just need to define a buffer range to carry out further
+        operations that expect buffer subtracted profiles, but won't be using
+        the results of the Guinier and MW calcs.
+    calc_outside_win: bool
+        If True, if an average window_size > 1 is supplied, then Rg and MW will
+        be calculated for profiles at the edges of the series without a full
+        window range individually.
 
     Returns
     -------
@@ -6436,10 +6472,13 @@ def set_buffer_range(series, buffer_range, int_type='total', q_val=None,
         use_sub_profiles = [True for i in range(len(sub_profiles))]
         buffer_range = []
 
-    success, results = SASCalc.run_secm_calcs(sub_profiles, use_sub_profiles,
-        window_size, vc_protein, error_weight, vp_density, vp_cutoff,
-        vp_qmax, vc_cutoff, vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna,
-        vc_b_rna)
+    if do_calcs:
+        success, results = SASCalc.run_secm_calcs(sub_profiles, use_sub_profiles,
+            window_size, vc_protein, error_weight, vp_density, vp_cutoff,
+            vp_qmax, vc_cutoff, vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna,
+            vc_b_rna, calc_outside_win)
+    else:
+        success = False
 
     if vc_protein:
         mol_type = 'Protein'
@@ -6481,7 +6520,7 @@ def set_buffer_range(series, buffer_range, int_type='total', q_val=None,
 def series_calc(sub_profiles, window_size=5, settings=None, error_weight=True,
     vp_density=0.83*10**(-3), vp_cutoff='Default', vp_qmax=0.5,
     vc_protein=True, vc_cutoff='Manual', vc_qmax=0.3, vc_a_prot=1.0,
-    vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934):
+    vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934, calc_outside_win=False):
     """
     Calculates Rg and MW for the input subtracted profiles. If you are working
     with a :class:`SECM.SECM` series object then use :func:`set_buffer_range`
@@ -6534,6 +6573,10 @@ def series_calc(sub_profiles, window_size=5, settings=None, error_weight=True,
     vc_b_rna: float
         The volume of correlation B coefficient for RNA. Not recommended to
         be changed. Note that here B is defined as 1/B from the original paper.
+    calc_outside_win: bool
+        If True, if an average window_size > 1 is supplied, then Rg and MW will
+        be calculated for profiles at the edges of the series without a full
+        window range individually.
 
     Returns
     -------
@@ -6595,7 +6638,7 @@ def series_calc(sub_profiles, window_size=5, settings=None, error_weight=True,
     success, results = SASCalc.run_secm_calcs(sub_profiles, use_sub_profiles,
         window_size, vc_protein, error_weight, vp_density, vp_cutoff,
         vp_qmax, vc_cutoff, vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna,
-        vc_b_rna)
+        vc_b_rna, calc_outside_win)
 
     if success:
         rg = results['rg']
@@ -6925,10 +6968,15 @@ def set_sample_range(series, sample_range, profile_type='sub'):
         average_profile.setParameter('filename', ('A_{}'
             .format(average_profile.getParameter('filename'))))
 
-        buffer_profile = series.average_buffer_sasm
+        if not series.already_subtracted:
 
-        sub_profile = SASProc.subtract(average_profile, buffer_profile,
-            forced=True)
+            buffer_profile = series.average_buffer_sasm
+
+            sub_profile = SASProc.subtract(average_profile, buffer_profile,
+                forced=True)
+        else:
+            sub_profile = average_profile
+
         sub_profile.setParameter('filename', ('S_{}'
             .format(sub_profile.getParameter('filename'))))
 
@@ -7263,7 +7311,8 @@ def set_baseline_correction(series, start_range, end_range, baseline_type,
     settings=None, min_iter=100, max_iter=2000,  calc_thresh=1.02,
     error_weight=True, vp_density=0.83*10**(-3), vp_cutoff='Default',
     vp_qmax=0.5, vc_protein=True, vc_cutoff='Manual', vc_qmax=0.3,
-    vc_a_prot=1.0, vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934):
+    vc_a_prot=1.0, vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934,
+    calc_outside_win=False):
     """
     Calculates and sets the baseline correction for the input series. Then
     recalculates the series Rg and M.W. values based on the baseline corrected
@@ -7352,6 +7401,10 @@ def set_baseline_correction(series, start_range, end_range, baseline_type,
     vc_b_rna: float
         The volume of correlation B coefficient for RNA. Not recommended to
         be changed. Note that here B is defined as 1/B from the original paper.
+    calc_outside_win: bool
+        If True, if an average window_size > 1 is supplied, then Rg and MW will
+        be calculated for profiles at the edges of the series without a full
+        window range individually.
 
     Returns
     -------
@@ -7438,7 +7491,7 @@ def set_baseline_correction(series, start_range, end_range, baseline_type,
     success, results = SASCalc.run_secm_calcs(bl_cor_profiles, use_sub_profiles,
         window_size, vc_protein, error_weight, vp_density, vp_cutoff,
         vp_qmax, vc_cutoff, vc_qmax, vc_a_prot, vc_b_prot, vc_a_rna,
-        vc_b_rna)
+        vc_b_rna, calc_outside_win)
 
     if vc_protein:
         mol_type = 'Protein'
@@ -7482,3 +7535,368 @@ def set_baseline_correction(series, start_range, end_range, baseline_type,
 
     return (bl_cor_profiles, rg, rger, i0, i0er, vcmw, vcmwer, vpmw, bl_corr,
         fit_results)
+
+def multi_series_calc(series_input, sample_range, buffer_range=[], do_baseline=False,
+    bl_start_range=[], bl_end_range=[], baseline_type='Linear', set_qrange=False,
+    qrange=[], bin_series=False, series_rebin_factor=1, series_bin_keys=[],
+    series_exclude_keys=[], do_q_rebin=False, q_npts=100, q_rebin_factor=1,
+    q_log_rebin=False, cal_data=[],window_size=5, settings=None,
+    error_weight=True, vp_density=0.83*10**(-3), vp_cutoff='Default', vp_qmax=0.5,
+    vc_protein=True, vc_cutoff='Manual', vc_qmax=0.3, vc_a_prot=1.0,
+    vc_b_prot=0.1231, vc_a_rna=0.808, vc_b_rna=0.00934):
+    """
+    Carries out analysis across multiple series. This is designed for datasets
+    where multiple series need to be averaged together, and optionally
+    subtraced from each other on a point by point (profile by profile) basis.
+    Also includes the ability to bin within the series (e.g. bin timepoints,
+    if the series is a time series), set the profile q range, and rebin
+    the profiles in q. If subtraction is being carried out between multiple
+    series, a baseline correction can also be applied. This can be used
+    to analyze repeated time series collected in time resolved experiments,
+    carry out point-by-point buffer subtraction with a blank run for an
+    IEC-SAS elution, and more.
+
+    Parameters
+    ----------
+    series_input: list
+        A list of lists of profiles (:class:`SASM.SASM`) to carry out
+        the multi-series analysis on. Each list of profiles should correspond
+        to a single series. There should be an equal number of profiles in
+        each series.
+    sample_range: list
+        A list defining the input sample range in terms of series number. The list is made
+        up of a set of sub-ranges, each defined by an entry in the list. Each
+        sub-range item should be a list or tuple where the first entry is the
+        starting index of the range and the second entry is the ending index
+        of the range. So a list like ``[[0, 10], [100, 110]]`` would define
+        a sample range consisting of two sub-ranges, the first from series 0-10
+        and the second from series 100-110 in the series_input list.
+        All series defined as sample are averaged together on a point-by-point
+        basis to create a sample profile at each point in the series (which
+        is optionally subtracted based on the defined buffer_range).
+    buffer_range: list, optional
+        A list defining the input buffer range to be set. The list is made
+        up of a set of sub-ranges, each defined by an entry in the list. Each
+        sub-range item should be a list or tuple where the first entry is the
+        starting index of the range and the second entry is the ending index
+        of the range. So a list like ``[[0, 10], [100, 110]]`` would define
+        a buffer range consisting of two sub-ranges, the first from series 0-10
+        and the second from series 100-110 in the series_input list. All series
+        defined as buffer are averaged together on a point-by-point basis to
+        create a buffer profile at each point in the series. This is then
+        subtracted from the sample profile created by the defined sample_range.
+        If no buffer range is supplied (or an empty list is provided) then the
+        data is assumed to be already subtracted and no buffer subtraction is
+        carried out.
+    do_baseline: bool, optional
+        If True, a baseline correction is applied. In that case, the bl_start_range
+        and bl_end_range values must be supplied.
+    bl_start_range: list, optional
+        A list defining the baseline start range to be validated. The list is two
+        integers, the start of the range and the end of the range. These define
+        the series used for the baseline. Within each series, baseline correction
+        is carried out on a profile by profile basis. For example, if the start
+        range is 0-5 an end range is 20-25, for the first profile in each series
+        the baseline correction is applied based on the first profile in series 0-5
+        and series 20-25.
+    bl_end_range: list, optional
+        A list defining the baseline end range to be validated. The list is two
+        integers, the start of the range and the end of the range. These define
+        the series used for the baseline. Within each series, baseline correction
+        is carried out on a profile by profile basis. For example, if the start
+        range is 0-5 an end range is 20-25, for the first profile in each series
+        the baseline correction is applied based on the first profile in series 0-5
+        and series 20-25.
+    baseline_type: {'Integral', 'Linear'} str, optional
+        Defines the baseline type.
+    set_qrange: bool, optional
+        If True, the profiles have the q range set to the q points nearest the
+        provided values in q_range
+    q_range: list, optional
+        A list consisting of the start and end q values to be set for the profiles.
+    bin_series: bool, optional
+        If True, profiles are binned within each series in the series list. For
+        example, if a series_rebin_factor of 2 is provided, then every two profiles
+        in each series would be averaged together, reducing the total number of
+        profiles in each series by half.
+    series_rebin_factor: int, optional
+        The number of profiles to average together in a series, if bin_series is
+        True.
+    series_bin_keys: list, optional
+        A list of keys corresponding to keys in the profiles 'counters' dictionary
+        (sasm.getParameter('counters')) that should be averaged together. This is
+        useful if calibration parameters such as time point (or the input for
+        the cal_data described below) are included in the profile header.
+    do_q_rebin: bool, optional
+        If True, the profiles are rebinned according the the q_npts, q_rebin_factor,
+        and q_log_rebin parameters.
+    q_npts: int, optional
+        The number of points in each rebinned profile. Only used if q_rebin_factor
+        is left to the default value of 1. Default is 100.
+    q_rebin_factor: float, optional
+        The factor by which to rebin each profile, e.g. a rebin_factor of 2
+        will result in half as many q points in the rebinned profile. If
+        set to a value other than the default of 1, it overrides the q_npts
+        parameter.
+    q_log_rebin: bool, optional
+        Specifies whether the rebinning should be done in linear (False) or
+        logarithmic (True) space. Defaults to linear (False).
+    cal_data: list, optional
+        This can be used to calibrate the series data if desired as y=f(x). List
+        should consist of the following entires (in order): reference key in the
+        profiles 'counters' dictionary that provides the input value for
+        the calibration, calibration result key to be added to the profiles
+        'counters' dictionary that contains the output value for the calibration,
+        calibration x_offset value that is an offset applied to the calibration
+        input value before calibration is carried out, array of x (input)
+        calibration values, array of y (output) calibration values. A 1D
+        linear interpolated function y=f(x) will then be created and the
+        calibration value for each profile in each series will be calculated
+        using the reference key value as the x value plus the offset value.
+    window_size: int, optional
+        The size of the average window used when calculating Rg and MW.
+        So if the window is 5, 5 a window is size 5 is slid along the series,
+        and profiles in that window are averaged before being used to calculate
+        Rg and MW. For example, frames 1-5, 2-6, 3-7, etc would be averaged and
+        then have Rg and MW calculated from that average. Default is 1 (no
+        averaging).
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        RAW settings containing relevant parameters. If provided, err_weight,
+        vp_density, vp_cutoff, vp_qmax, vc_protein, vc_cutoff, and vc_qmax are
+        overridden by the values in the settings.
+    error_weight: bool, optional
+        Whether to use error weighting when calculating the Rg.
+    vp_density: float, optional
+        The density used for the Porod volume M.W. calculation in kDa/A^3.
+        Defaults to 0.83*10**(-3).
+    vp_cutoff: {''Default', '8/Rg', 'log(I0/I(q))', 'Manual''} str, optional
+        The method to use to calculate the maximum q value used for the
+        Porod volume M.W. calculation. Defaults to 'Default'
+    vp_qmax: float, optional
+        The maximum q value to be used if the 'Manual' cutoff method is
+        selected for the Porod volume M.W. calculation. Defaults to 0.5.
+    vc_protein: bool
+        True if the sample is protein, False if the sample is RNA. Determines
+        which set of coefficients to use for calculating M.W.
+    vc_cutoff: {''Default', '8/Rg', 'log(I0/I(q))', 'Manual''} str, optional
+        The method to use to calculate the maximum q value used for the
+        M.W. calculation. Defaults to 'Manual'
+    vc_qmax: float, optional
+        The maximum q value to be used if the 'Manual' cutoff method is
+        selected. Defaults to 0.3.
+    vc_a_prot: float
+        The volume of correlation A coefficient for protein. Not recommended
+        to be changed.
+    vc_b_prot: float
+        The volume of correlation B coefficient for protein. Not recommended
+        to be changed. Note that here B is defined as 1/B from the original paper.
+    vc_a_rna: float
+        The volume of correlation A coefficient for RNA. Not recommended to
+        be changed.
+    vc_b_rna: float
+        The volume of correlation B coefficient for RNA. Not recommended to
+        be changed. Note that here B is defined as 1/B from the original paper.
+
+    Returns
+    -------
+    sub_series: list
+        A series of the subtracted profiles. Each subtracted profile corresponds
+        to a single point/profile from all the input series, with the defined buffer
+        and sample ranges provided.
+    rg: :class:`numpy.array`
+        An array of the Rg values calculated for each subtracted profile. If
+        no Rg value could be calculated then the value is -1. Each array index
+        is the Rg corresponding to the subtracted profile at that index in
+        the sub_profiles list.
+    rger: :class:`numpy.array`
+        An array of the uncertainty in the Rg values calculated for each
+        subtracted profile. If no Rg value could be calculated then the
+        value is -1. Each array index is the uncertainty corresponding to the
+        subtracted profile at that index in  the sub_profiles list.
+    i0: :class:`numpy.array`
+        An array of the I(0) values calculated for each subtracted profile. If
+        no I(0) value could be calculated then the value is -1. Each array index
+        is the I(0) corresponding to the subtracted profile at that index in
+        the sub_profiles list.
+    i0er: :class:`numpy.array`
+        An array of the uncertainty in the I(0) values calculated for each
+        subtracted profile. If no I(0) value could be calculated then the
+        value is -1. Each array index is the uncertainty corresponding to the
+        subtracted profile at that index in  the sub_profiles list.
+    vcmw: :class:`numpy.array`
+        An array of the volume of correlation M.W. values calculated for each
+        subtracted profile. If no M.W. value could be calculated then the value
+        is -1. Each array index is the M.W. corresponding to the subtracted
+        profile at that index in the sub_profiles list.
+    vcmwer: :class:`numpy.array`
+        An array of the uncertainty in the volume of correlation M.W. values
+        calculated for each subtracted profile. If no M.W. value could be
+        calculated then the value is -1. Each array index is the uncertainty
+        corresponding to the subtracted profile at that index in  the
+        sub_profiles list.
+    vpmw: :class:`numpy.array`
+        An array of the Porod volume M.W. values calculated for each subtracted
+        profile. If no M.W. value could be calculated then the value is -1.
+        Each array index is the M.W. corresponding to the subtracted profile
+        at that index in the sub_profiles list.
+    calibration: :class:`numpy.array`
+        An array of the calculated calibration values for each subtracted profile.
+        If no calibraiton data was supplied the array is empty.
+    """
+
+    series_list = [copy.copy(series) for series in series_input]
+
+    if settings is not None:
+        error_weight = settings.get('errorWeight')
+
+        vp_cutoff = settings.get('MWVpCutoff')
+        vp_density = settings.get('MWVpRho')
+        vp_qmax = settings.get('MWVpQmax')
+
+        vc_cutoff = settings.get('MWVcCutoff')
+        vc_type = settings.get('MWVcType')
+        vc_qmax = settings.get('MWVcQmax')
+
+        if vc_type == 'Protein':
+            vc_protein = True
+        else:
+            vc_protein = False
+
+    # Remove excluded frames from each series
+    if len(series_exclude_keys) > 0:
+        series_exclude_keys.sort(reverse=True)
+
+        for series in series_list:
+            for index in series_exclude_keys:
+                if index < len(series):
+                    del series[index]
+
+    # First set the q range
+    if set_qrange:
+        orig_qranges = []
+        for series in series_list:
+            series_orig_qranges = []
+            for profile in series:
+                orig_qrange = profile.getQrange()
+                series_orig_qranges.append(orig_qrange)
+
+                qvals = profile.q
+                qmin_idx = profile.closest(qvals, qrange[0])
+                qmax_idx = profile.closest(qvals, qrange[1])
+
+                profile.setQrange([qmin_idx, qmax_idx])
+
+            orig_qranges.append(series_orig_qranges)
+
+    # Would it make everything faster to do this first?
+    # Next bin the profiles in the series (e.g. timepoint binning)
+    avg_series_list = []
+    if bin_series and series_rebin_factor != 1:
+        for series in series_list:
+            avg_data = []
+            for start in range(0, len(series)+1, series_rebin_factor):
+                data_slice = series[start:start+series_rebin_factor]
+
+                if len(data_slice)>0:
+                    avg_data.append(average(data_slice))
+
+                    for ctr_name in series_bin_keys:
+                        vals = [float(sasm.getParameter('counters')[ctr_name]) for sasm in data_slice]
+                        avg_val = np.mean(vals)
+                        ctr_dict = avg_data[-1].getParameter('counters')
+                        ctr_dict[ctr_name] = avg_val
+                        avg_data[-1].setParameter('counters', ctr_dict)
+            avg_series_list.append(avg_data)
+
+    else:
+        avg_series_list = series_list
+
+    # Next rebin the data
+    if do_q_rebin:
+        rseries_list = []
+        for series in avg_series_list:
+            rseries = rebin(series, q_npts, q_rebin_factor, q_log_rebin)
+            rseries_list.append(rseries)
+    else:
+        rseries_list = avg_series_list
+
+    # Next make series for analysis
+    data_series = []
+
+    for j in range(len(rseries_list[0])):
+        temp_sasms = []
+        for k in range(len(rseries_list)):
+            temp_sasms.append(rseries_list[k][j])
+
+        series = profiles_to_series(temp_sasms)
+        data_series.append(series)
+
+    # Next, do analysis
+    sub_sasms = []
+
+    if len(buffer_range) == 0:
+        already_subtracted = True
+    else:
+        already_subtracted = False
+
+    for series in data_series:
+        set_buffer_range(series, buffer_range,
+            already_subtracted=already_subtracted, window_size=window_size,
+            settings=settings, error_weight=error_weight, vp_density=vp_density,
+            vp_cutoff=vp_cutoff, vp_qmax=vp_qmax, vc_protein=vc_protein,
+            vc_cutoff=vc_cutoff, vc_qmax=vc_qmax, vc_a_prot=vc_a_prot,
+            vc_b_prot=vc_b_prot, vc_a_rna=vc_a_rna, vc_b_rna=vc_b_rna,
+            do_calcs=False)
+
+        if not do_baseline:
+            sub_sample = set_sample_range(series, sample_range)
+        else:
+            set_baseline_correction(series, bl_start_range, bl_end_range,
+                baseline_type)
+
+            sub_sample = set_sample_range(series, sample_range,
+                profile_type='baseline')
+
+        sub_sasms.append(sub_sample)
+
+    # Next do time (or other) point calibration
+    calibration = []
+    if len(cal_data) > 0:
+        x_cal = cal_data[3]
+        y_cal = cal_data[4]
+        cal_interp = scipy.interpolate.interp1d(x_cal, y_cal)
+
+        cal_val_key = cal_data[0]
+        cal_save_key = cal_data[1]
+        cal_offset = cal_data[2]
+
+        for sasm in sub_sasms:
+            ctr_dict = sasm.getParameter('counters')
+            val = float(ctr_dict[cal_val_key])+cal_offset
+            cal_val = cal_interp(val)
+            ctr_dict[cal_save_key] = cal_val
+            sasm.setParameter('counters', ctr_dict)
+            calibration.append(cal_val)
+
+    calibration = np.array(calibration)
+
+    sub_series = profiles_to_series(sub_sasms)
+
+    sub_profiles, rg, rger, i0, i0er, vcmw, vcmwer, vpmw = set_buffer_range(
+        sub_series, [], already_subtracted=True, window_size=window_size,
+        settings=settings, error_weight=error_weight, vp_density=vp_density,
+        vp_cutoff=vp_cutoff, vp_qmax=vp_qmax, vc_protein=vc_protein,
+        vc_cutoff=vc_cutoff, vc_qmax=vc_qmax, vc_a_prot=vc_a_prot,
+        vc_b_prot=vc_b_prot, vc_a_rna=vc_a_rna, vc_b_rna=vc_b_rna,
+        calc_outside_win=True)
+
+    # Reset to original q ranges (to avoid having to deep copy profiles to avoid changes upstream)
+    # Seems a little odd but is much faster than a deep copy
+    if set_qrange:
+        for j, series in enumerate(series_list):
+            series_orig_qranges = orig_qranges[j]
+            for k, profile in enumerate(series):
+                qrange = series_orig_qranges[k]
+                profile.setQrange(qrange)
+
+    return sub_series, rg, rger, i0, i0er, vcmw, vcmwer, vpmw, calibration

@@ -148,7 +148,7 @@ def test_save_series_dats(series_dats, temp_directory):
     test_series = raw.load_series([os.path.join(temp_directory,
         'test_series_dats.hdf5')])[0]
 
-    assert test_series._file_list == series_dats._file_list
+    assert test_series.file_list == series_dats.file_list
     assert all(test_series.total_i == series_dats.total_i)
     assert test_series.window_size == series_dats.window_size
     assert test_series.buffer_range == series_dats.buffer_range
@@ -186,7 +186,7 @@ def test_save_series_images(series_images, temp_directory):
     test_series = raw.load_series([os.path.join(temp_directory,
         'test_series_images.hdf5')])[0]
 
-    assert test_series._file_list == series_images._file_list
+    assert test_series.file_list == series_images.file_list
     assert all(test_series.total_i == series_images.total_i)
     assert test_series.window_size == series_images.window_size
     assert test_series.buffer_range == series_images.buffer_range
@@ -224,7 +224,7 @@ def test_save_series_sasbdb_keywords(series_sasbdb_keywords, temp_directory):
     test_series = raw.load_series([os.path.join(temp_directory,
         'test_series_sasbdb_keywords.hdf5')])[0]
 
-    assert test_series._file_list == series_sasbdb_keywords._file_list
+    assert test_series.file_list == series_sasbdb_keywords.file_list
     assert all(test_series.total_i == series_sasbdb_keywords.total_i)
     assert test_series.window_size == series_sasbdb_keywords.window_size
     assert test_series.buffer_range == series_sasbdb_keywords.buffer_range

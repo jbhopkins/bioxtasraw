@@ -179,7 +179,7 @@ class mixture:
             for j in range(self.Nc):
                 C = self.components[j].concentration
                 if C.reg_type == 'simple':
-                    ng[j] = np.Inf
+                    ng[j] = np.inf
                 elif C.reg_type == 'smooth':
                     ng[j] = 0.8 * C.maxinfo
                 else:
@@ -206,7 +206,7 @@ class mixture:
             for j in range(self.Nc):
                 P = self.components[j].profile
                 if P.reg_type == 'simple':
-                    ng[j] = np.Inf # no regularization
+                    ng[j] = np.inf # no regularization
                 elif P.reg_type == 'smooth':
                     ng[j] = 0.9 * P.maxinfo # just a little smoothing
                 elif P.reg_type == 'realspace':
