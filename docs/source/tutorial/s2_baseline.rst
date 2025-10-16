@@ -1,4 +1,4 @@
-Advanced SEC-SAXS processing – Baseline correction
+Advanced Series processing – Baseline correction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Sometimes SEC data shows a baseline drift. This can be due either to instrumental

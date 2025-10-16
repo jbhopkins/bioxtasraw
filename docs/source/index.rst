@@ -48,6 +48,18 @@ as the basis for an open-source automated SAXS data processing pipeline at
 a beamline or homesource.
 
 
+Development
+-----------
+
+RAW is currently developed by Jesse Hopkins, Director of `the BioCAT beamline
+<https://www.bio.aps.anl.gov/>`_ at the APS. Techniques developed by other
+scientists are frequently incorporated into RAW in order to make these methods
+available to a wide audience. The development version of the source code is
+available on github:
+
+`https://github.com/jbhopkins/bioxtasraw <https://github.com/jbhopkins/bioxtasraw>`_
+
+
 History and Usage
 -----------------
 RAW was first developed in 2008 by Soren Skou as part of the biological x-ray total analysis

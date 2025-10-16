@@ -280,7 +280,7 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
 
         other_box = wx.StaticBox(load_box, label='Other')
 
-        auto_load_btn = wx.Button(other_box, label='Auto Select')
+        auto_load_btn = wx.Button(other_box, label='Auto select')
         auto_load_btn.Bind(wx.EVT_BUTTON, self._on_auto_load)
 
         add_from_raw_btn = wx.Button(other_box, label='Add from series panel')
@@ -340,10 +340,18 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
         adv_load_btn = wx.Button(adv_load_box, label='Select files')
         adv_load_btn.Bind(wx.EVT_BUTTON, self._on_load_files)
 
+        adv_load_sub_sizer2 = wx.FlexGridSizer(cols=2, hgap=self._FromDIP(5),
+            vgap=self._FromDIP(5))
+        adv_load_sub_sizer2.Add(wx.StaticText(adv_load_box, label='Directory:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_load_sub_sizer2.Add(self.load_dir, flag=wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+        adv_load_sub_sizer2.Add(wx.StaticText(adv_load_box, label='Filename:'),
+            flag=wx.ALIGN_CENTER_VERTICAL)
+        adv_load_sub_sizer2.Add(self.load_fname, flag=wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+        adv_load_sub_sizer2.AddGrowableCol(1)
+
         adv_load_sizer = wx.StaticBoxSizer(adv_load_box, wx.VERTICAL)
-        adv_load_sizer.Add(self.load_dir, flag=wx.EXPAND|wx.ALL, border=self._FromDIP(5))
-        adv_load_sizer.Add(self.load_fname, flag=wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM,
-            border=self._FromDIP(5))
+        adv_load_sizer.Add(adv_load_sub_sizer2, flag=wx.EXPAND|wx.ALL, border=self._FromDIP(5))
         adv_load_sizer.Add(adv_load_sub_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
             border=self._FromDIP(5))
         adv_load_sizer.Add(adv_load_btn, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|
@@ -359,8 +367,8 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
         self.series_list = SeriesItemList(self, parent, size=self._FromDIP((200,-1)))
 
         remove_series = wx.Button(parent, label='Remove')
-        move_up_series = wx.Button(parent, label='Move Up')
-        move_down_series = wx.Button(parent, label='Move Down')
+        move_up_series = wx.Button(parent, label='Move up')
+        move_down_series = wx.Button(parent, label='Move down')
 
         remove_series.Bind(wx.EVT_BUTTON, self._on_remove_series)
         move_up_series.Bind(wx.EVT_BUTTON, self._on_move_up_series)
@@ -429,53 +437,54 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
         # Destroy the dialog
         dialog.Destroy()
 
-        path, filename = os.path.split(file)
+        if file is not None:
+            path, filename = os.path.split(file)
 
-        fprefix, ext = os.path.splitext(filename)
+            fprefix, ext = os.path.splitext(filename)
 
-        search_prefix = '_'.join(fprefix.split('_')[:-4])
+            search_prefix = '_'.join(fprefix.split('_')[:-4])
 
-        scan_list = []
+            scan_list = []
 
-        search_key = '{}_*{}'.format(search_prefix, ext)
-        files = glob.glob(os.path.join(path, search_key))
+            search_key = '{}_*{}'.format(search_prefix, ext)
+            files = glob.glob(os.path.join(path, search_key))
 
-        series_files = {}
+            series_files = {}
 
-        for f in files:
-            scan = f.split('_')[-4]
+            for f in files:
+                scan = f.split('_')[-4]
 
-            if scan not in scan_list:
-                scan_list.append(scan)
-                series_files[scan] = [f, ]
-            else:
-                temp_flist = series_files[scan]
-                temp_flist.append(f)
-                series_files[scan] = temp_flist
+                if scan not in scan_list:
+                    scan_list.append(scan)
+                    series_files[scan] = [f, ]
+                else:
+                    temp_flist = series_files[scan]
+                    temp_flist.append(f)
+                    series_files[scan] = temp_flist
 
-        scan_list.sort()
+            scan_list.sort()
 
-        series_list = []
+            series_list = []
 
-        for scan in scan_list:
-            flist = series_files[scan]
-            flist.sort()
+            for scan in scan_list:
+                flist = series_files[scan]
+                flist.sort()
 
-            _, first_filename = os.path.split(flist[0])
+                _, first_filename = os.path.split(flist[0])
 
-            series_name = '_'.join(first_filename.split('_')[:-3])
+                series_name = '_'.join(first_filename.split('_')[:-3])
 
-            series_data = {
-                'files' : flist,
-                'scan'  : scan,
-                'path'  : path,
-                'name'  : series_name,
-                'series': None
-                }
+                series_data = {
+                    'files' : flist,
+                    'scan'  : scan,
+                    'path'  : path,
+                    'name'  : series_name,
+                    'series': None
+                    }
 
-            series_list.append(series_data)
+                series_list.append(series_data)
 
-        self._add_series(series_list)
+            self._add_series(series_list)
 
     def _on_load_files(self, evt):
 
@@ -741,7 +750,7 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
                     settings = f.read()
                 settings = dict(json.loads(settings))
             except Exception:
-                msg = ("Failed to load multi series analysis settings.")
+                msg = ("Failed to load multi-series analysis settings.")
                 wx.CallAfter(self.series_frame.main_frame.showMessageDialog,
                     self.series_frame, msg, "Load failed", wx.ICON_ERROR|wx.OK)
                 settings = None

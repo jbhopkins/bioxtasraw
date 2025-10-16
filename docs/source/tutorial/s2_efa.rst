@@ -1,4 +1,4 @@
-Advanced SEC-SAXS processing – Evolving factor analysis (EFA)
+Advanced Series processing – Evolving factor analysis (EFA)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _raw_efa:
 

@@ -1,4 +1,4 @@
-Advanced SEC-SAXS processing – Singular value decomposition (SVD)
+Advanced Series processing – Singular value decomposition (SVD)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. _raw_svd:
 
