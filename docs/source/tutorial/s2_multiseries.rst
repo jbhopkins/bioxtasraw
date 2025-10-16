@@ -162,7 +162,7 @@ to get a final time series.
     defined, click the 'Select files' button. This will search for files
     matching the values you provided in the selected folder. Series that it
     successfully finds will be displayed in the left panel. Note that in the left
-    panel you will first see a number, this increments sequentially and will be
+    panel you will first see a number, this series ID increments sequentially and will be
     used to identify the series in the next part of the analysis. After that you
     will see the series name, in this case it should be something like *cytc_01_005_0001*.
 
@@ -204,14 +204,16 @@ to get a final time series.
     intensity for each series. Here, each point corresponds to the sum of
     the total intensity of every profile in the series (for this example data
     set, each point in the sum of intensity from 40 profiles). The series number
-    corresponds to the series number given in the left list of the loading
+    corresponds to the series ID given in the list of series in the loading
     panel.
 
-    *   Note that these are simply sequential for the series, so they
+    *   Note that series IDs are simply sequential for the series loaded, so they
         do not necessarily correspond to the series number as defined by <s>.
         For example, if you'd rearranged the list so that the series with number
         0002 was first in the list and 0001 was second, then the first point in
-        this intensity plot would correspond to the series with number 0002.
+        this intensity plot would have series ID 1 and correspond to the series
+        with number 0002. Or if you'd loaded series 5 to 35, the first point
+        in the plot would be series 5 but have series ID 1.
 
     |ms_intensity_plot_png|
 
