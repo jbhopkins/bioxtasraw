@@ -1781,7 +1781,7 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
         cal_box = wx.StaticBox(ctrl_box, label='Calibration controls')
 
-        load_cal_btn = wx.Button(cal_box, label='Load Calibration')
+        load_cal_btn = wx.Button(cal_box, label='Load calibration')
         load_cal_btn.Bind(wx.EVT_BUTTON, self._on_load_cal)
         self.cal_file_label = wx.StaticText(cal_box)
 

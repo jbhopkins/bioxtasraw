@@ -217,6 +217,152 @@ to get a final time series.
 
     |ms_intensity_plot_png|
 
+#.  First we will define what series are buffer. Unlike the LC Analysis panel,
+    this is not defining a single profile as buffer, rather we are saying that
+    every profile in the series is a buffer profile. For this time resolved data,
+    recall that we first measure a set of scans (each scan is a single series
+    when loaded into RAW) with buffer, then inject sample, measure a set of scans
+    with sample, and then measure a final set of scans with just buffer.
+    Analogous to a SEC-SAXS elution series, the series where protein is
+    being measured have more total scattering than those with buffer, leading
+    to the peak in this plot. Use the "Add region" button to add two buffer
+    regions, one before the sample measurement and one after, and define the
+    start and end points appropriately using either the spin boxes or
+    the "Pick" button as you would in the LC Series panel. These
+    should be around series 1-30 and 70-90.
+
+    *   Note: Because of the injection method, there is some tailing in the
+        sample concentration across later series. So to be conservative we
+        pick a smaller post-buffer region near the end of the collected series.
+
+    *   Tip: To use the interactive range picker, click the Pick button, then
+        click on the start point of the range on the plot and then the end
+        point of the range on the plot.
+
+    *   Note: Buffer regions are shown on the plot in green.
+
+    *   Note: Defining a buffer region is optional. If data is already subtracted
+        you can proceed to the next step without doing this.
+
+    |ms_buffer_range_png|
+
+#.  Next we define what series are sample. Again, this is telling RAW that
+    every profile in that series is a sample profile. Use the "Add region" button
+    to add a sample region where the peak in the data is. This should be
+    around series 32-44.
+
+    *   Note: Sample regions are shown on the plot in purple.
+
+    |ms_sample_range_png|
+
+#.  Click the "Next" button to carry out the buffer subtraction and averaging.
+    In this step, RAW carries out a point-by-point average of the defined
+    buffer region(s) and sample region(s). For this data, each series has 90
+    profiles in it. So RAW averages the first profile across series 1-30 and 70-90
+    to create the average buffer profile at that point. It then averages the
+    first profile across series 32-44 to create the average sample profile at
+    that point. The average buffer profile is then subtracted from the average
+    sample profile to yield the subtracted scattering profile at that point.
+    This is carried out for all points in the series, resulting in 90
+    subtracted scattering profiles, each at a different measured timepoint.
+    RAW then carries out automated Rg and MW calculations for each subtracted
+    profile and, if successful, displays the results in newly displayed window.
+
+    |ms_profile_panel_png|
+
+#.  A single time resolved measurement doesn't always yield great signal to noise
+    data. You can see from the subtracted profile plotted at the bottom of the window
+    that the data is highly noisy, and thus the automated Rg and MW calculations
+    were not run successfully. We need to average together multiple measurements
+    to improve this signal to noise and yield usable data.
+
+    *   Note: This dataset represents a worst case scenario. Cytochrome C is
+        small, so has lower scattering, and the final renaturing buffer
+        contains 0.45 M guanidine, which reduces the contrast. For most time
+        resolved datasets a single measurement will yield better signal to noise
+        data.
+
+#.  We will now apply a time calibration to the data. This requires two things.
+    First, the profile header for each subtracted profile must contain a value
+    that can be used to calibrate the data. Second, a calibration file that converts
+    this header value into the desired value must be provided. A linear interpolation
+    of the data in the calibration file is created, f(x) and the calibrated value
+    is calculated as cal_val = f(input_val). Click the "Load Calibration" button
+    and select the **Tutorial_Data/multiseries_data/time_8_ml_min.csv** file.
+    This file contains distance from the mixing region in mm and time after
+    mixing in ms.
+
+    *   Note: A calibration file should consist of two columns in csv format.
+        The first column is the input value and the second the output value.
+
+#.  The "Cal. input key" selection menu lists all the available keys in the profile
+    header. For this time resolved data, the calibration is done by the position
+    of the beam on the microfluidic mixer. Select the "x" key in the menu, which
+    gives the x position of the mixer.
+
+#.  The "Cal. output key" field is the name that the calibrated point will be
+    saved with in the profile header. Enter "time"
+
+#.  The "Cal offset" field allows you to provide an offset value that will be
+    added to the value from the profile header (i.e. cal_val = f(input_val+offset)).
+    For this dataset, this is the measured position of the mixing region in x.
+    Enter 71.13 for this value.
+
+    |ms_calibration_png|
+
+#.  Click "Process data" to apply the calibration. After it finishes you'll see
+    that the x axis of the plots is now in your calibrated units, in this case
+    time in ms.
+
+    |ms_calibration2_png|
+
+#.  We will now save the settings used to process this data. This allows us to
+    apply the same settings to additional datasets, making processing
+    quicker. It also provides a record of what settings were used to produce
+    the final subtracted series. Click the "Save analysis settings" button
+    and save the settings as "cytc_01.json" in the top level
+    **Tutorial_Data/multiseries_data** folder.
+
+    |ms_save_settings_png|
+
+#.  Click the done button at the bottom of the window. This will close the
+    analysis window and send the subtracted series to the Series control panel
+    and Series plot, where you can do further analysis on it.
+
+#.  Open the Multi-Series Analysis window. Click the "Load analysis settings"
+    button to load in the **cytc_01.json** settings you just saved. You will see
+    the "Select from disk" controls fill in the previous values, and additionally
+    the range settings and settings from the final panel are also loaded.
+
+    |ms_load_settings_png|
+
+#.  Since this data is from BioCAT, it is compatible with the Auto select loading
+    function. Click the "Auto select" button and select any profile in the
+    **Tutorial_Data/mutliseries_data/cytc_02** folder. You will see the series
+    load in the left panel as before.
+
+    |ms_auto_load_png|
+
+#.  Click the "Next" button to move to the buffer and sample range selection
+    window. Note that the previously used ranges are selected by default.
+
+#.  The experimental strategy changed slightly for this dataset, so we need to
+    tweak the sample and buffer ranges. Change those as appropriate.
+
+    *   Note: Buffer ranges should be around 1-30 and 75-90, and sample range
+        around 32-49.
+
+    |ms_ranges_repeat_png|
+
+#.  Click the "Next" button to move to the subtracted profiles window. Note that
+    the time calibration has been applied automatically, as it was loaded with
+    the rest of the settings.
+
+#.  Save the settings for this analysis as "cytc_03" and click "Done" to send
+    the subtracted time series to the Series plot.
+
+#.
+
 .. |ms_panel_png| image:: images/ms_panel.png
     :target: ../_images/ms_panel.png
 
@@ -236,3 +382,33 @@ to get a final time series.
 
 .. |ms_intensity_plot_png| image:: images/ms_intensity_plot.png
     :target: ../_images/ms_intensity_plot.png
+
+.. |ms_buffer_range_png| image:: images/ms_buffer_range.png
+    :target: ../_images/ms_buffer_range.png
+
+.. |ms_sample_range_png| image:: images/ms_sample_range.png
+    :target: ../_images/ms_sample_range.png
+
+.. |ms_profile_panel_png| image:: images/ms_profile_panel.png
+    :target: ../_images/ms_profile_panel.png
+
+.. |ms_calibration_png| image:: images/ms_calibration.png
+    :width: 300 px
+    :target: ../_images/ms_calibration.png
+
+.. |ms_calibration2_png| image:: images/ms_calibration2.png
+    :target: ../_images/ms_calibration2.png
+
+.. |ms_save_settings_png| image:: images/ms_save_settings.png
+    :width: 300 px
+    :target: ../_images/ms_save_settings.png
+
+.. |ms_load_settings_png| image:: images/ms_load_settings.png
+    :target: ../_images/ms_load_settings.png
+    :width: 600 px
+
+.. |ms_auto_load_png| image:: images/ms_auto_load.png
+    :target: ../_images/ms_auto_load.png
+
+.. |ms_ranges_repeat_png| image:: images/ms_ranges_repeat.png
+    :target: ../_images/ms_ranges_repeat.png
