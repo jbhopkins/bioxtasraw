@@ -6924,7 +6924,7 @@ def validate_sample_range(series, sample_range, profile_type='sub',
 
     return valid, similarity_results, param_results, svd_results, sn_results
 
-def set_sample_range(series, sample_range, profile_type='sub'):
+def set_sample_range(series, sample_range, profile_type='sub', header_avg_keys=[]):
     """
     Sets the sample range for the series and returns the subtracted scattering
     profile corresponding to the specified sample range.
@@ -6943,8 +6943,11 @@ def set_sample_range(series, sample_range, profile_type='sub'):
         in the series and the second from profiles 100-110 in the series.
     profile_type: {'unsub', 'sub', 'baseline'} str, optional
         Determines which type of profile to use from the series to set the
-        sample range. Unsubtracted profiles - 'unsub', subtracted
-        profiles - 'sub', baseline corrected profiles - 'baseline'.
+        sample range. Subtracted profiles - 'sub', baseline corrected
+        profiles - 'baseline'.
+    header_avg_keys: list
+        A list of keys in the 'counters' dictionary (sasm.getParameter('counters'))
+        that should be averaged along with the profiles.
 
     Returns
     -------
@@ -6988,6 +6991,12 @@ def set_sample_range(series, sample_range, profile_type='sub'):
         sub_profile = SASProc.average(profiles_list, forced=True)
         sub_profile.setParameter('filename', ('A_{}'
             .format(sub_profile.getParameter('filename'))))
+
+    for key in header_avg_keys:
+        val_list = [float(prof.getParameter('counters')[key]) for prof in profiles_list]
+        avg_val = np.mean(val_list)
+        ctr_dict = sub_profile.getParameter('counters')
+        ctr_dict[key] = avg_val
 
     series.sample_range = sample_range
 
@@ -7849,13 +7858,14 @@ def multi_series_calc(series_input, sample_range, buffer_range=[], do_baseline=F
             do_calcs=False)
 
         if not do_baseline:
-            sub_sample = set_sample_range(series, sample_range)
+            sub_sample = set_sample_range(series, sample_range,
+                header_avg_keys=series_bin_keys)
         else:
             set_baseline_correction(series, bl_start_range, bl_end_range,
                 baseline_type)
 
             sub_sample = set_sample_range(series, sample_range,
-                profile_type='baseline')
+                profile_type='baseline', header_avg_keys=series_bin_keys)
 
         sub_sasms.append(sub_sample)
 

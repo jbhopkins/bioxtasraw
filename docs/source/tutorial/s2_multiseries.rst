@@ -338,7 +338,7 @@ to get a final time series.
 
 #.  Since this data is from BioCAT, it is compatible with the Auto select loading
     function. Click the "Auto select" button and select any profile in the
-    **Tutorial_Data/mutliseries_data/cytc_02** folder. You will see the series
+    **Tutorial_Data/mutliseries_data/cytc_03** folder. You will see the series
     load in the left panel as before.
 
     |ms_auto_load_png|
@@ -361,7 +361,133 @@ to get a final time series.
 #.  Save the settings for this analysis as "cytc_03" and click "Done" to send
     the subtracted time series to the Series plot.
 
-#.
+#.  In the Series Control Panel, save the cytc_01 and cytc_03 series that you
+    have processed to the **Tutorial_Data/multiseries_data** folder.
+
+#.  Next we will average the time resolved data across all 5 repeated time
+    series measurements. This will improve the signal to noise of the final dataset.
+    Open the **cytc_02_006_00.hdf5**, **cytc_04_004_0.hdf5** and **cytc_06_018_0.hdf5**
+    series in the **Tutorial_Data/multiseries_data** folder.
+
+#.  Select all the cytc series in the Series Control Panel, right click on a
+    selected series, and select "Multi-Series analysis" from the pop-up menu
+    to open a multi-series analysis window with the selected series already
+    loaded.
+
+#.  In the multi-series analysis window, click "Next" to move to the series
+    buffer and sample range window. Add a sample range that spans all 5 series.
+
+    |ms_all_sample_range_png|
+
+#.  Click "Next" to advance to the subtracted profiles window.
+
+    *   Note: Because this is an average of 5 repeated measurements, the signal
+        to noise is significantly improved and the automated methods are able
+        to calculate Rg and MW at most timepoints.
+
+#.  Because we've previously calibrated each series in time, we can apply that
+    calibration to the average of all these independent series. Check the
+    "Calibration in header" box and from the drop-down menu select "time"
+    as the Cal. input key.  This tells RAW that the calibrate already exists
+    in the header, rather than having to be calculated from a header value,
+    and that the appropriate key to use for the calibration is "time".
+
+    |ms_cal_in_header_png|
+
+#.  Click the "Process data" button to reprocess the data with this calibration.
+
+    *   Note: The plots will now show the x axis with calibrated time values.
+        For this dataset the time unit is milliseconds, so all the data is
+        recorded for mixing times below 1 ms.
+
+    |ms_average_data_png|
+
+#.  Next we will bin and trim the data to improve the data quality of the individual
+    scattering profiles at each timepoint. We'll start with q binning. Check
+    the "Rebin q" box, set the Q bin type to "Linear", set the Q bin mode to
+    "Points" and set the number of Q bin points to 150.
+
+    *   Note: Q bin type can be linear or logarithmic, and dictates whether the
+        bin spacing is linear or log base 10 in q. Q bin mode can be factor, which
+        reduces the number of q points in the profile by the provided factor,
+        or number of points, which sets the number of q points in the profile
+        to a fixed value.
+
+    |ms_q_bin_png|
+
+#.  Click the "Process data" button to reprocess the data with this q binning.
+    The plotted profile should now show significantly less noise.
+
+    |ms_q_bin_profile_png|
+
+#.  Because of strong parasitic scattering from the mixer window at some positions,
+    the usable q range does not necessarily extend to the lowest q point for this
+    dataset, as seen from the dip below zero in the intensity at the lowest q
+    point in the plotted profile. Right click on the profile plot and select
+    "Log-Log" to change to a logarithmic x axis to see the low q better.
+    Then use the "Plot profile" selector to scroll through the profiles at
+    different time points and get a feel for where the first usable q point is.
+
+    *   Note: The vertical line on the plot shows which Rg/I(0)/MW values correspond
+        to the displayed profile. The value in the Plot profile selector box
+        is the x axis value corresponding to the plotted profile, in this case
+        the time in ms.
+
+    *   Tip: By right clicking on the parameter plots (e.g. Rg) you can change
+        the plot type to be linear or logarithmic on either y or x axes.
+
+    |ms_plot_profile_png|
+
+#.  As you scroll through the profiles you should notice significant variation
+    at low q below ~0.01 1/A. In the first box of the "Q range" line, type 0.01
+    and then the enter key. This control will automatically pick the nearest q value to
+    the value you type.
+
+    |ms_q_min_png|
+
+#.  Click the "Process data" button to set this q min value and then scroll back
+    through the profiles to see if you need to adjust the q min value further.
+
+#.  You should see there's still more variation than would be expected, indicating
+    a higher noise level than desired at the lowest q points. Se the q min value
+    to 0.015, and then process the data again.
+
+#.  Put the profiles plot back on Log-lin axes and scroll through the profiles,
+    looking now at the signal in the high q range. Again because these are relatively
+    low signal to noise experiments, the usable q range may not extend all the way
+    out to the maximum measured q point, so look for the q range where about
+    half the data points are negative, indicating the sample signal is not
+    significantly above the background.
+
+        Tip: If unsubtracted sample and buffer profiles match, the no signal
+        condition, then just from noise you'd expect half the points in the
+        subtracted profile to be a bit below zero and half a bit above zero.
+
+#.  Set the maximum q value to the highest usable q value for the profiles
+    that you found, which should be around 0.5-0.55 1/A and then process the
+    data again.
+
+    *   Note: The usable q range for these time resolved SAXS experiments will
+        depend on the sample size and concentration and buffer composition.
+        Because of the small size (12.3 kDa) and high denaturant concentration
+        these cytochrome c refolding experiments are a worst case for signal
+        to noise. Often a wider q range is accessible, though due to the strong
+        parasitic scattering from the mixer it is rare to get a usable low q
+        below ~0.01 1/A.
+
+    |ms_q_range_png|
+
+
+#.  The series panel can also be used to remove outlier points from the series.
+    For example, sometimes there's a bit of dust on the mixer window that leads
+    to very strong and extended in q background scattering at a particular timepoint,
+    rendering that timepoint not not usable, or perhaps the first timepoint
+    starts too close to the edge of the mixer and there is significant additional
+    scattering due to that. For this dataset we will excluding only the earliest
+    timepoint, as that has excess scattering from the edge of the mixer.
+
+    *   Note: You can't always tell this from a casual examination of the profiles.
+        Looking at the images collected at each time point can help here.
 
 .. |ms_panel_png| image:: images/ms_panel.png
     :target: ../_images/ms_panel.png
@@ -412,3 +538,31 @@ to get a final time series.
 
 .. |ms_ranges_repeat_png| image:: images/ms_ranges_repeat.png
     :target: ../_images/ms_ranges_repeat.png
+
+.. |ms_all_sample_range_png| image:: images/ms_all_sample_range.png
+    :target: ../_images/ms_all_sample_range.png
+
+.. |ms_cal_in_header_png| image:: images/ms_cal_in_header.png
+    :width: 300 px
+    :target: ../_images/ms_cal_in_header.png
+
+.. |ms_average_data_png| image:: images/ms_average_data.png
+    :target: ../_images/ms_average_data.png
+
+.. |ms_q_bin_png| image:: images/ms_q_bin.png
+    :width: 300 px
+    :target: ../_images/ms_q_bin.png
+
+.. |ms_q_bin_profile_png| image:: images/ms_q_bin_profile.png
+    :width: 500 px
+    :target: ../_images/ms_q_bin_profile.png
+
+.. |ms_plot_profile_png| image:: images/ms_plot_profile.png
+    :target: ../_images/ms_plot_profile.png
+
+.. |ms_q_min_png| image:: images/ms_q_min.png
+    :width: 300 px
+    :target: ../_images/ms_q_min.png
+
+.. |ms_q_range_png| image:: images/ms_q_range.png
+    :target: ../_images/ms_q_range.png

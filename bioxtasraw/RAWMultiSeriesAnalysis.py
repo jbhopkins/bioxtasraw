@@ -85,6 +85,7 @@ class MultiSeriesFrame(wx.Frame):
         self.changes_range = False
 
         self._createLayout()
+        self._initialize()
 
         SASUtils.set_best_size(self)
         self.SendSizeEvent()
@@ -150,8 +151,23 @@ class MultiSeriesFrame(wx.Frame):
     def updateColors(self):
         pass
 
-    def initialize(self):
-        pass
+    def _initialize(self):
+        if len(self.selected_series) > 0:
+            series_list = []
+
+            for secm in self.selected_series:
+
+                series_data = {
+                    'files' : secm.file_list,
+                    'scan'  : '',
+                    'path'  : '',
+                    'name'  : secm.getParameter('filename'),
+                    'series': secm
+                    }
+
+                series_list.append(series_data)
+
+            self.load_ctrl._add_series(series_list)
 
     def showBusy(self, show=True, msg=''):
         if show:
@@ -433,6 +449,8 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
         # Show the dialog and get user input
         if dialog.ShowModal() == wx.ID_OK:
             file = dialog.GetPath()
+        else:
+            file = None
 
         # Destroy the dialog
         dialog.Destroy()
@@ -1789,6 +1807,7 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
         self.cal_result_key = wx.TextCtrl(cal_box)
         self.cal_offset = wx.TextCtrl(cal_box, value='0',
             validator=RAWCustomCtrl.CharValidator('float_sci_neg'))
+        self.cal_in_header = wx.CheckBox(cal_box, label='Calibration in header')
 
         cal_sub_sizer = wx.FlexGridSizer(cols=2, hgap=self._FromDIP(5),
             vgap=self._FromDIP(5))
@@ -1812,6 +1831,8 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
         cal_sizer = wx.StaticBoxSizer(cal_box, wx.VERTICAL)
         cal_sizer.Add(load_cal_btn, flag=wx.ALL, border=self._FromDIP(5))
         cal_sizer.Add(cal_sub_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
+            border=self._FromDIP(5))
+        cal_sizer.Add(self.cal_in_header, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
             border=self._FromDIP(5))
 
 
@@ -2700,20 +2721,27 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             cal_val_key = self.cal_x_key.GetStringSelection()
             cal_save_key = self.cal_result_key.GetValue()
             cal_offset = self.cal_offset.GetValue()
+            cal_in_header = self.cal_in_header.GetValue()
 
-            try:
-                cal_offset = float(cal_offset)
-                bad_cal_offset= False
-            except Exception:
-                cal_offset = ''
-                bad_cal_offset = True
+            if not cal_in_header:
+                try:
+                    cal_offset = float(cal_offset)
+                    bad_cal_offset= False
+                except Exception:
+                    cal_offset = ''
+                    bad_cal_offset = True
 
-            if (cal_val_key != '' and cal_save_key != '' and cal_offset != ''
-                and self._cal_x is not None and self._cal_y is not None):
-                cal_data = [cal_val_key, cal_save_key, cal_offset, self._cal_x,
-                    self._cal_y]
+                if (cal_val_key != '' and cal_save_key != '' and cal_offset != ''
+                    and self._cal_x is not None and self._cal_y is not None):
+                    cal_data = [cal_val_key, cal_save_key, cal_offset, self._cal_x,
+                        self._cal_y]
+                else:
+                    cal_data = []
             else:
                 cal_data = []
+                cal_save_key = cal_val_key
+                bad_cal_offset = False
+
 
             if cal_val_key != '':
                 series_bin_keys = [cal_val_key]
@@ -2764,9 +2792,18 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
             }
 
+            self._additional_calc_settings = {
+                'cal_in_header' : cal_in_header,
+                'qbin_mode'    : qbin_mode,
+            }
+
             (sub_series, rg, rger, i0, i0er, vcmw, vcmwer, vpmw,
                 cal_vals) = RAWAPI.multi_series_calc(self.series_sasm_list,
                 sample_range_list, buffer_range_list, **self.calc_args)
+
+            if cal_in_header:
+                cal_vals = np.array([sasm.getParameter('counters')[cal_save_key]
+                    for sasm in sub_series.getAllSASMs('sub')])
 
             # Set the naming if it seems reasonable
             series_load_data = self.series_frame.load_ctrl.get_series_data()
@@ -2845,10 +2882,12 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             'q_npts'                : self.calc_args['q_npts'],
             'q_rebin_factor'        : self.calc_args['q_rebin_factor'],
             'q_log_rebin'           : self.calc_args['q_log_rebin'],
-            'q_bin_mode'            : self.qbin_mode.GetStringSelection(),
+            'q_bin_mode'            : self._additional_calc_settings['qbin_mode'],
             'window_size'           : self.calc_args['window_size'],
             'vc_protein'            : self.calc_args['vc_protein'],
             'series_exclude_keys'   : self.calc_args['series_exclude_keys'],
+            'series_bin_keys'       : self.calc_args['series_bin_keys'],
+            'cal_in_header'         : self._additional_calc_settings['cal_in_header'],
         }
 
         return settings
@@ -2886,6 +2925,8 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
         self.series_exclude.SetValue(','.join(settings['series_exclude_keys']))
 
+        self.cal_in_header.SetValue(settings['cal_in_header'])
+
         if len(settings['cal_data']) > 0:
             (cal_val_key, cal_save_key, cal_offset, self._cal_x,
                 self._cal_y) = settings['cal_data']
@@ -2906,6 +2947,9 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
                 else:
                     self.showitem_icon.SetToolTip(wx.ToolTip(self._cal_file))
+
+        elif settings['cal_in_header'] and len(settings['series_bin_keys']) > 0:
+            self.cal_x_key.SetStringSelection(settings['series_bin_keys'][0])
 
     def on_close(self):
         pass

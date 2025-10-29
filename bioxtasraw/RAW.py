@@ -12525,6 +12525,7 @@ class SeriesItemPanel(wx.Panel):
         menu.Append(7, 'SVD')
         menu.Append(8, 'EFA')
         menu.Append(15, 'REGALS')
+        menu.Append(16, 'Multi-Series analysis')
         menu.AppendSeparator()
 
         menu.Append(4, 'Show data')
@@ -12592,6 +12593,13 @@ class SeriesItemPanel(wx.Panel):
 
             secm = selectedSECMList[0].getSECM()
             Mainframe.showREGALSFrame(secm, selectedSECMList[0])
+
+        elif evt.GetId() == 16:
+            Mainframe = wx.FindWindowByName('MainFrame')
+            selectedSECMList = self.sec_panel.getSelectedItems()
+            secm_list = [item.getSECM() for item in selectedSECMList]
+
+            Mainframe.showMultiSeriesFrame(series=secm_list)
 
         elif evt.GetId() == 10:
             #Series analysis
