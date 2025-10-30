@@ -171,7 +171,7 @@ to get a final time series.
     |ms_series_load_png|
 
 #.  Click on the first series in the left panel. This will display the series
-    location and contents Series Info subpanel. Verify that the files contained
+    location and contents Series Info sub-panel. Verify that the files contained
     in the series are what you expect. In this case, make sure that each file
     corresponds to series 1 (has _0001 for the series number) and that the file
     number is sequentially incrementing from 1 to 40 (ends with _00001.dat
@@ -426,7 +426,7 @@ to get a final time series.
     point in the plotted profile. Right click on the profile plot and select
     "Log-Log" to change to a logarithmic x axis to see the low q better.
     Then use the "Plot profile" selector to scroll through the profiles at
-    different time points and get a feel for where the first usable q point is.
+    different timepoints and get a feel for where the first usable q point is.
 
     *   Note: The vertical line on the plot shows which Rg/I(0)/MW values correspond
         to the displayed profile. The value in the Plot profile selector box
@@ -487,7 +487,97 @@ to get a final time series.
     timepoint, as that has excess scattering from the edge of the mixer.
 
     *   Note: You can't always tell this from a casual examination of the profiles.
-        Looking at the images collected at each time point can help here.
+        Looking at the images collected at each timepoint can help here.
+
+
+#.  Mouse over the first data point on the Rg plot. At the bottom of the plot
+    you will see the plot values corresponding to your mouse position. Make
+    a note of the frame number (should be 0).
+
+    *   Tip: To make sure you're on the right point it can help to change the
+        plotted profile to the first one, but this isn't necessary.
+
+    |ms_plot_values_png|
+
+#.  In the Exclude profiles list enter the frame number of the profile to
+    exclude from the series, in this case "0".
+
+    *   Note: If you want to exclude multiple profiles, you would enter those
+        as a comma list. For example, putting "0,5,15,30" in the
+        excluded profiles field would exclude frames 0, 5, 15, and 30.
+
+    |ms_exclude_profile_png|
+
+#.  Process the data with the new settings. Verify on the plot that the first
+    frame used is now 1.
+
+#.  If the data seems to be significantly oversampling the change of interest
+    you can bin together timepoints to improve the signal to noise. In this case,
+    we see that there's a gradual change from an Rg of ~23 A to an Rg of ~19 A
+    over the measured timepoints, but there is no fast change observed so we
+    can do this binning.
+
+#.  Check the "Rebin series" box and set the "Series bin factor" to 2. This will
+    average together every two adjacent profiles. Process the data to apply this
+    binning. You should now see half the number of timepoints in the parameters
+    plot.
+
+    *   Note: The resulting calibration value is the average calibration value
+        across the averaged profiles. The frame number is reported as the first frame
+        number of the averaged profiles, e.g. an average of profiles 1 and 2 will
+        report frame 1 as the frame value.
+
+    *   Tip: If you want to preserve the individual profile sampling but smooth
+        out the calculated Rg, I(0), and MW values in a similar fashion you can
+        change the "Series average window" value. This applies a rolling average
+        in the same way that these values are calculated for an LC Series,
+        so setting this value to 2, for example, would calculate the values using
+        a rolling average window of size 2 across the series.
+
+    |ms_series_bin_png|
+
+#.  The series is now fully processed. Save your analysis settings in the
+    **Tutorial_Data/multiseries_data** folder as cytc_avg.json. This will
+    allow you to reload the settings and tweak your processing if desired.
+
+#.  To make for easy analysis or plotting outside of RAW, you can export the
+    parameter plot data to csv. Right click on the Rg plot (or the I(0) or MW
+    plots) and select "Export data as CVS", then save it in the
+    **Tutorial_data/multiseries_data** folder as cytc_avg_timeseries.csv.
+
+    *   Try: Open the CSV file in Excel or a similar program.
+
+#.  The multi-series window also has an additional data exploration capability.
+    Check the "Plot multiple profiles" box. The profiles plot will now show
+    multiple profiles, based on your settings. The first profile shown is
+    the one selected by the Plot profile box. From that, additional profiles
+    are plotted using the "Plot every" setting and the "Last profile" selection.
+    In this case, every 5th profile after the first selected profile is plotted,
+    ending with the last profile.
+
+    *   Note: The additional vertical lines that appear on the parameters plot
+        are color coded to match the plotted profiles in the profiles plot.
+
+    |ms_plot_multiple_png|
+
+#.  Try adjusting the starting profile, plot every, and last profile settings
+    to explore the data a bit. You might try changing the profiles plot type
+    as well, such as to a Kratky or Dimensionless Kratky.
+
+#.  Click the Done button to finish the analysis and send the series to the
+    series tab. Save this processed series. From here you can carry out further
+    analysis. FOr example, you might send individual profiles to the profiles plot to
+    analyze individually or using one of the deconvolution tools (EFA or REGALS)
+    to extract out concentration vs. time and profiles for individual components
+    in solution. For this particular dataset, we were most interested in whether
+    we could capture the burst phase that happens between fully denatured (Rg ~31 A)
+    and the next intermediate state (Rg ~24 A). Unfortunately, the initial
+    rapid collapse seems to be faster than our earliest timepoint (45 us),
+    and so this data doesn't provide any additional insight over previously
+    published SAXS refolding studies of cytochrome C (which had an earliest
+    timepoint of ~150 us).
+
+
 
 .. |ms_panel_png| image:: images/ms_panel.png
     :target: ../_images/ms_panel.png
@@ -566,3 +656,16 @@ to get a final time series.
 
 .. |ms_q_range_png| image:: images/ms_q_range.png
     :target: ../_images/ms_q_range.png
+
+.. |ms_plot_values_png| image:: images/ms_plot_values.png
+    :target: ../_images/ms_plot_values.png
+
+.. |ms_exclude_profiles_png| image:: images/ms_exclude_profiles.png
+    :width: 300 px
+    :target: ../_images/ms_exclude_profiles.png
+
+.. |ms_series_bin_png| image:: images/ms_series_bin.png
+    :target: ../_images/ms_series_bin.png
+
+.. |ms_plot_multiple_png| image:: images/ms_plot_multiple.png
+    :target: ../_images/ms_plot_multiple.png

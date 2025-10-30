@@ -2102,7 +2102,7 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             plot_multiple_profiles = self.plot_multiple_profiles.GetValue()
 
             if plot_multiple_profiles and start_idx != end_idx:
-                idx_list = list(range(start_idx, end_idx, step))
+                idx_list = list(range(start_idx, end_idx+1, step))
             else:
                 idx_list = [start_idx]
 
@@ -2450,18 +2450,23 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
     def _exportData(self):
         if len(self.multi_series_results.keys()) > 0:
+            header = 'Frame,'
+            data_list = [self.multi_series_results['used_frames']]
+
             if len(self.multi_series_results['cal_vals']) > 0:
                 xkey = self.multi_series_results['cal_save_key'].replace(' ', '_')
                 xdata = self.multi_series_results['cal_vals']
-            else:
-                xkey = 'Frames'
-                xdata = np.array(range(len(self.multi_series_results['rg'])))
 
-            header = '{},Rg,Rg_Err,I0,I0_Err,Vc_MW,Vp_MW'.format(xkey)
-            data_list = [xdata, self.multi_series_results['rg'],
+                header +='{},'.format(xkey)
+                data_list.append(xdata)
+
+
+
+            header += 'Rg,Rg_Err,I0,I0_Err,Vc_MW,Vp_MW'.format(xkey)
+            data_list.extend([self.multi_series_results['rg'],
                 self.multi_series_results['rger'], self.multi_series_results['i0'],
                 self.multi_series_results['i0er'], self.multi_series_results['mwvc'],
-                self.multi_series_results['mwvp'],]
+                self.multi_series_results['mwvp'],])
 
             dialog = wx.FileDialog(self, message=("Please select save "
                 "directory and enter save file name"), style = wx.FD_SAVE,
@@ -2504,6 +2509,11 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
                         x_val = '{:.2e}'.format(x)
                     else:
                         x_val = round(x,5)
+
+                    _, idx = SASUtils.find_closest(x,
+                        self.multi_series_results['cal_vals'])
+                    frame_num = self.multi_series_results['used_frames'][idx]
+
                 else:
                     xlabel = 'Frame'
                     x_val = int(x+0.5)
@@ -2516,8 +2526,12 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             else:
                 y_val = round(y, 2)
 
-            self.param_toolbar.set_status('{}: {}, {}: {}'.format(xlabel, x_val,
-                ylabel, y_val))
+            if xlabel == 'Frame':
+                self.param_toolbar.set_status('{}: {}, {}: {}'.format(xlabel,
+                    x_val, ylabel, y_val))
+            else:
+                self.param_toolbar.set_status('{}: {}, {}: {}, {}: {}'.format(
+                    'Frame', frame_num, xlabel, x_val, ylabel, y_val))
 
         else:
             self.param_toolbar.set_status('')
@@ -2923,7 +2937,8 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
         else:
             self.series_vc_type.SetStringSelection('RNA')
 
-        self.series_exclude.SetValue(','.join(settings['series_exclude_keys']))
+        exclude_keys = [str(val) for val in settings['series_exclude_keys']]
+        self.series_exclude.SetValue(','.join(exclude_keys))
 
         self.cal_in_header.SetValue(settings['cal_in_header'])
 
