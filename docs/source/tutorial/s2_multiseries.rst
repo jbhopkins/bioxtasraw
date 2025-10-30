@@ -557,6 +557,14 @@ to get a final time series.
 
     *   Try: Open the CSV file in Excel or a similar program.
 
+    *   Tip: If you fail to save this here, you can reopen the multiseries
+        analysis window for just the single processed series, set the sample
+        range as just the single series, set the calibration from header,
+        and recreate the plots. Note that because this uses the final processed
+        series you won't be able to under things like q binning or series binning,
+        that would require reanalyzing the original input series. But it's a
+        quick way to regenerate these plots and export the data if you need to.
+
 #.  The multi-series window also has an additional data exploration capability.
     Check the "Plot multiple profiles" box. The profiles plot will now show
     multiple profiles, based on your settings. The first profile shown is

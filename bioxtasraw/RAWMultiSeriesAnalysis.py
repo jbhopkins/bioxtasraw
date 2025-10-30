@@ -1918,6 +1918,8 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
         self.profile_canvas.callbacks.connect('button_release_event',
             self._onMouseButtonReleaseEvent)
         self.Bind(wx.EVT_MENU, self._onPopupMenuChoice)
+        self.profile_canvas.mpl_connect('motion_notify_event',
+            self._onMouseMotionEventProfile)
 
         self.profile_plot_index = RAWCustomCtrl.FloatSpinCtrlList(parent,
             TextLength=60, value_list=[0], sig_figs=4)
@@ -2490,7 +2492,6 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             self.series_frame.main_frame.setStatus('', 0)
 
     def _onMouseMotionEvent(self, event):
-
         if event.inaxes == self.rg_plot:
             ylabel = 'Rg'
         elif event.inaxes == self.i0_plot:
@@ -2535,6 +2536,30 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
         else:
             self.param_toolbar.set_status('')
+
+    def _onMouseMotionEventProfile(self, event):
+        if event.inaxes:
+            x, y = event.xdata, event.ydata
+
+            if x < 1e-4:
+                x_val = '{:.2e}'.format(x)
+            else:
+                x_val = round(x,5)
+
+            if y < 1e-4:
+                y_val = '{:.2e}'.format(y)
+            else:
+                y_val = round(y,5)
+
+            ylabel = self.profile_plot.get_ylabel()
+
+            ylabel = ylabel.replace('$', '')
+
+            self.profile_toolbar.set_status('{}: {}, {}: {}'.format('q',
+                x_val, ylabel, y_val))
+
+        else:
+            self.profile_toolbar.set_status('')
 
     def _on_qrange_change(self, evt):
         _, end = self.q_range_end.GetRange()
