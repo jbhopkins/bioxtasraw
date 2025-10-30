@@ -31,7 +31,7 @@ refolding reaction. Timepoints after mixing are obtained by measuring the
 scattering some distance along the mixing channel, and are determined by
 how long the solution takes to flow from the mixing point to the measurement point.
 
-The basic data collection procedure is as follows: First, flow of mixing and
+The basic data collection procedure is as follows. First, flow of mixing and
 sample buffers is started. Then, simultaneously, the X-ray exposure and a
 continuous scan of the mixer is started. The X-ray beam is scanned along the
 observation region, and images are measured while the mixer is moving (a
@@ -44,10 +44,10 @@ scans, the sample is injected into the mixer via an injection valve.
 Measurements are carried out while all the sample flows through the mixer,
 yielding multiple scans with mixed sample measured at every timepoint. Once
 all the sample has passed through the mixer, additional scans of just buffer
-are measured, yielding pre- and post-sample buffer and sample measurements
-at every timepoint as part of the same experiment. If necessary, the
+are measured, yielding pre- and post-sample buffer measurements and sample
+measurements at every timepoint as part of the same experiment. If necessary, the
 measurement is repeated multiple times to provide good data at each timepoint.
-Typically, at least 3 such measurements are made.
+Typically, at least 3 such measurements are made for a given sample.
 
 
 This tutorial will take you through loading and carrying out buffer subtraction
@@ -73,31 +73,31 @@ to get a final time series.
     to your series.
 
 #.  The filename field expects two variables, one corresponding to the series
-    number, <s>, and one corresponding to the file number <f>. As with any
+    number, <s>, and one corresponding to the profile number <f>. As with any
     series in RAW, a single series consists of some set of scattering profiles.
-    The file number variable lets you define which profiles (.dat files on disk)
+    The profile number variable lets you define which profiles (.dat files on disk)
     are in a given series, while the series number defines which series to load.
     Take a look at the data in the **cytc_01** folder. You will see filenames
     such as **cytc_01_005_0001_data_000001_00001.dat** and
     **cytc_01_005_0001_data_000002_00002.dat**. If you scroll down a bit you'll
     see filenames such as **cytc_01_005_0010_data_000001_00001.dat**
     The series number is given by the cytc_01_05\ **_0001** and cytc_01_05\ **_0010**
-    values, in this case the first file is in series 1 (0001) and the second file
-    is in series 10 (0010). The last value in the filename is the file number,
-    so **_00001.dat** is the first file in the series, **_00002.dat** the second, and
+    values, in this case the first profile is in series 1 (0001) and the second profile
+    is in series 10 (0010). The last value in the filename is the profile number,
+    so **_00001.dat** is the first profile in the series, **_00002.dat** the second, and
     so on.
 
         *   Note: For this time resolved data set, each series represents a single
             scan of the beam down the mixing channel and each file represents a
             single timepoint in that scan. So across all the series the _00001.dat
-            files are all measuring the first timepoint, the _00002.dat files the next
-            timepoint, and so on.
+            profiles are all measuring the first timepoint, the _00002.dat
+            profiles the next timepoint, and so on.
 
         *   Tip: File naming convention will vary from facility to facility, so
             make sure you understand the convention for your data.
 
 #.  In the filename field enter *cytc_01_005_<s>_data_0<f>_<f>.dat*. This is a
-    filename constructed to make use of the series number, <s>, and file number,
+    filename constructed to make use of the series number, <s>, and profile number,
     <f> variables that allow RAW to find all the series and files of interest.
     We'll go through this construction piece by piece.
 
@@ -112,11 +112,11 @@ to get a final time series.
     #.  The *_data_0* is again fixed across all files in the folder, so
         similar to the prefix we include that to match the filename.
 
-    #.  The *<f>_<f>.dat* piece makes use of the file number variable
+    #.  The *<f>_<f>.dat* piece makes use of the profile number variable
         twice. Looking at the files in the folder you'll see that every
         time the last number in the filename increments the number right
         before it does as well, e.g. _000001_00001.dat, _000002_00002.dat,
-        and so on. The last number is the file number,  but in order to
+        and so on. The last number is the profile number,  but in order to
         match the filename we need to increment both, so we use the <f>
         variable twice.
 
@@ -171,14 +171,14 @@ to get a final time series.
     |ms_series_load_png|
 
 #.  Click on the first series in the left panel. This will display the series
-    location and contents Series Info sub-panel. Verify that the files contained
-    in the series are what you expect. In this case, make sure that each file
-    corresponds to series 1 (has _0001 for the series number) and that the file
+    location and contents in the Series Info sub-panel. Verify that the profiles contained
+    in the series are what you expect. In this case, make sure that each profile
+    corresponds to series 1 (has _0001 for the series number) and that the profile
     number is sequentially incrementing from 1 to 40 (ends with _00001.dat
     to _00040.dat). Also verify that the data directory is correct.
 
-    *   Note: The files are not yet loaded into RAW. Because that can take some
-        time, due to the large number of files involved, you have a chance to
+    *   Note: The profiles are not yet loaded into RAW. Because that can take some
+        time, due to the large number of profiles involved, you have a chance to
         check and make sure you're loading what you want first.
 
     *   Tip: In the left panel, you can rearrange the series order by selecting
@@ -191,19 +191,20 @@ to get a final time series.
         way to quickly spot check that you loaded what you expected.
 
     *   Try: Click on a few other series in the left list and make sure they
-        contain the right files.
+        contain the right profiles.
 
 #.  Click the "Next" button to load in the series data (may take a little bit)
-    and advance to the next part of the analysis.
+    and advance to the next part of the analysis, the series buffer and sample
+    range window.
 
     |ms_series_info_png|
 
-#.  The next portion of the analysis allows you to define buffer and sample
+#.  The series buffer and sample range window allows you to define buffer and sample
     series in a manner similar to how you define buffer and sample profiles
     for a LC Series dataset. The window shows a plot of total scattering
     intensity for each series. Here, each point corresponds to the sum of
     the total intensity of every profile in the series (for this example data
-    set, each point in the sum of intensity from 40 profiles). The series number
+    set, each point is the sum of intensity from 40 profiles). The series number
     corresponds to the series ID given in the list of series in the loading
     panel.
 
@@ -255,24 +256,27 @@ to get a final time series.
 
     |ms_sample_range_png|
 
-#.  Click the "Next" button to carry out the buffer subtraction and averaging.
-    In this step, RAW carries out a point-by-point average of the defined
-    buffer region(s) and sample region(s). For this data, each series has 90
-    profiles in it. So RAW averages the first profile across series 1-30 and 70-90
-    to create the average buffer profile at that point. It then averages the
+#.  Click the "Next" button to move to the subtracted profiles window and carry out
+    the buffer subtraction and averaging. In this step, RAW carries out a
+    point-by-point average of the defined buffer region(s) and sample
+    region(s). For this data, there are 40 timepoints (one per distinct
+    profile number from the loading page) and each timepoint has 90
+    profiles associated with it (one per series number from the loading page)
+    So RAW averages the first profile across series 1-30 and 70-90
+    to create the average buffer profile at that timepoint. It then averages the
     first profile across series 32-44 to create the average sample profile at
-    that point. The average buffer profile is then subtracted from the average
-    sample profile to yield the subtracted scattering profile at that point.
-    This is carried out for all points in the series, resulting in 90
-    subtracted scattering profiles, each at a different measured timepoint.
-    RAW then carries out automated Rg and MW calculations for each subtracted
-    profile and, if successful, displays the results in newly displayed window.
+    that timepoint. The average buffer profile is then subtracted from the average
+    sample profile to yield the subtracted scattering profile at that timepoint.
+    This is carried out for all timepoints, resulting in 40 subtracted scattering
+    profiles, each at a different measured timepoint. RAW then carries out
+    automated |Rg| and MW calculations for each subtracted profile and displays
+    the results in newly displayed subtracted profiles window.
 
     |ms_profile_panel_png|
 
 #.  A single time resolved measurement doesn't always yield great signal to noise
     data. You can see from the subtracted profile plotted at the bottom of the window
-    that the data is highly noisy, and thus the automated Rg and MW calculations
+    that the data is highly noisy, and thus the automated |Rg| and MW calculations
     were not run successfully. We need to average together multiple measurements
     to improve this signal to noise and yield usable data.
 
@@ -294,14 +298,16 @@ to get a final time series.
 
     *   Note: A calibration file should consist of two columns in csv format.
         The first column is the input value and the second the output value.
+        Any header lines should have # as the first character (e.g. "#distance,ms"
+        for the calibration file used here)
 
 #.  The "Cal. input key" selection menu lists all the available keys in the profile
     header. For this time resolved data, the calibration is done by the position
-    of the beam on the microfluidic mixer. Select the "x" key in the menu, which
-    gives the x position of the mixer.
+    of the beam on the microfluidic mixer. Select the "x" header key in the menu,
+    which gives the x position of the mixer.
 
 #.  The "Cal. output key" field is the name that the calibrated point will be
-    saved with in the profile header. Enter "time"
+    saved with in the profile header. Enter "time".
 
 #.  The "Cal offset" field allows you to provide an offset value that will be
     added to the value from the profile header (i.e. cal_val = f(input_val+offset)).
@@ -332,7 +338,7 @@ to get a final time series.
 #.  Open the Multi-Series Analysis window. Click the "Load analysis settings"
     button to load in the **cytc_01.json** settings you just saved. You will see
     the "Select from disk" controls fill in the previous values, and additionally
-    the range settings and settings from the final panel are also loaded.
+    the range settings and settings from the subsequent windows are also loaded.
 
     |ms_load_settings_png|
 
@@ -383,12 +389,12 @@ to get a final time series.
 
     *   Note: Because this is an average of 5 repeated measurements, the signal
         to noise is significantly improved and the automated methods are able
-        to calculate Rg and MW at most timepoints.
+        to calculate |Rg| and MW at most timepoints.
 
-#.  Because we've previously calibrated each series in time, we can apply that
-    calibration to the average of all these independent series. Check the
+#.  Because we've previously calibrated each individual series in time, we can
+    apply that calibration to the average of all these independent series. Check the
     "Calibration in header" box and from the drop-down menu select "time"
-    as the Cal. input key.  This tells RAW that the calibrate already exists
+    as the Cal. input key.  This tells RAW that the calibration already exists
     in the header, rather than having to be calculated from a header value,
     and that the appropriate key to use for the calibration is "time".
 
@@ -398,7 +404,7 @@ to get a final time series.
 
     *   Note: The plots will now show the x axis with calibrated time values.
         For this dataset the time unit is milliseconds, so all the data is
-        recorded for mixing times below 1 ms.
+        recorded for times less than 1 ms after mixing.
 
     |ms_average_data_png|
 
@@ -428,18 +434,18 @@ to get a final time series.
     Then use the "Plot profile" selector to scroll through the profiles at
     different timepoints and get a feel for where the first usable q point is.
 
-    *   Note: The vertical line on the plot shows which Rg/I(0)/MW values correspond
+    *   Note: The vertical line on the plot shows which |Rg|/I(0)/MW values correspond
         to the displayed profile. The value in the Plot profile selector box
         is the x axis value corresponding to the plotted profile, in this case
         the time in ms.
 
-    *   Tip: By right clicking on the parameter plots (e.g. Rg) you can change
+    *   Tip: By right clicking on the parameter plots (e.g. |Rg|) you can change
         the plot type to be linear or logarithmic on either y or x axes.
 
     |ms_plot_profile_png|
 
 #.  As you scroll through the profiles you should notice significant variation
-    at low q below ~0.01 1/A. In the first box of the "Q range" line, type 0.01
+    at low q below ~0.01 1/Å. In the first box of the "Q range" line, type 0.01
     and then the enter key. This control will automatically pick the nearest q value to
     the value you type.
 
@@ -464,7 +470,7 @@ to get a final time series.
         subtracted profile to be a bit below zero and half a bit above zero.
 
 #.  Set the maximum q value to the highest usable q value for the profiles
-    that you found, which should be around 0.5-0.55 1/A and then process the
+    that you found, which should be around 0.5-0.55 1/Å and then process the
     data again.
 
     *   Note: The usable q range for these time resolved SAXS experiments will
@@ -473,7 +479,7 @@ to get a final time series.
         these cytochrome c refolding experiments are a worst case for signal
         to noise. Often a wider q range is accessible, though due to the strong
         parasitic scattering from the mixer it is rare to get a usable low q
-        below ~0.01 1/A.
+        below ~0.01 1/Å.
 
     |ms_q_range_png|
 
@@ -490,7 +496,7 @@ to get a final time series.
         Looking at the images collected at each timepoint can help here.
 
 
-#.  Mouse over the first data point on the Rg plot. At the bottom of the plot
+#.  Mouse over the first data point on the |Rg| plot. At the bottom of the plot
     you will see the plot values corresponding to your mouse position. Make
     a note of the frame number (should be 0).
 
@@ -506,16 +512,16 @@ to get a final time series.
         as a comma list. For example, putting "0,5,15,30" in the
         excluded profiles field would exclude frames 0, 5, 15, and 30.
 
-    |ms_exclude_profile_png|
+    |ms_exclude_profiles_png|
 
 #.  Process the data with the new settings. Verify on the plot that the first
     frame used is now 1.
 
 #.  If the data seems to be significantly oversampling the change of interest
     you can bin together timepoints to improve the signal to noise. In this case,
-    we see that there's a gradual change from an Rg of ~23 A to an Rg of ~19 A
-    over the measured timepoints, but there is no fast change observed so we
-    can do this binning.
+    we see that there's a gradual change from an |Rg| of ~23-24 Å to an |Rg|
+    of ~18-19 Å over the measured timepoints, but there is no fast change
+    observed so we can do this binning.
 
 #.  Check the "Rebin series" box and set the "Series bin factor" to 2. This will
     average together every two adjacent profiles. Process the data to apply this
@@ -528,7 +534,7 @@ to get a final time series.
         report frame 1 as the frame value.
 
     *   Tip: If you want to preserve the individual profile sampling but smooth
-        out the calculated Rg, I(0), and MW values in a similar fashion you can
+        out the calculated |Rg|, I(0), and MW values in a similar fashion you can
         change the "Series average window" value. This applies a rolling average
         in the same way that these values are calculated for an LC Series,
         so setting this value to 2, for example, would calculate the values using
@@ -541,9 +547,13 @@ to get a final time series.
     allow you to reload the settings and tweak your processing if desired.
 
 #.  To make for easy analysis or plotting outside of RAW, you can export the
-    parameter plot data to csv. Right click on the Rg plot (or the I(0) or MW
+    parameter plot data to csv. Right click on the |Rg| plot (or the I(0) or MW
     plots) and select "Export data as CVS", then save it in the
     **Tutorial_data/multiseries_data** folder as cytc_avg_timeseries.csv.
+
+    *   Note: All this data is available from the individual profiles, and
+        |Rg|, I(0), and MW can be exported from the series control panel.
+        This is just a convenient way to get it.
 
     *   Try: Open the CSV file in Excel or a similar program.
 
@@ -566,17 +576,20 @@ to get a final time series.
 
 #.  Click the Done button to finish the analysis and send the series to the
     series tab. Save this processed series. From here you can carry out further
-    analysis. FOr example, you might send individual profiles to the profiles plot to
+    analysis. For example, you might send individual profiles to the profiles plot to
     analyze individually or using one of the deconvolution tools (EFA or REGALS)
     to extract out concentration vs. time and profiles for individual components
     in solution. For this particular dataset, we were most interested in whether
-    we could capture the burst phase that happens between fully denatured (Rg ~31 A)
-    and the next intermediate state (Rg ~24 A). Unfortunately, the initial
-    rapid collapse seems to be faster than our earliest timepoint (45 us),
+    we could capture the burst phase that happens between fully denatured (|Rg| ~31 Å)
+    and the next intermediate state (|Rg| ~24 Å). Unfortunately, the initial
+    rapid collapse seems to be faster than our earliest timepoint (45 microseconds),
     and so this data doesn't provide any additional insight over previously
     published SAXS refolding studies of cytochrome C (which had an earliest
-    timepoint of ~150 us).
+    timepoint of ~150 microseconds).
 
+
+
+.. |Rg| replace:: R\ :sub:`g`
 
 
 .. |ms_panel_png| image:: images/ms_panel.png
