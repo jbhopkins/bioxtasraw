@@ -60,6 +60,10 @@ import scipy.constants
 import matplotlib as mpl
 import matplotlib.colors as mplcol
 import pyFAI, pyFAI.calibrant, pyFAI.control_points
+try:
+    import pyFAI.integrator
+except Exception:
+    pass
 import wx
 import wx.lib.scrolledpanel as scrolled
 import wx.lib.mixins.listctrl as listmix
@@ -14826,11 +14830,19 @@ class CenteringPanel(scrolled.ScrolledPanel):
         else:
             self.bs_mask = np.zeros(img.shape)
 
-        self.c = SASCalib.RAWCalibration(img, wavelength = wavelength, calibrant = calibrant, detector = detector)
-        self.c.ai = pyFAI.azimuthalIntegrator.AzimuthalIntegrator(wavelength = wavelength, detector = detector)
+        self.c = SASCalib.RAWCalibration(img, wavelength = wavelength,
+            calibrant = calibrant, detector = detector)
+        try:
+             self.c.ai = pyFAI.integrator.azimuthal.AzimuthalIntegrator(
+                wavelength = wavelength, detector = detector)
+        except AttributeError:
+             self.c.ai = pyFAI.azimuthalIntegrator.AzimuthalIntegrator(
+                wavelength = wavelength, detector = detector)
+
         self.c.ai.setFit2D(sd_distance, self._center[0], self._center[1],
             det_tilt, det_tilt_plane_rot) #Takes the sample-detector distance in mm, beamx and beam y in pixels, tilts in deg.
-        self.c.points = pyFAI.control_points.ControlPoints(None, calibrant=calibrant, wavelength=calibrant.wavelength)
+        self.c.points = pyFAI.control_points.ControlPoints(None,
+            calibrant=calibrant, wavelength=calibrant.wavelength)
 
         self.image_panel.enableAutoCentMode()
 

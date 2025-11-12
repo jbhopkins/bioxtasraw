@@ -311,6 +311,12 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
 
     maxlen = int(max(diag1, diag2, diag3, diag4, maxlen1))
 
+    if abs(det_tilt) > 5:
+        # Make sure we have enough q points for highly tilted detectors, otherwise some data may be lost
+        # This is a real hack. Better would be to calculate the actual extent
+        # based on the known calibration parameters, but that's hard
+        maxlen*=4
+
     if bin_type == 'Linear' and bin_size != 1:
         npts = maxlen//bin_size
     else:
@@ -471,18 +477,7 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
         integration_kwargs['thres'] = zinger_thres
         integration_kwargs['max_iter'] = zinger_iter
 
-        #Necessary for the legacy version, hopefully the ng will be available soon
-        # del integration_kwargs['variance']
-        # del integration_kwargs['radial_range']
-        # del integration_kwargs['error_model']
-
-        del integration_kwargs['normalization_factor'] #Work around a bug that should be fixed in pyFAI 0.22
-
     q, iq, errorbars = integrate_func(img, npts, **integration_kwargs)
-
-    if zinger_removal:
-        iq /= norm_factor
-        errorbars /= norm_factor
 
     errorbars = np.nan_to_num(errorbars)
 
