@@ -1444,14 +1444,14 @@ def loadHdf5File(filename, raw_settings):
                 break
 
         #If we have definitions for this kind of file, determine what kind of data it is, batch of series
+        data_type = None
+
         if is_data_def:
             data_type_name = data_defs['data_type']['name']
             data_type_loc = data_defs['data_type']['location']
             data_type_attr = data_defs['data_type']['is_attribute']
             data_type_batch_val = data_defs['data_type']['batch_value']
             data_type_series_val = data_defs['data_type']['series_value']
-
-            data_type = None
 
             if data_type_loc in data_file:
                 if data_type_attr:
@@ -5202,6 +5202,8 @@ def checkFileType(filename):
         return 'pdb'
     elif ext == '.cif':
         return 'cif'
+    elif ext == '.hdf5':
+        return 'hdf5'
     else:
         try:
             f = fabio.open(filename)

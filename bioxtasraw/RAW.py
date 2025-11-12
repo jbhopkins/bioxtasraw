@@ -12974,34 +12974,57 @@ class SeriesControlPanel(wx.Panel):
                 sasm, img = SASFileIO.loadFile(fname, self.parent._raw_settings,
                     return_all_images=False)
             except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat) as msg:
-                img_fmt = self._raw_settings.get('ImageFormat')
-                ascii = ' or any of the supported ASCII formats'
-                wx.CallAfter(wx.MessageBox, 'The selected file: ' + fname + '\ncould not be recognized as a '   + str(img_fmt) +
-                                 ' image format' + ascii + '.\n\nYou can change the image format under Advanced Options in the Options menu.' ,
-                                  'Error loading file', style = wx.ICON_ERROR | wx.OK)
+                wx.CallAfter(wx.MessageBox, 'The selected file: ' + fname
+                    + '\ncould not be loaded, it is not a known image or text format.' ,
+                    'Error loading file', style = wx.ICON_ERROR | wx.OK)
                 fname = None
             except SASExceptions.HeaderLoadError as msg:
-                wx.CallAfter(wx.MessageBox, str(msg), "Can't find Header file for selected image", style = wx.ICON_ERROR | wx.OK)
+                wx.CallAfter(wx.MessageBox, str(msg), "Can't find Header file for selected image",
+                    style = wx.ICON_ERROR | wx.OK)
                 fname = None
             except SASExceptions.MaskSizeError as msg:
-                wx.CallAfter(wx.MessageBox, str(msg), 'Saved mask does not fit selected image', style = wx.ICON_ERROR)
+                wx.CallAfter(wx.MessageBox, str(msg), 'Saved mask does not fit selected image',
+                    style = wx.ICON_ERROR)
                 fname = None
             except SASExceptions.HeaderMaskLoadError as msg:
-                wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header', style = wx.ICON_ERROR)
+                wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header',
+                    style = wx.ICON_ERROR)
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
             except SASExceptions.AbsScaleNormFailed:
                 msg = ('Failed to apply absolute scale. The most '
                         'likely cause is a mismatch between the q vector of the '
                         'loaded file and the selected sample background file.')
-                wx.CallAfter(wx.MessageBox, msg, 'Absolute scale failed', style = wx.ICON_ERROR | wx.OK)
+                wx.CallAfter(wx.MessageBox, msg, 'Absolute scale failed',
+                    style = wx.ICON_ERROR | wx.OK)
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
 
-            if fname is not None:
+            if fname is not None and len(sasm) != 0:
                 self.directory, self.filename = os.path.split(fname)
                 self._fillBoxes()
                 self._onLoad()
+            else:
+                try:
+                    loaded_files = SASFileIO.loadSeriesFile(fname,
+                        self.parent._raw_settings)
+
+                    msg = ('The selected file, {}, is a RAW series file. It will '
+                        'be loaded, but cannot be used for the online mode'.format(
+                            fname))
+
+                    wx.CallAfter(wx.MessageBox, msg, 'Series cannot be used for online mode',
+                        style=wx.ICON_WARNING|wx.OK)
+
+                    mainworker_cmd_queue.put(['plot', [fname]])
+
+                except Exception:
+                    wx.CallAfter(wx.MessageBox, 'The selected file: ' + fname
+                        + '\ncould not be loaded, it is not a known image or text format.' ,
+                        'Error loading file', style = wx.ICON_ERROR | wx.OK)
+
+            wx.CallAfter(self.main_frame.closeBusyDialog)
+
         else:
              wx.CallAfter(wx.MessageBox, ('The "%s" header format is not '
                 'supported for automated series file loading. You can use '
