@@ -5781,7 +5781,7 @@ def pdb2mrc_to_sasm(pdb2mrc):
         'Hydration_shell_contrast'  : round(pdb2mrc.params[1], 4),
     }
 
-    if pdb2mrc.q_exp is not None:
+    if hasattr(pdb2mrc, 'q_exp') and pdb2mrc.q_exp is not None:
         #here since we have data we will use the fit attribute with experimental errors
 
         calc_results['Chi_squared'] = round(pdb2mrc.chi2, 3)

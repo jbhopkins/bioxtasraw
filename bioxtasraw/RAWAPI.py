@@ -5741,7 +5741,8 @@ def pdb2sas(models,
                 pdb2mrc.calc_I_with_modified_params(pdb2mrc.params)
                 qmax = float(pdb2mrc_settings['qmax'])
                 nq = int(pdb2mrc_settings['nq'])
-                pdb2mrc.regrid_Iq_calc(qmax=qmax,nq=nq)
+                # Use standalone regrid_Iq function instead of removed regrid_Iq_calc method
+                pdb2mrc.Iq_calc = DENSS.regrid_Iq(Iq=pdb2mrc.Iq_calc, qmax=qmax, nq=nq)
                 pdb2mrc.calculate_excluded_volume_in_A3()
 
                 theory, fit = DENSS.pdb2mrc_to_sasm(pdb2mrc)
