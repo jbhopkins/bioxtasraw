@@ -10,7 +10,7 @@ Steps:
 4)  Build the html documentation
 5)  In the installer directory, run “pyinstaller -y RAW.spec”
 6)  The app file is located at ./dist/RAW.app #NOTE: The dist/RAW/RAW executable will not open because the resources path is wrong if it's not in the .app package!
-7)  In the app file, remove and simlink wxpython dylibs as necesscary (see wxpython note below)
+7)  In the app file, remove and simlink wxpython dylibs as necesscary (see wxpython note below). - No longer necessary
 8)  Get your developer certificate hash: security find-identity -p basic -v
     The has is the long string of numbers and letters at the start
 9)  Codesign the resources folder, from the top level installer folder:

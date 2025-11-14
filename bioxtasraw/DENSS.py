@@ -6123,8 +6123,8 @@ def run_align(allrhos, sides, ref_file, avg_q=None, abort_event=None, center=Tru
     if enantiomer:
         if gui:
             avg_q.put_nowait('Selecting best enantiomer...\n')
-        allrhos, scores = select_best_enantiomers(allrhos, refrho, cores,
-            avg_q, abort_event, single_proc)
+        allrhos, scores = select_best_enantiomers(allrhos, refrho, cores=cores,
+            avg_queue=avg_q, abort_event=abort_event, single_proc=single_proc)
 
     if gui:
         if abort_event.is_set():
