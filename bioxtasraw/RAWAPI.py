@@ -5263,6 +5263,16 @@ def denss(ift, prefix, datadir, mode='Slow', symmetry=0, sym_axis='X',
         (qdata, I_extrap, err_extrap, q_fit, I_fit, chi_sq, rg, support_vol, rho,
             side, fit, final_chi2) = denss_data
 
+        # Convert imaginary Rg values to -1 (can occur for some particles like lipid nanoparticles)
+        for i in range(len(rg)):
+            if np.iscomplexobj(rg[i]) and np.abs(np.imag(rg[i])) > np.abs(np.real(rg[i])):
+                rg[i] = -1.0
+            elif np.iscomplexobj(rg[i]):
+                rg[i] = np.real(rg[i])
+
+        # Convert to real dtype to avoid complex warnings
+        rg = np.real(rg).astype(np.float64)
+
         last_index = max(np.where(rg !=0)[0])
         all_rg = rg[:last_index+1]
         all_support_vol = support_vol[:last_index+1]
@@ -5341,20 +5351,19 @@ def denss_average(densities, side, prefix, datadir, n_proc=1,
     if isinstance(densities, list):
         densities = np.array(densities)
 
-    allrhos, scores = DENSS.run_enantiomers(densities, n_proc,
-        single_proc=single_proc, abort_event=abort_event, gui=False)
+    refrho, _, _ = DENSS.iterative_average(densities, cycles=5, cores=n_proc,
+        thorough=True, abort_event=abort_event, single_proc=single_proc,
+        my_logger=None, enan=True, refrho_start=None, avg_queue=None)
 
     if abort_event is not None and abort_event.is_set():
         return np.array([-1]), -1, -1, -1, -1, np.array([-1]), np.array([-1])
 
-    refrho = DENSS.binary_average(allrhos, n_proc, single_proc=single_proc,
-        abort_event=abort_event)
-
-    if abort_event is not None and abort_event.is_set():
+    if refrho is None:
         return np.array([-1]), -1, -1, -1, -1, np.array([-1]), np.array([-1])
 
-    aligned, scores = DENSS.align_multiple(refrho, allrhos, n_proc,
-        single_proc=single_proc, abort_event=abort_event)
+    aligned, scores = DENSS.select_best_enantiomers(densities, refrho, cores=n_proc,
+        thorough=True, avg_queue=None, abort_event=abort_event,
+        single_proc=single_proc, return_aligned=True)
 
     if abort_event is not None and abort_event.is_set():
         return np.array([-1]), -1, -1, -1, -1, np.array([-1]), np.array([-1])
@@ -5659,8 +5668,10 @@ def pdb2sas(models,
                     #otherwise the pointers overwrite
                     pdb2mrc_i = copy.deepcopy(pdb2mrc)
 
-                    pdb2mrc_i.add_exp_data(profile.getQ(), profile.getI(),
-                        profile.getErr(), profile_name)
+                    # Create Iq_exp array in the format expected by load_data (3 columns: q, I, err)
+                    Iq_exp = np.vstack((profile.getQ(), profile.getI(), profile.getErr())).T
+                    pdb2mrc_i.load_data(Iq_exp=Iq_exp)
+                    pdb2mrc_i.data_filename = profile_name  # Set filename for metadata/logging
                     if pdb2mrc_i.fit_rho0 or pdb2mrc_i.fit_shell:
                         pdb2mrc_i.initialize_penalties()
                         pdb2mrc_i.minimize_parameters()
