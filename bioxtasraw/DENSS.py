@@ -27,8 +27,7 @@ Much of the code is from the DENSS source code, released here:
     https://github.com/tdgrant1/denss
 That code was released under GPL V3. The original author is Thomas Grant.
 
-This code matches that as of 2/8/24, commit e95fda2, version 1.7.2
-Updated to version 1.8.7 with iterative averaging on 11/13/25
+Updated to version 1.8.7, commit 7813a35, with iterative averaging on 11/13/25
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
@@ -4215,9 +4214,9 @@ class PDB2MRC(object):
                                                                                                      n=nsamples)
             optimal_values_warning = """
                 To ensure the highest accuracy, manually set the -s option to {os:.2f} and
-                the -v option to {ov:.2f}, which will set -n option to {on:d} and thus 
+                the -v option to {ov:.2f}, which will set -n option to {on:d} and thus
                 may take a long time to calculate and use a lot of memory.
-                If that requires too much computation, set -s first, and -n to the 
+                If that requires too much computation, set -s first, and -n to the
                 limit you prefer (n=512 may approach an upper limit for many computers).
                 """.format(os=optimal_side, ov=optimal_voxel, on=optimal_nsamples)
 
@@ -6131,8 +6130,8 @@ def run_align(allrhos, sides, ref_file, avg_q=None, abort_event=None, center=Tru
         else:
             avg_q.put_nowait('Aligning model(s) to reference\n')
 
-    aligned, scores = align_multiple(refrho, allrhos, cores, abort_event,
-        single_proc)
+    aligned, scores = align_multiple(refrho, allrhos, cores=cores,
+        abort_event=abort_event, single_proc=single_proc)
 
     return aligned, scores
 

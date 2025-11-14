@@ -5395,7 +5395,7 @@ def denss_average(densities, side, prefix, datadir, n_proc=1,
     with open(os.path.join(datadir, '{}_average.log'.format(prefix)), 'w') as f:
         f.write( "Mean of correlation scores: %.3f\n" % mean_cor)
         f.write( "Standard deviation of scores: %.3f\n" % std_cor)
-        f.write('Total number of input maps for alignment: %i\n' % allrhos.shape[0])
+        f.write('Total number of input maps for alignment: %i\n' % len(densities))
         f.write('Number of aligned maps accepted: %i\n' % aligned.shape[0])
         f.write(('Correlation score between average and reference: %.3f\n'
             % (1./DENSS.rho_overlap_score(average_rho, refrho))))

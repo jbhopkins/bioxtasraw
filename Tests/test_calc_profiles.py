@@ -898,13 +898,14 @@ def test_dift(clean_gi_sub_profile, old_settings, gi_dift_ift):
 
 def test_dift_dmax_alpha(clean_gi_sub_profile, old_settings, gi_dift_ift):
     (ift, dmax, rg, i0, rg_err, i0_err, chi_sq, alpha) = raw.denss_ift(clean_gi_sub_profile,
-        dmax=114.81772123448121, alpha=8119093695685.446)
+        dmax=115.81587607357199, alpha=8034985604591.902)
 
     assert np.allclose(dmax, gi_dift_ift.getParameter('dmax'))
     assert np.allclose(rg, gi_dift_ift.getParameter('rg'))
     assert np.allclose(ift.r, gi_dift_ift.r)
     assert np.allclose(ift.p, gi_dift_ift.p)
 
+@pytest.mark.new
 def test_pdb2sas_modelonly(temp_directory, gi_pdb2sas_modelonly_ift):
     shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
             os.path.join(temp_directory, '1XIB_4mer.pdb'))
