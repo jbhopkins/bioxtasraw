@@ -5510,7 +5510,7 @@ def pdb2sas(models,
     readback_queue=None):
     """
     Calculates the theoretical scattering profile from an atomic or bead model
-    using the theoretiacl profile calculator from DENSS (pdb2mrc).
+    using the theoretical profile calculator from DENSS (pdb2mrc).
 
     Parameters
     ----------

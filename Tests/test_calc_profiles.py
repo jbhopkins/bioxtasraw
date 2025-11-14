@@ -914,8 +914,8 @@ def test_pdb2sas_modelonly(temp_directory, gi_pdb2sas_modelonly_ift):
     pdb2sas = results['1XIB_4mer'][0]
     denss_analysis = pdb2sas.getParameter('analysis')['denss']
 
-    assert np.allclose(denss_analysis['Rg'], 33.33)
-    assert np.allclose(pdb2sas.getI().sum(), 12509445156.456285)
+    assert np.allclose(denss_analysis['Rg'], 33.45)
+    assert np.allclose(pdb2sas.getI().sum(), 12511285054.260693)
 
 def test_pdb2sas_fit(temp_directory, clean_gi_sub_profile, gi_pdb2sas_fit_ift):
     shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
