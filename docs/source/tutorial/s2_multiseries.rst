@@ -1,6 +1,8 @@
 Multi-series analysis
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. _multiseries:
+
 Sometimes SAXS data is collected in a way where multiple separate datasets
 need to be processed together, either averaged or subtracted. A simple
 example is if an IEC-SAXS experiment is done and background subtraction is

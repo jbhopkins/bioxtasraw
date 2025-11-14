@@ -65,7 +65,7 @@ pickle_fix_exclude_keys = ['CurrentCfg', 'csvIncludeData',
             'MaskDimension', 'NormFlatfieldImage', 'DarkCorrImage',
             'ImageHdrList', 'FileHdrList', 'HeaderBindList']
 
-pickle_exclude_keys = ['AzimuthalIntegrator']
+pickle_exclude_keys = ['AzimuthalIntegrator', 'BackgroundSASM', 'DataSECM']
 
 class RawGuiSettings(object):
     """

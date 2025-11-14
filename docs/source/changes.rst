@@ -16,8 +16,9 @@ and truncation on multiple series at once. This is useful for example to carry
 out point-by-point buffer subtraction for an IEC-SAXS elution where you measured
 a matching buffer gradient or to carry out more complicated analysis of time-resolved
 SAXS data. Further details can be found here: :ref:`Multi-series analysis
-tutorial <s2_multiseries>`
+tutorial.<multiseries>`
 
+Special thanks to Dr. Tom Grant who updated DENSS to the latest version.
 
 All changes:
 ^^^^^^^^^^^^^
@@ -37,7 +38,7 @@ All changes:
     multiprocessing applications.
 *   Fixed a bug where series range might not display correctly if the start and
     end points of the range were the same.
-*   Updated DENSS to the latest version.
+*   Updated DENSS and associated tools to the latest version.
 
 2.3.1
 ----------
@@ -2289,7 +2290,7 @@ All other changes:
 *   Fixed an issue where beam center did not initially show up correctly in the centering/calibration panel
 *   Fixed a bug where changing font size for the plot title and axis labels had no effect
 *   Fixed an issue where the home button in the sec plot didn't work if the calc data existed but was not shown
-*   Added complied windows 8 exentions, updated compiled windows 7 extensions.
+*   Added complied windows 8 extensions, updated compiled windows 7 extensions.
 *   Various other small bug fixes.
 
 
