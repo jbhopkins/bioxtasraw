@@ -9266,20 +9266,11 @@ class DenssRunPanel(wx.Panel):
         allrhos = np.array([denss_outputs[i][8] for i in np.arange(nruns)])
         sides = np.array([denss_outputs[i][9] for i in np.arange(nruns)])
 
-        wx.CallAfter(averWindow.AppendText, 'Filtering enantiomers\n')
+        wx.CallAfter(averWindow.AppendText, 'Generating robust reference via iterative averaging\n')
 
-        allrhos, scores = DENSS.run_enantiomers(allrhos, procs, nruns,
-            avg_q, self.my_lock, self.wx_queue, self.abort_event,
-            self.single_proc)
-
-        if self.abort_event.is_set():
-            stop_event.set()
-            return
-
-        wx.CallAfter(averWindow.AppendText, 'Generating alignment reference\n')
-
-        refrho = DENSS.binary_average(allrhos, procs, self.abort_event,
-            self.single_proc)
+        refrho, _, _ = DENSS.iterative_average(allrhos, cycles=5, cores=procs,
+            thorough=True, abort_event=self.abort_event, single_proc=self.single_proc,
+            my_logger=None, enan=True, refrho_start=None, avg_queue=avg_q)
 
         if self.abort_event.is_set():
             stop_event.set()
@@ -9287,10 +9278,17 @@ class DenssRunPanel(wx.Panel):
             wx.CallAfter(averWindow.AppendText, 'Aborted!\n')
             return
 
-        wx.CallAfter(averWindow.AppendText, 'Aligning and averaging models\n')
+        if refrho is None:
+            stop_event.set()
+            self.threads_finished[-1] = True
+            wx.CallAfter(averWindow.AppendText, 'Averaging was aborted!\n')
+            return
 
-        aligned, scores = DENSS.align_multiple(refrho, allrhos, procs,
-            self.abort_event, self.single_proc)
+        wx.CallAfter(averWindow.AppendText, 'Performing final alignment to reference\n')
+
+        aligned, scores = DENSS.select_best_enantiomers(allrhos, refrho, cores=procs,
+            thorough=True, avg_queue=avg_q, abort_event=self.abort_event,
+            single_proc=self.single_proc, return_aligned=True)
 
         if self.abort_event.is_set():
             stop_event.set()
@@ -9652,6 +9650,18 @@ class DenssRunPanel(wx.Panel):
             all_chis = np.array([denss_outputs[i][5] for i in np.arange(nruns)])
             all_rg = np.array([denss_outputs[i][6] for i in np.arange(nruns)])
             all_supportV = np.array([denss_outputs[i][7] for i in np.arange(nruns)])
+
+            # Convert imaginary Rg values to -1 (imaginary Rg occurs for some particles like lipid nanoparticles)
+            for i in range(nruns):
+                for j in range(all_rg.shape[1]):
+                    if np.iscomplexobj(all_rg[i,j]) and np.abs(np.imag(all_rg[i,j])) > np.abs(np.real(all_rg[i,j])):
+                        all_rg[i,j] = -1.0
+                    elif np.iscomplexobj(all_rg[i,j]):
+                        all_rg[i,j] = np.real(all_rg[i,j])
+
+            # Convert to real dtype to avoid complex warnings
+            all_rg = np.real(all_rg).astype(np.float64)
+
             final_chis = np.zeros(nruns)
             final_rgs = np.zeros(nruns)
             final_supportVs = np.zeros(nruns)
@@ -10239,7 +10249,16 @@ class DenssResultsPanel(wx.Panel):
             model = 'Refine'
             last_index = max(np.where(refine_results[5] !=0)[0])
             chisq = str(round(refine_results[5][last_index], 5))
-            rg = str(round(refine_results[6][last_index], 2))
+
+            # Handle complex Rg values (can occur for some particles like lipid nanoparticles)
+            rg_val = refine_results[6][last_index]
+            if np.iscomplexobj(rg_val) and np.abs(np.imag(rg_val)) > np.abs(np.real(rg_val)):
+                rg = str(-1.0)
+            elif np.iscomplexobj(rg_val):
+                rg = str(round(np.real(rg_val), 2))
+            else:
+                rg = str(round(rg_val, 2))
+
             sv = str(round(refine_results[7][last_index], 2))
             mrsc = ''
 
@@ -10414,6 +10433,18 @@ class DenssPlotPanel(wx.Panel):
 
         wx.Panel.__init__(self, parent, wx.ID_ANY, style=wx.BG_STYLE_SYSTEM
             |wx.RAISED_BORDER)
+
+        # Convert denss_results to list so we can modify it (it's a tuple)
+        denss_results = list(denss_results)
+
+        # Convert imaginary Rg values to -1 (can occur for some particles like lipid nanoparticles)
+        rg = np.array(denss_results[6])
+        for i in range(len(rg)):
+            if np.iscomplexobj(rg[i]) and np.abs(np.imag(rg[i])) > np.abs(np.real(rg[i])):
+                rg[i] = -1.0
+            elif np.iscomplexobj(rg[i]):
+                rg[i] = np.real(rg[i])
+        denss_results[6] = np.real(rg).astype(np.float64)
 
         self.denss_results = denss_results
         self.iftm = iftm
