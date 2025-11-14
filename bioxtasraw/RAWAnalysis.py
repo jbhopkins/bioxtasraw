@@ -12373,6 +12373,9 @@ class DIFTControlPanel(wx.Panel):
             self.updateDIFTSettings(update_plot=False)
 
             if dmax != -1:
+                if int(dmax) == dmax:
+                    dmax = int(dmax)
+
                 self.old_dmax = dmax
                 self.old_alpha = alpha
 

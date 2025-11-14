@@ -2574,13 +2574,14 @@ def iterative_average(rhos, cycles=5, cores=1, thorough=True, abort_event=None, 
         avg_queue (Queue): Optional queue for sending progress messages to GUI.
     """
 
+
     def log_info(message):
         """Helper to print or log information."""
         if avg_queue is not None:
             avg_queue.put_nowait(message + '\n')
         if my_logger:
             my_logger.info(message)
-        else:
+        elif avg_queue is None:
             print(message)
 
     if rhos.shape[0] < 2:
@@ -2887,7 +2888,8 @@ class Sasrec(object):
             chi2.append(chi2value)
         al = np.array(al)
         chi2 = np.array(chi2)
-        print()
+        if not quiet:
+            print()
         # find optimal alpha value based on where chi2 begins to rise, to 10% above the ideal chi2
         # interpolate between tested alphas to find more precise value
         x = np.linspace(al[0], al[-1], 1000)
@@ -3990,7 +3992,7 @@ class PDB2MRC(object):
             self.pdb.calculate_unique_volume()
         elif self.pdb.unique_volume is None:
             if not self.quiet: print("Looking up unique atomic volumes...")
-            self.pdb.lookup_unique_volume()
+            self.pdb.lookup_unique_volume(quiet=quiet)
         self.pdb.unique_radius = sphere_radius_from_volume(self.pdb.unique_volume)
         if radii_sf is None:
             self.radii_sf = np.ones(len(self.modifiable_atom_types))
@@ -4364,7 +4366,8 @@ class PDB2MRC(object):
         self.water_shell_idx = water_shell_idx = uniform_shell.astype(bool)
 
         if self.dx > 2 * self.r_water and self.shell_type == "water":
-            print("Voxel size too large for water form factor hydration shell. Changing shell type to uniform.")
+            if not self.quiet:
+                print("Voxel size too large for water form factor hydration shell. Changing shell type to uniform.")
             self.shell_type = "uniform"
 
         if self.shell_mrcfile is not None:
