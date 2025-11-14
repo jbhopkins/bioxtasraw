@@ -750,19 +750,12 @@ class PlotPanel(wx.Panel):
         and show a pop up menu to change the settings
         of the figure the mouse was over '''
 
-        x_size, y_size = self.canvas.get_width_height()
-        half_y = y_size // 2
+        if event.button == 3 and event.inaxes:
 
-        if self._plot_shown == 1:
-            selected_plot = 1
-        elif self._plot_shown == 2:
-            selected_plot = 2
-        elif event.y <= half_y:
-            selected_plot = 2
-        else:
-            selected_plot = 1
-
-        if event.button == 3:
+            if event.inaxes == self.subplot1:
+                selected_plot = 1
+            elif event.inaxes == self.subplot2:
+                selected_plot = 2
 
             if float(matplotlib.__version__[:3]) >= 1.2:
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
@@ -1842,19 +1835,12 @@ class IftPlotPanel(PlotPanel):
         and show a pop up menu to change the settings
         of the figure the mouse was over '''
 
-        x_size,y_size = self.canvas.get_width_height()
-        half_y = y_size // 2
+        if event.button == 3 and event.inaxes:
 
-        if self._plot_shown == 1:
-            selected_plot = 1
-        elif self._plot_shown == 2:
-            selected_plot = 2
-        elif event.y <= half_y:
-            selected_plot = 2
-        else:
-            selected_plot = 1
-
-        if event.button == 3:
+            if event.inaxes == self.subplot1:
+                selected_plot = 1
+            elif event.inaxes == self.subplot2:
+                selected_plot = 2
 
             if float(matplotlib.__version__[:3]) >= 1.2:
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
@@ -3233,9 +3219,10 @@ class SeriesPlotPanel(wx.Panel):
         ''' Find out where the mouse button was released
         and show a pop up menu to change the settings
         of the figure the mouse was over '''
-        selected_plot=1
 
-        if event.button == 3:
+        if event.button == 3 and event.inaxes:
+
+            selected_plot=1
 
             if float(matplotlib.__version__[:3]) >= 1.2:
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
