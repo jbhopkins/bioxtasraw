@@ -2635,7 +2635,7 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
                 file_tip.ApplyStyle('Blue Glass')
 
             else:
-                self.showitem_icon.SetToolTip(wx.ToolTip(self._cal_file))
+                self.cal_file_label.SetToolTip(wx.ToolTip(self._cal_file))
 
     def on_page_selected(self):
         range_changes = self.series_frame.get_has_changes('range')
