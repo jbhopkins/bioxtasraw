@@ -221,10 +221,10 @@ def test_denss(gi_gnom_ift, temp_directory):
     assert os.path.exists(os.path.join(temp_directory, 'denss_support.mrc'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_map.fit'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_stats_by_step.dat'))
-    assert np.allclose(chi_sq, 0.8973733889747175)
-    assert np.allclose(rg, 34.28961149550543)
-    assert np.allclose(support_vol, 381174.8969421387)
-    assert np.allclose(I_fit.sum(), 0.1419790665740152)
+    assert np.allclose(chi_sq, 0.8780439375606036)
+    assert np.allclose(rg, 34.1149940995528)
+    assert np.allclose(support_vol, 415132.57150268555)
+    assert np.allclose(I_fit.sum(), 0.1412691428231155)
 
 @pytest.mark.very_slow
 def test_denss_average(temp_directory):
@@ -239,9 +239,9 @@ def test_denss_average(temp_directory):
         temp_directory, n_proc=2)
 
     assert np.isclose(average_rho.sum(), 11.779369592666626)
-    assert np.isclose(mean_cor, 0.9577195823754613, rtol=1e-3)
-    assert np.isclose(std_cor, 0.008987976185889873, rtol=1e-1)
-    assert res == 36.3
+    assert np.isclose(mean_cor, 0.9543698452921, rtol=1e-3)
+    assert np.isclose(std_cor, 0.004750079261040415, rtol=1e-1)
+    assert res == 26.1
     assert os.path.exists(os.path.join(temp_directory, 'denss_average.log'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_fsc.dat'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_average.mrc'))
@@ -259,9 +259,9 @@ def test_denss_average_single_proc(temp_directory):
         temp_directory, n_proc=1)
 
     assert np.isclose(average_rho.sum(), 11.779369592666626)
-    assert np.isclose(mean_cor, 0.9577195823754613, rtol=1e-3)
-    assert np.isclose(std_cor, 0.008987976185889873, rtol=1e-1)
-    assert res == 36.3
+    assert np.isclose(mean_cor, 0.9543698452921, rtol=1e-3)
+    assert np.isclose(std_cor, 0.004750079261040415, rtol=1e-1)
+    assert res == 26.1
     assert os.path.exists(os.path.join(temp_directory, 'denss_average.log'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_fsc.dat'))
     assert os.path.exists(os.path.join(temp_directory, 'denss_average.mrc'))
@@ -273,7 +273,7 @@ def test_denss_align(temp_directory):
     aligned_density, score = raw.denss_align(rhos[0], sides[0], '1XIB_4mer.pdb',
         './data/dammif_data/', save_datadir=temp_directory, n_proc=2)
 
-    assert np.isclose(score, 0.8464630033326552)
+    assert np.isclose(score, 0.8434734715650835)
     assert np.isclose(aligned_density.sum(), 11.779369354248047)
 
 @pytest.mark.very_slow
@@ -283,5 +283,5 @@ def test_denss_align_single_proc(temp_directory):
     aligned_density, score = raw.denss_align(rhos[0], sides[0], '1XIB_4mer.pdb',
         './data/dammif_data/', save_datadir=temp_directory, n_proc=1)
 
-    assert np.isclose(score, 0.8464630033326552)
+    assert np.isclose(score, 0.8434734715650835)
     assert np.isclose(aligned_density.sum(), 11.779369354248047)

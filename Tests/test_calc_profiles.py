@@ -898,7 +898,7 @@ def test_dift(clean_gi_sub_profile, old_settings, gi_dift_ift):
 
 def test_dift_dmax_alpha(clean_gi_sub_profile, old_settings, gi_dift_ift):
     (ift, dmax, rg, i0, rg_err, i0_err, chi_sq, alpha) = raw.denss_ift(clean_gi_sub_profile,
-        dmax=114.81772123448121, alpha=8119093695685.446)
+        dmax=115.81587607357199, alpha=8034985604591.902)
 
     assert np.allclose(dmax, gi_dift_ift.getParameter('dmax'))
     assert np.allclose(rg, gi_dift_ift.getParameter('rg'))
@@ -926,9 +926,9 @@ def test_pdb2sas_fit(temp_directory, clean_gi_sub_profile, gi_pdb2sas_fit_ift):
     pdb2sas = results['1XIB_4mer_glucose_isomerase'][0]
     denss_analysis = pdb2sas.getParameter('analysis')['denss']
 
-    assert np.allclose(denss_analysis['Rg'], 33.92)
-    assert np.allclose(pdb2sas.getI().sum(), 20496743823.859074)
-    assert np.allclose(denss_analysis['Chi_squared'], 1.088)
+    assert np.allclose(denss_analysis['Rg'], 33.87)
+    assert np.allclose(pdb2sas.getI().sum(), 19475262858.907402)
+    assert np.allclose(denss_analysis['Chi_squared'], 1.09)
 
 
 

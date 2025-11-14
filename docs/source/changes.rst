@@ -1,6 +1,44 @@
 Changes
 ============
 
+2.4.0
+----------
+
+Release date: 2025-11-20
+
+Overview
+^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 2.4.0. This
+release has a new Multi-series analysis module that can be used to carry out
+profile by profile averaging, subtraction, and manipulation such as q binning
+and truncation on multiple series at once. This is useful for example to carry
+out point-by-point buffer subtraction for an IEC-SAXS elution where you measured
+a matching buffer gradient or to carry out more complicated analysis of time-resolved
+SAXS data. Further details can be found here: :ref:`Multi-series analysis
+tutorial <s2_multiseries>`
+
+
+All changes:
+^^^^^^^^^^^^^
+*   New multi-series analysis window.
+*   Fixed a bug that could cause hdf5 files to fail to load.
+*   Fixed a bug where integrating images from highly tilted detectors could fail.
+*   Added ability to load series hdf5 files from the load/online mode section
+    of the series control panel.
+*   Fixed an error in Vc MW calculation with 1/nm units (either defined or inferred).
+*   Fixed a bug where superimpose failed if q vectors are not the same.
+*   Fixed a bug where the set_sample_range api function would fail for series
+    with the alread_subtracted flag set.
+*   Fixed a bug where workspaces could fail to load.
+*   Fixed a bug where baseline range controls didn't properly update limits when
+    a new range was set.
+*   Fixed a bug where settings might not be picklable, which affected
+    multiprocessing applications.
+*   Fixed a bug where series range might not display correctly if the start and
+    end points of the range were the same.
+*   Updated DENSS to the latest version.
+
 2.3.1
 ----------
 
