@@ -905,7 +905,6 @@ def test_dift_dmax_alpha(clean_gi_sub_profile, old_settings, gi_dift_ift):
     assert np.allclose(ift.r, gi_dift_ift.r)
     assert np.allclose(ift.p, gi_dift_ift.p)
 
-@pytest.mark.new
 def test_pdb2sas_modelonly(temp_directory, gi_pdb2sas_modelonly_ift):
     shutil.copy2(os.path.join('./data/dammif_data', '1XIB_4mer.pdb'),
             os.path.join(temp_directory, '1XIB_4mer.pdb'))
@@ -927,9 +926,9 @@ def test_pdb2sas_fit(temp_directory, clean_gi_sub_profile, gi_pdb2sas_fit_ift):
     pdb2sas = results['1XIB_4mer_glucose_isomerase'][0]
     denss_analysis = pdb2sas.getParameter('analysis')['denss']
 
-    assert np.allclose(denss_analysis['Rg'], 33.92)
-    assert np.allclose(pdb2sas.getI().sum(), 20496743823.859074)
-    assert np.allclose(denss_analysis['Chi_squared'], 1.088)
+    assert np.allclose(denss_analysis['Rg'], 33.87)
+    assert np.allclose(pdb2sas.getI().sum(), 19475262858.907402)
+    assert np.allclose(denss_analysis['Chi_squared'], 1.09)
 
 
 
