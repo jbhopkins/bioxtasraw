@@ -6079,6 +6079,11 @@ def run_align(allrhos, sides, ref_file, avg_q=None, abort_event=None, center=Tru
         #RAW specific
         refoutput = os.path.join(savedir, os.path.split(refoutput)[-1])
 
+        logging.basicConfig(filename=os.path.join(savedir, refbasename + '.log'),
+            level=logging.INFO, filemode='w',
+            format='%(asctime)s %(message)s')  # , datefmt='%Y-%m-%d %I:%M:%S %p')
+        logger = logging.getLogger()
+
         refside = sides[0]
         voxel = (refside/allrhos[0].shape)[0]
         halfside = refside/2
@@ -6099,7 +6104,8 @@ def run_align(allrhos, sides, ref_file, avg_q=None, abort_event=None, center=Tru
             side=refside,
             nsamples=n,
             ignore_warnings=True,
-            quiet=True
+            quiet=True,
+            logger=logger,
             )
         pdb2mrc.scale_radii()
         pdb2mrc.make_grids()

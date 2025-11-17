@@ -1050,6 +1050,8 @@ def getATSASVersion(atsasDir):
     else:
         dammifDir = os.path.join(atsasDir, 'dammif')
 
+    version = None
+
     if os.path.exists(dammifDir):
         my_env = setATSASEnv(atsasDir)
 
