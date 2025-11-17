@@ -39,6 +39,7 @@ All changes:
 *   Fixed a bug where series range might not display correctly if the start and
     end points of the range were the same.
 *   Updated DENSS and associated tools to the latest version.
+*   Fixed a bug where calibrant rings could be displayed in the wrong location.
 
 2.3.1
 ----------
