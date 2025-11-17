@@ -14670,6 +14670,7 @@ class CenteringPanel(scrolled.ScrolledPanel):
             two_thetas = np.array(self.calibrant.get_2th())
             if len(two_thetas) > 0:
                 opposite = np.tan(two_thetas) * sd_distance
+                opposite = opposite[opposite>0] #Ignore peaks that can't show up on the detector
                 agbh_dist_list = list(opposite / (pixel_size_x/1000.))
             else:
                 agbh_dist_list = [np.nan]
