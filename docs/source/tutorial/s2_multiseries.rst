@@ -7,14 +7,14 @@ Sometimes SAXS data is collected in a way where multiple separate datasets
 need to be processed together, either averaged or subtracted. A simple
 example is if an IEC-SAXS experiment is done and background subtraction is
 done by measuring a blank injection in the same gradient and doing a point
-by point subtraction of the series with sample and the series without sample.
+by point subtraction of the series with sample and the blank series.
 A more complicated example would be how time-resolved SAXS data is collected
 at the BioCAT beamline, where multiple sequential scans along a microfluidic
 mixer are collected for a single injection and some of the scans are used
 for buffer subtraction while others contain scattering from the sample.
 
 The multi-series analysis tool in RAW provides a robust mechanism for loading
-in multiple series at once, carrying out point-by-point averaging and
+in multiple series at once and carrying out point-by-point averaging and
 subtraction across series. Once a subtracted series is created, you can
 then carry out further data refinement including truncating and binning q ranges,
 averaging together multiple points in a series to improve signal to noise,
@@ -28,25 +28,26 @@ Time-resolved SAXS analysis
 Time resolved SAXS data from the BioCAT beamline is used for this tutorial.
 The experiment is a refolding experiment on Cytochrome C. The protein starts
 out chemically denatured in a 4.5 M guanidine buffer. It is then diluted 10x
-into a refolding buffer using a very fast microfluidic mixer, initiating the
-refolding reaction. Timepoints after mixing are obtained by measuring the
-scattering some distance along the mixing channel, and are determined by
-how long the solution takes to flow from the mixing point to the measurement point.
+into a refolding buffer using a very fast continuous flow microfluidic mixer,
+initiating the refolding reaction. Timepoints after mixing are obtained by
+measuring the scattering some distance along the mixing channel, and are
+determined by how long the solution takes to flow from the mixing point to
+the measurement point.
 
 The basic data collection procedure is as follows. First, flow of mixing and
 sample buffers is started. Then, simultaneously, the X-ray exposure and a
 continuous scan of the mixer is started. The X-ray beam is scanned along the
 observation region, and images are measured while the mixer is moving (a
 continuous/fly scan rather than step scan), which is important for minimizing
-radiation damage and maximizing throughput. Each exposure along the observation
-region corresponds to a different timepoint after mixing. Repeated scans along
-the mixer add additional data at the same timepoints, which improves the
-signal to noise of the measurement at the timepoint. After sufficient buffer
-scans, the sample is injected into the mixer via an injection valve.
-Measurements are carried out while all the sample flows through the mixer,
+radiation damage and maximizing throughput. Each exposure at a new position
+along the observation region corresponds to a different timepoint after mixing.
+Repeated scans along the mixer add additional data at the same timepoints, which
+improves the signal to noise of the measurement at the timepoint. After
+sufficient buffer scans, the sample is injected into the mixer via an injection
+valve. Measurements are carried out while all the sample flows through the mixer,
 yielding multiple scans with mixed sample measured at every timepoint. Once
 all the sample has passed through the mixer, additional scans of just buffer
-are measured, yielding pre- and post-sample buffer measurements and sample
+are measured, yielding buffer measurements pre- and post-sample injection and sample
 measurements at every timepoint as part of the same experiment. If necessary, the
 measurement is repeated multiple times to provide good data at each timepoint.
 Typically, at least 3 such measurements are made for a given sample.
@@ -67,7 +68,8 @@ to get a final time series.
     series of interest. You can also select series that are loaded in the Series
     control panel in RAW with the "Add from series panel" button and for data
     collected at the BioCAT beamline (or with a compatible file naming convention)
-    you can load the data in automatically with the "Auto Select" button.
+    you can load the data in automatically with the "Auto Select" button. Here
+    we will use the Select from disk sub-panel.
 
 
 #.  Click the Browse button and select the **Tutorial_Data/multiseres_data/cytc_01**
@@ -226,7 +228,7 @@ to get a final time series.
     recall that we first measure a set of scans (each scan is a single series
     when loaded into RAW) with buffer, then inject sample, measure a set of scans
     with sample, and then measure a final set of scans with just buffer.
-    Analogous to a SEC-SAXS elution series, the series where protein is
+    Analogous to a SEC-SAXS elution series, the series where sample is
     being measured have more total scattering than those with buffer, leading
     to the peak in this plot. Use the "Add region" button to add two buffer
     regions, one before the sample measurement and one after, and define the
@@ -245,7 +247,7 @@ to get a final time series.
     *   Note: Buffer regions are shown on the plot in green.
 
     *   Note: Defining a buffer region is optional. If data is already subtracted
-        you can proceed to the next step without doing this.
+        you can proceed to the next step in the tutorial without doing this.
 
     |ms_buffer_range_png|
 
