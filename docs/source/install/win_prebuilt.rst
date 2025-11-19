@@ -14,10 +14,12 @@ Direct links to the downloads:
 *  `Download Windows 11 installer
    <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.3.1_win11_x86_64.msi/download>`_
 
-*  `Download Windows 10 installer
-   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.3.1_win10_x86_64.msi/download>`_
 
 **Important Notes:**
+
+*   The last supported pre-built version for Windows 10 is RAW 2.3.1. You can download
+    this Windows 10 installer here: `Download Windows 10 installer
+    <https://sourceforge.net/projects/bioxtasraw/files/bioxtasraw/RAW_2.3.1/RAW-2.3.1_win10_x86_64.msi/download>`_
 
 *   Because the RAW team is an ‘unknown’ developer, you will probably see some security
     warnings when you install RAW. When you do, just give the installer and program
