@@ -12,7 +12,7 @@ and double click it to run the installer.
 Direct links to the downloads:
 
 *  `Download Windows 11 installer
-   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.3.1_win11_x86_64.msi/download>`_
+   <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.4.0_win11_x86_64.msi/download>`_
 
 
 **Important Notes:**
