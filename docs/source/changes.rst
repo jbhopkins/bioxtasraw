@@ -40,6 +40,7 @@ All changes:
     end points of the range were the same.
 *   Updated DENSS and associated tools to the latest version.
 *   Fixed a bug where calibrant rings could be displayed in the wrong location.
+*   Fixed a bug where the DENSS window could fail to open if ATSAS wasn't found.
 
 2.3.1
 ----------
