@@ -4,7 +4,7 @@ Changes
 2.4.0
 ----------
 
-Release date: 2025-11-20
+Release date: 2025-11-19
 
 Overview
 ^^^^^^^^^^
