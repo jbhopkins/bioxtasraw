@@ -1112,8 +1112,9 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
                     series_future = self.executor.submit(RAWAPI.load_profiles,
                         series_data['files'], self.series_frame.raw_settings)
                 else:
+                    settings = copy.deepcopy(self.series_frame.raw_settings)
                     series_future = self.executor.apply_async(RAWAPI.load_profiles,
-                        args=(series_data['files'], self.series_frame.raw_settings))
+                        args=(series_data['files'], settings))
             else:
                 series_future = DummyLoadFuture(series_data['series'])
 
