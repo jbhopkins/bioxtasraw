@@ -462,6 +462,11 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
 
             search_prefix = '_'.join(fprefix.split('_')[:-4])
 
+            if search_prefix == '':
+                is_old_format = True
+                search_prefix = '_'.join(fprefix.split('_')[:-2])
+            else:
+                is_old_format = False
             scan_list = []
 
             search_key = '{}_*{}'.format(search_prefix, ext)
@@ -470,7 +475,10 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
             series_files = {}
 
             for f in files:
-                scan = f.split('_')[-4]
+                if not is_old_format:
+                    scan = f.split('_')[-4]
+                else:
+                    scan = f.split('_')[-2]
 
                 if scan not in scan_list:
                     scan_list.append(scan)
