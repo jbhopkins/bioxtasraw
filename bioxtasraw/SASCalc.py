@@ -1843,6 +1843,7 @@ def runDammif(fname, prefix, args, path, atsasDir):
             dammif_t.daemon = True
             dammif_t.start()
             previous_line = ''
+            previous_line2 = ''
 
             previous_data = []
 
@@ -1857,10 +1858,14 @@ def runDammif(fname, prefix, args, path, atsasDir):
 
                 if data is not None:
                     current_line = data
+
                     if data.find('GNOM output file to read?') > -1:
                         proc.stdin.write('%s\r\n' %(fname)) #Dammif input file, no default
 
                     elif previous_line.find('nanometer') > -1:
+                        proc.stdin.write('%s\r\n' %(args['unit'])) #Dammif input file units, default unknown
+
+                    elif previous_line2.find('Angular unit') > -1:
                         proc.stdin.write('%s\r\n' %(args['unit'])) #Dammif input file units, default unknown
 
                     elif previous_line.find('Output file prefix?') > -1:
@@ -1986,6 +1991,9 @@ def runDammif(fname, prefix, args, path, atsasDir):
                     elif data.find('Log opened') > -1:
                         dammifStarted = True
 
+
+
+                    previous_line2 = previous_line
                     previous_line = current_line
 
                     if previous_data.count(data) > 20:
@@ -2229,7 +2237,7 @@ def runDammin(fname, prefix, args, path, atsasDir):
             else:
                 unit = '1'
 
-            command = '"%s" --mo=%s --lo="%s" --un=%s --sy=%s' %(dammifDir, args['mode'], prefix, unit, args['sym'])
+            command = '"%s" --mo=%s --lo="%s" --sy=%s' %(dammifDir, args['mode'], prefix, args['sym'])
 
             if args['anisometry'] != 'Unknown':
                 command += command + ' --an=%s' %(args['anisometry'])
@@ -2244,6 +2252,12 @@ def runDammin(fname, prefix, args, path, atsasDir):
 
             if (int(version[0]) >= 4):
                 command = command + ' --model-format=%s' %(args['modelFormat'])
+
+            if ((int(version[0]) == 4 and int(version[1]) ==1 and int(version[2])>=3) or
+                (int(version[0]) == 4 and int(version[1]) >=2) or int(version[0]) >= 5):
+                command = command + ' --unit=%s' %(unit)
+            else:
+                command = command + ' --un=%s' %(unit)
 
             command = command + ' "%s"' %(fname)
 
@@ -2608,7 +2622,11 @@ def run_crysol(fnames, path, atsasDir, exp_fnames=None, prefix=None, lm=20,
             cmd += ' --constant'
 
         if units is not None:
-            cmd += ' --units={}'.format(units)
+            if ((int(version[0]) == 4 and int(version[1]) ==1 and int(version[2])>=3) or
+                (int(version[0]) == 4 and int(version[1]) >=2) or int(version[0]) >= 5):
+                cmd+= ' --unit={}'.format(unit)
+            else:
+                cmd += ' --units={}'.format(units)
 
         if not fit_solvent:
             cmd += ' --skip-minimization'
