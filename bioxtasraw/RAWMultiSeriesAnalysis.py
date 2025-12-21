@@ -498,7 +498,10 @@ class MultiSeriesLoadPanel(wx.ScrolledWindow):
 
                 _, first_filename = os.path.split(flist[0])
 
-                series_name = '_'.join(first_filename.split('_')[:-3])
+                if not is_old_format:
+                    series_name = '_'.join(first_filename.split('_')[:-3])
+                else:
+                    series_name = '_'.join(first_filename.split('_')[:-1])
 
                 series_data = {
                     'files' : flist,
@@ -2995,7 +2998,7 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
                     file_tip.ApplyStyle('Blue Glass')
 
                 else:
-                    self.showitem_icon.SetToolTip(wx.ToolTip(self._cal_file))
+                    self.cal_file_label.SetToolTip(wx.ToolTip(self._cal_file))
 
         elif settings['cal_in_header'] and len(settings['series_bin_keys']) > 0:
             self.cal_x_key.SetStringSelection(settings['series_bin_keys'][0])
