@@ -4012,6 +4012,7 @@ class MainWorkerThread(threading.Thread):
                         'recreate_all_masks'            : self._recreateAllMasks,
                         'calculate_abs_water_const'     : self._calcAbsScWaterConst,
                         'save_workspace'                : self._saveWorkspace,
+                        # 'save_workspace'                : self._new_saveWorkspace,
                         'load_workspace'                : self._loadWorkspace,
                         'superimpose_items'             : self._superimposeItems,
                         'save_analysis_info'            : self._saveAnalysisInfo,
@@ -6536,6 +6537,44 @@ class MainWorkerThread(threading.Thread):
         try:
             SASFileIO.saveWorkspace(save_dict, save_path)
         except Exception as e:
+            msg = 'Unexpected error while saving workspace:\n{}'.format(e)
+            self._showSaveError('generic', msg)
+
+        RAWGlobals.save_in_progress = False
+        wx.CallAfter(self.main_frame.setStatus, '', 0)
+        wx.CallAfter(self.main_frame.closeBusyDialog)
+
+        if restart_timer:
+            wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [os.path.split(save_path)[1]])
+            wx.CallAfter(self.main_frame.controlTimer, True)
+
+    def _new_saveWorkspace(self, data):
+        sasm_items = data[0]
+        ift_items = data[1]
+        secm_items = data[2]
+        save_path = data[3]
+
+        save_path = os.path.splitext(save_path)[0] + '.hdf5'
+
+        if (self.main_frame.OnlineControl.isRunning() and
+            os.path.split(save_path)[0] == self.main_frame.OnlineControl.getTargetDir()):
+            self.main_frame.controlTimer(False)
+            restart_timer = True
+        else:
+            restart_timer = False
+
+        RAWGlobals.save_in_progress = True
+        wx.CallAfter(self.main_frame.setStatus, 'Saving workspace', 0)
+        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, saving...')
+
+        sasm_list = [item.getSASM() for item in sasm_items]
+        ift_list = [item.getIFTM() for item in ift_items]
+        series_list = [item.getSECM() for item in secm_items]
+
+        try:
+            SASFileIO.new_saveWorkspace(sasm_list, ift_list, series_list, save_path)
+        except Exception as e:
+            traceback.print_exc()
             msg = 'Unexpected error while saving workspace:\n{}'.format(e)
             self._showSaveError('generic', msg)
 

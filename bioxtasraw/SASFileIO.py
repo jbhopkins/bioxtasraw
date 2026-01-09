@@ -2125,17 +2125,24 @@ def load_series(name):
         try:
             seriesm_data['item_font_color'] = f.attrs['item_font_color'][()]
             seriesm_data['item_selected_for_plot'] = f.attrs['item_selected_for_plot'][()]
+        except Exception:
+            pass
 
-            seriesm_data['line_color'] = profiles.attrs['line_color'][()]
-            seriesm_data['line_width'] = profiles.attrs['line_width'][()]
-            seriesm_data['line_style'] = profiles.attrs['line_style'][()]
-            seriesm_data['line_marker'] = profiles.attrs['line_marker'][()]
-            seriesm_data['line_visible'] = profiles.attrs['line_visible'][()]
-            seriesm_data['line_marker_face_color'] = profiles.attrs['line_marker_face_color'][()]
-            seriesm_data['line_marker_edge_color'] = profiles.attrs['line_marker_edge_color'][()]
-            seriesm_data['line_visible'] = profiles.attrs['line_visible'][()]
-            seriesm_data['line_legend_label'] = profiles.attrs['line_legend_label'][()]
+        try:
+            seriesm_data['line_color'] = f.attrs['line_color'][()]
+            seriesm_data['line_width'] = f.attrs['line_width'][()]
+            seriesm_data['line_style'] = f.attrs['line_style'][()]
+            seriesm_data['line_marker'] = f.attrs['line_marker'][()]
+            seriesm_data['line_visible'] = f.attrs['line_visible'][()]
+            seriesm_data['line_marker_face_color'] = f.attrs['line_marker_face_color'][()]
+            seriesm_data['line_marker_edge_color'] = f.attrs['line_marker_edge_color'][()]
+            seriesm_data['line_visible'] = f.attrs['line_visible'][()]
+            seriesm_data['line_legend_label'] = f.attrs['line_legend_label'][()]
 
+        except Exception:
+            pass
+
+        try:
             seriesm_data['line_color'] = calc_data.attrs['calc_line_color'][()]
             seriesm_data['line_width'] = calc_data.attrs['calc_line_width'][()]
             seriesm_data['line_style'] = calc_data.attrs['calc_line_style'][()]
@@ -2439,6 +2446,17 @@ def makeSeriesFile(secm_data, settings):
                      'line_marker': secm_data['line_marker'],
                      'line_visible' :secm_data['line_visible']}
 
+        try:
+            line_data['line_marker_face_color'] = secm_data['line_marker_face_color']
+            line_data['line_marker_edge_color'] = secm_data['line_marker_edge_color']
+
+        except KeyError:
+            pass #Version <1.3.0 doesn't have these keys
+
+    except KeyError:
+        line_data = None    #Backwards compatibility
+
+    try:
         calc_line_data = {'line_color' : secm_data['calc_line_color'],
                      'line_width' : secm_data['calc_line_width'],
                      'line_style' : secm_data['calc_line_style'],
@@ -2446,16 +2464,12 @@ def makeSeriesFile(secm_data, settings):
                      'line_visible' :secm_data['calc_line_visible']}
 
         try:
-            line_data['line_marker_face_color'] = secm_data['line_marker_face_color']
-            line_data['line_marker_edge_color'] = secm_data['line_marker_edge_color']
-
             calc_line_data['line_marker_face_color'] = secm_data['calc_line_marker_face_color']
             calc_line_data['line_marker_edge_color'] = secm_data['calc_line_marker_edge_color']
         except KeyError:
             pass #Version <1.3.0 doesn't have these keys
 
     except KeyError:
-        line_data = None    #Backwards compatibility
         calc_line_data = None
 
     return new_secm, line_data, calc_line_data
@@ -3744,7 +3758,10 @@ def save_series(save_name, seriesm, save_gui_data=False):
             seriesm_dict['line_marker_edge_color'] = seriesm.line.get_markeredgecolor()
             seriesm_dict['line_visible'] = seriesm.line.get_visible()
             seriesm_dict['line_legend_label'] = seriesm.line.get_label()
+        except Exception:
+            pass
 
+        try:
             seriesm_dict['calc_line_color'] = seriesm.calc_line.get_color()
             seriesm_dict['calc_line_width'] = seriesm.calc_line.get_linewidth()
             seriesm_dict['calc_line_style'] = seriesm.calc_line.get_linestyle()
@@ -3753,268 +3770,497 @@ def save_series(save_name, seriesm, save_gui_data=False):
             seriesm_dict['calc_line_marker_edge_color'] = seriesm.calc_line.get_markeredgecolor()
             seriesm_dict['calc_line_visible'] = seriesm.calc_line.get_visible()
             seriesm_dict['calc_line_legend_label'] = seriesm.calc_line.get_label()
+        except Exception:
+            pass
 
+        try:
             seriesm_dict['item_font_color'] = seriesm.item_panel.getFontColour()
             seriesm_dict['item_selected_for_plot'] = seriesm.item_panel.getSelectedForPlot()
         except Exception:
             pass
 
-    seriesm_dict['parameters_analysis'] = seriesm_dict['parameters']['analysis']  #pickle wont save this unless its raised up
-
     seriesm_data = copy.deepcopy(seriesm_dict)
 
-    with h5py.File(save_name, 'w', driver='core', libver='earliest') as f:
-        f.attrs['file_type'] = 'RAW_Series'
-        f.attrs['raw_version'] = RAWGlobals.version
-        f.attrs['parameters'] = formatHeader(seriesm_data['parameters'])
-        f.attrs['series_type'] = seriesm_data['series_type']
+    # Check whether save_name is an hdf5 file (i.e. function called by save worksapace) or file name (function called for a single series)
+    try:
+        save_name.parent
+        is_hdf5 = True
+    except Exception:
+        is_hdf5 = False
 
-        if save_gui_data:
-            try:
-                f.attrs['item_font_color'] = seriesm_data['item_font_color']
-                f.attrs['item_selected_for_plot'] = seriesm_data['item_selected_for_plot']
-            except Exception:
-                pass
+    if is_hdf5:
+        series_group = save_name.create_group(seriesm.getParameter('filename'))
+        inner_save_series(series_group, seriesm_data, save_gui_data)
+    else:
+        with h5py.File(save_name, 'w', driver='core', libver='earliest') as f:
+            inner_save_series(f, seriesm_data, save_gui_data)
 
-        # Add filename info
-        for j in range(len(seriesm_data['file_list'])):
-            seriesm_data['file_list'][j] = seriesm_data['file_list'][j].encode('utf-8')
+def inner_save_series(f, seriesm_data, save_gui_data):
+    f.attrs['file_type'] = 'RAW_Series'
+    f.attrs['raw_version'] = RAWGlobals.version
+    f.attrs['parameters'] = formatHeader(seriesm_data['parameters'])
+    f.attrs['series_type'] = seriesm_data['series_type']
 
+    if save_gui_data:
         try:
-            dtype = h5py.string_dtype() #h5py 2.10, python 3
+            f.attrs['item_font_color'] = seriesm_data['item_font_color']
+            f.attrs['item_selected_for_plot'] = seriesm_data['item_selected_for_plot']
         except Exception:
-            if six.PY3:
-                dtype = h5py.special_dtype(vlen=str) #h5py < 2.10, python3
+            pass
+        try:
+            f.attrs['line_color'] = seriesm_data['line_color']
+            f.attrs['line_width'] = seriesm_data['line_width']
+            f.attrs['line_style'] = seriesm_data['line_style']
+            f.attrs['line_marker'] = seriesm_data['line_marker']
+            f.attrs['line_visible'] = seriesm_data['line_visible']
+            f.attrs['line_marker_face_color'] = seriesm_data['line_marker_face_color']
+            f.attrs['line_marker_edge_color'] = seriesm_data['line_marker_edge_color']
+            f.attrs['line_visible'] = seriesm_data['line_visible']
+            f.attrs['line_legend_label'] = seriesm_data['line_legend_label']
+        except Exception:
+            pass
+
+    # Add filename info
+    for j in range(len(seriesm_data['file_list'])):
+        seriesm_data['file_list'][j] = seriesm_data['file_list'][j].encode('utf-8')
+
+    try:
+        dtype = h5py.string_dtype() #h5py 2.10, python 3
+    except Exception:
+        if six.PY3:
+            dtype = h5py.special_dtype(vlen=str) #h5py < 2.10, python3
+        else:
+            dtype = h5py.special_dtype(vlen=unicode) #h5py < 2.10, python2
+
+    fname_data = f.create_dataset('file_names', data=seriesm_data['file_list'],
+        dtype=dtype)
+    fname_data.attrs['description'] = ('Ordered list of filenames, '
+        'corresponding to profile numbering order.')
+
+    # Add frame numbers
+    frames = f.create_dataset('frame_numbers', data=seriesm_data['frame_list'])
+    frames.attrs['description'] = ('List of frame numbers, corresponding to '
+        'profile numbers.')
+
+    # Add time
+    times = f.create_dataset('times', data=seriesm_data['time'])
+    times.attrs['description'] = ('Ordered list of acquisition time of the profiles, '
+        'corresponding to the profile numbering order (may not be available).')
+    times.attrs['unit'] = 's'
+
+
+    # Add individual profiles
+    profiles = f.create_group('profiles')
+    profiles.attrs['profile_type'] = 'input'
+    profiles.attrs['description'] = ('Input scattering profiles without processing.')
+    save_series_sasm_list(profiles, seriesm_data['sasm_list'])
+
+    if (seriesm_data['average_buffer_sasm'] is None
+        or seriesm_data['average_buffer_sasm'] == -1):
+        profiles.create_dataset('average_buffer_profile', data=[])
+    else:
+        sasm = seriesm_data['average_buffer_sasm']
+        descrip = ('A single scattering profile giving the averaged buffer '
+            'scattering profile. Columns correspond to q, I(q), and sigma(q) '
+            'from columns 0 to 2 respecitvely. If present, column 3 is dQ.')
+
+        save_series_sasm(profiles, sasm, "average_buffer_profile", descrip, descrip)
+
+    sub_profiles = f.create_group('subtracted_profiles')
+    sub_profiles.attrs['profile_type'] = 'subtracted'
+    sub_profiles.attrs['description'] = ('Subtracted scattering profiles.')
+    sub_profiles.attrs['use_subtracted_sasm'] = seriesm_data['use_subtracted_sasm']
+    save_series_sasm_list(sub_profiles, seriesm_data['subtracted_sasm_list'])
+
+    baseline_profiles = f.create_group('baseline_subtracted_profiles')
+    baseline_profiles.attrs['profile_type'] = 'subtracted_and_baseline_corrected'
+    baseline_profiles.attrs['description'] = ('Baseline corrected and subtracted '
+        'scattering profiles.')
+    baseline_profiles.attrs['use_baseline_subtracted_sasm'] = seriesm_data['use_baseline_subtracted_sasm']
+    save_series_sasm_list(baseline_profiles, seriesm_data['baseline_subtracted_sasm_list'])
+
+
+    # Add intensities
+    intensity = f.create_group('intensities')
+    intensity.attrs['intensity_type'] = 'input'
+    intensity.attrs['description'] = ('Intensities for each input scattering profile')
+    intensity.attrs['buffer_range'] = seriesm_data['buffer_range']
+    intensity.attrs['already_subtracted'] = seriesm_data['already_subtracted']
+
+    total_i_dset = intensity.create_dataset('total_intensities',
+        data=seriesm_data['total_i'])
+    total_i_dset.attrs['description'] = ('Total integrated intensity for each '
+        'input scattering profile.')
+
+    mean_i_dset = intensity.create_dataset('mean_intensities',
+        data=seriesm_data['mean_i'])
+    mean_i_dset.attrs['description'] = ('Mean intensity for each input '
+        'scattering profile.')
+
+    qref_i_dset = intensity.create_dataset('qref_intensities',
+        data=seriesm_data['i_of_q'])
+    qref_i_dset.attrs['description'] = ('Intensity at a single q value for each input '
+        'scattering profile (may not be available).')
+    qref_i_dset.attrs['q_value'] = seriesm_data['qref']
+
+    qrange_i_dset = intensity.create_dataset('qrange_intensities',
+        data=seriesm_data['qrange_I'])
+    qrange_i_dset.attrs['description'] = ('Intensity in a range q values '
+        'for each input scattering profile (may not be available).')
+    qrange_i_dset.attrs['q_range'] = seriesm_data['qrange']
+
+    # Add subtracted intensities
+    intensity = f.create_group('subtracted_intensities')
+    intensity.attrs['intensity_type'] = 'subtracted'
+    intensity.attrs['description'] = ('Intensities for each subtracted '
+        'scattering profile (if available)')
+    intensity.attrs['sample_range'] = seriesm_data['sample_range']
+
+    total_i_dset = intensity.create_dataset('total_intensities',
+        data=seriesm_data['total_i_sub'])
+    total_i_dset.attrs['description'] = ('Total integrated intensity for each '
+        'subtracted scattering profile.')
+
+    mean_i_dset = intensity.create_dataset('mean_intensities',
+        data=seriesm_data['mean_i_sub'])
+    mean_i_dset.attrs['description'] = ('Mean intensity for each subtracted '
+        'scattering profile.')
+
+    qref_i_dset = intensity.create_dataset('qref_intensities',
+        data=seriesm_data['I_of_q_sub'])
+    qref_i_dset.attrs['description'] = ('Intensity at a single q value for '
+        'each subtracted scattering profile (may not be available).')
+    qref_i_dset.attrs['q_value'] = seriesm_data['qref']
+
+    qrange_i_dset = intensity.create_dataset('qrange_intensities',
+        data=seriesm_data['qrange_I_sub'])
+    qrange_i_dset.attrs['description'] = ('Intensity in a range of q values for '
+        'each subtracted scattering profile (may not be available).')
+    qrange_i_dset.attrs['q_range'] = seriesm_data['qrange']
+
+    # Add baseline corrected intensities
+    intensity = f.create_group('baseline_subtracted_intensities')
+    intensity.attrs['intensity_type'] = 'subtracted_and_baseline_corrected'
+    intensity.attrs['description'] = ('Intensities for each baseline '
+        'corrected and subtracted scattering profile (if available)')
+
+    total_i_dset = intensity.create_dataset('total_intensities',
+        data=seriesm_data['total_i_bcsub'])
+    total_i_dset.attrs['description'] = ('Total integrated intensity for each '
+        'subtracted scattering profile.')
+
+    mean_i_dset = intensity.create_dataset('mean_intensities',
+        data=seriesm_data['mean_i_bcsub'])
+    mean_i_dset.attrs['description'] = ('Mean intensity for each baseline '
+        'corrected and subtracted scattering profile.')
+
+    qref_i_dset = intensity.create_dataset('qref_intensities',
+        data=seriesm_data['I_of_q_bcsub'])
+    qref_i_dset.attrs['description'] = ('Intensity at a single q value for '
+        'each baseline corrected and subtracted scattering profile (may not '
+        'be available).')
+    qref_i_dset.attrs['q_value'] = seriesm_data['qref']
+
+    qrange_i_dset = intensity.create_dataset('qrange_intensities',
+        data=seriesm_data['qrange_I_bcsub'])
+    qrange_i_dset.attrs['description'] = ('Intensity in a range of q values for '
+        'each baseline corrected and subtracted scattering profile (may not '
+        'be available).')
+    qrange_i_dset.attrs['q_range'] = seriesm_data['qrange']
+
+
+    # Add calculated data
+    calc_data = f.create_group('calculated_data')
+    calc_data.attrs['description'] = ('Automatically calculated parameters '
+        'for subtracted or baseline corrected data. Default value of -1 '
+        'for any value indiciates either no calculation or an unsuccessful '
+        'automatic result.')
+    calc_data.attrs['window_size'] = seriesm_data['window_size']
+    calc_data.attrs['molecule_type'] = seriesm_data['mol_type']
+    calc_data.attrs['molecule_density'] = seriesm_data['mol_density']
+    calc_data.attrs['has_data'] = seriesm_data['calc_has_data']
+
+    if save_gui_data:
+        try:
+            calc_data.attrs['line_color'] = seriesm_data['calc_line_color']
+            calc_data.attrs['line_width'] = seriesm_data['calc_line_width']
+            calc_data.attrs['line_style'] = seriesm_data['calc_line_style']
+            calc_data.attrs['line_marker'] = seriesm_data['calc_line_marker']
+            calc_data.attrs['line_visible'] = seriesm_data['calc_line_visible']
+            calc_data.attrs['line_marker_face_color'] = seriesm_data['calc_line_marker_face_color']
+            calc_data.attrs['line_marker_edge_color'] = seriesm_data['calc_line_marker_edge_color']
+            calc_data.attrs['line_visible'] = seriesm_data['calc_line_visible']
+            calc_data.attrs['line_legend_label'] = seriesm_data['calc_line_legend_label']
+        except Exception:
+            pass
+
+    rg_data = calc_data.create_dataset('rg',
+        data=np.column_stack((seriesm_data['rg'], seriesm_data['rger'])))
+    rg_data.attrs['description'] = ('Radius of gyration (Rg) calculated on a '
+        'frame by frame basis. Column 0 and 1 are Rg and Rg uncertainty '
+        'respectively')
+
+    rg_data = calc_data.create_dataset('I0',
+        data=np.column_stack((seriesm_data['i0'], seriesm_data['i0er'])))
+    rg_data.attrs['description'] = ('Scattering intensity at zero angle '
+        '(I(0)) calculated on a frame by frame basis. Column 0 and 1 are '
+        'I(0) and I(0) uncertainty respectively')
+
+    vp_data = calc_data.create_dataset('vp_mw', data=seriesm_data['vpmw'])
+    vp_data.attrs['description'] = ('Molecular weight calculated using the '
+        'adjusted Porod volume method calculated on a frame by frame basis.')
+
+    vc_data = calc_data.create_dataset('vc_mw',
+        data=np.column_stack((seriesm_data['vcmw'], seriesm_data['vcmwer'])))
+    vc_data.attrs['description'] = ('Molecular weight calculated using the '
+        'adjusted Porod volume method calculated on a frame by frame basis. '
+        'Columns 0 and 1 and MW and MW uncertainty respectively.')
+
+
+    # Add baseline
+    baseline = f.create_group('baseline')
+    baseline.attrs['description'] = ('Values for the baseline correction.')
+    baseline.attrs['baseline_start_range'] = seriesm_data['baseline_start_range']
+    baseline.attrs['baseline_end_range'] = seriesm_data['baseline_end_range']
+    baseline.attrs['baseline_type'] = seriesm_data['baseline_type']
+    baseline.attrs['baseline_extrapolation'] = seriesm_data['baseline_extrap']
+
+    correction = baseline.create_group('correction')
+    correction.attrs['description'] = ('The q dependent baseline correction '
+        'on a frame by frame basis.')
+
+    if seriesm_data['baseline_type'] == 'Linear' and not seriesm_data['baseline_extrap']:
+        frame_num_offset = seriesm_data['baseline_start_range'][0]
+    elif seriesm_data['baseline_type'] == 'Integral':
+        frame_num_offset = seriesm_data['baseline_start_range'][1]
+    else:
+        frame_num_offset = 0
+
+    save_series_sasm_list(correction, seriesm_data['baseline_corr'])
+
+    fit_params = baseline.create_dataset("fit_parameters",
+        data=seriesm_data['baseline_fit_results'])
+    fit_params.attrs['description'] = ('Fit parameters for each q value '
+        'for a linear baseline correction. Columns 0-4 correspond to '
+        'intercept, slope, and the covariance for intercept and slope '
+        'respectively.')
+
+def save_sasm_hdf5(save_name, sasm, save_gui_data=False):
+
+    sasm_dict = sasm.extractAll()
+
+    if save_gui_data:
+        try:
+            sasm_dict['line_color'] = sasm.line.get_color()
+            sasm_dict['line_width'] = sasm.line.get_linewidth()
+            sasm_dict['line_style'] = sasm.line.get_linestyle()
+            sasm_dict['line_marker'] = sasm.line.get_marker()
+            sasm_dict['line_marker_face_color'] = sasm.line.get_markerfacecolor()
+            sasm_dict['line_marker_edge_color'] = sasm.line.get_markeredgecolor()
+            sasm_dict['line_errorbar_color'] = sasm.err_line[0][0].get_color()
+            sasm_dict['line_visible'] = sasm.line.get_visible()
+            if sasm.line.get_label() != sasm_dict['parameters']['filename']:
+                sasm_dict['line_legend_label'] = sasm.line.get_label()
             else:
-                dtype = h5py.special_dtype(vlen=unicode) #h5py < 2.10, python2
+                sasm_dict['line_legend_label'] = ''
 
-        fname_data = f.create_dataset('file_names', data=seriesm_data['file_list'],
-            dtype=dtype)
-        fname_data.attrs['description'] = ('Ordered list of filenames, '
-            'corresponding to profile numbering order.')
+            sasm_dict['item_controls_visible'] = sasm.item_panel.getControlsVisible()
+            sasm_dict['item_font_color'] = sasm.item_panel.getFontColour()
+            sasm_dict['item_selected_for_plot'] = sasm.item_panel.getSelectedForPlot()
 
-        # Add frame numbers
-        frames = f.create_dataset('frame_numbers', data=seriesm_data['frame_list'])
-        frames.attrs['description'] = ('List of frame numbers, corresponding to '
-            'profile numbers.')
+        except Exception:
+            pass
 
-        # Add time
-        times = f.create_dataset('times', data=seriesm_data['time'])
-        times.attrs['description'] = ('Ordered list of acquisition time of the profiles, '
-            'corresponding to the profile numbering order (may not be available).')
-        times.attrs['unit'] = 's'
+    sasm_data = copy.deepcopy(sasm_dict)
 
+    # Check whether save_name is an hdf5 file (i.e. function called by save worksapace) or file name (function called for a single series)
+    try:
+        save_name.parent
+        is_hdf5 = True
+    except Exception:
+        is_hdf5 = False
 
-        # Add individual profiles
-        profiles = f.create_group('profiles')
-        profiles.attrs['profile_type'] = 'input'
-        profiles.attrs['description'] = ('Input scattering profiles without processing.')
-        save_series_sasm_list(profiles, seriesm_data['sasm_list'])
+    if is_hdf5:
+        sasm_group = save_name.create_group(sasm.getParameter('filename'))
+        inner_save_sasm_hdf5(sasm_group, sasm_data, save_gui_data)
+    else:
+        with h5py.File(save_name, 'w', driver='core', libver='earliest') as f:
+            inner_save_sasm_hdf5(f, sasm_data, save_gui_data)
 
-        if (seriesm_data['average_buffer_sasm'] is None
-            or seriesm_data['average_buffer_sasm'] == -1):
-            profiles.create_dataset('average_buffer_profile', data=[])
-        else:
-            sasm = seriesm_data['average_buffer_sasm']
-            descrip = ('A single scattering profile giving the averaged buffer '
-                'scattering profile. Columns correspond to q, I(q), and sigma(q) '
-                'from columns 0 to 2 respecitvely. If present, column 3 is dQ.')
+def inner_save_sasm_hdf5(f, sasm_data, save_gui_data):
+    f.attrs['file_type'] = 'RAW_Profile'
+    f.attrs['raw_version'] = RAWGlobals.version
+    f.attrs['parameters'] = formatHeader(sasm_data['parameters'])
 
-            save_series_sasm(profiles, sasm, "average_buffer_profile", descrip, descrip)
+    if save_gui_data:
+        try:
+            f.attrs['item_controls_visible'] = sasm_data['item_controls_visible']
+            f.attrs['item_font_color'] = sasm_data['item_font_color']
+            f.attrs['item_selected_for_plot'] = sasm_data['item_selected_for_plot']
 
-        if save_gui_data:
-            try:
-                profiles.attrs['line_color'] = seriesm_data['line_color']
-                profiles.attrs['line_width'] = seriesm_data['line_width']
-                profiles.attrs['line_style'] = seriesm_data['line_style']
-                profiles.attrs['line_marker'] = seriesm_data['line_marker']
-                profiles.attrs['line_visible'] = seriesm_data['line_visible']
-                profiles.attrs['line_marker_face_color'] = seriesm_data['line_marker_face_color']
-                profiles.attrs['line_marker_edge_color'] = seriesm_data['line_marker_edge_color']
-                profiles.attrs['line_visible'] = seriesm_data['line_visible']
-                profiles.attrs['line_legend_label'] = seriesm_data['line_legend_label']
-            except Exception:
-                pass
+            f.attrs['line_color'] = sasm_data['line_color']
+            f.attrs['line_width'] = sasm_data['line_width']
+            f.attrs['line_style'] = sasm_data['line_style']
+            f.attrs['line_marker'] = sasm_data['line_marker']
+            f.attrs['line_visible'] = sasm_data['line_visible']
+            f.attrs['line_marker_face_color'] = sasm_data['line_marker_face_color']
+            f.attrs['line_marker_edge_color'] = sasm_data['line_marker_edge_color']
+            f.attrs['line_errorbar_color'] = sasm_data['line_errorbar_color']
+            f.attrs['line_visible'] = sasm_data['line_visible']
+            f.attrs['line_legend_label'] = sasm_data['line_legend_label']
+        except Exception:
+            pass
 
-        sub_profiles = f.create_group('subtracted_profiles')
-        sub_profiles.attrs['profile_type'] = 'subtracted'
-        sub_profiles.attrs['description'] = ('Subtracted scattering profiles.')
-        sub_profiles.attrs['use_subtracted_sasm'] = seriesm_data['use_subtracted_sasm']
-        save_series_sasm_list(sub_profiles, seriesm_data['subtracted_sasm_list'])
+    save_series_sasm(f, sasm_data, "data")
 
-        baseline_profiles = f.create_group('baseline_subtracted_profiles')
-        baseline_profiles.attrs['profile_type'] = 'subtracted_and_baseline_corrected'
-        baseline_profiles.attrs['description'] = ('Baseline corrected and subtracted '
-            'scattering profiles.')
-        baseline_profiles.attrs['use_baseline_subtracted_sasm'] = seriesm_data['use_baseline_subtracted_sasm']
-        save_series_sasm_list(baseline_profiles, seriesm_data['baseline_subtracted_sasm_list'])
+def save_ift_hdf5(save_name, iftm, save_gui_data=False):
 
+    iftm_dict = iftm.extractAll()
 
-        # Add intensities
-        intensity = f.create_group('intensities')
-        intensity.attrs['intensity_type'] = 'input'
-        intensity.attrs['description'] = ('Intensities for each input scattering profile')
-        intensity.attrs['buffer_range'] = seriesm_data['buffer_range']
-        intensity.attrs['already_subtracted'] = seriesm_data['already_subtracted']
+    if save_gui_data:
+        try:
+            iftm_dict['r_line_color'] = iftm.r_line.get_color()
+            iftm_dict['r_line_width'] = iftm.r_line.get_linewidth()
+            iftm_dict['r_line_style'] = iftm.r_line.get_linestyle()
+            iftm_dict['r_line_marker'] = iftm.r_line.get_marker()
+            iftm_dict['r_line_marker_face_color'] = iftm.r_line.get_markerfacecolor()
+            iftm_dict['r_line_marker_edge_color'] = iftm.r_line.get_markeredgecolor()
+            iftm_dict['r_line_errorbar_color'] = iftm.r_err_line[0][0].get_color()
+            iftm_dict['r_line_visible'] = iftm.r_line.get_visible()
+            if iftm.r_line.get_label() != iftm_dict['parameters']['filename']+'_P(r)':
+                iftm_dict['r_line_legend_label'] = iftm.r_line.get_label()
+            else:
+                iftm_dict['r_line_legend_label'] = ''
 
-        total_i_dset = intensity.create_dataset('total_intensities',
-            data=seriesm_data['total_i'])
-        total_i_dset.attrs['description'] = ('Total integrated intensity for each '
-            'input scattering profile.')
+            iftm_dict['qo_line_color'] = iftm.qo_line.get_color()
+            iftm_dict['qo_line_width'] = iftm.qo_line.get_linewidth()
+            iftm_dict['qo_line_style'] = iftm.qo_line.get_linestyle()
+            iftm_dict['qo_line_marker'] = iftm.qo_line.get_marker()
+            iftm_dict['qo_line_marker_face_color'] = iftm.qo_line.get_markerfacecolor()
+            iftm_dict['qo_line_marker_edge_color'] = iftm.qo_line.get_markeredgecolor()
+            iftm_dict['qo_line_errorbar_color'] = iftm.qo_err_line[0][0].get_color()
+            iftm_dict['qo_line_visible'] = iftm.qo_line.get_visible()
+            if iftm.qo_line.get_label() != iftm_dict['parameters']['filename']+'_Exp':
+                iftm_dict['qo_line_legend_label'] = iftm.qo_line.get_label()
+            else:
+                iftm_dict['qo_line_legend_label'] = ''
 
-        mean_i_dset = intensity.create_dataset('mean_intensities',
-            data=seriesm_data['mean_i'])
-        mean_i_dset.attrs['description'] = ('Mean intensity for each input '
-            'scattering profile.')
+            iftm_dict['qf_line_color'] = iftm.qf_line.get_color()
+            iftm_dict['qf_line_width'] = iftm.qf_line.get_linewidth()
+            iftm_dict['qf_line_style'] = iftm.qf_line.get_linestyle()
+            iftm_dict['qf_line_marker'] = iftm.qf_line.get_marker()
+            iftm_dict['qf_line_marker_face_color'] = iftm.qf_line.get_markerfacecolor()
+            iftm_dict['qf_line_marker_edge_color'] = iftm.qf_line.get_markeredgecolor()
+            iftm_dict['qf_line_visible'] = iftm.qf_line.get_visible()
+            if iftm.qo_line.get_label() != iftm_dict['parameters']['filename']+'_Fit':
+                iftm_dict['qf_line_legend_label'] = iftm.qf_line.get_label()
+            else:
+                iftm_dict['qf_line_legend_label'] = ''
 
-        qref_i_dset = intensity.create_dataset('qref_intensities',
-            data=seriesm_data['i_of_q'])
-        qref_i_dset.attrs['description'] = ('Intensity at a single q value for each input '
-            'scattering profile (may not be available).')
-        qref_i_dset.attrs['q_value'] = seriesm_data['qref']
+            iftm_dict['item_font_color'] = iftm.item_panel.getFontColour()
+            iftm_dict['item_selected_for_plot'] = iftm.item_panel.getSelectedForPlot()
 
-        qrange_i_dset = intensity.create_dataset('qrange_intensities',
-            data=seriesm_data['qrange_I'])
-        qrange_i_dset.attrs['description'] = ('Intensity in a range q values '
-            'for each input scattering profile (may not be available).')
-        qrange_i_dset.attrs['q_range'] = seriesm_data['qrange']
+        except Exception:
+            pass
 
-        # Add subtracted intensities
-        intensity = f.create_group('subtracted_intensities')
-        intensity.attrs['intensity_type'] = 'subtracted'
-        intensity.attrs['description'] = ('Intensities for each subtracted '
-            'scattering profile (if available)')
-        intensity.attrs['sample_range'] = seriesm_data['sample_range']
+    iftm_data = copy.deepcopy(iftm_dict)
 
-        total_i_dset = intensity.create_dataset('total_intensities',
-            data=seriesm_data['total_i_sub'])
-        total_i_dset.attrs['description'] = ('Total integrated intensity for each '
-            'subtracted scattering profile.')
+    # Check whether save_name is an hdf5 file (i.e. function called by save worksapace) or file name (function called for a single series)
+    try:
+        save_name.parent
+        is_hdf5 = True
+    except Exception:
+        is_hdf5 = False
 
-        mean_i_dset = intensity.create_dataset('mean_intensities',
-            data=seriesm_data['mean_i_sub'])
-        mean_i_dset.attrs['description'] = ('Mean intensity for each subtracted '
-            'scattering profile.')
+    if is_hdf5:
+        iftm_group = save_name.create_group(iftm.getParameter('filename'))
+        inner_save_ift_hdf5(iftm_group, iftm_data, save_gui_data)
+    else:
+        with h5py.File(save_name, 'w', driver='core', libver='earliest') as f:
+            inner_save_ift_hdf5(f, iftmm_data, save_gui_data)
 
-        qref_i_dset = intensity.create_dataset('qref_intensities',
-            data=seriesm_data['I_of_q_sub'])
-        qref_i_dset.attrs['description'] = ('Intensity at a single q value for '
-            'each subtracted scattering profile (may not be available).')
-        qref_i_dset.attrs['q_value'] = seriesm_data['qref']
+def inner_save_ift_hdf5(f, iftm_data, save_gui_data):
+    f.attrs['file_type'] = 'RAW_IFT'
+    f.attrs['raw_version'] = RAWGlobals.version
+    f.attrs['parameters'] = formatHeader(iftm_data['parameters'])
 
-        qrange_i_dset = intensity.create_dataset('qrange_intensities',
-            data=seriesm_data['qrange_I_sub'])
-        qrange_i_dset.attrs['description'] = ('Intensity in a range of q values for '
-            'each subtracted scattering profile (may not be available).')
-        qrange_i_dset.attrs['q_range'] = seriesm_data['qrange']
+    if save_gui_data:
+        try:
+            f.attrs['item_font_color'] = iftm_data['item_font_color']
+            f.attrs['item_selected_for_plot'] = iftm_data['item_selected_for_plot']
 
-        # Add baseline corrected intensities
-        intensity = f.create_group('baseline_subtracted_intensities')
-        intensity.attrs['intensity_type'] = 'subtracted_and_baseline_corrected'
-        intensity.attrs['description'] = ('Intensities for each baseline '
-            'corrected and subtracted scattering profile (if available)')
+            f.attrs['r_line_color'] = iftm_data['r_line_color']
+            f.attrs['r_line_width'] = iftm_data['r_line_width']
+            f.attrs['r_line_style'] = iftm_data['r_line_style']
+            f.attrs['r_line_marker'] = iftm_data['r_line_marker']
+            f.attrs['r_line_visible'] = iftm_data['r_line_visible']
+            f.attrs['r_line_marker_face_color'] = iftm_data['r_line_marker_face_color']
+            f.attrs['r_line_marker_edge_color'] = iftm_data['r_line_marker_edge_color']
+            f.attrs['r_line_errorbar_color'] = iftm_data['r_line_errorbar_color']
+            f.attrs['r_line_visible'] = iftm_data['r_line_visible']
+            f.attrs['r_line_legend_label'] = iftm_data['r_line_legend_label']
 
-        total_i_dset = intensity.create_dataset('total_intensities',
-            data=seriesm_data['total_i_bcsub'])
-        total_i_dset.attrs['description'] = ('Total integrated intensity for each '
-            'subtracted scattering profile.')
+            f.attrs['qo_line_color'] = iftm_data['qo_line_color']
+            f.attrs['qo_line_width'] = iftm_data['qo_line_width']
+            f.attrs['qo_line_style'] = iftm_data['qo_line_style']
+            f.attrs['qo_line_marker'] = iftm_data['qo_line_marker']
+            f.attrs['qo_line_visible'] = iftm_data['qo_line_visible']
+            f.attrs['qo_line_marker_face_color'] = iftm_data['qo_line_marker_face_color']
+            f.attrs['qo_line_marker_edge_color'] = iftm_data['qo_line_marker_edge_color']
+            f.attrs['qo_line_errorbar_color'] = iftm_data['qo_line_errorbar_color']
+            f.attrs['qo_line_visible'] = iftm_data['qo_line_visible']
+            f.attrs['qo_line_legend_label'] = iftm_data['qo_line_legend_label']
 
-        mean_i_dset = intensity.create_dataset('mean_intensities',
-            data=seriesm_data['mean_i_bcsub'])
-        mean_i_dset.attrs['description'] = ('Mean intensity for each baseline '
-            'corrected and subtracted scattering profile.')
+            f.attrs['qf_line_color'] = iftm_data['qf_line_color']
+            f.attrs['qf_line_width'] = iftm_data['qf_line_width']
+            f.attrs['qf_line_style'] = iftm_data['qf_line_style']
+            f.attrs['qf_line_marker'] = iftm_data['qf_line_marker']
+            f.attrs['qf_line_visible'] = iftm_data['qf_line_visible']
+            f.attrs['qf_line_marker_face_color'] = iftm_data['qf_line_marker_face_color']
+            f.attrs['qf_line_marker_edge_color'] = iftm_data['qf_line_marker_edge_color']
+            f.attrs['qf_line_errorbar_color'] = iftm_data['qf_line_errorbar_color']
+            f.attrs['qf_line_visible'] = iftm_data['qf_line_visible']
+            f.attrs['qf_line_legend_label'] = iftm_data['qf_line_legend_label']
+        except Exception:
+            pass
 
-        qref_i_dset = intensity.create_dataset('qref_intensities',
-            data=seriesm_data['I_of_q_bcsub'])
-        qref_i_dset.attrs['description'] = ('Intensity at a single q value for '
-            'each baseline corrected and subtracted scattering profile (may not '
-            'be available).')
-        qref_i_dset.attrs['q_value'] = seriesm_data['qref']
+    r = iftm_data['r_raw']
+    pr = iftm_data['p_raw']
+    pr_err = iftm_data['err_raw']
 
-        qrange_i_dset = intensity.create_dataset('qrange_intensities',
-            data=seriesm_data['qrange_I_bcsub'])
-        qrange_i_dset.attrs['description'] = ('Intensity in a range of q values for '
-            'each baseline corrected and subtracted scattering profile (may not '
-            'be available).')
-        qrange_i_dset.attrs['q_range'] = seriesm_data['qrange']
+    r_data = np.column_stack((r, pr, pr_err))
 
+    r_dset = f.create_dataset('Pr_data', data=r_data)
+    r_dset.attrs['description'] = ('A single P(r) function. Columns correspond '
+        'to r, P(r), and sigma(r) from columns 0 to 2 respectively.')
 
-        # Add calculated data
-        calc_data = f.create_group('calculated_data')
-        calc_data.attrs['description'] = ('Automatically calculated parameters '
-            'for subtracted or baseline corrected data. Default value of -1 '
-            'for any value indiciates either no calculation or an unsuccessful '
-            'automatic result.')
-        calc_data.attrs['window_size'] = seriesm_data['window_size']
-        calc_data.attrs['molecule_type'] = seriesm_data['mol_type']
-        calc_data.attrs['molecule_density'] = seriesm_data['mol_density']
-        calc_data.attrs['has_data'] = seriesm_data['calc_has_data']
+    q = iftm_data['q_orig_raw']
+    i = iftm_data['i_orig_raw']
+    i_err = iftm_data['err_orig_raw']
 
-        if save_gui_data:
-            try:
-                calc_data.attrs['line_color'] = seriesm_data['calc_line_color']
-                calc_data.attrs['line_width'] = seriesm_data['calc_line_width']
-                calc_data.attrs['line_style'] = seriesm_data['calc_line_style']
-                calc_data.attrs['line_marker'] = seriesm_data['calc_line_marker']
-                calc_data.attrs['line_visible'] = seriesm_data['calc_line_visible']
-                calc_data.attrs['line_marker_face_color'] = seriesm_data['calc_line_marker_face_color']
-                calc_data.attrs['line_marker_edge_color'] = seriesm_data['calc_line_marker_edge_color']
-                calc_data.attrs['line_visible'] = seriesm_data['calc_line_visible']
-                calc_data.attrs['line_legend_label'] = seriesm_data['calc_line_legend_label']
-            except Exception:
-                pass
+    q_data = np.column_stack((q, i, i_err))
 
-        rg_data = calc_data.create_dataset('rg',
-            data=np.column_stack((seriesm_data['rg'], seriesm_data['rger'])))
-        rg_data.attrs['description'] = ('Radius of gyration (Rg) calculated on a '
-            'frame by frame basis. Column 0 and 1 are Rg and Rg uncertainty '
-            'respectively')
+    q_dset = f.create_dataset('Iq_data', data=q_data)
+    q_dset.attrs['description'] = ('A single scattering profile. Columns '
+        'correspond to q, I(q), and sigma(q) from columns 0 to 2 respectively.')
 
-        rg_data = calc_data.create_dataset('I0',
-            data=np.column_stack((seriesm_data['i0'], seriesm_data['i0er'])))
-        rg_data.attrs['description'] = ('Scattering intensity at zero angle '
-            '(I(0)) calculated on a frame by frame basis. Column 0 and 1 are '
-            'I(0) and I(0) uncertainty respectively')
+    i_fit = iftm_data['i_fit_raw']
 
-        vp_data = calc_data.create_dataset('vp_mw', data=seriesm_data['vpmw'])
-        vp_data.attrs['description'] = ('Molecular weight calculated using the '
-            'adjusted Porod volume method calculated on a frame by frame basis.')
+    fit_dset = f.create_dataset('Iq_fit_data', data=i_fit)
+    fit_dset.attrs['description'] = ('I(q) for the P(r) fit to the original '
+        'scattering data. Column corresponds I(q). Corresponding q data is '
+        'available in the Iq_data dataset.')
 
-        vc_data = calc_data.create_dataset('vc_mw',
-            data=np.column_stack((seriesm_data['vcmw'], seriesm_data['vcmwer'])))
-        vc_data.attrs['description'] = ('Molecular weight calculated using the '
-            'adjusted Porod volume method calculated on a frame by frame basis. '
-            'Columns 0 and 1 and MW and MW uncertainty respectively.')
+    q_extrap = iftm_data['q_extrap_raw']
+    i_extrap = iftm_data['i_extrap_raw']
 
+    extrap_data = np.column_stack((q_extrap, i_extrap))
 
-        # Add baseline
-        baseline = f.create_group('baseline')
-        baseline.attrs['description'] = ('Values for the baseline correction.')
-        baseline.attrs['baseline_start_range'] = seriesm_data['baseline_start_range']
-        baseline.attrs['baseline_end_range'] = seriesm_data['baseline_end_range']
-        baseline.attrs['baseline_type'] = seriesm_data['baseline_type']
-        baseline.attrs['baseline_extrapolation'] = seriesm_data['baseline_extrap']
-
-        correction = baseline.create_group('correction')
-        correction.attrs['description'] = ('The q dependent baseline correction '
-            'on a frame by frame basis.')
-
-        if seriesm_data['baseline_type'] == 'Linear' and not seriesm_data['baseline_extrap']:
-            frame_num_offset = seriesm_data['baseline_start_range'][0]
-        elif seriesm_data['baseline_type'] == 'Integral':
-            frame_num_offset = seriesm_data['baseline_start_range'][1]
-        else:
-            frame_num_offset = 0
-
-        save_series_sasm_list(correction, seriesm_data['baseline_corr'])
-
-        fit_params = baseline.create_dataset("fit_parameters",
-            data=seriesm_data['baseline_fit_results'])
-        fit_params.attrs['description'] = ('Fit parameters for each q value '
-            'for a linear baseline correction. Columns 0-4 correspond to '
-            'intercept, slope, and the covariance for intercept and slope '
-            'respectively.')
-
+    extrap_dset = f.create_dataset('Iq_extrap_data', data=extrap_data)
+    extrap_dset.attrs['description'] = ('q and I(q) for the P(r) fit to the '
+        'scattering data, extrapolated to zero q (if applicable for the '
+        'method. Columns correspond to q and I(q) from columns 0 and 1 '
+        'respectively.')
 
 def saveAnalysisCsvFile(sasm_list, include_data, save_path):
 
@@ -4415,6 +4661,26 @@ def saveWorkspace(sasm_dict, save_path):
     with open(save_path, 'wb') as f:
 
         pickle.dump(sasm_dict, f, protocol=2)
+
+
+def new_saveWorkspace(sasm_list, ift_list, series_list, save_path):
+    with h5py.File(save_path, 'w', driver='core', libver='earliest') as save_file:
+        sasm_group = save_file.create_group('profiles')
+        for sasm in sasm_list:
+            save_sasm_hdf5(sasm_group, sasm, True)
+
+        save_file.flush()
+
+        ift_group = save_file.create_group('ifts')
+        for ift in ift_list:
+            save_ift_hdf5(ift_group, ift, True)
+
+        save_file.flush()
+
+        series_group = save_file.create_group('series')
+        for series in series_list:
+            save_series(series_group, series, True)
+            save_file.flush()
 
 
 def saveCSVFile(filename, data, header=''):
