@@ -2483,56 +2483,75 @@ class IftPlotPanel(PlotPanel):
             iftm_list = [iftm_list]
 
         for iftm in iftm_list:
+            base_ll = iftm.getParameter('filename')
 
             if legend_label_in is None:
-                legend_label = iftm.getParameter('filename')
+                r_label = base_ll +'_P(r)'
+                qo_label = base_ll +'_Exp'
+                qf_label = base_ll +'_Fit'
+
             else:
-                legend_label = legend_label_in
+                if legend_label_in['r'] != None:
+                    r_label = legend_label_in['r']
+                else:
+                    r_label = base_ll +'_P(r)'
+
+                if legend_label_in['qo'] != None:
+                    qo_label = legend_label_in['qo']
+                else:
+                    qo_label = base_ll +'_Exp'
+
+                if legend_label_in['qf'] != None:
+                    qf_label = legend_label_in['qf']
+                else:
+                    qf_label = base_ll +'_Fit'
 
             if type1 == 'unnormalized':
                 pr_line, pr_ec, pr_el = a1.errorbar(iftm.r, iftm.p, iftm.err,
-                    pickradius = 3, label = legend_label+'_P(r)', **kwargs)
+                    pickradius = 3, label = r_label, **kwargs)
             elif type1 == 'normalized':
                 i0 = float(iftm.getParameter('i0'))
                 pr_line, pr_ec, pr_el = a1.errorbar(iftm.r, iftm.p/i0, iftm.err/i0,
-                    pickradius = 3, label = legend_label+'_P(r)', **kwargs)
+                    pickradius = 3, label = r_label, **kwargs)
 
-            pr_line.set_label(legend_label)
+            pr_line.set_label(r_label)
 
             if type2 == 'normal' or type2 == 'subtracted':
                 orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig, \
                     iftm.i_orig, iftm.err_orig, pickradius=3,
-                    label=legend_label+'_Exp', zorder=1, **kwargs)
+                    label=qo_label, zorder=1, **kwargs)
             elif type2 == 'kratky':
                 orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig,
                     iftm.i_orig*np.power(iftm.q_orig,2), iftm.err_orig*np.power(iftm.q_orig,2),
-                    pickradius=3, label=legend_label+'_Exp', zorder=1, **kwargs)
+                    pickradius=3, label=qo_label, zorder=1, **kwargs)
             elif type2 == 'guinier':
                 orig_line, orig_ec, orig_el = a2.errorbar(np.power(iftm.q_orig,2),
                     iftm.i_orig, iftm.err_orig, pickradius=3,
-                    label=legend_label+'_Exp', zorder=1, **kwargs)
+                    label=qo_label, zorder=1, **kwargs)
             elif type2 == 'porod':
                 orig_line, orig_ec, orig_el = a2.errorbar(iftm.q_orig,
                     np.power(iftm.q_orig,4)*iftm.i_orig, iftm.err_orig,
-                    pickradius=3, label=legend_label+'_Exp', zorder=1, **kwargs)
+                    pickradius=3, label=qo_label, zorder=1, **kwargs)
 
-            orig_line.set_label(legend_label+'_Exp')
+            orig_line.set_label(qo_label)
 
 
             if type2 == 'normal' or type2 == 'subtracted':
                 fit_line = a2.plot(iftm.q_orig, iftm.i_fit, pickradius=3,
-                    label=legend_label+'_Fit', zorder=2, **kwargs)
+                    label=qf_label, zorder=2, **kwargs)
             elif type2 == 'kratky':
                 fit_line = a2.plot(iftm.q_orig,
                     iftm.i_fit*np.power(iftm.q_orig,2), pickradius=3,
-                    label=legend_label+'_Fit', zorder=2, **kwargs)
+                    label=qf_label, zorder=2, **kwargs)
             elif type2 == 'guinier':
                 fit_line = a2.plot(np.power(iftm.q_orig,2), iftm.i_fit,
-                    pickradius=3, label=legend_label+'_Fit', zorder=2, **kwargs)
+                    pickradius=3, label=qf_label, zorder=2, **kwargs)
             elif type2 == 'porod':
                 fit_line = a2.plot(iftm.q_orig,
                     np.power(iftm.q_orig,4)*iftm.i_fit, pickradius=3,
-                    label=legend_label+'_Fit', zorder=2, **kwargs)
+                    label=qf_label, zorder=2, **kwargs)
+
+            fit_line[0].set_label(qf_label)
 
             #Hide errorbars:
             if self.plotparams['errorbars_on'] == False:

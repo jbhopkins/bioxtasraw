@@ -1939,6 +1939,193 @@ def parse_out_file(lines):
 
     return iftm
 
+def load_sasm_hdf5(name):
+    try:
+        name.parent
+        is_hdf5 = True
+    except Exception:
+        is_hdf5 = False
+
+    if is_hdf5:
+        sasm, line_data, item_data = inner_load_sasm_hdf5(name)
+    else:
+        with h5py.File(save_name, 'r', driver='core', backing_store=False) as f:
+            sasm, line_data, item_data = inner_load_sasm_hdf5(f)
+
+    return sasm, line_data, item_data
+
+def inner_load_sasm_hdf5(name):
+    sasm_data = load_series_sasm(name, 'data', use_group_q=False)
+
+    if len(sasm_data) != 0:
+        q = sasm_data['q_raw']
+        i = sasm_data['i_raw']
+        err = sasm_data['err_raw']
+        q_err = sasm_data['q_err_raw']
+
+        sasm = SASM.SASM(i, q, err, sasm_data['parameters'], q_err)
+
+        sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
+            sasm_data['q_scale_factor'])
+
+        sasm.setQrange(sasm_data['selected_qrange'])
+
+        try:
+            line_data = {
+                'line_color'            : str(name.attrs['line_color']),
+                'line_width'            : float(name.attrs['line_width']),
+                'line_style'            : str(name.attrs['line_style']),
+                'line_marker'           : str(name.attrs['line_marker']),
+                'line_visible'          : name.attrs['line_visible'],
+                'line_marker_face_color' : str(name.attrs['line_marker_face_color']),
+                'line_marker_edge_color' : str(name.attrs['line_marker_edge_color']),
+                'line_errorbar_color'   : str(name.attrs['line_errorbar_color']),
+                'line_legend_label'     : str(name.attrs['line_legend_label']),
+                'plot_axes'             : int(name.attrs['plot_axes']),
+                }
+
+            if line_data['line_visible']:
+                line_data['line_visible'] = True
+            else:
+                line_data['line_visible'] = False
+
+        except Exception:
+            line_data = None
+
+        try:
+            item_data = {
+                'item_controls_visible' : name.attrs['item_controls_visible'],
+                'item_font_color'       : str(name.attrs['item_font_color']),
+                'item_selected_for_plot': name.attrs['item_selected_for_plot']
+            }
+
+            if item_data['item_selected_for_plot']:
+                item_data['item_selected_for_plot'] = True
+            else:
+                item_data['item_selected_for_plot'] = False
+
+            if item_data['item_controls_visible']:
+                item_data['item_controls_visible'] = True
+            else:
+                item_data['item_controls_visible'] = False
+
+        except Exception:
+            item_data = None
+
+    else:
+        sasm = None
+        line_data = None
+        item_data = None
+
+    return sasm, line_data, item_data
+
+def load_ift_hdf5(name):
+    try:
+        name.parent
+        is_hdf5 = True
+    except Exception:
+        is_hdf5 = False
+
+    if is_hdf5:
+        ift, line_data, item_data = inner_load_ift_hdf5(name)
+    else:
+        with h5py.File(save_name, 'r', driver='core', backing_store=False) as f:
+            ift, line_data, item_data = inner_load_ift_hdf5(f)
+
+    return ift, line_data, item_data
+
+def inner_load_ift_hdf5(name):
+    pr_data = name['Pr_data']
+    pr_dataset = pr_data[()]
+
+    r = pr_dataset[:,0]
+    pr = pr_dataset[:,1]
+    pr_err = pr_dataset[:,2]
+
+    iq_data = name['Iq_data']
+    iq_dataset = iq_data[()]
+
+    q = iq_dataset[:,0]
+    iq = iq_dataset[:,1]
+    i_err = iq_dataset[:,2]
+
+    fit_data = name['Iq_fit_data']
+    i_fit = fit_data[()]
+
+    extrap_data = name['Iq_extrap_data']
+    extra_dataset = extrap_data[()]
+
+    q_extrap = extrap_data[:,0]
+    i_extrap = extrap_data[:,1]
+
+    params = loadDatHeader(name.attrs['parameters'])
+
+    iftm = SASM.IFTM(pr, r, pr_err, iq, q, i_err, i_fit, params, i_extrap,
+        q_extrap)
+
+    try:
+        item_data = {}
+        line_data = {}
+
+        item_data['item_font_color'] = str(name.attrs['item_font_color'])
+        item_data['item_selected_for_plot'] = name.attrs['item_selected_for_plot']
+
+        line_data['r_line_color'] = str(name.attrs['r_line_color'])
+        line_data['r_line_width'] = float(name.attrs['r_line_width'])
+        line_data['r_line_style'] = str(name.attrs['r_line_style'])
+        line_data['r_line_marker'] = str(name.attrs['r_line_marker'])
+        line_data['r_line_visible'] = name.attrs['r_line_visible']
+        line_data['r_line_marker_face_color'] = str(name.attrs['r_line_marker_face_color'])
+        line_data['r_line_marker_edge_color'] = str(name.attrs['r_line_marker_edge_color'])
+        line_data['r_line_errorbar_color'] = str(name.attrs['r_line_errorbar_color'])
+        line_data['r_line_legend_label'] = str(name.attrs['r_line_legend_label'])
+
+        line_data['qo_line_color'] = str(name.attrs['qo_line_color'])
+        line_data['qo_line_width'] = float(name.attrs['qo_line_width'])
+        line_data['qo_line_style'] = str(name.attrs['qo_line_style'])
+        line_data['qo_line_marker'] = str(name.attrs['qo_line_marker'])
+        line_data['qo_line_visible'] = name.attrs['qo_line_visible']
+        line_data['qo_line_marker_face_color'] = str(name.attrs['qo_line_marker_face_color'])
+        line_data['qo_line_marker_edge_color'] = str(name.attrs['qo_line_marker_edge_color'])
+        line_data['qo_line_errorbar_color'] = str(name.attrs['qo_line_errorbar_color'])
+        line_data['qo_line_legend_label'] = str(name.attrs['qo_line_legend_label'])
+
+        line_data['qf_line_color'] = str(name.attrs['qf_line_color'])
+        line_data['qf_line_width'] = float(name.attrs['qf_line_width'])
+        line_data['qf_line_style'] = str(name.attrs['qf_line_style'])
+        line_data['qf_line_marker'] = str(name.attrs['qf_line_marker'])
+        line_data['qf_line_visible'] = name.attrs['qf_line_visible']
+        line_data['qf_line_marker_face_color'] = str(name.attrs['qf_line_marker_face_color'])
+        line_data['qf_line_marker_edge_color'] = str(name.attrs['qf_line_marker_edge_color'])
+        line_data['qf_line_legend_label'] = str(name.attrs['qf_line_legend_label'])
+
+
+        if item_data['item_selected_for_plot']:
+            item_data['item_selected_for_plot'] = True
+        else:
+            item_data['item_selected_for_plot'] = False
+
+        if line_data['r_line_visible']:
+            line_data['r_line_visible'] = True
+        else:
+            line_data['r_line_visible'] = False
+
+        if line_data['qo_line_visible']:
+            line_data['qo_line_visible'] = True
+        else:
+            line_data['qo_line_visible'] = False
+
+        if line_data['qf_line_visible']:
+            line_data['qf_line_visible'] = True
+        else:
+            line_data['qf_line_visible'] = False
+
+    except Exception:
+        item_data = None
+        line_data = None
+
+    return iftm, line_data, item_data
+
 def load_series_sasm(group, data_name, q_raw=None, use_group_q=True, q_err_raw=None):
 
     if 'raw' in group and data_name in group['raw']:
@@ -2025,136 +2212,151 @@ def load_series_sasm_list(group, excluded_keys=['raw', 'q', 'q_err']):
     return sasm_list
 
 def load_series(name):
+    # Check whether save_name is an hdf5 file (i.e. function called by save worksapace) or file name (function called for a single series)
+    try:
+        name.parent
+        is_hdf5 = True
+    except Exception:
+        is_hdf5 = False
+
+    if is_hdf5:
+        seriesm_data = inner_load_series(name)
+    else:
+        with h5py.File(name, 'r', driver='core', backing_store=False) as f:
+            seriesm_data = inner_load_series(f)
+
+    return seriesm_data
+
+def inner_load_series(f):
     seriesm_data = {}
 
-    with h5py.File(name, 'r', driver='core', backing_store=False) as f:
-        seriesm_data['series_type'] = str(f.attrs['series_type'])
-        seriesm_data['parameters'] = loadDatHeader(f.attrs['parameters'])
+    seriesm_data['series_type'] = str(f.attrs['series_type'])
+    seriesm_data['parameters'] = loadDatHeader(f.attrs['parameters'])
 
-        seriesm_data['file_list'] = f['file_names'][()]
-        seriesm_data['frame_list'] = list(map(int, f['frame_numbers'][()]))
-        seriesm_data['time'] = list(map(float, f['times'][()]))
+    seriesm_data['file_list'] = f['file_names'][()]
+    seriesm_data['frame_list'] = list(map(int, f['frame_numbers'][()]))
+    seriesm_data['time'] = list(map(float, f['times'][()]))
 
-        # Get data from unsubtracted group
-        profiles = f['profiles']
-        seriesm_data['sasm_list'] = load_series_sasm_list(profiles, ['raw', 'q',
-            'q_err', 'average_buffer_profile'])
+    # Get data from unsubtracted group
+    profiles = f['profiles']
+    seriesm_data['sasm_list'] = load_series_sasm_list(profiles, ['raw', 'q',
+        'q_err', 'average_buffer_profile'])
 
-        if len(profiles['average_buffer_profile']) > 0:
-            seriesm_data['average_buffer_sasm'] = load_series_sasm(profiles,
-                'average_buffer_profile', use_group_q=False)
-        else:
-            seriesm_data['average_buffer_sasm'] = None
+    if len(profiles['average_buffer_profile']) > 0:
+        seriesm_data['average_buffer_sasm'] = load_series_sasm(profiles,
+            'average_buffer_profile', use_group_q=False)
+    else:
+        seriesm_data['average_buffer_sasm'] = None
 
-        # Get data from subtracted group
+    # Get data from subtracted group
 
-        sub_profiles = f['subtracted_profiles']
-        seriesm_data['subtracted_sasm_list'] = load_series_sasm_list(sub_profiles)
+    sub_profiles = f['subtracted_profiles']
+    seriesm_data['subtracted_sasm_list'] = load_series_sasm_list(sub_profiles)
 
-        seriesm_data['use_subtracted_sasm'] = sub_profiles.attrs['use_subtracted_sasm'][()]
+    seriesm_data['use_subtracted_sasm'] = sub_profiles.attrs['use_subtracted_sasm'][()]
 
-        # Get data from baseline subtracted group
-        baseline_profiles = f['baseline_subtracted_profiles']
-        seriesm_data['baseline_subtracted_sasm_list'] = load_series_sasm_list(baseline_profiles)
+    # Get data from baseline subtracted group
+    baseline_profiles = f['baseline_subtracted_profiles']
+    seriesm_data['baseline_subtracted_sasm_list'] = load_series_sasm_list(baseline_profiles)
 
-        seriesm_data['use_baseline_subtracted_sasm'] = baseline_profiles.attrs['use_baseline_subtracted_sasm'][()]
+    seriesm_data['use_baseline_subtracted_sasm'] = baseline_profiles.attrs['use_baseline_subtracted_sasm'][()]
 
-        # Get data from intensity groups
-        intensity = f['intensities']
-        if (isinstance(intensity.attrs['buffer_range'][()], np.ndarray)
-            and intensity.attrs['buffer_range'][()].ndim ==1
-            and intensity.attrs['buffer_range'][()].size > 1):
-            seriesm_data['buffer_range'] = [(intensity.attrs['buffer_range'][()][0],
-                intensity.attrs['buffer_range'][()][1])]
-        else:
-            seriesm_data['buffer_range'] = list(map(tuple, intensity.attrs['buffer_range'][()]))
+    # Get data from intensity groups
+    intensity = f['intensities']
+    if (isinstance(intensity.attrs['buffer_range'][()], np.ndarray)
+        and intensity.attrs['buffer_range'][()].ndim ==1
+        and intensity.attrs['buffer_range'][()].size > 1):
+        seriesm_data['buffer_range'] = [(intensity.attrs['buffer_range'][()][0],
+            intensity.attrs['buffer_range'][()][1])]
+    else:
+        seriesm_data['buffer_range'] = list(map(tuple, intensity.attrs['buffer_range'][()]))
 
-        seriesm_data['already_subtracted'] = intensity.attrs['already_subtracted'][()]
-        seriesm_data['qref'] = float(intensity['qref_intensities'].attrs['q_value'][()])
-        seriesm_data['qrange'] = tuple(intensity['qrange_intensities'].attrs['q_range'][()])
+    seriesm_data['already_subtracted'] = intensity.attrs['already_subtracted'][()]
+    seriesm_data['qref'] = float(intensity['qref_intensities'].attrs['q_value'][()])
+    seriesm_data['qrange'] = tuple(intensity['qrange_intensities'].attrs['q_range'][()])
 
-        sub_intensity = f['subtracted_intensities']
-        if (isinstance(sub_intensity.attrs['sample_range'][()], np.ndarray)
-            and sub_intensity.attrs['sample_range'][()].ndim ==1 and
-            sub_intensity.attrs['sample_range'][()].size > 1):
-            seriesm_data['sample_range'] = [(sub_intensity.attrs['sample_range'][()][0],
-                sub_intensity.attrs['sample_range'][()][1])]
-        else:
-            seriesm_data['sample_range'] = list(map(tuple, sub_intensity.attrs['sample_range'][()]))
+    sub_intensity = f['subtracted_intensities']
+    if (isinstance(sub_intensity.attrs['sample_range'][()], np.ndarray)
+        and sub_intensity.attrs['sample_range'][()].ndim ==1 and
+        sub_intensity.attrs['sample_range'][()].size > 1):
+        seriesm_data['sample_range'] = [(sub_intensity.attrs['sample_range'][()][0],
+            sub_intensity.attrs['sample_range'][()][1])]
+    else:
+        seriesm_data['sample_range'] = list(map(tuple, sub_intensity.attrs['sample_range'][()]))
 
-        # Get calculated data
-        calc_data = f['calculated_data']
-        seriesm_data['rg'] = calc_data['rg'][:,0]
-        seriesm_data['rger'] = calc_data['rg'][:,1]
-        seriesm_data['i0'] = calc_data['I0'][:,0]
-        seriesm_data['i0er'] = calc_data['I0'][:,1]
-        seriesm_data['vpmw'] = calc_data['vp_mw'][()]
-        seriesm_data['vcmw'] = calc_data['vc_mw'][:,0]
-        seriesm_data['vcmwer'] = calc_data['vc_mw'][:,1]
+    # Get calculated data
+    calc_data = f['calculated_data']
+    seriesm_data['rg'] = calc_data['rg'][:,0]
+    seriesm_data['rger'] = calc_data['rg'][:,1]
+    seriesm_data['i0'] = calc_data['I0'][:,0]
+    seriesm_data['i0er'] = calc_data['I0'][:,1]
+    seriesm_data['vpmw'] = calc_data['vp_mw'][()]
+    seriesm_data['vcmw'] = calc_data['vc_mw'][:,0]
+    seriesm_data['vcmwer'] = calc_data['vc_mw'][:,1]
 
-        seriesm_data['window_size'] = int(calc_data.attrs['window_size'][()])
-        seriesm_data['mol_type'] = str(calc_data.attrs['molecule_type'][:])
-        seriesm_data['mol_density'] = float(calc_data.attrs['molecule_density'][()])
-        seriesm_data['calc_has_data'] = calc_data.attrs['has_data'][()]
+    seriesm_data['window_size'] = int(calc_data.attrs['window_size'][()])
+    seriesm_data['mol_type'] = str(calc_data.attrs['molecule_type'][:])
+    seriesm_data['mol_density'] = float(calc_data.attrs['molecule_density'][()])
+    seriesm_data['calc_has_data'] = calc_data.attrs['has_data'][()]
 
-        # Get baseline
-        baseline = f['baseline']
-        seriesm_data['baseline_corr'] = load_series_sasm_list(baseline['correction'])
+    # Get baseline
+    baseline = f['baseline']
+    seriesm_data['baseline_corr'] = load_series_sasm_list(baseline['correction'])
 
-        seriesm_data['baseline_fit_results'] = baseline['fit_parameters'][:]
+    seriesm_data['baseline_fit_results'] = baseline['fit_parameters'][:]
 
-        if (isinstance(baseline.attrs['baseline_start_range'][()], np.ndarray)
-            and baseline.attrs['baseline_start_range'][()].ndim ==1
-            and baseline.attrs['baseline_start_range'][()].size >1):
-            seriesm_data['baseline_start_range'] = (int(baseline.attrs['baseline_start_range'][0]),
-                int(baseline.attrs['baseline_start_range'][1]))
-        else:
-            seriesm_data['baseline_start_range'] = list(map(tuple, baseline.attrs['baseline_start_range'][()]))
+    if (isinstance(baseline.attrs['baseline_start_range'][()], np.ndarray)
+        and baseline.attrs['baseline_start_range'][()].ndim ==1
+        and baseline.attrs['baseline_start_range'][()].size >1):
+        seriesm_data['baseline_start_range'] = (int(baseline.attrs['baseline_start_range'][0]),
+            int(baseline.attrs['baseline_start_range'][1]))
+    else:
+        seriesm_data['baseline_start_range'] = list(map(tuple, baseline.attrs['baseline_start_range'][()]))
 
-        if (isinstance(baseline.attrs['baseline_end_range'][()], np.ndarray)
-            and baseline.attrs['baseline_end_range'][()].ndim ==1
-            and baseline.attrs['baseline_end_range'][()].size >1):
-            seriesm_data['baseline_end_range'] = (int(baseline.attrs['baseline_end_range'][0]),
-                int(baseline.attrs['baseline_end_range'][1]))
-        else:
-            seriesm_data['baseline_end_range'] = list(map(tuple, baseline.attrs['baseline_end_range'][()]))
+    if (isinstance(baseline.attrs['baseline_end_range'][()], np.ndarray)
+        and baseline.attrs['baseline_end_range'][()].ndim ==1
+        and baseline.attrs['baseline_end_range'][()].size >1):
+        seriesm_data['baseline_end_range'] = (int(baseline.attrs['baseline_end_range'][0]),
+            int(baseline.attrs['baseline_end_range'][1]))
+    else:
+        seriesm_data['baseline_end_range'] = list(map(tuple, baseline.attrs['baseline_end_range'][()]))
 
-        seriesm_data['baseline_type'] = str(baseline.attrs['baseline_type'])
-        seriesm_data['baseline_extrapolation'] = baseline.attrs['baseline_extrapolation']
+    seriesm_data['baseline_type'] = str(baseline.attrs['baseline_type'])
+    seriesm_data['baseline_extrapolation'] = baseline.attrs['baseline_extrapolation']
 
-        try:
-            seriesm_data['item_font_color'] = f.attrs['item_font_color'][()]
-            seriesm_data['item_selected_for_plot'] = f.attrs['item_selected_for_plot'][()]
-        except Exception:
-            pass
+    try:
+        seriesm_data['item_font_color'] = str(f.attrs['item_font_color'])
+        seriesm_data['item_selected_for_plot'] = f.attrs['item_selected_for_plot']
+    except Exception:
+        pass
 
-        try:
-            seriesm_data['line_color'] = f.attrs['line_color'][()]
-            seriesm_data['line_width'] = f.attrs['line_width'][()]
-            seriesm_data['line_style'] = f.attrs['line_style'][()]
-            seriesm_data['line_marker'] = f.attrs['line_marker'][()]
-            seriesm_data['line_visible'] = f.attrs['line_visible'][()]
-            seriesm_data['line_marker_face_color'] = f.attrs['line_marker_face_color'][()]
-            seriesm_data['line_marker_edge_color'] = f.attrs['line_marker_edge_color'][()]
-            seriesm_data['line_visible'] = f.attrs['line_visible'][()]
-            seriesm_data['line_legend_label'] = f.attrs['line_legend_label'][()]
+    try:
+        seriesm_data['line_color'] = str(f.attrs['line_color'])
+        seriesm_data['line_width'] = float(f.attrs['line_width'])
+        seriesm_data['line_style'] = str(f.attrs['line_style'])
+        seriesm_data['line_marker'] = str(f.attrs['line_marker'])
+        seriesm_data['line_visible'] = f.attrs['line_visible']
+        seriesm_data['line_marker_face_color'] = str(f.attrs['line_marker_face_color'])
+        seriesm_data['line_marker_edge_color'] = str(f.attrs['line_marker_edge_color'])
+        seriesm_data['line_visible'] = f.attrs['line_visible']
+        seriesm_data['line_legend_label'] = str(f.attrs['line_legend_label'])
 
-        except Exception:
-            pass
+    except Exception:
+        pass
 
-        try:
-            seriesm_data['line_color'] = calc_data.attrs['calc_line_color'][()]
-            seriesm_data['line_width'] = calc_data.attrs['calc_line_width'][()]
-            seriesm_data['line_style'] = calc_data.attrs['calc_line_style'][()]
-            seriesm_data['line_marker'] = calc_data.attrs['calc_line_marker'][()]
-            seriesm_data['line_visible'] = calc_data.attrs['calc_line_visible'][()]
-            seriesm_data['line_marker_face_color'] = calc_data.attrs['calc_line_marker_face_color'][()]
-            seriesm_data['line_marker_edge_color'] = calc_data.attrs['calc_line_marker_edge_color'][()]
-            seriesm_data['line_visible'] = calc_data.attrs['calc_line_visible'][()]
-            seriesm_data['line_legend_label'] = calc_data.attrs['calc_line_legend_label'][()]
+    try:
+        seriesm_data['calc_line_color'] = str(calc_data.attrs['line_color'])
+        seriesm_data['calc_line_width'] = float(calc_data.attrs['line_width'])
+        seriesm_data['calc_line_style'] = str(calc_data.attrs['line_style'])
+        seriesm_data['calc_line_marker'] = str(calc_data.attrs['line_marker'])
+        seriesm_data['calc_line_visible'] = calc_data.attrs['line_visible']
+        seriesm_data['calc_line_marker_face_color'] = str(calc_data.attrs['line_marker_face_color'])
+        seriesm_data['calc_line_marker_edge_color'] = str(calc_data.attrs['line_marker_edge_color'])
+        seriesm_data['calc_line_visible'] = calc_data.attrs['line_visible']
+        seriesm_data['calc_line_legend_label'] = str(calc_data.attrs['line_legend_label'])
 
-        except Exception:
-            pass
+    except Exception:
+        pass
 
     # Deals with a change in how h5py reads in strings between version 2 and 3.
     if h5py.version.version_tuple.major >= 3:
@@ -2194,7 +2396,7 @@ def loadSeriesFile(filename, settings):
         secm_data = load_series(filename)
 
     if secm_data is not None:
-        new_secm, line_data, calc_line_data = makeSeriesFile(secm_data, settings)
+        new_secm, line_data, calc_line_data, item_data = makeSeriesFile(secm_data, settings)
 
         new_secm.setParameter('filename', os.path.split(filename)[1])
     else:
@@ -2440,15 +2642,20 @@ def makeSeriesFile(secm_data, settings):
     new_secm._update()
 
     try:
-        line_data = {'line_color' : secm_data['line_color'],
-                     'line_width' : secm_data['line_width'],
-                     'line_style' : secm_data['line_style'],
-                     'line_marker': secm_data['line_marker'],
-                     'line_visible' :secm_data['line_visible']}
+        line_data = {'line_color' : str(secm_data['line_color']),
+                     'line_width' : float(secm_data['line_width']),
+                     'line_style' : str(secm_data['line_style']),
+                     'line_marker': str(secm_data['line_marker']),
+                     'line_visible' : str(secm_data['line_visible'])}
+
+        if line_data['line_visible']:
+            line_data['line_visible'] = True
+        else:
+            line_data['line_visible'] = False
 
         try:
-            line_data['line_marker_face_color'] = secm_data['line_marker_face_color']
-            line_data['line_marker_edge_color'] = secm_data['line_marker_edge_color']
+            line_data['line_marker_face_color'] = str(secm_data['line_marker_face_color'])
+            line_data['line_marker_edge_color'] = str(secm_data['line_marker_edge_color'])
 
         except KeyError:
             pass #Version <1.3.0 doesn't have these keys
@@ -2457,22 +2664,41 @@ def makeSeriesFile(secm_data, settings):
         line_data = None    #Backwards compatibility
 
     try:
-        calc_line_data = {'line_color' : secm_data['calc_line_color'],
-                     'line_width' : secm_data['calc_line_width'],
-                     'line_style' : secm_data['calc_line_style'],
-                     'line_marker': secm_data['calc_line_marker'],
-                     'line_visible' :secm_data['calc_line_visible']}
+        calc_line_data = {'line_color' : str(secm_data['calc_line_color']),
+                     'line_width' : float(secm_data['calc_line_width']),
+                     'line_style' : str(secm_data['calc_line_style']),
+                     'line_marker': str(secm_data['calc_line_marker']),
+                     'line_visible' : str(secm_data['calc_line_visible'])}
+
+        if calc_line_data['line_visible']:
+            calc_line_data['line_visible'] = True
+        else:
+            calc_line_data['line_visible'] = False
 
         try:
-            calc_line_data['line_marker_face_color'] = secm_data['calc_line_marker_face_color']
-            calc_line_data['line_marker_edge_color'] = secm_data['calc_line_marker_edge_color']
+            calc_line_data['line_marker_face_color'] = str(secm_data['calc_line_marker_face_color'])
+            calc_line_data['line_marker_edge_color'] = str(secm_data['calc_line_marker_edge_color'])
         except KeyError:
             pass #Version <1.3.0 doesn't have these keys
 
     except KeyError:
         calc_line_data = None
 
-    return new_secm, line_data, calc_line_data
+
+    try:
+        item_data = {
+            'item_font_color'           : str(secm_data['item_font_color']),
+            'item_selected_for_plot'    : secm_data['item_selected_for_plot'],
+            }
+
+        if item_data['item_selected_for_plot']:
+            item_data['item_selected_for_plot'] = True
+        else:
+            item_data['item_selected_for_plot'] = False
+    except Exception:
+        item_data = None
+
+    return new_secm, line_data, calc_line_data, item_data
 
 
 def loadIftFile(filename):
@@ -3807,6 +4033,7 @@ def inner_save_series(f, seriesm_data, save_gui_data):
             f.attrs['item_selected_for_plot'] = seriesm_data['item_selected_for_plot']
         except Exception:
             pass
+
         try:
             f.attrs['line_color'] = seriesm_data['line_color']
             f.attrs['line_width'] = seriesm_data['line_width']
@@ -4064,6 +4291,11 @@ def save_sasm_hdf5(save_name, sasm, save_gui_data=False):
             else:
                 sasm_dict['line_legend_label'] = ''
 
+            if sasm.axes == sasm.plot_panel.subplot1:
+                sasm_dict['plot_axes'] = 1
+            else:
+                sasm_dict['plot_axes'] = 2
+
             sasm_dict['item_controls_visible'] = sasm.item_panel.getControlsVisible()
             sasm_dict['item_font_color'] = sasm.item_panel.getFontColour()
             sasm_dict['item_selected_for_plot'] = sasm.item_panel.getSelectedForPlot()
@@ -4106,8 +4338,8 @@ def inner_save_sasm_hdf5(f, sasm_data, save_gui_data):
             f.attrs['line_marker_face_color'] = sasm_data['line_marker_face_color']
             f.attrs['line_marker_edge_color'] = sasm_data['line_marker_edge_color']
             f.attrs['line_errorbar_color'] = sasm_data['line_errorbar_color']
-            f.attrs['line_visible'] = sasm_data['line_visible']
             f.attrs['line_legend_label'] = sasm_data['line_legend_label']
+            f.attrs['plot_axes'] = sasm_data['plot_axes']
         except Exception:
             pass
 
@@ -4197,7 +4429,6 @@ def inner_save_ift_hdf5(f, iftm_data, save_gui_data):
             f.attrs['r_line_marker_face_color'] = iftm_data['r_line_marker_face_color']
             f.attrs['r_line_marker_edge_color'] = iftm_data['r_line_marker_edge_color']
             f.attrs['r_line_errorbar_color'] = iftm_data['r_line_errorbar_color']
-            f.attrs['r_line_visible'] = iftm_data['r_line_visible']
             f.attrs['r_line_legend_label'] = iftm_data['r_line_legend_label']
 
             f.attrs['qo_line_color'] = iftm_data['qo_line_color']
@@ -4208,7 +4439,6 @@ def inner_save_ift_hdf5(f, iftm_data, save_gui_data):
             f.attrs['qo_line_marker_face_color'] = iftm_data['qo_line_marker_face_color']
             f.attrs['qo_line_marker_edge_color'] = iftm_data['qo_line_marker_edge_color']
             f.attrs['qo_line_errorbar_color'] = iftm_data['qo_line_errorbar_color']
-            f.attrs['qo_line_visible'] = iftm_data['qo_line_visible']
             f.attrs['qo_line_legend_label'] = iftm_data['qo_line_legend_label']
 
             f.attrs['qf_line_color'] = iftm_data['qf_line_color']
@@ -4218,8 +4448,6 @@ def inner_save_ift_hdf5(f, iftm_data, save_gui_data):
             f.attrs['qf_line_visible'] = iftm_data['qf_line_visible']
             f.attrs['qf_line_marker_face_color'] = iftm_data['qf_line_marker_face_color']
             f.attrs['qf_line_marker_edge_color'] = iftm_data['qf_line_marker_edge_color']
-            f.attrs['qf_line_errorbar_color'] = iftm_data['qf_line_errorbar_color']
-            f.attrs['qf_line_visible'] = iftm_data['qf_line_visible']
             f.attrs['qf_line_legend_label'] = iftm_data['qf_line_legend_label']
         except Exception:
             pass
@@ -5274,6 +5502,31 @@ def loadWorkspace(load_path):
                 'corrupted.'))
 
     return sasm_dict
+
+def new_loadWorkspace(load_path, raw_settings):
+    with h5py.File(load_path, 'r', driver='core', backing_store=False) as load_file:
+        profiles = []
+        ifts = []
+        series = []
+
+        for p in load_file['profiles']:
+            sasm, line_data, item_data = load_sasm_hdf5(load_file['profiles'][p])
+            sasm.setParameter('filename', p)
+            profiles.append([sasm, line_data, item_data])
+
+        for i in load_file['ifts']:
+            iftm, line_data, item_data = load_ift_hdf5(load_file['ifts'][i])
+            iftm.setParameter('filename', i)
+            ifts.append([iftm, line_data, item_data])
+
+
+        for s in load_file['series']:
+            secm_data = load_series(load_file['series'][s])
+            new_secm, line_data, calc_line_data, item_data = makeSeriesFile(secm_data, raw_settings)
+            new_secm.setParameter('filename', s)
+            series.append([new_secm, line_data, calc_line_data, item_data])
+
+    return profiles, ifts, series
 
 def writeHeader(d, f2, ignore_list = []):
     f2.write('### HEADER:\n#\n#')
