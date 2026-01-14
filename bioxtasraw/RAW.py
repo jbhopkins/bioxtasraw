@@ -55,6 +55,7 @@ import ctypes
 
 
 import hdf5plugin #HAS TO BE FIRST
+import h5py
 import numpy as np
 import scipy.constants
 import matplotlib as mpl
@@ -3284,12 +3285,9 @@ class MainFrame(wx.Frame):
                 wx.MessageBox('Your settings failed to save! Please try again.', 'Save failed!', style = wx.ICON_ERROR | wx.OK)
 
     def _onLoadWorkspaceMenu(self, evt):
-        file = self._createFileDialog(wx.FD_OPEN, 'Workspace files', '*.wsp')
+        file = self._createFileDialog(wx.FD_OPEN, 'Workspace files', '*.wsp|*.hdf5')
 
         if file:
-            # if os.path.splitext(file)[1] != '.wsp':
-            #     file = file + '.wsp'
-
             mainworker_cmd_queue.put(['load_workspace', [file]])
 
     def _onSaveWorkspaceMenu(self, evt):
@@ -3305,11 +3303,11 @@ class MainFrame(wx.Frame):
         ift_items = ift_panel.getItems()
         secm_items = sec_panel.getItems()
 
-        file = self._createFileDialog(wx.FD_SAVE, 'Workspace files', '*.wsp')
+        file = self._createFileDialog(wx.FD_SAVE, 'Workspace files', '*.hdf5')
 
         if file:
-            if os.path.splitext(file)[1] != '.wsp':
-                file = file + '.wsp'
+            if os.path.splitext(file)[1] != '.hdf5':
+                file = file + '.hdf5'
 
             mainworker_cmd_queue.put(['save_workspace', [sasm_items, ift_items, secm_items, file]])
 
@@ -4012,9 +4010,7 @@ class MainWorkerThread(threading.Thread):
                         'recreate_all_masks'            : self._recreateAllMasks,
                         'calculate_abs_water_const'     : self._calcAbsScWaterConst,
                         'save_workspace'                : self._saveWorkspace,
-                        # 'save_workspace'                : self._new_saveWorkspace,
                         'load_workspace'                : self._loadWorkspace,
-                        # 'load_workspace'                : self._new_loadWorkspace,
                         'superimpose_items'             : self._superimposeItems,
                         'save_analysis_info'            : self._saveAnalysisInfo,
                         'save_all_analysis_info'        : self._saveAllAnalysisInfo,
@@ -6405,151 +6401,7 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [os.path.split(save_path)[1]])
             wx.CallAfter(self.main_frame.controlTimer, True)
 
-
     def _saveWorkspace(self, data):
-        sasm_items = data[0]
-        ift_items = data[1]
-        secm_items = data[2]
-        save_path = data[3]
-
-        if (self.main_frame.OnlineControl.isRunning() and
-            os.path.split(save_path)[0] == self.main_frame.OnlineControl.getTargetDir()):
-            self.main_frame.controlTimer(False)
-            restart_timer = True
-        else:
-            restart_timer = False
-
-        RAWGlobals.save_in_progress = True
-        wx.CallAfter(self.main_frame.setStatus, 'Saving workspace', 0)
-        wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait, saving...')
-
-        save_dict = OrderedDict()
-
-        for idx in range(0, len(sasm_items)):
-
-            sasm = sasm_items[idx].getSASM()
-            sasm_dict = sasm.extractAll()
-
-            sasm_dict['line_color'] = sasm.line.get_color()
-            sasm_dict['line_width'] = sasm.line.get_linewidth()
-            sasm_dict['line_style'] = sasm.line.get_linestyle()
-            sasm_dict['line_marker'] = sasm.line.get_marker()
-            sasm_dict['line_marker_face_color'] = sasm.line.get_markerfacecolor()
-            sasm_dict['line_marker_edge_color'] = sasm.line.get_markeredgecolor()
-            sasm_dict['line_errorbar_color'] = sasm.err_line[0][0].get_color()
-            sasm_dict['line_visible'] = sasm.line.get_visible()
-            if sasm.line.get_label() != sasm_dict['parameters']['filename']:
-                sasm_dict['line_legend_label'] = sasm.line.get_label()
-            else:
-                sasm_dict['line_legend_label'] = ''
-
-            sasm_dict['item_controls_visible'] = sasm.item_panel.getControlsVisible()
-            sasm_dict['item_font_color'] = sasm.item_panel.getFontColour()
-            sasm_dict['item_selected_for_plot'] = sasm.item_panel.getSelectedForPlot()
-
-            sasm_dict['parameters_analysis'] = sasm_dict['parameters']['analysis']  #pickle wont save this unless its raised up
-
-            if sasm.axes == sasm.plot_panel.subplot1:
-                sasm_dict['plot_axes'] = 1
-            else:
-                sasm_dict['plot_axes'] = 2
-
-            save_dict['sasm_'+str(idx)] = sasm_dict
-
-        for idx in range(0, len(ift_items)):
-
-            iftm = ift_items[idx].getIFTM()
-            iftm_dict = iftm.extractAll()
-
-            iftm_dict['r_line_color'] = iftm.r_line.get_color()
-            iftm_dict['r_line_width'] = iftm.r_line.get_linewidth()
-            iftm_dict['r_line_style'] = iftm.r_line.get_linestyle()
-            iftm_dict['r_line_marker'] = iftm.r_line.get_marker()
-            iftm_dict['r_line_marker_face_color'] = iftm.r_line.get_markerfacecolor()
-            iftm_dict['r_line_marker_edge_color'] = iftm.r_line.get_markeredgecolor()
-            iftm_dict['r_line_errorbar_color'] = iftm.r_err_line[0][0].get_color()
-            iftm_dict['r_line_visible'] = iftm.r_line.get_visible()
-            if iftm.r_line.get_label() != iftm_dict['parameters']['filename']+'_P(r)':
-                iftm_dict['r_line_legend_label'] = iftm.r_line.get_label()
-            else:
-                iftm_dict['r_line_legend_label'] = ''
-
-            iftm_dict['qo_line_color'] = iftm.qo_line.get_color()
-            iftm_dict['qo_line_width'] = iftm.qo_line.get_linewidth()
-            iftm_dict['qo_line_style'] = iftm.qo_line.get_linestyle()
-            iftm_dict['qo_line_marker'] = iftm.qo_line.get_marker()
-            iftm_dict['qo_line_marker_face_color'] = iftm.qo_line.get_markerfacecolor()
-            iftm_dict['qo_line_marker_edge_color'] = iftm.qo_line.get_markeredgecolor()
-            iftm_dict['qo_line_errorbar_color'] = iftm.qo_err_line[0][0].get_color()
-            iftm_dict['qo_line_visible'] = iftm.qo_line.get_visible()
-            if iftm.qo_line.get_label() != iftm_dict['parameters']['filename']+'_Exp':
-                iftm_dict['qo_line_legend_label'] = iftm.qo_line.get_label()
-            else:
-                iftm_dict['qo_line_legend_label'] = ''
-
-            iftm_dict['qf_line_color'] = iftm.qf_line.get_color()
-            iftm_dict['qf_line_width'] = iftm.qf_line.get_linewidth()
-            iftm_dict['qf_line_style'] = iftm.qf_line.get_linestyle()
-            iftm_dict['qf_line_marker'] = iftm.qf_line.get_marker()
-            iftm_dict['qf_line_marker_face_color'] = iftm.qf_line.get_markerfacecolor()
-            iftm_dict['qf_line_marker_edge_color'] = iftm.qf_line.get_markeredgecolor()
-            iftm_dict['qf_line_visible'] = iftm.qf_line.get_visible()
-            if iftm.qo_line.get_label() != iftm_dict['parameters']['filename']+'_Fit':
-                iftm_dict['qf_line_legend_label'] = iftm.qf_line.get_label()
-            else:
-                iftm_dict['qf_line_legend_label'] = ''
-
-            iftm_dict['item_font_color'] = iftm.item_panel.getFontColour()
-            iftm_dict['item_selected_for_plot'] = iftm.item_panel.getSelectedForPlot()
-
-            save_dict['iftm_'+str(idx)] = iftm_dict
-
-
-        for idx in range(0, len(secm_items)):
-
-            secm = secm_items[idx].getSECM()
-            secm_dict = secm.extractAll()
-
-            secm_dict['line_color'] = secm.line.get_color()
-            secm_dict['line_width'] = secm.line.get_linewidth()
-            secm_dict['line_style'] = secm.line.get_linestyle()
-            secm_dict['line_marker'] = secm.line.get_marker()
-            secm_dict['line_marker_face_color'] = secm.line.get_markerfacecolor()
-            secm_dict['line_marker_edge_color'] = secm.line.get_markeredgecolor()
-            secm_dict['line_visible'] = secm.line.get_visible()
-            secm_dict['line_legend_label'] = secm.line.get_label()
-
-            secm_dict['calc_line_color'] = secm.calc_line.get_color()
-            secm_dict['calc_line_width'] = secm.calc_line.get_linewidth()
-            secm_dict['calc_line_style'] = secm.calc_line.get_linestyle()
-            secm_dict['calc_line_marker'] = secm.calc_line.get_marker()
-            secm_dict['calc_line_marker_face_color'] = secm.calc_line.get_markerfacecolor()
-            secm_dict['calc_line_marker_edge_color'] = secm.calc_line.get_markeredgecolor()
-            secm_dict['calc_line_visible'] = secm.calc_line.get_visible()
-            secm_dict['calc_line_legend_label'] = secm.calc_line.get_label()
-
-            secm_dict['item_font_color'] = secm.item_panel.getFontColour()
-            secm_dict['item_selected_for_plot'] = secm.item_panel.getSelectedForPlot()
-
-            secm_dict['parameters_analysis'] = secm_dict['parameters']['analysis']  #pickle wont save this unless its raised up
-
-            save_dict['secm_'+str(idx)] = secm_dict
-
-        try:
-            SASFileIO.saveWorkspace(save_dict, save_path)
-        except Exception as e:
-            msg = 'Unexpected error while saving workspace:\n{}'.format(e)
-            self._showSaveError('generic', msg)
-
-        RAWGlobals.save_in_progress = False
-        wx.CallAfter(self.main_frame.setStatus, '', 0)
-        wx.CallAfter(self.main_frame.closeBusyDialog)
-
-        if restart_timer:
-            wx.CallAfter(self.main_frame.OnlineControl.updateSkipList, [os.path.split(save_path)[1]])
-            wx.CallAfter(self.main_frame.controlTimer, True)
-
-    def _new_saveWorkspace(self, data):
         sasm_items = data[0]
         ift_items = data[1]
         secm_items = data[2]
@@ -6573,7 +6425,7 @@ class MainWorkerThread(threading.Thread):
         series_list = [item.getSECM() for item in secm_items]
 
         try:
-            SASFileIO.new_saveWorkspace(sasm_list, ift_list, series_list, save_path)
+            SASFileIO.saveWorkspace(sasm_list, ift_list, series_list, save_path)
         except Exception as e:
             traceback.print_exc()
             msg = 'Unexpected error while saving workspace:\n{}'.format(e)
@@ -6588,13 +6440,22 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(self.main_frame.controlTimer, True)
 
     def _loadWorkspace(self, data):
+        load_path = data[0]
+
+        if os.path.splitext(load_path)[1] != '.wsp':
+            self._loadWorkspace_hdf5(data)
+        else:
+            self._loadWorkspace_legacy(data)
+
+    def _loadWorkspace_legacy(self, data):
 
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading workspace...')
 
         load_path = data[0]
 
         try:
-            item_dict = SASFileIO.loadWorkspace(load_path)
+            profiles_list, ifts_list, series_list = SASFileIO.loadWorkspace_legacy(
+                load_path, self._raw_settings)
         except SASExceptions.UnrecognizedDataFormat:
             wx.CallAfter(self.main_frame.closeBusyDialog)
             msg = ('The workspace could not be loaded. It may be an invalid '
@@ -6602,170 +6463,79 @@ class MainWorkerThread(threading.Thread):
             wx.CallAfter(wx._showGenericError, msg, 'Workspace Load Error')
             return
 
-        if isinstance(item_dict, OrderedDict):
-            keylist = list(item_dict.keys())
-        else:
-            keylist = sorted(item_dict.keys())
+        for pdata in profiles_list:
+            new_sasm = pdata[0]
+            line_data = pdata[1]
+            item_data = pdata[2]
 
-        for each_key in keylist:
-            if str(each_key).startswith('secm'):
+            wx.CallAfter(self.plot_panel.plotSASM, new_sasm,
+                          line_data['plot_axes'], color = line_data['line_color'],
+                          line_data = line_data)
 
-                secm_data = item_dict[each_key]
+            #Backwards compatibility
+            try:
+                legend_label = line_data['line_legend_label']
+            except KeyError:
+                legend_label = ''
 
-                new_secm, line_data, calc_line_data = SASFileIO.makeSeriesFile(secm_data, self._raw_settings)
+            wx.CallAfter(self.manipulation_panel.addItem, new_sasm,
+                          item_colour = item_data['item_font_color'],
+                          item_visible = item_data['item_selected_for_plot'],
+                          legend_label = legend_label)
 
-                new_secm.is_visible = secm_data['line_visible']
+        for idata in ifts_list:
+            new_iftm = idata[0]
+            line_data = idata[1]
+            item_data = idata[2]
 
-                wx.CallAfter(self.sec_plot_panel.plotSECM, new_secm,
-                              color = secm_data['line_color'],
-                              line_data = line_data,
-                              calc_line_data = calc_line_data)
 
-                while new_secm.line is None or new_secm.calc_line is None:
-                    time.sleep(0.001)
+            wx.CallAfter(self.ift_plot_panel.plotIFTM, new_iftm, line_data=line_data)
 
-                #Backwards compatibility
-                try:
-                    legend_label = {new_secm.line:      secm_data['line_legend_label'],
-                                    new_secm.calc_line: secm_data['calc_line_legend_label']
-                                    }
-                except:
-                    legend_label = defaultdict(str)
+            while new_iftm.r_line is None or new_iftm.qo_line is None or new_iftm.qf_line is None:
+                time.sleep(0.001)
 
-                wx.CallAfter(self.sec_item_panel.addItem, new_secm,
-                              item_colour = secm_data['item_font_color'],
-                              item_visible = secm_data['item_selected_for_plot'],
-                              legend_label=legend_label)
+            #Backwards compatibility
+            try:
+                legend_label = {new_iftm.r_line:    line_data['r_line_legend_label'],
+                                new_iftm.qo_line:   line_data['qo_line_legend_label'],
+                                new_iftm.qf_line:   line_data['qf_line_legend_label']
+                                }
+            except:
+                legend_label = defaultdict(str)
 
-            elif str(each_key).startswith('ift'):
-                iftm_data = item_dict[each_key]
-                p = iftm_data['p_raw']
-                r = iftm_data['r_raw']
-                err = iftm_data['err_raw']
-                i_orig = iftm_data['i_orig_raw']
-                q_orig = iftm_data['q_orig_raw']
-                err_orig = iftm_data['err_orig_raw']
-                i_fit = iftm_data['i_fit_raw']
-                parameters = iftm_data['parameters']
-                i_extrap = iftm_data['i_extrap_raw']
-                q_extrap = iftm_data['q_extrap_raw']
+            wx.CallAfter(self.ift_item_panel.addItem, new_iftm,
+                          item_colour = item_data['item_font_color'],
+                          item_visible = item_data['item_selected_for_plot'],
+                          legend_label=legend_label)
 
-                new_iftm = SASM.IFTM(p, r, err, i_orig, q_orig, err_orig, i_fit, parameters, i_extrap, q_extrap)
+        for sdata in series_list:
+            new_secm = sdata[0]
+            line_data = sdata[1]
+            calc_line_data = sdata[2]
+            item_data = sdata[3]
 
-                line_data = {}
-                line_data['r_line_color'] = iftm_data['r_line_color']
-                line_data['r_line_width'] = iftm_data['r_line_width']
-                line_data['r_line_style'] = iftm_data['r_line_style']
-                line_data['r_line_marker'] = iftm_data['r_line_marker']
-                line_data['r_line_visible'] = iftm_data['r_line_visible']
+            new_secm.is_visible = line_data['line_visible']
 
-                line_data['qo_line_color'] = iftm_data['qo_line_color']
-                line_data['qo_line_width'] = iftm_data['qo_line_width']
-                line_data['qo_line_style'] = iftm_data['qo_line_style']
-                line_data['qo_line_marker'] = iftm_data['qo_line_marker']
-                line_data['qo_line_visible'] = iftm_data['qo_line_visible']
+            wx.CallAfter(self.sec_plot_panel.plotSECM, new_secm,
+                          color = line_data['line_color'],
+                          line_data = line_data,
+                          calc_line_data = calc_line_data)
 
-                line_data['qf_line_color'] = iftm_data['qf_line_color']
-                line_data['qf_line_width'] = iftm_data['qf_line_width']
-                line_data['qf_line_style'] = iftm_data['qf_line_style']
-                line_data['qf_line_marker'] = iftm_data['qf_line_marker']
-                line_data['qf_line_visible'] = iftm_data['qf_line_visible']
+            while new_secm.line is None or new_secm.calc_line is None:
+                time.sleep(0.001)
 
-                try:
-                    line_data['r_line_marker_edge_color'] = iftm_data['r_line_marker_edge_color']
-                    line_data['r_line_marker_face_color'] = iftm_data['r_line_marker_face_color']
-                    line_data['r_line_errorbar_color'] = iftm_data['r_line_errorbar_color']
-                    line_data['qo_line_marker_edge_color'] = iftm_data['qo_line_marker_edge_color']
-                    line_data['qo_line_marker_face_color'] = iftm_data['qo_line_marker_face_color']
-                    line_data['qo_line_errorbar_color'] = iftm_data['qo_line_errorbar_color']
-                    line_data['qf_line_marker_edge_color'] = iftm_data['qf_line_marker_edge_color']
-                    line_data['qf_line_marker_face_color'] = iftm_data['qf_line_marker_face_color']
+            #Backwards compatibility
+            try:
+                legend_label = {new_secm.line:      line_data['line_legend_label'],
+                                new_secm.calc_line: line_data['calc_line_legend_label']
+                                }
+            except:
+                legend_label = defaultdict(str)
 
-                except KeyError:
-                    pass #Workspaces <1.3.0 won't have these keys
-
-                wx.CallAfter(self.ift_plot_panel.plotIFTM, new_iftm, line_data = line_data)
-
-                while new_iftm.r_line is None or new_iftm.qo_line is None or new_iftm.qf_line is None:
-                    time.sleep(0.001)
-
-                #Backwards compatibility
-                try:
-                    legend_label = {new_iftm.r_line:    iftm_data['r_line_legend_label'],
-                                    new_iftm.qo_line:   iftm_data['qo_line_legend_label'],
-                                    new_iftm.qf_line:   iftm_data['qf_line_legend_label']
-                                    }
-                except:
-                    legend_label = defaultdict(str)
-
-                wx.CallAfter(self.ift_item_panel.addItem, new_iftm,
-                              item_colour = iftm_data['item_font_color'],
-                              item_visible = iftm_data['item_selected_for_plot'],
-                              legend_label=legend_label)
-
-            else:
-                #Backwards compatability requires us to not test the sasm prefix
-                sasm_data = item_dict[each_key]
-
-                if 'q_binned' in sasm_data:
-                    q = sasm_data['q_binned']
-                    i = sasm_data['i_binned']
-                    err = sasm_data['err_binned']
-                else:
-                    q = sasm_data['q_raw']
-                    i = sasm_data['i_raw']
-                    err = sasm_data['err_raw']
-
-                try:
-                    q_err = sasm_data['q_err_raw']
-                except KeyError:
-                    q_err = None #No q_err data before 2.1.0.
-
-                new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'], q_err)
-
-                new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
-                    sasm_data['q_scale_factor'])
-
-                new_sasm.setQrange(sasm_data['selected_qrange'])
-
-                try:
-                    new_sasm.setParameter('analysis', sasm_data['parameters_analysis'])
-                except KeyError:
-                    pass
-
-                new_sasm._update()
-
-                try:
-                    line_data = {'line_color' : sasm_data['line_color'],
-                                 'line_width' : sasm_data['line_width'],
-                                 'line_style' : sasm_data['line_style'],
-                                 'line_marker': sasm_data['line_marker'],
-                                 'line_visible' :sasm_data['line_visible']}
-                except KeyError:
-                    line_data = None    #Backwards compatibility
-                    sasm_data['line_visible'] = True
-
-                try:
-                    line_data['line_marker_edge_color'] = sasm_data['line_marker_edge_color']
-                    line_data['line_marker_face_color'] = sasm_data['line_marker_face_color']
-                    line_data['line_errorbar_color'] = sasm_data['line_errorbar_color']
-                except KeyError:
-                    pass #Workspaces <1.3.0 won't have these keys
-
-                wx.CallAfter(self.plot_panel.plotSASM, new_sasm,
-                              sasm_data['plot_axes'], color = sasm_data['line_color'],
-                              line_data = line_data)
-
-                #Backwards compatibility
-                try:
-                    legend_label = sasm_data['line_legend_label']
-                except KeyError:
-                    legend_label = ''
-
-                wx.CallAfter(self.manipulation_panel.addItem, new_sasm,
-                              item_colour = sasm_data['item_font_color'],
-                              item_visible = sasm_data['item_selected_for_plot'],
-                              legend_label = legend_label)
+            wx.CallAfter(self.sec_item_panel.addItem, new_secm,
+                          item_colour = item_data['item_font_color'],
+                          item_visible = item_data['item_selected_for_plot'],
+                          legend_label=legend_label)
 
         wx.CallAfter(self.plot_panel.updateLegend, 1, False)
         wx.CallAfter(self.plot_panel.updateLegend, 2, False)
@@ -6780,14 +6550,14 @@ class MainWorkerThread(threading.Thread):
 
         wx.CallAfter(self.main_frame.closeBusyDialog)
 
-    def _new_loadWorkspace(self, data):
+    def _loadWorkspace_hdf5(self, data):
 
         wx.CallAfter(self.main_frame.showBusyDialog, 'Please wait while loading workspace...')
 
         load_path = data[0]
 
         try:
-            profiles_list, ifts_list, series_list = SASFileIO.new_loadWorkspace(
+            profiles_list, ifts_list, series_list = SASFileIO.loadWorkspace(
                 load_path, self._raw_settings)
         except SASExceptions.UnrecognizedDataFormat:
             wx.CallAfter(self.main_frame.closeBusyDialog)
@@ -6795,11 +6565,6 @@ class MainWorkerThread(threading.Thread):
                 'file type, or the file may be corrupted.')
             wx.CallAfter(wx._showGenericError, msg, 'Workspace Load Error')
             return
-
-
-
-        # Need to save/load marker sizer
-
 
         for pdata in profiles_list:
             new_sasm = pdata[0]
@@ -6912,156 +6677,26 @@ class MainWorkerThread(threading.Thread):
             while new_secm.line is None or new_secm.calc_line is None:
                 time.sleep(0.001)
 
-            #Backwards compatibility
-            try:
-                legend_label = {new_secm.line:      line_data['line_legend_label'],
-                                new_secm.calc_line: calc_line_data['line_legend_label']
-                                }
-            except:
-                legend_label = defaultdict(str)
+            legend_label = defaultdict(str)
+            if line_data is not None:
+                if line_data['line_legend_label'] != '':
+                    legend_label[new_secm.line] = line_data['line_legend_label']
+
+            if calc_line_data is not None:
+                if calc_line_data['line_legend_label'] != '':
+                    legend_label[new_secm.calc_line] = calc_line_data['line_legend_label']
 
             if item_data is not None:
                 item_font_color = item_data['item_font_color']
                 item_visible = item_data['item_selected_for_plot']
             else:
-                item_font_color = RAWGlobals.general_text_color
+                item_font_color = None
                 item_visible = True
 
             wx.CallAfter(self.sec_item_panel.addItem, new_secm,
                 item_colour=item_font_color, item_visible=item_visible,
                 legend_label=legend_label)
 
-
-
-        #     elif str(each_key).startswith('ift'):
-        #         iftm_data = item_dict[each_key]
-        #         p = iftm_data['p_raw']
-        #         r = iftm_data['r_raw']
-        #         err = iftm_data['err_raw']
-        #         i_orig = iftm_data['i_orig_raw']
-        #         q_orig = iftm_data['q_orig_raw']
-        #         err_orig = iftm_data['err_orig_raw']
-        #         i_fit = iftm_data['i_fit_raw']
-        #         parameters = iftm_data['parameters']
-        #         i_extrap = iftm_data['i_extrap_raw']
-        #         q_extrap = iftm_data['q_extrap_raw']
-
-        #         new_iftm = SASM.IFTM(p, r, err, i_orig, q_orig, err_orig, i_fit, parameters, i_extrap, q_extrap)
-
-        #         line_data = {}
-        #         line_data['r_line_color'] = iftm_data['r_line_color']
-        #         line_data['r_line_width'] = iftm_data['r_line_width']
-        #         line_data['r_line_style'] = iftm_data['r_line_style']
-        #         line_data['r_line_marker'] = iftm_data['r_line_marker']
-        #         line_data['r_line_visible'] = iftm_data['r_line_visible']
-
-        #         line_data['qo_line_color'] = iftm_data['qo_line_color']
-        #         line_data['qo_line_width'] = iftm_data['qo_line_width']
-        #         line_data['qo_line_style'] = iftm_data['qo_line_style']
-        #         line_data['qo_line_marker'] = iftm_data['qo_line_marker']
-        #         line_data['qo_line_visible'] = iftm_data['qo_line_visible']
-
-        #         line_data['qf_line_color'] = iftm_data['qf_line_color']
-        #         line_data['qf_line_width'] = iftm_data['qf_line_width']
-        #         line_data['qf_line_style'] = iftm_data['qf_line_style']
-        #         line_data['qf_line_marker'] = iftm_data['qf_line_marker']
-        #         line_data['qf_line_visible'] = iftm_data['qf_line_visible']
-
-        #         try:
-        #             line_data['r_line_marker_edge_color'] = iftm_data['r_line_marker_edge_color']
-        #             line_data['r_line_marker_face_color'] = iftm_data['r_line_marker_face_color']
-        #             line_data['r_line_errorbar_color'] = iftm_data['r_line_errorbar_color']
-        #             line_data['qo_line_marker_edge_color'] = iftm_data['qo_line_marker_edge_color']
-        #             line_data['qo_line_marker_face_color'] = iftm_data['qo_line_marker_face_color']
-        #             line_data['qo_line_errorbar_color'] = iftm_data['qo_line_errorbar_color']
-        #             line_data['qf_line_marker_edge_color'] = iftm_data['qf_line_marker_edge_color']
-        #             line_data['qf_line_marker_face_color'] = iftm_data['qf_line_marker_face_color']
-
-        #         except KeyError:
-        #             pass #Workspaces <1.3.0 won't have these keys
-
-        #         wx.CallAfter(self.ift_plot_panel.plotIFTM, new_iftm, line_data = line_data)
-
-        #         while new_iftm.r_line is None or new_iftm.qo_line is None or new_iftm.qf_line is None:
-        #             time.sleep(0.001)
-
-        #         #Backwards compatibility
-        #         try:
-        #             legend_label = {new_iftm.r_line:    iftm_data['r_line_legend_label'],
-        #                             new_iftm.qo_line:   iftm_data['qo_line_legend_label'],
-        #                             new_iftm.qf_line:   iftm_data['qf_line_legend_label']
-        #                             }
-        #         except:
-        #             legend_label = defaultdict(str)
-
-        #         wx.CallAfter(self.ift_item_panel.addItem, new_iftm,
-        #                       item_colour = iftm_data['item_font_color'],
-        #                       item_visible = iftm_data['item_selected_for_plot'],
-        #                       legend_label=legend_label)
-
-        #     else:
-        #         #Backwards compatability requires us to not test the sasm prefix
-        #         sasm_data = item_dict[each_key]
-
-        #         if 'q_binned' in sasm_data:
-        #             q = sasm_data['q_binned']
-        #             i = sasm_data['i_binned']
-        #             err = sasm_data['err_binned']
-        #         else:
-        #             q = sasm_data['q_raw']
-        #             i = sasm_data['i_raw']
-        #             err = sasm_data['err_raw']
-
-        #         try:
-        #             q_err = sasm_data['q_err_raw']
-        #         except KeyError:
-        #             q_err = None #No q_err data before 2.1.0.
-
-        #         new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'], q_err)
-
-        #         new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
-        #             sasm_data['q_scale_factor'])
-
-        #         new_sasm.setQrange(sasm_data['selected_qrange'])
-
-        #         try:
-        #             new_sasm.setParameter('analysis', sasm_data['parameters_analysis'])
-        #         except KeyError:
-        #             pass
-
-        #         new_sasm._update()
-
-        #         try:
-        #             line_data = {'line_color' : sasm_data['line_color'],
-        #                          'line_width' : sasm_data['line_width'],
-        #                          'line_style' : sasm_data['line_style'],
-        #                          'line_marker': sasm_data['line_marker'],
-        #                          'line_visible' :sasm_data['line_visible']}
-        #         except KeyError:
-        #             line_data = None    #Backwards compatibility
-        #             sasm_data['line_visible'] = True
-
-        #         try:
-        #             line_data['line_marker_edge_color'] = sasm_data['line_marker_edge_color']
-        #             line_data['line_marker_face_color'] = sasm_data['line_marker_face_color']
-        #             line_data['line_errorbar_color'] = sasm_data['line_errorbar_color']
-        #         except KeyError:
-        #             pass #Workspaces <1.3.0 won't have these keys
-
-        #         wx.CallAfter(self.plot_panel.plotSASM, new_sasm,
-        #                       sasm_data['plot_axes'], color = sasm_data['line_color'],
-        #                       line_data = line_data)
-
-        #         #Backwards compatibility
-        #         try:
-        #             legend_label = sasm_data['line_legend_label']
-        #         except KeyError:
-        #             legend_label = ''
-
-        #         wx.CallAfter(self.manipulation_panel.addItem, new_sasm,
-        #                       item_colour = sasm_data['item_font_color'],
-        #                       item_visible = sasm_data['item_selected_for_plot'],
-        #                       legend_label = legend_label)
 
         wx.CallAfter(self.plot_panel.updateLegend, 1, False)
         wx.CallAfter(self.plot_panel.updateLegend, 2, False)
@@ -8305,6 +7940,20 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
 
             if ext == '.wsp':
                 mainworker_cmd_queue.put(['load_workspace', [full_dir_filename]])
+
+            elif ext == '.hdf5':
+                try:
+                    with h5py.File(full_dir_filename, 'r', driver='core',
+                        backing_store=False) as f:
+                        file_type = f.attrs['file_type']
+
+                    if file_type == 'RAW_Workspace':
+                        mainworker_cmd_queue.put(['load_workspace', [full_dir_filename]])
+                    else:
+                        mainworker_cmd_queue.put(('plot', [full_dir_filename]))
+
+                except Exception:
+                    mainworker_cmd_queue.put(('plot', [full_dir_filename]))
 
             elif ext == '.cfg':
                 ret = wx.MessageBox('Are you sure you want to load this config file?',
@@ -10697,9 +10346,12 @@ class IFTPanel(wx.Panel):
 
         self.Thaw()
 
-    def addItem(self, iftm_list, item_colour=RAWGlobals.general_text_color, item_visible=True,
+    def addItem(self, iftm_list, item_colour=None, item_visible=True,
         notsaved=False, legend_label=defaultdict(str)):
         self.underpanel.Freeze()
+
+        if item_colour is None:
+            item_colour = RAWGlobals.general_text_color
 
         if not isinstance(iftm_list, list):
             iftm_list = [iftm_list]
@@ -12086,9 +11738,12 @@ class SECPanel(wx.Panel):
         self.underpanel.Refresh()
         self.underpanel.Thaw()
 
-    def addItem(self, secm_list, item_colour = RAWGlobals.general_text_color, item_visible = True,
+    def addItem(self, secm_list, item_colour=None, item_visible = True,
         notsaved = False, legend_label=defaultdict(str)):
         self.underpanel.Freeze()
+
+        if item_colour is None:
+            item_colour = RAWGlobals.general_text_color
 
         if not isinstance(secm_list, list):
             secm_list = [secm_list]

@@ -1931,3 +1931,180 @@ def test_integrate_image(old_settings):
     assert all(profile.getI() == profile_list[0].getI())
     assert all(profile.getErr() == profile_list[0].getErr())
 
+def test_load_workspace():
+    profiles_list, ifts_list, series_list = raw.load_workspace([os.path.join('.',
+        'data', 'bsa_wsp.hdf5')])
+
+    profile = profiles_list[0]
+    ift = ifts_list[0]
+    series = series_list[0]
+
+    assert len(profiles_list) == 1
+    assert len(ifts_list) == 1
+    assert len(series_list) == 1
+    assert profile.getQ()[0] == 0.00982007901
+    assert profile.getQ()[-1] == 0.279838349
+    assert profile.getI()[0] == 144.7532332997076
+    assert profile.getI()[-1] == 0.549590105409365
+    assert profile.getErr()[0] == 1.4781258441228964
+    assert profile.getErr()[-1] == 0.1543255684874053
+    assert profile.getI().sum() == 12293.578073248686
+    assert len(profile.getQ()) == 469
+    assert len(profile.getI()) == 469
+    assert len(profile.getErr()) == 469
+
+    assert len(ift.q_orig) == 469
+    assert len(ift.i_orig) == 469
+    assert len(ift.err_orig) == 469
+    assert len(ift.i_fit) == 469
+    assert len(ift.q_extrap) == 1487
+    assert len(ift.i_extrap) == 1487
+    assert len(ift.r) == 1469
+    assert len(ift.p) == 1469
+    assert len(ift.err) == 1469
+    assert ift.q_orig[0] == 0.00982007901
+    assert ift.q_orig[-1] == 0.279838349
+    assert ift.i_orig[0] == 144.7532332997076
+    assert ift.i_orig[-1] == 0.549590105409365
+    assert ift.err_orig[0] == 1.4781258441228964
+    assert ift.err_orig[-1] == 0.1543255684874053
+    assert ift.i_orig.sum() == 12293.578073248686
+    assert ift.i_fit[0] == 152.59845840971346
+    assert ift.i_fit[-1] == 0.4947114546026758
+    assert ift.i_fit.sum() == 12347.553010631962
+    assert ift.q_extrap[0] == 0
+    assert ift.q_extrap[-1] == 0.8395150469999999
+    assert ift.i_extrap[0] == 156.6169477247296
+    assert ift.i_extrap[-1] == 0.0018805114591987258
+    assert ift.i_extrap.sum() == 15221.0372304263
+    assert ift.r[0] == 0
+    assert ift.r[20] == 1.1580381471389647
+    assert ift.r[-1] == 85.0
+    assert ift.p[0] == 0.0000E+00
+    assert ift.p[20] == 0.00194358155083648
+    assert ift.p[-1] == 5.597639257427352e-17
+    assert ift.err[0] == 0.0000E+00
+    assert ift.err[20] == 0.00017473202869251959
+    assert ift.err[-1] == 1.3429008337037405e-17
+    assert ift.p.sum() == 215.2464675655781
+
+    assert len(series.file_list) == 324
+    assert series.file_list[0] == '/Users/jessehopkins/Desktop/RAW_Tutorial_Data/series_data/sec_sample_2/BSA_001_0000.dat'
+    assert series.total_i[0] == 10.507738068398014
+    assert series.total_i[-1] == 10.473601708833439
+    assert series.total_i.sum() == 3732.5782999682183
+    assert series.window_size == 5
+    assert series.buffer_range[0][0] == 81
+    assert series.buffer_range[0][1] == 116
+    assert series.sample_range[0][0] == 186
+    assert series.sample_range[0][1] == 204
+    assert series.rg_list[200] == 28.41150938760414
+    assert series.rger_list[200] == 0.2349135800680941
+    assert series.i0_list[200] == 139.71505411030944
+    assert series.i0er_list[200] == 0.45612160083100045
+    assert series.vpmw_list[200] == 69.78401433448022
+    assert series.vcmw_list[200] == 65.62722433215524
+    assert series.vcmwer_list[200] == 8.101063160607701
+    assert series.series_type == 'SEC'
+    assert series._scale_factor == 1.0
+    assert series._offset_value == 0.0
+    assert series._frame_scale_factor == 1.0
+    assert series.mol_type == 'Protein'
+    assert series.mol_density == 0.00083
+    assert not series.already_subtracted
+    assert isinstance(series.average_buffer_sasm, SASM.SASM)
+    assert len(series.subtracted_sasm_list) == 324
+    assert len(series.use_subtracted_sasm) == 324
+    assert series.use_subtracted_sasm[200]
+    assert not series.use_subtracted_sasm[0]
+    assert series.total_i_sub.sum() == 334.09086832005505
+
+def test_load_workspace_legacy():
+    profiles_list, ifts_list, series_list = raw.load_workspace([os.path.join('.',
+        'data', 'bsa_wsp.wsp')])
+
+    profile = profiles_list[0]
+    ift = ifts_list[0]
+    series = series_list[0]
+
+    assert len(profiles_list) == 1
+    assert len(ifts_list) == 1
+    assert len(series_list) == 1
+    assert profile.getQ()[0] == 0.00982007901
+    assert profile.getQ()[-1] == 0.279838349
+    assert profile.getI()[0] == 144.7532332997076
+    assert profile.getI()[-1] == 0.549590105409365
+    assert profile.getErr()[0] == 1.4781258441228964
+    assert profile.getErr()[-1] == 0.1543255684874053
+    assert profile.getI().sum() == 12293.578073248686
+    assert len(profile.getQ()) == 469
+    assert len(profile.getI()) == 469
+    assert len(profile.getErr()) == 469
+
+    assert len(ift.q_orig) == 469
+    assert len(ift.i_orig) == 469
+    assert len(ift.err_orig) == 469
+    assert len(ift.i_fit) == 469
+    assert len(ift.q_extrap) == 1487
+    assert len(ift.i_extrap) == 1487
+    assert len(ift.r) == 1469
+    assert len(ift.p) == 1469
+    assert len(ift.err) == 1469
+    assert ift.q_orig[0] == 0.00982007901
+    assert ift.q_orig[-1] == 0.279838349
+    assert ift.i_orig[0] == 144.7532332997076
+    assert ift.i_orig[-1] == 0.549590105409365
+    assert ift.err_orig[0] == 1.4781258441228964
+    assert ift.err_orig[-1] == 0.1543255684874053
+    assert ift.i_orig.sum() == 12293.578073248686
+    assert ift.i_fit[0] == 152.59845840971346
+    assert ift.i_fit[-1] == 0.4947114546026758
+    assert ift.i_fit.sum() == 12347.553010631962
+    assert ift.q_extrap[0] == 0
+    assert ift.q_extrap[-1] == 0.8395150469999999
+    assert ift.i_extrap[0] == 156.6169477247296
+    assert ift.i_extrap[-1] == 0.0018805114591987258
+    assert ift.i_extrap.sum() == 15221.0372304263
+    assert ift.r[0] == 0
+    assert ift.r[20] == 1.1580381471389647
+    assert ift.r[-1] == 85.0
+    assert ift.p[0] == 0.0000E+00
+    assert ift.p[20] == 0.00194358155083648
+    assert ift.p[-1] == 5.597639257427352e-17
+    assert ift.err[0] == 0.0000E+00
+    assert ift.err[20] == 0.00017473202869251959
+    assert ift.err[-1] == 1.3429008337037405e-17
+    assert ift.p.sum() == 215.2464675655781
+
+    assert len(series.file_list) == 324
+    assert series.file_list[0] == '/Users/jessehopkins/Desktop/RAW_Tutorial_Data/series_data/sec_sample_2/BSA_001_0000.dat'
+    assert series.total_i[0] == 10.507738068398014
+    assert series.total_i[-1] == 10.473601708833439
+    assert series.total_i.sum() == 3732.5782999682183
+    assert series.window_size == 5
+    assert series.buffer_range[0][0] == 81
+    assert series.buffer_range[0][1] == 116
+    assert series.sample_range[0][0] == 186
+    assert series.sample_range[0][1] == 204
+    assert series.rg_list[200] == 28.41150938760414
+    assert series.rger_list[200] == 0.2349135800680941
+    assert series.i0_list[200] == 139.71505411030944
+    assert series.i0er_list[200] == 0.45612160083100045
+    assert series.vpmw_list[200] == 69.78401433448022
+    assert series.vcmw_list[200] == 65.62722433215524
+    assert series.vcmwer_list[200] == 8.101063160607701
+    assert series.series_type == 'SEC'
+    assert series._scale_factor == 1.0
+    assert series._offset_value == 0.0
+    assert series._frame_scale_factor == 1.0
+    assert series.mol_type == 'Protein'
+    assert series.mol_density == 0.00083
+    assert not series.already_subtracted
+    assert isinstance(series.average_buffer_sasm, SASM.SASM)
+    assert len(series.subtracted_sasm_list) == 324
+    assert len(series.use_subtracted_sasm) == 324
+    assert series.use_subtracted_sasm[200]
+    assert not series.use_subtracted_sasm[0]
+    assert series.total_i_sub.sum() == 334.09086832005505
+
+

@@ -37,6 +37,7 @@ import struct
 import json
 import copy
 import collections
+from collections import OrderedDict
 import datetime
 from xml.dom import minidom
 import ast
@@ -1979,6 +1980,7 @@ def inner_load_sasm_hdf5(name):
                 'line_visible'          : name.attrs['line_visible'],
                 'line_marker_face_color' : str(name.attrs['line_marker_face_color']),
                 'line_marker_edge_color' : str(name.attrs['line_marker_edge_color']),
+                'line_marker_size'      : float(name.attrs['line_marker_size']),
                 'line_errorbar_color'   : str(name.attrs['line_errorbar_color']),
                 'line_legend_label'     : str(name.attrs['line_legend_label']),
                 'plot_axes'             : int(name.attrs['plot_axes']),
@@ -2077,6 +2079,7 @@ def inner_load_ift_hdf5(name):
         line_data['r_line_visible'] = name.attrs['r_line_visible']
         line_data['r_line_marker_face_color'] = str(name.attrs['r_line_marker_face_color'])
         line_data['r_line_marker_edge_color'] = str(name.attrs['r_line_marker_edge_color'])
+        line_data['r_line_marker_size'] = float(name.attrs['r_line_marker_size'])
         line_data['r_line_errorbar_color'] = str(name.attrs['r_line_errorbar_color'])
         line_data['r_line_legend_label'] = str(name.attrs['r_line_legend_label'])
 
@@ -2087,6 +2090,7 @@ def inner_load_ift_hdf5(name):
         line_data['qo_line_visible'] = name.attrs['qo_line_visible']
         line_data['qo_line_marker_face_color'] = str(name.attrs['qo_line_marker_face_color'])
         line_data['qo_line_marker_edge_color'] = str(name.attrs['qo_line_marker_edge_color'])
+        line_data['qo_line_marker_size'] = float(name.attrs['qo_line_marker_size'])
         line_data['qo_line_errorbar_color'] = str(name.attrs['qo_line_errorbar_color'])
         line_data['qo_line_legend_label'] = str(name.attrs['qo_line_legend_label'])
 
@@ -2097,6 +2101,7 @@ def inner_load_ift_hdf5(name):
         line_data['qf_line_visible'] = name.attrs['qf_line_visible']
         line_data['qf_line_marker_face_color'] = str(name.attrs['qf_line_marker_face_color'])
         line_data['qf_line_marker_edge_color'] = str(name.attrs['qf_line_marker_edge_color'])
+        line_data['qf_line_marker_size'] = float(name.attrs['qf_line_marker_size'])
         line_data['qf_line_legend_label'] = str(name.attrs['qf_line_legend_label'])
 
 
@@ -2341,6 +2346,11 @@ def inner_load_series(f):
         seriesm_data['line_visible'] = f.attrs['line_visible']
         seriesm_data['line_legend_label'] = str(f.attrs['line_legend_label'])
 
+        try:
+            seriesm_data['line_marker_size'] = float(f.attrs['line_marker_size'])
+        except Exception:
+            pass # Not in RAW < 2.4.1
+
     except Exception:
         pass
 
@@ -2354,6 +2364,11 @@ def inner_load_series(f):
         seriesm_data['calc_line_marker_edge_color'] = str(calc_data.attrs['line_marker_edge_color'])
         seriesm_data['calc_line_visible'] = calc_data.attrs['line_visible']
         seriesm_data['calc_line_legend_label'] = str(calc_data.attrs['line_legend_label'])
+
+        try:
+            seriesm_data['calc_line_marker_size'] = float(calc_data.attrs['line_marker_size'])
+        except Exception:
+            pass # Not in RAW < 2.4.1
 
     except Exception:
         pass
@@ -2642,11 +2657,14 @@ def makeSeriesFile(secm_data, settings):
     new_secm._update()
 
     try:
-        line_data = {'line_color' : str(secm_data['line_color']),
-                     'line_width' : float(secm_data['line_width']),
-                     'line_style' : str(secm_data['line_style']),
-                     'line_marker': str(secm_data['line_marker']),
-                     'line_visible' : str(secm_data['line_visible'])}
+        line_data = {
+            'line_color' : str(secm_data['line_color']),
+            'line_width' : float(secm_data['line_width']),
+            'line_style' : str(secm_data['line_style']),
+            'line_marker': str(secm_data['line_marker']),
+            'line_visible' : str(secm_data['line_visible']),
+            'line_legend_label': str(secm_data['line_legend_label']),
+            }
 
         if line_data['line_visible']:
             line_data['line_visible'] = True
@@ -2660,15 +2678,23 @@ def makeSeriesFile(secm_data, settings):
         except KeyError:
             pass #Version <1.3.0 doesn't have these keys
 
+        try:
+            line_data['line_marker_size'] = float(secm_data['line_marker_size'])
+        except KeyError:
+            pass #Version <2.4.1 doesn't have these keys
+
     except KeyError:
         line_data = None    #Backwards compatibility
 
     try:
-        calc_line_data = {'line_color' : str(secm_data['calc_line_color']),
-                     'line_width' : float(secm_data['calc_line_width']),
-                     'line_style' : str(secm_data['calc_line_style']),
-                     'line_marker': str(secm_data['calc_line_marker']),
-                     'line_visible' : str(secm_data['calc_line_visible'])}
+        calc_line_data = {
+            'line_color' : str(secm_data['calc_line_color']),
+            'line_width' : float(secm_data['calc_line_width']),
+            'line_style' : str(secm_data['calc_line_style']),
+            'line_marker': str(secm_data['calc_line_marker']),
+            'line_visible' : str(secm_data['calc_line_visible']),
+            'line_legend_label': str(secm_data['calc_line_legend_label']),
+            }
 
         if calc_line_data['line_visible']:
             calc_line_data['line_visible'] = True
@@ -2680,6 +2706,11 @@ def makeSeriesFile(secm_data, settings):
             calc_line_data['line_marker_edge_color'] = str(secm_data['calc_line_marker_edge_color'])
         except KeyError:
             pass #Version <1.3.0 doesn't have these keys
+
+        try:
+            calc_line_data['line_marker_size'] = float(secm_data['calc_line_marker_size'])
+        except KeyError:
+            pass #Version <2.4.1 doesn't have these keys
 
     except KeyError:
         calc_line_data = None
@@ -3965,6 +3996,70 @@ def save_series_sasm_list(profile_group, sasm_list, frame_num_offset=0):
             'buffer_profile", will have a separate q vector in that dataset). '
             'If present, column 1 is dQ.')
 
+    # Some code below for saving everything in blocks that are compressible
+    # Only seems to reduce filesize by about 20%, so for now left unfinished
+    # Could come back to this at some point if it's worth it/have more time
+    # if len(sasm_list) > 1:
+    #     save_block_i = all([len(sasm['i']) == len(sasm_list[0]['i']) for sasm in sasm_list[1:]])
+
+    #     save_raw = not all([np.array_equal(sasm['q'], sasm['q_raw'])
+    #             and np.array_equal(sasm['i'], sasm['i_raw']) for sasm in sasm_list])
+    # else:
+    #     save_block_i = False
+    #     save_raw =True #Shouldn't matter
+
+    # if save_raw and save_block_i:
+    #     if not save_single_q_raw:
+    #         q_data = np.column_stack([sasm['q_raw'] for sasm in sasm_list])
+    #         raw_group.create_dataset('q', data=q_data,
+    #             compression='gzip', shuffle=True)
+
+    #         if sasm_list[0]['q_err_raw'] is not None:
+    #             print('here 3')
+    #             q_err_data = np.column_stack([sasm['q_err'] for sasm in sasm_list])
+    #             raw_group.create_dataset('q_uncertainty', data=q_err_data,
+    #                 compression='gzip', shuffle=True)
+
+    #     i_data = np.column_stack([sasm['i_raw'] for sasm in sasm_list])
+    #     err_data = np.column_stack([sasm['err_raw'] for sasm in sasm_list])
+
+    #     raw_group.create_dataset('intensity', data=i_data,
+    #         compression='gzip', shuffle=True)
+    #     raw_group.create_dataset('uncertainty', data=err_data,
+    #         compression='gzip', shuffle=True)
+
+    # if save_block_i:
+    #     if not save_single_q:
+    #         print([sasm['q'] for sasm in sasm_list])
+    #         q_data = np.column_stack([sasm['q'] for sasm in sasm_list])
+    #         q_dset = profile_group.create_dataset('q', data=q_data,
+    #             compression='gzip', shuffle=True)
+
+    #         q_dset.attrs['description'] = ('Each column is the q value for '
+    #             'subsequent profiles in the series')
+
+    #         if sasm_list[0]['q_err'] is not None:
+    #             q_err_data = np.column_stack([sasm['q_err'] for sasm in sasm_list])
+    #             q_err_dset = profile_group.create_dataset('q_uncertainty',
+    #                 data=q_err_data, compression='gzip', shuffle=True)
+
+    #             q_err_dset.attrs['description'] = ('Each column is the q values for '
+    #                 'subsequent profiles in the series.')
+
+    #     i_data = np.column_stack([sasm['i'] for sasm in sasm_list])
+    #     err_data = np.column_stack([sasm['err'] for sasm in sasm_list])
+
+    #     i_dset = profile_group.create_dataset('intensity', data=i_data,
+    #         compression='gzip', shuffle=True)
+    #     err_dset = profile_group.create_dataset('uncertainty', data=err_data,
+    #         compression='gzip', shuffle=True)
+
+    #     i_dset.attrs['description'] = ('Each column is the I(q) values for '
+    #         'subsequent profiles in the series.')
+    #     err_dset.attrs['description'] = ('Each column is the sigma(q) values for '
+    #         'subsequent profiles in the series.')
+
+    # else:
     for j, sasm_data in enumerate(sasm_list):
         frame_num = j + frame_num_offset
         save_series_sasm(profile_group, sasm_data, "{:06d}".format(frame_num),
@@ -3982,6 +4077,7 @@ def save_series(save_name, seriesm, save_gui_data=False):
             seriesm_dict['line_marker'] = seriesm.line.get_marker()
             seriesm_dict['line_marker_face_color'] = seriesm.line.get_markerfacecolor()
             seriesm_dict['line_marker_edge_color'] = seriesm.line.get_markeredgecolor()
+            seriesm_dict['line_marker_size'] = seriesm.line.get_markersize()
             seriesm_dict['line_visible'] = seriesm.line.get_visible()
             seriesm_dict['line_legend_label'] = seriesm.line.get_label()
         except Exception:
@@ -3994,6 +4090,7 @@ def save_series(save_name, seriesm, save_gui_data=False):
             seriesm_dict['calc_line_marker'] = seriesm.calc_line.get_marker()
             seriesm_dict['calc_line_marker_face_color'] = seriesm.calc_line.get_markerfacecolor()
             seriesm_dict['calc_line_marker_edge_color'] = seriesm.calc_line.get_markeredgecolor()
+            seriesm_dict['calc_line_marker_size'] = seriesm.calc_line.get_markersize()
             seriesm_dict['calc_line_visible'] = seriesm.calc_line.get_visible()
             seriesm_dict['calc_line_legend_label'] = seriesm.calc_line.get_label()
         except Exception:
@@ -4042,6 +4139,7 @@ def inner_save_series(f, seriesm_data, save_gui_data):
             f.attrs['line_visible'] = seriesm_data['line_visible']
             f.attrs['line_marker_face_color'] = seriesm_data['line_marker_face_color']
             f.attrs['line_marker_edge_color'] = seriesm_data['line_marker_edge_color']
+            f.attrs['line_marker_size'] = seriesm_data['line_marker_size']
             f.attrs['line_visible'] = seriesm_data['line_visible']
             f.attrs['line_legend_label'] = seriesm_data['line_legend_label']
         except Exception:
@@ -4216,6 +4314,7 @@ def inner_save_series(f, seriesm_data, save_gui_data):
             calc_data.attrs['line_visible'] = seriesm_data['calc_line_visible']
             calc_data.attrs['line_marker_face_color'] = seriesm_data['calc_line_marker_face_color']
             calc_data.attrs['line_marker_edge_color'] = seriesm_data['calc_line_marker_edge_color']
+            calc_data.attrs['line_marker_size'] = seriesm_data['calc_line_marker_size']
             calc_data.attrs['line_visible'] = seriesm_data['calc_line_visible']
             calc_data.attrs['line_legend_label'] = seriesm_data['calc_line_legend_label']
         except Exception:
@@ -4284,6 +4383,7 @@ def save_sasm_hdf5(save_name, sasm, save_gui_data=False):
             sasm_dict['line_marker'] = sasm.line.get_marker()
             sasm_dict['line_marker_face_color'] = sasm.line.get_markerfacecolor()
             sasm_dict['line_marker_edge_color'] = sasm.line.get_markeredgecolor()
+            sasm_dict['line_marker_size'] = sasm.line.get_markersize()
             sasm_dict['line_errorbar_color'] = sasm.err_line[0][0].get_color()
             sasm_dict['line_visible'] = sasm.line.get_visible()
             if sasm.line.get_label() != sasm_dict['parameters']['filename']:
@@ -4337,11 +4437,13 @@ def inner_save_sasm_hdf5(f, sasm_data, save_gui_data):
             f.attrs['line_visible'] = sasm_data['line_visible']
             f.attrs['line_marker_face_color'] = sasm_data['line_marker_face_color']
             f.attrs['line_marker_edge_color'] = sasm_data['line_marker_edge_color']
+            f.attrs['line_marker_size'] = sasm_data['line_marker_size']
             f.attrs['line_errorbar_color'] = sasm_data['line_errorbar_color']
             f.attrs['line_legend_label'] = sasm_data['line_legend_label']
             f.attrs['plot_axes'] = sasm_data['plot_axes']
         except Exception:
             pass
+
 
     save_series_sasm(f, sasm_data, "data")
 
@@ -4357,6 +4459,7 @@ def save_ift_hdf5(save_name, iftm, save_gui_data=False):
             iftm_dict['r_line_marker'] = iftm.r_line.get_marker()
             iftm_dict['r_line_marker_face_color'] = iftm.r_line.get_markerfacecolor()
             iftm_dict['r_line_marker_edge_color'] = iftm.r_line.get_markeredgecolor()
+            iftm_dict['r_line_marker_size'] = iftm.r_line.get_markersize()
             iftm_dict['r_line_errorbar_color'] = iftm.r_err_line[0][0].get_color()
             iftm_dict['r_line_visible'] = iftm.r_line.get_visible()
             if iftm.r_line.get_label() != iftm_dict['parameters']['filename']+'_P(r)':
@@ -4370,6 +4473,7 @@ def save_ift_hdf5(save_name, iftm, save_gui_data=False):
             iftm_dict['qo_line_marker'] = iftm.qo_line.get_marker()
             iftm_dict['qo_line_marker_face_color'] = iftm.qo_line.get_markerfacecolor()
             iftm_dict['qo_line_marker_edge_color'] = iftm.qo_line.get_markeredgecolor()
+            iftm_dict['qo_line_marker_size'] = iftm.qo_line.get_markersize()
             iftm_dict['qo_line_errorbar_color'] = iftm.qo_err_line[0][0].get_color()
             iftm_dict['qo_line_visible'] = iftm.qo_line.get_visible()
             if iftm.qo_line.get_label() != iftm_dict['parameters']['filename']+'_Exp':
@@ -4383,6 +4487,7 @@ def save_ift_hdf5(save_name, iftm, save_gui_data=False):
             iftm_dict['qf_line_marker'] = iftm.qf_line.get_marker()
             iftm_dict['qf_line_marker_face_color'] = iftm.qf_line.get_markerfacecolor()
             iftm_dict['qf_line_marker_edge_color'] = iftm.qf_line.get_markeredgecolor()
+            iftm_dict['qf_line_marker_size'] = iftm.qf_line.get_markersize()
             iftm_dict['qf_line_visible'] = iftm.qf_line.get_visible()
             if iftm.qo_line.get_label() != iftm_dict['parameters']['filename']+'_Fit':
                 iftm_dict['qf_line_legend_label'] = iftm.qf_line.get_label()
@@ -4428,6 +4533,7 @@ def inner_save_ift_hdf5(f, iftm_data, save_gui_data):
             f.attrs['r_line_visible'] = iftm_data['r_line_visible']
             f.attrs['r_line_marker_face_color'] = iftm_data['r_line_marker_face_color']
             f.attrs['r_line_marker_edge_color'] = iftm_data['r_line_marker_edge_color']
+            f.attrs['r_line_marker_size'] = iftm_data['r_line_marker_size']
             f.attrs['r_line_errorbar_color'] = iftm_data['r_line_errorbar_color']
             f.attrs['r_line_legend_label'] = iftm_data['r_line_legend_label']
 
@@ -4438,6 +4544,7 @@ def inner_save_ift_hdf5(f, iftm_data, save_gui_data):
             f.attrs['qo_line_visible'] = iftm_data['qo_line_visible']
             f.attrs['qo_line_marker_face_color'] = iftm_data['qo_line_marker_face_color']
             f.attrs['qo_line_marker_edge_color'] = iftm_data['qo_line_marker_edge_color']
+            f.attrs['qo_line_marker_size'] = iftm_data['qo_line_marker_size']
             f.attrs['qo_line_errorbar_color'] = iftm_data['qo_line_errorbar_color']
             f.attrs['qo_line_legend_label'] = iftm_data['qo_line_legend_label']
 
@@ -4448,6 +4555,7 @@ def inner_save_ift_hdf5(f, iftm_data, save_gui_data):
             f.attrs['qf_line_visible'] = iftm_data['qf_line_visible']
             f.attrs['qf_line_marker_face_color'] = iftm_data['qf_line_marker_face_color']
             f.attrs['qf_line_marker_edge_color'] = iftm_data['qf_line_marker_edge_color']
+            f.attrs['qf_line_marker_size'] = iftm_data['qf_line_marker_size']
             f.attrs['qf_line_legend_label'] = iftm_data['qf_line_legend_label']
         except Exception:
             pass
@@ -4883,16 +4991,11 @@ def saveSeriesData(save_path, selected_secm, delim=','):
                 f.write(calc_str)
             f.write('%s\n' %(selected_secm.file_list[a].split('/')[-1]))
 
-
-def saveWorkspace(sasm_dict, save_path):
-
-    with open(save_path, 'wb') as f:
-
-        pickle.dump(sasm_dict, f, protocol=2)
-
-
-def new_saveWorkspace(sasm_list, ift_list, series_list, save_path):
+def saveWorkspace(sasm_list, ift_list, series_list, save_path):
     with h5py.File(save_path, 'w', driver='core', libver='earliest') as save_file:
+        save_file.attrs['file_type'] = 'RAW_Workspace'
+        save_file.attrs['raw_version'] = RAWGlobals.version
+
         sasm_group = save_file.create_group('profiles')
         for sasm in sasm_list:
             save_sasm_hdf5(sasm_group, sasm, True)
@@ -5482,28 +5585,161 @@ def saveDenssData(filename, ambi_data, res_data, model_plots, setup_data,
 
     return save_string
 
-def loadWorkspace(load_path):
+def loadWorkspace_legacy(load_path, raw_settings):
     try:
         with open(load_path, 'rb') as f:
             if six.PY3:
-                sasm_dict = pickle.load(f, encoding='latin-1')
+                item_dict = pickle.load(f, encoding='latin-1')
             else:
-                sasm_dict = pickle.load(f)
+                item_dict = pickle.load(f)
     except (ImportError, EOFError):
         try:
             with open(load_path, 'r') as f:
                 if six.PY3:
-                    sasm_dict = pickle.load(f, encoding='latin-1')
+                    item_dict = pickle.load(f, encoding='latin-1')
                 else:
-                    sasm_dict = pickle.load(f)
+                    item_dict = pickle.load(f)
         except (ImportError, EOFError):
             raise SASExceptions.UnrecognizedDataFormat(('Workspace could not be '
                 'loaded. It may be an invalid file type, or the file may be '
                 'corrupted.'))
 
-    return sasm_dict
+    profiles = []
+    ifts = []
+    series = []
 
-def new_loadWorkspace(load_path, raw_settings):
+    if isinstance(item_dict, OrderedDict):
+        keylist = list(item_dict.keys())
+    else:
+        keylist = sorted(item_dict.keys())
+
+    for each_key in keylist:
+        if str(each_key).startswith('secm'):
+
+            secm_data = item_dict[each_key]
+
+            new_secm, line_data, calc_line_data, item_data = makeSeriesFile(
+                secm_data, raw_settings)
+
+            series.append([new_secm, line_data, calc_line_data, item_data])
+
+        elif str(each_key).startswith('ift'):
+            iftm_data = item_dict[each_key]
+            p = iftm_data['p_raw']
+            r = iftm_data['r_raw']
+            err = iftm_data['err_raw']
+            i_orig = iftm_data['i_orig_raw']
+            q_orig = iftm_data['q_orig_raw']
+            err_orig = iftm_data['err_orig_raw']
+            i_fit = iftm_data['i_fit_raw']
+            parameters = iftm_data['parameters']
+            i_extrap = iftm_data['i_extrap_raw']
+            q_extrap = iftm_data['q_extrap_raw']
+
+            new_iftm = SASM.IFTM(p, r, err, i_orig, q_orig, err_orig, i_fit,
+                parameters, i_extrap, q_extrap)
+
+            line_data = {}
+            line_data['r_line_color'] = iftm_data['r_line_color']
+            line_data['r_line_width'] = iftm_data['r_line_width']
+            line_data['r_line_style'] = iftm_data['r_line_style']
+            line_data['r_line_marker'] = iftm_data['r_line_marker']
+            line_data['r_line_visible'] = iftm_data['r_line_visible']
+
+            line_data['qo_line_color'] = iftm_data['qo_line_color']
+            line_data['qo_line_width'] = iftm_data['qo_line_width']
+            line_data['qo_line_style'] = iftm_data['qo_line_style']
+            line_data['qo_line_marker'] = iftm_data['qo_line_marker']
+            line_data['qo_line_visible'] = iftm_data['qo_line_visible']
+
+            line_data['qf_line_color'] = iftm_data['qf_line_color']
+            line_data['qf_line_width'] = iftm_data['qf_line_width']
+            line_data['qf_line_style'] = iftm_data['qf_line_style']
+            line_data['qf_line_marker'] = iftm_data['qf_line_marker']
+            line_data['qf_line_visible'] = iftm_data['qf_line_visible']
+
+            try:
+                line_data['r_line_marker_edge_color'] = iftm_data['r_line_marker_edge_color']
+                line_data['r_line_marker_face_color'] = iftm_data['r_line_marker_face_color']
+                line_data['r_line_errorbar_color'] = iftm_data['r_line_errorbar_color']
+                line_data['qo_line_marker_edge_color'] = iftm_data['qo_line_marker_edge_color']
+                line_data['qo_line_marker_face_color'] = iftm_data['qo_line_marker_face_color']
+                line_data['qo_line_errorbar_color'] = iftm_data['qo_line_errorbar_color']
+                line_data['qf_line_marker_edge_color'] = iftm_data['qf_line_marker_edge_color']
+                line_data['qf_line_marker_face_color'] = iftm_data['qf_line_marker_face_color']
+
+            except KeyError:
+                pass #Workspaces <1.3.0 won't have these keys
+
+            item_data = {
+                'item_font_color'   : iftm_data['item_font_color'],
+                'item_selected_for_plot'    : iftm_data['item_selected_for_plot'],
+            }
+
+            ifts.append([new_iftm, line_data, item_data])
+
+        else:
+            #Backwards compatability requires us to not test the sasm prefix
+            sasm_data = item_dict[each_key]
+
+            if 'q_binned' in sasm_data:
+                q = sasm_data['q_binned']
+                i = sasm_data['i_binned']
+                err = sasm_data['err_binned']
+            else:
+                q = sasm_data['q_raw']
+                i = sasm_data['i_raw']
+                err = sasm_data['err_raw']
+
+            try:
+                q_err = sasm_data['q_err_raw']
+            except KeyError:
+                q_err = None #No q_err data before 2.1.0.
+
+            new_sasm = SASM.SASM(i, q, err, sasm_data['parameters'], q_err)
+
+            new_sasm.setScaleValues(sasm_data['scale_factor'], sasm_data['offset_value'],
+                sasm_data['q_scale_factor'])
+
+            new_sasm.setQrange(sasm_data['selected_qrange'])
+
+            try:
+                new_sasm.setParameter('analysis', sasm_data['parameters_analysis'])
+            except KeyError:
+                pass
+
+            new_sasm._update()
+
+            try:
+                line_data = {'line_color' : sasm_data['line_color'],
+                             'line_width' : sasm_data['line_width'],
+                             'line_style' : sasm_data['line_style'],
+                             'line_marker': sasm_data['line_marker'],
+                             'line_visible' :sasm_data['line_visible']}
+            except KeyError:
+                line_data = None    #Backwards compatibility
+                sasm_data['line_visible'] = True
+
+            try:
+                line_data['line_marker_edge_color'] = sasm_data['line_marker_edge_color']
+                line_data['line_marker_face_color'] = sasm_data['line_marker_face_color']
+                line_data['line_errorbar_color'] = sasm_data['line_errorbar_color']
+            except KeyError:
+                pass #Workspaces <1.3.0 won't have these keys
+
+            line_data['plot_axes'] = sasm_data['plot_axes']
+
+            item_data = {
+                'item_font_color':  sasm_data['item_font_color'],
+                'item_selected_for_plot':  sasm_data['item_selected_for_plot'],
+            }
+
+
+            profiles.append([new_sasm, line_data, item_data])
+
+    return profiles, ifts, series
+
+def loadWorkspace(load_path, raw_settings):
     with h5py.File(load_path, 'r', driver='core', backing_store=False) as load_file:
         profiles = []
         ifts = []

@@ -434,6 +434,57 @@ def load_and_integrate_images(filename_list, settings, return_all_images=False):
 
     return profile_list, img_list
 
+def load_workspace(filename_list, settings=None):
+    """
+    Loads in profiles, IFTs, and series saved in a RAW workspace.
+
+    Parameters
+    ----------
+    filename_list: list
+        A listo f strings containing the full path to each workspace file to be
+        loaded in.
+    settings: :class:`bioxtasraw.RAWSettings.RAWSettings`, optional
+        The RAW settings to be used when loading in the files, such as the
+        calibration values used when radially averaging images. Default is
+        None.
+
+    Returns
+    -------
+    profile_list: list
+        A list of individual scattering profile (:class:`bioxtasraw.SASM.SASM`)
+        items loaded in, including those obtained from radially averaging any
+        images.
+    ift_list: list
+        A list of individual IFT (:class:`bioxtasraw.SASM.IFTM`) items loaded in.
+    series_list: list
+        A list of individual series (:class:`bioxtasraw.SECM.SECM`) items
+        loaded in.
+    """
+    if settings is None:
+        settings = __default_settings
+
+    profile_list = []
+    ift_list = []
+    series_list = []
+
+    for fname in filename_list:
+        if os.path.splitext(fname)[1] != '.wsp':
+            profiles, ifts, series = SASFileIO.loadWorkspace(fname, settings)
+        else:
+            profiles, ifts, series = SASFileIO.loadWorkspace_legacy(fname, settings)
+
+        for pdata in profiles:
+            profile_list.append(pdata[0])
+
+        for idata in ifts:
+            ift_list.append(idata[0])
+
+        for sdata in series:
+            series_list.append(sdata[0])
+
+    return profile_list, ift_list, series_list
+
+
 def load_counter_values(filename_list, settings, new_filename_list=[]):
     """
     Loads in the counter values from a separate header file associated with
