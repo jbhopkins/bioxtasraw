@@ -838,6 +838,30 @@ def save_report(fname, datadir='.', profiles=[], ifts=[], series=[],
     RAWReport.make_report_from_raw(fname, datadir, profiles, ifts, series,
         __default_settings, dammif_data, denss_data)
 
+def save_workspace(fname, datadir='.', profiles=[], ifts=[], series=[]):
+    """
+    Saves a RAW workspace of the input data.
+
+    Parameters
+    ----------
+    fname: str
+        The output filename without the directory path.
+    datadir: str, optional
+        The directory to save the workspace in. If no directory is provided,
+        the current directory is used.
+    profiles: list
+        A list of :class:`bioxtasraw.SASM.SASM` profiles to add to the workspace.
+    ifts: list
+        A list of :class:`bioxtasraw.SASM.IFTM` IFTs to add to the workspace.
+    series: list
+        A list of :class:`bioxtasraw.SECM.SECM` series to add to the workspace.
+    """
+    datadir = os.path.abspath(os.path.expanduser(datadir))
+    fname = os.path.splitext(fname)[0] + '.hdf5'
+    save_path = os.path.join(datadir, fname)
+
+    SASFileIO.saveWorkspace(profiles, ifts, series, save_path)
+
 def average(profiles, forced=False, copy_metadata=True):
     """
     Averages the input profiles into a single averaged profile. Note that

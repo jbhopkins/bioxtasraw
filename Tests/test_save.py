@@ -335,3 +335,9 @@ def test_save_report_series_with_regals(bsa_series, temp_directory):
     raw.save_report('test_series_regals.pdf', temp_directory, series=[bsa_series])
 
     assert os.path.exists(os.path.join(temp_directory, 'test_series_regals.pdf'))
+
+def test_save_workspace(gi_sub_profile, gi_gnom_ift, bsa_series, temp_directory):
+    raw.save_workspace('test_wsp.hdf5', temp_directory, [gi_sub_profile,],
+        [gi_gnom_ift,], [bsa_series,])
+
+    assert os.path.exists(os.path.join(temp_directory, 'test_wsp.hdf5'))

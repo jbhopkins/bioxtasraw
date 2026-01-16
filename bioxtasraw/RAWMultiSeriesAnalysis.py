@@ -1100,41 +1100,68 @@ class MultiSeriesRangePanel(wx.ScrolledWindow):
         load_changes = self.series_frame.get_has_changes('load')
 
         if load_changes:
-            self._load_data()
-            self.series_frame.set_has_changes('load', False)
+            loading = self._load_data()
+            if loading:
+                self.series_frame.set_has_changes('load', False)
 
     def _load_data(self):
-        self.series_frame.showBusy(True, 'Loading series data')
         self.load_series_data = self.series_frame.load_ctrl.get_series_data()
 
-        self.sasm_list = []
+        if len(self.load_series_data) > 1:
+            series_lens = [len(series_data['files']) == len(self.load_series_data[0]['files'])
+                for series_data in self.load_series_data[1:]]
+            series_equal = all(series_lens)
 
-        if self.single_proc:
-            self.executor = ThreadPoolExecutor()
         else:
-            nproc = min(os.cpu_count(), 3)
-            self.executor = multiprocessing.Pool(nproc)
+            series_equal = True
 
-        self.series_futures = []
+        if series_equal:
+            self.series_frame.showBusy(True, 'Loading series data')
 
-        for series_data in self.load_series_data:
-            if series_data['series'] is None:
-                if self.single_proc:
-                    series_future = self.executor.submit(RAWAPI.load_profiles,
-                        series_data['files'], self.series_frame.raw_settings)
-                else:
-                    settings = copy.deepcopy(self.series_frame.raw_settings)
-                    series_future = self.executor.apply_async(RAWAPI.load_profiles,
-                        args=(series_data['files'], settings))
+            self.sasm_list = []
+
+            if self.single_proc:
+                self.executor = ThreadPoolExecutor()
             else:
-                series_future = DummyLoadFuture(series_data['series'])
+                nproc = min(os.cpu_count(), 3)
+                self.executor = multiprocessing.Pool(nproc)
 
-            self.series_futures.append(series_future)
+            self.series_futures = []
 
-        if not self.single_proc:
-            self.executor.close()
+            for series_data in self.load_series_data:
+                if series_data['series'] is None:
+                    if self.single_proc:
+                        series_future = self.executor.submit(RAWAPI.load_profiles,
+                            series_data['files'], self.series_frame.raw_settings)
+                    else:
+                        settings = copy.deepcopy(self.series_frame.raw_settings)
+                        series_future = self.executor.apply_async(RAWAPI.load_profiles,
+                            args=(series_data['files'], settings))
+                else:
+                    series_future = DummyLoadFuture(series_data['series'])
 
-        self.loading_timer.Start(1000)
+                self.series_futures.append(series_future)
+
+            if not self.single_proc:
+                self.executor.close()
+
+            self.loading_timer.Start(1000)
+
+            loading = True
+
+        else:
+            series_mismatch = [str(val[0]+2) for val in np.argwhere([not val
+                for val in series_lens])]
+            msg = ("All series must be equal length. The following series "
+                "are not the same length as the first series: " + ', '.join(
+                    series_mismatch))
+            wx.CallAfter(self.series_frame.main_frame.showMessageDialog,
+                self.series_frame, msg, "Cannot load files", wx.ICON_ERROR|wx.OK)
+
+            loading = False
+
+        return loading
+
 
     def _on_loading_timer(self, evt):
         if self.single_proc:
