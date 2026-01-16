@@ -1847,6 +1847,8 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
         self.cal_offset = wx.TextCtrl(cal_box, value='0',
             validator=RAWCustomCtrl.CharValidator('float_sci_neg'))
         self.cal_in_header = wx.CheckBox(cal_box, label='Calibration in header')
+        self.do_cal = wx.CheckBox(cal_box, label='Do Calibration')
+        self.do_cal.SetValue(True)
 
         cal_sub_sizer = wx.FlexGridSizer(cols=2, hgap=self._FromDIP(5),
             vgap=self._FromDIP(5))
@@ -1872,6 +1874,8 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
         cal_sizer.Add(cal_sub_sizer, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.EXPAND,
             border=self._FromDIP(5))
         cal_sizer.Add(self.cal_in_header, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
+            border=self._FromDIP(5))
+        cal_sizer.Add(self.do_cal, flag=wx.LEFT|wx.RIGHT|wx.BOTTOM,
             border=self._FromDIP(5))
 
 
@@ -2800,6 +2804,7 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             cal_save_key = self.cal_result_key.GetValue()
             cal_offset = self.cal_offset.GetValue()
             cal_in_header = self.cal_in_header.GetValue()
+            do_cal = self.do_cal.GetValue()
 
             if not cal_in_header:
                 try:
@@ -2811,8 +2816,8 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
                 if (cal_val_key != '' and cal_save_key != '' and cal_offset != ''
                     and self._cal_x is not None and self._cal_y is not None):
-                    cal_data = [cal_val_key, cal_save_key, cal_offset, self._cal_x,
-                        self._cal_y]
+                    cal_data = [cal_val_key, cal_save_key, cal_offset, do_cal,
+                        self._cal_x, self._cal_y]
                 else:
                     cal_data = []
             else:
@@ -2872,7 +2877,7 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
             self._additional_calc_settings = {
                 'cal_in_header' : cal_in_header,
-                'qbin_mode'    : qbin_mode,
+                'qbin_mode'     : qbin_mode,
             }
 
             (sub_series, rg, rger, i0, i0er, vcmw, vcmwer, vpmw,
@@ -3007,8 +3012,13 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
         self.cal_in_header.SetValue(settings['cal_in_header'])
 
         if len(settings['cal_data']) > 0:
-            (cal_val_key, cal_save_key, cal_offset, self._cal_x,
-                self._cal_y) = settings['cal_data']
+            if len(settings['cal_data']) == 6:
+                (cal_val_key, cal_save_key, cal_offset, do_cal, self._cal_x,
+                    self._cal_y) = settings['cal_data']
+                self.do_cal.SetValue(do_cal)
+            else:
+                (cal_val_key, cal_save_key, cal_offset, self._cal_x,
+                    self._cal_y) = settings['cal_data']
 
             self.cal_x_key.SetStringSelection(cal_val_key)
             self.cal_result_key.SetValue(cal_save_key)

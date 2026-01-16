@@ -7744,11 +7744,13 @@ def multi_series_calc(series_input, sample_range, buffer_range=[], do_baseline=F
         the calibration, calibration result key to be added to the profiles
         'counters' dictionary that contains the output value for the calibration,
         calibration x_offset value that is an offset applied to the calibration
-        input value before calibration is carried out, array of x (input)
+        input value before calibration is carried out, boolean flag that indicates
+        whether to do the calibration or not, array of x (input)
         calibration values, array of y (output) calibration values. A 1D
         linear interpolated function y=f(x) will then be created and the
         calibration value for each profile in each series will be calculated
         using the reference key value as the x value plus the offset value.
+        E.g.: [cal_val_key, cal_save_key, cal_offset, do_cal, cal_x, cal_y]]
     window_size: int, optional
         The size of the average window used when calculating Rg and MW.
         So if the window is 5, 5 a window is size 5 is slid along the series,
@@ -7958,22 +7960,26 @@ def multi_series_calc(series_input, sample_range, buffer_range=[], do_baseline=F
 
     # Next do time (or other) point calibration
     calibration = []
+
     if len(cal_data) > 0:
-        x_cal = cal_data[3]
-        y_cal = cal_data[4]
-        cal_interp = scipy.interpolate.interp1d(x_cal, y_cal)
+        do_cal = cal_data[3]
 
-        cal_val_key = cal_data[0]
-        cal_save_key = cal_data[1]
-        cal_offset = cal_data[2]
+        if do_cal:
+            x_cal = cal_data[4]
+            y_cal = cal_data[5]
+            cal_interp = scipy.interpolate.interp1d(x_cal, y_cal)
 
-        for sasm in sub_sasms:
-            ctr_dict = sasm.getParameter('counters')
-            val = float(ctr_dict[cal_val_key])+cal_offset
-            cal_val = cal_interp(val)
-            ctr_dict[cal_save_key] = cal_val
-            sasm.setParameter('counters', ctr_dict)
-            calibration.append(cal_val)
+            cal_val_key = cal_data[0]
+            cal_save_key = cal_data[1]
+            cal_offset = cal_data[2]
+
+            for sasm in sub_sasms:
+                ctr_dict = sasm.getParameter('counters')
+                val = float(ctr_dict[cal_val_key])+cal_offset
+                cal_val = cal_interp(val)
+                ctr_dict[cal_save_key] = cal_val
+                sasm.setParameter('counters', ctr_dict)
+                calibration.append(cal_val)
 
     calibration = np.array(calibration)
 
