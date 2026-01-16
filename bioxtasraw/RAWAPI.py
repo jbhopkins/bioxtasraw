@@ -7976,7 +7976,10 @@ def multi_series_calc(series_input, sample_range, buffer_range=[], do_baseline=F
             for sasm in sub_sasms:
                 ctr_dict = sasm.getParameter('counters')
                 val = float(ctr_dict[cal_val_key])+cal_offset
-                cal_val = cal_interp(val)
+                try:
+                    cal_val = cal_interp(val)
+                except ValueError:
+                    raise SASExceptions.DataNotCompatible(val)
                 ctr_dict[cal_save_key] = cal_val
                 sasm.setParameter('counters', ctr_dict)
                 calibration.append(cal_val)

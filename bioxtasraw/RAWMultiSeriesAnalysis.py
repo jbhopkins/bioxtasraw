@@ -59,6 +59,7 @@ import bioxtasraw.RAWGlobals as RAWGlobals
 import bioxtasraw.SASUtils as SASUtils
 import bioxtasraw.RAWAnalysis as RAWAnalysis
 import bioxtasraw.RAWAPI as RAWAPI
+import bioxtasraw.SASExceptions as SASExceptions
 
 class MultiSeriesFrame(wx.Frame):
 
@@ -2732,6 +2733,10 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
         self.proc_thread.daemon = True
         self.proc_thread.start()
 
+    def _cleanup_process_data(self):
+        self.run_calcs.Enable()
+        self.series_frame.showBusy(False)
+
     def _inner_process_data(self):
         (series_data, buffer_valid, buffer_range_list, sample_valid,
             sample_range_list, baseline_valid, bl_type, bl_start_range,
@@ -2840,6 +2845,8 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
                 if bad_cal_offset:
                     msg += ('- The calibration offset is not a number.\n')
 
+                wx.CallAfter(self._cleanup_process_data)
+
                 wx.CallAfter(self.series_frame.main_frame.showMessageDialog,
                     self.series_frame, msg,
                     "Multi-series processing settings invalid",
@@ -2880,9 +2887,22 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
                 'qbin_mode'     : qbin_mode,
             }
 
-            (sub_series, rg, rger, i0, i0er, vcmw, vcmwer, vpmw,
-                cal_vals) = RAWAPI.multi_series_calc(self.series_sasm_list,
-                sample_range_list, buffer_range_list, **self.calc_args)
+            try:
+                (sub_series, rg, rger, i0, i0er, vcmw, vcmwer, vpmw,
+                    cal_vals) = RAWAPI.multi_series_calc(self.series_sasm_list,
+                    sample_range_list, buffer_range_list, **self.calc_args)
+
+            except SASExceptions.DataNotCompatible as e:
+                wx.CallAfter(self._cleanup_process_data)
+
+                msg = ('A value ({}) in the calibration input is outside of the '
+                    'selected calibration data range.'.format(e.parameter))
+                wx.CallAfter(self.series_frame.main_frame.showMessageDialog,
+                    self.series_frame, msg,
+                    "Multi-series calibration invalid",
+                    wx.ICON_ERROR|wx.OK)
+
+                return
 
             if cal_in_header:
                 cal_vals = np.array([sasm.getParameter('counters')[cal_save_key]
@@ -2931,8 +2951,6 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
             wx.CallAfter(self._update_processed_data)
 
     def _update_processed_data(self):
-        self.series_frame.showBusy(False)
-
         self.proc_thread.join()
 
         if len(self.multi_series_results['cal_vals']) > 0:
@@ -2953,7 +2971,8 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
         self.plot_series_data()
 
         self.series_frame.set_has_changes('range', False)
-        self.run_calcs.Enable()
+
+        self._cleanup_process_data()
 
     def get_settings(self):
         settings = {
