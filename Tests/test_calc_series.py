@@ -623,7 +623,7 @@ def test_multi_series_bin_q_factor(multiseries_buffer, multiseries_sample):
 
 def test_multi_series_cal(multiseries_buffer, multiseries_sample):
     results = raw.multi_series_calc([multiseries_buffer, multiseries_sample],
-        [[1,1]], [[0,0]], cal_data=['number', 'cal', 1, [0, 15], [0, 30]])
+        [[1,1]], [[0,0]], cal_data=['number', 'cal', 1, True, [0, 15], [0, 30]])
 
     assert np.mean(results[1]) == 33.75946771888064
     assert np.mean(results[5]) == 149.20802773846773

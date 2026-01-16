@@ -1,6 +1,46 @@
 Changes
 ============
 
+2.4.1
+----------
+
+Release date: 2026-01-21
+
+Overview
+^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 2.4.1. This is a
+bug fix release. It also fixes compatibility issues with ATSAS 4.1.3. The
+other change of note is that it introduces a new workspace save format.
+Workspaces now save as .hdf5 files. This fixes compatibility issues
+that could occur with old-style workspaces saved from different versions
+of RAW. It also results in significantly smaller file sizes for workspaces
+with series in them. Old style workspace files (.wsp) can still be loaded,
+but all new workspaces will be saved as .hdf5 files, and those will require
+RAW version 2.4.1 or newer to load.
+
+All changes:
+^^^^^^^^^^^^^
+*   Workspaces are now saved as hdf5 files, which fixes compatibility issues
+    that could occur with old-style workspaces saved from different versions
+    of RAW. Also results in significantly smaller file sizes for workspaces
+    with series in them.
+*   Fixed a bug where data with calibration input values outside of the
+    selected calibration data range would cause an uncaught error in the
+    multi-series analysis processing.
+*   Added ability to toggle calibration on/off for multi-series analysis.
+*   Added a check as to whether all series are equal length before loading
+    the series in the multi-series analysis panel.
+*   Fixed a bug that would occur when using loaded settings for multi-series
+    analysis on linux and windows.
+*   Fixed a bug on linux and windows where after doing multi-series analysis
+    you wouldn't be able to star an item in the series control panel.
+*   Added autoloading for old-style BioCAT filenames to the multi-series
+    analysis panel.
+*   Fixed compatibility issues with ATSAS 4.1.3.
+*   Added save and load workspace functions to the API.
+
+
 2.4.0
 ----------
 

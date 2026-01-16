@@ -2904,6 +2904,11 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
                 return
 
+            except Exception:
+                wx.CallAfter(self._cleanup_process_data)
+                raise
+                return
+
             if cal_in_header:
                 cal_vals = np.array([sasm.getParameter('counters')[cal_save_key]
                     for sasm in sub_series.getAllSASMs('sub')])
