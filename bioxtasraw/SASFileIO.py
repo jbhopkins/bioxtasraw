@@ -4112,7 +4112,15 @@ def save_series(save_name, seriesm, save_gui_data=False):
         is_hdf5 = False
 
     if is_hdf5:
-        series_group = save_name.create_group(seriesm.getParameter('filename'))
+        gname = seriesm.getParameter('filename')
+        if gname in save_name.keys():
+            gname = gname +'_2'
+            j = 2
+            while gname in save_name.keys():
+                j += 1
+                gname = '_'.join(gname.split('_')[:-1]) + '_{}'.format(j)
+
+        series_group = save_name.create_group(gname)
         inner_save_series(series_group, seriesm_data, save_gui_data)
     else:
         with h5py.File(save_name, 'w', driver='core', libver='earliest') as f:
@@ -4413,7 +4421,15 @@ def save_sasm_hdf5(save_name, sasm, save_gui_data=False):
         is_hdf5 = False
 
     if is_hdf5:
-        sasm_group = save_name.create_group(sasm.getParameter('filename'))
+        gname = sasm.getParameter('filename')
+        if gname in save_name.keys():
+            gname = gname +'_2'
+            j = 2
+            while gname in save_name.keys():
+                j += 1
+                gname = '_'.join(gname.split('_')[:-1]) + '_{}'.format(j)
+
+        sasm_group = save_name.create_group(gname)
         inner_save_sasm_hdf5(sasm_group, sasm_data, save_gui_data)
     else:
         with h5py.File(save_name, 'w', driver='core', libver='earliest') as f:
@@ -4510,7 +4526,15 @@ def save_ift_hdf5(save_name, iftm, save_gui_data=False):
         is_hdf5 = False
 
     if is_hdf5:
-        iftm_group = save_name.create_group(iftm.getParameter('filename'))
+        gname = iftm.getParameter('filename')
+        if gname in save_name.keys():
+            gname = gname +'_2'
+            j = 2
+            while gname in save_name.keys():
+                j += 1
+                gname = '_'.join(gname.split('_')[:-1]) + '_{}'.format(j)
+
+        iftm_group = save_name.create_group(gname)
         inner_save_ift_hdf5(iftm_group, iftm_data, save_gui_data)
     else:
         with h5py.File(save_name, 'w', driver='core', libver='earliest') as f:
@@ -5747,19 +5771,16 @@ def loadWorkspace(load_path, raw_settings):
 
         for p in load_file['profiles']:
             sasm, line_data, item_data = load_sasm_hdf5(load_file['profiles'][p])
-            sasm.setParameter('filename', p)
             profiles.append([sasm, line_data, item_data])
 
         for i in load_file['ifts']:
             iftm, line_data, item_data = load_ift_hdf5(load_file['ifts'][i])
-            iftm.setParameter('filename', i)
             ifts.append([iftm, line_data, item_data])
 
 
         for s in load_file['series']:
             secm_data = load_series(load_file['series'][s])
             new_secm, line_data, calc_line_data, item_data = makeSeriesFile(secm_data, raw_settings)
-            new_secm.setParameter('filename', s)
             series.append([new_secm, line_data, calc_line_data, item_data])
 
     return profiles, ifts, series
