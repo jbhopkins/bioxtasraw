@@ -13312,10 +13312,12 @@ class SeriesControlPanel(wx.Panel):
                     flist = glob.glob(name2+'*_{}.dat'.format(frame))
                     if len(flist) > 0:
                         fname = flist[0]
+                    else:
+                        fname = None
 
                     if os.path.isfile(name+'.dat'):
                         file_list.append(name+'.dat')
-                    elif os.path.isfile(fname):
+                    elif fname is not None and os.path.isfile(fname):
                         file_list.append(fname)
                     elif os.path.isfile(name+'.h5'):
                         file_list.append(name+'.h5')
@@ -13705,8 +13707,8 @@ class MaskingPanel(scrolled.ScrolledPanel):
 
         sizer.Add(self.selector_choice, 1, wx.EXPAND | wx.RIGHT,
             border=self._FromDIP(5))
-        sizer.Add(clear_button, 0)
-        sizer.Add(set_button,0)
+        sizer.Add(clear_button, flag=wx.RIGHT, border=self._FromDIP(5))
+        sizer.Add(set_button,0, flag=wx.RIGHT, border=self._FromDIP(5))
         sizer.Add(show_button,0)
 
         return sizer
@@ -13945,7 +13947,7 @@ class MaskingPanel(scrolled.ScrolledPanel):
 
             mask_key = self.mask_choices[selected_mask]
             mask_dict = self._main_frame.raw_settings.get('Masks')
-            mask_dict[mask_key] = [None, None]
+            mask_dict[mask_key] = [None, None, None]
             self.image_panel.clearAllMasks()
 
         else:
