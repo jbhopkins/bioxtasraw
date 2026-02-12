@@ -21,8 +21,8 @@ in real space about the macromolecule, as:
     P(r) = \frac{r^2}{2\pi^2} \int_0^{\infty} q^2I(q) \frac{\sin(qr)}{qr}dq
 
 This produces the P(r) function, also called the pair distance distribution function.
-Essentially, the P(r) function is the r\ :sup:`2` weighted histogram of all
-possible pairs of electrons in the sample.
+Essentially, the P(r) function is the histogram of all possible pairs of
+electrons in the sample binned by the distance between the electron pair.
 
 Why do we do an IFT?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
