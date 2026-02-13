@@ -12975,14 +12975,17 @@ class SeriesControlPanel(wx.Panel):
                     + '\ncould not be loaded, it is not a known image or text format.' ,
                     'Error loading file', style = wx.ICON_ERROR | wx.OK)
                 fname = None
+                sasm = None
             except SASExceptions.HeaderLoadError as msg:
                 wx.CallAfter(wx.MessageBox, str(msg), "Can't find Header file for selected image",
                     style = wx.ICON_ERROR | wx.OK)
                 fname = None
+                sasm = None
             except SASExceptions.MaskSizeError as msg:
                 wx.CallAfter(wx.MessageBox, str(msg), 'Saved mask does not fit selected image',
                     style = wx.ICON_ERROR)
                 fname = None
+                sasm = None
             except SASExceptions.HeaderMaskLoadError as msg:
                 wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header',
                     style = wx.ICON_ERROR)
@@ -12996,6 +12999,11 @@ class SeriesControlPanel(wx.Panel):
                     style = wx.ICON_ERROR | wx.OK)
                 wx.CallAfter(self.main_frame.closeBusyDialog)
                 return
+
+            if sasm is not None and not isinstance(sasm, list):
+                sasm = [sasm]
+            if sasm is None:
+                sasm = []
 
             if fname is not None and len(sasm) != 0:
                 self.directory, self.filename = os.path.split(fname)
