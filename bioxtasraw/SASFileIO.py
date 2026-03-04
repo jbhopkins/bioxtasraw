@@ -47,6 +47,7 @@ import numpy as np
 import fabio
 from PIL import Image
 import matplotlib.backends.backend_pdf
+import matplotlib
 import h5py
 import pdbx.reader
 
@@ -4071,12 +4072,12 @@ def save_series(save_name, seriesm, save_gui_data=False):
 
     if save_gui_data:
         try:
-            seriesm_dict['line_color'] = seriesm.line.get_color()
+            seriesm_dict['line_color'] = matplotlib.colors.to_hex(seriesm.line.get_color())
             seriesm_dict['line_width'] = seriesm.line.get_linewidth()
             seriesm_dict['line_style'] = seriesm.line.get_linestyle()
             seriesm_dict['line_marker'] = seriesm.line.get_marker()
-            seriesm_dict['line_marker_face_color'] = seriesm.line.get_markerfacecolor()
-            seriesm_dict['line_marker_edge_color'] = seriesm.line.get_markeredgecolor()
+            seriesm_dict['line_marker_face_color'] = matplotlib.colors.to_hex(seriesm.line.get_markerfacecolor())
+            seriesm_dict['line_marker_edge_color'] = matplotlib.colors.to_hex(seriesm.line.get_markeredgecolor())
             seriesm_dict['line_marker_size'] = seriesm.line.get_markersize()
             seriesm_dict['line_visible'] = seriesm.line.get_visible()
             seriesm_dict['line_legend_label'] = seriesm.line.get_label()
@@ -4084,12 +4085,12 @@ def save_series(save_name, seriesm, save_gui_data=False):
             pass
 
         try:
-            seriesm_dict['calc_line_color'] = seriesm.calc_line.get_color()
+            seriesm_dict['calc_line_color'] = matplotlib.colors.to_hex(seriesm.calc_line.get_color())
             seriesm_dict['calc_line_width'] = seriesm.calc_line.get_linewidth()
             seriesm_dict['calc_line_style'] = seriesm.calc_line.get_linestyle()
             seriesm_dict['calc_line_marker'] = seriesm.calc_line.get_marker()
-            seriesm_dict['calc_line_marker_face_color'] = seriesm.calc_line.get_markerfacecolor()
-            seriesm_dict['calc_line_marker_edge_color'] = seriesm.calc_line.get_markeredgecolor()
+            seriesm_dict['calc_line_marker_face_color'] = matplotlib.colors.to_hex(seriesm.calc_line.get_markerfacecolor())
+            seriesm_dict['calc_line_marker_edge_color'] = matplotlib.colors.to_hex(seriesm.calc_line.get_markeredgecolor())
             seriesm_dict['calc_line_marker_size'] = seriesm.calc_line.get_markersize()
             seriesm_dict['calc_line_visible'] = seriesm.calc_line.get_visible()
             seriesm_dict['calc_line_legend_label'] = seriesm.calc_line.get_label()
@@ -4385,14 +4386,14 @@ def save_sasm_hdf5(save_name, sasm, save_gui_data=False):
 
     if save_gui_data:
         try:
-            sasm_dict['line_color'] = sasm.line.get_color()
+            sasm_dict['line_color'] = matplotlib.colors.to_hex(sasm.line.get_color())
             sasm_dict['line_width'] = sasm.line.get_linewidth()
             sasm_dict['line_style'] = sasm.line.get_linestyle()
             sasm_dict['line_marker'] = sasm.line.get_marker()
-            sasm_dict['line_marker_face_color'] = sasm.line.get_markerfacecolor()
-            sasm_dict['line_marker_edge_color'] = sasm.line.get_markeredgecolor()
+            sasm_dict['line_marker_face_color'] = matplotlib.colors.to_hex(sasm.line.get_markerfacecolor())
+            sasm_dict['line_marker_edge_color'] = matplotlib.colors.to_hex(sasm.line.get_markeredgecolor())
             sasm_dict['line_marker_size'] = sasm.line.get_markersize()
-            sasm_dict['line_errorbar_color'] = sasm.err_line[0][0].get_color()
+            sasm_dict['line_errorbar_color'] = matplotlib.colors.to_hex(sasm.err_line[0][0].get_color())
             sasm_dict['line_visible'] = sasm.line.get_visible()
             if sasm.line.get_label() != sasm_dict['parameters']['filename']:
                 sasm_dict['line_legend_label'] = sasm.line.get_label()
@@ -4469,40 +4470,40 @@ def save_ift_hdf5(save_name, iftm, save_gui_data=False):
 
     if save_gui_data:
         try:
-            iftm_dict['r_line_color'] = iftm.r_line.get_color()
+            iftm_dict['r_line_color'] = matplotlib.colors.to_hex(iftm.r_line.get_color())
             iftm_dict['r_line_width'] = iftm.r_line.get_linewidth()
             iftm_dict['r_line_style'] = iftm.r_line.get_linestyle()
             iftm_dict['r_line_marker'] = iftm.r_line.get_marker()
-            iftm_dict['r_line_marker_face_color'] = iftm.r_line.get_markerfacecolor()
-            iftm_dict['r_line_marker_edge_color'] = iftm.r_line.get_markeredgecolor()
+            iftm_dict['r_line_marker_face_color'] = matplotlib.colors.to_hex(iftm.r_line.get_markerfacecolor())
+            iftm_dict['r_line_marker_edge_color'] = matplotlib.colors.to_hex(iftm.r_line.get_markeredgecolor())
             iftm_dict['r_line_marker_size'] = iftm.r_line.get_markersize()
-            iftm_dict['r_line_errorbar_color'] = iftm.r_err_line[0][0].get_color()
+            iftm_dict['r_line_errorbar_color'] = matplotlib.colors.to_hex(iftm.r_err_line[0][0].get_color())
             iftm_dict['r_line_visible'] = iftm.r_line.get_visible()
             if iftm.r_line.get_label() != iftm_dict['parameters']['filename']+'_P(r)':
                 iftm_dict['r_line_legend_label'] = iftm.r_line.get_label()
             else:
                 iftm_dict['r_line_legend_label'] = ''
 
-            iftm_dict['qo_line_color'] = iftm.qo_line.get_color()
+            iftm_dict['qo_line_color'] = matplotlib.colors.to_hex(iftm.qo_line.get_color())
             iftm_dict['qo_line_width'] = iftm.qo_line.get_linewidth()
             iftm_dict['qo_line_style'] = iftm.qo_line.get_linestyle()
             iftm_dict['qo_line_marker'] = iftm.qo_line.get_marker()
-            iftm_dict['qo_line_marker_face_color'] = iftm.qo_line.get_markerfacecolor()
-            iftm_dict['qo_line_marker_edge_color'] = iftm.qo_line.get_markeredgecolor()
+            iftm_dict['qo_line_marker_face_color'] = matplotlib.colors.to_hex(iftm.qo_line.get_markerfacecolor())
+            iftm_dict['qo_line_marker_edge_color'] = matplotlib.colors.to_hex(iftm.qo_line.get_markeredgecolor())
             iftm_dict['qo_line_marker_size'] = iftm.qo_line.get_markersize()
-            iftm_dict['qo_line_errorbar_color'] = iftm.qo_err_line[0][0].get_color()
+            iftm_dict['qo_line_errorbar_color'] = matplotlib.colors.to_hex(iftm.qo_err_line[0][0].get_color())
             iftm_dict['qo_line_visible'] = iftm.qo_line.get_visible()
             if iftm.qo_line.get_label() != iftm_dict['parameters']['filename']+'_Exp':
                 iftm_dict['qo_line_legend_label'] = iftm.qo_line.get_label()
             else:
                 iftm_dict['qo_line_legend_label'] = ''
 
-            iftm_dict['qf_line_color'] = iftm.qf_line.get_color()
+            iftm_dict['qf_line_color'] = matplotlib.colors.to_hex(iftm.qf_line.get_color())
             iftm_dict['qf_line_width'] = iftm.qf_line.get_linewidth()
             iftm_dict['qf_line_style'] = iftm.qf_line.get_linestyle()
             iftm_dict['qf_line_marker'] = iftm.qf_line.get_marker()
-            iftm_dict['qf_line_marker_face_color'] = iftm.qf_line.get_markerfacecolor()
-            iftm_dict['qf_line_marker_edge_color'] = iftm.qf_line.get_markeredgecolor()
+            iftm_dict['qf_line_marker_face_color'] = matplotlib.colors.to_hex(iftm.qf_line.get_markerfacecolor())
+            iftm_dict['qf_line_marker_edge_color'] = matplotlib.colors.to_hex(iftm.qf_line.get_markeredgecolor())
             iftm_dict['qf_line_marker_size'] = iftm.qf_line.get_markersize()
             iftm_dict['qf_line_visible'] = iftm.qf_line.get_visible()
             if iftm.qo_line.get_label() != iftm_dict['parameters']['filename']+'_Fit':
