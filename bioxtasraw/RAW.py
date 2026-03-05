@@ -3285,7 +3285,8 @@ class MainFrame(wx.Frame):
                 wx.MessageBox('Your settings failed to save! Please try again.', 'Save failed!', style = wx.ICON_ERROR | wx.OK)
 
     def _onLoadWorkspaceMenu(self, evt):
-        file = self._createFileDialog(wx.FD_OPEN, 'Workspace files', '*.wsp|*.hdf5')
+
+        file = self._createFileDialog(wx.FD_OPEN, 'Workspace files', '*.wsp;*.hdf5')
 
         if file:
             mainworker_cmd_queue.put(['load_workspace', [file]])
