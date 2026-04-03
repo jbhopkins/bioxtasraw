@@ -418,20 +418,43 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
             ai = pyFAI.integrator.azimuthal.AzimuthalIntegrator()
         except AttributeError:
             ai = pyFAI.azimuthalIntegrator.AzimuthalIntegrator()
-        ai.set_wavelength(wavelength)
 
-    if wavelength != ai.get_wavelength():
-        ai.set_wavelength(wavelength)
+        try:
+            ai.wavelength = wavelength
+        except Exception:
+            ai.set_wavelength(wavelength)
+
+    try:
+        ai_wl = ai.wavelength
+    except Exception:
+        traceback.print_exc()
+        ai_wl = ai.get_wavelength()
+
+    if wavelength != ai_wl:
+        try:
+            ai.wavelength = wavelength
+        except Exception:
+            ai.set_wavelength(wavelength)
 
     try:
         ai_settings = ai.getFit2D()
+        try:
+            pixel2 = ai.pixel2
+        except Exception:
+            pixel2 = ai.get_pixel2()
+
+        try:
+            pixel1 = ai.pixel1
+        except Exception:
+            pixel1 = ai.get_pixel1()
+
         reinitialize_ai = not (round(ai_settings['directDist'], 6) == round(sd_distance, 6)
             and round(ai_settings['centerX'], 6) == round(x_c, 6)
             and round(ai_settings['centerY'], 6) == round(y_c, 6)
             and round(ai_settings['tilt'], 6) == round(det_tilt, 6)
             and round(ai_settings['tiltPlanRotation'], 6) == round(det_tilt_plan_rot, 6)
-            and round(ai.get_pixel2()*1e6, 6) == round(pixel_size_x, 6)
-            and round(ai.get_pixel1()*1e6, 6) == round(pixel_size_y, 6))
+            and round(pixel2*1e6, 6) == round(pixel_size_x, 6)
+            and round(pixel1*1e6, 6) == round(pixel_size_y, 6))
     except Exception:
         reinitialize_ai = True
 
