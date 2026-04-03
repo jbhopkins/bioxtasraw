@@ -427,7 +427,6 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
     try:
         ai_wl = ai.wavelength
     except Exception:
-        traceback.print_exc()
         ai_wl = ai.get_wavelength()
 
     if wavelength != ai_wl:

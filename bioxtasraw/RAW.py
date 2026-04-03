@@ -14668,7 +14668,10 @@ class CenteringPanel(scrolled.ScrolledPanel):
         if selection != 'None':
 
             self.calibrant = pyFAI.calibrant.get_calibrant(selection)
-            self.calibrant.set_wavelength(wavelength*1e-10) #set the wavelength in m
+            try:
+                self.calibrant.wavelength = wavelength*1e-10 #set the wavelength in m
+            except Exception:
+                self.calibrant.set_wavelength(wavelength*1e-10) #set the wavelength in m
 
             #Calculate pixel position of the calibrant rings
             two_thetas = np.array(self.calibrant.get_2th())
@@ -14808,7 +14811,11 @@ class CenteringPanel(scrolled.ScrolledPanel):
         self._enablePyfaiControls()
 
         calibrant = pyFAI.calibrant.get_calibrant(cal_selection)
-        calibrant.set_wavelength(wavelength)
+
+        try:
+            calibrant.wavelength = wavelength
+        except Exception:
+            calibrant.set_wavelength(wavelength)
 
         if det_selection != 'Other':
             detector = pyFAI.detector_factory(det_selection)
@@ -14872,7 +14879,11 @@ class CenteringPanel(scrolled.ScrolledPanel):
         self._center = [results['centerX'], results['centerY']]
         self._sd_text.SetValue(str(results['directDist']))
 
-        wavelength = self.c.geoRef.get_wavelength()*1e10
+        try:
+            wavelength = self.c.geoRef.wavelength*1e10
+        except Exception:
+            wavelength = self.c.geoRef.get_wavelength()*1e10
+
         pixel_size_x = self.c.geoRef.get_pixel2()*1e6
         pixel_size_y = self.c.geoRef.get_pixel1()*1e6
 
