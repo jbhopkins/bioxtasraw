@@ -6009,7 +6009,8 @@ def runDenss(q, I, sigq, D, qraw, iraw, sigqraw, prefix, path, denss_settings,
         my_logger.error(error)
 
         if gui:
-            wx_queue.put_nowait(['error', int(my_num)-1, error])
+            with my_lock:
+                wx_queue.put_nowait(['error', int(my_num)-1, error])
             abort_event.set()
 
         data = []

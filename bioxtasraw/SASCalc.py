@@ -1227,7 +1227,7 @@ def runGnom(fname, save_ift, dmax, args, path, atsasDir, outname=None,
                     error_list = error.split('\n')
                     all_warning = True
                     for err in error_list:
-                        if not err.strip().startswith('Warning'):
+                        if not err.strip().lower().startswith('warning'):
                             all_warning = False
 
                     if not all_warning:
@@ -1673,7 +1673,15 @@ def runDatmw(rg, i0, first, method, atsasDir, path, datname):
         error = error.strip()
 
         if error != '':
-            raise SASExceptions.NoATSASError('Error running datmw.')
+            error_list = error.split('\n')
+            all_warning = True
+            for err in error_list:
+                if not err.strip().lower().startswith('warning'):
+                    all_warning = False
+
+            if not all_warning:
+                raise SASExceptions.NoATSASError(('DATMW failed to run with the '
+                    'following error:\n{}'.format(error)))
 
         ret_values = ()
 
@@ -1733,7 +1741,15 @@ def runDatclass(rg, i0, first, atsasDir, path, datname):
         error = error.strip()
 
         if error != '':
-            raise SASExceptions.NoATSASError('Error running datclass.')
+            error_list = error.split('\n')
+            all_warning = True
+            for err in error_list:
+                if not err.strip().lower().startswith('warning'):
+                    all_warning = False
+
+            if not all_warning:
+                raise SASExceptions.NoATSASError(('DATCLASS failed to run with the '
+                    'following error:\n{}'.format(error)))
 
         ret_values = ()
 
