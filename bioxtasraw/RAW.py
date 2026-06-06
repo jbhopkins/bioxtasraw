@@ -4898,30 +4898,35 @@ class MainWorkerThread(threading.Thread):
                 sasm_list[j]=sasm
 
             except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat) as msg:
+                # traceback.print_exc()
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'file', msg)
                 secm.releaseSemaphore()
                 return
             except SASExceptions.HeaderLoadError as msg:
+                # traceback.print_exc()
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'header', msg)
                 secm.releaseSemaphore()
                 return
             except SASExceptions.MaskSizeError as msg:
+                # traceback.print_exc()
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'mask', msg)
                 secm.releaseSemaphore()
                 return
             except SASExceptions.HeaderMaskLoadError as msg:
+                # traceback.print_exc()
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                 wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'mask_header', msg)
                 secm.releaseSemaphore()
                 return
             except SASExceptions.AbsScaleNormFailed:
+                # traceback.print_exc()
                 msg = ('Failed to apply absolute scale. The most '
                         'likely cause is a mismatch between the q vector of the '
                         'loaded file and the selected sample background file. '
@@ -13394,25 +13399,30 @@ class SeriesControlPanel(wx.Panel):
 
         hdr_format = self._raw_settings.get('ImageHdrFormat')
 
-        if (hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS'
-            or hdr_format == 'CHESS EIGER 4M'):
-
+        if hdr_format in ['G1, CHESS', 'G1 WAXS, CHESS', 'CHESS EIGER 4M',
+            'BioCAT, APS']:
             for f in filelist:
-                frame=SASFileIO.parseCHESSG1Filename(f)[2]
-                try:
-                    int(frame)
-                    framelist.append(frame)
-                except ValueError:
-                    pass
 
-        elif hdr_format == 'BioCAT, APS':
-            for f in filelist:
-                frame=SASFileIO.parseBiocatFilename(f)[1]
-                try:
-                    int(frame)
-                    framelist.append(frame)
-                except ValueError:
-                    pass
+                if not os.path.getsize(f) > 500:
+                    break
+
+                if (hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS'
+                    or hdr_format == 'CHESS EIGER 4M'):
+                        frame=SASFileIO.parseCHESSG1Filename(f)[2]
+                        try:
+                            int(frame)
+                            framelist.append(frame)
+                        except ValueError:
+                            pass
+
+                elif hdr_format == 'BioCAT, APS':
+                    for f in filelist:
+                        frame=SASFileIO.parseBiocatFilename(f)[1]
+                        try:
+                            int(frame)
+                            framelist.append(frame)
+                        except ValueError:
+                            pass
 
         framelist = list(set(framelist))
         framelist.sort(key=lambda frame: int(frame))
