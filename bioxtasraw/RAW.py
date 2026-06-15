@@ -13071,6 +13071,7 @@ class SeriesControlPanel(wx.Panel):
                 self.seriesPanelGoOffline()
 
             old_frame_list = self._getFrameList(self.secm.file_list)
+
             self._fillBoxes()
 
             dif_frame_list = list(set(self.frame_list)-set(old_frame_list))
@@ -13078,8 +13079,7 @@ class SeriesControlPanel(wx.Panel):
             dif_frame_list.sort(key=lambda frame: int(frame))
 
             if len(dif_frame_list)>0:
-
-              file_list, modified_frame_list = self._makeFileList(dif_frame_list)
+                file_list, modified_frame_list = self._makeFileList(dif_frame_list)
 
             else:
                 file_list=[]
@@ -13392,9 +13392,7 @@ class SeriesControlPanel(wx.Panel):
 
             self._updateControlValues()
 
-
     def _getFrameList(self, filelist):
-
         framelist=[]
 
         hdr_format = self._raw_settings.get('ImageHdrFormat')
@@ -13416,13 +13414,12 @@ class SeriesControlPanel(wx.Panel):
                             pass
 
                 elif hdr_format == 'BioCAT, APS':
-                    for f in filelist:
-                        frame=SASFileIO.parseBiocatFilename(f)[1]
-                        try:
-                            int(frame)
-                            framelist.append(frame)
-                        except ValueError:
-                            pass
+                    frame=SASFileIO.parseBiocatFilename(f)[1]
+                    try:
+                        int(frame)
+                        framelist.append(frame)
+                    except ValueError:
+                        pass
 
         framelist = list(set(framelist))
         framelist.sort(key=lambda frame: int(frame))
