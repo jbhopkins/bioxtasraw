@@ -3557,7 +3557,7 @@ class MainFrame(wx.Frame):
 
             self.heartbeat.Stop()
             self.OnlineControl.stopTimer()
-            self.online_series_ctrl.goOffline()
+            self.online_series_ctrl.Stop()
             self.centering_panel._repeat_timer.Stop()
 
             for frame in self.dammif_frames:
@@ -3590,6 +3590,7 @@ class MainFrame(wx.Frame):
 
         except Exception:
             pass
+            # traceback.print_exc()
 
         finally:
             self.tbIcon.RemoveIcon()
@@ -3597,7 +3598,10 @@ class MainFrame(wx.Frame):
 
             for w in wx.GetTopLevelWindows():
                 if w != self:
-                    w.Destroy()
+                    try:
+                        w.Destroy()
+                    except Exception:
+                        pass
 
             self.Destroy()
 
@@ -3955,9 +3959,6 @@ class OnlineSeriesController(object):
 
         self._raw_settings = raw_settings
 
-        self.online_timer = wx.Timer()
-        self.online_timer.Bind(wx.EVT_TIMER, self.onOnlineTimer)
-
         self.online_headers = ['G1, CHESS', 'G1 WAXS, CHESS', 'BioCAT, APS',
             'CHESS EIGER 4M']
 
@@ -3973,23 +3974,72 @@ class OnlineSeriesController(object):
 
         self._update_interval = 1
 
+        self.secm = None
+
         self._online_evt = threading.Event()
-        self._abort_evt = threading.Event()
-        self._update_queue = queue.Queue()
+        self._stop_evt = threading.Event()
+        self._action_queue = queue.Queue()
+        self._action_lock = threading.RLock()
+
+        self._online_thread = threading.Thread(target=self._online_control)
+        self._online_thread.daemon = True
+        self._online_thread.start()
 
     def goOnline(self):
-        self.online_timer.Start(self._update_interval*1000)
+        self._online_evt.set()
         self.online = True
 
     def goOffline(self):
-        self.online_timer.Stop()
+        self._online_evt.clear()
         self.online = False
 
-    def onOnlineTimer(self, evt):
-        if self.series_ctrl_panel.secm is not None:
-            self.updateSeries()
+    def Stop(self):
+        self._stop_evt.set()
+        self._online_evt.set()
+        self._online_thread.join(5)
+
+    def _online_control(self):
+        while True:
+            self._online_evt.wait()
+
+            if self._stop_evt.is_set():
+                break
+
+            try:
+                with self._action_lock:
+                    action = self._action_queue.get_nowait()
+
+            except queue.Empty:
+                action = None
+
+            if action is not None:
+                cmd = action[0]
+                args = action[1]
+
+                with self._action_lock:
+                    if self._action_queue.empty():
+                        self._online_evt.clear()
+
+                if cmd == 'load':
+                    self._load_series(args)
+                elif cmd == 'update':
+                    self._update_series()
+
+            else:
+                start = time.monotonic()
+
+                self._online_evt.clear()
+
+                self._update_series()
+
+                time.sleep(max(0, self._update_interval-(time.monotonic()-start)))
 
     def loadNewSeries(self, fname):
+        with self._action_lock:
+            self._action_queue.put_nowait(['load', fname,])
+        self._online_evt.set()
+
+    def _load_series(self, fname):
         try:
             sasm, _ = SASFileIO.loadFile(fname, self._raw_settings,
                 return_all_images=False)
@@ -4049,7 +4099,7 @@ class OnlineSeriesController(object):
 
             except Exception:
                 wx.CallAfter(wx.MessageBox, 'The selected file: ' + fname
-                    + '\ncould not be loaded, it is not a known image or text format.' ,
+                    + '\ncould not be loaded, it is not a known format.' ,
                     'Error loading file', style = wx.ICON_ERROR | wx.OK)
 
     def _getNewFileList(self):
@@ -4089,7 +4139,7 @@ class OnlineSeriesController(object):
             self.initial_frame_number = self.frame_list[0]
             self.final_selected_frame = self.frame_list[-1]
 
-            self.series_ctrl_panel.updateOnlineParams(self.image_prefix,
+            wx.CallAfter(self.series_ctrl_panel.updateOnlineParams, self.image_prefix,
                 self.initial_frame_number, self.final_selected_frame)
 
     def _parseFilelistForFrames(self, filelist):
@@ -4212,8 +4262,13 @@ class OnlineSeriesController(object):
 
         return file_list, modified_frame_list
 
-    def updateSeries(self, secm):
-        old_frame_list = self._parseFilelistForFrames(secm.file_list)
+    def updateSeries(self):
+        with self._action_lock:
+            self._action_queue.put_nowait(['update', None])
+        self._online_evt.set()
+
+    def _update_series(self):
+        old_frame_list = self._parseFilelistForFrames(self.secm.file_list)
 
         self._getNewFileList()
 
@@ -4228,7 +4283,7 @@ class OnlineSeriesController(object):
             file_list=[]
 
         if len(file_list) > 0:
-            mainworker_cmd_queue.put(['update_secm', [file_list, modified_frame_list, secm]])
+            mainworker_cmd_queue.put(['update_secm', [file_list, modified_frame_list, self.secm]])
 
         else:
             self.updateSucceeded()
@@ -4237,11 +4292,11 @@ class OnlineSeriesController(object):
         self.tries = self.tries + 1
         if self.tries <= self.max_tries:
             time.sleep(self._update_interval)
-            if self.series_ctrl_panel.secm is not None:
+            if self.secm is not None:
                 self.updateSeries()
         else:
             self.goOffline()
-            self.series_ctrl_panel.online_mode_button.SetValue(False)
+            wx.CallAfter(self.series_ctrl_panel.online_mode_button.SetValue, False)
             if error == 'file':
                 wx.CallAfter(self._showDataFormatError, os.path.split(name)[1])
             elif error == 'header':
@@ -4258,8 +4313,8 @@ class OnlineSeriesController(object):
                     'Absolute scale failed', style = wx.ICON_ERROR)
 
     def updateSucceeded(self):
-        if self.series_ctrl_panel.online_mode_button.IsChecked() and not self.online:
-            self.goOnline()
+        if self.online:
+            self._online_evt.set()
 
         self.tries = 1
 
@@ -13260,6 +13315,11 @@ class SeriesControlPanel(wx.Panel):
 
     def updateSECItem(self,secm):
         self.secm = secm
+        self.online_controller.secm = secm
+
+        if self.online_controller.online:
+            # Syntax is a bit odd, but restarts the online thread in the controller
+            self.online_controller.goOnline()
 
     def _onOnlineButton(self, evt):
         go_online = evt.IsChecked()
@@ -13299,7 +13359,7 @@ class SeriesControlPanel(wx.Panel):
 
     def onUpdate(self):
         if self.secm is not None:
-            self.online_controller.updateSeries(self.secm)
+            self.online_controller.updateSeries()
 
     def _onFramesToMainPlot(self,evt):
         self._toMainPlot()
@@ -13429,6 +13489,7 @@ class SeriesControlPanel(wx.Panel):
                 infobox.SetValue('5')
 
         self.secm=None
+        self.online_controller.secm = None
 
 
 #--- ** Masking Panel **
