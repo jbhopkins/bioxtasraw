@@ -26219,7 +26219,7 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         series_control_panel = wx.FindWindowByName('SeriesControlPanel')
         restart_online = False
 
-        if series_control_panel.seriesIsOnline:
+        if series_control_panel.online_controller.online:
             series_control_panel.seriesPanelGoOffline()
             restart_online = True
 

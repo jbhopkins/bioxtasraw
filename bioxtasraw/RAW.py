@@ -281,7 +281,7 @@ class MainFrame(wx.Frame):
             pass
 
         self.OnlineControl = OnlineController(self, self.raw_settings)
-        self.OnlineSECControl = OnlineSECController(self, self.raw_settings)
+        self.online_series_ctrl = OnlineSeriesController(self, self.raw_settings)
 
         self.statusbar = self.CreateStatusBar()
         self.statusbar.SetFieldsCount(3)
@@ -3557,7 +3557,7 @@ class MainFrame(wx.Frame):
 
             self.heartbeat.Stop()
             self.OnlineControl.stopTimer()
-            self.OnlineSECControl.goOffline()
+            self.online_series_ctrl.goOffline()
             self.centering_panel._repeat_timer.Stop()
 
             for frame in self.dammif_frames:
@@ -3802,7 +3802,8 @@ class OnlineController(object):
             self.seek_dir = []
 
             question = "Warning: the online mode directory does not exist.\nWhat do you want to do?"
-            button_list = [('Change Directory', wx.Window.NewControlId()),('Go Offline', wx.Window.NewControlId())]
+            button_list = [('Change Directory', wx.Window.NewControlId()),
+                ('Go Offline', wx.Window.NewControlId())]
             label = "Missing Directory"
             icon = wx.ART_WARNING
 
@@ -3834,7 +3835,8 @@ class OnlineController(object):
 
         for each_file in dir_list:
             try:
-                dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)), os.path.getsize(os.path.join(self.seek_dir, each_file)))
+                dir_list_dict[each_file] = (os.path.getmtime(os.path.join(self.seek_dir, each_file)),
+                    os.path.getsize(os.path.join(self.seek_dir, each_file)))
             except OSError:
                 pass
 
@@ -3945,28 +3947,333 @@ class OnlineController(object):
 
         self.old_dir_list_dict.update(diff_list)
 
-class OnlineSECController(object):
+class OnlineSeriesController(object):
     def __init__(self, parent, raw_settings):
 
         self.parent = parent
-
         self.main_frame = parent
 
         self._raw_settings = raw_settings
 
         self.online_timer = wx.Timer()
-
         self.online_timer.Bind(wx.EVT_TIMER, self.onOnlineTimer)
 
+        self.online_headers = ['G1, CHESS', 'G1 WAXS, CHESS', 'BioCAT, APS',
+            'CHESS EIGER 4M']
+
+        self.directory = ''
+        self.filename = ''
+
+        self.max_tries = 3
+        self.tries = 1
+
+        self.series_ctrl_panel = None
+
+        self.online = False
+
     def goOnline(self):
-        self.sec_control_panel = wx.FindWindowByName('SeriesControlPanel')
         self.online_timer.Start(1000)
+        self.online = True
 
     def goOffline(self):
         self.online_timer.Stop()
+        self.online = False
 
     def onOnlineTimer(self, evt):
-        self.sec_control_panel.onUpdate()
+        self.series_ctrl_panel.onUpdate()
+
+    def loadNewSeries(self, fname):
+        try:
+            sasm, _ = SASFileIO.loadFile(fname, self._raw_settings,
+                return_all_images=False)
+        except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat) as msg:
+            wx.CallAfter(wx.MessageBox, 'The selected file: ' + fname
+                + '\ncould not be loaded, it is not a known image or text format.' ,
+                'Error loading file', style = wx.ICON_ERROR | wx.OK)
+            sasm = None
+
+        except SASExceptions.HeaderLoadError as msg:
+            wx.CallAfter(wx.MessageBox, str(msg), "Can't find Header file for selected image",
+                style = wx.ICON_ERROR | wx.OK)
+            sasm = None
+
+        except SASExceptions.MaskSizeError as msg:
+            wx.CallAfter(wx.MessageBox, str(msg), 'Saved mask does not fit selected image',
+                style = wx.ICON_ERROR)
+            sasm = None
+
+        except SASExceptions.HeaderMaskLoadError as msg:
+            wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header',
+                style = wx.ICON_ERROR)
+            sasm = None
+
+        except SASExceptions.AbsScaleNormFailed:
+            msg = ('Failed to apply absolute scale. The most '
+                    'likely cause is a mismatch between the q vector of the '
+                    'loaded file and the selected sample background file.')
+            wx.CallAfter(wx.MessageBox, msg, 'Absolute scale failed',
+                style = wx.ICON_ERROR | wx.OK)
+
+            sasm = None
+
+        if sasm is not None and not isinstance(sasm, list):
+            sasm = [sasm]
+        if sasm is None:
+            sasm = []
+
+        if len(sasm) != 0:
+            self.directory, self.filename = os.path.split(fname)
+            self._getNewFileList()
+            self._loadSeriesProfiles()
+
+        else:
+            try:
+                loaded_files = SASFileIO.loadSeriesFile(fname,
+                    self._raw_settings)
+
+                msg = ('The selected file, {}, is a RAW series file. It will '
+                    'be loaded, but cannot be used for the online mode'.format(
+                        fname))
+
+                wx.CallAfter(wx.MessageBox, msg, 'Series cannot be used for online mode',
+                    style=wx.ICON_WARNING|wx.OK)
+
+                mainworker_cmd_queue.put(['plot', [fname]])
+
+            except Exception:
+                wx.CallAfter(wx.MessageBox, 'The selected file: ' + fname
+                    + '\ncould not be loaded, it is not a known image or text format.' ,
+                    'Error loading file', style = wx.ICON_ERROR | wx.OK)
+
+    def _getNewFileList(self):
+
+        hdr_format = self._raw_settings.get('ImageHdrFormat')
+
+        if self.filename != '':
+
+            if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS':
+
+                count_filename, run_number, frame_number = SASFileIO.parseCHESSG1Filename(
+                    os.path.join(self.directory, self.filename))
+
+                filelist = glob.glob(count_filename + '_' + run_number + '_*')
+
+                self.image_prefix = '{}_{}'.format(os.path.basename(count_filename), run_number)
+
+            elif hdr_format == 'BioCAT, APS':
+
+                count_filename, frame_number = SASFileIO.parseBiocatFilename(
+                    os.path.join(self.directory, self.filename))
+
+                filelist = glob.glob(count_filename + '_*')
+
+                junk, self.image_prefix = os.path.split(count_filename)
+
+            elif hdr_format == 'CHESS EIGER 4M':
+                count_filename, run_number, frame_number = SASFileIO.parseCHESSEigerFilename(
+                    os.path.join(self.directory, self.filename))
+
+                filelist = glob.glob(count_filename + '_' + run_number + '_*')
+
+                self.image_prefix = '{}_{}'.format(os.path.basename(count_filename), run_number)
+
+            self.frame_list = self._parseFilelistForFrames(filelist)
+
+            self.initial_frame_number = self.frame_list[0]
+            self.final_selected_frame = self.frame_list[-1]
+
+            self.series_ctrl_panel.updateOnlineParams(self.image_prefix,
+                self.initial_frame_number, self.final_selected_frame)
+
+    def _parseFilelistForFrames(self, filelist):
+        frame_list=[]
+
+        hdr_format = self._raw_settings.get('ImageHdrFormat')
+
+        if hdr_format in self.online_headers:
+            for f in filelist:
+
+                if not os.path.getsize(f) > 500:
+                    break
+
+                if (hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS'
+                    or hdr_format == 'CHESS EIGER 4M'):
+                        frame=SASFileIO.parseCHESSG1Filename(f)[2]
+                        try:
+                            int(frame)
+                            frame_list.append(frame)
+                        except ValueError:
+                            pass
+
+                elif hdr_format == 'BioCAT, APS':
+                    frame=SASFileIO.parseBiocatFilename(f)[1]
+                    try:
+                        int(frame)
+                        frame_list.append(frame)
+                    except ValueError:
+                        pass
+
+        frame_list = list(set(frame_list))
+        frame_list.sort(key=lambda frame: int(frame))
+
+        return frame_list
+
+    def _loadSeriesProfiles(self):
+        file_list, frame_list = self._makeFileListFromFrames()
+
+        if len(file_list) > 0:
+            mainworker_cmd_queue.put(['sec_plot', [file_list, frame_list, True]])
+        else:
+            wx.MessageBox("Can't find files to load", style=wx.ICON_ERROR | wx.OK)
+
+    def _makeFileListFromFrames(self,modified_frame_list=[]):
+
+        file_list = []
+        bad_file_list = []
+
+        if len(modified_frame_list) == 0 :
+            modified_frame_list = copy.copy(self.frame_list)
+
+        hdr_format = self._raw_settings.get('ImageHdrFormat')
+
+        if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS':
+            if self.image_prefix != '' or self.filename != '':
+                for frame in modified_frame_list:
+                    name = os.path.join(self.directory, '{}_{}'.format(self.image_prefix, frame))
+                    if os.path.isfile(name+'.dat'):
+                        file_list.append(name+'.dat')
+                    elif os.path.isfile(name+'.tiff'):
+                        file_list.append(name+'.tiff')
+                    else:
+                        files = glob.glob(name+'.*')
+                        if files and not files[0].endswith('.tmp'):
+                            file_list.append(files[0])
+                        else:
+                            bad_file_list.append(frame)
+
+        elif hdr_format == 'BioCAT, APS':
+            if self.image_prefix != '' or self.filename != '':
+                for frame in modified_frame_list:
+                    name = os.path.join(self.directory, '%s_%s' %(self.image_prefix, frame))
+
+                    if os.path.isfile(name+'.dat'):
+                        file_list.append(name+'.dat')
+                    elif os.path.isfile(name+'.tiff'):
+                        file_list.append(name+'.tiff')
+                    elif os.path.isfile(name+'.tif'):
+                        file_list.append(name+'.tif')
+                    else:
+                        files = glob.glob(name+'.*')
+                        if files and not files[0].endswith('.tmp'):
+                            file_list.append(files[0])
+                        else:
+                            bad_file_list.append(frame)
+
+        elif hdr_format == 'CHESS EIGER 4M':
+            if self.image_prefix != '' or self.filename != '':
+                for frame in modified_frame_list:
+                    name = os.path.join(self.directory,
+                        '{}_data_{}'.format(self.image_prefix, frame))
+
+                    #To match new eiger dat file naming convention
+                    name2 = os.path.join(self.directory,
+                        '{}_data_'.format(self.image_prefix))
+                    flist = glob.glob(name2+'*_{}.dat'.format(frame))
+                    if len(flist) > 0:
+                        fname = flist[0]
+                    else:
+                        fname = None
+
+                    if os.path.isfile(name+'.dat'):
+                        file_list.append(name+'.dat')
+                    elif fname is not None and os.path.isfile(fname):
+                        file_list.append(fname)
+                    elif os.path.isfile(name+'.h5'):
+                        file_list.append(name+'.h5')
+                    elif os.path.isfile(name+'.tiff'):
+                        file_list.append(name+'.tiff')
+                    else:
+                        files = glob.glob(name+'.*')
+                        if files and not files[0].endswith('.tmp'):
+                            file_list.append(files[0])
+                        else:
+                            bad_file_list.append(frame)
+
+        if bad_file_list:
+            for frame in bad_file_list:
+                modified_frame_list.pop(modified_frame_list.index(frame))
+
+        return file_list, modified_frame_list
+
+    def updateSeries(self, secm):
+        old_frame_list = self._parseFilelistForFrames(secm.file_list)
+
+        self._getNewFileList()
+
+        dif_frame_list = list(set(self.frame_list)-set(old_frame_list))
+
+        dif_frame_list.sort(key=lambda frame: int(frame))
+
+        if len(dif_frame_list)>0:
+            file_list, modified_frame_list = self._makeFileListFromFrames(dif_frame_list)
+
+        else:
+            file_list=[]
+
+        if len(file_list) > 0:
+            mainworker_cmd_queue.put(['update_secm', [file_list, modified_frame_list, secm]])
+
+        else:
+            self.updateSucceeded()
+
+    def updateFailed(self, name, error, msg):
+        self.tries = self.tries + 1
+        if self.tries <= self.max_tries:
+            time.sleep(1)
+            self.onUpdate()
+        else:
+            self.goOffline()
+            self.series_ctrl_panel.online_mode_button.SetValue(False)
+            if error == 'file':
+                wx.CallAfter(self._showDataFormatError, os.path.split(name)[1])
+            elif error == 'header':
+                wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic series updating turned off.',
+                    'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
+            elif error == 'mask':
+                 wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic series updating turned off.',
+                    'Saved mask does not fit loaded image', style = wx.ICON_ERROR)
+            elif error == 'mask_header':
+                wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic series updating turned off.',
+                    'Mask information was not found in header', style = wx.ICON_ERROR)
+            elif error == 'abs_scale':
+                wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic series updating turned off.',
+                    'Absolute scale failed', style = wx.ICON_ERROR)
+
+    def updateSucceeded(self):
+        if self.series_ctrl_panel.online_mode_button.IsChecked() and not self.online:
+            self.goOnline()
+
+        self.tries = 1
+
+    def _showDataFormatError(self, filename, include_ascii = True, include_sec = False):
+        img_fmt = self._raw_settings.get('ImageFormat')
+
+        if include_ascii:
+            text = ' or any of the supported ASCII formats'
+        else:
+            text = ''
+
+        if include_sec:
+            sec = ' or the RAW series format'
+        else:
+            sec = ''
+
+        wx.CallAfter(wx.MessageBox, ('The selected file: ' + filename +
+            '\ncould not be recognized as a '   + str(img_fmt) +
+            ' image format' + text + sec + '.\n\nYou can change the image '
+            'format under Advanced Options in the Options menu.\n'+
+            'Automatic series updating turned off.') ,
+            'Error loading file', style = wx.ICON_ERROR | wx.OK)
 
 
 
@@ -4901,28 +5208,32 @@ class MainWorkerThread(threading.Thread):
                 # traceback.print_exc()
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
-                wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'file', msg)
+                wx.CallAfter(self.main_frame.online_series_ctrl.updateFailed,
+                    each_filename, 'file', msg)
                 secm.releaseSemaphore()
                 return
             except SASExceptions.HeaderLoadError as msg:
                 # traceback.print_exc()
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
-                wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'header', msg)
+                wx.CallAfter(self.main_frame.online_series_ctrl.updateFailed,
+                    each_filename, 'header', msg)
                 secm.releaseSemaphore()
                 return
             except SASExceptions.MaskSizeError as msg:
                 # traceback.print_exc()
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
-                wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'mask', msg)
+                wx.CallAfter(self.main_frame.online_series_ctrl.updateFailed,
+                    each_filename, 'mask', msg)
                 secm.releaseSemaphore()
                 return
             except SASExceptions.HeaderMaskLoadError as msg:
                 # traceback.print_exc()
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
-                wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'mask_header', msg)
+                wx.CallAfter(self.main_frame.online_series_ctrl.updateFailed,
+                    each_filename, 'mask_header', msg)
                 secm.releaseSemaphore()
                 return
             except SASExceptions.AbsScaleNormFailed:
@@ -4932,7 +5243,8 @@ class MainWorkerThread(threading.Thread):
                         'loaded file and the selected sample background file. '
                         'It failed on the following file:\n')
                 msg = msg + os.path.split(each_filename)[1]
-                wx.CallAfter(self.sec_control_panel.updateFailed, each_filename, 'abs_scale', msg)
+                wx.CallAfter(self.main_frame.online_series_ctrl.updateFailed,
+                    each_filename, 'abs_scale', msg)
                 if len(filename_list)>5:
                     wx.CallAfter(self.main_frame.closeBusyDialog)
                 secm.releaseSemaphore()
@@ -4949,7 +5261,7 @@ class MainWorkerThread(threading.Thread):
 
         self._updateSECMPlot(secm)
 
-        wx.CallAfter(self.sec_control_panel.updateSucceeded)
+        wx.CallAfter(self.main_frame.online_series_ctrl.updateSucceeded)
         if len(filename_list)>5:
             wx.CallAfter(self.main_frame.closeBusyDialog)
 
@@ -10159,7 +10471,7 @@ class ManipItemPanel(wx.Panel):
                 try:
                     start_value = initValue + '.0'
                     float(start_value)
-                except Exeption:
+                except Exception:
                     start_value = initValue
             else:
                 start_value = initValue
@@ -12509,7 +12821,7 @@ class SeriesItemPanel(wx.Panel):
 
     def _showPopupMenu(self):
 
-        if self.sec_control_panel.seriesIsOnline:
+        if self.sec_control_panel.online_controller.online:
             self.sec_control_panel.seriesPanelGoOffline()
 
         menu = wx.Menu()
@@ -12543,7 +12855,8 @@ class SeriesItemPanel(wx.Panel):
 
         menu.Destroy()
 
-        if self.sec_control_panel.online_mode_button.IsChecked() and not self.sec_control_panel.seriesIsOnline:
+        if (self.sec_control_panel.online_mode_button.IsChecked()
+            and not self.sec_control_panel.online_controller.online):
             self.sec_control_panel.seriesPanelGoOnline()
 
     def _onPopupMenuChoice(self, evt):
@@ -12755,38 +13068,30 @@ class SeriesControlPanel(wx.Panel):
         self.parent = parent
 
         self.main_frame = wx.FindWindowByName('MainFrame')
+        self.online_controller = self.main_frame.online_series_ctrl
+
+        self.online_controller.series_ctrl_panel = self
 
         self.sec_panel = wx.FindWindowByName('SECPanel')
         self.sec_plot_panel = wx.FindWindowByName('SECPlotPanel')
 
         self._raw_settings = self.main_frame.raw_settings
 
-        self.seriesIsOnline = False
-        self.tries = 1
-        self.max_tries = 3
-
-        self.filename = ''
-        self.frame_list = []
-        self.image_prefix = ""
-        self.directory = ""
-        self.initial_frame_number = ""
-        self.final_frame_number = ""
         self.initial_selected_frame = ""
         self.final_selected_frame = ""
         self.secm = None
 
         self.controlData = (
-            ('Series:', parent.paramsInGui['Image Header'], self.image_prefix),
+            ('Series:', parent.paramsInGui['Image Header'], ''),
             ('Initial Frame # :', parent.paramsInGui['Initial Frame #'],
-                self.initial_frame_number),
+                ''),
             ('Final Frame # :',parent.paramsInGui['Final Frame #'],
-                self.final_frame_number),
+                ''),
             ('Initial Selected Frame :', parent.paramsInGui['Initial Selected Frame'],
-                self.initial_selected_frame),
+                ''),
             ('Final Selected Frame :', parent.paramsInGui['Final Selected Frame'],
-                self.final_selected_frame),
+                ''),
             )
-
 
         topsizer = self.createControls()
 
@@ -12814,22 +13119,23 @@ class SeriesControlPanel(wx.Panel):
         update_button.Bind(wx.EVT_BUTTON, self._onUpdateButton)
 
         self.online_mode_button = wx.CheckBox(load_box, -1, "AutoUpdate")
-        self.online_mode_button.SetValue(self.seriesIsOnline)
+        self.online_mode_button.SetValue(self.online_controller.online)
         self.online_mode_button.Bind(wx.EVT_CHECKBOX, self._onOnlineButton)
 
 
         for each in self.controlData:
 
             label = each[0]
-            type = each[1][1]
-            id = each[1][0]
+            ctrl_type = each[1][1]
+            ctrl_id = each[1][0]
+            val = each[2]
 
-            if type == 'imghdr':
+            if ctrl_type == 'imghdr':
 
                 labelbox = wx.StaticText(load_box, -1, label)
 
-                self.image_prefix_box=wx.TextCtrl(load_box, id=id,
-                    value=self.image_prefix, style=wx.TE_READONLY)
+                self.image_prefix_box=wx.TextCtrl(load_box, id=ctrl_id,
+                    value=val, style=wx.TE_READONLY)
 
                 img_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -12839,12 +13145,12 @@ class SeriesControlPanel(wx.Panel):
                     flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(5))
                 img_sizer.Add(select_button, flag=wx.ALIGN_CENTER_VERTICAL)
 
-            elif type == 'iframenum':
+            elif ctrl_type == 'iframenum':
                 labelbox = wx.StaticText(load_box, -1, "Frames:")
                 labelbox2=wx.StaticText(load_box,-1,"to")
 
-                self.initial_frame_number_box = wx.TextCtrl(load_box, id=id,
-                    value=self.initial_frame_number, size=self._FromDIP((45,-1)),
+                self.initial_frame_number_box = wx.TextCtrl(load_box, id=ctrl_id,
+                    value=val, size=self._FromDIP((45,-1)),
                     style=wx.TE_READONLY)
 
                 run_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -12856,9 +13162,9 @@ class SeriesControlPanel(wx.Panel):
                 run_sizer.Add(labelbox2, 0, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
                     border=self._FromDIP(2))
 
-            elif type == 'fframenum':
-                self.final_frame_number_box = wx.TextCtrl(load_box, id=id,
-                    value=self.final_frame_number, size=self._FromDIP((45,-1)),
+            elif ctrl_type == 'fframenum':
+                self.final_frame_number_box = wx.TextCtrl(load_box, id=ctrl_id,
+                    value=val, size=self._FromDIP((45,-1)),
                     style=wx.TE_READONLY)
 
                 run_sizer.Add(self.final_frame_number_box, 1,
@@ -12889,13 +13195,14 @@ class SeriesControlPanel(wx.Panel):
             label = each[0]
             ctrl_type = each[1][1]
             ctrl_id = each[1][0]
+            val = each[2]
 
             if ctrl_type == 'isframenum':
 
                 labelbox = wx.StaticText(send_box, -1, "Frames:")
                 labelbox2 = wx.StaticText(send_box, -1, "to")
                 self.initial_selected_box = wx.TextCtrl(send_box, ctrl_id,
-                    value=self.initial_selected_frame, size=self._FromDIP((50,-1)))
+                    value=val, size=self._FromDIP((50,-1)))
 
                 selected_sizer.Add(labelbox, border=self._FromDIP(2),
                     flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.LEFT)
@@ -12907,7 +13214,7 @@ class SeriesControlPanel(wx.Panel):
 
             elif ctrl_type == 'fsframenum':
                 self.final_selected_box = wx.TextCtrl(send_box, ctrl_id,
-                    value=self.final_selected_frame, size=self._FromDIP((50,-1)))
+                    value=val, size=self._FromDIP((50,-1)))
                 selected_sizer.Add(self.final_selected_box,
                     border=self._FromDIP(5), flag=wx.ALIGN_CENTER_VERTICAL
                     |wx.RIGHT)
@@ -12955,86 +13262,20 @@ class SeriesControlPanel(wx.Panel):
             self.seriesPanelGoOffline()
 
     def seriesPanelGoOnline(self):
-        self.seriesIsOnline = True
-        self.main_frame.OnlineSECControl.goOnline()
+        self.online_controller.goOnline()
 
     def seriesPanelGoOffline(self):
-        self.seriesIsOnline = False
-        self.main_frame.OnlineSECControl.goOffline()
+        self.online_controller.goOffline()
 
     def _onSelectButton(self, evt):
 
         hdr_format = self._raw_settings.get('ImageHdrFormat')
 
-        if (hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS'
-            or hdr_format == 'BioCAT, APS' or hdr_format == 'CHESS EIGER 4M'):
+        if hdr_format in self.online_controller.online_headers:
             fname = self.parent._CreateFileDialog(wx.FD_OPEN)
 
-            if fname is None:
-                return
-
-            try:
-                sasm, img = SASFileIO.loadFile(fname, self.parent._raw_settings,
-                    return_all_images=False)
-            except (SASExceptions.UnrecognizedDataFormat, SASExceptions.WrongImageFormat) as msg:
-                wx.CallAfter(wx.MessageBox, 'The selected file: ' + fname
-                    + '\ncould not be loaded, it is not a known image or text format.' ,
-                    'Error loading file', style = wx.ICON_ERROR | wx.OK)
-                fname = None
-                sasm = None
-            except SASExceptions.HeaderLoadError as msg:
-                wx.CallAfter(wx.MessageBox, str(msg), "Can't find Header file for selected image",
-                    style = wx.ICON_ERROR | wx.OK)
-                fname = None
-                sasm = None
-            except SASExceptions.MaskSizeError as msg:
-                wx.CallAfter(wx.MessageBox, str(msg), 'Saved mask does not fit selected image',
-                    style = wx.ICON_ERROR)
-                fname = None
-                sasm = None
-            except SASExceptions.HeaderMaskLoadError as msg:
-                wx.CallAfter(wx.MessageBox, str(msg), 'Mask information was not found in header',
-                    style = wx.ICON_ERROR)
-                wx.CallAfter(self.main_frame.closeBusyDialog)
-                return
-            except SASExceptions.AbsScaleNormFailed:
-                msg = ('Failed to apply absolute scale. The most '
-                        'likely cause is a mismatch between the q vector of the '
-                        'loaded file and the selected sample background file.')
-                wx.CallAfter(wx.MessageBox, msg, 'Absolute scale failed',
-                    style = wx.ICON_ERROR | wx.OK)
-                wx.CallAfter(self.main_frame.closeBusyDialog)
-                return
-
-            if sasm is not None and not isinstance(sasm, list):
-                sasm = [sasm]
-            if sasm is None:
-                sasm = []
-
-            if fname is not None and len(sasm) != 0:
-                self.directory, self.filename = os.path.split(fname)
-                self._fillBoxes()
-                self._onLoad()
-            else:
-                try:
-                    loaded_files = SASFileIO.loadSeriesFile(fname,
-                        self.parent._raw_settings)
-
-                    msg = ('The selected file, {}, is a RAW series file. It will '
-                        'be loaded, but cannot be used for the online mode'.format(
-                            fname))
-
-                    wx.CallAfter(wx.MessageBox, msg, 'Series cannot be used for online mode',
-                        style=wx.ICON_WARNING|wx.OK)
-
-                    mainworker_cmd_queue.put(['plot', [fname]])
-
-                except Exception:
-                    wx.CallAfter(wx.MessageBox, 'The selected file: ' + fname
-                        + '\ncould not be loaded, it is not a known image or text format.' ,
-                        'Error loading file', style = wx.ICON_ERROR | wx.OK)
-
-            wx.CallAfter(self.main_frame.closeBusyDialog)
+            if fname is not None:
+                self.online_controller.loadNewSeries(fname)
 
         else:
              wx.CallAfter(wx.MessageBox, ('The "%s" header format is not '
@@ -13042,109 +13283,28 @@ class SeriesControlPanel(wx.Panel):
                 'the "Plot Series" button in the Files control tab to plot any series '
                 'data. Please contact the RAW developers if you want to add '
                 'automated loading support for a particular header format.' %(hdr_format)) ,
-                                      'Error loading file', style = wx.ICON_ERROR | wx.OK)
+                'Error loading file', style = wx.ICON_ERROR | wx.OK)
 
-    def _onLoad(self):
-        if self.seriesIsOnline:
-            self.seriesPanelGoOffline()
-
-        file_list, frame_list = self._makeFileList()
-
-        if len(file_list) > 0:
-
-            mainworker_cmd_queue.put(['sec_plot', [file_list, frame_list, True]])
-
-        else:
-            wx.MessageBox("Can't find files to load", style=wx.ICON_ERROR | wx.OK)
-
-        if self.online_mode_button.IsChecked() and not self.seriesIsOnline:
-            self.seriesPanelGoOnline()
 
     def _onUpdateButton(self,evt):
         self.onUpdate()
 
     def onUpdate(self):
-
         if self.secm is not None:
-
-            if self.seriesIsOnline:
-                self.seriesPanelGoOffline()
-
-            old_frame_list = self._getFrameList(self.secm.file_list)
-
-            self._fillBoxes()
-
-            dif_frame_list = list(set(self.frame_list)-set(old_frame_list))
-
-            dif_frame_list.sort(key=lambda frame: int(frame))
-
-            if len(dif_frame_list)>0:
-                file_list, modified_frame_list = self._makeFileList(dif_frame_list)
-
-            else:
-                file_list=[]
-
-            if len(file_list) > 0:
-                mainworker_cmd_queue.put(['update_secm', [file_list, modified_frame_list, self.secm]])
-
-            else:
-                self.updateSucceeded()
-
-    def updateFailed(self, name, error, msg):
-        self.tries = self.tries + 1
-        if self.tries <= self.max_tries:
-            time.sleep(1)
-            self.onUpdate()
-        else:
-            self.seriesPanelGoOffline()
-            self.online_mode_button.SetValue(False)
-            if error == 'file':
-                wx.CallAfter(self._showDataFormatError, os.path.split(name)[1])
-            elif error == 'header':
-                wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic series updating turned off.', 'Error Loading Headerfile', style = wx.ICON_ERROR | wx.OK)
-            elif error == 'mask':
-                 wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic series updating turned off.', 'Saved mask does not fit loaded image', style = wx.ICON_ERROR)
-            elif error == 'mask_header':
-                wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic series updating turned off.', 'Mask information was not found in header', style = wx.ICON_ERROR)
-            elif error == 'abs_scale':
-                wx.CallAfter(wx.MessageBox, str(msg)+ ' Automatic series updating turned off.', 'Absolute scale failed', style = wx.ICON_ERROR)
-
-    def updateSucceeded(self):
-        if self.online_mode_button.IsChecked() and not self.seriesIsOnline:
-            self.seriesPanelGoOnline()
-
-        self.tries = 1
-
-    def _showDataFormatError(self, filename, include_ascii = True, include_sec = False):
-        img_fmt = self._raw_settings.get('ImageFormat')
-
-        if include_ascii:
-            ascii = ' or any of the supported ASCII formats'
-        else:
-            ascii = ''
-
-        if include_sec:
-            sec = ' or the RAW series format'
-        else:
-            sec = ''
-
-        wx.CallAfter(wx.MessageBox, 'The selected file: ' + filename + '\ncould not be recognized as a '   + str(img_fmt) +
-                         ' image format' + ascii + sec + '.\n\nYou can change the image format under Advanced Options in the Options menu.\n'+
-                         'Automatic series updating turned off.' ,
-                          'Error loading file', style = wx.ICON_ERROR | wx.OK)
+            self.online_controller.updateSeries(self.secm)
 
     def _onFramesToMainPlot(self,evt):
         self._toMainPlot()
 
     def _onAverageToMainPlot(self,evt):
-
         self._toMainPlot(True)
 
     def _toMainPlot(self, average=False):
-        if self.seriesIsOnline:
+        if self.online_controller.online:
             self.seriesPanelGoOffline()
 
-        self._updateControlValues()
+        self.initial_selected_frame = self.initial_selected_box.GetValue()
+        self.final_selected_frame = self.final_selected_box.GetValue()
 
         selected_item = self.sec_panel.getDataItem()
         secm = None
@@ -13227,7 +13387,7 @@ class SeriesControlPanel(wx.Panel):
             else:
                 mainworker_cmd_queue.put(['to_plot_SEC', sasm_list])
 
-        if self.online_mode_button.IsChecked() and not self.seriesIsOnline:
+        if self.online_mode_button.IsChecked() and not self.online_controller.online:
             self.seriesPanelGoOnline()
 
 
@@ -13243,189 +13403,10 @@ class SeriesControlPanel(wx.Panel):
 
         return my_id
 
-
-    def _updateControlValues(self):
-
-        for parameter in self.controlData:
-            ptype = parameter[1][1]
-            pid = parameter[1][0]
-
-            if ptype != 'framelist':
-                data = wx.FindWindowById(pid, self)
-
-                if ptype == 'imghdr':
-                    self.image_prefix = data.GetValue()
-
-                elif ptype == 'iframenum':
-                    self.initial_frame_number = data.GetValue()
-
-                elif ptype == 'fframenum':
-                    self.final_frame_number = data.GetValue()
-
-                elif ptype == 'isframenum':
-                    self.initial_selected_frame = data.GetValue()
-
-                elif ptype == 'fsframenum':
-                    self.final_selected_frame = data.GetValue()
-
-
-    def _makeFileList(self,modified_frame_list=[]):
-
-        self._updateControlValues()
-
-        file_list = []
-        bad_file_list = []
-
-        if len(modified_frame_list) == 0 :
-            modified_frame_list = copy.copy(self.frame_list)
-
-        hdr_format = self._raw_settings.get('ImageHdrFormat')
-
-        if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS':
-            if self.image_prefix != '' or self.filename != '':
-                for frame in modified_frame_list:
-                    name = os.path.join(self.directory, '{}_{}'.format(self.image_prefix, frame))
-                    if os.path.isfile(name+'.dat'):
-                        file_list.append(name+'.dat')
-                    elif os.path.isfile(name+'.tiff'):
-                        file_list.append(name+'.tiff')
-                    else:
-                        files = glob.glob(name+'.*')
-                        if files and not files[0].endswith('.tmp'):
-                            file_list.append(files[0])
-                        else:
-                            bad_file_list.append(frame)
-
-        elif hdr_format == 'BioCAT, APS':
-            if self.image_prefix != '' or self.filename != '':
-                for frame in modified_frame_list:
-                    name = os.path.join(self.directory, '%s_%s' %(self.image_prefix, frame))
-
-                    if os.path.isfile(name+'.dat'):
-                        file_list.append(name+'.dat')
-                    elif os.path.isfile(name+'.tiff'):
-                        file_list.append(name+'.tiff')
-                    elif os.path.isfile(name+'.tif'):
-                        file_list.append(name+'.tif')
-                    else:
-                        files = glob.glob(name+'.*')
-                        if files and not files[0].endswith('.tmp'):
-                            file_list.append(files[0])
-                        else:
-                            bad_file_list.append(frame)
-
-        elif hdr_format == 'CHESS EIGER 4M':
-            if self.image_prefix != '' or self.filename != '':
-                for frame in modified_frame_list:
-                    name = os.path.join(self.directory,
-                        '{}_data_{}'.format(self.image_prefix, frame))
-
-                    #To match new eiger dat file naming convention
-                    name2 = os.path.join(self.directory,
-                        '{}_data_'.format(self.image_prefix))
-                    flist = glob.glob(name2+'*_{}.dat'.format(frame))
-                    if len(flist) > 0:
-                        fname = flist[0]
-                    else:
-                        fname = None
-
-                    if os.path.isfile(name+'.dat'):
-                        file_list.append(name+'.dat')
-                    elif fname is not None and os.path.isfile(fname):
-                        file_list.append(fname)
-                    elif os.path.isfile(name+'.h5'):
-                        file_list.append(name+'.h5')
-                    elif os.path.isfile(name+'.tiff'):
-                        file_list.append(name+'.tiff')
-                    else:
-                        files = glob.glob(name+'.*')
-                        if files and not files[0].endswith('.tmp'):
-                            file_list.append(files[0])
-                        else:
-                            bad_file_list.append(frame)
-
-        if bad_file_list:
-            for frame in bad_file_list:
-                modified_frame_list.pop(modified_frame_list.index(frame))
-
-        return file_list, modified_frame_list
-
-
-    def _fillBoxes(self):
-
-        hdr_format = self._raw_settings.get('ImageHdrFormat')
-
-        if self.filename != '':
-
-            if hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS':
-
-                count_filename, run_number, frame_number = SASFileIO.parseCHESSG1Filename(os.path.join(self.directory, self.filename))
-
-                filelist = glob.glob(count_filename + '_' + run_number + '_*')
-
-                self.image_prefix = '{}_{}'.format(os.path.basename(count_filename), run_number)
-
-            elif hdr_format == 'BioCAT, APS':
-
-                count_filename, frame_number = SASFileIO.parseBiocatFilename(os.path.join(self.directory, self.filename))
-
-                filelist = glob.glob(count_filename + '_*')
-
-                junk, self.image_prefix = os.path.split(count_filename)
-
-            elif hdr_format == 'CHESS EIGER 4M':
-                count_filename, run_number, frame_number = SASFileIO.parseCHESSEigerFilename(os.path.join(self.directory, self.filename))
-
-                filelist = glob.glob(count_filename + '_' + run_number + '_*')
-
-                self.image_prefix = '{}_{}'.format(os.path.basename(count_filename), run_number)
-
-            self.frame_list = self._getFrameList(filelist)
-
-            self.image_prefix_box.SetValue(self.image_prefix)
-
-            self.initial_frame_number = self.frame_list[0]
-            self.initial_frame_number_box.SetValue(self.initial_frame_number)
-
-            self.final_selected_frame = self.frame_list[-1]
-            self.final_frame_number_box.SetValue(self.final_selected_frame)
-
-            self._updateControlValues()
-
-    def _getFrameList(self, filelist):
-        framelist=[]
-
-        hdr_format = self._raw_settings.get('ImageHdrFormat')
-
-        if hdr_format in ['G1, CHESS', 'G1 WAXS, CHESS', 'CHESS EIGER 4M',
-            'BioCAT, APS']:
-            for f in filelist:
-
-                if not os.path.getsize(f) > 500:
-                    break
-
-                if (hdr_format == 'G1, CHESS' or hdr_format == 'G1 WAXS, CHESS'
-                    or hdr_format == 'CHESS EIGER 4M'):
-                        frame=SASFileIO.parseCHESSG1Filename(f)[2]
-                        try:
-                            int(frame)
-                            framelist.append(frame)
-                        except ValueError:
-                            pass
-
-                elif hdr_format == 'BioCAT, APS':
-                    frame=SASFileIO.parseBiocatFilename(f)[1]
-                    try:
-                        int(frame)
-                        framelist.append(frame)
-                    except ValueError:
-                        pass
-
-        framelist = list(set(framelist))
-        framelist.sort(key=lambda frame: int(frame))
-
-        return framelist
-
+    def updateOnlineParams(self, image_prefix, initial_fn, final_fn):
+        self.image_prefix_box.SetValue(image_prefix)
+        self.initial_frame_number_box.SetValue(str(initial_fn))
+        self.final_frame_number_box.SetValue(str(final_fn))
 
     def clearAll(self):
         for each in self.controlData:
@@ -13440,12 +13421,6 @@ class SeriesControlPanel(wx.Panel):
                 infobox.SetValue('5')
 
         self.secm=None
-
-        self.filename = ''
-        self.frame_list = []
-        self.directory = ""
-
-        self._updateControlValues
 
 
 #--- ** Masking Panel **
