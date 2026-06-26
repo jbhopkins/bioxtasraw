@@ -3971,8 +3971,14 @@ class OnlineSeriesController(object):
 
         self.online = False
 
+        self._update_interval = 1
+
+        self._online_evt = threading.Event()
+        self._abort_evt = threading.Event()
+        self._update_queue = queue.Queue()
+
     def goOnline(self):
-        self.online_timer.Start(1000)
+        self.online_timer.Start(self._update_interval*1000)
         self.online = True
 
     def goOffline(self):
@@ -3980,7 +3986,8 @@ class OnlineSeriesController(object):
         self.online = False
 
     def onOnlineTimer(self, evt):
-        self.series_ctrl_panel.onUpdate()
+        if self.series_ctrl_panel.secm is not None:
+            self.updateSeries()
 
     def loadNewSeries(self, fname):
         try:
@@ -4229,8 +4236,9 @@ class OnlineSeriesController(object):
     def updateFailed(self, name, error, msg):
         self.tries = self.tries + 1
         if self.tries <= self.max_tries:
-            time.sleep(1)
-            self.onUpdate()
+            time.sleep(self._update_interval)
+            if self.series_ctrl_panel.secm is not None:
+                self.updateSeries()
         else:
             self.goOffline()
             self.series_ctrl_panel.online_mode_button.SetValue(False)
