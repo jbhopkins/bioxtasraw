@@ -3853,13 +3853,14 @@ class SeriesPlotPanel(wx.Panel):
 
                 calc_data = self._getCalcData(each)
 
-                each.calc_line.set_ydata(calc_data)
+                if calc_data is not None:
+                    each.calc_line.set_ydata(calc_data)
 
-                if (each.calc_line.get_label() == 'RG' or
-                    each.calc_line.get_label() == 'MW (Vc)' or
-                    each.calc_line.get_label() == 'MW (Vp)' or
-                    each.calc_line.get_label() == 'I0'):
-                    each.calc_line.set_label(self.plotparams['secm_plot_calc'])
+                    if (each.calc_line.get_label() == 'RG' or
+                        each.calc_line.get_label() == 'MW (Vc)' or
+                        each.calc_line.get_label() == 'MW (Vp)' or
+                        each.calc_line.get_label() == 'I0'):
+                        each.calc_line.set_label(self.plotparams['secm_plot_calc'])
 
             xdata = self._getXData(each)
 
