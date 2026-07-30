@@ -3785,9 +3785,7 @@ class MWPlotPanel(wx.Panel):
 
         SASUtils.update_mpl_style()
 
-        if ((int(matplotlib.__version__.split('.')[0]) == 3
-            and int(matplotlib.__version__.split('.')[1]) >= 9) or
-            int(matplotlib.__version__.split('.')[0]) > 3):
+        if packv.parse(matplotlib.__version__) >= packv.Version('3.9'):
             scale = self.GetDPIScaleFactor()
         else:
             scale = 1
@@ -3823,9 +3821,7 @@ class MWPlotPanel(wx.Panel):
         a.yaxis.get_label().set_size(font_size)
         a.xaxis.get_label().set_size(font_size)
 
-        if (int(matplotlib.__version__.split('.')[0]) < 3 or
-            (int(matplotlib.__version__.split('.')[0]) == 3 and
-            int(matplotlib.__version__.split('.')[1]) <8)):
+        if packv.parse(matplotlib.__version__) < packv.Version('3.8'):
             for tick in a.xaxis.get_major_ticks():
                 tick.label.set_fontsize(font_size)
 
@@ -4028,8 +4024,7 @@ class GNOMFrame(wx.Frame):
             version = None
 
         if version is not None:
-            if (int(version.split('.')[0]) > 2 or
-                (int(version.split('.')[0]) == 2 and int(version.split('.')[1]) >=8)):
+            if packv.parse(version) >= packv.Version('2.8'):
                 self.new_gnom = True
             else:
                 self.new_gnom = False
@@ -5436,7 +5431,7 @@ class DammifFrame(wx.Frame):
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
             self.notebook.Fit()
 
-            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+            if platform.system() == 'Linux' and packv.parse(wx.__version__) >= packv.Version('3.0'):
                 size = self.GetSize()
                 size[1] = size[1] + self._FromDIP(20)
                 self.SetSize(self._FromDIP(size))
@@ -5487,8 +5482,7 @@ class DammifFrame(wx.Frame):
             self.atsas_version = None
 
         if self.atsas_version is not None:
-            if ((int(self.atsas_version.split('.')[0]) == 3 and int(self.atsas_version.split('.')[1]) >= 1)
-                or int(self.atsas_version.split('.')[0]) > 3):
+            if packv.parse(self.atsas_version) >= packv.Version('3.1'):
                 self.model_ext = '.cif'
             else:
                 self.model_ext = '.pdb'
@@ -5753,9 +5747,7 @@ class DammifRunPanel(wx.Panel):
         settings_sizer.Add(advancedButton, 0, wx.LEFT | wx.RIGHT | wx.TOP
             |wx.ALIGN_CENTER, self._FromDIP(2))
 
-        if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
-            and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
-            or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+        if packv.parse(self.dammif_frame.atsas_version) >= packv.Version('3.1'):
             settings_sizer.Hide(damclust_chk)
 
 
@@ -5810,8 +5802,7 @@ class DammifRunPanel(wx.Panel):
         log_sizer = wx.StaticBoxSizer(log_box, wx.HORIZONTAL)
         log_sizer.Add(self.logbook, 1, wx.ALL | wx.EXPAND, 2)
 
-        if (int(wx.__version__.split('.')[1])<9
-            and int(wx.__version__.split('.')[0]) == 2):     #compatability for older versions of wxpython
+        if packv.parse(wx.__version__) < packv.Version('2.9'):     #compatability for older versions of wxpython
             top_sizer = wx.BoxSizer(wx.VERTICAL)
             top_sizer.Add(half_sizer, 0, wx.EXPAND)
             top_sizer.Add(log_sizer, 1, wx.EXPAND)
@@ -5872,7 +5863,7 @@ class DammifRunPanel(wx.Panel):
         align = self.align_result.GetValue()
 
 
-        if int(self.dammif_frame.atsas_version.split('.')[0]) >= 4:
+        if packv.parse(self.dammif_frame.atsas_version) >= packv.Version('4.0'):
             if program == 'DAMMIN' and self.dammif_settings['mode'] == 'Custom':
                 self.model_ext = '.cif'
                 self.damaver_model_ext = '.'+self.dammif_settings['damaver_modelf']
@@ -5983,9 +5974,7 @@ class DammifRunPanel(wx.Panel):
 
         if nruns > 1 and damaver:
 
-            if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
-                and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
-                or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+            if packv.parse(self.dammif_frame.atsas_version) >= packv.Version('3.1'):
                 damaver_names = [
                     prefix+'-distances.txt',
                     ]
@@ -6090,9 +6079,7 @@ class DammifRunPanel(wx.Panel):
             filenames.extend(['{}-1_aligned{}'.format(key, self.model_ext)
                 for key in dammif_names])
 
-            if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
-                and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
-                or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+            if packv.parse(self.dammif_frame.atsas_version) >= packv.Version('3.1'):
                 if nruns > 1 and damaver:
                     filenames.extend(['{}-global-damfilt_aligned{}'.format(prefix, self.damaver_model_ext),
                         '{}-global-damaver_aligned{}'.format(prefix, self.damaver_model_ext)])
@@ -6324,9 +6311,7 @@ class DammifRunPanel(wx.Panel):
 
             if refine:
                 # self.dammif_settings['mode'] = 'Refine'
-                if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
-                    and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
-                    or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+                if packv.parse(self.dammif_frame.atsas_version) >= packv.Version('3.1'):
                     dam_args['initialDAM'] = prefix+'-global-damstart'+self.damaver_model_ext
                 else:
                     dam_args['initialDAM'] = prefix+'_damstart'+self.damaver_model_ext
@@ -6461,9 +6446,7 @@ class DammifRunPanel(wx.Panel):
 
             #Remove old files, so they don't mess up the program
 
-            if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
-                and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
-                or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+            if packv.parse(self.dammif_frame.atsas_version) >= packv.Version('3.1'):
                 old_files = [os.path.join(path, prefix+'-global-damfilt'+self.damaver_model_ext),
                     os.path.join(path, prefix+'-global-damstart'+self.damaver_model_ext),
                     os.path.join(path, prefix+'-global-damaver'+self.damaver_model_ext),
@@ -6671,9 +6654,7 @@ class DammifRunPanel(wx.Panel):
 
 
     def runSuperimpose(self, prefix, path):
-        if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
-            and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
-            or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+        if packv.parse(self.dammif_frame.atsas_version) >= packv.Version('3.1'):
 
             self.runCifsup(prefix, path)
 
@@ -7062,9 +7043,7 @@ class DammifRunPanel(wx.Panel):
         damaver = wx.FindWindowById(self.ids['damaver'], self)
         damaver.SetValue(self.raw_settings.get('dammifDamaver'))
 
-        if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
-            and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
-            or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+        if packv.parse(self.dammif_frame.atsas_version) >= packv.Version('3.1'):
             damclust = wx.FindWindowById(self.ids['damclust'], self)
             damclust.SetValue(False)
         else:
@@ -7608,9 +7587,7 @@ class DammifResultsPanel(wx.Panel):
             self.models.AddPage(plot_panel, str(num))
 
         if settings['damaver'] and int(settings['runs']) > 1:
-            if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
-                and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
-                or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+            if packv.parse(self.dammif_frame.atsas_version) >= packv.Version('3.1'):
                 damaver_name = os.path.join(path, prefix+'-global-damaver'+self.damaver_model_ext)
                 damfilt_name = os.path.join(path, prefix+'-global-damfilt'+self.damaver_model_ext)
 
@@ -7620,9 +7597,7 @@ class DammifResultsPanel(wx.Panel):
 
             atoms, header, model_data = self._loadModelFile(damaver_name)
 
-            if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
-                and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
-                or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+            if packv.parse(self.dammif_frame.atsas_version) >= packv.Version('3.1'):
                 model_data['dmax'] = ''
                 model_data['rg'] = ''
                 model_data['mw'] = ''
@@ -7631,9 +7606,7 @@ class DammifResultsPanel(wx.Panel):
 
             atoms, header, model_data = self._loadModelFile(damfilt_name)
 
-            if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
-                and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
-                or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+            if packv.parse(self.dammif_frame.atsas_version) >= packv.Version('3.1'):
                 model_data['dmax'] = ''
                 model_data['rg'] = ''
                 model_data['mw'] = ''
@@ -7675,9 +7648,7 @@ class DammifResultsPanel(wx.Panel):
         Gets damaver results
         """
 
-        if ((int(self.dammif_frame.atsas_version.split('.')[0]) == 3
-            and int(self.dammif_frame.atsas_version.split('.')[1]) >= 1)
-            or int(self.dammif_frame.atsas_version.split('.')[0]) > 3):
+        if packv.parse(self.dammif_frame.atsas_version) >= packv.Version('3.1'):
             dist_path = os.path.join(settings['path'],
                 settings['prefix']+'-distances.txt')
             summary_path = os.path.join(settings['path'],
@@ -7909,9 +7880,7 @@ class DammifResultsPanel(wx.Panel):
         RAWGlobals.save_in_progress = True
         self.main_frame.setStatus('Saving DAMMIF/N data', 0)
 
-        if ((int(matplotlib.__version__.split('.')[0]) == 3
-            and int(matplotlib.__version__.split('.')[1]) >= 9) or
-            int(matplotlib.__version__.split('.')[0]) > 3):
+        if packv.parse(matplotlib.__version__) >= packv.Version('3.9'):
             scale = self.GetDPIScaleFactor()
         else:
             scale = 1
@@ -8209,7 +8178,7 @@ class DenssFrame(wx.Frame):
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
             self.notebook.Fit()
-            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+            if platform.system() == 'Linux' and packv.parse(wx.__version__) >= packv.Version('3.0'):
                 size = self.GetSize()
                 size[1] = size[1] + self._FromDIP(20)
                 self.SetSize(self._FromDIP(size))
@@ -8556,8 +8525,7 @@ class DenssRunPanel(wx.Panel):
         log_sizer = wx.StaticBoxSizer(log_box, wx.HORIZONTAL)
         log_sizer.Add(self.logbook, 1, wx.ALL | wx.EXPAND, border=self._FromDIP(5))
 
-        if (int(wx.__version__.split('.')[1])<9
-            and int(wx.__version__.split('.')[0]) == 2):     #compatability for older versions of wxpython
+        if packv.parse(wx.__version__) < packv.Version('2.9'):     #compatability for older versions of wxpython
             top_sizer = wx.BoxSizer(wx.VERTICAL)
             top_sizer.Add(half_sizer, 0, wx.EXPAND)
             top_sizer.Add(log_sizer, 1, wx.EXPAND)
@@ -15758,7 +15726,7 @@ class SVDFrame(wx.Frame):
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
             self.splitter1.Fit()
-            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+            if platform.system() == 'Linux' and packv.parse(wx.__version__) >= packv.Version('3.0'):
                 size = self.GetSize()
                 size[1] = size[1] + self._FromDIP(20)
                 self.SetSize(self._FromDIP(size))
@@ -16018,9 +15986,7 @@ class SVDSECPlotPanel(wx.Panel):
 
         SASUtils.update_mpl_style()
 
-        if ((int(matplotlib.__version__.split('.')[0]) == 3
-            and int(matplotlib.__version__.split('.')[1]) >= 9) or
-            int(matplotlib.__version__.split('.')[0]) > 3):
+        if packv.parse(matplotlib.__version__) >= packv.Version('3.9'):
             scale = self.GetDPIScaleFactor()
         else:
             scale = 1
@@ -17064,7 +17030,7 @@ class EFAFrame(wx.Frame):
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
             self.splitter1.Fit()
-            if platform.system() == 'Linux' and int(wx.__version__.split('.')[0]) >= 3:
+            if platform.system() == 'Linux' and packv.parse(wx.__version__) >= packv.Version('3.0'):
                 size = self.GetSize()
                 size[1] = size[1] + self._FromDIP(20)
                 self.SetSize(self._FromDIP(size))
@@ -19201,9 +19167,7 @@ class EFARangePlotPanel(wx.Panel):
 
         SASUtils.update_mpl_style()
 
-        if ((int(matplotlib.__version__.split('.')[0]) == 3
-            and int(matplotlib.__version__.split('.')[1]) >= 9) or
-            int(matplotlib.__version__.split('.')[0]) > 3):
+        if packv.parse(matplotlib.__version__) >= packv.Version('3.9'):
             scale = self.GetDPIScaleFactor()
         else:
             scale = 1
@@ -24815,9 +24779,7 @@ class SeriesPlotPanel(wx.Panel):
     def create_layout(self):
         color = SASUtils.update_mpl_style()
 
-        if ((int(matplotlib.__version__.split('.')[0]) == 3
-            and int(matplotlib.__version__.split('.')[1]) >= 9) or
-            int(matplotlib.__version__.split('.')[0]) > 3):
+        if packv.parse(matplotlib.__version__) >= packv.Version('3.9'):
             scale = self.GetDPIScaleFactor()
         else:
             scale = 1
