@@ -73,8 +73,9 @@ import wx.lib.agw.supertooltip as STT
 import wx.aui as aui
 import wx.lib.dialogs
 import wx.lib.agw.persist as PM
+import packaging.version as packv
 
-if wx.version().split()[0].strip()[0] >= '4':
+if packv.parse(wx.version().split()[0]) >= packv.Version('4'):
     import wx.adv
     SplashScreen = wx.adv.SplashScreen
     TaskBarIcon = wx.adv.TaskBarIcon
@@ -1405,9 +1406,7 @@ class MainFrame(wx.Frame):
                 atsas_version = None
 
             if atsas_version is not None:
-                if ((int(atsas_version.split('.')[0]) == 3
-                    and int(atsas_version.split('.')[1]) >= 1)
-                    or int(atsas_version.split('.')[0]) > 3):
+                if packv.parse(atsas_version) >= packv.Version('3.1'):
                     program = 'cifsup'
 
                 else:
@@ -8157,7 +8156,8 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
 
     def _onRightMouseClick(self, event):
 
-        if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+        if (packv.parse(wx.__version__) >= packv.Version('3')
+            and platform.system() == 'Darwin'):
             wx.CallAfter(self._showPopupMenu)
         else:
             self._showPopupMenu()
@@ -9546,13 +9546,15 @@ class ManipItemPanel(wx.Panel):
             if self.sasm.getParameter('Notes') != '':
                 string3 = 'Note: ' + str(self.sasm.getParameter('Notes'))
 
-        if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+        if  (packv.parse(wx.__version__) >= packv.Version('3')
+            and platform.system() == 'Darwin'):
             string = string1+string2+string3
         else:
             string = string0+string1+string2+string3
 
         if string != '':
-            if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+            if  (packv.parse(wx.__version__) >= packv.Version('3')
+                and platform.system() == 'Darwin'):
                 self.info_tip.SetMessage(string)
             else:
                 self.info_icon.SetToolTip(wx.ToolTip(string))
@@ -10359,7 +10361,8 @@ class ManipItemPanel(wx.Panel):
         #items are selected. In wxpython 3.0, calling without the callafter creates a segfault on mac.
         #In wxpython 3.0 on linux (debian), with the callafter causes the menu to only show while you hold
         #down the button.
-        if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+        if (packv.parse(wx.__version__) >= packv.Version('3')
+            and platform.system() == 'Darwin'):
             wx.CallAfter(self._showPopupMenu)
         else:
             self._showPopupMenu()
@@ -11702,7 +11705,8 @@ class IFTItemPanel(wx.Panel):
             self.toggleSelect()
             self.ift_panel.deselectAllExceptOne(self)
 
-        if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+        if  (packv.parse(wx.__version__) >= packv.Version('3')
+            and platform.system() == 'Darwin'):
             wx.CallAfter(self._showPopupMenu)
         else:
             self._showPopupMenu()
@@ -12502,7 +12506,8 @@ class SeriesItemPanel(wx.Panel):
         self.info_icon.SetBitmapMargins(0,0)
         self.info_icon.SetBackgroundColour(self._bkg_color)
 
-        if int(wx.__version__.split('.')[0]) >= 3 and opsys == 'Darwin':
+        if  (packv.parse(wx.__version__) >= packv.Version('3')
+            and platform.system() == 'Darwin'):
             show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(self.showitem_icon)
             show_tip.ApplyStyle('Blue Glass')
@@ -12626,7 +12631,8 @@ class SeriesItemPanel(wx.Panel):
         mol_density = self.secm.mol_density
 
         if window == -1:
-            if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+            if  (packv.parse(wx.__version__) >= packv.Version('3')
+                and platform.system() == 'Darwin'):
                 msg = ('First buffer frame: N/A\nLast buffer frame: N/A\n'
                     'Average window size: N/A\nMol. type: N/A\nBaseline: N/A')
                 self.info_tip.SetMessage(msg)
@@ -12651,7 +12657,8 @@ class SeriesItemPanel(wx.Panel):
                 'Mol. density: {}\nBaseline: {}'.format(buffer_str, window,
                     mol_type, mol_density, baseline))
 
-            if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+            if (packv.parse(wx.__version__) >= packv.Version('3')
+                and platform.system() == 'Darwin'):
                 self.info_tip.SetMessage(tip)
             else:
                 msg = ('Show Extended Info\n--------------------------------\n'
@@ -13025,7 +13032,8 @@ class SeriesItemPanel(wx.Panel):
             self.toggleSelect()
             self.sec_panel.deselectAllExceptOne(self)
 
-        if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+        if (packv.parse(wx.__version__) >= packv.Version('3')
+            and platform.system() == 'Darwin'):
             wx.CallAfter(self._showPopupMenu)
         else:
             self._showPopupMenu()
@@ -14935,8 +14943,15 @@ class CenteringPanel(scrolled.ScrolledPanel):
         except Exception:
             wavelength = self.c.geoRef.get_wavelength()*1e10
 
-        pixel_size_x = self.c.geoRef.get_pixel2()*1e6
-        pixel_size_y = self.c.geoRef.get_pixel1()*1e6
+        try:
+            pixel_size_x = self.c.geoRef.pixel2*1e6
+        except Exception:
+            pixel_size_x = self.c.geoRef.get_pixel2()*1e6
+
+        try:
+            pixel_size_y = self.c.geoRef.pixel1*1e6
+        except Exception:
+            pixel_size_y = self.c.geoRef.get_pixel1()*1e6
 
         self._wavelen_text.SetValue(str(wavelength))
         self._pixel_x_text.SetValue(str(pixel_size_x))
@@ -16654,7 +16669,7 @@ class MySplashScreen(SplashScreen):
 
         aBitmap = wx.Bitmap(splash_img)
 
-        if wx.version().split()[0].strip()[0] == '4':
+        if packv.parse(wx.version().split()[0]) >= packv.Version('4'):
             splashStyle = wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_TIMEOUT
         else:
             splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
@@ -16709,7 +16724,7 @@ class RawTaskbarIcon(TaskBarIcon):
     #----------------------------------------------------------------------
     def __init__(self, frame):
         if platform.system() == 'Darwin':
-            if wx.version().split()[0].strip()[0] == '4':
+            if packv.parse(wx.version().split()[0]) >= packv.Version('4'):
                 icontype = wx.adv.TBI_DOCK
             else:
                 icontype = wx.TBI_DOCK

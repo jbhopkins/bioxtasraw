@@ -54,6 +54,7 @@ import wx.grid
 import scipy.stats as stats
 import scipy.integrate as integrate
 import matplotlib
+import packaging.version as packv
 
 matplotlib.rcParams['backend'] = 'WxAgg'
 matplotlib.rc('image', origin = 'lower')        # turn image upside down.. x,y, starting from lower left
@@ -658,16 +659,18 @@ class GuinierPlotPanel(wx.Panel):
         and show a pop up menu to change the settings
         of the figure the mouse was over '''
         if event.button == 3:
-            if float(matplotlib.__version__[:3]) >= 1.2:
+            if packv.parse(matplotlib.__version__) >= packv.Version('1.2'):
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                    if (packv.parse(wx.__version__) >= packv.Version('3')
+                        and platform.system() == 'Darwin'):
                         wx.CallAfter(self._showPopupMenu)
                     else:
                         self._showPopupMenu()
 
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                    if (packv.parse(wx.__version__) >= packv.Version('3')
+                        and platform.system() == 'Darwin'):
                         wx.CallAfter(self._showPopupMenu)
                     else:
                         self._showPopupMenu()
@@ -1605,7 +1608,7 @@ class GuinierFrame(wx.Frame):
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
-        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+        if packv.parse(wx.__version__) < packv.Version('2.9'):
             splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
@@ -3971,7 +3974,7 @@ class GNOMFrame(wx.Frame):
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
-        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+        if packv.parse(wx.__version__) < packv.Version('2.9'):
             splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))   #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
@@ -11168,7 +11171,7 @@ class BIFTFrame(wx.Frame):
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
-        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+        if packv.parse(wx.__version__) < packv.Version('2.9'):
             splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
@@ -11954,7 +11957,7 @@ class DIFTFrame(wx.Frame):
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
-        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+        if packv.parse(wx.__version__) < packv.Version('2.9'):
             splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))   #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
@@ -12966,7 +12969,7 @@ class TheoreticalFrame(wx.Frame):
 
         splitter.SplitVertically(self.ctrl_panel, sub_panel, self._FromDIP(350))
 
-        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+        if packv.parse(wx.__version__) < packv.Version('2.9'):
             splitter.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
         else:
             splitter.SetMinimumPaneSize(self._FromDIP(50))
@@ -14406,7 +14409,8 @@ class TheoreticalList(wx.ListCtrl, wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin
         self.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
 
     def _onRightMouseButton(self, evt):
-        if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+        if (packv.parse(wx.__version__) >= packv.Version('3')
+            and platform.system() == 'Darwin'):
             wx.CallAfter(self._showPopupMenu)
         else:
             self._showPopupMenu()
@@ -15747,7 +15751,7 @@ class SVDFrame(wx.Frame):
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
-        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+        if packv.parse(wx.__version__) < packv.Version('2.9'):
             splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
@@ -17053,7 +17057,7 @@ class EFAFrame(wx.Frame):
 
         self.splitter1.SplitVertically(self.controlPanel1, self.plotPanel1, self._FromDIP(splitter_size))
 
-        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+        if packv.parse(wx.__version__) < packv.Version('2.9'):
             self.splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter1.SetMinimumPaneSize(self._FromDIP(50))
@@ -17073,7 +17077,7 @@ class EFAFrame(wx.Frame):
 
         self.splitter2.SplitVertically(self.controlPanel2, self.plotPanel2, self._FromDIP(splitter_size))
 
-        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+        if packv.parse(wx.__version__) < packv.Version('2.9'):
             self.splitter2.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter2.SetMinimumPaneSize(self._FromDIP(50))
@@ -17088,7 +17092,7 @@ class EFAFrame(wx.Frame):
 
         self.splitter3.SplitVertically(self.controlPanel3, self.plotPanel3, self._FromDIP(splitter_size))
 
-        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+        if packv.parse(wx.__version__) < packv.Version('2.9'):
             self.splitter3.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter3.SetMinimumPaneSize(self._FromDIP(50))
@@ -19812,7 +19816,7 @@ class REGALSSVDPanel(wx.Panel):
 
         self.splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
-        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+        if packv.parse(wx.__version__) < packv.Version('2.9'):
             self.splitter.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter.SetMinimumPaneSize(self._FromDIP(50))
@@ -19880,7 +19884,7 @@ class REGALSEFAPanel(wx.Panel):
 
         self.splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
-        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+        if packv.parse(wx.__version__) < packv.Version('2.9'):
             self.splitter.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter.SetMinimumPaneSize(self._FromDIP(50))
@@ -22885,7 +22889,7 @@ class ResidualsPanel(wx.Panel):
 
         splitter.SplitVertically(self.control_panel, self.plot_panel, self._FromDIP(325))
 
-        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+        if packv.parse(wx.__version__) < packv.Version('2.9'):
             splitter.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
         else:
             splitter.SetMinimumPaneSize(self._FromDIP(50))
@@ -22930,7 +22934,7 @@ class RatioPanel(wx.Panel):
 
         splitter.SplitVertically(self.control_panel, self.plot_panel, self._FromDIP(325))
 
-        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+        if packv.parse(wx.__version__) < packv.Version('2.9'):
             splitter.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
         else:
             splitter.SetMinimumPaneSize(self._FromDIP(50))
@@ -23318,16 +23322,18 @@ class ComparisonPlotPanel(wx.Panel):
         and show a pop up menu to change the settings
         of the figure the mouse was over '''
         if event.button == 3:
-            if float(matplotlib.__version__[:3]) >= 1.2:
+            if packv.parse(matplotlib.__version__) >= packv.Version('1.2'):
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                    if (packv.parse(wx.__version__) >= packv.Version('3')
+                        and platform.system() == 'Darwin'):
                         wx.CallAfter(self._showPopupMenu)
                     else:
                         self._showPopupMenu()
 
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                    if (packv.parse(wx.__version__) >= packv.Version('3')
+                        and platform.system() == 'Darwin'):
                         wx.CallAfter(self._showPopupMenu)
                     else:
                         self._showPopupMenu()
@@ -23878,7 +23884,7 @@ class NormKratkyFrame(wx.Frame):
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(290))
 
-        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
+        if packv.parse(wx.__version__) < packv.Version('2.9'):
             splitter1.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
@@ -24176,16 +24182,18 @@ class NormKratkyPlotPanel(wx.Panel):
         and show a pop up menu to change the settings
         of the figure the mouse was over '''
         if event.button == 3:
-            if float(matplotlib.__version__[:3]) >= 1.2:
+            if packv.parse(matplotlib.__version__) >= packv.Version('1.2'):
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                    if (packv.parse(wx.__version__) >= packv.Version('3')
+                        and platform.system() == 'Darwin'):
                         wx.CallAfter(self._showPopupMenu)
                     else:
                         self._showPopupMenu()
 
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                    if (packv.parse(wx.__version__) >= packv.Version('3')
+                        and platform.system() == 'Darwin'):
                         wx.CallAfter(self._showPopupMenu)
                     else:
                         self._showPopupMenu()
@@ -24670,8 +24678,8 @@ class LCSeriesFrame(wx.Frame):
 
         splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
-        if int(wx.__version__.split('.')[1])<9 and int(wx.__version__.split('.')[0]) == 2:
-            splitter.SetMinimumPaneSizeself._FromDIP((splitter_size))    #Back compatability with older wxpython versions
+        if packv.parse(wx.__version__) < packv.Version('2.9'):
+            splitter.SetMinimumPaneSize(self._FromDIP((splitter_size)))    #Back compatability with older wxpython versions
         else:
             splitter.SetMinimumPaneSize(self._FromDIP(50))
 
