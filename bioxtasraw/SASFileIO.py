@@ -50,6 +50,7 @@ import matplotlib.backends.backend_pdf
 import matplotlib
 import h5py
 import pdbx.reader
+import packaging.version as packv
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -2375,7 +2376,7 @@ def inner_load_series(f):
         pass
 
     # Deals with a change in how h5py reads in strings between version 2 and 3.
-    if h5py.version.version_tuple.major >= 3:
+    if packv.parse(h5py.version.version) >= packv.Version('3.0'):
         seriesm_data['file_list'] = [fname.decode('utf-8') for fname in seriesm_data['file_list']]
 
     else:

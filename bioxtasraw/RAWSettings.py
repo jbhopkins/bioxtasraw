@@ -43,6 +43,7 @@ except Exception:
     pass #Installed as API
 
 import numpy as np
+import packaging.version as packv
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -725,24 +726,16 @@ def loadSettings(raw_settings, filename, auto_load = False):
     msg = ''
 
     if 'RequiredVersion' in all_params:
-        rv = raw_settings.get('RequiredVersion')
+        rv = packv.parse(raw_settings.get('RequiredVersion'))
 
-        rv_maj, rv_min, rv_pt = map(int, rv.split('.'))
+        curv = packv.parse(RAWGlobals.version)
 
-        v_maj, v_min, v_pt = map(int, RAWGlobals.version.split('.'))
-
-        dv_maj, dv_min, dv_pt = map(int, default_settings['RequiredVersion'][0].split('.'))
+        defv = packv.parse(default_settings['RequiredVersion'][0])
 
         update = False
 
-        if rv_maj > v_maj:
+        if rv > curv:
             update = True
-        else:
-            if rv_min > v_min and rv_maj == v_maj:
-                update = True
-            else:
-                if rv_pt > v_pt and rv_maj == v_maj and rv_min == v_min:
-                    update = True
 
         if update:
             msg = ('Some settings in this configuration file require '
@@ -753,14 +746,10 @@ def loadSettings(raw_settings, filename, auto_load = False):
                 'http://bioxtas-raw.rftm.io/' %(rv, RAWGlobals.version))
 
         update_settings = False
-        if dv_maj > rv_maj:
+
+        if defv > rv:
             update_settings = True
-        else:
-            if dv_min > rv_min:
-                update_settings = True
-            else:
-                if dv_pt > rv_pt:
-                    update = True
+
         if update_settings:
             raw_settings.set('RequiredVersion', default_settings['RequiredVersion'][0])
 

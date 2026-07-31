@@ -48,6 +48,9 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Table, Image,
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from svglib.svglib import svg2rlg
+import packaging.version as packv
+
+pmpl_version = packv.parse(mpl.__version__)
 
 import bioxtasraw.SASCalc as SASCalc
 
@@ -1656,32 +1659,18 @@ class efa_plot(object):
 
         ax.plot(frame_data, int_data, '-', color='k')
 
-        if ((int(mpl.__version__.split('.')[0]) ==1 and
-            int(mpl.__version__.split('.')[1]) >=5) or
-            (int(mpl.__version__.split('.')[0]) > 1 and
-            int(mpl.__version__.split('.')[0]) < 3) or
-            (int(mpl.__version__.split('.')[0]) == 3 and
-            int(mpl.__version__.split('.')[1]) <8)):
+        if pmpl_version >= packv.Version('1.5') and pmpl_version < packv.Version('3.8'):
             ax.set_prop_cycle(None) #Resets the color cycler to the original state
-        elif ((int(mpl.__version__.split('.')[0]) == 3 and
-            int(mpl.__version__.split('.')[1]) >=8) or
-            (int(mpl.__version__.split('.')[0]) > 3)):
+        elif pmpl_version >= packv.Version('3.8'):
             prop_cycle = copy.deepcopy(mpl.rcParams['axes.prop_cycle'])
             color_cycle = prop_cycle.by_key()['color']
         else:
             ax.set_color_cycle(None)
 
         for i in range(len(ranges)):
-            if ((int(mpl.__version__.split('.')[0]) ==1 and
-                int(mpl.__version__.split('.')[1]) >=5) or
-                (int(mpl.__version__.split('.')[0]) > 1 and
-                int(mpl.__version__.split('.')[0]) < 3) or
-                (int(mpl.__version__.split('.')[0]) == 3 and
-                int(mpl.__version__.split('.')[1]) <8)):
+            if pmpl_version >= packv.Version('1.5') and pmpl_version < packv.Version('3.8'):
                 color = next(ax._get_lines.prop_cycler)['color']
-            elif ((int(mpl.__version__.split('.')[0]) == 3 and
-                int(mpl.__version__.split('.')[1]) >=8) or
-                (int(mpl.__version__.split('.')[0]) > 3)):
+            elif pmpl_version >= packv.Version('3.8'):
                 color = color_cycle[i]
             else:
                 color =next(ax._get_lines.color_cycle)

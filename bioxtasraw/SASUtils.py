@@ -48,6 +48,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.font_manager as fm
 import pyFAI
+import packaging.version as packv
 
 try:
     import wx
@@ -340,7 +341,7 @@ def findATSASDirectory():
                     version = atsas_dir.lstrip('ATSAS-')
                     versions[version] = item
 
-                max_version = get_max_version(versions, True)
+                max_version = get_max_version(versions)
 
                 default_path = versions[max_version]
 
@@ -365,7 +366,7 @@ def findATSASDirectory():
                     version = atsas_dir.lstrip('ATSAS-')
                     versions[version] = item
 
-                max_version = get_max_version(versions, False)
+                max_version = get_max_version(versions)
 
                 default_path = versions[max_version]
 
@@ -449,32 +450,18 @@ def findATSASDirectory():
 
     return ''
 
-def get_max_version(versions, use_sub_minor):
-    if use_sub_minor:
-        max_version = '0.0.0-0'
-    else:
-        max_version = '0.0.0'
+def get_max_version(versions):
+    max_version = packv.Version('0.0.0')
+    max_v_string = '0.0.0'
+
     for version in versions:
-        if int(max_version.split('.')[0]) < int(version.split('.')[0]):
-            max_version = version
+        pv = packv.parse(version)
 
-        if (int(max_version.split('.')[0]) == int(version.split('.')[0])
-            and int(max_version.split('.')[1]) < int(version.split('.')[1])):
-            max_version = version
+        if pv > max_version:
+            max_version = pv
+            max_v_string = version
 
-        if (int(max_version.split('.')[0]) == int(version.split('.')[0])
-            and int(max_version.split('.')[1]) == int(version.split('.')[1])
-            and int(max_version.split('.')[2].split('-')[0]) < int(version.split('.')[2].split('-')[0])):
-            max_version = version
-
-        if use_sub_minor:
-            if (int(max_version.split('.')[0]) == int(version.split('.')[0])
-                and int(max_version.split('.')[1]) == int(version.split('.')[1])
-                and int(max_version.split('.')[2].split('-')[0]) == int(version.split('.')[2].split('-')[0])
-                and int(max_version.split('-')[1]) < int(version.split('-')[1])):
-                max_version = version
-
-    return max_version
+    return max_v_string
 
 
 #This class goes with write header, and was lifted from:
@@ -688,7 +675,7 @@ def update_mpl_style(forced=None):
         mpl.style.use('default')
         color = 'black'
 
-    if int(mpl.__version__.split('.')[0]) >= 2:
+    if packv.parse(mpl.__version__) >= packv.Version('2.0'):
         mpl.rcParams['errorbar.capsize'] = 3
 
     mpl.rc('mathtext', default='regular')

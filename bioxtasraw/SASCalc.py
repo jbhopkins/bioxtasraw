@@ -54,6 +54,9 @@ import scipy.stats as stats
 import scipy.integrate as integrate
 from scipy.constants import Avogadro
 from numba import jit
+import packaging.version as packv
+
+pnp_version = packv.parse(np.__version__)
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -1786,7 +1789,7 @@ def runDammif(fname, prefix, args, path, atsasDir):
     else:
         dammifDir = os.path.join(atsasDir, 'dammif')
 
-    version = getATSASVersion(atsasDir).split('.')
+    version = packv.parse(getATSASVersion(atsasDir))
 
     if os.path.exists(dammifDir):
         my_env = setATSASEnv(atsasDir)
@@ -1797,7 +1800,7 @@ def runDammif(fname, prefix, args, path, atsasDir):
                 '--anisometry=%s' %(dammifDir, args['mode'], prefix, args['unit'],
                     args['sym'], args['anisometry']))
 
-            if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+            if version < packv.Version('3.1'):
                 if args['omitSolvent']:
                     command = command + ' --omit-solvent'
 
@@ -1806,7 +1809,7 @@ def runDammif(fname, prefix, args, path, atsasDir):
             if args['constant'] != '':
                 command = command + ' --constant=%s' %(args['constant'])
 
-            if (int(version[0]) >= 4):
+            if version >= packv.Version('4.0'):
                 command = command + ' --model-format=%s' %(args['modelFormat'])
                 command = command + ' --shape=%s' %(args['shape'])
 
@@ -2037,7 +2040,7 @@ def runDamaver(flist, path, atsasDir, prefix, symmetry='P1', enantiomorphs='YES'
     else:
         damaverDir = os.path.join(atsasDir, 'damaver')
 
-    version = getATSASVersion(atsasDir).split('.')
+    version = packv.parse(getATSASVersion(atsasDir))
 
     if os.path.exists(damaverDir):
         my_env = setATSASEnv(atsasDir)
@@ -2045,14 +2048,14 @@ def runDamaver(flist, path, atsasDir, prefix, symmetry='P1', enantiomorphs='YES'
         command = '"{}" --nbeads={} --enantiomorphs={}'.format(damaverDir, nbeads,
             enantiomorphs)
 
-        if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+        if version < packv.Version('3.1'):
             command += ' --symmetry=%s --automatic' %(symmetry)
 
-        if (int(version[0]) == 3 and int(version[1]) >= 1) or int(version[0]) > 3:
+        if version >= packv.Version('3.1'):
             command += ' --method={} --prefix={} --lm={} --ns={} --smax={}'.format(method,
                 prefix, lm, ns, smax)
 
-        if (int(version[0]) >= 4):
+        if version >= packv.Version('4.0'):
             command = command + ' --model-format=%s' %(model_format)
 
         for item in flist:
@@ -2140,7 +2143,7 @@ def runAmbimeter(fname, prefix, args, path, atsasDir):
 
     opsys = platform.system()
 
-    version = getATSASVersion(atsasDir).split('.')
+    version = packv.parse(getATSASVersion(atsasDir))
 
     if opsys == 'Windows':
         ambimeterDir = os.path.join(atsasDir, 'ambimeter.exe')
@@ -2151,7 +2154,7 @@ def runAmbimeter(fname, prefix, args, path, atsasDir):
         command = ('"%s" --srg=%s --prefix="%s" --files=%s'
             %(ambimeterDir, args['sRg'], prefix, args['files']))
 
-        if int(version[0]) >= 4:
+        if version >= packv.Version('4.0'):
             if 'modelFormat' in args:
                 command = command + ' --model-format=%s' %(args['modelFormat'])
 
@@ -2181,7 +2184,7 @@ def runAmbimeter(fname, prefix, args, path, atsasDir):
         lines = output.split('\n')
 
         if len(lines) > 1:
-            if int(version[0]) >= 4:
+            if version >= packv.Version('4.0'):
                 ambiCats = lines[0].split(':')[-1].strip()
                 ambiScore = lines[2].split(':')[-1].strip()
                 ambiEval = lines[3]
@@ -2235,7 +2238,7 @@ def runDammin(fname, prefix, args, path, atsasDir):
 
     opsys = platform.system()
 
-    version = getATSASVersion(atsasDir).split('.')
+    version = packv.parse(getATSASVersion(atsasDir))
 
     if opsys == 'Windows':
         dammifDir = os.path.join(atsasDir, 'dammin.exe')
@@ -2266,11 +2269,10 @@ def runDammin(fname, prefix, args, path, atsasDir):
             if args['seed'] != '':
                 command = command + ' --seed={}'.format(args['seed'])
 
-            if (int(version[0]) >= 4):
+            if version >= packv.Version('4.0'):
                 command = command + ' --model-format=%s' %(args['modelFormat'])
 
-            if ((int(version[0]) == 4 and int(version[1]) ==1 and int(version[2])>=3) or
-                (int(version[0]) == 4 and int(version[1]) >=2) or int(version[0]) >= 5):
+            if version >= packv.Version('4.1.3'):
                 command = command + ' --unit=%s' %(unit)
             else:
                 command = command + ' --un=%s' %(unit)
@@ -2629,6 +2631,8 @@ def run_crysol(fnames, path, atsasDir, exp_fnames=None, prefix=None, lm=20,
 
     if os.path.exists(crysolDir):
 
+        version = packv.parse(getATSASVersion(atsasDir))
+
         my_env = setATSASEnv(atsasDir)
 
         cmd = ('"{}" --lm={} --fb={} --ns={} --smax={} --dns={} --dro={} '
@@ -2638,8 +2642,7 @@ def run_crysol(fnames, path, atsasDir, exp_fnames=None, prefix=None, lm=20,
             cmd += ' --constant'
 
         if units is not None:
-            if ((int(version[0]) == 4 and int(version[1]) ==1 and int(version[2])>=3) or
-                (int(version[0]) == 4 and int(version[1]) >=2) or int(version[0]) >= 5):
+            if version >= packv.Version('4.1.3'):
                 cmd+= ' --unit={}'.format(unit)
             else:
                 cmd += ' --units={}'.format(units)
@@ -3081,8 +3084,7 @@ def runExplicitEFARotation(M, D, failed, C, V_bar, T, niter, tol, force_pos):
     converged = True
 
     csum = np.sum(M*C, axis = 0)
-    if (int(np.__version__.split('.')[0]) > 1 or int(np.__version__.split('.')[0]) == 1
-        and int(np.__version__.split('.')[1])>=10):
+    if pnp_version >= packv.Version('1.10'):
         C = C/np.broadcast_to(csum, C.shape) #normalizes by the sum of each column
     else:
         norm = np.array([csum for i in range(C.shape[0])])
@@ -3127,8 +3129,7 @@ def EFAUpdateRotation(M,C,D, force_pos):
 
     csum = np.sum(M*Cnew, axis = 0)
 
-    if (int(np.__version__.split('.')[0]) > 1 or int(np.__version__.split('.')[0]) == 1
-        and int(np.__version__.split('.')[1])>=10):
+    if pnp_version >= packv.Version('1.10'):
         Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
     else:
         norm = np.array([csum for i in range(Cnew.shape[0])])
@@ -3144,8 +3145,7 @@ def EFAFirstRotation(M,C,D):
     Cnew = np.transpose(np.dot(np.linalg.pinv(S), D))
 
     csum = np.sum(M*Cnew, axis = 0)
-    if (int(np.__version__.split('.')[0]) > 1 or int(np.__version__.split('.')[0]) == 1
-        and int(np.__version__.split('.')[1])>=10):
+    if pnp_version >= packv.Version('1.10'):
         Cnew = Cnew/np.broadcast_to(csum, Cnew.shape) #normalizes by the sum of each column
     else:
         norm = np.array([csum for i in range(Cnew.shape[0])])
@@ -3555,7 +3555,7 @@ def prepareSASMsforSVD(sasms, err_norm=True, do_binning=True, bin_to=100):
     err = err.T
 
     err_mean = np.mean(err, axis = 1)
-    if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+    if pnp_version >= packv.Version('1.10'):
         err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), err.shape)
     else:
         err_avg = np.array([err_mean for k in range(i.shape[1])]).T
