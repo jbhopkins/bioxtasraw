@@ -38,6 +38,7 @@ import wx.lib.scrolledpanel as scrolled
 import wx.lib.mixins.listctrl as listmix
 import wx.lib.agw.supertooltip as STT
 import matplotlib
+import packaging.version as packv
 
 matplotlib.rcParams['backend'] = 'WxAgg'
 matplotlib.rc('image', origin = 'lower')        # turn image upside down.. x,y, starting from lower left
@@ -47,6 +48,9 @@ from matplotlib.figure import Figure
 import matplotlib.colors as mplcol
 from mpl_toolkits.mplot3d import Axes3D
 from  matplotlib.colors import colorConverter as cc
+
+pmpl_version = packv.parse(matplotlib.__version__)
+pwx_version = packv.parse(wx.__version__)
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -2239,16 +2243,16 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
         of the figure the mouse was over '''
 
         if event.button == 3:
-            if float(matplotlib.__version__[:3]) >= 1.2:
+            if pmpl_version >= packv.Version('1.2'):
                 if self.param_toolbar.GetToolState(self.param_toolbar.wx_ids['Pan']) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                    if pwx_version >= packv.Version('3.0') and platform.system() == 'Darwin':
                         wx.CallAfter(self._showPopupMenu, event)
                     else:
                         self._showPopupMenu(event)
 
             else:
                 if self.param_toolbar.GetToolState(self.param_toolbar._NTB2_PAN) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                    if pwx_version >= packv.Version('3.0') and platform.system() == 'Darwin':
                         wx.CallAfter(self._showPopupMenu, event)
                     else:
                         self._showPopupMenu(event)
@@ -2673,7 +2677,7 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
             self.cal_file_label.SetLabel(os.path.basename(self._cal_file))
 
-            if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+            if pwx_version >= packv.Version('3.0') and platform.system() == 'Darwin':
                 file_tip = STT.SuperToolTip(" ", header = self._cal_file, footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
                 file_tip.SetTarget(self.cal_file_label)
                 file_tip.ApplyStyle('Blue Glass')
@@ -3053,7 +3057,7 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
                 self.cal_file_label.SetLabel(os.path.basename(self._cal_file))
 
-                if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                if pwx_version >= packv.Version('3.0') and platform.system() == 'Darwin':
                     file_tip = STT.SuperToolTip(" ", header = self._cal_file, footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
                     file_tip.SetTarget(self.cal_file_label)
                     file_tip.ApplyStyle('Blue Glass')

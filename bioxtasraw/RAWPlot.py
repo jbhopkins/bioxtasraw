@@ -40,6 +40,10 @@ from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 import matplotlib.font_manager as fm
 import matplotlib
+import packaging.version as packv
+
+pmpl_version = packv.parse(matplotlib.__version__)
+pwx_version = packv.parse(wx.__version__)
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -138,12 +142,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self._MTB_CLR2 = self.NewControlId()
         self._MTB_SHOWBOTTOM = self.NewControlId()
 
-        if ((float(matplotlib.__version__.split('.')[0]) == 3 and
-            float(matplotlib.__version__.split('.')[1]) >= 3 and
-            float(matplotlib.__version__.split('.')[2]) >= 1) or
-            (float(matplotlib.__version__.split('.')[0]) == 3 and
-            float(matplotlib.__version__.split('.')[1]) >= 4) or
-            float(matplotlib.__version__.split('.')[0]) > 3):
+        if  pmpl_version >= packv.Version('3.3.1'):
             NavigationToolbar2WxAgg.__init__(self, canvas, coordinates=False)
         else:
             NavigationToolbar2WxAgg.__init__(self, canvas)
@@ -162,7 +161,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
 
             self._getIcons()
 
-            if int(wx.version().split()[0].strip()[0]) >= 4:
+            if pwx_version >= packv.Version('4.0'):
                 self.AddSeparator()
                 self.AddCheckTool(self._MTB_ERRBARS, '', self._bitmaps['errbars']['Normal'],
                     shortHelp='Show Errorbars')
@@ -194,9 +193,8 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
 
             self.ToggleTool(self._MTB_SHOWBOTH, True)
 
-            if ('wxMac' in wx.PlatformInfo and
-                (int(wx.version().split()[0].strip()[0]) >= 4 and
-                int(wx.version().split()[0].strip()[2]) < 1)):
+            if ('wxMac' in wx.PlatformInfo and pwx_version >= packv.Version('4.0')
+                and pwx_version < packv.Version('4.1')):
                 active = "showboth"
                 self._fake_toggle_group(["showboth", "showtop", "showbottom"], active)
 
@@ -233,9 +231,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.parent.subplot1.set_visible(True)
         self.parent.subplot2.set_visible(True)
 
-        if ((int(matplotlib.__version__.split('.')[0]) == 3
-            and int(matplotlib.__version__.split('.')[1]) >= 4) or
-            int(matplotlib.__version__.split('.')[0]) > 3):
+        if  pmpl_version >= packv.Version('3.4'):
             gs = matplotlib.gridspec.GridSpec(2,1)
             self.parent.subplot1.set_subplotspec(gs.new_subplotspec((0,0)))
             self.parent.subplot2.set_subplotspec(gs.new_subplotspec((1,0)))
@@ -246,9 +242,8 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.parent._plot_shown = 0
         self.parent.canvas.draw()
 
-        if ('wxMac' in wx.PlatformInfo and
-            (int(wx.version().split()[0].strip()[0]) >= 4 and
-            int(wx.version().split()[0].strip()[2]) < 1)):
+        if ('wxMac' in wx.PlatformInfo and pwx_version >= packv.Version('4.0')
+            and pwx_version < packv.Version('4.1')):
             active = "showboth"
             self._fake_toggle_group(["showboth", "showtop", "showbottom"], active)
 
@@ -261,9 +256,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.parent.subplot2.set_visible(False)
 
 
-        if ((int(matplotlib.__version__.split('.')[0]) == 3
-            and int(matplotlib.__version__.split('.')[1]) >= 4) or
-            int(matplotlib.__version__.split('.')[0]) > 3):
+        if  pmpl_version >= packv.Version('3.4'):
             gs = matplotlib.gridspec.GridSpec(1,1)
             self.parent.subplot1.set_subplotspec(gs.new_subplotspec((0,0)))
         else:
@@ -275,9 +268,8 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.parent._plot_shown = 1
         self.parent.canvas.draw()
 
-        if ('wxMac' in wx.PlatformInfo and
-            (int(wx.version().split()[0].strip()[0]) >= 4 and
-            int(wx.version().split()[0].strip()[2]) < 1)):
+        if ('wxMac' in wx.PlatformInfo and pwx_version >= packv.Version('4.0')
+            and pwx_version < packv.Version('4.1')):
             active = "showtop"
             self._fake_toggle_group(["showboth", "showtop", "showbottom"], active)
 
@@ -292,9 +284,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.parent.subplot1.set_zorder(1)
         self.parent.subplot2.set_zorder(2)
 
-        if ((int(matplotlib.__version__.split('.')[0]) == 3
-            and int(matplotlib.__version__.split('.')[1]) >= 4) or
-            int(matplotlib.__version__.split('.')[0]) > 3):
+        if  pmpl_version >= packv.Version('3.4'):
             gs = matplotlib.gridspec.GridSpec(1,1)
             self.parent.subplot2.set_subplotspec(gs.new_subplotspec((0,0)))
         else:
@@ -303,9 +293,8 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         self.parent._plot_shown = 2
         self.parent.canvas.draw()
 
-        if ('wxMac' in wx.PlatformInfo and
-            (int(wx.version().split()[0].strip()[0]) >= 4 and
-            int(wx.version().split()[0].strip()[2]) < 1)):
+        if ('wxMac' in wx.PlatformInfo and pwx_version >= packv.Version('4.0')
+            and pwx_version < packv.Version('4.1')):
             active = "showbottom"
             self._fake_toggle_group(["showboth", "showtop", "showbottom"], active)
 
@@ -320,9 +309,8 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
             self.ErrorbarIsOn = False
             self.parent.showErrorbars(False)
 
-        if ('wxMac' in wx.PlatformInfo and
-            (int(wx.version().split()[0].strip()[0]) >= 4 and
-            int(wx.version().split()[0].strip()[2]) < 1)):
+        if ('wxMac' in wx.PlatformInfo and pwx_version >= packv.Version('4.0')
+            and pwx_version < packv.Version('4.1')):
             if evt.IsChecked():
                 active = "errbars"
             else:
@@ -339,9 +327,8 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
             self._getIcons()
 
             for name in ["errbars", "showboth", "showtop", "showbottom"]:
-                if ('wxMac' in wx.PlatformInfo and
-                    (int(wx.version().split()[0].strip()[0]) >= 4 and
-                    int(wx.version().split()[0].strip()[2]) < 1)):
+                if ('wxMac' in wx.PlatformInfo and pwx_version >= packv.Version('4.0')
+                    and pwx_version < packv.Version('4.1')):
                     self.SetToolNormalBitmap(self._tool_ids[name],
                         self._bitmaps[name]["Toggled" if name == active else "Normal"])
                 else:
@@ -757,16 +744,16 @@ class PlotPanel(wx.Panel):
             elif event.inaxes == self.subplot2:
                 selected_plot = 2
 
-            if float(matplotlib.__version__[:3]) >= 1.2:
+            if pmpl_version >= packv.Version('1.2'):
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                    if pwx_version >= packv.Version('3') and platform.system() == 'Darwin':
                         wx.CallAfter(self._showPopupMenu, selected_plot)
                     else:
                         self._showPopupMenu(selected_plot)
 
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                    if pwx_version >= packv.Version('3') and platform.system() == 'Darwin':
                         wx.CallAfter(self._showPopupMenu, selected_plot)
                     else:
                         self._showPopupMenu(selected_plot)
@@ -1842,15 +1829,15 @@ class IftPlotPanel(PlotPanel):
             elif event.inaxes == self.subplot2:
                 selected_plot = 2
 
-            if float(matplotlib.__version__[:3]) >= 1.2:
+            if pmpl_version >= packv.Version('1.2'):
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                    if pwx_version >= packv.Version('3') and platform.system() == 'Darwin':
                         wx.CallAfter(self._showPopupMenu, selected_plot)
                     else:
                         self._showPopupMenu(selected_plot)
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                    if pwx_version >= packv.Version('3') and platform.system() == 'Darwin':
                         wx.CallAfter(self._showPopupMenu, selected_plot)
                     else:
                         self._showPopupMenu(selected_plot)
@@ -3243,15 +3230,15 @@ class SeriesPlotPanel(wx.Panel):
 
             selected_plot=1
 
-            if float(matplotlib.__version__[:3]) >= 1.2:
+            if pmpl_version >= packv.Version('1.2'):
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                    if pwx_version >= packv.Version('3') and platform.system() == 'Darwin':
                         wx.CallAfter(self._showPopupMenu, selected_plot)
                     else:
                         self._showPopupMenu(selected_plot)
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    if int(wx.__version__.split('.')[0]) >= 3 and platform.system() == 'Darwin':
+                    if pwx_version >= packv.Version('3') and platform.system() == 'Darwin':
                         wx.CallAfter(self._showPopupMenu, selected_plot)
                     else:
                         self._showPopupMenu(selected_plot)

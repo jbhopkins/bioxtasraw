@@ -42,6 +42,9 @@ import wx.lib.agw.customtreectrl as CT
 import wx.lib.scrolledpanel as scrolled
 from numpy import ceil
 import pyFAI
+import packaging.version as packv
+
+pwx_version = packv.parse(wx.__version__)
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -716,7 +719,7 @@ class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
         self.img_hdr_list_dict = {}
 
         if filehdr is not None:
-            if wx.version().split()[0].strip()[0] == '4':
+            if pwx_version >= packv.Version('4.0'):
                 self.lc.InsertItem(0, 'Header File:')
                 self.lc.SetItemBackgroundColour(0, wx.Colour('STEEL BLUE'))
             else:
@@ -728,7 +731,7 @@ class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
 
             for key in sorted(filehdr.keys()):
                 num_items = self.lc.GetItemCount()
-                if wx.version().split()[0].strip()[0] == '4':
+                if pwx_version >= packv.Version('4.0'):
                     self.lc.InsertItem(num_items, key)
                     self.lc.SetItem(num_items, 1, str(filehdr[key]))
                 else:
@@ -745,7 +748,7 @@ class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
 
         if imghdr is not None:
             num_items = self.lc.GetItemCount()
-            if wx.version().split()[0].strip()[0] == '4':
+            if pwx_version >= packv.Version('4.0'):
                 self.lc.InsertItem(num_items, 'Image Header:')
                 self.lc.SetItemBackgroundColour(num_items, wx.Colour('STEEL BLUE'))
             else:
@@ -757,7 +760,7 @@ class ReductionImgHdrFormatPanel(scrolled.ScrolledPanel):
 
             for key in sorted(imghdr.keys()):
                 num_items = self.lc.GetItemCount()
-                if wx.version().split()[0].strip()[0] == '4':
+                if pwx_version >= packv.Version('4.0'):
                     self.lc.InsertItem(num_items, key)
                     self.lc.SetItem(num_items, 1, str(imghdr[key]))
                 else:
@@ -905,7 +908,7 @@ class NormListCtrl(wx.ListCtrl):
 
     def add(self, op, expr):
         no_of_items = self.GetItemCount()
-        if wx.version().split()[0].strip()[0] == '4':
+        if pwx_version >= packv.Version('4.0'):
             self.InsertItem(no_of_items, op)
             self.SetItem(no_of_items, 1, expr)
         else:
@@ -1003,7 +1006,7 @@ class OnlineListCtrl(wx.ListCtrl):
 
     def add(self, filt, expr, pos):
         no_of_items = self.GetItemCount()
-        if wx.version().split()[0].strip()[0] == '4':
+        if pwx_version >= packv.Version('4.0'):
             self.InsertItem(no_of_items, filt)
             self.SetItem(no_of_items, 1, expr)
             self.SetItem(no_of_items, 2, pos)
@@ -1105,7 +1108,7 @@ class MetadataListCtrl(wx.ListCtrl):
 
     def add(self, op, expr):
         no_of_items = self.GetItemCount()
-        if wx.version().split()[0].strip()[0] == '4':
+        if pwx_version >= packv.Version('4.0'):
             self.InsertItem(no_of_items, op)
             self.SetItem(no_of_items, 1, expr)
         else:

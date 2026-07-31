@@ -35,6 +35,10 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 import wx
 import numpy as np
 import matplotlib.pyplot as plt
+import packaging.version as packv
+
+pmpl_version = packv.parse(matplotlib.__version__)
+pwx_version = packv.parse(wx.__version__)
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -70,19 +74,14 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
             'goto'      : self._MTB_GOTO,
             }
 
-        if ((float(matplotlib.__version__.split('.')[0]) == 3 and
-            float(matplotlib.__version__.split('.')[1]) >= 3 and
-            float(matplotlib.__version__.split('.')[2]) >= 1) or
-            (float(matplotlib.__version__.split('.')[0]) == 3 and
-            float(matplotlib.__version__.split('.')[1]) >= 4) or
-            float(matplotlib.__version__.split('.')[0]) > 3):
+        if pmpl_version >= packv.Version('3.3.1'):
             NavigationToolbar2WxAgg.__init__(self, canvas, coordinates=False)
         else:
             NavigationToolbar2WxAgg.__init__(self, canvas)
 
         self._getIcons()
 
-        if wx.version().split()[0].strip()[0] >= '4':
+        if pwx_version >= packv.Version('4.0'):
             self.AddSeparator()
             self.AddTool(self._MTB_HDRINFO, '', self._bitmaps['hdrinfo'],
                 shortHelp='Show Header Information')
@@ -185,7 +184,7 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
     def _deactivatePanZoom(self):
         ''' Disable the zoon and pan buttons if they are pressed: '''
 
-        if float(matplotlib.__version__[:3]) >= 1.2:
+        if pmpl_version >= packv.Version('1.2'):
             wxid = self.wx_ids['Zoom']
         else:
             wxid = self._NTB2_ZOOM
@@ -194,7 +193,7 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
             self.ToggleTool(wxid, False)
             NavigationToolbar2WxAgg.zoom(self)
 
-        if float(matplotlib.__version__[:3]) >= 1.2:
+        if pmpl_version >= packv.Version('1.2'):
             wxid = self.wx_ids['Pan']
         else:
             wxid = self._NTB2_PAN
@@ -216,7 +215,7 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         if masking_panel.IsShown():
             self._deactivateMaskTools()
 
-        if float(matplotlib.__version__[:3]) >= 1.2:
+        if pmpl_version >= packv.Version('1.2'):
             wxid = self.wx_ids['Pan']
         else:
             wxid = self._NTB2_PAN
@@ -234,7 +233,7 @@ class ImagePanelToolbar(NavigationToolbar2WxAgg):
         if masking_panel.IsShown():
             self._deactivateMaskTools()
 
-        if float(matplotlib.__version__[:3]) >= 1.2:
+        if pmpl_version >= packv.Version('1.2'):
             wxid = self.wx_ids['Zoom']
         else:
             wxid = self._NTB2_ZOOM
@@ -798,7 +797,7 @@ class ImagePanel(wx.Panel):
 
         if self.getTool() is None and self._right_click_on_patch == True:
             self._right_click_on_patch = False
-            if int(wx.__version__.split('.')[0]) >= 3:
+            if pwx_version >= packv.Version('3.0'):
                 wx.CallAfter(self._showPopupMenu)
             else:
                 self._showPopupMenu()
@@ -1121,9 +1120,7 @@ class ImagePanel(wx.Panel):
 
         a = self.fig.gca()
 
-        if ((int(matplotlib.__version__.split('.')[0])==3
-            and int(matplotlib.__version__.split('.')[1]) <5)
-            or int(matplotlib.__version__.split('.')[0]) < 3):
+        if pmpl_version < packv.Version('3.5'):
             if a.lines:
                 del(a.lines[:])     # delete plotted masks
             if a.patches:
@@ -1152,9 +1149,7 @@ class ImagePanel(wx.Panel):
         a = self.fig.gca()        # Get current axis from figure
         stored_masks = self.plot_parameters['storedMasks']
 
-        if ((int(matplotlib.__version__.split('.')[0])==3
-            and int(matplotlib.__version__.split('.')[1]) <5)
-            or int(matplotlib.__version__.split('.')[0]) < 3):
+        if pmpl_version < packv.Version('3.5'):
             if a.lines:
                 del(a.lines[:])     # delete plotted masks
             if a.patches:
@@ -1518,9 +1513,7 @@ class ImagePanel(wx.Panel):
     def clearPatches(self):
         a = self.fig.gca()
 
-        if ((int(matplotlib.__version__.split('.')[0])==3
-            and int(matplotlib.__version__.split('.')[1]) <5)
-            or int(matplotlib.__version__.split('.')[0]) < 3):
+        if pmpl_version < packv.Version('3.5'):
             if a.lines:
                 del(a.lines[:])     # delete plotted masks
             if a.patches:
@@ -1690,7 +1683,7 @@ class ImageSettingsDialog(wx.Dialog):
         try:
             file_list_ctrl = wx.FindWindowByName('FilePanel')
             pos = file_list_ctrl.GetScreenPosition()
-            if wx.version().split()[0].strip()[0] == '4':
+            if pwx_version >= packv.Version('4.0'):
                 self.Move(pos[0], pos[1])
             else:
                 self.MoveXY(pos[0], pos[1])
