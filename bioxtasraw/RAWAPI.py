@@ -46,6 +46,7 @@ import glob
 
 import numpy as np
 import scipy
+import packaging.version as packv
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -3689,13 +3690,13 @@ def dammif(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
             pass
 
     if not abort_event.is_set():
-        version = SASCalc.getATSASVersion(atsas_dir).split('.')
+        version = packv.parse(SASCalc.getATSASVersion(atsas_dir))
 
-        if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+        if version <= packv.Version('3.1'):
             dam_name = os.path.join(datadir, prefix+'-1.pdb')
             _, _, model_data = SASFileIO.loadPDBFile(dam_name)
 
-        elif int(version[0]) >= 4:
+        elif version >= packv.Version('4.0'):
             dam_name = os.path.join(datadir, prefix+'-1.{}'.format(model_format))
 
             if model_format == 'cif':
@@ -3949,16 +3950,16 @@ def dammin(ift, prefix, datadir, mode='Slow', symmetry='P1', anisometry='Unknown
         except Exception:
             pass
 
-    version = SASCalc.getATSASVersion(atsas_dir).split('.')
+    version = packv.parse(SASCalc.getATSASVersion(atsas_dir))
 
     fir_name = os.path.join(datadir, prefix+'.fir')
 
     if not abort_event.is_set():
-        if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+        if version < packv.Version('3.1'):
             dam_name = os.path.join(datadir, prefix+'-1.pdb')
             _, _, model_data = SASFileIO.loadPDBFile(dam_name)
 
-        elif int(version[0]) >= 4:
+        elif version >= packv.Version('4.0'):
             dam_name = os.path.join(datadir, prefix+'-1.{}'.format(model_format))
 
             if model_format == 'cif':
@@ -4148,9 +4149,9 @@ def damaver(files, prefix, datadir, symmetry='P1', enantiomorphs='YES',
 
         proc.stdout.close()
 
-    version = SASCalc.getATSASVersion(atsas_dir).split('.')
+    version = packv.parse(SASCalc.getATSASVersion(atsas_dir))
 
-    if (int(version[0]) == 3 and int(version[1]) < 1) or int(version[0]) < 3:
+    if version < packv.Version('3.1'):
         damsel_path = os.path.join(datadir, prefix+'_damsel.log')
         damsup_path = os.path.join(datadir, prefix+'_damsup.log')
 
@@ -5915,7 +5916,7 @@ def svd(series, profile_type='sub', framei=None, framef=None, norm=True):
 
     if norm:
         err_mean = np.mean(err, axis = 1)
-        if int(np.__version__.split('.')[0]) >= 1 and int(np.__version__.split('.')[1])>=10:
+        if packv.parse(np.__version__) >= packv.Version('1.10'):
             err_avg = np.broadcast_to(err_mean.reshape(err_mean.size,1), err.shape)
         else:
             err_avg = np.array([err_mean for k in range(intensity.shape[1])]).T

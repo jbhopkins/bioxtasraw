@@ -75,7 +75,9 @@ import wx.lib.dialogs
 import wx.lib.agw.persist as PM
 import packaging.version as packv
 
-if packv.parse(wx.version().split()[0]) >= packv.Version('4'):
+pwx_version = packv.parse(wx.__version__)
+
+if pwx_version >= packv.Version('4'):
     import wx.adv
     SplashScreen = wx.adv.SplashScreen
     TaskBarIcon = wx.adv.TaskBarIcon
@@ -8156,7 +8158,7 @@ class CustomListCtrl(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin, listmix.Column
 
     def _onRightMouseClick(self, event):
 
-        if (packv.parse(wx.__version__) >= packv.Version('3')
+        if (pwx_version >= packv.Version('3')
             and platform.system() == 'Darwin'):
             wx.CallAfter(self._showPopupMenu)
         else:
@@ -9546,14 +9548,14 @@ class ManipItemPanel(wx.Panel):
             if self.sasm.getParameter('Notes') != '':
                 string3 = 'Note: ' + str(self.sasm.getParameter('Notes'))
 
-        if  (packv.parse(wx.__version__) >= packv.Version('3')
+        if  (pwx_version >= packv.Version('3')
             and platform.system() == 'Darwin'):
             string = string1+string2+string3
         else:
             string = string0+string1+string2+string3
 
         if string != '':
-            if  (packv.parse(wx.__version__) >= packv.Version('3')
+            if  (pwx_version >= packv.Version('3')
                 and platform.system() == 'Darwin'):
                 self.info_tip.SetMessage(string)
             else:
@@ -10361,7 +10363,7 @@ class ManipItemPanel(wx.Panel):
         #items are selected. In wxpython 3.0, calling without the callafter creates a segfault on mac.
         #In wxpython 3.0 on linux (debian), with the callafter causes the menu to only show while you hold
         #down the button.
-        if (packv.parse(wx.__version__) >= packv.Version('3')
+        if (pwx_version >= packv.Version('3')
             and platform.system() == 'Darwin'):
             wx.CallAfter(self._showPopupMenu)
         else:
@@ -11705,7 +11707,7 @@ class IFTItemPanel(wx.Panel):
             self.toggleSelect()
             self.ift_panel.deselectAllExceptOne(self)
 
-        if  (packv.parse(wx.__version__) >= packv.Version('3')
+        if  (pwx_version >= packv.Version('3')
             and platform.system() == 'Darwin'):
             wx.CallAfter(self._showPopupMenu)
         else:
@@ -12506,7 +12508,7 @@ class SeriesItemPanel(wx.Panel):
         self.info_icon.SetBitmapMargins(0,0)
         self.info_icon.SetBackgroundColour(self._bkg_color)
 
-        if  (packv.parse(wx.__version__) >= packv.Version('3')
+        if  (pwx_version >= packv.Version('3')
             and platform.system() == 'Darwin'):
             show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(self.showitem_icon)
@@ -12631,7 +12633,7 @@ class SeriesItemPanel(wx.Panel):
         mol_density = self.secm.mol_density
 
         if window == -1:
-            if  (packv.parse(wx.__version__) >= packv.Version('3')
+            if  (pwx_version >= packv.Version('3')
                 and platform.system() == 'Darwin'):
                 msg = ('First buffer frame: N/A\nLast buffer frame: N/A\n'
                     'Average window size: N/A\nMol. type: N/A\nBaseline: N/A')
@@ -12657,7 +12659,7 @@ class SeriesItemPanel(wx.Panel):
                 'Mol. density: {}\nBaseline: {}'.format(buffer_str, window,
                     mol_type, mol_density, baseline))
 
-            if (packv.parse(wx.__version__) >= packv.Version('3')
+            if (pwx_version >= packv.Version('3')
                 and platform.system() == 'Darwin'):
                 self.info_tip.SetMessage(tip)
             else:
@@ -13032,7 +13034,7 @@ class SeriesItemPanel(wx.Panel):
             self.toggleSelect()
             self.sec_panel.deselectAllExceptOne(self)
 
-        if (packv.parse(wx.__version__) >= packv.Version('3')
+        if (pwx_version >= packv.Version('3')
             and platform.system() == 'Darwin'):
             wx.CallAfter(self._showPopupMenu)
         else:
@@ -16669,7 +16671,7 @@ class MySplashScreen(SplashScreen):
 
         aBitmap = wx.Bitmap(splash_img)
 
-        if packv.parse(wx.version().split()[0]) >= packv.Version('4'):
+        if pwx_version >= packv.Version('4'):
             splashStyle = wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_TIMEOUT
         else:
             splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
@@ -16724,7 +16726,7 @@ class RawTaskbarIcon(TaskBarIcon):
     #----------------------------------------------------------------------
     def __init__(self, frame):
         if platform.system() == 'Darwin':
-            if packv.parse(wx.version().split()[0]) >= packv.Version('4'):
+            if pwx_version >= packv.Version('4'):
                 icontype = wx.adv.TBI_DOCK
             else:
                 icontype = wx.TBI_DOCK

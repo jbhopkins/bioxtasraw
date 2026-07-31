@@ -48,6 +48,12 @@ except Exception:
 import matplotlib
 import matplotlib.colors as mplcol
 import numpy as np
+import packaging.version as packv
+
+pmpl_version = packv.parse(matplotlib.__version__)
+pwx_version = packv.parse(wx.__version__)
+
+pwx_v4 = packv.Version('4.0')
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -214,7 +220,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
             all_items.append(data)
 
             idx = self.include_listctrl.GetItemCount()
-            if wx.version().split()[0].strip()[0] == '4':
+            if pwx_version >= pwx_v4:
                 self.include_listctrl.InsertItem(idx, txt)
             else:
                 self.include_listctrl.InsertItem(idx, txt)
@@ -360,7 +366,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
 
         idx = 0
         for each in general_data:
-            if wx.version().split()[0].strip()[0] == '4':
+            if pwx_version >= pwx_v4:
                 self.variable_listctrl.InsertItem(idx, each[0])
             else:
                 self.variable_listctrl.InsertItem(idx, each[0])
@@ -377,7 +383,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
             return
 
         idx = self.variable_listctrl.GetItemCount()
-        if wx.version().split()[0].strip()[0] == '4':
+        if pwx_version >= pwx_v4:
             self.variable_listctrl.InsertItem(idx, 'Guinier Analysis')
         else:
             self.variable_listctrl.InsertItem(idx, 'Guinier Analysis')
@@ -386,7 +392,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
         for each in keys:
-            if wx.version().split()[0].strip()[0] == '4':
+            if pwx_version >= pwx_v4:
                 self.variable_listctrl.InsertItem(idx, '\t'+each)
             else:
                 self.variable_listctrl.InsertItem(idx, '\t'+each)
@@ -403,7 +409,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
 
         idx = self.variable_listctrl.GetItemCount()
 
-        if wx.version().split()[0].strip()[0] == '4':
+        if pwx_version >= pwx_v4:
             self.variable_listctrl.InsertItem(idx, 'MW Analysis')
         else:
             self.variable_listctrl.InsertItem(idx, 'MW Analysis')
@@ -412,7 +418,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
         for each in keys:
-            if wx.version().split()[0].strip()[0] == '4':
+            if pwx_version >= pwx_v4:
                 self.variable_listctrl.InsertItem(idx, '\t%s_%s' %(each[0], each[1]))
             else:
                 self.variable_listctrl.InsertItem(idx, '\t%s_%s' %(each[0], each[1]))
@@ -428,7 +434,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
 
         idx = self.variable_listctrl.GetItemCount()
 
-        if wx.version().split()[0].strip()[0] == '4':
+        if pwx_version >= pwx_v4:
             self.variable_listctrl.InsertItem(idx, 'GNOM Analysis')
         else:
             self.variable_listctrl.InsertItem(idx, 'GNOM Analysis')
@@ -437,7 +443,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
         for each in keys:
-            if wx.version().split()[0].strip()[0] == '4':
+            if pwx_version >= pwx_v4:
                 self.variable_listctrl.InsertItem(idx, '\t'+each)
             else:
                 self.variable_listctrl.InsertItem(idx, '\t'+each)
@@ -452,7 +458,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
 
         idx = self.variable_listctrl.GetItemCount()
 
-        if wx.version().split()[0].strip()[0] == '4':
+        if pwx_version >= pwx_v4:
             self.variable_listctrl.InsertItem(idx, 'BIFT Analysis')
         else:
             self.variable_listctrl.InsertItem(idx, 'BIFT Analysis')
@@ -461,7 +467,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
         for each in keys:
-            if wx.version().split()[0].strip()[0] == '4':
+            if pwx_version >= pwx_v4:
                 self.variable_listctrl.InsertItem(idx, '\t'+each)
             else:
                 self.variable_listctrl.InsertItem(idx, '\t'+each)
@@ -476,7 +482,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
 
         idx = self.variable_listctrl.GetItemCount()
 
-        if wx.version().split()[0].strip()[0] == '4':
+        if pwx_version >= pwx_v4:
             self.variable_listctrl.InsertItem(idx, 'Header File')
         else:
             self.variable_listctrl.InsertItem(idx, 'Header File')
@@ -484,7 +490,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
         for each in keys:
-            if wx.version().split()[0].strip()[0] == '4':
+            if pwx_version >= pwx_v4:
                 self.variable_listctrl.InsertItem(idx, '\t'+each)
             else:
                 self.variable_listctrl.InsertItem(idx, '\t'+each)
@@ -499,7 +505,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
 
         idx = self.variable_listctrl.GetItemCount()
 
-        if wx.version().split()[0].strip()[0] == '4':
+        if pwx_version >= pwx_v4:
             self.variable_listctrl.InsertItem(idx, 'Image Header')
         else:
             self.variable_listctrl.InsertItem(idx, 'Image Header')
@@ -507,7 +513,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
         self.variable_listctrl.SetItemBackgroundColour(idx, 'GRAY')
         idx = idx + 1
         for each in keys:
-            if wx.version().split()[0].strip()[0] == '4':
+            if pwx_version >= pwx_v4:
                 self.variable_listctrl.InsertItem(idx, '\t'+each)
             else:
                 self.variable_listctrl.InsertItem(idx, '\t'+each)
@@ -523,7 +529,7 @@ class SaveAnalysisInfoPanel(wx.Panel):
 
         for each in sorted(include_data.keys()):
             idx = self.include_listctrl.GetItemCount()
-            if wx.version().split()[0].strip()[0] == '4':
+            if pwx_version >= pwx_v4:
                 self.include_listctrl.InsertItem(idx, include_data[each][2])
             else:
                 self.include_listctrl.InsertItem(idx, include_data[each][2])
@@ -544,7 +550,7 @@ class SaveAnalysisListCtrl(wx.ListCtrl):
 
     def add(self, expr):
         no_of_items = self.GetItemCount()
-        if wx.version().split()[0].strip()[0] == '4':
+        if pwx_version >= pwx_v4:
             self.SetItem(no_of_items, 0, expr)
         else:
             self.SetItem(no_of_items, 0, expr)
@@ -553,7 +559,7 @@ class SaveAnalysisListCtrl(wx.ListCtrl):
         if idx > 0:
             data = self.getItemData(idx)
             self.DeleteItem(idx)
-            if wx.version().split()[0].strip()[0] == '4':
+            if pwx_version >= pwx_v4:
                 self.InsertItem(idx-1, data[0])
                 self.SetItem(idx-1, 1, data[1])
             else:
@@ -565,7 +571,7 @@ class SaveAnalysisListCtrl(wx.ListCtrl):
         if idx < self.GetItemCount()-1:
             data = self.getItemData(idx)
             self.DeleteItem(idx)
-            if wx.version().split()[0].strip()[0] == '4':
+            if pwx_version >= pwx_v4:
                 self.InsertItem(idx+1, data[0])
                 self.SetItem(idx+1, 1, data[1])
             else:
@@ -4155,9 +4161,7 @@ class PlotOptionsDialog(wx.Dialog):
         else:
             y_tick_label = wx.StaticText(box, -1, 'Y-tick label font size:')
 
-        if (int(matplotlib.__version__.split('.')[0]) < 3 or
-            (int(matplotlib.__version__.split('.')[0]) == 3 and
-            int(matplotlib.__version__.split('.')[1]) <8)):
+        if pmpl_version <= packv.Version('3.8'):
             for tick in self.axes.xaxis.get_major_ticks():
                 x_tick_size = tick.label.get_fontsize()
                 break

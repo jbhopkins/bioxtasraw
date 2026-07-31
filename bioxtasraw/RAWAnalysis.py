@@ -65,6 +65,9 @@ import matplotlib.colors as mplcol
 from mpl_toolkits.mplot3d import Axes3D
 from  matplotlib.colors import colorConverter as cc
 
+pmpl_version = packv.parse(matplotlib.__version__)
+pwx_version = packv.parse(wx.__version__)
+
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
     os.sys.path.append(raw_path)
@@ -659,9 +662,9 @@ class GuinierPlotPanel(wx.Panel):
         and show a pop up menu to change the settings
         of the figure the mouse was over '''
         if event.button == 3:
-            if packv.parse(matplotlib.__version__) >= packv.Version('1.2'):
+            if pmpl_version >= packv.Version('1.2'):
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    if (packv.parse(wx.__version__) >= packv.Version('3')
+                    if (pwx_version >= packv.Version('3')
                         and platform.system() == 'Darwin'):
                         wx.CallAfter(self._showPopupMenu)
                     else:
@@ -669,7 +672,7 @@ class GuinierPlotPanel(wx.Panel):
 
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    if (packv.parse(wx.__version__) >= packv.Version('3')
+                    if (pwx_version >= packv.Version('3')
                         and platform.system() == 'Darwin'):
                         wx.CallAfter(self._showPopupMenu)
                     else:
@@ -1608,7 +1611,7 @@ class GuinierFrame(wx.Frame):
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
-        if packv.parse(wx.__version__) < packv.Version('2.9'):
+        if pwx_version < packv.Version('2.9'):
             splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
@@ -3785,7 +3788,7 @@ class MWPlotPanel(wx.Panel):
 
         SASUtils.update_mpl_style()
 
-        if packv.parse(matplotlib.__version__) >= packv.Version('3.9'):
+        if pmpl_version >= packv.Version('3.9'):
             scale = self.GetDPIScaleFactor()
         else:
             scale = 1
@@ -3821,7 +3824,7 @@ class MWPlotPanel(wx.Panel):
         a.yaxis.get_label().set_size(font_size)
         a.xaxis.get_label().set_size(font_size)
 
-        if packv.parse(matplotlib.__version__) < packv.Version('3.8'):
+        if pmpl_version < packv.Version('3.8'):
             for tick in a.xaxis.get_major_ticks():
                 tick.label.set_fontsize(font_size)
 
@@ -3970,7 +3973,7 @@ class GNOMFrame(wx.Frame):
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
-        if packv.parse(wx.__version__) < packv.Version('2.9'):
+        if pwx_version < packv.Version('2.9'):
             splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))   #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
@@ -5431,7 +5434,7 @@ class DammifFrame(wx.Frame):
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
             self.notebook.Fit()
 
-            if platform.system() == 'Linux' and packv.parse(wx.__version__) >= packv.Version('3.0'):
+            if platform.system() == 'Linux' and pwx_version >= packv.Version('3.0'):
                 size = self.GetSize()
                 size[1] = size[1] + self._FromDIP(20)
                 self.SetSize(self._FromDIP(size))
@@ -5802,7 +5805,7 @@ class DammifRunPanel(wx.Panel):
         log_sizer = wx.StaticBoxSizer(log_box, wx.HORIZONTAL)
         log_sizer.Add(self.logbook, 1, wx.ALL | wx.EXPAND, 2)
 
-        if packv.parse(wx.__version__) < packv.Version('2.9'):     #compatability for older versions of wxpython
+        if pwx_version < packv.Version('2.9'):     #compatability for older versions of wxpython
             top_sizer = wx.BoxSizer(wx.VERTICAL)
             top_sizer.Add(half_sizer, 0, wx.EXPAND)
             top_sizer.Add(log_sizer, 1, wx.EXPAND)
@@ -7880,7 +7883,7 @@ class DammifResultsPanel(wx.Panel):
         RAWGlobals.save_in_progress = True
         self.main_frame.setStatus('Saving DAMMIF/N data', 0)
 
-        if packv.parse(matplotlib.__version__) >= packv.Version('3.9'):
+        if pmpl_version >= packv.Version('3.9'):
             scale = self.GetDPIScaleFactor()
         else:
             scale = 1
@@ -8178,7 +8181,7 @@ class DenssFrame(wx.Frame):
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
             self.notebook.Fit()
-            if platform.system() == 'Linux' and packv.parse(wx.__version__) >= packv.Version('3.0'):
+            if platform.system() == 'Linux' and pwx_version >= packv.Version('3.0'):
                 size = self.GetSize()
                 size[1] = size[1] + self._FromDIP(20)
                 self.SetSize(self._FromDIP(size))
@@ -8525,7 +8528,7 @@ class DenssRunPanel(wx.Panel):
         log_sizer = wx.StaticBoxSizer(log_box, wx.HORIZONTAL)
         log_sizer.Add(self.logbook, 1, wx.ALL | wx.EXPAND, border=self._FromDIP(5))
 
-        if packv.parse(wx.__version__) < packv.Version('2.9'):     #compatability for older versions of wxpython
+        if pwx_version < packv.Version('2.9'):     #compatability for older versions of wxpython
             top_sizer = wx.BoxSizer(wx.VERTICAL)
             top_sizer.Add(half_sizer, 0, wx.EXPAND)
             top_sizer.Add(log_sizer, 1, wx.EXPAND)
@@ -11139,7 +11142,7 @@ class BIFTFrame(wx.Frame):
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
-        if packv.parse(wx.__version__) < packv.Version('2.9'):
+        if pwx_version < packv.Version('2.9'):
             splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
@@ -11925,7 +11928,7 @@ class DIFTFrame(wx.Frame):
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
-        if packv.parse(wx.__version__) < packv.Version('2.9'):
+        if pwx_version < packv.Version('2.9'):
             splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))   #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
@@ -12937,7 +12940,7 @@ class TheoreticalFrame(wx.Frame):
 
         splitter.SplitVertically(self.ctrl_panel, sub_panel, self._FromDIP(350))
 
-        if packv.parse(wx.__version__) < packv.Version('2.9'):
+        if pwx_version < packv.Version('2.9'):
             splitter.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
         else:
             splitter.SetMinimumPaneSize(self._FromDIP(50))
@@ -14377,7 +14380,7 @@ class TheoreticalList(wx.ListCtrl, wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin
         self.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
 
     def _onRightMouseButton(self, evt):
-        if (packv.parse(wx.__version__) >= packv.Version('3')
+        if (pwx_version >= packv.Version('3')
             and platform.system() == 'Darwin'):
             wx.CallAfter(self._showPopupMenu)
         else:
@@ -14501,7 +14504,7 @@ class AmbimeterFrame(wx.Frame):
         self.ambi_settings = {}
         try:
             self.atsas_version = SASCalc.getATSASVersion(
-                self.raw_settings.get('ATSASDir')).split('.')
+                self.raw_settings.get('ATSASDir'))
         except SASExceptions.NoATSASError:
             self.atsas_version = 4
 
@@ -14626,7 +14629,7 @@ class AmbimeterFrame(wx.Frame):
             border=self._FromDIP(5))
         prefix_sizer.AddStretchSpacer(1)
 
-        if int(self.atsas_version[0]) >= 4:
+        if packv.parse(self.atsas_version) >= packv.Version('4.0'):
             model_format = wx.Choice(settings_box, self.ids['modelFormat'],
              choices=['cif', 'pdb'])
             model_format.SetSelection(0)
@@ -14648,7 +14651,7 @@ class AmbimeterFrame(wx.Frame):
         settings_sizer.Add(savedir_sizer, 0, wx.EXPAND)
         settings_sizer.Add(prefix_sizer, 0, wx.EXPAND)
 
-        if int(self.atsas_version[0]) >= 4:
+        if packv.parse(self.atsas_version) >= packv.Version('4.0'):
             settings_sizer.Add(model_sizer, flag=wx.LEFT|wx.RIGHT|wx.TOP,
                 border=self._FromDIP(5))
 
@@ -14758,7 +14761,7 @@ class AmbimeterFrame(wx.Frame):
         outfiles_window = wx.FindWindowById(self.ids['files'], self)
         self.ambi_settings['files'] = outfiles_window.GetStringSelection()
 
-        if int(self.atsas_version[0]) >= 4:
+        if packv.parse(self.atsas_version) >= packv.Version('4.0'):
             model_format_window = wx.FindWindowById(self.ids['modelFormat'], self)
             self.ambi_settings['modelFormat'] = model_format_window.GetStringSelection()
 
@@ -15719,14 +15722,14 @@ class SVDFrame(wx.Frame):
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
-        if packv.parse(wx.__version__) < packv.Version('2.9'):
+        if pwx_version < packv.Version('2.9'):
             splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
             self.splitter1.Fit()
-            if platform.system() == 'Linux' and packv.parse(wx.__version__) >= packv.Version('3.0'):
+            if platform.system() == 'Linux' and pwx_version >= packv.Version('3.0'):
                 size = self.GetSize()
                 size[1] = size[1] + self._FromDIP(20)
                 self.SetSize(self._FromDIP(size))
@@ -15986,14 +15989,12 @@ class SVDSECPlotPanel(wx.Panel):
 
         SASUtils.update_mpl_style()
 
-        if packv.parse(matplotlib.__version__) >= packv.Version('3.9'):
+        if pmpl_version >= packv.Version('3.9'):
             scale = self.GetDPIScaleFactor()
         else:
             scale = 1
 
-        if ((int(matplotlib.__version__.split('.')[0]) == 1
-            and int(matplotlib.__version__.split('.')[1]) >= 5)
-            or int(matplotlib.__version__.split('.')[0]) > 1):
+        if pmpl_version >= packv.Version('1.5'):
             self.fig = Figure(np.array([1,3])*scale)
         else:
             if not svd:
@@ -17023,14 +17024,14 @@ class EFAFrame(wx.Frame):
 
         self.splitter1.SplitVertically(self.controlPanel1, self.plotPanel1, self._FromDIP(splitter_size))
 
-        if packv.parse(wx.__version__) < packv.Version('2.9'):
+        if pwx_version < packv.Version('2.9'):
             self.splitter1.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter1.SetMinimumPaneSize(self._FromDIP(50))
 
         if self.GetBestSize()[0] > self.GetSize()[0] or self.GetBestSize()[1] > self.GetSize()[1]:
             self.splitter1.Fit()
-            if platform.system() == 'Linux' and packv.parse(wx.__version__) >= packv.Version('3.0'):
+            if platform.system() == 'Linux' and pwx_version >= packv.Version('3.0'):
                 size = self.GetSize()
                 size[1] = size[1] + self._FromDIP(20)
                 self.SetSize(self._FromDIP(size))
@@ -17043,7 +17044,7 @@ class EFAFrame(wx.Frame):
 
         self.splitter2.SplitVertically(self.controlPanel2, self.plotPanel2, self._FromDIP(splitter_size))
 
-        if packv.parse(wx.__version__) < packv.Version('2.9'):
+        if pwx_version < packv.Version('2.9'):
             self.splitter2.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter2.SetMinimumPaneSize(self._FromDIP(50))
@@ -17058,7 +17059,7 @@ class EFAFrame(wx.Frame):
 
         self.splitter3.SplitVertically(self.controlPanel3, self.plotPanel3, self._FromDIP(splitter_size))
 
-        if packv.parse(wx.__version__) < packv.Version('2.9'):
+        if pwx_version < packv.Version('2.9'):
             self.splitter3.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter3.SetMinimumPaneSize(self._FromDIP(50))
@@ -17937,9 +17938,7 @@ class EFAResultsPlotPanel2(wx.Panel):
         a = self.subplots['Forward EFA']
         b = self.subplots['Backward EFA']
 
-        if ((int(matplotlib.__version__.split('.')[0])==3
-            and int(matplotlib.__version__.split('.')[1]) <5)
-            or int(matplotlib.__version__.split('.')[0]) < 3):
+        if pmpl_version < packv.Version('3.5'):
             self.f_lines = []
             self.b_lines = []
             self.f_markers = []
@@ -17969,9 +17968,7 @@ class EFAResultsPlotPanel2(wx.Panel):
             self.f_markers = []
             self.b_markers = []
 
-        if ((int(matplotlib.__version__.split('.')[0]) ==1
-            and int(matplotlib.__version__.split('.')[1]) >=5)
-            or int(matplotlib.__version__.split('.')[0]) > 1):
+        if pmpl_version >= packv.Version('1.5'):
             a.set_prop_cycle(None)
             b.set_prop_cycle(None)
         else:
@@ -18868,9 +18865,7 @@ class EFAResultsPlotPanel3(wx.Panel):
         c = self.subplots['Concentration']
         d = self.subplots['P(r)']
 
-        if ((int(matplotlib.__version__.split('.')[0])==3
-            and int(matplotlib.__version__.split('.')[1]) <5)
-            or int(matplotlib.__version__.split('.')[0]) < 3):
+        if pmpl_version < packv.Version('3.5'):
             self.a_lines = []
             self.b_lines = []
             self.c_lines = []
@@ -18909,9 +18904,7 @@ class EFAResultsPlotPanel3(wx.Panel):
 
 
 
-        if ((int(matplotlib.__version__.split('.')[0])==1
-            and int(matplotlib.__version__.split('.')[1]) >=5)
-            or int(matplotlib.__version__.split('.')[0]) > 1):
+        if pmpl_version >= packv.Version('1.5'):
             a.set_prop_cycle(None)
             b.set_prop_cycle(None)
             c.set_prop_cycle(None)
@@ -18943,9 +18936,7 @@ class EFAResultsPlotPanel3(wx.Panel):
 
             d.set_visible(True)
 
-            if ((int(matplotlib.__version__.split('.')[0])==3
-            and int(matplotlib.__version__.split('.')[1]) <4)
-            or int(matplotlib.__version__.split('.')[0]) < 3):
+            if pmpl_version < packv.Version('3.4'):
                 a.set_position(a.figbox)
                 b.set_position(b.figbox)
                 c.set_position(c.figbox)
@@ -18965,9 +18956,7 @@ class EFAResultsPlotPanel3(wx.Panel):
 
             d.set_visible(False)
 
-            if ((int(matplotlib.__version__.split('.')[0])==3
-            and int(matplotlib.__version__.split('.')[1]) <4)
-            or int(matplotlib.__version__.split('.')[0]) < 3):
+            if pmpl_version < packv.Version('3.4'):
                 a.set_position(a.figbox)
                 b.set_position(b.figbox)
                 c.set_position(c.figbox)
@@ -19167,15 +19156,12 @@ class EFARangePlotPanel(wx.Panel):
 
         SASUtils.update_mpl_style()
 
-        if packv.parse(matplotlib.__version__) >= packv.Version('3.9'):
+        if pmpl_version >= packv.Version('3.9'):
             scale = self.GetDPIScaleFactor()
         else:
             scale = 1
 
-        if ((int(matplotlib.__version__.split('.')[0]) ==1
-            and int(matplotlib.__version__.split('.')[1]) >=5)
-            or int(matplotlib.__version__.split('.')[0])) > 1:
-            # self.fig = Figure((1,4), 75)
+        if pmpl_version >= packv.Version('1.5'):
             self.fig = Figure(np.array([1,3])*scale)
         else:
             self.fig = Figure((275./75,4), dpi = 75)
@@ -19257,9 +19243,7 @@ class EFARangePlotPanel(wx.Panel):
     def refresh(self):
         a = self.subplots['SECPlot']
 
-        if ((int(matplotlib.__version__.split('.')[0])==3
-            and int(matplotlib.__version__.split('.')[1]) <5)
-            or int(matplotlib.__version__.split('.')[0]) < 3):
+        if pmpl_version < packv.Version('3.5'):
 
             self.range_lines = []
             self.range_arrows = []
@@ -19283,9 +19267,7 @@ class EFARangePlotPanel(wx.Panel):
             self.range_arrows = []
             self.cut_line = None
 
-        if ((int(matplotlib.__version__.split('.')[0]) ==1
-                    and int(matplotlib.__version__.split('.')[1]) >=5)
-                or int(matplotlib.__version__.split('.')[0]) > 1):
+        if pmpl_version >= packv.Version('1.5'):
             a.set_prop_cycle(None)
         else:
             a.set_color_cycle(None)
@@ -19327,32 +19309,20 @@ class EFARangePlotPanel(wx.Panel):
             self.cut_line, = a.plot(xvals, intensity[framei:framef+1], color=sec_color,
                 marker='.', linestyle='-', animated = True)
 
-            if ((int(matplotlib.__version__.split('.')[0]) ==1 and
-                int(matplotlib.__version__.split('.')[1]) >=5) or
-                (int(matplotlib.__version__.split('.')[0]) > 1 and
-                int(matplotlib.__version__.split('.')[0]) < 3) or
-                (int(matplotlib.__version__.split('.')[0]) == 3 and
-                int(matplotlib.__version__.split('.')[1]) <8)):
+            if (pmpl_version >= packv.Version('1.5')
+                and pmpl_version < packv.Version('3.8')):
                 a.set_prop_cycle(None) #Resets the color cycler to the original state
-            elif ((int(matplotlib.__version__.split('.')[0]) == 3 and
-                int(matplotlib.__version__.split('.')[1]) >=8) or
-                (int(matplotlib.__version__.split('.')[0]) > 3)):
+            elif pmpl_version >= packv.Version('3.8'):
                 prop_cycle = copy.deepcopy(matplotlib.rcParams['axes.prop_cycle'])
                 color_cycle = prop_cycle.by_key()['color']
             else:
                 a.set_color_cycle(None)
 
             for i in range(ranges.shape[0]):
-                if ((int(matplotlib.__version__.split('.')[0]) ==1 and
-                    int(matplotlib.__version__.split('.')[1]) >=5) or
-                    (int(matplotlib.__version__.split('.')[0]) > 1 and
-                    int(matplotlib.__version__.split('.')[0]) < 3) or
-                    (int(matplotlib.__version__.split('.')[0]) == 3 and
-                    int(matplotlib.__version__.split('.')[1]) <8)):
+                if (pmpl_version >= packv.Version('1.5')
+                    and pmpl_version < packv.Version('3.8')):
                     color = next(a._get_lines.prop_cycler)['color']
-                elif ((int(matplotlib.__version__.split('.')[0]) == 3 and
-                    int(matplotlib.__version__.split('.')[1]) >=8) or
-                    (int(matplotlib.__version__.split('.')[0]) > 3)):
+                elif pmpl_version >= packv.Version('3.8'):
                     color = color_cycle[i]
                 else:
                     color =next(a._get_lines.color_cycle)
@@ -19780,7 +19750,7 @@ class REGALSSVDPanel(wx.Panel):
 
         self.splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
-        if packv.parse(wx.__version__) < packv.Version('2.9'):
+        if pwx_version < packv.Version('2.9'):
             self.splitter.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter.SetMinimumPaneSize(self._FromDIP(50))
@@ -19848,7 +19818,7 @@ class REGALSEFAPanel(wx.Panel):
 
         self.splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
-        if packv.parse(wx.__version__) < packv.Version('2.9'):
+        if pwx_version < packv.Version('2.9'):
             self.splitter.SetMinimumPaneSize(self._FromDIP(splitter_size))    #Back compatability with older wxpython versions
         else:
             self.splitter.SetMinimumPaneSize(self._FromDIP(50))
@@ -22853,7 +22823,7 @@ class ResidualsPanel(wx.Panel):
 
         splitter.SplitVertically(self.control_panel, self.plot_panel, self._FromDIP(325))
 
-        if packv.parse(wx.__version__) < packv.Version('2.9'):
+        if pwx_version < packv.Version('2.9'):
             splitter.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
         else:
             splitter.SetMinimumPaneSize(self._FromDIP(50))
@@ -22898,7 +22868,7 @@ class RatioPanel(wx.Panel):
 
         splitter.SplitVertically(self.control_panel, self.plot_panel, self._FromDIP(325))
 
-        if packv.parse(wx.__version__) < packv.Version('2.9'):
+        if pwx_version < packv.Version('2.9'):
             splitter.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
         else:
             splitter.SetMinimumPaneSize(self._FromDIP(50))
@@ -23286,9 +23256,9 @@ class ComparisonPlotPanel(wx.Panel):
         and show a pop up menu to change the settings
         of the figure the mouse was over '''
         if event.button == 3:
-            if packv.parse(matplotlib.__version__) >= packv.Version('1.2'):
+            if pmpl_version >= packv.Version('1.2'):
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    if (packv.parse(wx.__version__) >= packv.Version('3')
+                    if (pwx_version >= packv.Version('3')
                         and platform.system() == 'Darwin'):
                         wx.CallAfter(self._showPopupMenu)
                     else:
@@ -23296,7 +23266,7 @@ class ComparisonPlotPanel(wx.Panel):
 
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    if (packv.parse(wx.__version__) >= packv.Version('3')
+                    if (pwx_version >= packv.Version('3')
                         and platform.system() == 'Darwin'):
                         wx.CallAfter(self._showPopupMenu)
                     else:
@@ -23513,9 +23483,7 @@ class ComparisonPlotPanel(wx.Panel):
             self.top_plot.set_visible(True)
             self.bottom_plot.set_visible(True)
 
-            if ((int(matplotlib.__version__.split('.')[0]) == 3
-                and int(matplotlib.__version__.split('.')[1]) >= 4) or
-                int(matplotlib.__version__.split('.')[0]) > 3):
+            if pmpl_version >= packv.Version('3.4'):
                 gs = matplotlib.gridspec.GridSpec(2,1)
                 self.top_plot.set_subplotspec(gs.new_subplotspec((0,0)))
                 self.bottom_plot.set_subplotspec(gs.new_subplotspec((1,0)))
@@ -23532,9 +23500,7 @@ class ComparisonPlotPanel(wx.Panel):
             self.bottom_plot.set_visible(False)
 
 
-            if ((int(matplotlib.__version__.split('.')[0]) == 3
-                and int(matplotlib.__version__.split('.')[1]) >= 4) or
-                int(matplotlib.__version__.split('.')[0]) > 3):
+            if pmpl_version >= packv.Version('3.4'):
                 gs = matplotlib.gridspec.GridSpec(1,1)
                 self.top_plot.set_subplotspec(gs.new_subplotspec((0,0)))
             else:
@@ -23848,7 +23814,7 @@ class NormKratkyFrame(wx.Frame):
 
         splitter1.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(290))
 
-        if packv.parse(wx.__version__) < packv.Version('2.9'):
+        if pwx_version < packv.Version('2.9'):
             splitter1.SetMinimumPaneSize(self._FromDIP(290))    #Back compatability with older wxpython versions
         else:
             splitter1.SetMinimumPaneSize(self._FromDIP(50))
@@ -24146,9 +24112,9 @@ class NormKratkyPlotPanel(wx.Panel):
         and show a pop up menu to change the settings
         of the figure the mouse was over '''
         if event.button == 3:
-            if packv.parse(matplotlib.__version__) >= packv.Version('1.2'):
+            if pmpl_version >= packv.Version('1.2'):
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    if (packv.parse(wx.__version__) >= packv.Version('3')
+                    if (pwx_version >= packv.Version('3')
                         and platform.system() == 'Darwin'):
                         wx.CallAfter(self._showPopupMenu)
                     else:
@@ -24156,7 +24122,7 @@ class NormKratkyPlotPanel(wx.Panel):
 
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    if (packv.parse(wx.__version__) >= packv.Version('3')
+                    if (pwx_version >= packv.Version('3')
                         and platform.system() == 'Darwin'):
                         wx.CallAfter(self._showPopupMenu)
                     else:
@@ -24642,7 +24608,7 @@ class LCSeriesFrame(wx.Frame):
 
         splitter.SplitVertically(self.controlPanel, self.plotPanel, self._FromDIP(splitter_size))
 
-        if packv.parse(wx.__version__) < packv.Version('2.9'):
+        if pwx_version < packv.Version('2.9'):
             splitter.SetMinimumPaneSize(self._FromDIP((splitter_size)))    #Back compatability with older wxpython versions
         else:
             splitter.SetMinimumPaneSize(self._FromDIP(50))
@@ -24779,7 +24745,7 @@ class SeriesPlotPanel(wx.Panel):
     def create_layout(self):
         color = SASUtils.update_mpl_style()
 
-        if packv.parse(matplotlib.__version__) >= packv.Version('3.9'):
+        if pmpl_version >= packv.Version('3.9'):
             scale = self.GetDPIScaleFactor()
         else:
             scale = 1
@@ -24900,9 +24866,7 @@ class SeriesPlotPanel(wx.Panel):
             self.cid = self.canvas.mpl_connect('draw_event', self.ax_redraw)
         else:
             if start<end:
-                if ((int(matplotlib.__version__.split('.')[0]) == 3
-                    and int(matplotlib.__version__.split('.')[1]) >= 9) or
-                    int(matplotlib.__version__.split('.')[0]) > 3):
+                if pmpl_version >= packv.Version('3.9'):
                     line.set_x(start)
                     line.set_width(end-start)
                 else:
@@ -24911,9 +24875,7 @@ class SeriesPlotPanel(wx.Panel):
                     line.set_xy(pts)
 
             else:
-                if ((int(matplotlib.__version__.split('.')[0]) == 3
-                    and int(matplotlib.__version__.split('.')[1]) >= 9) or
-                    int(matplotlib.__version__.split('.')[0]) > 3):
+                if pmpl_version >= packv.Version('3.9'):
                     line.set_x(start-0.5)
                     line.set_width(start-end+1)
                 else:
@@ -25039,9 +25001,7 @@ class SeriesPlotPanel(wx.Panel):
                 else:
                     x = int(round(x))
 
-                    if ((int(matplotlib.__version__.split('.')[0]) == 3
-                        and int(matplotlib.__version__.split('.')[1]) >= 9) or
-                        int(matplotlib.__version__.split('.')[0]) > 3):
+                    if pmpl_version >= packv.Version('3.9'):
                         self.plot_ranges[self.range_index].set_width(x - self.start_range)
 
                     else:
@@ -25060,9 +25020,7 @@ class SeriesPlotPanel(wx.Panel):
             if self.start_range == -1:
                 self.start_range = int(round(x))
 
-                if ((int(matplotlib.__version__.split('.')[0]) == 3
-                    and int(matplotlib.__version__.split('.')[1]) >= 9) or
-                    int(matplotlib.__version__.split('.')[0]) > 3):
+                if pmpl_version >= packv.Version('3.9'):
                     self.plot_ranges[self.range_index].set_x(self.start_range)
                     self.plot_ranges[self.range_index].set_width(1)
                 else:
@@ -25077,9 +25035,7 @@ class SeriesPlotPanel(wx.Panel):
             else:
                 self.end_range = int(round(x))
 
-                if ((int(matplotlib.__version__.split('.')[0]) == 3
-                    and int(matplotlib.__version__.split('.')[1]) >= 9) or
-                    int(matplotlib.__version__.split('.')[0]) > 3):
+                if pmpl_version >= packv.Version('3.9'):
                     self.plot_ranges[self.range_index].set_x(self.start_range)
                     self.plot_ranges[self.range_index].set_width(self.end_range-self.start_range)
                 else:

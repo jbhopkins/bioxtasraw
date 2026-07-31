@@ -27,10 +27,8 @@ import os
 
 import numpy as np
 import wx
-if int(wx.version().split()[0].strip()[0]) >= int('4'):
-    control_super = wx.Control
-else:
-    control_super = wx.PyControl
+import packaging.version as packv
+
 import wx.lib.agw.flatnotebook as flatNB
 from wx.lib.agw import ultimatelistctrl as ULC
 import wx.lib.agw.supertooltip as STT
@@ -38,6 +36,14 @@ from wx.lib.wordwrap import wordwrap
 from wx.lib.stattext import GenStaticText as StaticText
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 import matplotlib as mpl
+
+pmpl_version = packv.parse(mpl.__version__)
+pwx_version = packv.parse(wx.__version__)
+
+if pwx_version >= packv.Version('4.0'):
+    control_super = wx.Control
+else:
+    control_super = wx.PyControl
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -1501,12 +1507,7 @@ class CustomPlotToolbar(NavigationToolbar2WxAgg):
         :param wx.Window parent: The parent window
         :param matplotlib.Canvas: The canvas associated with the toolbar.
         """
-        if ((float(mpl.__version__.split('.')[0]) == 3 and
-            float(mpl.__version__.split('.')[1]) >= 3 and
-            float(mpl.__version__.split('.')[2]) >= 1) or
-            (float(mpl.__version__.split('.')[0]) == 3 and
-            float(mpl.__version__.split('.')[1]) >= 4) or
-            float(mpl.__version__.split('.')[0]) > 3):
+        if pmpl_version >= packv.Version('3.3.1'):
             NavigationToolbar2WxAgg.__init__(self, canvas, coordinates=False)
         else:
             NavigationToolbar2WxAgg.__init__(self, canvas)
@@ -1535,7 +1536,7 @@ def OnPaintFNB(self, event):
     :param `event`: a :class:`PaintEvent` event to be processed.
     """
 
-    if wx.version().split()[0].strip()[0] == '4' and self.GetContentScaleFactor() > 1:
+    if pwx_version >= packv.Version('4.0') and self.GetContentScaleFactor() > 1:
         dc = wx.PaintDC(self)
     else:
         dc = wx.BufferedPaintDC(self)
@@ -1563,7 +1564,7 @@ def OnPaintULCHeader(self, event):
     :param `event`: a :class:`PaintEvent` event to be processed.
     """
 
-    if wx.version().split()[0].strip()[0] == '4' and self.GetContentScaleFactor() > 1:
+    if pwx_version >= packv.Version('4.0') and self.GetContentScaleFactor() > 1:
         dc = wx.PaintDC(self)
     else:
         dc = wx.BufferedPaintDC(self)
@@ -1673,7 +1674,7 @@ def OnPaintULCHeader(self, event):
 
         # for this we need the width of the text
         text = (isFooter and [item.GetFooterText()] or [item.GetText()])[0]
-        if wx.version().split()[0].strip()[0] == '4':
+        if pwx_version >= packv.Version('4.0'):
             wLabel, hLabel, dummy = dc.GetFullMultiLineTextExtent(text)
         else:
             wLabel, hLabel, dummy = dc.GetMultiLineTextExtent(text)
@@ -1751,7 +1752,7 @@ def OnPaintULCMain(self, event):
 
     # Note: a wxPaintDC must be constructed even if no drawing is
     # done (a Windows requirement).
-    if wx.version().split()[0].strip()[0] == '4' and self.GetContentScaleFactor() > 1:
+    if pwx_version >= packv.Version('4.0') and self.GetContentScaleFactor() > 1:
         dc = wx.PaintDC(self)
     else:
         dc = wx.BufferedPaintDC(self)
@@ -1895,7 +1896,7 @@ def OnPaintSTT(self, event):
         dc = wx.ClientDC(self)
     else:
         # Go with double buffering...
-        if wx.version().split()[0].strip()[0] == '4' and self.GetContentScaleFactor() > 1:
+        if pwx_version >= packv.Version('4.0') and self.GetContentScaleFactor() > 1:
             dc = wx.PaintDC(self)
         else:
             dc = wx.BufferedPaintDC(self)
