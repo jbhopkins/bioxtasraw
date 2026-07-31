@@ -377,9 +377,9 @@ def test_validate_sample_range_good(bsa_series):
     assert param_results['rg_valid']
     assert param_results['vcmw_valid']
     assert param_results['vpmw_valid']
-    assert param_results['rg_pval'] == 0.9488461264555137
+    assert np.isclose(param_results['rg_pval'], 0.9488461264555137)
     assert np.isclose(param_results['vcmw_pval'], 0.3438801731989136)
-    assert param_results['vpmw_pval'] == 0.6472068934597522
+    assert np.isclose(param_results['vpmw_pval'], 0.6472068934597522)
     assert sn_results['sn_valid']
 
 def test_validate_sample_range_bad(bsa_series):
@@ -395,9 +395,9 @@ def test_validate_sample_range_bad(bsa_series):
     assert not param_results['rg_valid']
     assert param_results['vcmw_valid']
     assert not param_results['vpmw_valid']
-    assert param_results['rg_pval'] == 0.0009457098107349513
-    assert param_results['vcmw_pval'] == 0.7625997832797398
-    assert param_results['vpmw_pval'] == 0.018076642193560675
+    assert np.isclose(param_results['rg_pval'], 0.0009457098107349513)
+    assert np.isclose(param_results['vcmw_pval'], 0.7625997832797398)
+    assert np.isclose(param_results['vpmw_pval'], 0.018076642193560675)
     assert sn_results['sn_valid']
 
 def test_validate_sample_range_list(bsa_series):
@@ -419,9 +419,9 @@ def test_validate_sample_range_list(bsa_series):
     assert param_results['rg_valid']
     assert param_results['vcmw_valid']
     assert param_results['vpmw_valid']
-    assert param_results['rg_pval'] == 0.9488461264555137
+    assert np.isclose(param_results['rg_pval'], 0.9488461264555137)
     assert np.isclose(param_results['vcmw_pval'], 0.3438801731989136)
-    assert param_results['vpmw_pval'] == 0.6472068934597522
+    assert np.isclose(param_results['vpmw_pval'], 0.6472068934597522)
     assert sn_results['sn_valid']
 
 def test_set_sampe_range(bsa_series):
@@ -464,15 +464,15 @@ def test_validate_baseline_range_integral_good(int_baseline_series):
     assert intI_results[0]['intI_valid']
     assert intI_results[0]['smoothed_intI_valid']
     assert np.isclose(intI_results[0]['intI_pval'], 0.2388039563971044)
-    assert intI_results[0]['smoothed_intI_pval'] == 0.10656462177179266
+    assert np.isclose(intI_results[0]['smoothed_intI_pval'], 0.10656462177179266)
     assert similarity_results[1]['all_similar']
     assert similarity_results[1]['low_q_similar']
     assert similarity_results[1]['high_q_similar']
     assert svd_results[1]['svals'] == 1
     assert intI_results[1]['intI_valid']
     assert intI_results[1]['smoothed_intI_valid']
-    assert intI_results[1]['intI_pval'] == 0.3572478396366079
-    assert intI_results[1]['smoothed_intI_pval'] == 0.06588236359826605
+    assert np.isclose(intI_results[1]['intI_pval'], 0.3572478396366079)
+    assert np.isclose(intI_results[1]['smoothed_intI_pval'], 0.06588236359826605)
 
 def test_validate_baseline_range_integral_bad(int_baseline_series):
     (valid, valid_results, similarity_results, svd_results, intI_results,
@@ -486,16 +486,16 @@ def test_validate_baseline_range_integral_bad(int_baseline_series):
     assert svd_results[0]['svals'] == 1
     assert intI_results[0]['intI_valid']
     assert intI_results[0]['smoothed_intI_valid']
-    assert intI_results[0]['intI_pval'] == 0.07367410936498585
-    assert intI_results[0]['smoothed_intI_pval'] == 0.017991315636281355
+    assert np.isclose(intI_results[0]['intI_pval'], 0.07367410936498585)
+    assert np.isclose(intI_results[0]['smoothed_intI_pval'], 0.017991315636281355)
     assert similarity_results[1]['all_similar']
     assert similarity_results[1]['low_q_similar']
     assert similarity_results[1]['high_q_similar']
     assert svd_results[1]['svals'] == 1
     assert intI_results[1]['intI_valid']
     assert not intI_results[1]['smoothed_intI_valid']
-    assert intI_results[1]['intI_pval'] == 0.26995117121922096
-    assert intI_results[1]['smoothed_intI_pval'] == 0.006453749007721673
+    assert np.isclose(intI_results[1]['intI_pval'], 0.26995117121922096)
+    assert np.isclose(intI_results[1]['smoothed_intI_pval'], 0.006453749007721673)
 
 def test_validate_baseline_range_list(int_baseline_series):
     sasms = int_baseline_series.subtracted_sasm_list
@@ -511,15 +511,15 @@ def test_validate_baseline_range_list(int_baseline_series):
     assert intI_results[0]['intI_valid']
     assert intI_results[0]['smoothed_intI_valid']
     assert np.isclose(intI_results[0]['intI_pval'], 0.2388039563971044)
-    assert intI_results[0]['smoothed_intI_pval'] == 0.10656462177179266
+    assert np.isclose(intI_results[0]['smoothed_intI_pval'], 0.10656462177179266)
     assert similarity_results[1]['all_similar']
     assert similarity_results[1]['low_q_similar']
     assert similarity_results[1]['high_q_similar']
     assert svd_results[1]['svals'] == 1
     assert intI_results[1]['intI_valid']
     assert intI_results[1]['smoothed_intI_valid']
-    assert intI_results[1]['intI_pval'] == 0.3572478396366079
-    assert intI_results[1]['smoothed_intI_pval'] == 0.06588236359826605
+    assert np.isclose(intI_results[1]['intI_pval'], 0.3572478396366079)
+    assert np.isclose(intI_results[1]['smoothed_intI_pval'], 0.06588236359826605)
 
 # Linear always has errors, so this test is disabled
 # def test_validate_baseline_range_linear_good(int_baseline_series):

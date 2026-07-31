@@ -9242,9 +9242,11 @@ class DenssRunPanel(wx.Panel):
 
         wx.CallAfter(averWindow.AppendText, 'Generating robust reference via iterative averaging\n')
 
-        refrho, _, _ = DENSS.iterative_average(allrhos, cycles=5, cores=procs,
+        cylces = int(self.raw_settings['denssAverageCycles'])
+
+        refrho, _, _ = DENSS.iterative_average(allrhos, cycles=cylces, cores=procs,
             thorough=True, abort_event=self.abort_event, single_proc=self.single_proc,
-            my_logger=None, enan=True, refrho_start=None, avg_queue=avg_q)
+            my_logger=None, enan=True, refrho_start=None)
 
         if self.abort_event.is_set():
             stop_event.set()

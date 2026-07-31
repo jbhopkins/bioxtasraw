@@ -36,9 +36,9 @@ Windows detailed install from source instructions
 
     *   ``conda upgrade conda pip wheel setuptools``
 
-    *   ``conda install numpy scipy matplotlib pillow numba h5py cython reportlab``
+    *   ``conda install -c conda-forge numpy scipy matplotlib pillow numba h5py cython reportlab``
 
-    *  ``conda install -c conda-forge wxpython hdf5plugin fabio pyfai mmcif_pdbx svglib``
+    *  ``conda install -c conda-forge wxpython hdf5plugin fabio pyfai mmcif_pdbx svglib packaging``
 
 #.  Download RAW from sourceforge (
     `https://sourceforge.net/projects/bioxtasraw <https://sourceforge.net/projects/bioxtasraw>`_)

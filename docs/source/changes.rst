@@ -1,6 +1,38 @@
 Changes
 ============
 
+2.4.2
+----------
+
+Release date: 2026-08-07
+
+Overview
+^^^^^^^^^^
+
+The RAW team is pleased to announce the release of RAW version 2.4.2. This is a
+bug fix release.
+
+All changes:
+^^^^^^^^^^^^^
+*   Fixed a bug where removing a mask in the mask creation panel would result
+    in not being able to set a mask of that type.
+*   Fixed a bug where autoloading CHESS Eiger format series data in the Series
+    control tab would fail.
+*   Fixed a bug that could cause series autoloading to fail.
+*   Fixed a bug that could cause workspaces to fail to load due to an issue
+    parsing saved colors for lines/markers.
+*   Fixed a bug that could occur when the DENSS window raises an error.
+*   Fixed a bug in series online mode that would cause the mode to turn off.
+*   Moved series online mode control and loading into a thread.
+*   Fixed an issue with datmw and datclass not running if ATSAS is providing
+    the license expiration warning.
+*   Fixed a bug where selecting None for the right axis data on the series plot
+    could raise an error.
+*   Fixed a bug where version checking (e.g. for wxpython or matplotlib version
+    specific commands) could fail if the version was not strictly numeric. This
+    was causing an issue with the prepacked version on Debian.
+*   Updated DENSS tools to the latest version (1.8.8)
+
 2.4.1
 ----------
 

@@ -5429,7 +5429,7 @@ def denss_average(densities, side, prefix, datadir, n_proc=1,
 
     refrho, _, _ = DENSS.iterative_average(densities, cycles=5, cores=n_proc,
         thorough=True, abort_event=abort_event, single_proc=single_proc,
-        my_logger=None, enan=True, refrho_start=None, avg_queue=None)
+        my_logger=None, enan=True, refrho_start=None)
 
     if abort_event is not None and abort_event.is_set():
         return np.array([-1]), -1, -1, -1, -1, np.array([-1]), np.array([-1])
@@ -5575,7 +5575,8 @@ def pdb2sas(models,
     fit_solvent=True,
     fit_shell=True,
     explicitH=None,
-    ignore_waters=None,
+    modifiable_atom_types=None,
+    ignore_waters=True,
     voxel=None,
     side=None,
     nsamples=None,
@@ -5622,6 +5623,11 @@ def pdb2sas(models,
         to the data. Default True.
     explicitH: bool, optional
         Use explicit hydrogens provided in the model file. Default False.
+    modifiable_atom_types: list, optional
+        Modifiable atom types for scaling atomic radii for excluded volume calculation.
+        If none are provided defaults are used.
+    ignore_waters: bool, optional
+        If True, ignore waters in the model file. Default True.
     voxel: float, optional
         Set the voxel size of the density map to this value in angstroms.
         Smaller values yield higher real space sampling. Default is 1 A, adjusted
@@ -5697,6 +5703,9 @@ def pdb2sas(models,
             'shell_contrast'    : shell_contrast,
             'fit_solvent'       : fit_solvent,
             'fit_shell'         : fit_shell,
+            'explicitH'         : explicitH,
+            'modifiable_atom_types' : modifiable_atom_types,
+            'ignore_waters'     : ignore_waters,
             'voxel'             : voxel,
             'side'              : side,
             'nsamples'          : nsamples,
@@ -5714,6 +5723,9 @@ def pdb2sas(models,
             'shell_contrast'    : settings.get('pdb2mrcHydrDensity'),
             'fit_solvent'       : settings.get('pdb2mrcFitSolvent'),
             'fit_shell'         : settings.get('pdb2mrcFitShell'),
+            'explicitH'         : explicitH,
+            'modifiable_atom_types' : modifiable_atom_types,
+            'ignore_waters'     : ignore_waters,
             'voxel'             : settings.get('pdb2mrcVoxel'),
             'side'              : settings.get('pdb2mrcSide'),
             'nsamples'          : settings.get('pdb2mrcNsamples'),

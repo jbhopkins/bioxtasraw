@@ -474,6 +474,7 @@ class RawGuiSettings(object):
                 'denssNCSType'          : ['Cyclical', get_id(), 'choice'],
                 'denssRefine'           : [True, get_id(), 'bool'],
                 'denssGPU'              : [False, get_id(), 'bool'],
+                'denssAverageCycles'    : [5, get_id(), 'int'],
 
                 #DIFT settings
                 # 'diftInitialAlpha'      : [0.0, get_id(), 'float'],

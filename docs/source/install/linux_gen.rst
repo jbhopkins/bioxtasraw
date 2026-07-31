@@ -38,6 +38,8 @@ General instructions for installing from source (advanced users)
 
     *   svglib
 
+    *   packaging
+
 #.  Download RAW source code from sourceforge (
     `https://sourceforge.net/projects/bioxtasraw/files <https://sourceforge.net/projects/bioxtasraw/files>`_)
 
