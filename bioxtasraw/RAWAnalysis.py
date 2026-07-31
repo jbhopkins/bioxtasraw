@@ -672,7 +672,7 @@ class GuinierPlotPanel(wx.Panel):
 
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    if (pwx_version >= packv.Version('3')
+                    if (pwx_version >= packv.Version('3.0')
                         and platform.system() == 'Darwin'):
                         wx.CallAfter(self._showPopupMenu)
                     else:
@@ -14380,7 +14380,7 @@ class TheoreticalList(wx.ListCtrl, wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin
         self.Bind(wx.EVT_RIGHT_DOWN, self._onRightMouseButton)
 
     def _onRightMouseButton(self, evt):
-        if (pwx_version >= packv.Version('3')
+        if (pwx_version >= packv.Version('3.0')
             and platform.system() == 'Darwin'):
             wx.CallAfter(self._showPopupMenu)
         else:
@@ -23258,7 +23258,7 @@ class ComparisonPlotPanel(wx.Panel):
         if event.button == 3:
             if pmpl_version >= packv.Version('1.2'):
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    if (pwx_version >= packv.Version('3')
+                    if (pwx_version >= packv.Version('3.0')
                         and platform.system() == 'Darwin'):
                         wx.CallAfter(self._showPopupMenu)
                     else:
@@ -23266,7 +23266,7 @@ class ComparisonPlotPanel(wx.Panel):
 
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    if (pwx_version >= packv.Version('3')
+                    if (pwx_version >= packv.Version('3.0')
                         and platform.system() == 'Darwin'):
                         wx.CallAfter(self._showPopupMenu)
                     else:
@@ -24114,7 +24114,7 @@ class NormKratkyPlotPanel(wx.Panel):
         if event.button == 3:
             if pmpl_version >= packv.Version('1.2'):
                 if self.toolbar.GetToolState(self.toolbar.wx_ids['Pan']) == False:
-                    if (pwx_version >= packv.Version('3')
+                    if (pwx_version >= packv.Version('3.0')
                         and platform.system() == 'Darwin'):
                         wx.CallAfter(self._showPopupMenu)
                     else:
@@ -24122,7 +24122,7 @@ class NormKratkyPlotPanel(wx.Panel):
 
             else:
                 if self.toolbar.GetToolState(self.toolbar._NTB2_PAN) == False:
-                    if (pwx_version >= packv.Version('3')
+                    if (pwx_version >= packv.Version('3.0')
                         and platform.system() == 'Darwin'):
                         wx.CallAfter(self._showPopupMenu)
                     else:
