@@ -7200,6 +7200,9 @@ class DammifResultsPanel(wx.Panel):
 
         self.SetSizer(self.topsizer)
 
+        self._rep_model = ''
+        self._ex_models = []
+
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
         try:
@@ -7562,6 +7565,8 @@ class DammifResultsPanel(wx.Panel):
         prefix = settings['prefix']
 
         model_list = []
+        self._rep_model = ''
+        self._ex_models = []
 
         for num in range(1,int(settings['runs'])+1):
             fprefix = '%s_%s' %(prefix, str(num).zfill(2))
@@ -7639,10 +7644,12 @@ class DammifResultsPanel(wx.Panel):
                 if not item[1]['include'] and item[0]!='damaver' and item[0]!='damfilt' and item[0]!='refine':
                     index = models_window.GetItemCount()-1
                     models_window.SetItemTextColour(index, 'red')
+                    self._ex_models.append(str(item[0]))
 
                 if item[0] == int('-'.join(rep_model.split('_')[-1].split('-')[:-1])):
                     index = models_window.GetItemCount()-1
                     models_window.SetItemTextColour(index, 'blue')
+                    self._rep_model = str(item[0])
 
         return model_list
 
@@ -7767,7 +7774,6 @@ class DammifResultsPanel(wx.Panel):
         ambi_data = []
 
         models_list = wx.FindWindowById(self.ids['model_sum'])
-        cdb = wx.ColourDatabase()
 
         if self.topsizer.IsShown(self.nsd_sizer):
             nsd_mean = wx.FindWindowById(self.ids['nsdMean']).GetValue()
@@ -7775,23 +7781,14 @@ class DammifResultsPanel(wx.Panel):
             nsd_inc = wx.FindWindowById(self.ids['nsdInc']).GetValue()
             nsd_tot = wx.FindWindowById(self.ids['nsdTot']).GetValue()
 
-            rep_item = ''
-            ex_items = []
-            for i in range(models_list.GetItemCount()):
-                if cdb.FindName(models_list.GetItemTextColour(i)).lower() == 'blue':
-                    rep_item = models_list.GetItem(i, 0).GetText()
-                if cdb.FindName(models_list.GetItemTextColour(i)).lower() == 'red':
-                    ex_items.append(models_list.GetItem(i, 0).GetText())
-
-
             nsd_data = [('Mean NSD:', nsd_mean),
                 ('Stdev. NSD:', nsd_stdev),
                 ('DAMAVER Included:', nsd_inc, 'of', nsd_tot),
-                ('Representative model:', rep_item),
+                ('Representative model:', self._rep_model),
                 ]
 
-            if ex_items:
-                nsd_data.append(('Excluded Models:', ' ,'.join(ex_items)))
+            if len(self._ex_models)>0:
+                nsd_data.append(('Excluded Models:', ' ,'.join(self._ex_models)))
 
         if self.topsizer.IsShown(self.res_sizer):
             res = wx.FindWindowById(self.ids['res']).GetValue()
@@ -7973,14 +7970,14 @@ class DammifPlotPanel(wx.Panel):
             residual = residual/err
 
         ax0 = fig.add_subplot(gridspec[0])
-        ax0.semilogy(q, i, 'bo')
+        ax0.semilogy(q, i, 'b.')
         ax0.semilogy(q, i_fit, 'r')
         ax0.set_xlabel('q')
         ax0.set_ylabel('I(q)')
 
         ax1 = fig.add_subplot(gridspec[1])
         self.ax1_hline = ax1.axhline(0, color=color, linewidth=1.0)
-        ax1.plot(q, residual, 'bo')
+        ax1.plot(q, residual, 'b.')
         ax1.set_xlabel('q')
         if self.norm_residuals:
             ax1.set_ylabel(r'$\Delta I(q)/\sigma (q)$')
@@ -9242,7 +9239,7 @@ class DenssRunPanel(wx.Panel):
 
         wx.CallAfter(averWindow.AppendText, 'Generating robust reference via iterative averaging\n')
 
-        cylces = int(self.raw_settings['denssAverageCycles'])
+        cylces = int(self.raw_settings.get('denssAverageCycles'))
 
         refrho, _, _ = DENSS.iterative_average(allrhos, cycles=cylces, cores=procs,
             thorough=True, abort_event=self.abort_event, single_proc=self.single_proc,
