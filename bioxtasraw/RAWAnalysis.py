@@ -9936,6 +9936,9 @@ class DenssResultsPanel(wx.Panel):
 
         self.SetSizer(self.topsizer)
 
+        self._rep_model = ''
+        self._ex_models = []
+
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
         try:
@@ -10202,6 +10205,9 @@ class DenssResultsPanel(wx.Panel):
         models_list = wx.FindWindowById(self.ids['model_sum'], self)
         models_list.DeleteAllItems()
 
+        self._rep_model = ''
+        self._ex_models = []
+
         for i in range(nruns):
             model = str(i+1)
             chisq = str(round(denss_stats['chi'][i], 5))
@@ -10217,6 +10223,7 @@ class DenssResultsPanel(wx.Panel):
 
             if mrsc != '' and float(mrsc) < average_results['thresh']:
                 models_list.SetItemTextColour(i, 'red') #Not working?!
+                self._ex_models.append(model)
 
         if settings['runs'] >= 4 and settings['average'] and settings['refine']:
             model = 'Refine'
@@ -10315,13 +10322,8 @@ class DenssResultsPanel(wx.Panel):
             rsc_data.append(('Number of models included:', inc))
             rsc_data.append(('Total number of models:', total))
 
-            ex_items = []
-            for i in range(models_list.GetItemCount()):
-                if cdb.FindName(models_list.GetItemTextColour(i)).lower() == 'red':
-                    ex_items.append(models_list.GetItem(i, 0).GetText())
-
-            if ex_items:
-                rsc_data.append(('Excluded Models:', ' ,'.join(ex_items)))
+            if len(self._ex_models) > 0:
+                rsc_data.append(('Excluded Models:', ' ,'.join(self._ex_models)))
 
         if self.topsizer.IsShown(self.res_sizer):
             res = wx.FindWindowById(self.ids['res']).GetValue()
