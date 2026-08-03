@@ -33,6 +33,8 @@ All changes:
     was causing an issue with the prepacked version on Debian.
 *   Updated DENSS tools to the latest version (1.8.8)
 *   Fixed compatibility issues with wxpython 4.3.
+*   Fixed compatibility issues with svglib 2.0.
+*   Fixed compatibility issues with numpy 2.4.
 
 2.4.1
 ----------
