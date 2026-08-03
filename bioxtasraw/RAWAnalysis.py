@@ -5753,14 +5753,14 @@ class DammifRunPanel(wx.Panel):
         if packv.parse(self.dammif_frame.atsas_version) >= packv.Version('3.1'):
             settings_sizer.Hide(damclust_chk)
 
+        button_box = wx.StaticBox(parent, -1, 'Controls')
 
-        start_button = wx.Button(parent, self.ids['start'], 'Start')
+        start_button = wx.Button(button_box, self.ids['start'], 'Start')
         start_button.Bind(wx.EVT_BUTTON, self.onStartButton)
 
-        abort_button = wx.Button(parent, self.ids['abort'], 'Abort')
+        abort_button = wx.Button(button_box, self.ids['abort'], 'Abort')
         abort_button.Bind(wx.EVT_BUTTON, self.onAbortButton)
 
-        button_box = wx.StaticBox(parent, -1, 'Controls')
         button_sizer = wx.StaticBoxSizer(button_box, wx.HORIZONTAL)
         button_sizer.AddStretchSpacer(1)
         button_sizer.Add(start_button, 0, wx.ALL | wx.ALIGN_CENTER,

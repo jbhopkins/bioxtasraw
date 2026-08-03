@@ -48,9 +48,12 @@ from reportlab.platypus import (SimpleDocTemplate, Paragraph, Table, Image,
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from svglib.svglib import svg2rlg
+import svglib
 import packaging.version as packv
 
 pmpl_version = packv.parse(mpl.__version__)
+psvg_version = packv.parse(svglib.__version__)
+psvg_v2 = packv.Version('2.0')
 
 import bioxtasraw.SASCalc as SASCalc
 
@@ -1836,6 +1839,9 @@ def generate_report(fname, datadir, profiles, ifts, series, extra_data=None):
 
     elements = []
 
+    cur_bk = mpl.get_backend()
+    mpl.use('svg')
+
     overview = generate_overview(profiles, ifts, series)
     elements.extend(overview)
 
@@ -1894,6 +1900,8 @@ def generate_report(fname, datadir, profiles, ifts, series, extra_data=None):
     for fname in temp_files:
         if os.path.isfile(fname):
             os.remove(fname)
+
+    mpl.use(cur_bk)
 
     temp_files = []
 
@@ -3426,7 +3434,10 @@ def make_figure(figure, caption, img_width, img_height, styles):
 
     drawing = svg2rlg(filename)
 
-    scale = 0.8
+    if psvg_version < psvg_v2:
+        scale = 0.8
+    else:
+        scale = 1
 
     drawing.width = drawing.width*scale
     drawing.height = drawing.height*scale
