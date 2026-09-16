@@ -3216,10 +3216,10 @@ class SeriesPlotPanel(wx.Panel):
                 y2_val = '{:.3E}'.format(y2)
 
             if calced != 'None':
-                wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I(q) = %s, %s = %s' %(xaxis, x, y_val, calced, y2_val), 1)
+                wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I(q) = %s, %s = %s' %(xaxis, x+0.5, y_val, calced, y2_val), 1)
 
             else:
-                wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I(q) = %s' %(xaxis, x, y_val), 1)
+                wx.FindWindowByName('MainFrame').SetStatusText('%s = %i, I(q) = %s' %(xaxis, x+0.5, y_val), 1)
 
     def _onMouseButtonReleaseEvent(self, event):
         ''' Find out where the mouse button was released
