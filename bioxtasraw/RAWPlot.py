@@ -3386,7 +3386,7 @@ class SeriesPlotPanel(wx.Panel):
         choice_id = evt.GetId()
 
         if seccontrol.online_controller.online:
-            mainframe.OnlineSECControl.goOffline()
+            mainframe.OnlineSeriesController.goOffline()
 
         for key in MenuIDs:
             if MenuIDs[key] == choice_id:
@@ -3479,7 +3479,7 @@ class SeriesPlotPanel(wx.Panel):
                 #evt.Skip()
 
         if seccontrol.online_controller.online:
-            mainframe.OnlineSECControl.goOnline()
+            mainframe.OnlineSeriesController.goOnline()
 
 
     def _createPopupAxesMenu(self, plot_number):
