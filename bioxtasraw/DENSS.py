@@ -65,6 +65,7 @@ if raw_path not in os.sys.path:
     os.sys.path.append(raw_path)
 
 import bioxtasraw.denss_resources.resources as resources
+import bioxtasraw.SASM as SASM
 
 electrons = resources.electrons
 atomic_volumes = resources.atomic_volumes
