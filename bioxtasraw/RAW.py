@@ -6977,7 +6977,7 @@ class MainWorkerThread(threading.Thread):
                 item_visible = item_data['item_selected_for_plot']
                 item_controls_not_shown = not item_data['item_controls_visible']
             else:
-                item_color = None
+                item_colour = None
                 item_visible = True
                 item_controls_not_shown = None
 
@@ -6992,22 +6992,17 @@ class MainWorkerThread(threading.Thread):
             line_data = idata[1]
             item_data = idata[2]
 
-            legend_labels = {}
+            legend_labels = {'r': None, 'qo': None, 'qf': None}
 
-            if line_data['r_line_legend_label'] != '':
-                legend_labels['r'] = line_data['r_line_legend_label']
-            else:
-                legend_labels['r'] = None
+            if line_data is not None:
+                if line_data['r_line_legend_label'] != '':
+                    legend_labels['r'] = line_data['r_line_legend_label']
 
-            if line_data['qo_line_legend_label'] != '':
-                legend_labels['qo'] = line_data['qo_line_legend_label']
-            else:
-                legend_labels['qo'] = None
+                if line_data['qo_line_legend_label'] != '':
+                    legend_labels['qo'] = line_data['qo_line_legend_label']
 
-            if line_data['qf_line_legend_label'] != '':
-                legend_labels['qf'] = line_data['qf_line_legend_label']
-            else:
-                legend_labels['qf'] = None
+                if line_data['qf_line_legend_label'] != '':
+                    legend_labels['qf'] = line_data['qf_line_legend_label']
 
             wx.CallAfter(self.ift_plot_panel.plotIFTM, new_iftm,
                 line_data=line_data, legend_label_in=legend_labels)
@@ -7018,14 +7013,15 @@ class MainWorkerThread(threading.Thread):
 
             legend_label2 = defaultdict(str)
 
-            if line_data['r_line_legend_label'] != '':
-                legend_label2[new_iftm.r_line] = line_data['r_line_legend_label']
+            if line_data is not None:
+                if line_data['r_line_legend_label'] != '':
+                    legend_label2[new_iftm.r_line] = line_data['r_line_legend_label']
 
-            if line_data['qo_line_legend_label'] != '':
-                legend_label2[new_iftm.qo_line] = line_data['qo_line_legend_label']
+                if line_data['qo_line_legend_label'] != '':
+                    legend_label2[new_iftm.qo_line] = line_data['qo_line_legend_label']
 
-            if line_data['qf_line_legend_label'] != '':
-                legend_label2[new_iftm.qf_line] = line_data['qf_line_legend_label']
+                if line_data['qf_line_legend_label'] != '':
+                    legend_label2[new_iftm.qf_line] = line_data['qf_line_legend_label']
 
             if item_data is not None:
                 item_colour = item_data['item_font_color']
