@@ -5017,19 +5017,19 @@ def saveWorkspace(sasm_list, ift_list, series_list, save_path):
         save_file.attrs['file_type'] = 'RAW_Workspace'
         save_file.attrs['raw_version'] = RAWGlobals.version
 
-        sasm_group = save_file.create_group('profiles')
+        sasm_group = save_file.create_group('profiles', track_order=True)
         for sasm in sasm_list:
             save_sasm_hdf5(sasm_group, sasm, True)
 
         save_file.flush()
 
-        ift_group = save_file.create_group('ifts')
+        ift_group = save_file.create_group('ifts', track_order=True)
         for ift in ift_list:
             save_ift_hdf5(ift_group, ift, True)
 
         save_file.flush()
 
-        series_group = save_file.create_group('series')
+        series_group = save_file.create_group('series', track_order=True)
         for series in series_list:
             save_series(series_group, series, True)
             save_file.flush()
