@@ -2677,7 +2677,8 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
             self.cal_file_label.SetLabel(os.path.basename(self._cal_file))
 
-            if pwx_version >= packv.Version('3.0') and platform.system() == 'Darwin':
+            if (platform.system() == 'Darwin'and pwx_version >= packv.Version('3')
+                and pwx_version < packv.Version('4.2')):
                 file_tip = STT.SuperToolTip(" ", header = self._cal_file, footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
                 file_tip.SetTarget(self.cal_file_label)
                 file_tip.ApplyStyle('Blue Glass')
@@ -3057,7 +3058,8 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
 
                 self.cal_file_label.SetLabel(os.path.basename(self._cal_file))
 
-                if pwx_version >= packv.Version('3.0') and platform.system() == 'Darwin':
+                if (platform.system() == 'Darwin'and pwx_version >= packv.Version('3')
+                    and pwx_version < packv.Version('4.2')):
                     file_tip = STT.SuperToolTip(" ", header = self._cal_file, footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
                     file_tip.SetTarget(self.cal_file_label)
                     file_tip.ApplyStyle('Blue Glass')

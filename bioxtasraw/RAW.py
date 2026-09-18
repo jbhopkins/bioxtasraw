@@ -8642,7 +8642,8 @@ class ManipulationPanel(wx.Panel):
         self.hide_all_btn.Bind(wx.EVT_BUTTON, self._onHideAllButton)
 
 
-        if platform.system() == 'Darwin':
+        if (platform.system() == 'Darwin'and pwx_version >= packv.Version('3')
+            and pwx_version < packv.Version('4.2')):
             show_tip = STT.SuperToolTip(" ", header = "Show", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(self.show_all_btn)
             show_tip.ApplyStyle('Blue Glass')
@@ -9380,7 +9381,8 @@ class ManipItemPanel(wx.Panel):
         self.info_icon.SetBackgroundColour(self._bkg_color)
 
 
-        if opsys == 'Darwin' and pwx_version >= packv.Version('3'):
+        if (platform.system() == 'Darwin'and pwx_version >= packv.Version('3')
+            and pwx_version < packv.Version('4.2')):
             show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(self.showitem_icon)
             show_tip.ApplyStyle('Blue Glass')
@@ -9551,8 +9553,8 @@ class ManipItemPanel(wx.Panel):
             string = string0+string1+string2+string3
 
         if string != '':
-            if  (pwx_version >= packv.Version('3')
-                and platform.system() == 'Darwin'):
+            if (platform.system() == 'Darwin'and pwx_version >= packv.Version('3')
+                and pwx_version < packv.Version('4.2')):
                 self.info_tip.SetMessage(string)
             else:
                 self.info_icon.SetToolTip(wx.ToolTip(string))
@@ -10679,7 +10681,8 @@ class IFTPanel(wx.Panel):
         self.select_all_btn = wx.BitmapButton(self, -1, self.select_all_png)
 
 
-        if platform.system() == 'Darwin':
+        if (platform.system() == 'Darwin'and pwx_version >= packv.Version('3')
+            and pwx_version < packv.Version('4.2')):
             show_tip = STT.SuperToolTip(" ", header = "Show", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(self.show_all_btn)
             show_tip.ApplyStyle('Blue Glass')
@@ -11180,7 +11183,8 @@ class IFTItemPanel(wx.Panel):
 
         algorithm = self.iftm.getParameter('algorithm')
 
-        if opsys == 'Darwin':
+        if (platform.system() == 'Darwin'and pwx_version >= packv.Version('3')
+            and pwx_version < packv.Version('4.2')):
             show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(self.showitem_icon)
             show_tip.ApplyStyle('Blue Glass')
@@ -11918,7 +11922,8 @@ class SECPanel(wx.Panel):
         self.hide_all_btn = wx.BitmapButton(self, -1, self.hide_all_png,
             size=self._FromDIP(size))
 
-        if platform.system() == 'Darwin':
+        if (platform.system() == 'Darwin'and pwx_version >= packv.Version('3')
+            and pwx_version < packv.Version('4.2')):
             show_tip = STT.SuperToolTip(" ", header = "Show", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(self.show_all_btn)
             show_tip.ApplyStyle('Blue Glass')
@@ -12504,8 +12509,8 @@ class SeriesItemPanel(wx.Panel):
         self.info_icon.SetBitmapMargins(0,0)
         self.info_icon.SetBackgroundColour(self._bkg_color)
 
-        if  (pwx_version >= packv.Version('3')
-            and platform.system() == 'Darwin'):
+        if (platform.system() == 'Darwin'and pwx_version >= packv.Version('3')
+            and pwx_version < packv.Version('4.2')):
             show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(self.showitem_icon)
             show_tip.ApplyStyle('Blue Glass')
@@ -12629,8 +12634,8 @@ class SeriesItemPanel(wx.Panel):
         mol_density = self.secm.mol_density
 
         if window == -1:
-            if  (pwx_version >= packv.Version('3')
-                and platform.system() == 'Darwin'):
+            if (platform.system() == 'Darwin'and pwx_version >= packv.Version('3')
+                and pwx_version < packv.Version('4.2')):
                 msg = ('First buffer frame: N/A\nLast buffer frame: N/A\n'
                     'Average window size: N/A\nMol. type: N/A\nBaseline: N/A')
                 self.info_tip.SetMessage(msg)
@@ -12655,8 +12660,8 @@ class SeriesItemPanel(wx.Panel):
                 'Mol. density: {}\nBaseline: {}'.format(buffer_str, window,
                     mol_type, mol_density, baseline))
 
-            if (pwx_version >= packv.Version('3')
-                and platform.system() == 'Darwin'):
+            if (platform.system() == 'Darwin'and pwx_version >= packv.Version('3')
+                and pwx_version < packv.Version('4.2')):
                 self.info_tip.SetMessage(tip)
             else:
                 msg = ('Show Extended Info\n--------------------------------\n'
