@@ -11072,8 +11072,9 @@ class IFTPanel(wx.Panel):
 
 
 class IFTItemPanel(wx.Panel):
-    def __init__(self, parent, iftm, font_colour=RAWGlobals.general_text_color, legend_label=defaultdict(str),
-        ift_parameters = {}, item_visible = True, modified = False):
+    def __init__(self, parent, iftm, font_colour=RAWGlobals.general_text_color,
+        legend_label=defaultdict(str), ift_parameters = {}, item_visible = True,
+        modified = False):
 
         wx.Panel.__init__(self, parent, style = wx.BORDER_RAISED)
 
@@ -11452,11 +11453,11 @@ class IFTItemPanel(wx.Panel):
     def updateFilenameLabel(self, updateSelf = True, updateParent = True, updateLegend = True):
         filename = self.iftm.getParameter('filename')
 
-        if self._legend_label == '':
-            for line in self.lines:
-                current_label = line.get_label()
 
-                line.set_label(filename+current_label.split('_')[-1])
+        for line in self.lines:
+            if self._legend_label[line] == '':
+                current_label = line.get_label()
+                line.set_label(filename+'_'+current_label.split('_')[-1])
 
         if updateLegend:
             self.ift_plot_panel.updateLegend(1)
@@ -12835,7 +12836,7 @@ class SeriesItemPanel(wx.Panel):
     def updateFilenameLabel(self, updateSelf = True, updateParent = True, updateLegend = True):
         filename = self.secm.getParameter('filename')
 
-        if self._legend_label == '':
+        if self._legend_label[self.secm.line] == '':
             self.secm.line.set_label(filename)
 
         if updateLegend:
