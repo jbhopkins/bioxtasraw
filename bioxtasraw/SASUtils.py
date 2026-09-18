@@ -503,16 +503,17 @@ class WorkspaceLegacyUnpickler(pickle.Unpickler):
     def find_class(self, module, name):
         try:
             return super().find_class(module, name)
-        except ModuleNotFoundError:
+        except (ModuleNotFoundError, AttributeError):
             if module in ("wx", "wx._core", "wx.core") and name in ("Colour", "Color"):
                 return FakeColour
 
-            if module.startswith('numpy.core'):
+            elif module.startswith('numpy.core'):
                module = module.replace('numpy.core', 'numpy._core', 1)
                return super().find_class(module, name)
 
-            elif module not in sys.modules:
-                sys.modules[module] = ModuleType(module)
+            else:
+                if module not in sys.modules:
+                    sys.modules[module] = ModuleType(module)
 
                 dummy_class = type(name, (object,), {})
                 setattr(sys.modules[module], name, dummy_class)
