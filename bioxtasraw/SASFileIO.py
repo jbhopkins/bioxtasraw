@@ -3851,11 +3851,6 @@ def saveMeasurement(sasm, save_path, raw_settings, filetype = '.dat'):
 
                 raise SASExceptions.HeaderSaveError(e)
 
-def saveSECItem(save_path, secm_dict):
-
-    with open(save_path, 'wb') as f:
-        pickle.dump(secm_dict, f, protocol=2)
-
 def save_series_sasm(profile_group, sasm_data, dataset_name, descrip='',
     descrip_raw='', save_single_q=False, save_single_q_raw=False):
 
@@ -5615,7 +5610,8 @@ def loadWorkspace_legacy(load_path, raw_settings):
     try:
         with open(load_path, 'rb') as f:
             if six.PY3:
-                item_dict = pickle.load(f, encoding='latin-1')
+                # item_dict = pickle.load(f, encoding='latin-1')
+                item_dict = SASUtils.WorkspaceLegacyUnpickler(f, encoding='latin-1').load()
             else:
                 item_dict = pickle.load(f)
     except (ImportError, EOFError):

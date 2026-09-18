@@ -9380,7 +9380,7 @@ class ManipItemPanel(wx.Panel):
         self.info_icon.SetBackgroundColour(self._bkg_color)
 
 
-        if int(wx.__version__.split('.')[0]) >= 3 and opsys == 'Darwin':
+        if opsys == 'Darwin' and pwx_version >= packv.Version('3'):
             show_tip = STT.SuperToolTip(" ", header = "Show Plot", footer = "") #Need a non-empty header or you get an error in the library on mac with wx version 3.0.2.0
             show_tip.SetTarget(self.showitem_icon)
             show_tip.ApplyStyle('Blue Glass')

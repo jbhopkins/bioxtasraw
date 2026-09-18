@@ -43,6 +43,7 @@ import json
 import sys
 import math
 import time
+from types import ModuleType
 
 import numpy as np
 import matplotlib as mpl
@@ -497,6 +498,29 @@ def find_global(module, name):
 if six.PY3:
     class SafeUnpickler(pickle.Unpickler):
         find_class = staticmethod(find_global)
+
+class WorkspaceLegacyUnpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        try:
+            return super().find_class(module, name)
+        except ModuleNotFoundError:
+            if module in ("wx", "wx._core", "wx.core") and name in ("Colour", "Color"):
+                return FakeColour
+
+            if module.startswith('numpy.core'):
+               module = module.replace('numpy.core', 'numpy._core', 1)
+               return super().find_class(module, name)
+
+            elif module not in sys.modules:
+                sys.modules[module] = ModuleType(module)
+
+                dummy_class = type(name, (object,), {})
+                setattr(sys.modules[module], name, dummy_class)
+                return dummy_class
+
+class FakeColour:
+    def __init__(self, *args, **kwargs):
+        pass
 
 def signal_handler(sig, frame):
     main_frame = wx.Window.FindWindowByName('MainFrame')
