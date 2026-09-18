@@ -9,8 +9,9 @@ hiddenimports = [
     "fabio.dtrekimage",
     "fabio.edfimage",
     "fabio.eigerimage",
-    "fabio.fit2dimage"
-    "fabio.fit2maskimage",
+    "fabio.esperantoimage",
+    "fabio.fit2dimage",
+    "fabio.fit2dmaskimage",
     "fabio.fit2dspreadsheetimage",
     "fabio.GEimage",
     "fabio.hdf5image",
@@ -23,13 +24,15 @@ hiddenimports = [
     "fabio.marccdimage",
     "fabio.mpaimage",
     "fabio.numpyimage",
-    "fabio.openimage"
+    "fabio.openimage",
     "fabio.OXDimage",
     "fabio.pilatusimage",
     "fabio.pixiimage",
     "fabio.pnmimage",
     "fabio.raxisimage",
+    "fabio.sparseimage",
     "fabio.speimage",
     "fabio.templateimage",
+    "fabio.xcaliburimage",
     "fabio.xsdimage",
 ]

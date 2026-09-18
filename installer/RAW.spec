@@ -29,12 +29,21 @@ else:
 
 if opsys == 'Darwin':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.icns')
+    # May need to add a flag for arm vs. intel here and not use for intel?
+    hiddenimports=['pyopencl', 'ocl_icd_system_apple']
+    excludes=['PyQt5', 'PyQt6', 'PySide6', 'tkinter', 'sphinx', 'pytest', 'IPython']
     console = False
 elif opsys == 'Windows':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.ico')
+    hiddenimports=[]
+    excludes=['PyQt5', 'PyQt6', 'PySide6', 'tkinter', 'sphinx', 'pyopengl',
+        'opengl', 'pyopencl', 'opencl', 'pytest', 'IPython', 'OpenGL']
     console = True
 elif opsys == 'Linux':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.png')
+    hiddenimports=[]
+    excludes=['PyQt5', 'PyQt6', 'PySide6', 'tkinter', 'sphinx', 'pyopengl',
+        'opengl', 'pyopencl', 'opencl', 'pytest', 'IPython', 'OpenGL']
     console = False
 
 options=[('W ignore', None, 'OPTION')]
@@ -44,11 +53,10 @@ a = Analysis(
     pathex=['.'],
     binaries=[],
     datas=add_files,
-    hiddenimports=[],
+    hiddenimports=hiddenimports,
     hookspath=['.'],
     runtime_hooks=[],
-    excludes=['PyQt5', 'PyQt6', 'PySide6', 'tkinter', 'sphinx', 'pyopengl',
-        'opengl', 'pyopencl', 'opencl', 'pytest', 'IPython', 'OpenGL'],
+    excludes=excludes,
     hooksconfig={
         'matplotlib': {
             'backends': ['AGG', 'PDF', 'PS', 'SVG', 'PGF', 'Cairo', 'wxAgg'],
@@ -177,17 +185,6 @@ if opsys == 'Darwin':
             ],
             },
         )
-
-    try:
-        os.mkdir(os.path.join('.', 'dist', 'RAW', 'pyFAI', 'utils'))
-    except Exception as e:
-        print(e)
-
-    try:
-        os.mkdir(os.path.join('.', 'dist', 'RAW.app', 'Contents', 'Resources', 'pyFAI', 'utils'))
-        os.mkdir(os.path.join('.', 'dist', 'RAW.app', 'Contents', 'MacOS', 'pyFAI', 'utils'))
-    except Exception as e:
-        print(e)
 
 if opsys == 'Linux':
     try:
