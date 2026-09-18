@@ -1535,8 +1535,7 @@ def OnPaintFNB(self, event):
 
     :param `event`: a :class:`PaintEvent` event to be processed.
     """
-
-    if pwx_version >= packv.Version('4.0') and self.GetContentScaleFactor() > 1:
+    if self.GetContentScaleFactor() > 1:
         dc = wx.PaintDC(self)
     else:
         dc = wx.BufferedPaintDC(self)
@@ -1553,7 +1552,8 @@ def OnPaintFNB(self, event):
         self.GetParent()._mainSizer.Layout()
         self.Refresh()
 
-flatNB.PageContainer.OnPaint = OnPaintFNB
+if (pwx_version < packv.Version('4.2') and pwx_version >= packv.Version('4.0')):
+    flatNB.PageContainer.OnPaint = OnPaintFNB
 
 
 #Monkey patch ULC.UltimateListHeaderWindow
@@ -1564,7 +1564,7 @@ def OnPaintULCHeader(self, event):
     :param `event`: a :class:`PaintEvent` event to be processed.
     """
 
-    if pwx_version >= packv.Version('4.0') and self.GetContentScaleFactor() > 1:
+    if self.GetContentScaleFactor() > 1:
         dc = wx.PaintDC(self)
     else:
         dc = wx.BufferedPaintDC(self)
@@ -1739,7 +1739,8 @@ def OnPaintULCHeader(self, event):
         else:
             renderer.DrawHeaderButton(self, dc, header_rect, wx.CONTROL_SPECIAL) # mark as last column
 
-ULC.UltimateListHeaderWindow.OnPaint = OnPaintULCHeader
+if (pwx_version < packv.Version('4.2') and pwx_version >= packv.Version('4.0')):
+    ULC.UltimateListHeaderWindow.OnPaint = OnPaintULCHeader
 
 #Monkey patch ULC.UltimateListMainWindow
 
@@ -1752,7 +1753,7 @@ def OnPaintULCMain(self, event):
 
     # Note: a wxPaintDC must be constructed even if no drawing is
     # done (a Windows requirement).
-    if pwx_version >= packv.Version('4.0') and self.GetContentScaleFactor() > 1:
+    if self.GetContentScaleFactor() > 1:
         dc = wx.PaintDC(self)
     else:
         dc = wx.BufferedPaintDC(self)
@@ -1879,7 +1880,8 @@ def OnPaintULCMain(self, event):
                 dc.SetBrush(wx.TRANSPARENT_BRUSH)
                 dc.DrawRectangle(self.GetLineHighlightRect(self._current))
 
-ULC.UltimateListMainWindow.OnPaint = OnPaintULCMain
+if (pwx_version < packv.Version('4.2') and pwx_version >= packv.Version('4.0')):
+    ULC.UltimateListMainWindow.OnPaint = OnPaintULCMain
 
 
 #Monkey patch agw supertooltip.ToolTipWindowBase
@@ -1896,7 +1898,7 @@ def OnPaintSTT(self, event):
         dc = wx.ClientDC(self)
     else:
         # Go with double buffering...
-        if pwx_version >= packv.Version('4.0') and self.GetContentScaleFactor() > 1:
+        if self.GetContentScaleFactor() > 1:
             dc = wx.PaintDC(self)
         else:
             dc = wx.BufferedPaintDC(self)
@@ -2049,7 +2051,8 @@ def OnPaintSTT(self, event):
     if event is None:
         return maxWidth, maxHeight
 
-STT.ToolTipWindowBase.OnPaint = OnPaintSTT
+if (pwx_version < packv.Version('4.2') and pwx_version >= packv.Version('4.0')):
+    STT.ToolTipWindowBase.OnPaint = OnPaintSTT
 
 
 # ----------------------------------------------------------------------------
