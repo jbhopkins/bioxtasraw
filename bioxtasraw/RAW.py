@@ -89,6 +89,9 @@ else:
     AboutDialogInfo = wx.AboutDialogInfo
     AboutBox = wx.AboutBox
 
+# For debugging
+#import wx.lib.inspection
+
 
 raw_path = os.path.abspath(os.path.join('.', __file__, '..', '..'))
 if raw_path not in os.sys.path:
@@ -397,6 +400,9 @@ class MainFrame(wx.Frame):
 
 
         wx.CallAfter(self._showWelcomeDialog)
+
+        # For debugging
+        #wx.lib.inspection.InspectionTool().Show()
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -9299,6 +9305,10 @@ class ManipItemPanel(wx.Panel):
         self._selected_for_plot = item_visible
         self._controls_visible = True
         self._selected = False
+
+        if legend_label is None:
+            legend_label = ''
+
         self._legend_label = legend_label
 
         self._font_colour = font_colour
@@ -9890,6 +9900,7 @@ class ManipItemPanel(wx.Panel):
                 self._updateLegendLabel()
 
         except TypeError:
+            # traceback.print_exc()
             return
 
     def _onExpandCollapseButton(self, event):
