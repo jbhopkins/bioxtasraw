@@ -11486,7 +11486,7 @@ class IFTItemPanel(wx.Panel):
 
     def _updateColourIndicator(self):
         conv = mplcol.ColorConverter()
-        color = conv.to_rgb(self.iftm.r_line.get_mfc())
+        color = conv.to_rgb(self.iftm.r_line.get_color())
         color = wx.Colour(int(color[0]*255), int(color[1]*255), int(color[2]*255))
 
         self.colour_indicator.updateColour(color)
