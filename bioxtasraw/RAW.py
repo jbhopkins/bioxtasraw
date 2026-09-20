@@ -16795,12 +16795,12 @@ class RawTaskbarIcon(TaskBarIcon):
     #     menu.Destroy()
 
 def main():
+    multiprocessing.freeze_support()
 
     if platform.system() == 'Linux':
         # FORCE THE SPAWN METHOD (Crucial for Linux GUI apps)
         multiprocessing.set_start_method("spawn", force=True)
 
-    multiprocessing.freeze_support()
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__
 

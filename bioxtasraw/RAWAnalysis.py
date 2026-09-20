@@ -8286,7 +8286,7 @@ class DenssRunPanel(wx.Panel):
         self.threads_finished = []
 
         if platform.system() == 'Darwin' and six.PY3 and RAWGlobals.frozen:
-            self.single_proc = True
+            self.single_proc = False
         else:
             self.single_proc = False
 
@@ -10732,7 +10732,7 @@ class DenssAlignFrame(wx.Frame):
         self.out_queue = queue.Queue()
 
         if platform.system() == 'Darwin' and six.PY3 and RAWGlobals.frozen:
-            self.single_proc = True
+            self.single_proc = False
         else:
             self.single_proc = False
 
@@ -13009,7 +13009,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         self.save_results_on_close = False
 
         if platform.system() == 'Darwin' and six.PY3 and RAWGlobals.frozen:
-            self.single_proc = True
+            self.single_proc = False
         else:
             self.single_proc = False
 
