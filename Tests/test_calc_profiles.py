@@ -898,7 +898,7 @@ def test_dift(clean_gi_sub_profile, old_settings, gi_dift_ift):
 
 def test_dift_dmax_alpha(clean_gi_sub_profile, old_settings, gi_dift_ift):
     (ift, dmax, rg, i0, rg_err, i0_err, chi_sq, alpha) = raw.denss_ift(clean_gi_sub_profile,
-        dmax=115.81587607357199, alpha=8034985604591.902)
+        dmax=123.22869947090979, alpha=14723200926085.965)
 
     assert np.allclose(dmax, gi_dift_ift.getParameter('dmax'))
     assert np.allclose(rg, gi_dift_ift.getParameter('rg'))
