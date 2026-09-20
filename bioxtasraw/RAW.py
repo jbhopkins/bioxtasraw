@@ -4520,8 +4520,9 @@ class MainWorkerThread(threading.Thread):
     def _sendSASMToPlotNum(self, data):
         sasm = data[0]
         axes_num = data[1]
+        notsaved = data[2]
 
-        self._sendSASMToPlot(sasm, axes_num)
+        self._sendSASMToPlot(sasm, axes_num, notsaved=notsaved)
 
     def _sendSASMToPlot(self, sasm, axes_num=1, item_colour=None,
         line_color=None, no_update=False, notsaved=False, update_legend=True):

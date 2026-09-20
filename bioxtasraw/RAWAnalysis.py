@@ -14345,7 +14345,7 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
                             break
 
                 RAWGlobals.mainworker_cmd_queue.put(['to_plot_num', [t_profile,
-                    plot_num]])
+                    plot_num, True]])
 
 class TheoreticalList(wx.ListCtrl, wx.lib.mixins.listctrl.ListCtrlAutoWidthMixin,):
     # wx.lib.mixins.listctrl.ColumnSorterMixin):
