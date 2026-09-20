@@ -32,17 +32,22 @@ if opsys == 'Darwin':
     # May need to add a flag for arm vs. intel here and not use for intel?
     hiddenimports=['pyopencl', 'ocl_icd_wrapper_apple']
     excludes=['PyQt5', 'PyQt6', 'PySide6', 'tkinter', 'sphinx', 'pytest', 'IPython']
+    binaries=[
+        ('/Users/biocat/miniconda3/envs/raw_py312_new/lib/libfreetype.dylib', '.')
+    ]
     console = False
 elif opsys == 'Windows':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.ico')
     hiddenimports=[]
     excludes=['PyQt5', 'PyQt6', 'PySide6', 'tkinter', 'sphinx', 'pytest', 'IPython']
+    binaries=[]
     console = True
 elif opsys == 'Linux':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.png')
     hiddenimports=[]
     excludes=['PyQt5', 'PyQt6', 'PySide6', 'tkinter', 'sphinx', 'pyopengl',
         'opengl', 'pyopencl', 'opencl', 'pytest', 'IPython', 'OpenGL']
+    binaries=[]
     console = False
 
 options=[('W ignore', None, 'OPTION')]
@@ -50,7 +55,7 @@ options=[('W ignore', None, 'OPTION')]
 a = Analysis(
     [os.path.join('..', 'bioxtasraw', 'RAW.py')],
     pathex=['.'],
-    binaries=[],
+    binaries=binaries,
     datas=add_files,
     hiddenimports=hiddenimports,
     hookspath=['.'],

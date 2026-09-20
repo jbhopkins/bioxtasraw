@@ -489,6 +489,16 @@ def find_global(module, name):
         elif name == 'PolygonMask':
             name = '_oldMask'
 
+    elif module.startswith('numpy.core'):
+        try:
+            import numpy._core
+            is_numpy_2 = True
+        except ImportError:
+            is_numpy_2 = False
+
+        if is_numpy_2:
+            module = module.replace('numpy.core', 'numpy._core', 1)
+
     __import__(module)
     mod = sys.modules[module]
 
