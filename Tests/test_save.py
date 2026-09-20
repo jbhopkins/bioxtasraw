@@ -142,6 +142,17 @@ def test_save_bift_ift(gi_bift_ift, temp_directory):
 
     assert test_ift == exp_ift
 
+def test_save_dift_ift(gi_dift_ift, temp_directory):
+    raw.save_ift(gi_dift_ift, 'glucose_isomerase_dift.ift', temp_directory)
+
+    with open(os.path.join(temp_directory, 'glucose_isomerase_dift.ift'), 'r') as f:
+        test_ift = f.read()
+
+    with open(os.path.join('.', 'data', 'glucose_isomerase_dift.ift'), 'r') as f:
+        exp_ift = f.read()
+
+    assert test_ift == exp_ift
+
 def test_save_series_dats(series_dats, temp_directory):
     raw.save_series(series_dats, 'test_series_dats.hdf5', temp_directory)
 

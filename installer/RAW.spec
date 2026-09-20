@@ -30,7 +30,7 @@ else:
 if opsys == 'Darwin':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.icns')
     # May need to add a flag for arm vs. intel here and not use for intel?
-    hiddenimports=['pyopencl', 'ocl_icd_system_apple']
+    hiddenimports=['pyopencl', 'ocl_icd_wrapper_apple']
     excludes=['PyQt5', 'PyQt6', 'PySide6', 'tkinter', 'sphinx', 'pytest', 'IPython']
     console = False
 elif opsys == 'Windows':

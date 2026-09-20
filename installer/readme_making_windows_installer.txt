@@ -14,7 +14,7 @@ If it fails, run it again. If it still fails, try deleting the build and dist di
 Note:
 - Currently using the raw_py311 environment on both Windows 10 and 11
 - Currently requires python 3.11 numpy < 2 on Windows 11, there's some kind of
-error with newer versions and numba on Windows that prevents the JIT of BIFT from working right.
+error with newer versions and numba (>0.6?) on Windows that prevents the JIT of BIFT from working right.
 - Requires having the console option True in pyinstaller, otherwise whenever
 you run ATSAS programs it opens a new terminal window which is really annoying.
 
