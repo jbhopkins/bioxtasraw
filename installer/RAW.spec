@@ -36,8 +36,7 @@ if opsys == 'Darwin':
 elif opsys == 'Windows':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.ico')
     hiddenimports=[]
-    excludes=['PyQt5', 'PyQt6', 'PySide6', 'tkinter', 'sphinx', 'pyopengl',
-        'opengl', 'pyopencl', 'opencl', 'pytest', 'IPython', 'OpenGL']
+    excludes=['PyQt5', 'PyQt6', 'PySide6', 'tkinter', 'sphinx', 'pytest', 'IPython']
     console = True
 elif opsys == 'Linux':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.png')
