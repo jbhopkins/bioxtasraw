@@ -4,7 +4,7 @@ Changes
 2.4.2
 ----------
 
-Release date: 2026-08-07
+Release date: 2026-09-24
 
 Overview
 ^^^^^^^^^^
@@ -30,11 +30,28 @@ All changes:
     could raise an error.
 *   Fixed a bug where version checking (e.g. for wxpython or matplotlib version
     specific commands) could fail if the version was not strictly numeric. This
-    was causing an issue with the prepacked version on Debian.
+    was causing an issue with one of the prepacked versions on Debian.
 *   Updated DENSS tools to the latest version (1.8.8)
 *   Fixed compatibility issues with wxpython 4.3.
 *   Fixed compatibility issues with svglib 2.0.
 *   Fixed compatibility issues with numpy 2.4.
+*   Theoretical profiles from the CRYSOL/DIFT windows now show as unsaved when
+    sent to the profiles control panel.
+*   Fixed a bug where DENSS could crash RAW on linux.
+*   Fixed a bug where the line properties dialog for profiles loaded from workspaces
+    wasn't accessible.
+*   Fixed a bug where renaming an IFT item or a series item didn't appropriately
+    update the legend label in the plot.
+*   Fixed a bug wehre workspaces weren't maintaining item order in the GUI
+    when saved/loaded.
+*   Fixed a bug where the RAW GUI couldn't load workspaces saved with the RAW API.
+*   Fixed loading of legacy workspaces (.wsp) in the API when wxpython is not installed.
+*   Fixed loading of legacy workspaces in frozen version with numpy 2 when
+    numpy.core compatibility is not packaged.
+*   Updated series plot to display frame number when mouse is between -0.5 and
+    0.5 of the interger value, rather than 0 and 0.999 of the integer value.
+*   Windows pre-built version now ships with GPU support for image radial
+    averaging (requires system to have opencl drivers installed).
 
 2.4.1
 ----------
