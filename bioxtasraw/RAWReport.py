@@ -55,7 +55,7 @@ pmpl_version = packv.parse(mpl.__version__)
 try:
     psvg_version = packv.parse(svglib.__version__)
 except Exception:
-    psvg_version == packv.Version('1')
+    psvg_version = packv.Version('1')
 psvg_v2 = packv.Version('2.0')
 
 import bioxtasraw.SASCalc as SASCalc
