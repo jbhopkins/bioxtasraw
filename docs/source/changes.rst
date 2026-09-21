@@ -10,7 +10,11 @@ Overview
 ^^^^^^^^^^
 
 The RAW team is pleased to announce the release of RAW version 2.4.2. This is a
-bug fix release.
+bug fix release. This version fixes several compatibility issues for legacy
+workspaces and settings, several issues with the new hdf5 workspaces, and
+provides GPU support in frozen versions on MacOS and Windows, and multiprocessing
+support in frozen versions on MacOS. There are a number of other small bug fixes
+and updates for compatibility with the latest versions of packages.
 
 All changes:
 ^^^^^^^^^^^^^
@@ -42,16 +46,21 @@ All changes:
     wasn't accessible.
 *   Fixed a bug where renaming an IFT item or a series item didn't appropriately
     update the legend label in the plot.
-*   Fixed a bug wehre workspaces weren't maintaining item order in the GUI
+*   Fixed a bug where workspaces weren't maintaining item order in the GUI
     when saved/loaded.
 *   Fixed a bug where the RAW GUI couldn't load workspaces saved with the RAW API.
 *   Fixed loading of legacy workspaces (.wsp) in the API when wxpython is not installed.
 *   Fixed loading of legacy workspaces in frozen version with numpy 2 when
     numpy.core compatibility is not packaged.
 *   Updated series plot to display frame number when mouse is between -0.5 and
-    0.5 of the interger value, rather than 0 and 0.999 of the integer value.
+    0.5 of the integer value, rather than 0 and 0.999 of the integer value.
 *   Windows pre-built version now ships with GPU support for image radial
     averaging (requires system to have opencl drivers installed).
+*   MacOS pre-built version now ships with GPU support for image radial averaging
+    on arm processors.
+*   Multiprocessing support now available for MacOS pre-built version.
+*   Fixed a bug where a frozen distribution built using numpy>=2 couldn't load
+    old style settings files.
 
 2.4.1
 ----------
