@@ -4,6 +4,11 @@ import sys
 import platform
 import os.path
 
+import packaging.version as packv
+import wx
+
+pwx_version = packv.parse(wx.__version__)
+
 sys.path.append(os.path.join('..', 'bioxtasraw'))
 import RAWGlobals
 
@@ -32,9 +37,14 @@ if opsys == 'Darwin':
     # May need to add a flag for arm vs. intel here and not use for intel?
     hiddenimports=['pyopencl', 'ocl_icd_wrapper_apple']
     excludes=['PyQt5', 'PyQt6', 'PySide6', 'tkinter', 'sphinx', 'pytest', 'IPython']
-    binaries=[
-        ('/Users/biocat/miniconda3/envs/raw_py312_new/lib/libfreetype.dylib', '.')
-    ]
+
+    if pwx_version >= packv.Version('4.3'):
+        # A hopefully temporary workaround for 4.3, check for pyinstaller fixes at some point
+        binaries=[
+            ('/Users/biocat/miniconda3/envs/raw_py312_new/lib/libfreetype.dylib', '.')
+        ]
+    else:
+        binaries = []
     console = False
 elif opsys == 'Windows':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.ico')
