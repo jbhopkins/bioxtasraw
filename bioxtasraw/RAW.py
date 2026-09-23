@@ -16488,7 +16488,6 @@ class WelcomeDialog(wx.Dialog):
         top_sizer.Add(self.panel, proportion=1, flag=wx.EXPAND)
         self.SetSizer(top_sizer)
 
-        SASUtils.set_best_size(self)
 
         self.SetDefaultItem(self.ok_button)
 
@@ -16498,12 +16497,21 @@ class WelcomeDialog(wx.Dialog):
 
         self.CenterOnParent()
 
+        self.Bind(wx.EVT_INIT_DIALOG, self.on_init_dialog)
+
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
         try:
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def on_init_dialog(self, event):
+        # Fixes a GTK3 bug with sizing the welcome dialog
+        event.Skip()
+
+        self.GetSizer().Fit(self)
+        self.Layout()
 
     def _onOKButton(self, event):
         # mainworker_cmd_queue.put(['startup', sys.argv])

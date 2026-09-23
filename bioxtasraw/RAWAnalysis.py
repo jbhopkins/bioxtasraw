@@ -16257,23 +16257,31 @@ class SVDControlPanel(wx.Panel):
             profile_type.SetStringSelection('Unsubtracted')
 
         profile_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        profile_sizer.Add(label, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(3))
-        profile_sizer.Add(profile_type, 1, wx.RIGHT, border=self._FromDIP(3))
+        profile_sizer.Add(label, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(3))
+        profile_sizer.Add(profile_type, 1, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(3))
 
         #control what the range of curves you're using is.
         label1 = wx.StaticText(ctrl_box, -1, 'Use Frames:')
         label2 = wx.StaticText(ctrl_box, -1, 'to')
-        start_frame = RAWCustomCtrl.IntSpinCtrl(ctrl_box, self.control_ids['fstart'])
-        end_frame = RAWCustomCtrl.IntSpinCtrl(ctrl_box, self.control_ids['fend'])
+        start_frame = RAWCustomCtrl.IntSpinCtrl(ctrl_box, self.control_ids['fstart'],
+            TextLength=60)
+        end_frame = RAWCustomCtrl.IntSpinCtrl(ctrl_box, self.control_ids['fend'],
+            TextLength=60)
 
         start_frame.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeFrame)
         end_frame.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeFrame)
 
         frame_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        frame_sizer.Add(label1, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(3))
-        frame_sizer.Add(start_frame, 0, wx.RIGHT, border=self._FromDIP(3))
-        frame_sizer.Add(label2, 0, wx.RIGHT, border=self._FromDIP(3))
-        frame_sizer.Add(end_frame, 0, wx.RIGHT, border=self._FromDIP(3))
+        frame_sizer.Add(label1, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(3))
+        frame_sizer.Add(start_frame, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(3))
+        frame_sizer.Add(label2, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(3))
+        frame_sizer.Add(end_frame, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(3))
 
 
         if self.ctrl_type == 'SVD':
@@ -16964,8 +16972,8 @@ class EFAFrame(wx.Frame):
             size = (min(950, client_display.Width), min(825, client_display.Height))
             splitter_size = 325
         else:
-            size = (min(1020, client_display.Width), min(825, client_display.Height))
-            splitter_size = 395
+            size = (min(1050, client_display.Width), min(865, client_display.Height))
+            splitter_size = 425
 
         self.SetSize(self._FromDIP(size))
 
@@ -17477,7 +17485,8 @@ class EFAControlPanel2(wx.Panel):
         for i in range(nvals):
 
             flabel = wx.StaticText(self.top_box, -1, 'Value %i start :' %(i))
-            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_box, self.forward_ids[i])
+            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_box, self.forward_ids[i],
+                TextLength=60)
             fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onForwardControl)
             fcontrol.SetValue(start)
             fcontrol.SetRange((start,end))
@@ -17486,7 +17495,8 @@ class EFAControlPanel2(wx.Panel):
             self.fsizer.Add(fcontrol, 0)
 
             blabel = wx.StaticText(self.top_box, -1, 'Value %i start :' %(i))
-            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_box, self.backward_ids[i])
+            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_box, self.backward_ids[i],
+                TextLength=60)
             bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onBackwardControl)
             bcontrol.SetValue(start)
             bcontrol.SetRange((start,end))
@@ -17557,7 +17567,8 @@ class EFAControlPanel2(wx.Panel):
         for i in range(nvals):
 
             flabel = wx.StaticText(self.top_box, -1, 'Value %i start :' %(i))
-            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_box, self.forward_ids[i])
+            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_box, self.forward_ids[i],
+                TextLength=60)
             fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onForwardControl)
             fcontrol.SetValue(start)
             fcontrol.SetRange((start,end))
@@ -17566,7 +17577,8 @@ class EFAControlPanel2(wx.Panel):
             self.fsizer.Add(fcontrol, 0)
 
             blabel = wx.StaticText(self.top_box, -1, 'Value %i end :' %(i))
-            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_box, self.backward_ids[i])
+            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.top_box, self.backward_ids[i],
+                TextLength=60)
             bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onBackwardControl)
             bcontrol.SetValue(start)
             bcontrol.SetRange((start,end))
@@ -18201,7 +18213,8 @@ class EFAControlPanel3(wx.Panel):
 
         num_label = wx.StaticText(rot_box, -1, 'Number of iterations:')
 
-        num_control = RAWCustomCtrl.IntSpinCtrl(rot_box, self.control_ids['n_iter'])
+        num_control = RAWCustomCtrl.IntSpinCtrl(rot_box, self.control_ids['n_iter'],
+            TextLength=60)
         num_control.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onIterControl)
         num_control.SetValue(str(self.control_values['n_iter']))
         num_control.SetRange((1, 1e12))
@@ -18286,7 +18299,8 @@ class EFAControlPanel3(wx.Panel):
         for i in range(nvals):
 
             label1 = wx.StaticText(self.peak_ctrl_box, -1, 'Range %i :' %(i))
-            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.peak_ctrl_box, self.range_ids[i][0])
+            fcontrol = RAWCustomCtrl.IntSpinCtrl(self.peak_ctrl_box, self.range_ids[i][0],
+                TextLength=60)
             fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
             fcontrol.SetValue(points[i][0])
             fcontrol.SetRange((start, end))
@@ -18295,7 +18309,8 @@ class EFAControlPanel3(wx.Panel):
             self.range_sizer.Add(fcontrol, 0)
 
             label2 = wx.StaticText(self.peak_ctrl_box, -1, 'to')
-            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.peak_ctrl_box, self.range_ids[i][1])
+            bcontrol = RAWCustomCtrl.IntSpinCtrl(self.peak_ctrl_box, self.range_ids[i][1],
+                TextLength=60)
             bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
             bcontrol.SetValue(points[i][1])
             bcontrol.SetRange((start, end))
@@ -18417,7 +18432,7 @@ class EFAControlPanel3(wx.Panel):
 
                 label1 = wx.StaticText(self.peak_ctrl_box, -1, 'Range %i :' %(i))
                 fcontrol = RAWCustomCtrl.IntSpinCtrl(self.peak_ctrl_box,
-                    self.range_ids[i][0])
+                    self.range_ids[i][0], TextLength=60)
                 fcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
                 fcontrol.SetValue(points[i][0])
                 fcontrol.SetRange((start,end))
@@ -18427,7 +18442,7 @@ class EFAControlPanel3(wx.Panel):
 
                 label2 = wx.StaticText(self.peak_ctrl_box, -1, 'to')
                 bcontrol = RAWCustomCtrl.IntSpinCtrl(self.peak_ctrl_box,
-                    self.range_ids[i][1])
+                    self.range_ids[i][1], TextLength=60)
                 bcontrol.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onRangeControl)
                 bcontrol.SetValue(points[i][1])
                 bcontrol.SetRange((start,end))
