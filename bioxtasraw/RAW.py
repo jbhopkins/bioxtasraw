@@ -1044,6 +1044,7 @@ class MainFrame(wx.Frame):
                 gnomframe = RAWAnalysis.GNOMFrame(self, 'GNOM', sasm, manip_item)
                 gnomframe.SetIcon(self.GetIcon())
                 gnomframe.Show(True)
+                gnomframe.Raise()
 
                 self.gnom_frames.append(gnomframe)
 
@@ -1095,6 +1096,7 @@ class MainFrame(wx.Frame):
             biftframe = RAWAnalysis.BIFTFrame(self, 'BIFT', sasm, manip_item)
             biftframe.SetIcon(self.GetIcon())
             biftframe.Show(True)
+            biftframe.Raise()
 
             self.bift_frames.append(biftframe)
 
@@ -1128,6 +1130,7 @@ class MainFrame(wx.Frame):
             diftframe = RAWAnalysis.DIFTFrame(self, 'DIFT', sasm, manip_item)
             diftframe.SetIcon(self.GetIcon())
             diftframe.Show(True)
+            diftframe.Raise()
 
             self.dift_frames.append(diftframe)
 
@@ -1162,6 +1165,7 @@ class MainFrame(wx.Frame):
                 sasm, manip_item)
             molweightframe.SetIcon(self.GetIcon())
             molweightframe.Show(True)
+            molweightframe.Raise()
 
             self.mw_frames.append(molweightframe)
 
@@ -1196,6 +1200,7 @@ class MainFrame(wx.Frame):
                 manip_item)
             guinierframe.SetIcon(self.GetIcon())
             guinierframe.Show(True)
+            guinierframe.Raise()
 
             self.guinier_frames.append(guinierframe)
 
@@ -1265,6 +1270,7 @@ class MainFrame(wx.Frame):
                 dammifframe = RAWAnalysis.DammifFrame(self, 'DAMMIF/N', iftm, manip_item)
                 dammifframe.SetIcon(self.GetIcon())
                 dammifframe.Show(True)
+                dammifframe.Raise()
 
                 self.dammif_frames.append(dammifframe)
 
@@ -1374,6 +1380,7 @@ class MainFrame(wx.Frame):
                     ambimeterframe = RAWAnalysis.AmbimeterFrame(self, 'AMBIMETER', iftm, manip_item)
                     ambimeterframe.SetIcon(self.GetIcon())
                     ambimeterframe.Show(True)
+                    ambimeterframe.Raise()
 
                     self.ambimeter_frames.append(ambimeterframe)
 
@@ -1463,12 +1470,14 @@ class MainFrame(wx.Frame):
                     alignframe = RAWAnalysis.CifsupFrame(self, 'CIFSUP')
                     alignframe.SetIcon(self.GetIcon())
                     alignframe.Show(True)
+                    alignframe.Raise()
 
                     self.atsasalign_frames.append(alignframe)
                 else:
                     alignframe = RAWAnalysis.SupcombFrame(self, 'SUPCOMB')
                     alignframe.SetIcon(self.GetIcon())
                     alignframe.Show(True)
+                    alignframe.Raise()
 
                     self.atsasalign_frames.append(alignframe)
 
@@ -1543,6 +1552,7 @@ class MainFrame(wx.Frame):
                     sasm_list)
                 crysol_frame.SetIcon(self.GetIcon())
                 crysol_frame.Show(True)
+                crysol_frame.Raise()
 
                 self.crysol_frames.append(crysol_frame)
 
@@ -1592,6 +1602,7 @@ class MainFrame(wx.Frame):
             pdb2mrcframe = RAWAnalysis.TheoreticalFrame(self, 'PDB2SAS', sasm_list)
             pdb2mrcframe.SetIcon(self.GetIcon())
             pdb2mrcframe.Show(True)
+            pdb2mrcframe.Raise()
 
             self.pdb2mrc_frames.append(pdb2mrcframe)
 
@@ -1625,6 +1636,7 @@ class MainFrame(wx.Frame):
             denss_alignframe = RAWAnalysis.DenssAlignFrame(self, 'DENSS Alignment')
             denss_alignframe.SetIcon(self.GetIcon())
             denss_alignframe.Show(True)
+            denss_alignframe.Raise()
 
             self.denss_align_frames.append(denss_alignframe)
 
@@ -1658,6 +1670,7 @@ class MainFrame(wx.Frame):
             svdframe = RAWAnalysis.SVDFrame(self, 'Singular Value Decomposition', secm, manip_item)
             svdframe.SetIcon(self.GetIcon())
             svdframe.Show(True)
+            svdframe.Raise()
 
             self.svd_frames.append(svdframe)
 
@@ -1707,6 +1720,7 @@ class MainFrame(wx.Frame):
             efaframe = RAWAnalysis.EFAFrame(self, 'Evolving Factor Analysis', secm, manip_item)
             efaframe.SetIcon(self.GetIcon())
             efaframe.Show(True)
+            efaframe.Raise()
 
             self.efa_frames.append(efaframe)
 
@@ -1741,6 +1755,7 @@ class MainFrame(wx.Frame):
             regals_frame = RAWAnalysis.REGALSFrame(self, secm, manip_item)
             regals_frame.SetIcon(self.GetIcon())
             regals_frame.Show(True)
+            regals_frame.Raise()
 
             self.regals_frames.append(regals_frame)
 
@@ -1809,6 +1824,7 @@ class MainFrame(wx.Frame):
                 avg_list)
             ComparisonFrame.SetIcon(self.GetIcon())
             ComparisonFrame.Show(True)
+            ComparisonFrame.Raise()
 
             self.sim_frames.append(ComparisonFrame)
 
@@ -1914,6 +1930,7 @@ class MainFrame(wx.Frame):
             kratkyframe = RAWAnalysis.NormKratkyFrame(self, 'Dimensionless Kratky Plots', sasm_list)
             kratkyframe.SetIcon(self.GetIcon())
             kratkyframe.Show(True)
+            kratkyframe.Raise()
 
             self.kratky_frames.append(kratkyframe)
 
@@ -1947,6 +1964,7 @@ class MainFrame(wx.Frame):
             denssframe = RAWAnalysis.DenssFrame(self, 'DENSS', iftm, manip_item)
             denssframe.SetIcon(self.GetIcon())
             denssframe.Show(True)
+            denssframe.Raise()
 
             self.denss_frames.append(denssframe)
 
@@ -1983,6 +2001,7 @@ class MainFrame(wx.Frame):
                 self.raw_settings)
             lc_series_frame.SetIcon(self.GetIcon())
             lc_series_frame.Show(True)
+            lc_series_frame.Raise()
 
             self.lc_series_frames.append(lc_series_frame)
 
@@ -1996,6 +2015,7 @@ class MainFrame(wx.Frame):
             all_ifts, all_series, profiles, ifts, series)
         report_frame.SetIcon(self.GetIcon())
         report_frame.Show(True)
+        report_frame.Raise()
 
     def showMultiSeriesFrame(self, profiles=[], ifts=[], series=[]):
 
@@ -2005,6 +2025,7 @@ class MainFrame(wx.Frame):
             'Multi-Series Analysis', self.raw_settings, all_series, series)
         multiseries_frame.SetIcon(self.GetIcon())
         multiseries_frame.Show(True)
+        multiseries_frame.Raise()
 
     def _createSingleMenuBarItem(self, info):
 
