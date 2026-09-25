@@ -8302,6 +8302,8 @@ class DenssRunPanel(wx.Panel):
 
         self.SetSizer(topsizer)
 
+        wx.CallLater(1000, self._init_proc_queue)
+
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
         try:
@@ -8554,14 +8556,14 @@ class DenssRunPanel(wx.Panel):
         self.msg_timer = wx.Timer(parent)
         parent.Bind(wx.EVT_TIMER, self.onMessageTimer, self.msg_timer)
 
+        return top_sizer
+
+    def _init_proc_queue(self):
         if not self.single_proc:
             self.my_manager = multiprocessing.Manager()
             self.wx_queue = self.my_manager.Queue()
         else:
             self.wx_queue = queue.Queue()
-
-        return top_sizer
-
 
     def _initSettings(self):
         self.updateDenssSettings()
@@ -10759,6 +10761,8 @@ class DenssAlignFrame(wx.Frame):
 
         self.Raise()
 
+        wx.CallLater(1000, self._init_proc_queue)
+
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
         try:
@@ -10803,7 +10807,6 @@ class DenssAlignFrame(wx.Frame):
             nprocs = 1
         else:
             nprocs = multiprocessing.cpu_count()
-            self.my_manager = multiprocessing.Manager()
 
         nprocs_choices = [str(i) for i in range(nprocs, 0, -1)]
         self.nprocs = wx.Choice(adv_win, choices = nprocs_choices)
@@ -10879,6 +10882,10 @@ class DenssAlignFrame(wx.Frame):
         self.SetSizer(top_sizer)
 
         return top_sizer
+
+    def _init_proc_queue(self):
+        if not self.single_proc:
+            self.my_manager = multiprocessing.Manager()
 
     def onCollapse(self, event):
         self.Layout()
@@ -13032,11 +13039,6 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
             self.abort_event = threading.Event()
         elif self.calc_type == 'PDB2SAS':
             self.executor = None
-            if not self.single_proc:
-                self.manager = multiprocessing.Manager()
-                self.abort_event = self.manager.Event()
-            else:
-                self.abort_event = threading.Event()
 
         self.create_layout()
         self._initialize()
@@ -13045,6 +13047,9 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
         self.standard_paths = wx.StandardPaths.Get()
         self.save_names = []
 
+        if self.calc_type == 'PDB2SAS':
+            wx.CallLater(1000, self._init_proc_queue)
+
 
     def _FromDIP(self, size):
         # This is a hack to provide easy back compatibility with wxpython < 4.1
@@ -13052,6 +13057,13 @@ class TheoreticalControlPanel(scrolled.ScrolledPanel):
             return self.FromDIP(size)
         except Exception:
             return size
+
+    def _init_proc_queue(self):
+        if not self.single_proc:
+            self.manager = multiprocessing.Manager()
+            self.abort_event = self.manager.Event()
+        else:
+            self.abort_event = threading.Event()
 
     def create_layout(self):
 
