@@ -3946,8 +3946,8 @@ class GNOMFrame(wx.Frame):
         is_gtk3 = main_frame.is_gtk3
 
         if not is_gtk3:
-            size = (min(825, client_display.Width), min(700, client_display.Height))
-            splitter_size = 315
+            size = (min(850, client_display.Width), min(700, client_display.Height))
+            splitter_size = 340
         else:
             size = (min(975, client_display.Width), min(700, client_display.Height))
             splitter_size = 465
@@ -5638,9 +5638,9 @@ class DammifRunPanel(wx.Panel):
             size = self._FromDIP((150, -1)))
 
         prefix_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        prefix_sizer.Add(prefix_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 
+        prefix_sizer.Add(prefix_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
-        prefix_sizer.Add(prefix_ctrl, 1, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+        prefix_sizer.Add(prefix_ctrl, 1, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
         prefix_sizer.AddStretchSpacer(1)
 
@@ -5651,9 +5651,9 @@ class DammifRunPanel(wx.Panel):
         nruns_ctrl.Bind(wx.EVT_TEXT, self.onRunsText)
 
         nruns_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        nruns_sizer.Add(nruns_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 
+        nruns_sizer.Add(nruns_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
-        nruns_sizer.Add(nruns_ctrl, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+        nruns_sizer.Add(nruns_ctrl, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
 
 
@@ -5663,7 +5663,7 @@ class DammifRunPanel(wx.Panel):
         nprocs_choice = wx.Choice(settings_box, self.ids['procs'], choices = nprocs_choices)
 
         nprocs_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        nprocs_sizer.Add(nprocs_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 
+        nprocs_sizer.Add(nprocs_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
         nprocs_sizer.Add(nprocs_choice, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
@@ -5729,9 +5729,9 @@ class DammifRunPanel(wx.Panel):
         align_button.Bind(wx.EVT_BUTTON, self._selectAlignFile)
 
         align_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        align_sizer.Add(self.align_result, border=self._FromDIP(5), 
+        align_sizer.Add(self.align_result, border=self._FromDIP(5),
             flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
-        align_sizer.Add(self.align_file_ctrl, border=self._FromDIP(5), 
+        align_sizer.Add(self.align_file_ctrl, border=self._FromDIP(5),
             flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             proportion=1)
         align_sizer.Add(align_button, flag=wx.ALIGN_CENTER_VERTICAL)
@@ -8355,7 +8355,7 @@ class DenssRunPanel(wx.Panel):
             size=self._FromDIP((150, -1)))
 
         prefix_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        prefix_sizer.Add(prefix_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 
+        prefix_sizer.Add(prefix_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
         prefix_sizer.Add(prefix_ctrl, 1, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
@@ -8368,7 +8368,7 @@ class DenssRunPanel(wx.Panel):
         nruns_ctrl.Bind(wx.EVT_TEXT, self.onRunsText)
 
         nruns_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        nruns_sizer.Add(nruns_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 
+        nruns_sizer.Add(nruns_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
         nruns_sizer.Add(nruns_ctrl, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
@@ -8384,7 +8384,7 @@ class DenssRunPanel(wx.Panel):
         nprocs_choice = wx.Choice(settings_box, self.ids['procs'], choices = nprocs_choices)
 
         nprocs_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        nprocs_sizer.Add(nprocs_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 
+        nprocs_sizer.Add(nprocs_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
         nprocs_sizer.Add(nprocs_choice, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
@@ -8394,9 +8394,9 @@ class DenssRunPanel(wx.Panel):
         mode_ctrl = wx.Choice(settings_box, self.ids['mode'], choices=['Fast', 'Slow', 'Membrane', 'Custom'])
 
         mode_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        mode_sizer.Add(mode_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 
+        mode_sizer.Add(mode_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
-        mode_sizer.Add(mode_ctrl, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+        mode_sizer.Add(mode_ctrl, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
 
 
@@ -8405,9 +8405,9 @@ class DenssRunPanel(wx.Panel):
             size=self._FromDIP((60,-1)))
 
         ne_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        ne_sizer.Add(ne_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 
+        ne_sizer.Add(ne_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
-        ne_sizer.Add(ne_ctrl, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+        ne_sizer.Add(ne_ctrl, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
 
         average_chk = wx.CheckBox(settings_box, self.ids['average'], 'Align and average densities')
@@ -11131,8 +11131,8 @@ class BIFTFrame(wx.Frame):
         is_gtk3 = main_frame.is_gtk3
 
         if not is_gtk3:
-            size = (min(800, client_display.Width), min(700, client_display.Height))
-            splitter_size = 290
+            size = (min(825, client_display.Width), min(700, client_display.Height))
+            splitter_size = 315
         else:
             size = (min(930, client_display.Width), min(700, client_display.Height))
             splitter_size = 420
@@ -11916,8 +11916,8 @@ class DIFTFrame(wx.Frame):
         is_gtk3 = main_frame.is_gtk3
 
         if not is_gtk3:
-            size = (min(825, client_display.Width), min(700, client_display.Height))
-            splitter_size = 315
+            size = (min(850, client_display.Width), min(700, client_display.Height))
+            splitter_size = 340
         else:
             size = (min(975, client_display.Width), min(700, client_display.Height))
             splitter_size = 465
@@ -16271,9 +16271,9 @@ class SVDControlPanel(wx.Panel):
             profile_type.SetStringSelection('Unsubtracted')
 
         profile_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        profile_sizer.Add(label, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+        profile_sizer.Add(label, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(3))
-        profile_sizer.Add(profile_type, 1, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+        profile_sizer.Add(profile_type, 1, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(3))
 
         #control what the range of curves you're using is.
@@ -16288,13 +16288,13 @@ class SVDControlPanel(wx.Panel):
         end_frame.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onChangeFrame)
 
         frame_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        frame_sizer.Add(label1, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+        frame_sizer.Add(label1, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(3))
-        frame_sizer.Add(start_frame, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+        frame_sizer.Add(start_frame, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(3))
-        frame_sizer.Add(label2, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+        frame_sizer.Add(label2, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(3))
-        frame_sizer.Add(end_frame, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+        frame_sizer.Add(end_frame, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(3))
 
 
@@ -20783,7 +20783,7 @@ class REGALSComponentGrid(scrolled.ScrolledPanel):
         is_gtk3 = main_frame.is_gtk3
 
         if not is_gtk3:
-            size = (min(920, client_display.Width-200), min(425, client_display.Height))
+            size = (min(875, client_display.Width-200), min(425, client_display.Height))
 
         else:
             size = (min(1100, client_display.Width-200), min(425, client_display.Height))
@@ -21756,7 +21756,7 @@ class REGALSBackground(wx.Dialog):
         is_gtk3 = main_frame.is_gtk3
 
         if not is_gtk3:
-            bkg_list_size = (-1,130)
+            bkg_list_size = (275,130)
         else:
             bkg_list_size = (400, 130)
 
