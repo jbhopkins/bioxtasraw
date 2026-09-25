@@ -6878,8 +6878,13 @@ class MainWorkerThread(threading.Thread):
             line_data = pdata[1]
             item_data = pdata[2]
 
+            if line_data is not None:
+                line_color = line_data['line_color']
+            else:
+                line_color = None
+
             wx.CallAfter(self.plot_panel.plotSASM, new_sasm,
-                          line_data['plot_axes'], color = line_data['line_color'],
+                          line_data['plot_axes'], color = line_color,
                           line_data = line_data)
 
             #Backwards compatibility
@@ -6942,9 +6947,16 @@ class MainWorkerThread(threading.Thread):
             except:
                 legend_label = defaultdict(str)
 
+            if item_data is not None:
+                item_colour = item_data['item_font_color']
+                item_visible = item_data['item_selected_for_plot']
+            else:
+                item_colour = None
+                item_visible = True
+
             wx.CallAfter(self.sec_item_panel.addItem, new_secm,
-                          item_colour = item_data['item_font_color'],
-                          item_visible = item_data['item_selected_for_plot'],
+                          item_colour = item_colour,
+                          item_visible = item_visible,
                           legend_label=legend_label)
 
         wx.CallAfter(self.plot_panel.updateLegend, 1, False)

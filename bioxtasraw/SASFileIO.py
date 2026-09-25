@@ -1975,15 +1975,15 @@ def inner_load_sasm_hdf5(name):
 
         try:
             line_data = {
-                'line_color'            : str(name.attrs['line_color']),
+                'line_color'            : name.attrs['line_color'],
                 'line_width'            : float(name.attrs['line_width']),
                 'line_style'            : str(name.attrs['line_style']),
                 'line_marker'           : str(name.attrs['line_marker']),
                 'line_visible'          : name.attrs['line_visible'],
-                'line_marker_face_color' : str(name.attrs['line_marker_face_color']),
-                'line_marker_edge_color' : str(name.attrs['line_marker_edge_color']),
+                'line_marker_face_color' : name.attrs['line_marker_face_color'],
+                'line_marker_edge_color' : name.attrs['line_marker_edge_color'],
                 'line_marker_size'      : float(name.attrs['line_marker_size']),
-                'line_errorbar_color'   : str(name.attrs['line_errorbar_color']),
+                'line_errorbar_color'   : name.attrs['line_errorbar_color'],
                 'line_legend_label'     : str(name.attrs['line_legend_label']),
                 'plot_axes'             : int(name.attrs['plot_axes']),
                 }
@@ -1999,7 +1999,7 @@ def inner_load_sasm_hdf5(name):
         try:
             item_data = {
                 'item_controls_visible' : name.attrs['item_controls_visible'],
-                'item_font_color'       : str(name.attrs['item_font_color']),
+                'item_font_color'       : name.attrs['item_font_color'],
                 'item_selected_for_plot': name.attrs['item_selected_for_plot']
             }
 
@@ -2071,38 +2071,38 @@ def inner_load_ift_hdf5(name):
         item_data = {}
         line_data = {}
 
-        item_data['item_font_color'] = str(name.attrs['item_font_color'])
+        item_data['item_font_color'] = name.attrs['item_font_color']
         item_data['item_selected_for_plot'] = name.attrs['item_selected_for_plot']
 
-        line_data['r_line_color'] = str(name.attrs['r_line_color'])
+        line_data['r_line_color'] = name.attrs['r_line_color']
         line_data['r_line_width'] = float(name.attrs['r_line_width'])
         line_data['r_line_style'] = str(name.attrs['r_line_style'])
         line_data['r_line_marker'] = str(name.attrs['r_line_marker'])
         line_data['r_line_visible'] = name.attrs['r_line_visible']
-        line_data['r_line_marker_face_color'] = str(name.attrs['r_line_marker_face_color'])
-        line_data['r_line_marker_edge_color'] = str(name.attrs['r_line_marker_edge_color'])
+        line_data['r_line_marker_face_color'] = name.attrs['r_line_marker_face_color']
+        line_data['r_line_marker_edge_color'] = name.attrs['r_line_marker_edge_color']
         line_data['r_line_marker_size'] = float(name.attrs['r_line_marker_size'])
-        line_data['r_line_errorbar_color'] = str(name.attrs['r_line_errorbar_color'])
+        line_data['r_line_errorbar_color'] = name.attrs['r_line_errorbar_color']
         line_data['r_line_legend_label'] = str(name.attrs['r_line_legend_label'])
 
-        line_data['qo_line_color'] = str(name.attrs['qo_line_color'])
+        line_data['qo_line_color'] = name.attrs['qo_line_color']
         line_data['qo_line_width'] = float(name.attrs['qo_line_width'])
         line_data['qo_line_style'] = str(name.attrs['qo_line_style'])
         line_data['qo_line_marker'] = str(name.attrs['qo_line_marker'])
         line_data['qo_line_visible'] = name.attrs['qo_line_visible']
-        line_data['qo_line_marker_face_color'] = str(name.attrs['qo_line_marker_face_color'])
-        line_data['qo_line_marker_edge_color'] = str(name.attrs['qo_line_marker_edge_color'])
+        line_data['qo_line_marker_face_color'] = name.attrs['qo_line_marker_face_color']
+        line_data['qo_line_marker_edge_color'] = name.attrs['qo_line_marker_edge_color']
         line_data['qo_line_marker_size'] = float(name.attrs['qo_line_marker_size'])
-        line_data['qo_line_errorbar_color'] = str(name.attrs['qo_line_errorbar_color'])
+        line_data['qo_line_errorbar_color'] = name.attrs['qo_line_errorbar_color']
         line_data['qo_line_legend_label'] = str(name.attrs['qo_line_legend_label'])
 
-        line_data['qf_line_color'] = str(name.attrs['qf_line_color'])
+        line_data['qf_line_color'] = name.attrs['qf_line_color']
         line_data['qf_line_width'] = float(name.attrs['qf_line_width'])
         line_data['qf_line_style'] = str(name.attrs['qf_line_style'])
         line_data['qf_line_marker'] = str(name.attrs['qf_line_marker'])
         line_data['qf_line_visible'] = name.attrs['qf_line_visible']
-        line_data['qf_line_marker_face_color'] = str(name.attrs['qf_line_marker_face_color'])
-        line_data['qf_line_marker_edge_color'] = str(name.attrs['qf_line_marker_edge_color'])
+        line_data['qf_line_marker_face_color'] = name.attrs['qf_line_marker_face_color']
+        line_data['qf_line_marker_edge_color'] = name.attrs['qf_line_marker_edge_color']
         line_data['qf_line_marker_size'] = float(name.attrs['qf_line_marker_size'])
         line_data['qf_line_legend_label'] = str(name.attrs['qf_line_legend_label'])
 
@@ -2332,21 +2332,21 @@ def inner_load_series(f):
     seriesm_data['baseline_extrapolation'] = baseline.attrs['baseline_extrapolation']
 
     try:
-        seriesm_data['item_font_color'] = str(f.attrs['item_font_color'])
+        seriesm_data['item_font_color'] = f.attrs['item_font_color']
         seriesm_data['item_selected_for_plot'] = f.attrs['item_selected_for_plot']
     except Exception:
         pass
 
     try:
-        seriesm_data['line_color'] = str(f.attrs['line_color'])
+        seriesm_data['line_color'] = f.attrs['line_color']
         seriesm_data['line_width'] = float(f.attrs['line_width'])
         seriesm_data['line_style'] = str(f.attrs['line_style'])
         seriesm_data['line_marker'] = str(f.attrs['line_marker'])
         seriesm_data['line_visible'] = f.attrs['line_visible']
-        seriesm_data['line_marker_face_color'] = str(f.attrs['line_marker_face_color'])
-        seriesm_data['line_marker_edge_color'] = str(f.attrs['line_marker_edge_color'])
+        seriesm_data['line_marker_face_color'] = f.attrs['line_marker_face_color']
+        seriesm_data['line_marker_edge_color'] = f.attrs['line_marker_edge_color']
         seriesm_data['line_visible'] = f.attrs['line_visible']
-        seriesm_data['line_legend_label'] = str(f.attrs['line_legend_label'])
+        seriesm_data['line_legend_label'] = f.attrs['line_legend_label']
 
         try:
             seriesm_data['line_marker_size'] = float(f.attrs['line_marker_size'])
@@ -2357,13 +2357,13 @@ def inner_load_series(f):
         pass
 
     try:
-        seriesm_data['calc_line_color'] = str(calc_data.attrs['line_color'])
+        seriesm_data['calc_line_color'] = calc_data.attrs['line_color']
         seriesm_data['calc_line_width'] = float(calc_data.attrs['line_width'])
         seriesm_data['calc_line_style'] = str(calc_data.attrs['line_style'])
         seriesm_data['calc_line_marker'] = str(calc_data.attrs['line_marker'])
         seriesm_data['calc_line_visible'] = calc_data.attrs['line_visible']
-        seriesm_data['calc_line_marker_face_color'] = str(calc_data.attrs['line_marker_face_color'])
-        seriesm_data['calc_line_marker_edge_color'] = str(calc_data.attrs['line_marker_edge_color'])
+        seriesm_data['calc_line_marker_face_color'] = calc_data.attrs['line_marker_face_color']
+        seriesm_data['calc_line_marker_edge_color'] = calc_data.attrs['line_marker_edge_color']
         seriesm_data['calc_line_visible'] = calc_data.attrs['line_visible']
         seriesm_data['calc_line_legend_label'] = str(calc_data.attrs['line_legend_label'])
 
@@ -2660,11 +2660,11 @@ def makeSeriesFile(secm_data, settings):
 
     try:
         line_data = {
-            'line_color' : str(secm_data['line_color']),
+            'line_color' : secm_data['line_color'],
             'line_width' : float(secm_data['line_width']),
             'line_style' : str(secm_data['line_style']),
             'line_marker': str(secm_data['line_marker']),
-            'line_visible' : str(secm_data['line_visible']),
+            'line_visible' : secm_data['line_visible'],
             'line_legend_label': str(secm_data['line_legend_label']),
             }
 
@@ -2674,8 +2674,8 @@ def makeSeriesFile(secm_data, settings):
             line_data['line_visible'] = False
 
         try:
-            line_data['line_marker_face_color'] = str(secm_data['line_marker_face_color'])
-            line_data['line_marker_edge_color'] = str(secm_data['line_marker_edge_color'])
+            line_data['line_marker_face_color'] = secm_data['line_marker_face_color']
+            line_data['line_marker_edge_color'] = secm_data['line_marker_edge_color']
 
         except KeyError:
             pass #Version <1.3.0 doesn't have these keys
@@ -2690,7 +2690,7 @@ def makeSeriesFile(secm_data, settings):
 
     try:
         calc_line_data = {
-            'line_color' : str(secm_data['calc_line_color']),
+            'line_color' : secm_data['calc_line_color'],
             'line_width' : float(secm_data['calc_line_width']),
             'line_style' : str(secm_data['calc_line_style']),
             'line_marker': str(secm_data['calc_line_marker']),
@@ -2704,8 +2704,8 @@ def makeSeriesFile(secm_data, settings):
             calc_line_data['line_visible'] = False
 
         try:
-            calc_line_data['line_marker_face_color'] = str(secm_data['calc_line_marker_face_color'])
-            calc_line_data['line_marker_edge_color'] = str(secm_data['calc_line_marker_edge_color'])
+            calc_line_data['line_marker_face_color'] = secm_data['calc_line_marker_face_color']
+            calc_line_data['line_marker_edge_color'] = secm_data['calc_line_marker_edge_color']
         except KeyError:
             pass #Version <1.3.0 doesn't have these keys
 
@@ -2717,10 +2717,9 @@ def makeSeriesFile(secm_data, settings):
     except KeyError:
         calc_line_data = None
 
-
     try:
         item_data = {
-            'item_font_color'           : str(secm_data['item_font_color']),
+            'item_font_color'           : secm_data['item_font_color'],
             'item_selected_for_plot'    : secm_data['item_selected_for_plot'],
             }
 
@@ -2728,7 +2727,8 @@ def makeSeriesFile(secm_data, settings):
             item_data['item_selected_for_plot'] = True
         else:
             item_data['item_selected_for_plot'] = False
-    except Exception:
+
+    except KeyError:
         item_data = None
 
     return new_secm, line_data, calc_line_data, item_data
@@ -5740,7 +5740,6 @@ def loadWorkspace_legacy(load_path, raw_settings):
                              'line_visible' :sasm_data['line_visible']}
             except KeyError:
                 line_data = None    #Backwards compatibility
-                sasm_data['line_visible'] = True
 
             try:
                 line_data['line_marker_edge_color'] = sasm_data['line_marker_edge_color']
