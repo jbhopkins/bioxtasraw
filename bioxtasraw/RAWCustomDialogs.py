@@ -4839,13 +4839,13 @@ class SeriesAdjustmentFrame(wx.Frame):
             validator=RAWCustomCtrl.CharValidator('float_te'),
             size=self._FromDIP((70, -1)))
         self.nmin = RAWCustomCtrl.IntSpinCtrl(q_box, wx.ID_ANY, '1.0',
-            TextLength=50)
+            TextLength=60)
 
         self.max_q = wx.TextCtrl(q_box, wx.ID_ANY, style=wx.TE_PROCESS_ENTER,
             validator=RAWCustomCtrl.CharValidator('float_te'),
             size=self._FromDIP((70, -1)))
         self.nmax = RAWCustomCtrl.IntSpinCtrl(q_box, wx.ID_ANY, '1.0',
-            TextLength=50)
+            TextLength=60)
 
         self.nmin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onNRangeChange)
         self.nmax.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onNRangeChange)

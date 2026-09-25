@@ -338,7 +338,7 @@ class MainFrame(wx.Frame):
         if not self.is_gtk3:
             ctrl_width = 425
         else:
-            ctrl_width = 500
+            ctrl_width = 535
 
         self._mgr.AddPane(self.info_panel, aui.AuiPaneInfo().Name("infopanel").
                           CloseButton(False).Left().Layer(0).Caption("Information Panel").
@@ -7555,11 +7555,9 @@ class FilePanel(wx.Panel):
 
         # *************** Directory Control ***********************
         b2sizer = wx.BoxSizer(wx.VERTICAL)
-        b2sizer.Add(self._FromDIP((10,10)), 0)
-        b2sizer.Add(self._FromDIP((5,5)))
-        b2sizer.Add(self.dir_panel, 1, wx.EXPAND| wx.LEFT | wx.RIGHT,
+        b2sizer.Add(self.dir_panel, 1, wx.EXPAND| wx.LEFT | wx.RIGHT|wx.TOP,
             border=self._FromDIP(10))
-        b2sizer.Add(button_sizer, 0, wx.EXPAND|wx.TOP|wx.LEFT|wx.RIGHT|wx.BOTTOM,
+        b2sizer.Add(button_sizer, 0, wx.EXPAND|wx.ALL,
             border=self._FromDIP(10))
 
         self.SetSizer(b2sizer)
@@ -8456,13 +8454,15 @@ class DirCtrlPanel(wx.Panel):
         refresh_png = os.path.join(RAWGlobals.RAWResourcesDir,
             'icons8-synchronize-16.png')
 
+        btn_size = (28, -1)
+
         dir_bitmap = SASUtils.load_DIP_bitmap(dir_png, wx.BITMAP_TYPE_PNG)['light']
         refresh_bitmap = SASUtils.load_DIP_bitmap(refresh_png, wx.BITMAP_TYPE_PNG)['light']
 
-        self.dir_button = wx.BitmapButton(self, -1, dir_bitmap)
+        self.dir_button = wx.BitmapButton(self, -1, dir_bitmap, size=btn_size)
         self.dir_button.Bind(wx.EVT_BUTTON, self._onSetDirButton)
 
-        self.refresh_button = wx.BitmapButton(self, -1, refresh_bitmap)
+        self.refresh_button = wx.BitmapButton(self, -1, refresh_bitmap, size=btn_size)
         self.refresh_button.Bind(wx.EVT_BUTTON, self._onRefreshButton)
 
         self.dir_button.SetToolTip(wx.ToolTip('Open Folder'))
@@ -8629,18 +8629,18 @@ class ManipulationPanel(wx.Panel):
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        if platform.system() == 'Darwin':
-            size = (28, -1)
-        else:
-            size = (-1, -1)
+        size = (28, -1)
 
-        self.collapse_all_btn = wx.BitmapButton(self, -1, self.collapse_all_png)
-        self.expand_all_btn = wx.BitmapButton(self, -1, self.expand_all_png)
         self.show_all_btn = wx.BitmapButton(self, -1, self.show_all_png,
             size=self._FromDIP(size))
         self.hide_all_btn = wx.BitmapButton(self, -1, self.hide_all_png,
             size=self._FromDIP(size))
-        self.select_all_btn= wx.BitmapButton(self, -1, self.select_all_png)
+        self.select_all_btn= wx.BitmapButton(self, -1, self.select_all_png,
+            size=self._FromDIP(size))
+        self.collapse_all_btn = wx.BitmapButton(self, -1, self.collapse_all_png,
+            size=self._FromDIP(size))
+        self.expand_all_btn = wx.BitmapButton(self, -1, self.expand_all_png,
+            size=self._FromDIP(size))
 
         self.select_all_btn.Bind(wx.EVT_BUTTON, self._onSelectAllButton)
         self.collapse_all_btn.Bind(wx.EVT_BUTTON, self._onCollapseAllButton)
@@ -10565,8 +10565,8 @@ class ManipItemPanel(wx.Panel):
 
             spinCtrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, bindfunc)
 
-            control_sizer.Add(label, 1, wx.TOP, border=self._FromDIP(3))
-            control_sizer.Add(spinCtrl, 1, wx.EXPAND)
+            control_sizer.Add(label, 1, wx.TOP|wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(3))
+            control_sizer.Add(spinCtrl, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL)
 
 
     def _createSimpleSpinCtrls(self, control_sizer):
@@ -10589,7 +10589,7 @@ class ManipItemPanel(wx.Panel):
                 spin_label.Bind(wx.EVT_KEY_DOWN, self._onKeyPress)
 
             spin_control = RAWCustomCtrl.IntSpinCtrl(self, spin_id, min_val=nlow,
-                max_val=nhigh, TextLength=43)
+                max_val=nhigh, TextLength=60)
 
             if spin_name == 'nlow':
                 spin_control.SetValue(nlow)
@@ -10598,16 +10598,16 @@ class ManipItemPanel(wx.Panel):
 
             spin_control.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._onQrangeChange)
 
-            q_ctrl = wx.TextCtrl(self, qtxtId, '', size = self._FromDIP((55,-1)),
+            q_ctrl = wx.TextCtrl(self, qtxtId, '', size = self._FromDIP((65,-1)),
                 style = wx.TE_PROCESS_ENTER)
             q_ctrl.Bind(wx.EVT_TEXT_ENTER, self._onEnterInQrangeTextCtrl)
 
             spin_sizer = wx.BoxSizer()
-            spin_sizer.Add(q_ctrl, 0, wx.RIGHT, border=self._FromDIP(3))
-            spin_sizer.Add(spin_control, 0)
+            spin_sizer.Add(q_ctrl, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=self._FromDIP(3))
+            spin_sizer.Add(spin_control, 0, flag=wx.ALIGN_CENTER_VERTICAL)
 
-            control_sizer.Add(spin_label, 0)
-            control_sizer.Add(spin_sizer, 0)
+            control_sizer.Add(spin_label, 0, flag=wx.ALIGN_CENTER_VERTICAL)
+            control_sizer.Add(spin_sizer, 0, flag=wx.ALIGN_CENTER_VERTICAL)
 
 #--- ** IFT Panel **
 
@@ -10681,16 +10681,14 @@ class IFTPanel(wx.Panel):
 
         sizer = wx.BoxSizer()
 
-        if platform.system() == 'Darwin':
-            size = (28, -1)
-        else:
-            size = (-1, -1)
+        size = (28, -1)
 
         self.show_all_btn = wx.BitmapButton(self, -1, self.show_all_png,
             size=self._FromDIP(size))
         self.hide_all_btn = wx.BitmapButton(self, -1, self.hide_all_png,
             size=self._FromDIP(size))
-        self.select_all_btn = wx.BitmapButton(self, -1, self.select_all_png)
+        self.select_all_btn = wx.BitmapButton(self, -1, self.select_all_png,
+            size=self._FromDIP(size))
 
 
         if (platform.system() == 'Darwin'and pwx_version >= packv.Version('3')
@@ -11924,15 +11922,13 @@ class SECPanel(wx.Panel):
 
         sizer = wx.BoxSizer()
 
-        if platform.system() == 'Darwin':
-            size = (28, -1)
-        else:
-            size = (-1, -1)
+        size = (28, -1)
 
-        self.select_all_btn = wx.BitmapButton(self, -1, self.select_all_png)
         self.show_all_btn = wx.BitmapButton(self, -1, self.show_all_png,
             size=self._FromDIP(size))
         self.hide_all_btn = wx.BitmapButton(self, -1, self.hide_all_png,
+            size=self._FromDIP(size))
+        self.select_all_btn = wx.BitmapButton(self, -1, self.select_all_png,
             size=self._FromDIP(size))
 
         if (platform.system() == 'Darwin'and pwx_version >= packv.Version('3')
@@ -13289,7 +13285,7 @@ class SeriesControlPanel(wx.Panel):
                 labelbox = wx.StaticText(send_box, -1, "Frames:")
                 labelbox2 = wx.StaticText(send_box, -1, "to")
                 self.initial_selected_box = wx.TextCtrl(send_box, ctrl_id,
-                    value=val, size=self._FromDIP((50,-1)))
+                    value=val, size=self._FromDIP((60,-1)))
 
                 selected_sizer.Add(labelbox, border=self._FromDIP(2),
                     flag=wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.LEFT)
@@ -13301,7 +13297,7 @@ class SeriesControlPanel(wx.Panel):
 
             elif ctrl_type == 'fsframenum':
                 self.final_selected_box = wx.TextCtrl(send_box, ctrl_id,
-                    value=val, size=self._FromDIP((50,-1)))
+                    value=val, size=self._FromDIP((60,-1)))
                 selected_sizer.Add(self.final_selected_box,
                     border=self._FromDIP(5), flag=wx.ALIGN_CENTER_VERTICAL
                     |wx.RIGHT)

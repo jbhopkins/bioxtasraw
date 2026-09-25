@@ -3949,8 +3949,8 @@ class GNOMFrame(wx.Frame):
             size = (min(825, client_display.Width), min(700, client_display.Height))
             splitter_size = 315
         else:
-            size = (min(925, client_display.Width), min(700, client_display.Height))
-            splitter_size = 415
+            size = (min(975, client_display.Width), min(700, client_display.Height))
+            splitter_size = 465
 
         self.SetSize(self._FromDIP(size))
 
@@ -4619,9 +4619,9 @@ class GNOMControlPanel(wx.Panel):
         sizer.Add(wx.StaticText(parent, -1,'n_max'),1)
 
         self.startSpin = RAWCustomCtrl.IntSpinCtrl(parent, self.spinctrlIDs['qstart'],
-            min_val=0)
+            min_val=0, TextLength=60)
         self.endSpin = RAWCustomCtrl.IntSpinCtrl(parent, self.spinctrlIDs['qend'],
-            min_val=0)
+            min_val=0, TextLength=60)
 
         sp_min, sp_max = self.sasm.getQrange()
 
@@ -4635,11 +4635,11 @@ class GNOMControlPanel(wx.Panel):
         self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
 
         self.qstartTxt = wx.TextCtrl(parent, self.staticTxtIDs['qstart'],
-            str(round(self.sasm.q[sp_min],4)), size = self._FromDIP((55, 22)),
+            str(round(self.sasm.q[sp_min],4)), size = self._FromDIP((65, 22)),
             style = wx.TE_PROCESS_ENTER,
             validator=RAWCustomCtrl.CharValidator('float_te'))
         self.qendTxt = wx.TextCtrl(parent, self.staticTxtIDs['qend'],
-            str(round(self.sasm.q[sp_max-1],4)), size = self._FromDIP((55, 22)),
+            str(round(self.sasm.q[sp_max-1],4)), size = self._FromDIP((65, 22)),
             style = wx.TE_PROCESS_ENTER,
             validator=RAWCustomCtrl.CharValidator('float_te'))
 
@@ -5638,8 +5638,10 @@ class DammifRunPanel(wx.Panel):
             size = self._FromDIP((150, -1)))
 
         prefix_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        prefix_sizer.Add(prefix_text, 0, wx.LEFT, border=self._FromDIP(5))
-        prefix_sizer.Add(prefix_ctrl, 1, wx.LEFT | wx.RIGHT, border=self._FromDIP(5))
+        prefix_sizer.Add(prefix_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(5))
+        prefix_sizer.Add(prefix_ctrl, 1, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(5))
         prefix_sizer.AddStretchSpacer(1)
 
 
@@ -5649,8 +5651,10 @@ class DammifRunPanel(wx.Panel):
         nruns_ctrl.Bind(wx.EVT_TEXT, self.onRunsText)
 
         nruns_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        nruns_sizer.Add(nruns_text, 0, wx.LEFT, border=self._FromDIP(5))
-        nruns_sizer.Add(nruns_ctrl, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(5))
+        nruns_sizer.Add(nruns_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(5))
+        nruns_sizer.Add(nruns_ctrl, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(5))
 
 
         nprocs = multiprocessing.cpu_count()
@@ -5659,8 +5663,9 @@ class DammifRunPanel(wx.Panel):
         nprocs_choice = wx.Choice(settings_box, self.ids['procs'], choices = nprocs_choices)
 
         nprocs_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        nprocs_sizer.Add(nprocs_text, 0, wx.LEFT, border=self._FromDIP(5))
-        nprocs_sizer.Add(nprocs_choice, 0, wx.LEFT | wx.RIGHT,
+        nprocs_sizer.Add(nprocs_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(5))
+        nprocs_sizer.Add(nprocs_choice, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
 
 
@@ -5693,15 +5698,15 @@ class DammifRunPanel(wx.Panel):
         choices_sizer.AddGrowableCol(2)
         choices_sizer.AddGrowableCol(3)
 
-        choices_sizer.Add(program_text)
-        choices_sizer.Add(mode_text)
-        choices_sizer.Add(sym_text)
-        choices_sizer.Add(aniso_text)
+        choices_sizer.Add(program_text, flag=wx.ALIGN_CENTER_VERTICAL)
+        choices_sizer.Add(mode_text, flag=wx.ALIGN_CENTER_VERTICAL)
+        choices_sizer.Add(sym_text, flag=wx.ALIGN_CENTER_VERTICAL)
+        choices_sizer.Add(aniso_text, flag=wx.ALIGN_CENTER_VERTICAL)
 
-        choices_sizer.Add(program_choice)
-        choices_sizer.Add(mode_choice)
-        choices_sizer.Add(sym_choice)
-        choices_sizer.Add(aniso_choice)
+        choices_sizer.Add(program_choice, flag=wx.ALIGN_CENTER_VERTICAL)
+        choices_sizer.Add(mode_choice, flag=wx.ALIGN_CENTER_VERTICAL)
+        choices_sizer.Add(sym_choice, flag=wx.ALIGN_CENTER_VERTICAL)
+        choices_sizer.Add(aniso_choice, flag=wx.ALIGN_CENTER_VERTICAL)
 
         damaver_chk = wx.CheckBox(settings_box, self.ids['damaver'], 'Align and average envelopes (damaver)')
         damaver_chk.Bind(wx.EVT_CHECKBOX, self.onCheckBox)
@@ -5724,10 +5729,12 @@ class DammifRunPanel(wx.Panel):
         align_button.Bind(wx.EVT_BUTTON, self._selectAlignFile)
 
         align_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        align_sizer.Add(self.align_result, border=self._FromDIP(5), flag=wx.RIGHT)
-        align_sizer.Add(self.align_file_ctrl, border=self._FromDIP(5), flag=wx.RIGHT,
+        align_sizer.Add(self.align_result, border=self._FromDIP(5), 
+            flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        align_sizer.Add(self.align_file_ctrl, border=self._FromDIP(5), 
+            flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             proportion=1)
-        align_sizer.Add(align_button)
+        align_sizer.Add(align_button, flag=wx.ALIGN_CENTER_VERTICAL)
 
         advancedButton = wx.Button(settings_box, -1, 'Change Advanced Settings')
         advancedButton.Bind(wx.EVT_BUTTON, self._onAdvancedButton)
@@ -7293,7 +7300,7 @@ class DammifResultsPanel(wx.Panel):
 
         res_text = wx.StaticText(res_box, wx.ID_ANY, 'Ensemble Resolution:')
         res_ctrl = wx.TextCtrl(res_box, self.ids['res'], '',
-            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
+            size=self._FromDIP((75,-1)), style=wx.TE_READONLY)
 
         # reserr_text = wx.StaticText(res_box, wx.ID_ANY, '+/-')
         # reserr_ctrl = wx.TextCtrl(res_box, self.ids['resErr'], '',
@@ -8348,8 +8355,9 @@ class DenssRunPanel(wx.Panel):
             size=self._FromDIP((150, -1)))
 
         prefix_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        prefix_sizer.Add(prefix_text, 0, wx.LEFT, border=self._FromDIP(5))
-        prefix_sizer.Add(prefix_ctrl, 1, wx.LEFT | wx.RIGHT,
+        prefix_sizer.Add(prefix_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(5))
+        prefix_sizer.Add(prefix_ctrl, 1, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
         prefix_sizer.AddStretchSpacer(1)
 
@@ -8360,8 +8368,9 @@ class DenssRunPanel(wx.Panel):
         nruns_ctrl.Bind(wx.EVT_TEXT, self.onRunsText)
 
         nruns_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        nruns_sizer.Add(nruns_text, 0, wx.LEFT, border=self._FromDIP(5))
-        nruns_sizer.Add(nruns_ctrl, 0, wx.LEFT | wx.RIGHT,
+        nruns_sizer.Add(nruns_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(5))
+        nruns_sizer.Add(nruns_ctrl, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
 
 
@@ -8375,8 +8384,9 @@ class DenssRunPanel(wx.Panel):
         nprocs_choice = wx.Choice(settings_box, self.ids['procs'], choices = nprocs_choices)
 
         nprocs_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        nprocs_sizer.Add(nprocs_text, 0, wx.LEFT, border=self._FromDIP(5))
-        nprocs_sizer.Add(nprocs_choice, 0, wx.LEFT | wx.RIGHT,
+        nprocs_sizer.Add(nprocs_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(5))
+        nprocs_sizer.Add(nprocs_choice, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL,
             border=self._FromDIP(5))
 
 
@@ -8384,8 +8394,10 @@ class DenssRunPanel(wx.Panel):
         mode_ctrl = wx.Choice(settings_box, self.ids['mode'], choices=['Fast', 'Slow', 'Membrane', 'Custom'])
 
         mode_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        mode_sizer.Add(mode_text, 0, wx.LEFT, border=self._FromDIP(5))
-        mode_sizer.Add(mode_ctrl, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(5))
+        mode_sizer.Add(mode_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(5))
+        mode_sizer.Add(mode_ctrl, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(5))
 
 
         ne_text = wx.StaticText(settings_box, wx.ID_ANY, 'Total number of electrons (optional) :')
@@ -8393,8 +8405,10 @@ class DenssRunPanel(wx.Panel):
             size=self._FromDIP((60,-1)))
 
         ne_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        ne_sizer.Add(ne_text, 0, wx.LEFT, border=self._FromDIP(5))
-        ne_sizer.Add(ne_ctrl, 0, wx.LEFT | wx.RIGHT, border=self._FromDIP(5))
+        ne_sizer.Add(ne_text, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(5))
+        ne_sizer.Add(ne_ctrl, 0, wx.LEFT | wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 
+            border=self._FromDIP(5))
 
         average_chk = wx.CheckBox(settings_box, self.ids['average'], 'Align and average densities')
         average_chk.Bind(wx.EVT_CHECKBOX, self.onCheckBox)
@@ -8443,10 +8457,10 @@ class DenssRunPanel(wx.Panel):
 
         align_sizer = wx.BoxSizer(wx.HORIZONTAL)
         align_sizer.Add(self.align_result, border=self._FromDIP(5),
-            flag=wx.RIGHT)
+            flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
         align_sizer.Add(self.align_file_ctrl, border=self._FromDIP(5),
-            flag=wx.RIGHT, proportion=1)
-        align_sizer.Add(align_button)
+            flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, proportion=1)
+        align_sizer.Add(align_button, flag=wx.ALIGN_CENTER_VERTICAL)
 
         advancedButton = wx.Button(settings_box, -1, 'Change Advanced Settings')
         advancedButton.Bind(wx.EVT_BUTTON, self._onAdvancedButton)
@@ -9994,10 +10008,10 @@ class DenssResultsPanel(wx.Panel):
 
         corm_text = wx.StaticText(rscor_box, label='Mean RSC:')
         corm_ctrl = wx.TextCtrl(rscor_box, self.ids['rscorMean'], '',
-            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
+            size=self._FromDIP((70,-1)), style=wx.TE_READONLY)
         cors_text = wx.StaticText(rscor_box, label='Stdev. RSC:')
         cors_ctrl = wx.TextCtrl(rscor_box, self.ids['rscorStd'], '',
-            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
+            size=self._FromDIP((70,-1)), style=wx.TE_READONLY)
         cori1_text = wx.StaticText(rscor_box, label='Average included:')
         cori1_ctrl = wx.TextCtrl(rscor_box, self.ids['rscorInc'], '',
             size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
@@ -10026,11 +10040,11 @@ class DenssResultsPanel(wx.Panel):
 
         res_text = wx.StaticText(res_box, wx.ID_ANY, 'Fourier Shell Correlation Resolution:')
         res_ctrl = wx.TextCtrl(res_box, self.ids['res'], '',
-            size=self._FromDIP((60,-1)), style=wx.TE_READONLY)
+            size=self._FromDIP((75,-1)), style=wx.TE_READONLY)
 
         res_sd_text = wx.StaticText(res_box, label='+/-')
         res_sd_ctrl = wx.TextCtrl(res_box, self.ids['res_sd'], '',
-            size=self._FromDIP((60, -1)), style=wx.TE_READONLY)
+            size=self._FromDIP((75, -1)), style=wx.TE_READONLY)
 
         resunit_text = wx.StaticText(res_box, label='Angstrom')
 
@@ -11120,8 +11134,8 @@ class BIFTFrame(wx.Frame):
             size = (min(800, client_display.Width), min(700, client_display.Height))
             splitter_size = 290
         else:
-            size = (min(880, client_display.Width), min(700, client_display.Height))
-            splitter_size = 370
+            size = (min(930, client_display.Width), min(700, client_display.Height))
+            splitter_size = 420
 
         self.SetSize(self._FromDIP(size))
 
@@ -11438,8 +11452,8 @@ class BIFTControlPanel(wx.Panel):
         sizer.Add(wx.StaticText(parent,-1,'q_max'),1)
         sizer.Add(wx.StaticText(parent,-1,'n_max'),1)
 
-        self.startSpin = RAWCustomCtrl.IntSpinCtrl(parent, min_val=0)
-        self.endSpin = RAWCustomCtrl.IntSpinCtrl(parent, min_val=0)
+        self.startSpin = RAWCustomCtrl.IntSpinCtrl(parent, min_val=0, TextLength=60)
+        self.endSpin = RAWCustomCtrl.IntSpinCtrl(parent, min_val=0, TextLength=60)
 
         sp_min, sp_max = self.sasm.getQrange()
 
@@ -11452,9 +11466,9 @@ class BIFTControlPanel(wx.Panel):
         self.startSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
         self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
 
-        self.qstartTxt = wx.TextCtrl(parent, size=self._FromDIP((55, 22)),
+        self.qstartTxt = wx.TextCtrl(parent, size=self._FromDIP((65, 22)),
             style=wx.TE_PROCESS_ENTER)
-        self.qendTxt = wx.TextCtrl(parent, size=self._FromDIP((55, 22)),
+        self.qendTxt = wx.TextCtrl(parent, size=self._FromDIP((65, 22)),
             style=wx.TE_PROCESS_ENTER)
 
         self.qstartTxt.Bind(wx.EVT_TEXT_ENTER, self.onEnterInQlimits)
@@ -11905,8 +11919,8 @@ class DIFTFrame(wx.Frame):
             size = (min(825, client_display.Width), min(700, client_display.Height))
             splitter_size = 315
         else:
-            size = (min(925, client_display.Width), min(700, client_display.Height))
-            splitter_size = 415
+            size = (min(975, client_display.Width), min(700, client_display.Height))
+            splitter_size = 465
 
         self.SetSize(self._FromDIP(size))
 
@@ -12190,9 +12204,9 @@ class DIFTControlPanel(wx.Panel):
         sizer.Add(wx.StaticText(parent, -1,'n_max'),1)
 
         self.startSpin = RAWCustomCtrl.IntSpinCtrl(parent, self.spinctrlIDs['qstart'],
-            min_val=0)
+            min_val=0, TextLength=60)
         self.endSpin = RAWCustomCtrl.IntSpinCtrl(parent, self.spinctrlIDs['qend'],
-            min_val=0)
+            min_val=0, TextLength=60)
 
         sp_min, sp_max = self.sasm.getQrange()
 
@@ -12206,11 +12220,11 @@ class DIFTControlPanel(wx.Panel):
         self.endSpin.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.onSpinCtrl)
 
         self.qstartTxt = wx.TextCtrl(parent, self.staticTxtIDs['qstart'],
-            str(round(self.sasm.q[sp_min],4)), size = self._FromDIP((55, 22)),
+            str(round(self.sasm.q[sp_min],4)), size = self._FromDIP((65, 22)),
             style = wx.TE_PROCESS_ENTER,
             validator=RAWCustomCtrl.CharValidator('float_te'))
         self.qendTxt = wx.TextCtrl(parent, self.staticTxtIDs['qend'],
-            str(round(self.sasm.q[sp_max-1],4)), size = self._FromDIP((55, 22)),
+            str(round(self.sasm.q[sp_max-1],4)), size = self._FromDIP((65, 22)),
             style = wx.TE_PROCESS_ENTER,
             validator=RAWCustomCtrl.CharValidator('float_te'))
 
@@ -19756,7 +19770,7 @@ class REGALSSVDPanel(wx.Panel):
         if not is_gtk3:
             splitter_size = 325
         else:
-            splitter_size = 370
+            splitter_size = 425
 
         self.splitter = wx.SplitterWindow(self)
 
@@ -20584,9 +20598,9 @@ class REGALSControls(wx.Panel):
         self.max_iter_label = wx.StaticText(conv_box, label='Max. iterations:')
         self.min_iter_label = wx.StaticText(conv_box, label='Min. iterations:')
         self.max_iter = RAWCustomCtrl.IntSpinCtrl(conv_box, wx.ID_ANY,
-            min_val=1)
+            min_val=1, TextLength=60)
         self.min_iter = RAWCustomCtrl.IntSpinCtrl(conv_box, wx.ID_ANY,
-            min_val=1)
+            min_val=1, TextLength=60)
 
         self.max_iter.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_iter_change)
         self.min_iter.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_iter_change)
@@ -20769,10 +20783,10 @@ class REGALSComponentGrid(scrolled.ScrolledPanel):
         is_gtk3 = main_frame.is_gtk3
 
         if not is_gtk3:
-            size = (min(800, client_display.Width-200), min(425, client_display.Height))
+            size = (min(920, client_display.Width-200), min(425, client_display.Height))
 
         else:
-            size = (min(975, client_display.Width-200), min(425, client_display.Height))
+            size = (min(1100, client_display.Width-200), min(425, client_display.Height))
 
         self.SetMinSize(self._FromDIP(size))
 
@@ -20954,7 +20968,7 @@ class REGALSComponent(wx.Panel):
         self.prof_nw_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_regals)
 
         self.dmax_ctrl = RAWCustomCtrl.IntSpinCtrl(prof_box,
-            wx.ID_ANY, min_val=1)
+            wx.ID_ANY, min_val=1, TextLength=60)
 
         self.dmax_ctrl.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_regals)
 
@@ -21026,16 +21040,16 @@ class REGALSComponent(wx.Panel):
 
         self.conc_regularizer_ctrl.Bind(wx.EVT_TEXT, self._on_update_regals)
 
-        self.conc_start = RAWCustomCtrl.IntSpinCtrl(conc_box, wx.ID_ANY, TextLength=40)
-        self.conc_end = RAWCustomCtrl.IntSpinCtrl(conc_box, wx.ID_ANY, TextLength=40)
+        self.conc_start = RAWCustomCtrl.IntSpinCtrl(conc_box, wx.ID_ANY, TextLength=60)
+        self.conc_end = RAWCustomCtrl.IntSpinCtrl(conc_box, wx.ID_ANY, TextLength=60)
 
         self.conc_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_range)
         self.conc_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_range)
 
         self.float_conc_start = RAWCustomCtrl.FloatSpinCtrl(conc_box, wx.ID_ANY,
-            TextLength=40)
+            TextLength=60)
         self.float_conc_end = RAWCustomCtrl.FloatSpinCtrl(conc_box, wx.ID_ANY,
-            TextLength=40)
+            TextLength=60)
 
         self.float_conc_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_float_range)
         self.float_conc_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_update_float_range)
@@ -21738,6 +21752,14 @@ class REGALSBackground(wx.Dialog):
     def _create_layout(self):
         parent = self
 
+        main_frame = wx.FindWindowByName('MainFrame')
+        is_gtk3 = main_frame.is_gtk3
+
+        if not is_gtk3:
+            bkg_list_size = (-1,130)
+        else:
+            bkg_list_size = (400, 130)
+
         ctrl_sizer = wx.StaticBoxSizer(wx.VERTICAL, parent, label='Controls')
         ctrl_box = ctrl_sizer.GetStaticBox()
 
@@ -21747,7 +21769,7 @@ class REGALSBackground(wx.Dialog):
 
         self.bkg_region_list = SeriesRangeItemList(self, 'buffer', ctrl_box,
             list_type='REGALS')
-        self.bkg_region_list.SetMinSize(self._FromDIP((-1,130)))
+        self.bkg_region_list.SetMinSize(self._FromDIP(bkg_list_size))
 
 
         buffer_add_btn = wx.Button(ctrl_box, label='Add region')
@@ -24599,8 +24621,8 @@ class LCSeriesFrame(wx.Frame):
             size = (min(1000, client_display.Width), min(900, client_display.Height))
             splitter_size = 325
         else:
-            size = (min(1080, client_display.Width), min(900, client_display.Height))
-            splitter_size = 405
+            size = (min(1100, client_display.Width), min(900, client_display.Height))
+            splitter_size = 435
         self.SetSize(self._FromDIP(size))
 
         panel = wx.Panel(self)
@@ -25751,9 +25773,9 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
         self.vc_mol_type.Bind(wx.EVT_CHOICE, self.onUpdateProc)
 
         self.vp_density = wx.TextCtrl(info_win, value=str(vp_density),
-            size=self._FromDIP((60,-1)), style=wx.TE_PROCESS_ENTER)
+            size=self._FromDIP((70,-1)), style=wx.TE_PROCESS_ENTER)
         self.avg_window = wx.TextCtrl(info_win, value='5',
-            size=self._FromDIP((60,-1)), style=wx.TE_PROCESS_ENTER)
+            size=self._FromDIP((70,-1)), style=wx.TE_PROCESS_ENTER)
         self.vp_density.Bind(wx.EVT_TEXT_ENTER, self.onUpdateProc)
         self.avg_window.Bind(wx.EVT_TEXT_ENTER, self.onUpdateProc)
 
@@ -25851,18 +25873,18 @@ class LCSeriesControlPanel(wx.ScrolledWindow):
             r2_1 = frames[-11]
 
         self.bl_r1_start = RAWCustomCtrl.IntSpinCtrl(baseline_win,
-            wx.ID_ANY, min_val=r1_0, max_val=r1_1, TextLength=45)
+            wx.ID_ANY, min_val=r1_0, max_val=r1_1, TextLength=60)
         self.bl_r1_end = RAWCustomCtrl.IntSpinCtrl(baseline_win,
-            wx.ID_ANY, min_val=r1_0, max_val=frames[-1], TextLength=45)
+            wx.ID_ANY, min_val=r1_0, max_val=frames[-1], TextLength=60)
         self.bl_r1_start.SetValue(r1_0)
         self.bl_r1_end.SetValue(r1_1)
         self.bl_r1_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
         self.bl_r1_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
 
         self.bl_r2_start = RAWCustomCtrl.IntSpinCtrl(baseline_win,
-            wx.ID_ANY, min_val=r2_0, max_val=frames[-1], TextLength=45)
+            wx.ID_ANY, min_val=r2_0, max_val=frames[-1], TextLength=60)
         self.bl_r2_end = RAWCustomCtrl.IntSpinCtrl(baseline_win,
-            wx.ID_ANY, min_val=r2_1, max_val=frames[-1], TextLength=45)
+            wx.ID_ANY, min_val=r2_1, max_val=frames[-1], TextLength=60)
         self.bl_r2_start.SetValue(r2_1)
         self.bl_r2_end.SetValue(frames[-1])
         self.bl_r2_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self.updateBaselineRange)
@@ -28202,9 +28224,9 @@ class SeriesRangeItem(RAWCustomCtrl.ListItem):
             frames = np.arange(self.series_panel.range[0], self.series_panel.range[1]+1)
 
         self.start_ctrl = RAWCustomCtrl.IntSpinCtrl(self, wx.ID_ANY,
-            min_val=frames[0], max_val=frames[-1], TextLength=45)
+            min_val=frames[0], max_val=frames[-1], TextLength=60)
         self.end_ctrl = RAWCustomCtrl.IntSpinCtrl(self, wx.ID_ANY,
-            min_val=frames[0], max_val=frames[-1], TextLength=45)
+            min_val=frames[0], max_val=frames[-1], TextLength=60)
 
         self.start_ctrl.SetValue(frames[0])
         self.end_ctrl.SetValue(frames[-1])

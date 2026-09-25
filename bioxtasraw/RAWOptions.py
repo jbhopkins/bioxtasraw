@@ -319,7 +319,7 @@ class CalibrationOptionsPanel(scrolled.ScrolledPanel):
 
             if ctrl_type == 'float' or ctrl_type == 'int' or ctrl_type == 'text':
                 txt = wx.StaticText(parent, label=each_text)
-                ctrl = wx.TextCtrl(parent, ctrl_id, size=self._FromDIP((60, -1)))
+                ctrl = wx.TextCtrl(parent, ctrl_id, size=self._FromDIP((75, -1)))
 
                 ctrl_sizer.Add(txt, (i, 0), flag=wx.ALIGN_CENTER_VERTICAL)
                 ctrl_sizer.Add(ctrl, (i, 1), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -2016,7 +2016,7 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
                     style = wx.TE_PROCESS_ENTER)
             else:
                 ctrl = wx.TextCtrl(parent, id, '', style = wx.TE_PROCESS_ENTER,
-                    size=self._FromDIP((60,-1)))
+                    size=self._FromDIP((75,-1)))
             txt = wx.StaticText(parent, -1, txt)
 
             sizer.Add(txt, 0, wx.ALIGN_CENTER_HORIZONTAL)
@@ -2036,7 +2036,7 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
                 ctrl = wx.Choice(parent, my_id, choices = ['Protein', 'RNA'])
             else:
                 ctrl = wx.TextCtrl(parent, my_id, '', style = wx.TE_PROCESS_ENTER,
-                    size=self._FromDIP((60,-1)))
+                    size=self._FromDIP((75,-1)))
 
             txt = wx.StaticText(parent, -1, txt)
 
@@ -2054,7 +2054,7 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
                     'log(I0/I(q))', 'Manual'])
             else:
                 ctrl = wx.TextCtrl(parent, my_id, '', style = wx.TE_PROCESS_ENTER,
-                    size=self._FromDIP((60,-1)))
+                    size=self._FromDIP((75,-1)))
 
             txt = wx.StaticText(parent, -1, txt)
 
@@ -2078,7 +2078,7 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
                 txt = wx.StaticText(parent, -1, txt)
             else:
                 ctrl = wx.TextCtrl(parent, my_id, '', style = wx.TE_PROCESS_ENTER,
-                    size=self._FromDIP((60,-1)))
+                    size=self._FromDIP((75,-1)))
                 txt = wx.StaticText(parent, -1, txt)
 
             sizer.Add(txt)
@@ -2092,7 +2092,7 @@ class MolecularWeightPanel(scrolled.ScrolledPanel):
         for txt, id in self.AbsMWData:
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             ctrl = wx.TextCtrl(parent, id, '', style = wx.TE_PROCESS_ENTER,
-                size=self._FromDIP((60,-1)))
+                size=self._FromDIP((90,-1)))
             txt = wx.StaticText(parent, -1, txt)
 
             sizer.Add(txt, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -3058,7 +3058,7 @@ class IftOptionsPanel(scrolled.ScrolledPanel):
             id = each[1]
 
             labeltxt = wx.StaticText(parent, -1, str(label))
-            ctrl = wx.TextCtrl(parent, id, '0', size=self._FromDIP((60, 21)),
+            ctrl = wx.TextCtrl(parent, id, '0', size=self._FromDIP((75, 21)),
                 style=wx.TE_RIGHT|wx.TE_PROCESS_ENTER)
 
             grid_sizer.Add(labeltxt, 1)
