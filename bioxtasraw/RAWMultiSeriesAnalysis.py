@@ -82,7 +82,7 @@ class MultiSeriesFrame(wx.Frame):
         if not is_gtk3:
             size = (min(1000, client_display.Width), min(900, client_display.Height))
         else:
-            size = (min(1080, client_display.Width), min(900, client_display.Height))
+            size = (min(1220, client_display.Width), min(900, client_display.Height))
 
         self.SetSize(self._FromDIP(size))
 
@@ -865,12 +865,16 @@ class SeriesItem(RAWCustomCtrl.ListItem):
 
         self.series_num = wx.StaticText(self, label='', size=self._FromDIP((35, -1)),
             style=wx.ST_NO_AUTORESIZE)
+        series_name = wx.StaticText(self, label=self.series_data['name'])
+
+        self.series_num.Bind(wx.EVT_LEFT_DOWN, self._on_left_mouse_btn)
+        series_name.Bind(wx.EVT_LEFT_DOWN, self._on_left_mouse_btn)
 
         top_sizer = wx.BoxSizer(wx.HORIZONTAL)
         top_sizer.Add(self.series_num, border=self._FromDIP(5), flag=wx.LEFT
             |wx.ALIGN_CENTER_VERTICAL)
-        top_sizer.Add(wx.StaticText(self, label=self.series_data['name']),
-            border=self._FromDIP(5), flag=wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
+        top_sizer.Add(series_name, border=self._FromDIP(5),
+            flag=wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_VERTICAL)
         top_sizer.AddStretchSpacer(1)
 
         self.SetSizer(top_sizer)
@@ -1747,9 +1751,9 @@ class MultiSeriesProfilesPanel(wx.ScrolledWindow):
         ctrl_box = wx.StaticBox(parent, label='Controls')
 
         q_box = wx.StaticBox(ctrl_box, label='Q controls')
-        self.q_range_start = RAWCustomCtrl.FloatSpinCtrlList(q_box, TextLength=60,
+        self.q_range_start = RAWCustomCtrl.FloatSpinCtrlList(q_box, TextLength=70,
             value_list=[0], sig_figs=5)
-        self.q_range_end = RAWCustomCtrl.FloatSpinCtrlList(q_box, TextLength=60,
+        self.q_range_end = RAWCustomCtrl.FloatSpinCtrlList(q_box, TextLength=70,
             value_list=[1], sig_figs=5)
         self.q_range_start.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_qrange_change)
         self.q_range_end.Bind(RAWCustomCtrl.EVT_MY_SPIN, self._on_qrange_change)
