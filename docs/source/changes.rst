@@ -4,7 +4,7 @@ Changes
 2.4.2
 ----------
 
-Release date: 2026-09-24
+Release date: 2026-09-29
 
 Overview
 ^^^^^^^^^^
@@ -62,6 +62,8 @@ All changes:
 *   Fixed a bug where a frozen distribution built using numpy>=2 couldn't load
     old style settings files.
 *   Fixed several GUI issues with GTK3.
+*   Fixed a bug where pixel size might not get properly set for radial averaging
+    if a previous configuration/pixel size had been used to radially average an image.
 
 2.4.1
 ----------

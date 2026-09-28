@@ -34,6 +34,7 @@ import numpy as np
 import pyFAI
 try:
     import pyFAI.integrator
+    import pyFAI.integrator.azimuthal
 except Exception:
     pass
 
@@ -461,6 +462,14 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
         ai.setFit2D(sd_distance, x_c, y_c, det_tilt, det_tilt_plan_rot, pixel_size_x,
             pixel_size_y)
 
+        # Works around a bug in the pyFAI setFit2D parameters
+        try:
+            ai.pixel2 = pixel_size_x*1e-6
+            ai.pixel1 = pixel_size_y*1e-6
+        except Exception:
+            ai.set_pixel2(pixel_size_x*1e-6)
+            ai.set_pixel1(pixel_size_y*1e-6)
+
         raw_settings.set('AzimuthalIntegrator', ai)
 
     if pixel_size_x == pixel_size_y and angular_unit == 'q_A^-1':
@@ -498,6 +507,9 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
 
         integration_kwargs['thres'] = zinger_thres
         integration_kwargs['max_iter'] = zinger_iter
+
+    print(ai)
+    print(integrate_func)
 
     q, iq, errorbars = integrate_func(img, npts, **integration_kwargs)
 
