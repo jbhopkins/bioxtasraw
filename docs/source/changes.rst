@@ -52,15 +52,16 @@ All changes:
 *   Fixed loading of legacy workspaces (.wsp) in the API when wxpython is not installed.
 *   Fixed loading of legacy workspaces in frozen version with numpy 2 when
     numpy.core compatibility is not packaged.
+*   Fixed loading of legacy workspaces wehre a bug relating to line color could
+    prevent a workspace from loading.
 *   Updated series plot to display frame number when mouse is between -0.5 and
     0.5 of the integer value, rather than 0 and 0.999 of the integer value.
-*   Windows pre-built version now ships with GPU support for image radial
-    averaging (requires system to have opencl drivers installed).
-*   MacOS pre-built version now ships with GPU support for image radial averaging
-    on arm processors.
+*   All pre-built versions now ship with GPU support for image radial averaging
+    on arm processors (requires system to have opencl drivers installed).
 *   Multiprocessing support now available for MacOS pre-built version.
 *   Fixed a bug where a frozen distribution built using numpy>=2 couldn't load
     old style settings files.
+*   Fixed several GUI issues with GTK3.
 
 2.4.1
 ----------
