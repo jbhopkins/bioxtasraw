@@ -12,9 +12,14 @@ Overview
 The RAW team is pleased to announce the release of RAW version 2.4.2. This is a
 bug fix release. This version fixes several compatibility issues for legacy
 workspaces and settings, several issues with the new hdf5 workspaces, and
-provides GPU support in frozen versions on MacOS and Windows, and multiprocessing
-support in frozen versions on MacOS. There are a number of other small bug fixes
-and updates for compatibility with the latest versions of packages.
+provides GPU support in prebuilt versions on all OSes (requires separate install
+of OpenCL drivers on some systems), and multiprocessing support in prebuilt
+versions on MacOS. There are a number of other small bug fixes and updates
+for compatibility with the latest versions of packages.
+
+Note for versions installed from soruce: this version of RAW adds an explicit
+dependency on the packaging package. This should already be installed, as
+several of RAW's other dependences (e.g. matplotlib) use this package.
 
 All changes:
 ^^^^^^^^^^^^^
