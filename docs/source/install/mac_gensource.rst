@@ -36,6 +36,10 @@ General instructions for installing from source (advanced users)
 
     *   packaging
 
+    *   pyopencl
+
+    *   ocl_icd_wrapper_apple (conda specific)
+
 #.  Download the latest RAW sourcecode from sourceforge (
     `https://sourceforge.net/projects/bioxtasraw <https://sourceforge.net/projects/bioxtasraw>`_)
 

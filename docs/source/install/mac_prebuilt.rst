@@ -10,6 +10,9 @@ Intel macs and arm64 for Apple Silicon macs) file from sourceforge (
 double click it to open the dmg, and drag the :file:`RAW.app` file to your Applications folder
 (or wherever you want to install RAW).
 
+Note that the prebuilt version on Intel macs does not support GPU based radial
+averaging of images.
+
 Direct links to the downloads:
 
 *   `Apple Silicon macs (M1 or newer chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.4.1_mac_arm64.dmg/download>`_

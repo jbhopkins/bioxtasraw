@@ -8,6 +8,10 @@ from a prebuilt installer, simply download the :file:`RAW-{x}.{y}.{z}_winx11_x86
 `https://sourceforge.net/projects/bioxtasraw <https://sourceforge.net/projects/bioxtasraw>`_),
 and double click it to run the installer.
 
+If you want GPU based radial average for images, install system-wide OpenCL drivers.
+Note that in many cases (e.g. with Nvidia cards) the standard driver package will
+include these OpenCL drivers by default.
+
 Direct links to the downloads:
 
 *  `Download Windows 11 installer

@@ -38,7 +38,11 @@ Windows detailed install from source instructions
 
     *   ``conda install -c conda-forge numpy scipy matplotlib pillow numba h5py cython reportlab``
 
-    *  ``conda install -c conda-forge wxpython hdf5plugin fabio pyfai mmcif_pdbx svglib packaging``
+    *  ``conda install -c conda-forge wxpython hdf5plugin fabio pyfai mmcif_pdbx svglib packaging pyopencl``
+
+#.  If you want GPU based radial average for images, install system-wide OpenCL drivers.
+    Note that in many cases (e.g. with Nvidia cards) the standard driver package will
+    include these OpenCL drivers by default.
 
 #.  Download RAW from sourceforge (
     `https://sourceforge.net/projects/bioxtasraw <https://sourceforge.net/projects/bioxtasraw>`_)

@@ -34,7 +34,9 @@ Linux detailed install from source instructions
 
     *   ``conda install -c conda-forge numpy scipy matplotlib pillow numba h5py cython reportlab``
 
-    *  ``conda install -c conda-forge wxpython dbus-python fabio pyfai hdf5plugin mmcif_pdbx svglib packaging``
+    *  ``conda install -c conda-forge wxpython dbus-python fabio pyfai hdf5plugin mmcif_pdbx svglib packaging pyopencl ocl-icd-system``
+
+#.  If you want GPU based radial average for images, install system-wide OpenCL drivers.
 
 #.  Download RAW source code from sourceforge
 

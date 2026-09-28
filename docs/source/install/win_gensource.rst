@@ -39,6 +39,12 @@ General instructions for installing from source (advanced users)
 
     *   packaging
 
+    *   pyopencl
+
+#.  If you want GPU based radial average for images, install system-wide OpenCL drivers.
+    Note that in many cases (e.g. with Nvidia cards) the standard driver package will
+    include these OpenCL drivers by default.
+
 #.  Download the RAW source file (:file:`RAW-{x}.{y}.{z}-Source` where :file:`{x}.{y}.{z}` is the version number)
     from sourceforge (
     `https://sourceforge.net/projects/bioxtasraw <https://sourceforge.net/projects/bioxtasraw>`_)

@@ -40,6 +40,12 @@ General instructions for installing from source (advanced users)
 
     *   packaging
 
+    *   pyopencl
+
+    *   ocl-icd-system (conda specific)
+
+#.  If you want GPU based radial average for images, install system-wide OpenCL drivers.
+
 #.  Download RAW source code from sourceforge (
     `https://sourceforge.net/projects/bioxtasraw/files <https://sourceforge.net/projects/bioxtasraw/files>`_)
 

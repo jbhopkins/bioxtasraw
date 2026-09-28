@@ -17,6 +17,9 @@ from a prebuilt app package for Ubuntu 22.04/Debian 12 or newer:
 
     *   ``sudo dpkg --install RAW-x.y.z_linux_x86_64.deb``
 
+#.  If you want GPU based radial average for images, install system-wide OpenCL drivers
+    separately from installing RAW.
+
 #.  You may now run RAW either by:
 
     #.  Using the command ``bioxtas-raw`` from the command line
