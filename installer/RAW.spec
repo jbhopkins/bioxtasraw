@@ -45,19 +45,21 @@ if opsys == 'Darwin':
         ]
     else:
         binaries = []
+    excluded_binaries = []
     console = False
 elif opsys == 'Windows':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.ico')
     hiddenimports=[]
     excludes=['PyQt5', 'PyQt6', 'PySide6', 'tkinter', 'sphinx', 'pytest', 'IPython']
     binaries=[]
+    excluded_binaries = []
     console = True
 elif opsys == 'Linux':
     raw_icon = os.path.join('..', 'bioxtasraw', 'resources', 'raw.png')
-    hiddenimports=[]
-    excludes=['PyQt5', 'PyQt6', 'PySide6', 'tkinter', 'sphinx', 'pyopengl',
-        'opengl', 'pyopencl', 'opencl', 'pytest', 'IPython', 'OpenGL']
+    hiddenimports=['pyopencl', 'ocl-icd-system']
+    excludes=['PyQt5', 'PyQt6', 'PySide6', 'tkinter', 'sphinx', 'pytest', 'IPython']
     binaries=[]
+    excluded_binaries = ['libOpenCL.so', 'libOpenCL.so.1']
     console = False
 
 options=[('W ignore', None, 'OPTION')]
@@ -81,6 +83,9 @@ a = Analysis(
     cipher=None,
     noarchive=False,
     )
+
+if len(excluded_binaries) > 0:
+    a.binaries = [x for x in a.binaries if x[0] not in excluded_binaries]
 
 pyz = PYZ(
     a.pure,
