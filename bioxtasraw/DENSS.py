@@ -50,6 +50,7 @@ import datetime, time
 from time import sleep
 import warnings
 import pickle
+import tempfile
 
 import numpy as np
 from scipy import ndimage, interpolate, spatial, special, optimize, signal, stats, fft
@@ -6541,14 +6542,18 @@ def run_pdb2mrc(
     pdb = PDB(pdb_fname)
 
     if save_output:
-        logging.basicConfig(filename=os.path.join(output_dir, pdb_basename+'.log'),level=logging.INFO,filemode='w',
-                            format='%(asctime)s %(message)s') #, datefmt='%Y-%m-%d %I:%M:%S %p')
-        logging.info('BEGIN')
-
-        logger = logging.getLogger()
+        data_dir = output_dir
+        filename = pdb_basename+'.log'
 
     else:
-        logger = None
+        data_dir = os.path.abspath(os.path.expanduser(tempfile.gettempdir()))
+        filename = tempfile.NamedTemporaryFile(dir=data_dir).name
+
+    logging.basicConfig(filename=os.path.join(data_dir, filename),
+        level=logging.INFO, filemode='w', format='%(asctime)s %(message)s') #, datefmt='%Y-%m-%d %I:%M:%S %p')
+    logging.info('BEGIN')
+    logger = logging.getLogger()
+
     # logging.info('Command: %s', ' '.join(sys.argv))
     # logging.info('DENSS Version: %s', __version__)
     # logging.info('PDB filename: %s', pdb_fname)
@@ -6635,29 +6640,65 @@ def run_pdb2mrc(
 
     pdb2mrc.scale_radii()
     if abort_event.is_set():
+        if not save_output:
+            try:
+                os.remove(os.path.join(data_dir, filename))
+            except Exception:
+                pass
         return None
 
     pdb2mrc.make_grids()
     if abort_event.is_set():
+        if not save_output:
+            try:
+                os.remove(os.path.join(data_dir, filename))
+            except Exception:
+                pass
         return None
 
     pdb2mrc.calculate_global_B()
     if abort_event.is_set():
+        if not save_output:
+            try:
+                os.remove(os.path.join(data_dir, filename))
+            except Exception:
+                pass
         return None
 
     pdb2mrc.calculate_invacuo_density()
     if abort_event.is_set():
+        if not save_output:
+            try:
+                os.remove(os.path.join(data_dir, filename))
+            except Exception:
+                pass
         return None
 
     pdb2mrc.calculate_excluded_volume()
     if abort_event.is_set():
+        if not save_output:
+            try:
+                os.remove(os.path.join(data_dir, filename))
+            except Exception:
+                pass
         return None
 
     pdb2mrc.calculate_hydration_shell()
     if abort_event.is_set():
+        if not save_output:
+            try:
+                os.remove(os.path.join(data_dir, filename))
+            except Exception:
+                pass
         return None
 
     pdb2mrc.calculate_structure_factors()
+
+    if not save_output:
+        try:
+            os.remove(os.path.join(data_dir, filename))
+        except Exception:
+            pass
 
     return pdb2mrc
 

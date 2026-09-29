@@ -69,6 +69,7 @@ All changes:
 *   Fixed several GUI issues with GTK3.
 *   Fixed a bug where pixel size might not get properly set for radial averaging
     if a previous configuration/pixel size had been used to radially average an image.
+*   Fixed a bug where DENSS PDB2SAS tool could save an unwanted log file.
 
 2.4.1
 ----------
