@@ -59,6 +59,7 @@ setup(
         'reportlab',
         'mmcif_pdbx',
         'svglib',
+        'packaging',
         'pyfai;python_version>"2.7"',
         'pyfai==0.17;python_version=="2.7"',
         'dbus-python;platform_system=="Linux"',
