@@ -1,0 +1,19 @@
+New release checklist:
+1)  Make pre-built installers and source zip file (export source on windows to
+    avoid MacOS preview files being included)
+2)  Upload pre-built installers to sourceforge
+3)  Upload previous version installers to the bioxtasraw folder on sourceforge
+    with the appropriate version
+4)  Remove previous-previous version installers (2 versions back) in the
+    bioxtasraw folder on sourceforge and leave only source zip file (to reduce
+    used space)
+5)  Update download links in install documentation (both main install page and
+    all prebuilt installer pages) to the new files
+6)  Update documentation on readthedocs and test that links work
+7)  Once new installer links are live, remove previous version installers in the main
+    sourceforge folder and set the new installers as the default for appropriate OSes.
+8)  Make version tag and push to git (e.g. git tag v2.4.2, git push origin --tags)
+9)  Post release announcements on sourceforge news tab, RAW mailing list,
+    github (new release, no binaries)
+10) Notify SBGrid of new version
+11) Notify others (e.g. beamlines) of new version
