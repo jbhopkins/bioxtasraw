@@ -508,9 +508,6 @@ def integrateCalibrateNormalize(img, parameters, raw_settings):
         integration_kwargs['thres'] = zinger_thres
         integration_kwargs['max_iter'] = zinger_iter
 
-    print(ai)
-    print(integrate_func)
-
     q, iq, errorbars = integrate_func(img, npts, **integration_kwargs)
 
     errorbars = np.nan_to_num(errorbars)
