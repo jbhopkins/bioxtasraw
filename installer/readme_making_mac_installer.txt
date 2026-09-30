@@ -40,9 +40,7 @@ Steps:
 
 Current notes:
 -   Successful codesigning seems to require at least pyinstaller version 5.11.
-- Currently building on MacOS 13, in the raw_py312 (arm) or rawpy313 (intel) environments
-- For ARM, seems to be a bug with conda numpy and pyinstaller, needs numpy < 2.0 to build
- and run properly.
+- Currently building on MacOS 13, in the raw_py312_new (arm) or raw_py313 (intel) environments
 
 
 Codesigning/notarization notes:

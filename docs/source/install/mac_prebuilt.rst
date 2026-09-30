@@ -15,9 +15,9 @@ averaging of images.
 
 Direct links to the downloads:
 
-*   `Apple Silicon macs (M1 or newer chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.4.1_mac_arm64.dmg/download>`_
+*   `Apple Silicon macs (M1 or newer chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.4.2_mac_arm64.dmg/download>`_
 
-*   `Intel macs (pre-M1 chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.4.1_mac_x86_64.dmg/download>`_
+*   `Intel macs (pre-M1 chips) <https://sourceforge.net/projects/bioxtasraw/files/RAW-2.4.2_mac_x86_64.dmg/download>`_
 
 
 **Important Notes:**

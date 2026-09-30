@@ -4,7 +4,7 @@ Changes
 2.4.2
 ----------
 
-Release date: 2026-09-29
+Release date: 2026-09-30
 
 Overview
 ^^^^^^^^^^
