@@ -10,18 +10,20 @@ elif six.PY3:
 else:
     language_level = None
 
-opsys = platform.system()
+from setuptools import setup, Extension, find_packages
 
-if opsys == 'Windows':
-    try:
-        from setuptools import setup
-        from setuptools import Extension
-    except ImportError:
-        from distutils.core import setup
-        from distutils.extension import Extension
-else:
-    from distutils.core import setup
-    from distutils.extension import Extension
+# opsys = platform.system()
+
+# if opsys == 'Windows':
+#     try:
+#         from setuptools import setup
+#         from setuptools import Extension
+#     except ImportError:
+#         from distutils.core import setup
+#         from distutils.extension import Extension
+# else:
+#     from distutils.core import setup
+#     from distutils.extension import Extension
 
 from Cython.Build import cythonize
 
@@ -43,7 +45,7 @@ setup(
     version=get_version('./bioxtasraw/__init__.py'),
     description='A package for processing biological small angle scattering data.',
     url="https://bioxtas-raw.readthedocs.io/en/latest/",
-    packages=['bioxtasraw'],
+    packages=find_packages(),
     install_requires=[
         'numpy',
         'scipy',
