@@ -8,7 +8,7 @@ New release checklist:
     bioxtasraw folder on sourceforge and leave only source zip file (to reduce
     used space)
 5)  Update download links in install documentation (both main install page and
-    all prebuilt installer pages) to the new files
+    all pre-built installer pages) to the new files
 6)  Update documentation on readthedocs and test that links work
 7)  Once new installer links are live, remove previous version installers in the main
     sourceforge folder and set the new installers as the default for appropriate OSes.
@@ -17,3 +17,5 @@ New release checklist:
     github (new release, no binaries)
 10) Notify SBGrid of new version
 11) Notify others (e.g. beamlines) of new version
+12) Notify anyone who has reported bugs that are fixed in the release of the new
+    release, close issues on github as appropriate.
