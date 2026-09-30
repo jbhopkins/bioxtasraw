@@ -17,7 +17,7 @@ of OpenCL drivers on some systems), and multiprocessing support in prebuilt
 versions on MacOS. There are a number of other small bug fixes and updates
 for compatibility with the latest versions of packages.
 
-Note for versions installed from soruce: this version of RAW adds an explicit
+Note for versions installed from source: this version of RAW adds an explicit
 dependency on the packaging package. This should already be installed, as
 several of RAW's other dependences (e.g. matplotlib) use this package.
 
@@ -39,12 +39,12 @@ All changes:
     could raise an error.
 *   Fixed a bug where version checking (e.g. for wxpython or matplotlib version
     specific commands) could fail if the version was not strictly numeric. This
-    was causing an issue with one of the prepacked versions on Debian.
+    was causing an issue with one of the prepackaged versions on Debian.
 *   Updated DENSS tools to the latest version (1.8.8)
 *   Fixed compatibility issues with wxpython 4.3.
 *   Fixed compatibility issues with svglib 2.0.
 *   Fixed compatibility issues with numpy 2.4.
-*   Theoretical profiles from the CRYSOL/DIFT windows now show as unsaved when
+*   Theoretical profiles from the CRYSOL/DENSS PDB2SAS windows now show as unsaved when
     sent to the profiles control panel.
 *   Fixed a bug where DENSS could crash RAW on linux.
 *   Fixed a bug where the line properties dialog for profiles loaded from workspaces
@@ -57,17 +57,17 @@ All changes:
 *   Fixed loading of legacy workspaces (.wsp) in the API when wxpython is not installed.
 *   Fixed loading of legacy workspaces in frozen version with numpy 2 when
     numpy.core compatibility is not packaged.
-*   Fixed loading of legacy workspaces wehre a bug relating to line color could
+*   Fixed loading of legacy workspaces where a bug relating to line color could
     prevent a workspace from loading.
 *   Updated series plot to display frame number when mouse is between -0.5 and
     0.5 of the integer value, rather than 0 and 0.999 of the integer value.
 *   All pre-built versions now ship with GPU support for image radial averaging
-    on arm processors (requires system to have opencl drivers installed).
+    (requires system to have opencl drivers installed).
 *   Multiprocessing support now available for MacOS pre-built version.
 *   Fixed a bug where a frozen distribution built using numpy>=2 couldn't load
     old style settings files.
 *   Fixed several GUI issues with GTK3.
-*   Fixed a bug where pixel size might not get properly set for radial averaging
+*   Fixed a bug where detector pixel size might not get properly set for radial averaging
     if a previous configuration/pixel size had been used to radially average an image.
 *   Fixed a bug where DENSS PDB2SAS tool could save an unwanted log file.
 
