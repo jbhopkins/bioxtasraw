@@ -4161,7 +4161,7 @@ class PlotOptionsDialog(wx.Dialog):
         else:
             y_tick_label = wx.StaticText(box, -1, 'Y-tick label font size:')
 
-        if pmpl_version <= packv.Version('3.8'):
+        if pmpl_version < packv.Version('3.8'):
             for tick in self.axes.xaxis.get_major_ticks():
                 x_tick_size = tick.label.get_fontsize()
                 break
